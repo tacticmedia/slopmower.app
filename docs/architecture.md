@@ -325,7 +325,7 @@ All anchors are captured at the review commit, which never changes.
 | `line`, `range` | As `file`, plus `range` and `snapshot` |
 | `symbol` | As `range`, plus `symbol`. The range comes from `nikic/php-parser` and includes the doc comment (D7). |
 
-Snapshot rules: normalize each line to LF line endings with no trailing whitespace. `lines` holds up to 200 lines, else the first 100 and the last 100 with `truncated: true`. `before` and `after` hold 3 context lines each.
+Snapshot rules: normalize each line to LF line endings with no trailing whitespace. Each line is valid UTF-8 without NUL: capture replaces each invalid UTF-8 sequence and each NUL with U+FFFD, as a browser shows them. `lines` holds up to 200 lines, else the first 100 and the last 100 with `truncated: true`. `before` and `after` hold 3 context lines each.
 
 All content comparisons use the comparison form of a line: leading and trailing whitespace removed, each inner whitespace run replaced by one space. So a re-indented region still matches. `normalizedHash` is `sha256:` and the SHA-256 hex of the comparison form of the full region, lines joined with LF, no final LF. A match for a truncated snapshot is a window of `lineCount` lines with the same hash.
 

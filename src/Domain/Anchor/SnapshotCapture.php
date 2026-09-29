@@ -52,9 +52,18 @@ final class SnapshotCapture
         return array_map(self::normalizeLine(...), $lines);
     }
 
+    /**
+     * Also replaces each invalid UTF-8 sequence and each NUL with U+FFFD, as a browser shows them,
+     * so that every snapshot fits JSON and jsonb.
+     */
     public static function normalizeLine(string $line): string
     {
-        return rtrim($line, self::WHITESPACE);
+        $text = \UConverter::transcode($line, 'UTF-8', 'UTF-8');
+        if (false === $text) {
+            throw new \LogicException('UTF-8 repair failed: '.intl_get_error_message());
+        }
+
+        return rtrim(str_replace("\0", "\u{FFFD}", $text), self::WHITESPACE);
     }
 
     public static function comparisonForm(string $line): string
