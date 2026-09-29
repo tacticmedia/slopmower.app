@@ -22,6 +22,7 @@ use App\Domain\Request\RequestStatus;
 use App\Domain\Request\Resolution;
 use App\Domain\Review\IndexState;
 use App\Domain\Review\ReviewState;
+use App\Domain\User\SignInMethod;
 use App\Tests\Unit\Conventions\ProjectFiles;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -53,6 +54,7 @@ final class EnumContractTest extends KernelTestCase
         yield 'Resolution' => [Resolution::class, 'common.schema.json', '/$defs/Resolution/enum'];
         yield 'IndexState' => [IndexState::class, 'common.schema.json', '/$defs/IndexState/enum'];
         yield 'ReviewState' => [ReviewState::class, 'common.schema.json', '/$defs/ReviewState/enum'];
+        yield 'SignInMethod' => [SignInMethod::class, 'me.schema.json', '/properties/user/properties/signInMethod/enum'];
     }
 
     /**
