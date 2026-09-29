@@ -456,7 +456,7 @@ A linked commit never changes the status. Only `mark_ready_for_review` says that
 | # | Rule | `awaiting` |
 |---|---|---|
 | 1 | `verified`, or `wont_do` set by the user | `none` |
-| 2 | The last thread message is from the user and is newer than the last agent event | `agent` |
+| 2 | The last user event on the request, a message, a note, or a status change, is newer than the last agent event | `agent` |
 | 3 | The last agent event is a reply with `question: true` | `user` |
 | 4 | `open`, `reopened`, `in_progress` | `agent` |
 | 5 | `ready_for_review`, or `wont_do` set by an agent | `user` |
