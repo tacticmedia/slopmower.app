@@ -19,6 +19,6 @@ final class HealthEndpointTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertResponseHeaderSame('Content-Type', 'text/html; charset=UTF-8');
         self::assertPageTitleSame('Health');
-        self::assertSelectorExists('span#js');
+        self::assertSelectorExists('html[data-environment="test"] span#js');
     }
 }
