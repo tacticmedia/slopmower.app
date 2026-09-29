@@ -46,4 +46,21 @@ final readonly class RecordedEvent
             throw InvalidInput::fromViolations($violations);
         }
     }
+
+    /**
+     * `Event.requestIds` of event.schema.json: every request the event concerns.
+     *
+     * @return list<RequestId>
+     */
+    public function requestIds(): array
+    {
+        $event = $this->event;
+
+        return match (true) {
+            $event instanceof CommitLinked, $event instanceof CommitFound, $event instanceof BatchSubmitted => $event->requestIds,
+            $event instanceof CommitUnlinked => [$event->requestId],
+            null !== $this->requestId => [$this->requestId],
+            default => [],
+        };
+    }
 }
