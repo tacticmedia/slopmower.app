@@ -30,9 +30,9 @@ M02.
 
 ## Tasks (ordered)
 
-1. Write the event classes and the codecs.
-2. Add a short docblock on the codec namespace that records decision D37: explicit codecs, no Serializer, no reflection.
-3. Stored events are never rewritten, and new fields are additive. A new field is nullable or has a default in its codec. A reader defaults a missing nullable field to null and throws for any other missing field. It ignores unknown fields, so an older release reads newer events.
+1. [x] Write the event classes and the codecs.
+2. [x] Add a short docblock on the codec namespace that records decision D37: explicit codecs, no Serializer, no reflection.
+3. [x] Stored events are never rewritten, and new fields are additive. A new field is nullable or has a default in its codec. A reader defaults a missing nullable field to null and throws for any other missing field. It ignores unknown fields, so an older release reads newer events.
 
 ## Acceptance tests
 
