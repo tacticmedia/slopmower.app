@@ -35,7 +35,7 @@ Holistic Review makes its own copy of the repository. The status shows the progr
 3. Keep the default branch, or type another branch, tag, or commit SHA. You can also give the review a title.
 4. Click **Start**.
 
-Holistic Review pins the review to the commit that the ref points to when the review starts. The file tree opens. Symbols become available when the index is complete. The progress bar shows the index progress.
+Holistic Review pins the review to the commit that the ref points to when the review starts. The file tree opens. The progress bar shows the index progress.
 
 ## Next steps
 

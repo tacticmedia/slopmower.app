@@ -33,6 +33,7 @@ mcp:
       transports: { stdio: false, http: true }
       http: { path: /_mcp, allowed_hosts: ['%env(APP_PUBLIC_HOST)%'] }
       session: { store: file, directory: '%kernel.project_dir%/var/mcp-sessions' }
+      registry: { tools: ['App\Mcp\Tool\'] }
 ```
 
 `http.allowed_hosts` defaults to localhost only, so a public server must list its host.

@@ -14,7 +14,7 @@ M33, M16, M24.
 
 - `composer require symfony/webhook symfony/remote-event`, versions 8.1.7 and 8.1.0.
 - The endpoint `POST /webhook/github`. The recipe route in `config/routes/webhook.yaml` has the prefix `/webhook`. It is the GitHub App's webhook URL.
-- Wiring: `framework.webhook.routing.github` with `service: App\Webhook\GitHubRequestParser` and `secret: '%env(GITHUB_APP_WEBHOOK_SECRET)%'`. The consumer has `#[AsRemoteEventConsumer('github')]`. `Symfony\Component\Webhook\Messenger\ConsumeRemoteEventMessage` is routed to `async`.
+- Wiring: `framework.webhook.routing.github` with `service: App\Webhook\GitHubRequestParser` and `secret: '%env(GITHUB_APP_WEBHOOK_SECRET)%'`. The consumer has `#[AsRemoteEventConsumer('github')]`. `Symfony\Component\RemoteEvent\Messenger\ConsumeRemoteEventMessage` is routed to `async`.
 - `GitHubRequestParser`:
   - the request matcher needs POST, `Content-Type: application/json`, and the headers `X-GitHub-Event` and `X-GitHub-Delivery`. Otherwise Symfony answers 406. The matcher does not check `X-Hub-Signature-256`, so a missing signature gets the 403 of the signature check;
   - `X-Hub-Signature-256` must be `sha256=` plus the lower-case hex of `hash_hmac('sha256', $request->getContent(), $secret)`, compared with `hash_equals()` on the raw body before JSON decoding. A missing or wrong signature throws `RejectWebhookException(403, 'Invalid signature.')`. A SHA-1 `X-Hub-Signature` header is ignored; an empty secret refuses every delivery with 403, because anyone can compute an HMAC with an empty key;
@@ -30,7 +30,7 @@ M33, M16, M24.
   - `installation` `deleted`: for each tenant with this installation, mark its repositories `access = removed`, delete their clones and index at once, publish `repository` for each, delete the candidates of the installation, publish `candidates_changed`, and delete the installation row. Reviews stay;
   - `installation` `suspend` and `unsuspend`: set or clear `suspendedAt`. While suspended, fetches fail and operations that need a fetch get `repository_unavailable` with reason `fetch_failed`;
   - `installation` `new_permissions_accepted`: no-op;
-  - `installation_repositories` `added`: for installations on the user's own account, add the repositories to the candidates and publish `candidates_changed`;
+  - `installation_repositories` `added`: for installations on the user's own account, add the repositories to the candidates and publish `candidates_changed`. The payload has no default branch or HTML URL: read each repository with `GET /repos/{owner}/{repo}` and an installation token;
   - `installation_repositories` `removed`, and `repository` `deleted`: `access = removed`, delete the clone and index, remove the candidate, publish `repository` and `candidates_changed`;
   - `repository` `renamed` and `transferred`: set `Repository.name` to `repository.full_name` and publish `repository`. The old name answers `not_found`;
   - other `repository` actions: update `github.private` when it changed;

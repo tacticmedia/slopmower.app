@@ -63,7 +63,7 @@ M10, M11.
   - "Each enum array equals its enum in docs/specs"
 - **V `ContractFixturesTypeTest`** proves that the TypeScript types fit the real payloads. It is a type-level check that `tsc -b` compiles. TypeScript types an imported JSON file with `string` in place of string-literal unions, so the check uses each DTO type with its string-literal unions widened to `string`.
   - "Each REST fixture satisfies its widened DTO type"
-- **F `ShellRouteTest`** proves the catch-all route.
+- **F `ShellRouteTest`** proves the shell routes.
   - "A signed-in user gets the shell page"
   - "An anonymous user is redirected to /login"
   - "/api/v1/x stays a JSON 404"

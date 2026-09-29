@@ -25,7 +25,7 @@ You can comment on a line, a range of lines, a symbol, or a file. Each comment o
 
 The comment box receives the focus. Type your comment. Comments use GitHub-flavoured Markdown.
 
-Symbols are available for PHP files when the index of the review is complete. A symbol range includes the doc comment above the symbol.
+Symbols are available for PHP files. A symbol range includes the doc comment above the symbol.
 
 ## Send comments one by one or as a batch
 

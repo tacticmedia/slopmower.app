@@ -77,13 +77,13 @@ Remove the unused skeleton packages. Enforce static analysis, code style, and th
 ## Verification commands
 
 ```sh
-composer validate --strict
+composer validate --strict --no-check-publish
 bin/console cache:clear
 bin/console lint:container
 vendor/bin/phpstan analyse
 vendor/bin/php-cs-fixer fix --dry-run --diff
 bin/phpunit --testsuite unit,functional
-grep -rniE "importmap|stimulus|turbo" config templates assets
+grep -rniE --exclude=reference.php "importmap|stimulus|turbo" config templates assets
 ```
 
 PHPStan reports 0 errors. The `grep` finds nothing. `make check` does not exist yet.

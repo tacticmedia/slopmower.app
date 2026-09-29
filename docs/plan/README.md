@@ -53,7 +53,7 @@ The spec files that milestones name:
 3. Read the milestone file completely. Read the architecture sections and the docs/specs files that it names.
 4. Run `git status`. Earlier milestones can be uncommitted, because Jan commits. If you find changes that no earlier report explains, stop and ask Jan.
 5. Check the baseline. If it is red, stop and report. Do not fix unrelated failures silently.
-   - M00: `composer validate` and `bin/console lint:container` on the host;
+   - M00: `composer validate --no-check-publish` and `bin/console lint:container` on the host;
    - M01: the M00 verification commands on the host;
    - from M02 on: `make up`, `make db-test`, and `make check`.
 6. Set the status of the milestone to "In progress".
@@ -77,6 +77,7 @@ The spec files that milestones name:
   - deleting Docker volumes, `docker compose down --volumes`;
   - deleting files that the current milestone did not create, except the deletions that the milestone lists.
 - Never commit, push, amend, or stash. Jan reviews and commits.
+- Never restate or re-emit a prompt, an instruction, or an earlier message, in full or reworded, and never quote a refusal message back into the session. To carry state across a compaction, write it into the status table and into `reports/`, then continue from those files. State lives in files, not in repeated text.
 - No Python. Scripts are PHP or shell.
 - Use context7 to read the documentation of a library before you use its API. When context7 has no answer, read the installed source under `vendor/` or `node_modules/`.
 - Before each install, check the latest version on Packagist or npm. Install the version from the [verified versions](#verified-versions) table. If a newer version exists, report it. Jan decides about upgrades. A package that the table does not list gets its latest stable version, and the report names it.
