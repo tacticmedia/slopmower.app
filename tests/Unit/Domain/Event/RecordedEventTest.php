@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Domain\Event;
 
 use App\Domain\Actor\Actor;
+use App\Domain\Event\Codec\EventCodec;
 use App\Domain\Event\CommitFound;
 use App\Domain\Event\CommitLinked;
 use App\Domain\Event\CommitUnlinked;
@@ -97,6 +98,40 @@ final class RecordedEventTest extends KernelTestCase
         foreach ([CommitLinked::pending($commitSha, [$requestId], null), new CommitUnlinked($commitSha, $requestId)] as $event) {
             self::assertSame($agent, self::recordedEvent(type: $event::type(), actor: $agent, event: $event)->actor);
         }
+    }
+
+    /**
+     * @return iterable<string, array{EventType, list<string>}>
+     */
+    public static function requestIdsByType(): iterable
+    {
+        $first = '01K6B3P2A9QRSTVWXYZ0123456';
+        $second = '01K6B3P2A9QRSTVWXYZ0123457';
+        foreach (EventType::cases() as $type) {
+            yield $type->value => [$type, match ($type) {
+                EventType::ReviewStarted, EventType::ReviewClosed => [],
+                EventType::CommitLinked, EventType::BatchSubmitted => [$first, $second],
+                EventType::CommitFound => [$second, $first],
+                EventType::CommitUnlinked => [$second],
+                default => [self::ULID],
+            }];
+        }
+    }
+
+    /**
+     * @param list<string> $expected
+     */
+    #[DataProvider('requestIdsByType')]
+    #[TestDox('requestIds holds every request that the event concerns')]
+    public function testRequestIdsHoldsEveryRequestThatTheEventConcerns(EventType $type, array $expected): void
+    {
+        $recorded = self::recordedEvent(
+            requestId: $type->hasRequestId() ? RequestId::fromString(self::ULID) : null,
+            type: $type,
+            event: EventCodec::fromPayload($type->value, EventFixtures::payload($type)),
+        );
+
+        self::assertSame($expected, array_map(strval(...), $recorded->requestIds()));
     }
 
     private static function recordedEvent(
