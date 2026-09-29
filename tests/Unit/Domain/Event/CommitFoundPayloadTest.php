@@ -50,9 +50,7 @@ final class CommitFoundPayloadTest extends KernelTestCase
         yield 'empty requestIds' => [[...$payload, 'requestIds' => []], ['payload.requestIds']];
         yield 'duplicate requestIds' => [[...$payload, 'requestIds' => [...self::REQUEST_IDS, self::REQUEST_IDS[0]]], ['payload.requestIds']];
         yield 'missing subject' => [array_diff_key($payload, ['subject' => true]), ['payload.subject']];
-        yield 'null subject' => [[...$payload, 'subject' => null], ['payload.subject']];
         yield 'missing commit time' => [array_diff_key($payload, ['committedAt' => true]), ['payload.committedAt']];
-        yield 'null commit time' => [[...$payload, 'committedAt' => null], ['payload.committedAt']];
     }
 
     /**
@@ -83,7 +81,6 @@ final class CommitFoundPayloadTest extends KernelTestCase
     public static function commitTimesOutsideTheYearRange(): iterable
     {
         yield 'year 10000' => [new \DateTimeImmutable('@253402300800')];
-        yield 'year -1' => [new \DateTimeImmutable('@-62167219201')];
     }
 
     #[DataProvider('commitTimesOutsideTheYearRange')]

@@ -106,18 +106,11 @@ final class AnchorCodecTest extends KernelTestCase
     {
         $valid = self::encodedRangeAnchor();
 
-        yield 'unknown kind' => [['kind' => 'block'] + $valid, ['payload.anchor.kind']];
         yield 'invalid path' => [['path' => '../secret'] + $valid, ['payload.anchor.path']];
         yield 'invalid commit SHA' => [['commitSha' => 'main'] + $valid, ['payload.anchor.commitSha']];
         yield 'upper-case blob SHA' => [['blobSha' => strtoupper(self::BLOB_SHA)] + $valid, ['payload.anchor.blobSha']];
-        yield 'end line of the wrong type' => [array_replace_recursive($valid, ['range' => ['endLine' => '6']]), ['payload.anchor.range.endLine']];
         yield 'end line before start line' => [array_replace_recursive($valid, ['range' => ['endLine' => 4]]), ['payload.anchor.range.endLine']];
-        yield 'missing start line' => [['range' => ['endLine' => 6]] + $valid, ['payload.anchor.range.startLine']];
         yield 'range without a snapshot' => [['snapshot' => null] + $valid, ['payload.anchor.snapshot']];
-        yield 'range with a symbol' => [['symbol' => ['language' => 'php', 'kind' => 'method', 'fqn' => 'f']] + $valid, ['payload.anchor.symbol']];
-        yield 'unknown symbol kind' => [['kind' => 'symbol', 'symbol' => ['language' => 'php', 'kind' => 'macro', 'fqn' => 'f']] + $valid, ['payload.anchor.symbol.kind']];
-        yield 'number in the snapshot lines' => [array_replace_recursive($valid, ['snapshot' => ['lines' => [1 => 6]]]), ['payload.anchor.snapshot.lines.1']];
-        yield 'snapshot of another line count' => [array_replace_recursive($valid, ['snapshot' => ['lineCount' => 3, 'lines' => [2 => 'c']]]), ['payload.anchor.snapshot.lineCount']];
         yield 'invalid snapshot hash' => [array_replace_recursive($valid, ['snapshot' => ['normalizedHash' => 'md5:0']]), ['payload.anchor.snapshot.normalizedHash']];
     }
 

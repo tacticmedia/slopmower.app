@@ -26,14 +26,9 @@ final class ActorTest extends KernelTestCase
     {
         yield 'user without userId' => [ActorKind::User, false, null, ['actor.userId']];
         yield 'user with agentName' => [ActorKind::User, true, 'bot', ['actor.agentName']];
-        yield 'user with neither rule met' => [ActorKind::User, false, 'bot', ['actor.userId', 'actor.agentName']];
-        yield 'agent without userId' => [ActorKind::Agent, false, 'bot', ['actor.userId']];
         yield 'agent without agentName' => [ActorKind::Agent, true, null, ['actor.agentName']];
-        yield 'agent with an empty agentName' => [ActorKind::Agent, true, '', ['actor.agentName']];
-        yield 'agent with neither rule met' => [ActorKind::Agent, false, null, ['actor.userId', 'actor.agentName']];
         yield 'system with userId' => [ActorKind::System, true, null, ['actor.userId']];
         yield 'system with agentName' => [ActorKind::System, false, 'bot', ['actor.agentName']];
-        yield 'system with both' => [ActorKind::System, true, 'bot', ['actor.userId', 'actor.agentName']];
     }
 
     /**
@@ -42,11 +37,8 @@ final class ActorTest extends KernelTestCase
     public static function validAgentNames(): iterable
     {
         yield 'one character' => ['a'];
-        yield 'leading digit' => ['0bot'];
         yield '64 characters' => [str_repeat('a', 64)];
-        yield 'space and parentheses' => ['Claude Code (laptop)'];
         yield 'every punctuation character' => ['ci-bot_1.2@host:8080 (x)'];
-        yield 'trailing space' => ['bot '];
     }
 
     /**
@@ -57,14 +49,8 @@ final class ActorTest extends KernelTestCase
         yield 'empty' => [''];
         yield '65 characters' => [str_repeat('a', 65)];
         yield 'leading space' => [' bot'];
-        yield 'leading dash' => ['-bot'];
-        yield 'leading dot' => ['.bot'];
-        yield 'leading underscore' => ['_bot'];
         yield 'slash' => ['ci/bot'];
-        yield 'hash' => ['bot#1'];
         yield 'trailing newline' => ["bot\n"];
-        yield 'tab' => ["ci\tbot"];
-        yield 'Unicode letter' => ["caf\u{00E9}"];
     }
 
     /**

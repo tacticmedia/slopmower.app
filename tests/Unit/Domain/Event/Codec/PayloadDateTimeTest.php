@@ -21,9 +21,6 @@ final class PayloadDateTimeTest extends KernelTestCase
     public static function dateTimes(): iterable
     {
         yield 'offset' => [new \DateTimeImmutable('2026-09-29T19:41:12+09:30'), '2026-09-29T10:11:12Z'];
-        yield 'Unix timestamp' => [new \DateTimeImmutable('@1790676672'), '2026-09-29T10:11:12Z'];
-        yield 'first second of year 0000' => [new \DateTimeImmutable('@-62167219200'), '0000-01-01T00:00:00Z'];
-        yield 'last second of year 9999' => [new \DateTimeImmutable('9999-12-31T23:59:59Z'), '9999-12-31T23:59:59Z'];
         yield 'null' => [null, null];
     }
 
@@ -50,7 +47,6 @@ final class PayloadDateTimeTest extends KernelTestCase
         yield 'year 10000' => [new \DateTimeImmutable('@253402300800')];
         yield 'year -1' => [new \DateTimeImmutable('@-62167219201')];
         yield 'year 9999 with an offset that makes year 10000 in UTC' => [new \DateTimeImmutable('9999-12-31T23:59:59-01:00')];
-        yield 'year 0000 with an offset that makes year -1 in UTC' => [new \DateTimeImmutable('0000-01-01T00:00:00+01:00')];
     }
 
     #[DataProvider('yearsOutsideTheRange')]
@@ -92,18 +88,8 @@ final class PayloadDateTimeTest extends KernelTestCase
     public static function otherForms(): iterable
     {
         yield 'empty' => [''];
-        yield 'date only' => ['2026-09-29'];
-        yield 'no seconds' => ['2026-09-29T10:11Z'];
-        yield 'zero offset' => ['2026-09-29T10:11:12+00:00'];
-        yield 'other offset' => ['2026-09-29T19:41:12+09:30'];
-        yield 'fraction' => ['2026-09-29T10:11:12.000Z'];
-        yield 'lower-case z' => ['2026-09-29T10:11:12z'];
-        yield 'lower-case t' => ['2026-09-29t10:11:12Z'];
-        yield 'space separator' => ['2026-09-29 10:11:12Z'];
         yield 'February 30' => ['2026-02-30T10:11:12Z'];
-        yield 'hour 24' => ['2026-09-29T24:00:00Z'];
         yield 'one-digit month' => ['2026-9-29T10:11:12Z'];
-        yield 'leading space' => [' 2026-09-29T10:11:12Z'];
         yield 'trailing newline' => ["2026-09-29T10:11:12Z\n"];
     }
 

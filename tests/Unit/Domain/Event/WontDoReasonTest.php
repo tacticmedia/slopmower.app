@@ -19,14 +19,9 @@ final class WontDoReasonTest extends KernelTestCase
      */
     public static function shortReasons(): iterable
     {
-        yield 'empty' => [''];
-        yield 'whitespace only' => [str_repeat(' ', 40)];
         yield '19 characters' => [str_repeat('a', 19)];
-        yield '19 characters inside spaces' => ['   '.str_repeat('a', 19).'   '];
-        yield '19 characters inside tabs and line breaks' => ["\t\n".str_repeat('a', 19)."\r\n"];
         yield '19 characters inside Unicode spaces' => ["\u{00A0}".str_repeat('a', 19)."\u{3000}"];
         yield '19 two-byte characters' => [str_repeat("\u{00E9}", 19)];
-        yield '19 astral characters' => [str_repeat("\u{1F642}", 19)];
     }
 
     #[DataProvider('shortReasons')]

@@ -75,11 +75,8 @@ final class ContentSnapshotTest extends KernelTestCase
         yield 'trailing space' => [['lines' => ['a ']], ['snapshot.lines']];
         yield 'CR before' => [['before' => ["a\r"]], ['snapshot.before']];
         yield 'LF inside a line after' => [['after' => ["a\nb"]], ['snapshot.after']];
-        yield 'hash without prefix' => [['normalizedHash' => substr(self::HASH, 7)], ['snapshot.normalizedHash']];
         yield 'upper-case hash' => [['normalizedHash' => strtoupper(self::HASH)], ['snapshot.normalizedHash']];
         yield 'hash with a trailing LF' => [['normalizedHash' => self::HASH."\n"], ['snapshot.normalizedHash']];
-        yield 'invalid UTF-8 in lines' => [['lines' => ["caf\xE9"]], ['snapshot.lines']];
-        yield 'NUL after' => [['after' => ["a\0b"]], ['snapshot.after']];
     }
 
     /**

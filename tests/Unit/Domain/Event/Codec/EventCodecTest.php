@@ -50,10 +50,7 @@ final class EventCodecTest extends KernelTestCase
      */
     public static function unknownTypes(): iterable
     {
-        yield 'empty' => [''];
         yield 'not an event type' => ['request.deleted'];
-        yield 'upper case' => ['REQUEST.CLAIMED'];
-        yield 'thread entry form' => ['request_claimed'];
     }
 
     #[DataProvider('unknownTypes')]

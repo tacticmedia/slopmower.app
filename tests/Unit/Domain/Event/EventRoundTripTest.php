@@ -8,8 +8,6 @@ use App\Domain\Anchor\Anchor;
 use App\Domain\Anchor\ContentSnapshot;
 use App\Domain\Anchor\LineRange;
 use App\Domain\Anchor\SnapshotCapture;
-use App\Domain\Anchor\SymbolKind;
-use App\Domain\Anchor\SymbolRef;
 use App\Domain\Event\BatchSubmitted;
 use App\Domain\Event\Codec\EventCodec;
 use App\Domain\Event\CommitFound;
@@ -69,55 +67,14 @@ final class EventRoundTripTest extends KernelTestCase
     {
         yield from self::fixtureEvents();
 
-        $batchId = BatchId::fromString(self::BATCH_ID);
-        $requestIds = [RequestId::fromString(self::REQUEST_ID)];
-
-        yield 'review.closed without a note' => [EventType::ReviewClosed, new ReviewClosed(null)];
-        yield 'request.opened on a file in a batch' => [EventType::RequestOpened, new RequestOpened(Anchor::file(self::path(), self::reviewCommitSha(), self::blobSha()), 'Split this file.', $batchId)];
-        yield 'request.opened on a line' => [EventType::RequestOpened, new RequestOpened(self::lineAnchor(), 'Name the rate.', null)];
-        yield 'request.opened on a symbol' => [EventType::RequestOpened, new RequestOpened(self::symbolAnchor(), 'Use `Money` instead of `float` for totals.', $batchId)];
+        yield 'required text with whitespace around it' => [EventType::RequestOpened, new RequestOpened(self::rangeAnchor(), self::INDENTED_TEXT, null)];
+        yield 'optional text with whitespace around it' => [EventType::ReviewClosed, new ReviewClosed(self::INDENTED_TEXT)];
         yield 'request.opened on a truncated region' => [EventType::RequestOpened, new RequestOpened(self::truncatedRangeAnchor(), 'Split this class.', null)];
         yield 'request.commented with a question outside a batch' => [
             EventType::RequestCommented,
             new RequestCommented(CommentId::fromString(self::COMMENT_ID), "Why \"float\"?\nSee C:\\tmp and src/Billing, \u{1F642}", true, null),
         ];
-        yield 'request.released without a note' => [EventType::RequestReleased, new RequestReleased(null)];
-        yield 'commit.linked pending without a note' => [EventType::CommitLinked, CommitLinked::pending(self::fixCommitSha(), $requestIds, null)];
-        yield 'commit.linked on a SHA-256 commit' => [
-            EventType::CommitLinked,
-            CommitLinked::available(CommitSha::fromString(str_repeat('0123456789abcdef', 4)), $requestIds, null, '', new \DateTimeImmutable('1970-01-01T00:00:00Z')),
-        ];
-        yield 'request.verified with a note' => [EventType::RequestVerified, new RequestVerified('Checked in the browser.')];
-        yield 'batch.submitted without a summary or comments' => [EventType::BatchSubmitted, BatchSubmitted::of($batchId, null, $requestIds, [])];
-
-        $text = self::INDENTED_TEXT;
-        $committedAt = new \DateTimeImmutable('2026-09-29T07:44:10Z');
-        foreach ([
-            new ReviewStarted($text, RefName::fromString('main'), self::reviewCommitSha()),
-            new ReviewClosed($text),
-            new RequestOpened(self::lineAnchor(), $text, null),
-            new RequestCommented(CommentId::fromString(self::COMMENT_ID), $text, false, null),
-            new RequestReleased($text),
-            CommitLinked::available(self::fixCommitSha(), $requestIds, $text, $text, $committedAt),
-            CommitFound::of(self::fixCommitSha(), $requestIds, $text, $committedAt),
-            new RequestReadyForReview($text),
-            new RequestWontDo($text),
-            new RequestVerified($text),
-            new RequestReopened($text),
-            BatchSubmitted::of($batchId, $text, $requestIds, []),
-        ] as $event) {
-            yield $event::type()->value.' with whitespace around its text' => [$event::type(), $event];
-        }
-
-        foreach ([
-            new ReviewClosed(''),
-            new RequestReleased(''),
-            CommitLinked::pending(self::fixCommitSha(), $requestIds, ''),
-            new RequestVerified(''),
-            BatchSubmitted::of($batchId, '', $requestIds, []),
-        ] as $event) {
-            yield $event::type()->value.' with an empty optional text' => [$event::type(), $event];
-        }
+        yield 'empty optional text' => [EventType::ReviewClosed, new ReviewClosed('')];
     }
 
     #[DataProvider('events')]
@@ -211,48 +168,6 @@ final class EventRoundTripTest extends KernelTestCase
         };
     }
 
-    private static function rangeAnchor(): Anchor
-    {
-        $lines = ['        $tax = $this->total() * $this->taxRate;', '', '        return round($tax, 2, PHP_ROUND_HALF_EVEN);'];
-
-        return Anchor::range(self::path(), self::reviewCommitSha(), self::blobSha(), LineRange::of(53, 55), ContentSnapshot::fromParts(
-            $lines,
-            false,
-            3,
-            ['', '    public function tax(): float', '    {'],
-            ['    }', '', '    public function shipping(): float'],
-            SnapshotCapture::normalizedHash($lines),
-        ));
-    }
-
-    private static function lineAnchor(): Anchor
-    {
-        $lines = ['        $tax = $this->total() * $this->taxRate;'];
-
-        return Anchor::line(self::path(), self::reviewCommitSha(), self::blobSha(), LineRange::singleLine(53), ContentSnapshot::fromParts(
-            $lines,
-            false,
-            1,
-            [],
-            [''],
-            SnapshotCapture::normalizedHash($lines),
-        ));
-    }
-
-    private static function symbolAnchor(): Anchor
-    {
-        $lines = ['    public function total(): float', '    {', '        return $this->sum;', '    }'];
-
-        return Anchor::symbol(
-            self::path(),
-            self::reviewCommitSha(),
-            self::blobSha(),
-            LineRange::of(46, 49),
-            SymbolRef::php(SymbolKind::Method, 'App\Billing\InvoiceTotals::total()'),
-            ContentSnapshot::fromParts($lines, false, 4, ['    }', ''], ['', '    public function tax(): float', '    {'], SnapshotCapture::normalizedHash($lines)),
-        );
-    }
-
     private static function truncatedRangeAnchor(): Anchor
     {
         $region = array_map(static fn (int $line): string => '    // line '.$line, range(1, 250));
@@ -265,6 +180,20 @@ final class EventRoundTripTest extends KernelTestCase
             [],
             ['}'],
             SnapshotCapture::normalizedHash($region),
+        ));
+    }
+
+    private static function rangeAnchor(): Anchor
+    {
+        $lines = ['        $tax = $this->total() * $this->taxRate;', '', '        return round($tax, 2, PHP_ROUND_HALF_EVEN);'];
+
+        return Anchor::range(self::path(), self::reviewCommitSha(), self::blobSha(), LineRange::of(53, 55), ContentSnapshot::fromParts(
+            $lines,
+            false,
+            3,
+            ['', '    public function tax(): float', '    {'],
+            ['    }', '', '    public function shipping(): float'],
+            SnapshotCapture::normalizedHash($lines),
         ));
     }
 

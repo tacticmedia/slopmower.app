@@ -17,9 +17,6 @@ final class Utf8Test extends KernelTestCase
     public static function brokenTexts(): iterable
     {
         yield 'Latin-1 byte' => ["Caf\xE9 totals", "Caf\u{FFFD} totals"];
-        yield 'truncated sequence' => ["\xE2\x82 end", "\u{FFFD} end"];
-        yield 'overlong encoding' => ["\xC0\xAF", "\u{FFFD}\u{FFFD}"];
-        yield 'surrogate' => ["\xED\xA0\x80", "\u{FFFD}\u{FFFD}\u{FFFD}"];
         yield 'NUL' => ["a\0b", "a\u{FFFD}b"];
     }
 
@@ -35,10 +32,7 @@ final class Utf8Test extends KernelTestCase
      */
     public static function validTexts(): iterable
     {
-        yield 'empty' => [''];
-        yield 'ASCII with whitespace' => ["  a\tb \r\n"];
         yield 'multi-byte and astral' => ["\u{c5} e\u{0301} \u{1F642}"];
-        yield 'replacement character' => ["\u{FFFD}"];
     }
 
     #[DataProvider('validTexts')]

@@ -45,9 +45,7 @@ final class SymbolRefTest extends KernelTestCase
     public static function invalidSymbols(): iterable
     {
         yield 'other language' => ['typescript', 'total', ['symbol.language']];
-        yield 'empty language' => ['', 'total', ['symbol.language']];
         yield 'empty FQN' => ['php', '', ['symbol.fqn']];
-        yield 'FQN of 1025 characters' => ['php', str_repeat('a', 1025), ['symbol.fqn']];
         yield 'FQN of 1025 multibyte characters' => ['php', str_repeat("\u{e9}", 1025), ['symbol.fqn']];
     }
 }

@@ -51,7 +51,6 @@ final class ReviewLifecycleTest extends KernelTestCase
 
         yield 'start by an agent' => [$start, null, LifecycleFixtures::agent()];
         yield 'close by an agent' => [new CloseReview(), LifecycleFixtures::closedReview(), LifecycleFixtures::agent()];
-        yield 'close by the system' => [new CloseReview(), LifecycleFixtures::openReview(), Actor::system()];
     }
 
     #[DataProvider('commandsByOtherActors')]

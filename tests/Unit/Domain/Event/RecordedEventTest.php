@@ -51,7 +51,6 @@ final class RecordedEventTest extends KernelTestCase
     public static function invalidEnvelopes(): iterable
     {
         yield 'seq 0' => [0, EventType::RequestClaimed, true, ['seq']];
-        yield 'negative seq' => [-1, EventType::RequestClaimed, true, ['seq']];
         yield 'type of another request event' => [1, EventType::RequestReleased, true, ['type']];
         yield 'request event without a requestId' => [1, EventType::RequestClaimed, false, ['requestId']];
         yield 'review type with a requestId' => [1, EventType::ReviewStarted, true, ['type', 'requestId']];

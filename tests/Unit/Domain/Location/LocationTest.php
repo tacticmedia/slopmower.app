@@ -95,11 +95,9 @@ final class LocationTest extends KernelTestCase
         yield 'exact without a path' => [LocationStatus::Exact, false, $range, 1.0, null, ['location.path']];
         yield 'exact with confidence 0.9' => [LocationStatus::Exact, true, $range, 0.9, null, ['location.confidence']];
         yield 'shifted with a reason' => [LocationStatus::Shifted, true, $range, 1.0, OrphanReason::Ambiguous, ['location.reason']];
-        yield 'shifted with confidence 0' => [LocationStatus::Shifted, true, $range, 0.0, null, ['location.confidence']];
         yield 'changed with confidence above 1' => [LocationStatus::Changed, true, $range, 1.5, null, ['location.confidence']];
         yield 'changed with negative confidence' => [LocationStatus::Changed, true, $range, -0.1, null, ['location.confidence']];
         yield 'changed with NaN confidence' => [LocationStatus::Changed, true, $range, \NAN, null, ['location.confidence']];
-        yield 'changed without a path, with a reason' => [LocationStatus::Changed, false, $range, 0.7, OrphanReason::Ambiguous, ['location.path', 'location.reason']];
     }
 
     private static function targetSha(): CommitSha

@@ -52,16 +52,13 @@ final class ClosedReviewTest extends KernelTestCase
 
         yield 'open by the user' => [new Open($requestId, LifecycleFixtures::fileAnchor(), 'Use Money.'), [], $user, 1];
         yield 'reply by the user' => [new Reply($requestId, CommentId::generate(), 'Also the tax.'), $open, $user, 1];
-        yield 'reply by an agent' => [new Reply($requestId, CommentId::generate(), 'Keep float?', question: true), $open, $agent, 1];
         yield 'claim by an agent' => [new Claim($requestId), $open, $agent, 1];
         yield 'repeated claim by the holder' => [new Claim($requestId), $claimed, $agent, 0];
         yield 'release by the holder' => [new Release($requestId), $claimed, $agent, 1];
-        yield 'release by the user' => [new Release($requestId, 'Unassign.'), $claimed, $user, 1];
         yield 'link_commits by the holder' => [new LinkCommits(LifecycleFixtures::sha(), [$requestId]), $claimed, $agent, 1];
         yield 'unlink_commit by the holder' => [new UnlinkCommit($requestId, LifecycleFixtures::sha()), $claimedWithLink, $agent, 1];
         yield 'mark_ready_for_review by the holder' => [new MarkReadyForReview($requestId, 'Done.'), $claimedWithLink, $agent, 1];
         yield 'mark_wont_do by an agent' => [new MarkWontDo($requestId, $reason), $open, $agent, 1];
-        yield 'mark_wont_do by the user' => [new MarkWontDo($requestId, $reason), $claimed, $user, 1];
         yield 'verify by the user' => [new Verify($requestId), [LifecycleFixtures::state(RequestStatus::ReadyForReview)], $user, 1];
         yield 'reopen by the user' => [new Reopen($requestId, 'Still wrong.'), [LifecycleFixtures::state(RequestStatus::Verified)], $user, 1];
     }

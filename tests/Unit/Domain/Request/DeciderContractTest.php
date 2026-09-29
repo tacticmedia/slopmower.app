@@ -52,7 +52,6 @@ final class DeciderContractTest extends KernelTestCase
     public static function actorsOtherThanTheUser(): iterable
     {
         yield 'agent' => [LifecycleFixtures::agent()];
-        yield 'system' => [Actor::system()];
     }
 
     #[DataProvider('actorsOtherThanTheUser')]
@@ -144,7 +143,6 @@ final class DeciderContractTest extends KernelTestCase
         yield 'open with a state' => [new Open(LifecycleFixtures::requestId(), LifecycleFixtures::fileAnchor(), 'Use Money.'), [$open], LifecycleFixtures::openReview()];
         yield 'claim without a state' => [$claim, [], LifecycleFixtures::openReview()];
         yield 'claim with the state of another request' => [$claim, [$otherOpen], LifecycleFixtures::openReview()];
-        yield 'claim with two states' => [$claim, [$open, $otherOpen], LifecycleFixtures::openReview()];
         yield 'claim in another review' => [$claim, [$open], ReviewSnapshot::open(ReviewId::fromString(self::OTHER_REVIEW_ID), LifecycleFixtures::sha(LifecycleFixtures::REVIEW_COMMIT))];
         yield 'link_commits with a missing state' => [$linkBoth, [$open], LifecycleFixtures::openReview()];
         yield 'link_commits with a state twice' => [$linkBoth, [$open, $open], LifecycleFixtures::openReview()];

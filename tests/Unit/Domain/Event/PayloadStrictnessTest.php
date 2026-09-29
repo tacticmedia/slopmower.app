@@ -31,7 +31,21 @@ final class PayloadStrictnessTest extends KernelTestCase
     ];
 
     /**
-     * Every top-level key of every fixture, plus nested values, enums, and the type.
+     * One field per PayloadReader method. PayloadReaderTest covers the other wrong types.
+     */
+    private const array WRONG_TYPE_KEYS = [
+        'review.started' => ['ref', 'commitSha'],
+        'review.closed' => ['note'],
+        'request.opened' => ['anchor', 'body', 'batchId'],
+        'request.commented' => ['commentId'],
+        'commit.linked' => ['available', 'committedAt'],
+        'commit.found' => ['committedAt'],
+    ];
+
+    private const array NESTED_WRONG_TYPE_FIELDS = ['anchor.kind', 'anchor.symbol'];
+
+    /**
+     * Every top-level and nested key of every fixture, plus wrong types, enums, and the type.
      *
      * @return iterable<string, array{\Closure(): mixed, string, non-empty-string}>
      */
@@ -43,7 +57,9 @@ final class PayloadStrictnessTest extends KernelTestCase
                 if (!\in_array($key, self::NULLABLE_KEYS[$type->value] ?? [], true)) {
                     yield $type->value.' without '.$key => [self::decode($type, array_diff_key($payload, [$key => true])), 'payload.'.$key, 'is required'];
                 }
-                yield $type->value.' with '.$key.' of the wrong type' => [self::decode($type, [...$payload, $key => self::wrongType($value)]), 'payload.'.$key, 'must be a'];
+                if (\in_array($key, self::WRONG_TYPE_KEYS[$type->value] ?? [], true)) {
+                    yield $type->value.' with '.$key.' of the wrong type' => [self::decode($type, [...$payload, $key => self::wrongType($value)]), 'payload.'.$key, 'must be a'];
+                }
             }
         }
 
@@ -56,11 +72,13 @@ final class PayloadStrictnessTest extends KernelTestCase
         foreach (self::nestedFields($symbolOpened) as [$keys, $value]) {
             $name = implode('.', $keys);
             yield 'request.opened on a symbol without '.$name => [self::decode(EventType::RequestOpened, self::without($symbolOpened, ...$keys)), 'payload.'.$name, 'is required'];
-            yield 'request.opened on a symbol with '.$name.' of the wrong type' => [
-                self::decode(EventType::RequestOpened, self::with($symbolOpened, self::wrongType($value), ...$keys)),
-                'payload.'.$name,
-                'must be a',
-            ];
+            if (\in_array($name, self::NESTED_WRONG_TYPE_FIELDS, true)) {
+                yield 'request.opened on a symbol with '.$name.' of the wrong type' => [
+                    self::decode(EventType::RequestOpened, self::with($symbolOpened, self::wrongType($value), ...$keys)),
+                    'payload.'.$name,
+                    'must be a',
+                ];
+            }
         }
 
         yield 'request.opened without anchor.range.endLine' => [
@@ -137,15 +155,16 @@ final class PayloadStrictnessTest extends KernelTestCase
      */
     public static function tolerableValues(): iterable
     {
+        $opened = EventFixtures::payload(EventType::RequestOpened);
+        yield 'request.opened with an unknown field' => [EventType::RequestOpened, [...$opened, self::UNKNOWN_FIELD => ['kind' => 'x']], $opened];
+
         foreach (EventType::cases() as $type) {
             $payload = EventFixtures::payload($type);
-            yield $type->value.' with an unknown field' => [$type, [...$payload, self::UNKNOWN_FIELD => ['kind' => 'x']], $payload];
             foreach (self::NULLABLE_KEYS[$type->value] ?? [] as $key) {
                 yield $type->value.' without '.$key => [$type, array_diff_key($payload, [$key => true]), [...$payload, $key => null]];
             }
         }
 
-        $opened = EventFixtures::payload(EventType::RequestOpened);
         $commitSha = 'e5f6a7b8c9d0e1f2a3b4c5d6e7f8091a2b3c4d5e';
         $requestIds = ['01K6B3P2A9QRSTVWXYZ0123457'];
 

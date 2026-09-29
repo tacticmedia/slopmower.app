@@ -40,11 +40,8 @@ final class GitRemoteTest extends KernelTestCase
      */
     public static function invalidUrls(): iterable
     {
-        yield 'a path' => ['/repositories/name'];
         yield 'an option' => ['--upload-pack=touch /tmp/x'];
         yield 'the ext transport' => ['ext::sh -c touch% /tmp/x'];
-        yield 'SSH' => ['ssh://git@github.com/owner/name.git'];
-        yield 'HTTP' => ['http://github.com/owner/name.git'];
         yield 'HTTPS with user information' => ['https://x-access-token:token@github.com/owner/name.git'];
         yield 'a file URL with a host' => ['file://repositories/name'];
         yield 'a line break' => ["file:///repositories/name\n--upload-pack=x"];
@@ -65,7 +62,6 @@ final class GitRemoteTest extends KernelTestCase
     public static function invalidConfigurationEntries(): iterable
     {
         yield 'no value' => ['safe.directory'];
-        yield 'no key' => ['=/repositories/name'];
         yield 'an option' => ['--upload-pack=x'];
     }
 

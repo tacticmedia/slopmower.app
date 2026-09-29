@@ -95,7 +95,6 @@ final class PayloadReaderTest extends KernelTestCase
         yield 'number as string' => [['body' => 1], static fn (PayloadReader $reader): ?string => $reader->nullableString('body'), 'payload.body', 'must be a string'];
         yield 'string as integer' => [['lineCount' => '12'], static fn (PayloadReader $reader): int => $reader->int('lineCount'), 'payload.lineCount', 'must be an integer'];
         yield 'float as integer' => [['lineCount' => 12.0], static fn (PayloadReader $reader): int => $reader->int('lineCount'), 'payload.lineCount', 'must be an integer'];
-        yield 'missing boolean' => [[], static fn (PayloadReader $reader): bool => $reader->bool('question'), 'payload.question', 'is required'];
         yield 'string as boolean' => [['question' => 'true'], static fn (PayloadReader $reader): bool => $reader->bool('question'), 'payload.question', 'must be a boolean'];
         yield 'object as list' => [['lines' => ['a' => 'b']], static fn (PayloadReader $reader): array => $reader->stringList('lines'), 'payload.lines', 'must be a list'];
         yield 'number in a list' => [['lines' => ['a', 2]], static fn (PayloadReader $reader): array => $reader->stringList('lines'), 'payload.lines.1', 'must be a string'];

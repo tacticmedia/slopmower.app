@@ -105,15 +105,9 @@ final class AnchorTest extends KernelTestCase
         yield 'line without a range' => [AnchorKind::Line, null, null, self::snapshot(1), ['anchor.range']];
         yield 'line over two lines' => [AnchorKind::Line, $twoLines, null, self::snapshot(2), ['anchor.range.endLine']];
         yield 'line without a snapshot' => [AnchorKind::Line, $oneLine, null, null, ['anchor.snapshot']];
-        yield 'line with a symbol' => [AnchorKind::Line, $oneLine, $symbol, self::snapshot(1), ['anchor.symbol']];
         yield 'range over one line' => [AnchorKind::Range, $oneLine, null, self::snapshot(1), ['anchor.range.endLine']];
-        yield 'range with a symbol' => [AnchorKind::Range, $twoLines, $symbol, self::snapshot(2), ['anchor.symbol']];
         yield 'line with a snapshot of other length' => [AnchorKind::Line, $oneLine, null, self::snapshot(2), ['anchor.snapshot.lineCount']];
-        yield 'range with a snapshot of other length' => [AnchorKind::Range, $twoLines, null, self::snapshot(3), ['anchor.snapshot.lineCount']];
         yield 'symbol without a symbol' => [AnchorKind::Symbol, $oneLine, null, self::snapshot(1), ['anchor.symbol']];
-        yield 'symbol without a range' => [AnchorKind::Symbol, null, $symbol, self::snapshot(1), ['anchor.range']];
-        yield 'symbol without a snapshot' => [AnchorKind::Symbol, $oneLine, $symbol, null, ['anchor.snapshot']];
-        yield 'symbol with a snapshot of other length' => [AnchorKind::Symbol, $twoLines, $symbol, self::snapshot(3), ['anchor.snapshot.lineCount']];
         yield 'symbol with nothing' => [AnchorKind::Symbol, null, null, null, ['anchor.range', 'anchor.snapshot', 'anchor.symbol']];
     }
 

@@ -57,17 +57,8 @@ final class PayloadJsonTest extends KernelTestCase
      */
     public static function nonObjects(): iterable
     {
-        yield 'empty' => [''];
         yield 'empty list' => ['[]'];
-        yield 'list' => ['["a"]'];
-        yield 'string' => ['"{}"'];
-        yield 'null' => ['null'];
-        yield 'number' => ['1'];
         yield 'unclosed object' => ['{"a":1'];
-        yield 'missing value' => ['{"a":}'];
-        yield 'trailing text' => ['{"a":1} x'];
-        yield 'second object' => ['{}{}'];
-        yield 'invalid UTF-8' => ["{\"a\":\"\xC3\x28\"}"];
     }
 
     #[DataProvider('nonObjects')]

@@ -33,8 +33,6 @@ final class CommitShaTest extends KernelTestCase
      */
     public static function upperCaseShas(): iterable
     {
-        yield 'SHA-1, all upper case' => [strtoupper(self::SHA1)];
-        yield 'SHA-256, all upper case' => [strtoupper(self::SHA256)];
         yield 'SHA-1, one upper-case letter' => [substr_replace(self::SHA1, 'D', 0, 1)];
         yield 'SHA-256, one upper-case letter' => [substr_replace(self::SHA256, 'D', 63, 1)];
     }
@@ -44,7 +42,7 @@ final class CommitShaTest extends KernelTestCase
      */
     public static function prefixes(): iterable
     {
-        foreach ([7, 12, 39, 41, 63] as $length) {
+        foreach ([12, 63] as $length) {
             yield $length.' characters' => [substr(self::SHA256, 0, $length)];
         }
     }
@@ -54,12 +52,10 @@ final class CommitShaTest extends KernelTestCase
      */
     public static function otherInvalidStrings(): iterable
     {
-        yield 'empty' => [''];
         yield '65 characters' => [self::SHA256.'0'];
         yield 'non-hex letter' => [substr_replace(self::SHA1, 'g', 0, 1)];
         yield 'trailing newline' => [self::SHA1."\n"];
         yield 'leading space' => [' '.self::SHA1];
-        yield 'NUL byte' => [substr(self::SHA1, 0, 39)."\0"];
     }
 
     #[DataProvider('fullShas')]

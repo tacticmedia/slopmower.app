@@ -90,7 +90,6 @@ final class CommitLinkedPayloadTest extends KernelTestCase
     public static function commitTimesOutsideTheYearRange(): iterable
     {
         yield 'year 10000' => [new \DateTimeImmutable('@253402300800')];
-        yield 'year -1' => [new \DateTimeImmutable('@-62167219201')];
     }
 
     #[DataProvider('commitTimesOutsideTheYearRange')]

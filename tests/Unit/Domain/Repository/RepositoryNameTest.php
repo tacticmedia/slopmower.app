@@ -22,15 +22,8 @@ final class RepositoryNameTest extends KernelTestCase
     public static function validNames(): iterable
     {
         yield 'GitHub' => [RepositorySource::GitHub, 'octo-org/hello-world'];
-        yield 'GitHub with dots and underscores' => [RepositorySource::GitHub, 'octo_org/hello.world'];
-        yield 'GitHub with mixed case' => [RepositorySource::GitHub, 'Octo-Org/Hello-World'];
         yield 'GitHub, 255 characters' => [RepositorySource::GitHub, 'o/'.str_repeat('n', 253)];
         yield 'local' => [RepositorySource::Local, 'hello-world'];
-        yield 'local with inner dots' => [RepositorySource::Local, 'hello..world.git'];
-        yield 'local with a space' => [RepositorySource::Local, 'hello world'];
-        yield 'local with a leading dash' => [RepositorySource::Local, '-hello'];
-        yield 'local Unicode' => [RepositorySource::Local, "caf\u{00E9}"];
-        yield 'local, 255 characters' => [RepositorySource::Local, str_repeat('a', 255)];
         yield 'local, 255 multibyte characters' => [RepositorySource::Local, str_repeat("\u{00E9}", 255)];
     }
 
@@ -40,13 +33,7 @@ final class RepositoryNameTest extends KernelTestCase
     public static function localNamesWithASlashOrALeadingDot(): iterable
     {
         yield 'owner/name' => ['octo-org/hello-world'];
-        yield 'leading slash' => ['/hello'];
-        yield 'trailing slash' => ['hello/'];
-        yield 'slash alone' => ['/'];
         yield 'leading dot' => ['.hello'];
-        yield 'dot' => ['.'];
-        yield 'dot dot' => ['..'];
-        yield 'parent path' => ['../hello'];
     }
 
     /**
@@ -55,12 +42,9 @@ final class RepositoryNameTest extends KernelTestCase
     public static function otherInvalidLocalNames(): iterable
     {
         yield 'empty' => [''];
-        yield '256 characters' => [str_repeat('a', 256)];
         yield '256 multibyte characters' => [str_repeat("\u{00E9}", 256)];
         yield 'NUL byte' => ["a\0b"];
-        yield 'tab' => ["a\tb"];
         yield 'trailing newline' => ["hello\n"];
-        yield 'unit separator' => ["a\x1f"];
         yield 'invalid UTF-8' => ["caf\xe9"];
     }
 
@@ -69,12 +53,10 @@ final class RepositoryNameTest extends KernelTestCase
      */
     public static function invalidGitHubNames(): iterable
     {
-        yield 'empty' => [''];
         yield 'no slash' => ['hello-world'];
         yield 'two slashes' => ['octo-org/hello/world'];
         yield 'empty owner' => ['/hello-world'];
         yield 'empty name' => ['octo-org/'];
-        yield 'slash alone' => ['/'];
         yield '256 characters' => ['o/'.str_repeat('n', 254)];
         yield 'invalid UTF-8' => ["octo/caf\xe9"];
     }

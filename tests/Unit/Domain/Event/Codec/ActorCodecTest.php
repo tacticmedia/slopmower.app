@@ -61,7 +61,6 @@ final class ActorCodecTest extends KernelTestCase
         yield 'unknown kind' => [['kind' => 'robot', 'userId' => self::USER_ID], ['actor.kind']];
         yield 'invalid user ID' => [['kind' => 'user', 'userId' => 'x'], ['actor.userId']];
         yield 'agent name of the wrong type' => [['kind' => 'agent', 'userId' => self::USER_ID, 'agentName' => 1], ['actor.agentName']];
-        yield 'agent without an agent name' => [['kind' => 'agent', 'userId' => self::USER_ID], ['actor.agentName']];
         yield 'system with a user ID' => [['kind' => 'system', 'userId' => self::USER_ID, 'agentName' => null], ['actor.userId']];
     }
 

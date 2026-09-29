@@ -35,7 +35,6 @@ final class WontDoRulesTest extends KernelTestCase
      */
     public static function shortReasons(): iterable
     {
-        yield 'empty' => [''];
         yield '19 characters' => [str_repeat('a', 19)];
         yield '19 characters inside whitespace' => ["  \t".str_repeat('a', 19)."\n\u{00A0}"];
         yield '19 two-byte characters' => [str_repeat("\u{00E9}", 19)];

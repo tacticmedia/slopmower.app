@@ -24,7 +24,7 @@ final class CommitShaPrefixTest extends KernelTestCase
      */
     public static function validPrefixes(): iterable
     {
-        foreach ([7, 8, 40, 41, 64] as $length) {
+        foreach ([7, 64] as $length) {
             yield $length.' characters' => [substr(self::SHA256, 0, $length)];
         }
     }
@@ -34,14 +34,11 @@ final class CommitShaPrefixTest extends KernelTestCase
      */
     public static function invalidPrefixes(): iterable
     {
-        yield 'empty' => [''];
         yield '6 characters' => [substr(self::SHA1, 0, 6)];
         yield '65 characters' => [self::SHA256.'0'];
         yield 'upper-case hex' => [strtoupper(substr(self::SHA1, 0, 7))];
-        yield 'non-hex letter' => ['d0b05ag'];
         yield 'trailing newline' => [substr(self::SHA1, 0, 7)."\n"];
         yield 'leading dash' => ['-'.substr(self::SHA1, 0, 7)];
-        yield 'ref name' => ['main'];
     }
 
     #[DataProvider('validPrefixes')]

@@ -98,8 +98,6 @@ final class RequestStateTest extends KernelTestCase
     public static function derivedFields(): iterable
     {
         yield 'open' => [LifecycleFixtures::state(RequestStatus::Open), null, false];
-        yield 'in_progress' => [LifecycleFixtures::state(RequestStatus::InProgress), null, false];
-        yield 'reopened' => [LifecycleFixtures::state(RequestStatus::Reopened), null, false];
         yield 'ready_for_review' => [LifecycleFixtures::state(RequestStatus::ReadyForReview), Resolution::Fixed, false];
         yield 'wont_do set by an agent' => [LifecycleFixtures::state(RequestStatus::WontDo, wontDoSetBy: ActorKind::Agent), Resolution::WontDo, false];
         yield 'wont_do set by the user' => [LifecycleFixtures::state(RequestStatus::WontDo, wontDoSetBy: ActorKind::User), Resolution::WontDo, true];

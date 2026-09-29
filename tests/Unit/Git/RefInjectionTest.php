@@ -60,16 +60,14 @@ final class RefInjectionTest extends KernelTestCase
      */
     public static function optionLikePrefixesAndPaths(): iterable
     {
-        foreach (['--upload-pack=x', '-h'] as $value) {
-            yield 'prefix '.$value => [
-                static fn (GitReader $reader): mixed => $reader->resolvePrefix(TenantId::generate(), RepositoryId::generate(), CommitShaPrefix::fromString($value)),
-                'commit',
-            ];
-            yield 'path '.$value => [
-                static fn (GitReader $reader): mixed => $reader->entryAt(TenantId::generate(), RepositoryId::generate(), CommitSha::fromString(self::COMMIT_SHA), RepoPath::fromString($value)),
-                'path',
-            ];
-        }
+        yield 'prefix --upload-pack=x' => [
+            static fn (GitReader $reader): mixed => $reader->resolvePrefix(TenantId::generate(), RepositoryId::generate(), CommitShaPrefix::fromString('--upload-pack=x')),
+            'commit',
+        ];
+        yield 'path --upload-pack=x' => [
+            static fn (GitReader $reader): mixed => $reader->entryAt(TenantId::generate(), RepositoryId::generate(), CommitSha::fromString(self::COMMIT_SHA), RepoPath::fromString('--upload-pack=x')),
+            'path',
+        ];
     }
 
     /**

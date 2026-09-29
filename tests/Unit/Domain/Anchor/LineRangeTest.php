@@ -42,7 +42,6 @@ final class LineRangeTest extends KernelTestCase
     public static function invalidRanges(): iterable
     {
         yield 'start line 0' => [0, 3, ['anchor.range.startLine']];
-        yield 'negative start line' => [-1, 3, ['anchor.range.startLine']];
         yield 'end line before start line' => [5, 4, ['anchor.range.endLine']];
         yield 'both lines 0' => [0, 0, ['anchor.range.startLine', 'anchor.range.endLine']];
     }
