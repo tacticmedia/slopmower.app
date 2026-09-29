@@ -128,3 +128,14 @@ The read-only mount is exercised by hand in M11.
 ## Done
 
 The local source is fully covered by tests.
+
+## Carried over
+
+From the reports of M05 and M08. Do these in M09. The evidence is in [reports/M08.md](reports/M08.md).
+
+- **file:// percent-decoding (security).** Git percent-decodes the path of a `file://` URL. A directory named `sub%2f..%2ftarget` fetches `target`, which can be another tenant's clone. Build local URLs in one place and escape `%` as `%25`, or `rawurlencode()` each path segment. Apply the same fix to `GitRepositoryBuilder::fileUrl()`. Add a test with a source directory named `sub%2f..%2ftarget`.
+- **safe.directory.** Neither `-c safe.directory` nor `GIT_CONFIG_COUNT` reaches the local `git-upload-pack`, and `GIT_CONFIG_GLOBAL=/dev/null` removes the global channel. A source owned by another uid fails with "dubious ownership" on a Linux host. Use a server-owned global config file with only the `safe.directory` entries, passed as `GIT_CONFIG_GLOBAL` for local-source commands, or `--upload-pack="git -c safe.directory=<quoted> -c safe.directory=<quoted>/.git upload-pack"`. Correct the `-c safe.directory` text in architecture section 4 and specs section 7. Test with a source chowned to another uid outside `/app`.
+- A detached HEAD in a local source gives `defaultBranch = null` from `BareClone::fetch()`. Keep the stored default branch.
+- A pending SHA of a tree, a blob, or an annotated tag still gets a pin ref, and `hasCommit()` is true for an annotated tag's SHA. Check the object type before a link counts as available.
+- `TenantContextMiddleware` must call `reset()` before it sets another tenant, because `TenantContext::set()` refuses a different tenant. [M05](reports/M05.md).
+- An asynchronous first clone of a large repository may need a larger time budget than the 60 s default of `BareClone::fetch()`.

@@ -110,3 +110,7 @@ make check
 ## Done
 
 The agent identity comes only from the token.
+
+## Carried over
+
+- Remove `#[Autoconfigure(public: true)]` from `TenantContext` and `TenantFilter` once a `src` service injects them and the tests still reach them. Check the `when@test` public list in `config/services.yaml` the same way. [M05](reports/M05.md), [M08](reports/M08.md).

@@ -57,9 +57,9 @@ The spec files that milestones name:
    - M01: the M00 verification commands on the host;
    - from M02 on: `make up`, `make db-test`, and `make check`.
 6. Set the status of the milestone to "In progress".
-7. Do the tasks in order. Write each acceptance test together with the code that it proves, or before it.
+7. Do the tasks in order. Write each acceptance test together with the code that it proves, or before it. Tick each task in the milestone file when it is done: `N. [x]`.
 8. Run the verification commands of the milestone, then `make check`.
-9. Set the status to "Done (awaiting commit)" or "Blocked", with the date. Write the report from the [template](#report-template) as your final message. Then stop.
+9. Set the status to "Done (awaiting commit)" or "Blocked", with the date. Write the report from the [template](#report-template) as your final message. Also save it as `reports/MNN.md` and link it in the Notes column. Then stop.
 
 ## Workflow rules
 
@@ -95,7 +95,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M03 | [Domain events and payload codec](M03-domain-events-and-payload-codec.md) | Done | 2026-09-29 | [Report](reports/M03.md) |
 | M04 | [Request lifecycle](M04-request-lifecycle.md) | Done | 2026-09-29 | [Report](reports/M04.md) |
 | M05 | [Tenancy persistence and isolation](M05-tenancy-persistence-and-isolation.md) | Done | 2026-09-29 | [Report](reports/M05.md) |
-| M06 | [Review data schema](M06-review-data-schema.md) | In progress | 2026-09-29 | Branch `m06-review-schema`. Ticked tasks in the milestone file are done. |
+| M06 | [Review data schema](M06-review-data-schema.md) | Done | 2026-09-29 | [Report](reports/M06.md) |
 | M07 | [Event store and command service](M07-event-store-and-command-service.md) | Not started | | |
 | M08 | [Git plumbing](M08-git-plumbing.md) | Done | 2026-09-29 | [Report](reports/M08.md) |
 | M09 | [Local repository source](M09-local-repository-source.md) | Not started | | |

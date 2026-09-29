@@ -105,3 +105,8 @@ make check
 ## Done
 
 Every user command of architecture section 6 works over REST.
+
+## Carried over
+
+- Answer 403 `forbidden` for a wrong actor kind on S-only or B-only endpoints before the decider runs. The decider gives `invalid_transition` for claim by the user or verify by an agent, which would give 409. [M04](reports/M04.md).
+- `jsonb` containment queries on `review_event.request_ids` use `RequestId::toString()`, which is upper-case base32. There is no GIN index on the column. [M06](reports/M06.md).

@@ -129,3 +129,8 @@ By hand: connect Claude Code to a real local repository under `LOCAL_REPOSITORIE
 ## Done
 
 The slice works through the public interfaces only.
+
+## Carried over
+
+- Write `commit.found` in its own transaction before the decider runs for `mark_ready_for_review` (Q10 step 2). The decider counts a pending link as available when the availability lists it, and it writes no `commit.found`. [M04](reports/M04.md).
+- The commit events repair an invalid UTF-8 subject to U+FFFD and refuse a commit time outside the years 0000 to 9999. `GitReader::commitInfo()` can rely on that. [M03](reports/M03.md).

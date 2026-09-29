@@ -100,3 +100,8 @@ make check
 ## Done
 
 A review always reads the same bytes.
+
+## Carried over
+
+- `GitReader::blobAt()` and `readBlob()` load the whole blob into memory. The file endpoints need a bounded or streaming read for files over 1 MiB. [M08](reports/M08.md).
+- Git allows a path with a leading `-`, which `RepoPath` refuses. `lsTree` returns such names as plain strings. Decide how the tree and file endpoints show them. [M08](reports/M08.md).

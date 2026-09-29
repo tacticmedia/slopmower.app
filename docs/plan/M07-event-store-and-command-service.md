@@ -73,3 +73,14 @@ make check
 ## Done
 
 `CommandExecutor` is the only write path for events and projections.
+
+## Carried over
+
+From the reports of M03 to M06. Do these in M07.
+
+- Store `occurredAt` with whole seconds: call `setMicrosecond(0)` on the clock time. The entities refuse fractions (`WholeSeconds`), and `PayloadDateTime` refuses them too. [M03](reports/M03.md), [M06](reports/M06.md).
+- `TenantFixtures` passes `clock->now()` with microseconds to `Tenant` and `User`. Make it whole seconds when the event store uses the tenant row.
+- The raw insert into `review_event` writes `payload` as the codec's JSON object text (`EventCodec::encode()`), `request_ids` as the JSON list of `RecordedEvent::requestIds()`, and the actor columns of `ActorEmbeddable`. [M06](reports/M06.md).
+- Project `commit.unlinked` followed by `commit.linked` of the same pair through `CommitLink::relink()`, not a delete and an insert. The rebuild replays both in one unit of work. [M06](reports/M06.md).
+- `RequestReducer::apply()` documents `\LogicException` for events that do not fit, but a corrupt log with a claim by a user fails with `InvalidInput`. Add an actor-kind guard in the rebuild path. [M04](reports/M04.md).
+- `TenantContext::set()` refuses a different tenant until `reset()`, and `set()` inside a `TenantFilter::suspend()` callable throws. The rebuild works one tenant at a time: `reset()`, then `set()`, per tenant. [M05](reports/M05.md).
