@@ -21,3 +21,17 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+when@test:
+    services:
+        _defaults:
+            autowire: true
+            autoconfigure: true
+            public: true
+
+        # The container removes unused private services. Tests get these before a caller uses them.
+        App\Git\BareClone: ~
+        App\Git\GitRunner: ~
+        App\Git\PinRefs: ~
+        App\Git\RepositoryLock: ~
+        App\Git\TenantDataPaths: ~
