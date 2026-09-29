@@ -17,18 +17,17 @@ final class TestMethodsHaveTestDoxTest extends KernelTestCase
         foreach (array_filter(ProjectFiles::testClasses()) as $class) {
             foreach (new \ReflectionClass($class)->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
                 if (self::isOurTestMethod($method) && [] === $method->getAttributes(TestDox::class)) {
-                    $violations[] = $class.'::'.$method->getName();
+                    $violations[] = $method->class.'::'.$method->name;
                 }
             }
         }
 
-        self::assertSame([], $violations);
+        self::assertSame([], array_values(array_unique($violations)));
     }
 
     private static function isOurTestMethod(\ReflectionMethod $method): bool
     {
-        return str_starts_with($method->getDeclaringClass()->getName(), 'App\\Tests\\')
-            && !$method->isStatic()
-            && (str_starts_with($method->getName(), 'test') || [] !== $method->getAttributes(Test::class));
+        return str_starts_with($method->class, 'App\\Tests\\')
+            && (str_starts_with($method->name, 'test') || [] !== $method->getAttributes(Test::class));
     }
 }

@@ -9,7 +9,7 @@ use Symfony\Component\Finder\SplFileInfo;
 
 final class ProjectFiles
 {
-    public static function root(): string
+    private static function root(): string
     {
         return \dirname(__DIR__, 3);
     }
