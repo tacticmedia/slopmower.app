@@ -45,9 +45,9 @@ M01.
 ## Tasks (ordered)
 
 1. [x] Run `make composer c="require symfony/uid symfony/clock"`.
-2. Write each value object as `final readonly` with a private constructor, named constructors, and `equals()`. Invalid input throws `InvalidInput`, which names the field.
-3. Typed IDs print upper case and accept any case, as docs/specs says for ULIDs.
-4. Write `ErrorCode` and the `DomainError` subclasses:
+2. [x] Write each value object as `final readonly` with a private constructor, named constructors, and `equals()`. Invalid input throws `InvalidInput`, which names the field.
+3. [x] Typed IDs print upper case and accept any case, as docs/specs says for ULIDs.
+4. [x] Write `ErrorCode` and the `DomainError` subclasses:
    - `NotFound`, no details;
    - `InvalidInput` with `violations: list<{field, message}>`;
    - `InvalidTransition` with `requestId`, `action`, `status`, `claimedBy`, `allowedActions`;
@@ -55,7 +55,7 @@ M01.
    - `CommitsNotAvailable` with `pendingCommits`;
    - `CommitNotFound` with `commit`, the SHA or ref as the caller gave it;
    - `RepositoryUnavailable` with `repositoryId` and `reason`: `cloning`, `clone_failed`, `fetch_failed`, `removed`.
-5. Add the purity convention test.
+5. [x] Add the purity convention test.
 
 ## Acceptance tests
 
