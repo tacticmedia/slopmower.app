@@ -97,7 +97,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M05 | [Tenancy persistence and isolation](M05-tenancy-persistence-and-isolation.md) | Done | 2026-09-29 | [Report](reports/M05.md) |
 | M06 | [Review data schema](M06-review-data-schema.md) | In progress | 2026-09-29 | Branch `m06-review-schema`. Ticked tasks in the milestone file are done. |
 | M07 | [Event store and command service](M07-event-store-and-command-service.md) | Not started | | |
-| M08 | [Git plumbing](M08-git-plumbing.md) | In progress | 2026-09-29 | Branch `m08-git-plumbing`. Ticked tasks in the milestone file are done. |
+| M08 | [Git plumbing](M08-git-plumbing.md) | Done | 2026-09-29 | [Report](reports/M08.md) |
 | M09 | [Local repository source](M09-local-repository-source.md) | Not started | | |
 | M10 | [Sign-in and security](M10-sign-in-and-security.md) | In progress | 2026-09-29 | Branch `m10-sign-in`. Ticked tasks in the milestone file are done. |
 | M11 | [REST foundation and repositories API](M11-rest-foundation-and-repositories-api.md) | Not started | | |
