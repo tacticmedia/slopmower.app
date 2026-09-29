@@ -44,7 +44,7 @@ M01.
 
 ## Tasks (ordered)
 
-1. Run `make composer c="require symfony/uid symfony/clock"`.
+1. [x] Run `make composer c="require symfony/uid symfony/clock"`.
 2. Write each value object as `final readonly` with a private constructor, named constructors, and `equals()`. Invalid input throws `InvalidInput`, which names the field.
 3. Typed IDs print upper case and accept any case, as docs/specs says for ULIDs.
 4. Write `ErrorCode` and the `DomainError` subclasses:
