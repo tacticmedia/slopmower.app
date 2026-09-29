@@ -49,8 +49,8 @@ M04, M05.
 
 ## Tasks (ordered)
 
-1. Write the mappings, the DBAL types, the embeddable, and the mapper.
-2. Run `make migration`. Read the generated SQL. Apply it with `make console c="doctrine:migrations:migrate --no-interaction"` and `make db-test`.
+1. [x] Write the mappings, the DBAL types, the embeddable, and the mapper.
+2. [x] Run `make migration`. Read the generated SQL. Apply it with `make console c="doctrine:migrations:migrate --no-interaction"` and `make db-test`.
 
 ## Acceptance tests
 
