@@ -25,7 +25,7 @@ final class SnapshotCaptureTest extends KernelTestCase
     #[TestDox('Normalizes CRLF and trailing whitespace')]
     public function testNormalizesCrlfAndTrailingWhitespace(): void
     {
-        $snapshot = SnapshotCapture::capture("  one \t\r\n\ttwo  \r\nthree\r\n  four \r\n", LineRange::of(2, 3));
+        $snapshot = SnapshotCapture::capture("  one \t\x0B\x0C\r\n\ttwo  \r\nthree\r\n  four \r\n", LineRange::of(2, 3));
 
         self::assertSame(["\ttwo", 'three'], $snapshot->lines);
         self::assertSame(['  one'], $snapshot->before);
@@ -39,6 +39,7 @@ final class SnapshotCaptureTest extends KernelTestCase
         self::assertSame(['a', 'b'], SnapshotCapture::fileLines("a\nb\n"));
         self::assertSame(['a', 'b'], SnapshotCapture::fileLines("a\r\nb"));
         self::assertSame(['a', ''], SnapshotCapture::fileLines("a\n\n"));
+        self::assertSame(["a\rb", 'c'], SnapshotCapture::fileLines("a\rb\nc\n"), 'Lines split only at LF, as git counts them.');
         self::assertSame([], SnapshotCapture::fileLines(''));
         self::assertTrue(SnapshotCapture::capture("a\nb\n", LineRange::of(1, 2))->equals(SnapshotCapture::capture("a\nb", LineRange::of(1, 2))));
     }
@@ -145,6 +146,17 @@ final class SnapshotCaptureTest extends KernelTestCase
     {
         self::assertSame("\u{c5} \u{a0}x", SnapshotCapture::comparisonForm(" \t\u{c5}\x0B\x0C \u{a0}x \r"));
         self::assertSame("\xFF a", SnapshotCapture::comparisonForm("\xFF   a"));
+    }
+
+    #[TestDox('Replaces each invalid UTF-8 sequence and each NUL with U+FFFD, so the snapshot encodes as JSON')]
+    public function testReplacesInvalidUtf8AndNul(): void
+    {
+        $snapshot = SnapshotCapture::capture("<?php\n// Pr\xE9f\xE9rence \xE2\x82\n\$a = \"x\0y\";\n", LineRange::of(3, 3));
+
+        self::assertSame(["\$a = \"x\u{FFFD}y\";"], $snapshot->lines);
+        self::assertSame(['<?php', "// Pr\u{FFFD}f\u{FFFD}rence \u{FFFD}"], $snapshot->before);
+        self::assertJson(json_encode([$snapshot->lines, $snapshot->before], \JSON_THROW_ON_ERROR));
+        self::assertSame("\u{c5} \u{1F600}", SnapshotCapture::normalizeLine("\u{c5} \u{1F600} "), 'Valid UTF-8 stays unchanged.');
     }
 
     /**
