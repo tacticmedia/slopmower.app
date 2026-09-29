@@ -249,7 +249,8 @@ publish one live update for the transaction
 | Layer | Measure |
 |---|---|
 | Tenant context | Set from the signed-in user, the API token, or the tenant stamp of a Messenger message. It fails closed: without a tenant context, a query on a tenant table fails. |
-| Application | A Doctrine SQL filter adds `tenant_id = :tenant` to every ORM query. It is on by default. Only `TenantFilter::suspend()` turns it off, in four places: the sign-in and token lookup, the webhook router, the projection rebuild, and the purge. |
+| Application | A Doctrine SQL filter adds `tenant_id = :tenant` to every ORM query, and `id = :tenant` for the `tenant` table. It is on by default. Only `TenantFilter::suspend()` turns it off, in four places: the sign-in and token lookup, the webhook router, the projection rebuild, and the purge. |
+| Writes | An `onFlush` guard fails a flush outside `TenantFilter::suspend()` that writes a row of another tenant or runs without a tenant context. `TenantContext::set()` refuses a different tenant until `reset()`, which clears the entity manager. `set()` and the end of `suspend()` detach loaded entities of other tenants. |
 | Raw SQL | The SQL filter does not cover DBAL queries or identity-map hits. Every raw SQL statement on a tenant table names `tenant_id`, and an audit test checks this. The entity manager is cleared between worker requests and between Messenger messages. |
 | Files | Clones in `<data>/tenants/<tenantId>/repositories/<repositoryId>.git`. Paths come from IDs, never from input. Two tenants who connect the same repository get two clones. |
 | Live updates | Mercure topics contain the tenant ID. The subscriber token allows only the tenant's own topics. |
