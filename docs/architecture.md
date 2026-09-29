@@ -123,7 +123,7 @@ The spikes were joined into one end-to-end demonstration. A Symfony API, install
 
 | Type | Fields and types | Rules |
 |---|---|---|
-| `TenantId`, `UserId`, `RepositoryId`, `ReviewId`, `RequestId`, `CommentId`, `EventId`, `BatchId`, `ApiTokenId` | `Symfony\Component\Uid\Ulid` | 26 characters, Crockford base32 |
+| `TenantId`, `UserId`, `RepositoryId`, `ReviewId`, `RequestId`, `CommentId`, `EventId`, `BatchId`, `ApiTokenId`, `DraftId` | `Symfony\Component\Uid\Ulid` | 26 characters, Crockford base32 |
 | `CommitSha`, `BlobSha` | `string` | `^[0-9a-f]{40}$` or `^[0-9a-f]{64}$` for SHA-256 repositories |
 | `RepositorySource` | enum: `github`, `local` | |
 | `RepositoryName` | `string` | `owner/name` for `github`, as on GitHub. The directory name for `local`: no `/`, no leading `.`. Unique per tenant. |
