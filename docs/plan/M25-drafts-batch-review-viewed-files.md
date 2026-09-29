@@ -8,7 +8,7 @@ A GitHub-style pending review, and per-user "Viewed" files, decision D15. The co
 
 ## Depends on
 
-M21. M24 is optional: the batch then arrives in other windows as one live update.
+M21. M24: the batch arrives in other windows as one live update.
 
 ## In scope
 
@@ -23,10 +23,10 @@ M21. M24 is optional: the batch then arrives in other windows as one live update
   - D5 `POST /api/v1/reviews/{reviewId}/drafts/submit`: `{summary}`, optional. One transaction takes all the caller's drafts of the review sorted by `createdAt`, creates one `batchId`, writes `request.opened` or `request.commented` with that `batchId` per draft, then `batch.submitted` with `summary`, `requestIds`, and `commentIds`, and deletes the drafts. 201 with `BatchSubmission`. 422 when there are no drafts. 409 `review_closed`;
   - V11 `GET /api/v1/reviews/{reviewId}/viewed-files`: `{reviewId, paths}`. The marks never reset inside a review;
   - V12 `PUT /api/v1/reviews/{reviewId}/viewed-files`: `{path, viewed}`, idempotent per path. 422 when the path is not a file at the review commit. 409 `review_closed`.
-- `DraftProjector` runs inside the `CommandExecutor` transaction. On `batch.submitted` and on `review.closed`, it deletes the drafts of the event actor in the review. So D5 and V4 delete the drafts in the transaction of their events. `app:projections:rebuild` skips `DraftProjector`, because drafts are not event data and a replay of an old `batch.submitted` would delete newer drafts.
+- Draft deletion uses the `inTransaction` callback of `CommandExecutor`, so it commits with the events. D5 deletes exactly the drafts that it read, so a draft created during the submission stays. V4 deletes all drafts of the caller in the review. Drafts are not event data, so the projection rebuild never touches them.
 - UI:
   - "Start a review" next to "Add single comment" creates a draft;
-  - a "Pending" label on draft threads;
+  - a "Pending" label on draft threads, with edit through D3 and delete through D4;
   - the "Finish your review (n)" overlay with a summary field and submit;
   - a "Viewed" checkbox in the file header, and viewed marks in the tree;
   - the close dialog warns with the draft count when the review has drafts.
@@ -38,7 +38,7 @@ M21. M24 is optional: the batch then arrives in other windows as one live update
 ## Files (representative)
 
 - `src/Entity/Draft.php`, `src/Entity/ViewedFile.php`, `migrations/Version*.php`.
-- `src/Application/DraftService.php`, `SubmitBatch.php`, `ViewedFiles.php`, `src/Projection/DraftProjector.php`.
+- `src/Application/DraftService.php`, `SubmitBatch.php`, `ViewedFiles.php`.
 - `src/Controller/Api/DraftController.php`, `src/Controller/Api/ViewedFileController.php`, normalizers.
 - `assets/review/FinishReviewOverlay.tsx`, `assets/review/ViewedCheckbox.tsx`, `assets/comments/*` changes.
 - `tests/Functional/Api/Draft*Test.php`, `tests/Functional/Api/ViewedFilesTest.php`, `tests/E2E/BatchReviewTest.php`, `tests/E2E/ViewedTest.php`.
@@ -46,15 +46,15 @@ M21. M24 is optional: the batch then arrives in other windows as one live update
 ## Tasks (ordered)
 
 1. Write the entities and run `make migration`.
-2. Implement the draft service, the batch submission, and the viewed files.
-3. Write `DraftProjector`.
-4. Write the controllers and add the cross-tenant cases.
-5. Build the UI.
+2. Implement the draft service, the batch submission, the draft deletion on close, and the viewed files.
+3. Write the controllers and add the cross-tenant cases.
+4. Build the UI.
 
 ## Acceptance tests
 
 - **F `SubmitBatchTest`** proves D5.
   - "Submission writes one batchId on contiguous seqs and deletes the drafts"
+  - "A draft created during a submission stays"
   - "Submitting zero drafts gives 422 invalid_input"
   - "Submitting on a closed review gives 409 review_closed"
 - **F `DraftRulesTest`** proves D1 to D4.
@@ -76,6 +76,7 @@ M21. M24 is optional: the batch then arrives in other windows as one live update
 - The cross-tenant inventory covers every new route.
 - **E `BatchReviewTest`** proves the pending review in the browser.
   - "Two drafts submitted with a summary appear as two threads without the Pending label"
+  - "A draft can be edited and deleted before the submission"
 - **E `ViewedTest`** proves the Viewed checkbox.
   - "A file marked as viewed shows the mark in the tree after a reload"
 

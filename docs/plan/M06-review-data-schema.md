@@ -17,19 +17,19 @@ M04, M05.
   - `defaultBranch` or null, `defaultBranchHead` or null;
   - `syncState` with `cloning`, `failed`, `idle`, `fetching`, `unavailable`; `lastFetchedAt` or null; `lastError` or null;
   - `access` with `active` and `removed`; `createdAt`;
-  - unique `(tenant_id, source, name)`.
-  The GitHub installation link arrives in M33.
+  - unique `(tenant_id, source, name)`, and a partial unique index on `(tenant_id, github_repository_id)`, so that a second GitHub connect finds the existing row.
+  The `githubInstallationId` column arrives in M33.
 - `Review`:
   - `repository`, `title`, `ref`, `commitSha`, `state` with `open` and `closed`;
   - `startedBy`, `createdAt`, `closedAt` or null, `closedBy` or null, `closeNote` or null;
   - `lastEventSeq`;
   - the index status fields: `indexState`, `filesTotal` or null, `filesDone`, `symbolsTotal`, `indexStartedAt` or null, `indexFinishedAt` or null, `indexError` or null. They exist from here on, so that the `Review` response of M12 is complete. M26 fills them.
-- `ChangeRequest`: every field the reducer needs, the anchor as `jsonb`, `Actor` as an embeddable for `author` and `claimedBy`, `claimedAt`, `statusBeforeClaim`, `awaiting`, `resolution`, `lastEventSeq`, `updatedAt`.
+- `ChangeRequest`: every field the reducer needs, the anchor as `jsonb`, `Actor` as an embeddable for `author` and `claimedBy`, `claimedAt`, `statusBeforeClaim`, `awaiting`, `resolution`, `lastEventSeq`, `updatedAt`. Doctrine has no nullable embeddable: a null `claimedBy` or `closedBy` loads as an embeddable with null fields, so its columns are nullable and the getter maps it to null.
 - `Comment`.
 - `CommitLink`: `state`, `linkedBy`, `linkedAt`, `note`, `foundAt`, `subject`, `committedAt`. Unique per request and commit. `state`, `foundAt`, `subject`, and `committedAt` come from the `commit.linked` or `commit.found` payload, so a rebuild needs no clone.
 - `ReviewEvent`:
   - a read-only entity;
-  - a `requestIds` column as a `jsonb` array, copied from the payload, so that thread and updates queries select events by request;
+  - a `requestIds` column as a `jsonb` array, so that thread and updates queries select events by request. It holds `Event.requestIds` of `event.schema.json`: `[requestId]` for request events and `commit.unlinked`, the payload `requestIds` for `commit.linked`, `commit.found`, and `batch.submitted`, and `[]` for review events;
   - unique `(tenant_id, seq)`; index `(tenant_id, review_id, seq)`.
 - IDs as Doctrine `ulid` columns with typed-ID getters.
 - Custom DBAL types only for `CommitSha`, `BlobSha`, `RepoPath`, and `Anchor`. `Anchor` is `jsonb` through `AnchorCodec`. Enums use `enumType`.

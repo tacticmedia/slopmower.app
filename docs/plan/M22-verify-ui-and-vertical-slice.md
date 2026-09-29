@@ -40,7 +40,6 @@ M16, M19, M21.
 1. Build the request list with its URL filters.
 2. Build the request detail with its actions and the reply box.
 3. Write the slice test, then the other tests.
-4. Set the Notes column of M22 in the README status table to "Vertical slice complete".
 
 ## Acceptance tests
 
@@ -74,4 +73,4 @@ make check
 
 ## Done
 
-The slice runs in the browser, and the README status table marks it complete.
+The slice runs in the browser.

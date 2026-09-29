@@ -51,7 +51,7 @@ Remove the unused skeleton packages. Enforce static analysis, code style, and th
    - one ignore: the identifier `method.unused` in `src/Kernel.php`. PHPStan reports `Kernel::getAllowedEnvs()` as unused, but `KernelTrait` calls it through `MicroKernelTrait`.
 7. Write `tests/object-manager.php`. It boots the dev kernel and returns the entity manager.
 8. In `tests/bootstrap.php`, call `new Dotenv()->bootEnv(dirname(__DIR__).'/.env')` directly. The `method_exists()` guard is always true, and PHPStan reports it. Fix the code. Do not add an ignore.
-9. Write `.php-cs-fixer.dist.php`: the ruleset `@Symfony`. Exclude `var`, `node_modules`, `public/build`, `public/build-e2e`, `config/bundles.php`, and `config/reference.php`.
+9. Write `.php-cs-fixer.dist.php`: the ruleset `@Symfony` plus the risky rule `declare_strict_types`, with risky rules allowed. Exclude `var`, `node_modules`, `public/build`, `public/build-e2e`, `config/bundles.php`, and `config/reference.php`. Run `vendor/bin/php-cs-fixer fix` once, so that the existing files get `declare(strict_types=1);`.
 10. Edit `phpunit.dist.xml`:
     - suites `unit` for `tests/Unit`, `functional` for `tests/Functional`, `e2e` for `tests/E2E`;
     - keep the `failOnDeprecation`, `failOnNotice`, and `failOnWarning` settings;

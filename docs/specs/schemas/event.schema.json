@@ -35,7 +35,7 @@
       "items": {
         "$ref": "common.schema.json#/$defs/Ulid"
       },
-      "description": "Every request the event concerns: [requestId] for request events; covered requests for commit.linked and commit.found; opened and commented requests for batch.submitted; [] for review events."
+      "description": "Every request the event concerns: [requestId] for request events and commit.unlinked; covered requests for commit.linked and commit.found; opened and commented requests for batch.submitted; [] for review events."
     },
     "actor": {
       "$ref": "actor.schema.json"

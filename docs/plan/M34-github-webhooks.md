@@ -22,7 +22,7 @@ M33, M16, M24.
   - every verified delivery returns a `RemoteEvent`: name `github.<X-GitHub-Event>`, ID from `X-GitHub-Delivery`, payload the decoded body. Events that the server does not handle get the name `github.ignored`. Returning `null` would make Symfony answer 406;
   - the response is 202 with an empty body. The work runs in the worker.
 - Duplicates: `webhook_delivery` holds the delivery IDs, with `id` as primary key and `received_at`. The consumer skips a delivery whose ID is in the table. It inserts the ID after its work, with `ON CONFLICT DO NOTHING`, so a failed run leaves no row, and the retry does the work. Two deliveries of one ID can run at the same time, so every handler below is idempotent. After each insert, the consumer deletes rows older than 7 days. `WebhookDelivery` is not tenant owned: add it to the exception list of `EntityTenancyConventionTest`.
-- Tenancy: the consumer runs inside `TenantFilter::suspend()`. `ConsumeRemoteEventMessage` has no `TenantStamp`, so M34 adds it to the tenantless list of the M09 middleware. The consumer finds every tenant's `Repository` or `GitHubInstallation` by GitHub ID. Each resulting job carries its tenant in a `TenantStamp`, and the application sets the tenant context from it.
+- Tenancy: `ConsumeRemoteEventMessage` has no `TenantStamp`, so M34 adds it to the tenantless list of the M09 middleware. The consumer only routes. Inside `TenantFilter::suspend()` it finds the tenants of the delivery by the GitHub repository ID, the installation ID, or `sender.id`. For each tenant it queues one job with a `TenantStamp`. The event handling below runs in these jobs, under the tenant context, so no tenant row is written while the filter is suspended.
 - Event handling, as the table in docs/specs/webhooks-and-live-updates.md section 1 says:
   - `ping`: no-op;
   - `push`: for each tenant repository with this GitHub ID and `access = active`, request an asynchronous fetch through the M09 trigger. After the fetch, the steps of section 2.2 run: resolve pending links with `commit.found` and pins, queue `RecomputeLocations` when the default-branch head changed, publish `repository` and `events`;
@@ -86,6 +86,7 @@ All are functional tests.
   - "repository renamed updates the name"
 - **F `WebhookTenantFilterTest`** proves tenant handling.
   - "Each job from the consumer runs under its own tenant"
+  - "The consumer writes no tenant row"
   - "The consumer message passes the tenant middleware without a stamp"
 
 ## Verification commands

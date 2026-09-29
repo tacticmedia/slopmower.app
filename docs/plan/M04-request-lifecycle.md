@@ -14,7 +14,8 @@ M03.
 
 - `RequestState` and `ReviewSnapshot`.
 - Command DTOs: `Open`, `Claim`, `Release`, `Reply`, `LinkCommits`, `UnlinkCommit`, `MarkReadyForReview`, `MarkWontDo`, `Verify`, `Reopen`, `StartReview`, `CloseReview`.
-- `RequestDecider::decide(command, ?state, review, actor, availability)`.
+- `RequestDecider::decide(command, states, review, actor, availability)`. `states` holds the state of each named request: none for `Open`, up to 50 for `LinkCommits`, else one.
+- The decider checks in the order of docs/specs/README.md section 4: `invalid_input`, `review_closed`, `invalid_transition`, then `commits_not_available`.
 - `RequestReducer::apply`, `ReviewDecider`, `ReviewReducer`.
 - `AwaitingPolicy`: rules 1 to 5 of architecture section 6, in order.
 - `AllowedActions`, plus the derived `closed` and `resolution`.
@@ -84,10 +85,9 @@ All are unit tests.
   - "commit.found moves a link from pending to available"
 - **U `ClosedReviewTest`** proves the closed-review rule.
   - "Every write by user or agent on a closed review gives review_closed"
-  - "Reads are still allowed on a closed review"
   - "Closing a closed review gives review_closed"
-- **U `AllowedActionsTest`** proves that the UI and the decider agree. It is a property test.
-  - "An action is allowed if and only if decide() does not throw"
+- **U `AllowedActionsTest`** proves that the UI and the decider agree. It is a property test with valid input and available links.
+  - "An action is allowed if and only if decide() throws neither invalid_transition nor review_closed, except a repeated claim by the holder"
   - "The list equals the docs/specs table for agent and user callers"
   - "The list is empty on a closed review"
 

@@ -194,7 +194,8 @@
         },
         "normalizedHash": {
           "type": "string",
-          "pattern": "^sha256:[0-9a-f]{64}$"
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "description": "SHA-256 of the full region in comparison form: each line trimmed, each inner whitespace run replaced by one space, lines joined with LF, no final LF."
         }
       }
     },

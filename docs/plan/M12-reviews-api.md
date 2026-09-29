@@ -18,7 +18,7 @@ M11.
   3. Create the pin `refs/holistic-review/reviews/<reviewId>`, decision D26.
   4. Run the `review.started` transaction: actor user, payload `title`, `ref`, `commitSha`. Set the index state to `pending`. M26 adds the index job.
   5. If the transaction fails, delete the pin.
-- Start input rules: `ref` defaults to the default branch. `title` defaults to `"<ref> @ <first 12 SHA characters>"`, or to the 12 characters alone when `ref` is a SHA. `ref` follows the git ref-name rules or is a hex SHA of 7 to 64 characters. A leading `-` is refused.
+- Start input rules: `ref` defaults to the default branch. `title` defaults to `"<ref> @ <first 12 SHA characters>"`, or to the 12 characters alone when `ref` is a SHA. A `ref` has up to 255 characters, so the ref part is cut until the title has at most 200 characters. `ref` follows the git ref-name rules or is a hex SHA of 7 to 64 characters. A leading `-` is refused.
 - `ReviewCommands::close`, endpoint V4, decision D27: `review.closed` with actor user and payload `{note}`. It sets `closedAt`, `closedBy`, and `closeNote`. Closing a closed review gives 409 `review_closed`. M25 adds the deletion of the caller's drafts.
 - `ReviewQuery`: the `Review` object with `counts` and `index`, and the `ReviewPage` of V2 with its `repository` object. `Repository.openReviewCount` counts the open reviews.
 - `TreeQuery`: `git ls-tree` at the pinned commit, with `dir`, `recursive`, `limit`, and `cursor`.
@@ -65,6 +65,7 @@ All are functional tests. Every JSON response validates against its schema.
   - "Starts a review at a branch, a tag, and a SHA"
   - "The review pin points at the review commit"
   - "The review.started event has actor user and the default title"
+  - "A 255-character ref gives a default title of 200 characters"
   - "A full SHA that is already in the clone starts without a fetch"
   - "An unknown ref gives 422 commit_not_found"
   - "An option-like ref or an ambiguous prefix gives 422 invalid_input"

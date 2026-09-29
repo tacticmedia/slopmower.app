@@ -14,8 +14,8 @@ M32, M09.
 
 - `composer require lcobucci/jwt`, version 5.6.0.
 - `GitHubAppJwtFactory`: RS256, `iat` 60 seconds in the past, a lifetime of at most 10 minutes, the client ID as issuer, the key from `GITHUB_APP_PRIVATE_KEY`.
-- `InstallationTokenProvider`: `POST /app/installations/{id}/access_tokens`, limited to one repository and `contents: read`. The token is cached in process memory only, until 5 minutes before it expires. A cache pool would write it to disk.
-- `GitHubInstallation` entity: `installationId`, `accountLogin`, `accountType` with `User` and `Organization`, `suspendedAt` or null. A nullable foreign key on `Repository` with `ON DELETE SET NULL`, so that the `installation` `deleted` webhook of M34 can delete the row.
+- `InstallationTokenProvider`: `POST /app/installations/{id}/access_tokens`, limited to one repository and `contents: read`. Each clone or fetch requests a new token, as architecture section 12 says, and keeps it in a local variable only: no cache pool, no service property.
+- `GitHubInstallation` entity: `installationId`, `accountLogin`, `accountType` with `User` and `Organization`, `suspendedAt` or null. `Repository` gets the integer column `githubInstallationId`, not a foreign key. So the `installation` `deleted` webhook of M34 can delete the installation row, and `github.installationId` of the repository stays valid.
 - `GitHubCandidate` entity: the per-tenant candidate list from the last sign-in: `githubRepositoryId`, `installationId`, `accountLogin`, `owner`, `name`, `private`, `defaultBranch`, `htmlUrl`, `listedAt`.
 - A migration.
 - The sync at sign-in, as docs/specs/rest-api.md R2 says:
@@ -58,10 +58,10 @@ M32, M09.
 - **U `GitHubAppJwtTest`** proves the App JWT.
   - "The JWT has iat 60 seconds in the past, a lifetime of at most 10 minutes, and the client ID as issuer"
   - "The signature verifies with the public key"
-- **F `InstallationTokenTest`** proves token requests. It uses `mockTime()`.
+- **F `InstallationTokenTest`** proves token requests.
   - "The request limits the token to one repository and contents read"
-  - "The token is reused until 5 minutes before it expires"
-  - "The token is not written to any cache pool"
+  - "Each fetch requests a new token"
+  - "The token is not stored in a cache pool or a service property"
 - **F `InstallationSyncTest`** proves the sign-in sync.
   - "Sign-in records the installations and the candidates"
   - "A connected repository that is no longer listed becomes removed, and its clone and index are deleted"

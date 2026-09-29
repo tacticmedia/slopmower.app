@@ -16,9 +16,9 @@ M02.
 - `RangeMapper`: `mapRange` maps each boundary line through the hunks. A line before a hunk moves by the sum of the earlier deltas. A line inside a hunk maps to the new side of that hunk. The result says whether the range is untouched and whether it keeps some lines.
 - `SnapshotMatcher`:
   - a snapshot is distinctive when it has 8 or more non-whitespace characters;
-  - finds exact normalized matches and picks the one nearest to the mapped start;
+  - finds exact matches in the comparison form of architecture section 5.1 and picks the one nearest to the mapped start. For a truncated snapshot, a match is a window of `lineCount` lines whose hash equals `normalizedHash`;
   - detects ties.
-- `LineSimilarity`.
+- `LineSimilarity`: the formula of architecture section 5.4, `2 * m / (|a| + |b|)` with `m` the longest common subsequence of lines in comparison form.
 - `BestWindow`, with the threshold 0.6.
 
 ## Out of scope
@@ -50,8 +50,9 @@ All are unit tests.
   - "F9: two matches at equal distance are ambiguous"
   - "F10: a trivial snapshot is never searched"
   - "F11: a whitespace or line-ending change still matches"
+  - "A truncated snapshot matches a window with its normalizedHash"
 - **U `LineSimilarityTest`** proves the similarity measure.
-  - "Known line pairs give their known similarity values"
+  - "Identical lists give 1, disjoint lists give 0, and 3 common lines of 4 and 6 give 0.6"
 - **U `BestWindowTest`** proves the fuzzy search.
   - "Finds the best window near the mapped start"
   - "A score below 0.6 gives no window"

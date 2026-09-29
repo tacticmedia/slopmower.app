@@ -25,7 +25,7 @@ M01.
 - Anchors:
   - `LineRange`, `SymbolKind`, `SymbolRef`, `AnchorKind`;
   - `ContentSnapshot`;
-  - `SnapshotCapture`: LF line endings, trailing whitespace removed, all lines up to 200, else the first 100 and the last 100, 3 context lines on each side, and a `sha256:` hash of the normalized region;
+  - `SnapshotCapture`: LF line endings, trailing whitespace removed, all lines up to 200, else the first 100 and the last 100, 3 context lines on each side, and `normalizedHash` over the comparison form of architecture section 5.1;
   - `Anchor` with its invariants per kind.
 - Actors: `ActorKind`, and `Actor`. A user has a `userId`. An agent has a `userId` and an `agentName`. The system has neither.
 - Enums: `RequestStatus`, `Awaiting`, `Resolution`, `CommitLinkState`, `ReviewState` with `open` and `closed`, `RepositoryAccess`, `SyncState`, `IndexState`, `Action`, `LocationStatus`, `OrphanReason`. The value object `Location`.
@@ -68,7 +68,7 @@ All are unit tests.
   - "Never equals an ID of another type with the same value"
 - **U `CommitShaTest`** and **U `BlobShaTest`** prove the SHA rules of docs/specs.
   - "Accepts 40 and 64 hex characters"
-  - "Handles letter case as docs/specs says"
+  - "Rejects upper-case hex"
   - "Rejects a prefix that CommitShaPrefix accepts"
 - **U `RepoPathTest`** proves that paths cannot escape the tree.
   - "Rejects absolute paths, dot segments, empty segments, a leading dash, and NUL"
@@ -85,8 +85,8 @@ All are unit tests.
   - "Normalizes CRLF and trailing whitespace"
   - "Keeps 200 lines and cuts 201 lines to the first and last 100 with lineCount 201"
   - "Takes fewer context lines at the file edges"
-  - "Produces the known hash for a test vector"
-  - "Gives the same hash for a whitespace-only change"
+  - "Produces the normalizedHash of the snapshots in docs/specs/fixtures/request.opened-range.json and request.in-progress.json"
+  - "Gives the same hash for a re-indented region"
 - **U `AnchorTest`** proves the anchor invariants.
   - "Enforces range, symbol, and snapshot rules per kind"
 - **U `ActorTest`** proves the actor invariants.

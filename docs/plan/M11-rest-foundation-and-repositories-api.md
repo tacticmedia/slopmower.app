@@ -20,21 +20,22 @@ M09, M10.
   - an unknown route under `/api/v1` to 404 `not_found`;
   - an ID of another tenant to 404 `not_found`;
   - any other exception to 500 `internal_error` with a generic message. The exception is logged.
-- The check order of docs/specs/README.md section 4: 401, then 404, then 403, then 400 and 422, then the 409 codes. The Symfony request cycle gives it when:
+- The check order of docs/specs/README.md section 4: 401, then 404, then 403, then 400, 413, 415, and 422, then the 409 codes. The Symfony request cycle gives it when:
+  - the `access_control` rule of M10 answers 401 on `kernel.request`;
   - path IDs resolve to visible entities in `ValueResolverInterface` implementations, which run before `kernel.controller_arguments`. An invisible ID gives 404;
-  - `#[IsGranted]` checks the actor kind, at priority 20 of `kernel.controller_arguments`;
-  - the CSRF listener runs on `kernel.controller_arguments`, after the ID resolution, not on `kernel.request`;
+  - the CSRF listener and `#[IsGranted]` for the actor kind run on `kernel.controller_arguments` above priority -10100. The CSRF listener is not a `kernel.request` listener. In Symfony 8.1, `#[IsGranted]` runs through `ControllerAttributesListener` at -10000;
+  - a body-size listener on `kernel.controller_arguments`, also above -10100, answers 413 for a body above 1 MiB. Symfony has no body limit of its own;
   - `#[MapRequestPayload]` and `#[MapQueryString]` map and validate at priority -10100;
   - the services give the 409 codes.
 - CSRF on session writes: POST, PUT, PATCH, and DELETE under `/api/v1` with a session pass `SameOriginCsrfTokenManager` with the token ID `api`. A failure gives 403 `forbidden`.
 - Serializer normalizers in `src/Serializer/Normalizer`. MCP uses the same normalizers in M15. They emit every schema property, ULIDs in upper case, SHAs in lower case, and times in RFC 3339 UTC with second precision.
-- A cursor codec for docs/specs/README.md section 5: base64url JSON of the last sort key plus a hash of the filters. A cursor used with other filters gives 422 `invalid_input`.
+- A cursor codec for docs/specs/README.md section 5: base64url JSON of the last sort key plus a hash of the filters. The hash covers every query parameter except `cursor` and `limit`, `sort` included. A cursor used with other filters gives 422 `invalid_input`.
 - Endpoints:
   - R2 `GET /api/v1/repositories/candidates`, session only. Query `source`, `q`, `includeConnected`. Local candidates are rescanned on every call. GitHub candidates arrive in M33, so `githubListedAt` and `githubConfigureUrl` are null;
   - R3 `POST /api/v1/repositories`, session only, body `{"source":"local","directory":"<name>"}`. 201 with `Location` for a new repository, 200 for an existing one;
   - R1 `GET /api/v1/repositories`, query `name`, `source`, `limit`, `cursor`. Sorted by name case-insensitively, then by ID;
   - R4 `GET /api/v1/repositories/{repositoryId}`;
-  - R5 `POST /api/v1/repositories/{repositoryId}/fetch`: 202 with the `Repository`. It queues a fetch, or the clone again after a failed clone. A queued or running fetch is reused. 409 `repository_unavailable` with reason `removed`.
+  - R5 `POST /api/v1/repositories/{repositoryId}/fetch`: 202 with the `Repository`. It queues a fetch, or the clone again after a failed clone. A queued fetch or clone is reused. A call during a running fetch queues one more fetch. 409 `repository_unavailable` with reason `removed`.
 - `composer require --dev opis/json-schema`.
 - `SchemaValidator`: loads `docs/specs/schemas/` through a loader that maps the `$id` prefix `https://holistic-review.invalid/schemas/v1/` to that directory. The `JsonApiAssertions` trait validates a response against a named schema or `$defs` entry.
 - The `CrossTenantCases` registry: one case per `/api/v1` route, with the IDs of another tenant.
@@ -74,6 +75,7 @@ All are functional tests.
   - "Gets one repository"
   - "Fetch returns 202 with the sync state fetching"
 - **F `ApiErrorModelTest`** proves the error model of docs/specs/README.md section 4.
+  - "An anonymous call to a route with a path ID gets 401, not 500"
   - "Bad JSON gives 400 invalid_input"
   - "A body that is not JSON gives 415, and a body above 1 MiB gives 413"
   - "A wrong method gives 405 with an Allow header"

@@ -16,6 +16,7 @@ All earlier milestones.
 - `SchemaCoverageTest`: every schema in `docs/specs/schemas/` is asserted by at least one test. Use a static scan of the tests, or a record that `JsonApiAssertions` writes during the run.
 - `RawSqlTenantAuditTest` of M07 passes over the whole code base.
 - The E2E suite is green three times in a row. Fix flaky tests by waiting for conditions, never by sleeping.
+- Check every page of `docs/user/` and `docs/user/skill/SKILL.md` against the implementation. Correct the commands, paths, UI labels, and error codes that differ.
 - A manual run of [docs/user/local-run.md](../user/local-run.md) and [docs/user/connect-your-agent.md](../user/connect-your-agent.md) with Claude Code on a repository under `~/dev`: sign in locally, connect the repository, start a review, comment, let the agent work, verify, reopen once, close the review.
 - The backlog is complete: every TODO in the code has an entry in `docs/backlog/`. Deviations from the architecture are recorded in docs/architecture.md.
 
@@ -27,14 +28,16 @@ All earlier milestones.
 
 - `tests/Functional/Audit/CrossTenantCoverageTest.php`, `SchemaCoverageTest.php`.
 - `docs/architecture.md`: recorded deviations.
+- `docs/user/*.md` and `docs/user/skill/SKILL.md`: corrections only.
 - `docs/backlog/README.md` and existing backlog files: new entries only.
 
 ## Tasks (ordered)
 
 1. Write the two audit tests. Close every gap that they and `RawSqlTenantAuditTest` find.
 2. Run the E2E suite three times in a row and fix what is flaky.
-3. Do the manual acceptance run. Record each step and its result in the report.
-4. Record the deviations and complete the backlog entries.
+3. Check and correct the user documentation and the skill.
+4. Do the manual acceptance run. Record each step and its result in the report.
+5. Record the deviations and complete the backlog entries.
 
 ## Acceptance tests
 

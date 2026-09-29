@@ -100,7 +100,7 @@ Example response for a bearer call, [fixtures/me.agent.json](fixtures/me.agent.j
   "tenantId": "01K6AZZ0TENANT000000000001",
   "caller": {"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},
   "token": {"id":"01K6C0T0KEN0000000000000AB","name":"claude-code laptop","scope":"repository","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","repositoryName":"acme/billing","prefix":"hr_KXidQQ","state":"active","createdAt":"2026-09-29T07:00:00Z","expiresAt":null,"lastUsedAt":"2026-09-29T07:30:00Z","revokedAt":null},
-  "features": {"localRepositories":false,"githubApp":{"slug":"holistic-review","installUrl":"https://github.com/apps/holistic-review/installations/new"}},
+  "features": {"localRepositories":true,"githubApp":{"slug":"holistic-review","installUrl":"https://github.com/apps/holistic-review/installations/new"}},
   "links": {"mcpUrl":"https://hr.example/_mcp","docsUrl":"https://hr.example/docs","skillUrl":"https://hr.example/docs/skill/SKILL.md"}
 }
 ```
@@ -250,7 +250,7 @@ A connected local repository after its first clone: [fixtures/repository.local-i
 - **Success:** 202 [`Repository`](schemas/repository.schema.json), whose `sync.state` is `fetching` or `cloning`.
 - **Errors:** 409 `repository_unavailable` with reason `removed`.
 
-The endpoint queues a fetch. If `sync.state` is `failed`, it queues the clone again. A fetch that is already queued or running is reused. When the fetch finishes, the server publishes a `repository` live update. The "Refresh" button of the UI calls this endpoint.
+The endpoint queues a fetch. If `sync.state` is `failed`, it queues the clone again. A queued fetch or clone is reused. A call during a running fetch queues one more fetch. When the fetch finishes, the server publishes a `repository` live update. The "Refresh" button of the UI calls this endpoint.
 
 ### R6 Delete repository data
 
@@ -259,13 +259,9 @@ The endpoint queues a fetch. If `sync.state` is `failed`, it queues the clone ag
 - **Success:** 202, no body.
 - **Errors:** 422 `invalid_input` when `confirm` does not equal `name`.
 
-Right away, in the request:
+One transaction in the request deletes the repository and its rows: the reviews, the requests, the events, the drafts, the viewed files, the location cache, the index, and the tokens scoped to the repository. The repository and its reviews then get 404, and the server publishes `repository_deleted`.
 
-- the repository and its reviews get 404;
-- the server revokes the tokens scoped to the repository;
-- it publishes `repository_deleted`.
-
-Then a Messenger job deletes the clone with its pin refs, the index, the reviews, the requests, the events, the revoked tokens scoped to the repository, and the repository. The directory or GitHub repository can then be connected again. The GitHub App installation does not change.
+Then a Messenger job deletes the clone with its pin refs. The directory or GitHub repository can be connected again at once. The GitHub App installation does not change.
 
 ### R7 Get a blob
 
@@ -292,7 +288,7 @@ The verify view uses this endpoint for the old and the new side of a `FileDiff`.
 - **Authentication:** S
 - **Body:** [`StartReviewInput`](schemas/inputs.schema.json), for example `{"ref":"main","title":null}`.
   - `ref` defaults to the default branch.
-  - `title` defaults to `"<ref> @ <sha 12 chars>"`, or to `"<sha 12 chars>"` when `ref` is a SHA.
+  - `title` defaults to `"<ref> @ <sha 12 chars>"`, or to `"<sha 12 chars>"` when `ref` is a SHA. The `<ref>` part is cut so that the title has at most 200 characters.
 - **Success:** 201 [`Review`](schemas/review.schema.json) with `Location: /api/v1/reviews/{id}`.
 - **Errors:**
   - 409 `repository_unavailable`: `cloning`, `clone_failed`, `fetch_failed`, or `removed`;
@@ -412,7 +408,7 @@ Example response, [fixtures/lists.tree-listing.json](fixtures/lists.tree-listing
   "dir": "src/Billing",
   "recursive": false,
   "items": [
-    {"path":"src/Billing/Tax","name":"Tax","type":"directory","mode":"040000","sha":"4b825dc642cb6eb9a060e54bf8d69288fbee4904","sizeBytes":null},
+    {"path":"src/Billing/Tax","name":"Tax","type":"directory","mode":"040000","sha":"8a1f0c6d2e4b5a7c9d3e1f0a2b4c6d8e0f1a3b5c","sizeBytes":null},
     {"path":"src/Billing/InvoiceTotals.php","name":"InvoiceTotals.php","type":"file","mode":"100644","sha":"3b18e512dba79e4c8300dd08aeb37f8e728b8dad","sizeBytes":2210}
   ],
   "nextCursor": null

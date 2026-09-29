@@ -39,7 +39,7 @@ M12, M18. M24 for live progress.
   - items sorted by `range.startLine`, then `fqn`;
   - ETag `W/"v1-<blobSha>"`, `Cache-Control: private, no-cache`, 304 on a match.
 - The live update `{type: "index", reviewId}`, at most once per second per review, plus the final state.
-- `app:index:rebuild`: an operator command.
+- `app:index:rebuild <reviewId> [--reparse]`: an operator command. It resets the index status of the review and queues `IndexReview`. `--reparse` first deletes the `indexed_blob` and `symbol` rows of the repository, so every blob is parsed again.
 - A Primer `ProgressBar` in the review layout. It revalidates on `index` updates.
 
 ## Out of scope

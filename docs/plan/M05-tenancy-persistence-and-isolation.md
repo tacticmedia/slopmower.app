@@ -37,7 +37,7 @@ M01, M02.
 ## Tasks (ordered)
 
 1. Write the entities, the filter, the context, and `TenantFilter`.
-2. `TenantFilter::suspend()` uses `FilterCollection::suspend()` and calls `restore()` in a `finally` block. These keep the filter instance and its parameter. `disable()` and `enable()` would create a new instance without the parameter.
+2. `TenantFilter::suspend()` uses `FilterCollection::suspend()` and calls `restore()` in a `finally` block. These keep the filter instance and its parameter. `disable()` and `enable()` would create a new instance without the parameter. `FilterCollection::suspend()` throws for a filter that is already suspended, so a nested `TenantFilter::suspend()` runs its callable directly.
 3. Run `make migration`, then `make db-test`.
 4. Write the test support.
 
@@ -53,6 +53,7 @@ All are functional tests.
 - **F `TenantFilterSuspendTest`** proves the one tenantless path.
   - "Inside the callable, results cross tenants"
   - "The filter is on again with the same tenant after the callable, also when the callable throws"
+  - "A nested suspend works, and the filter is on again after the outer callable"
 - **F `TenantContextResetTest`** proves that workers do not carry a tenant over.
   - "The services resetter clears the tenant context"
   - "After the services resetter runs, an ORM query on a tenant table throws"

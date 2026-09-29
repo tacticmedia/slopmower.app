@@ -21,8 +21,8 @@ M01, M02.
 - `TenantDataPaths`: `<APP_TENANT_DATA_DIR>/<tenantId>/repositories/<repositoryId>.git`. `APP_TENANT_DATA_DIR` is the `<data>/tenants` directory of docs/specs/README.md section 7. Paths come only from typed IDs, and the class checks that each path stays under the root. A relative `APP_TENANT_DATA_DIR` resolves against `%kernel.project_dir%`, never against the working directory, which differs between the web server and the CLI.
 - `BareClone`:
   - `init --bare`;
-  - `fetch <url> --prune +refs/heads/*:refs/heads/* +refs/tags/*:refs/tags/*`, never `--mirror`;
-  - optional extra refspecs `<sha>:refs/holistic-review/commits/<sha>` for pending linked SHAs. A failure for one SHA is ignored;
+  - `fetch --no-auto-maintenance <url> --prune +refs/heads/*:refs/heads/* +refs/tags/*:refs/tags/*`, never `--mirror`. `--no-auto-maintenance` keeps git from starting a background process in the clone;
+  - then a second fetch with the refspecs `<sha>:refs/holistic-review/commits/<sha>` for the pending linked SHAs. One unknown SHA fails a whole `git fetch`: git exits 128 with `not our ref` and writes no ref. After a failure, fetch one SHA per command and ignore the failures;
   - `HEAD` set to the default branch from `ls-remote --symref`.
 - `PinRefs`, decision D26:
   - `refs/holistic-review/reviews/<reviewId>` and `refs/holistic-review/commits/<sha>`;
@@ -67,7 +67,7 @@ M01, M02.
   - "Deleting a pin removes the ref"
 - **F `PendingShaFetchTest`** proves the fetch of pending SHAs by ID over `file://`. Record in the report which SHAs a by-ID fetch can get: a commit on a branch, and a commit reachable only from a ref outside `refs/heads`.
   - "A pending SHA that the source has lands in refs/holistic-review/commits"
-  - "An unknown pending SHA does not fail the fetch"
+  - "An unknown pending SHA does not stop the heads or the other pending SHAs"
 - **F `GitReaderTest`** proves the reads.
   - "Lists tree entries at a commit"
   - "Returns blob bytes equal to the source file"

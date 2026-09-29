@@ -26,7 +26,7 @@
       "lineCount": 12,
       "before": ["    }", "", ""],
       "after": ["", "    public function tax(): float", "    {"],
-      "normalizedHash": "sha256:5d0f3c8e9a1b2c4d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5"
+      "normalizedHash": "sha256:4cd0f94b186ef4903963fa0397ae6175cd9f82d31d4512d8e9b67a2b3a0142f9"
     }
   },
   "summary": "Use `Money` instead of `float` for totals.",
@@ -64,7 +64,7 @@
       "startLine": 38,
       "endLine": 51
     },
-    "confidence": 0.58,
+    "confidence": 1,
     "reason": null
   },
   "excerpt": null,

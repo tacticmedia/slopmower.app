@@ -41,7 +41,7 @@
       "type": "number",
       "minimum": 0,
       "maximum": 1,
-      "description": "1 for exact and shifted, line similarity for changed, 0 for orphaned."
+      "description": "1 for exact and shifted. For changed: 1 for a file anchor and for a symbol found by its FQN, else the line similarity of architecture section 5.4. 0 for orphaned."
     },
     "reason": {
       "anyOf": [

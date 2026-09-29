@@ -31,7 +31,7 @@ M11.
   - the request matcher service `BearerApiRequestMatcher` selects it for `^/api/v1` with an `Authorization: Bearer` header. So the bearer token wins over a session cookie;
   - `stateless: true`, so a bearer request never starts a session, and the response has no `Set-Cookie`. On a stateful firewall, `ContextListener::onKernelResponse` would write the token into the session;
   - every 401 carries `WWW-Authenticate: Bearer realm="holistic-review"`, plus `, error="invalid_token"` when a token was sent.
-- `BearerAuthenticationFailure`: the `failure_handler` of `api_bearer`. M15 also makes it the `failure_handler` and the `entry_point` of `mcp`. It answers 401 with the Error body, code `unauthorized`, and the `WWW-Authenticate` header of docs/specs/README.md section 3. Without it, `AccessTokenAuthenticator` answers with an empty body and its own header format, and it has no entry point.
+- `BearerAuthenticationFailure`: the `failure_handler` and the `entry_point` of `api_bearer`. M15 also makes it the `failure_handler` and the `entry_point` of `mcp`. The entry point is necessary: `HeaderAccessTokenExtractor` accepts only `[a-zA-Z0-9\-_\+~\/\.]+=*`, so for a header such as `Bearer hr_%%%` no authenticator runs. It answers 401 with the Error body, code `unauthorized`, and the `WWW-Authenticate` header of docs/specs/README.md section 3. Without it, `AccessTokenAuthenticator` answers with an empty body and its own header format, and it has no entry point.
 - `CurrentActor`: actor `user` for a session, actor `agent` with `userId` and `agentName` for a token.
 - The actor-kind rule of docs/specs/README.md section 3: a session-only endpoint called with a token, or a bearer-only endpoint called with a session, gets 403 `forbidden`. A 404 for an invisible ID comes first.
 - `AccessScope` in every query: a token scoped to one repository sees only that repository and its reviews, requests, drafts, and blobs. Every other ID answers 404 `not_found`.
@@ -74,6 +74,7 @@ M11.
 - **F `BearerAuthenticationTest`** proves bearer authentication.
   - "A valid token makes the caller an agent with the token name"
   - "Malformed, unknown, revoked, and expired tokens get 401 with error invalid_token"
+  - "A Bearer header that the extractor rejects gets the same 401 with the Error body"
   - "A 401 has the Error body and exactly the WWW-Authenticate header of docs/specs"
   - "A bearer response has no Set-Cookie header"
   - "The bearer token wins over a session cookie"

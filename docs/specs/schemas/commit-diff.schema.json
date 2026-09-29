@@ -126,7 +126,8 @@
           "description": "A side is above 1 MiB; no diff shown."
         },
         "touchesAnchor": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "path equals location.path. When location is null or orphaned: path or oldPath equals the anchor path."
         }
       }
     }

@@ -89,7 +89,8 @@
       "$ref": "common.schema.json#/$defs/DateTime"
     },
     "lastEventSeq": {
-      "$ref": "common.schema.json#/$defs/EventSeq"
+      "$ref": "common.schema.json#/$defs/EventSeq",
+      "description": "seq of the last entry of the request's thread."
     }
   },
   "allOf": [

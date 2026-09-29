@@ -17,6 +17,7 @@ M05.
   - `dev` for the profiler and the build assets, without security;
   - `api` for `^/api/v1`: `lazy: true` and `context: web`, shared with `main`, so a session also authenticates API calls. M14 adds the stateless firewall `api_bearer` before it, for bearer requests;
   - `main` for everything else: session, `lazy: true`, `context: web`.
+- `access_control`: `^/api/v1` requires `IS_AUTHENTICATED`. So the firewall answers 401 on `kernel.request`, before a value resolver reads a path ID without a tenant context. Without it, the fail-closed filter throws, and the caller gets 500.
 - `TenantContextListener`: runs after the firewall and sets the tenant from the user.
 - Entry points:
   - under `/api/v1`: JSON 401 with the Error body, code `unauthorized`, `details: null`, and `WWW-Authenticate: Bearer realm="holistic-review"`;

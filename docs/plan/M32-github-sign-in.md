@@ -18,13 +18,12 @@ M10.
   - `GET /connect/github`: the redirect to GitHub;
   - `GET /login/check-github`: the callback, which is the GitHub App's callback URL.
 - `GitHubUserProvider`, an `OAuthAwareUserProviderInterface`:
-  - a tenantless lookup by `githubUserId` through `TenantFilter::suspend()`;
+  - a tenantless lookup by `githubUserId` through `TenantFilter::suspend()`. A user whose tenant is being deleted, M31, cannot sign in;
   - the first sign-in creates the tenant and the user with `signInMethod = github`;
   - later sign-ins update `login`, `name`, `avatarUrl`, and `lastSignInAt`.
 - Variables, as the README table says: empty `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_SLUG` in `.env`, the secrets through `%env(default::<NAME>)%`, and fake values in `.env.test`. A local run without a GitHub App then needs no variable.
 - A "Sign in with GitHub" button on `/login` when `GITHUB_APP_CLIENT_ID` is set. With an empty `GITHUB_APP_CLIENT_ID`, `/connect/github` and `/login/check-github` answer 404.
 - GitHub HTTP in tests goes through `framework.http_client.mock_response_factory` with recorded responses in `tests/Fixtures/github/`.
-- Check that `docs/user/getting-started.md` describes the GitHub App registration of architecture section 9 and the environment variables. Correct it where it differs.
 
 ## Out of scope
 

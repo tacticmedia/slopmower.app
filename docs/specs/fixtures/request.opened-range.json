@@ -22,7 +22,7 @@
       "lineCount": 7,
       "before": ["    }", "", "    public function tax(): float"],
       "after": ["", "    public function lines(): array", "    {"],
-      "normalizedHash": "sha256:77dacc4cb2626e75c44ae4de099257b95eb83ba738ec08fdec458720fb1fa4cf"
+      "normalizedHash": "sha256:09938bff856dc45843179cd6426abee27580709e3ea2c414914ed5915d64787c"
     }
   },
   "summary": "Extract the tax rounding into `TaxRounding`.",

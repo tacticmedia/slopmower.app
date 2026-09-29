@@ -28,7 +28,7 @@
     "revokedAt": null
   },
   "features": {
-    "localRepositories": false,
+    "localRepositories": true,
     "githubApp": {
       "slug": "holistic-review",
       "installUrl": "https://github.com/apps/holistic-review/installations/new"

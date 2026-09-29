@@ -16,14 +16,15 @@ M10, M11.
 - npm on the host with `--save-exact`, versions from the [verified versions](README.md#verified-versions) table:
   - runtime: `@symfony/reprise` 1.3.0, `react` and `react-dom` 19.3.0, `react-router` 8.4.0, `@primer/react` 38.40.0, `@primer/primitives` 11.10.0, `@primer/octicons-react` 19.38.0, `@primer/css` 22.3.2 for `markdown.css`, `react-markdown` 10.1.0, `remark-gfm` 4.0.1;
   - development: `vite` 8.3.1, `@vitejs/plugin-react` 6.1.1, `typescript` 7.0.2, `vitest` 5.0.2, `@types/react` and `@types/react-dom` 19.3.0.
-- Check the peer ranges after the install. React Router 8.4.0 needs React 19.2.7 or later and Vite 7 or later. If a peer range excludes React 19.3.0, stop and report.
+- Check the peer ranges after the install. React Router 8.4.0 needs `react` and `react-dom` 19.2.7 or later. If a peer range excludes React 19.3.0, stop and report.
 - `vite.config.ts` with the entry `app: assets/app.tsx`.
 - `package.json` scripts:
   - `dev`, `build`;
   - `build:e2e`, which writes to `public/build-e2e`. Confirm the Reprise keys for the `e2e` environment with `make console c="config:dump-reference reprise"`;
   - `typecheck`: `tsc -b` in strict mode;
   - `test`: `vitest run`.
-- `ShellController`: a catch-all route at the lowest priority. It excludes `api`, `_mcp`, `docs`, `login`, `logout`, `connect`, `github`, `webhook`, `_e2e`, `healthz`, `build`, `build-e2e`, `.well-known`, `_profiler`, and `_wdt`. It needs a signed-in user. It covers the shell routes of docs/specs/rest-api-requests.md section 7.
+- `ShellController`: one route per shell path of docs/specs/rest-api-requests.md section 7, with the requirement `.+` for `{path}` of `/reviews/{id}/files/{path}`. It needs a signed-in user. Other paths are not captured, so no exclusion list is necessary.
+- Confirm how Reprise renders its tags in the `test` environment. If it needs a manifest, point `test` at `public/build-e2e`, and let `make test` run `npm run build:e2e` when that build is missing. `ShellRouteTest` renders the shell, and `make check` runs `test` before `e2e`.
 - Front-end code:
   - `assets/app.tsx`: `ThemeProvider`, `BaseStyles`, and the light, dark, and motion CSS of `@primer/primitives`;
   - `assets/router.tsx`: `createBrowserRouter`. The root `loader` calls `GET /api/v1/me`. An `errorElement` shows errors;
@@ -66,11 +67,11 @@ M10, M11.
   - "A signed-in user gets the shell page"
   - "An anonymous user is redirected to /login"
   - "/api/v1/x stays a JSON 404"
-  - "/docs and /_mcp are not captured"
+  - "/docs, /_mcp, and a path outside the shell routes are not captured"
 - **E `ShellTest`** proves the app in a browser.
   - "The header shows the login of the signed-in user"
   - "Client-side navigation keeps a window marker"
-  - "An unknown route shows the error boundary"
+  - "Client-side navigation to an unknown path shows the error boundary"
 
 ## Verification commands
 

@@ -112,7 +112,7 @@ Example response for `GET /api/v1/requests/01K6B3P2A9QRSTVWXYZ0123456?at=a1b2c3d
   "awaiting": "agent",
   "resolution": null,
   "closed": false,
-  "anchor": {"kind":"symbol","path":"src/Billing/InvoiceTotals.php","commitSha":"79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091","blobSha":"3b18e512dba79e4c8300dd08aeb37f8e728b8dad","range":{"startLine":38,"endLine":49},"symbol":{"language":"php","kind":"method","fqn":"App\\Billing\\InvoiceTotals::total()"},"snapshot":{"lines":["    /**","     * Sum of all invoice lines.","     */","    public function total(): float","    {","        $sum = 0.0;","        foreach ($this->lines as $line) {","            $sum += $line->amount;","        }","","        return $sum;","    }"],"truncated":false,"lineCount":12,"before":["    }","",""],"after":["","    public function tax(): float","    {"],"normalizedHash":"sha256:5d0f3c8e9a1b2c4d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5"}},
+  "anchor": {"kind":"symbol","path":"src/Billing/InvoiceTotals.php","commitSha":"79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091","blobSha":"3b18e512dba79e4c8300dd08aeb37f8e728b8dad","range":{"startLine":38,"endLine":49},"symbol":{"language":"php","kind":"method","fqn":"App\\Billing\\InvoiceTotals::total()"},"snapshot":{"lines":["    /**","     * Sum of all invoice lines.","     */","    public function total(): float","    {","        $sum = 0.0;","        foreach ($this->lines as $line) {","            $sum += $line->amount;","        }","","        return $sum;","    }"],"truncated":false,"lineCount":12,"before":["    }","",""],"after":["","    public function tax(): float","    {"],"normalizedHash":"sha256:4cd0f94b186ef4903963fa0397ae6175cd9f82d31d4512d8e9b67a2b3a0142f9"}},
   "summary": "Use `Money` instead of `float` for totals.",
   "author": {"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},
   "claimedBy": {"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},
@@ -127,7 +127,7 @@ Example response for `GET /api/v1/requests/01K6B3P2A9QRSTVWXYZ0123456?at=a1b2c3d
   "body": "Use `Money` instead of `float` for totals.",
   "reviewState": "open",
   "reviewCommitSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091",
-  "location": {"target":"requested","targetSha":"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678","status":"changed","path":"src/Billing/InvoiceTotals.php","range":{"startLine":38,"endLine":51},"confidence":0.58,"reason":null},
+  "location": {"target":"requested","targetSha":"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678","status":"changed","path":"src/Billing/InvoiceTotals.php","range":{"startLine":38,"endLine":51},"confidence":1,"reason":null},
   "excerpt": null,
   "thread": [
     {"seq":1830,"eventId":"01K6C2EVT00000000000001830","type":"request.opened","actor":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"occurredAt":"2026-09-29T07:20:00Z","body":"Use `Money` instead of `float` for totals.","commentId":null,"question":false,"batchId":"01K6B3P1Z8Y7X6W5V4T3S2R1Q0","commitSha":null,"statusAfter":"open"},
@@ -157,6 +157,7 @@ The endpoint returns the diff data of one linked commit for the verify view.
 
 - It compares the commit with its first parent: `git diff-tree -r -M --numstat` plus the raw output. It lists at most 300 files. `truncated` is true when more files changed.
 - `location` is the request located at this commit, with `target: linked_commit`.
+- `touchesAnchor` is true when `path` equals `location.path`. When `location` is null or orphaned, it is true when `path` or `oldPath` equals the anchor path.
 - The UI loads each side through [R7](rest-api.md#r7-get-a-blob) with `oldBlobSha` and `newBlobSha`, and renders `@pierre/diffs` `FileDiff`.
 
 Example response, [fixtures/commit-diff.modified.json](fixtures/commit-diff.modified.json):
@@ -171,7 +172,7 @@ Example response, [fixtures/commit-diff.modified.json](fixtures/commit-diff.modi
   "authorName": "Jan Klan",
   "authorEmail": "jan@example.com",
   "committedAt": "2026-09-29T07:44:10Z",
-  "location": {"target":"linked_commit","targetSha":"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678","status":"changed","path":"src/Billing/InvoiceTotals.php","range":{"startLine":38,"endLine":51},"confidence":0.58,"reason":null},
+  "location": {"target":"linked_commit","targetSha":"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678","status":"changed","path":"src/Billing/InvoiceTotals.php","range":{"startLine":38,"endLine":51},"confidence":1,"reason":null},
   "files": [
     {"status":"modified","path":"src/Billing/InvoiceTotals.php","oldPath":null,"oldBlobSha":"3b18e512dba79e4c8300dd08aeb37f8e728b8dad","newBlobSha":"9c2e4a1f0b3d5e7f8091a2b3c4d5e6f708192a3b","oldMode":"100644","newMode":"100644","additions":6,"deletions":4,"binary":false,"tooLarge":false,"touchesAnchor":true},
     {"status":"added","path":"tests/Billing/InvoiceTotalsTest.php","oldPath":null,"oldBlobSha":null,"newBlobSha":"d4e5f60718293a4b5c6d7e8f9012345678a1b2c3","oldMode":null,"newMode":"100644","additions":41,"deletions":0,"binary":false,"tooLarge":false,"touchesAnchor":false}
@@ -288,7 +289,7 @@ The endpoint writes `commit.unlinked`. It deletes the pin ref `refs/holistic-rev
 
 Steps:
 
-1. If any link is `pending`, the server fetches the source synchronously, with a 60-second timeout.
+1. The server checks `review_closed` and `invalid_transition` first. If any link is `pending`, it then fetches the source synchronously, with a 60-second timeout.
 2. The steps after the fetch, [webhooks-and-live-updates.md section 2.2](webhooks-and-live-updates.md#22-after-every-successful-fetch), write `commit.found` for each commit that is now present, and write its pin ref. They run in their own transaction, so the `events` of the result hold only `request.ready_for_review`.
 3. Then it checks the links.
 

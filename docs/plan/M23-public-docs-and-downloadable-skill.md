@@ -21,12 +21,7 @@ M16, M18 for the prompt snippet, M19 for the Settings screen.
   - `GET /docs/skill/SKILL.md` returns `docs/user/skill/SKILL.md` raw: `Content-Type: text/markdown; charset=utf-8`, `Content-Disposition: inline; filename="SKILL.md"`, or `attachment` with `?download=1`. The ETag is the SHA-256 of the content. `Cache-Control: public, max-age=300`. `If-None-Match` gives 304;
   - `GET /docs/schemas/v1/{file}.schema.json` returns the files of `docs/specs/schemas/` with `Content-Type: application/schema+json`, as docs/specs/rest-api-requests.md section 7 says. The file names come from a whitelist built from the directory listing.
 - A plain Twig layout for the pages.
-- The pages in `docs/user/` exist: `index.md`, `getting-started.md`, `local-run.md`, `connect-your-agent.md`, `reviewing.md`. Check them against the implementation. Correct commands, paths, UI labels, and error codes that differ. Do not describe features that the implementation does not have yet.
-- The skill in `docs/user/skill/SKILL.md` exists. Check it against the implementation and correct it where it differs:
-  - `list_reviews`, and asking the user when several reviews are open and the user named none;
-  - `get_updates(review, cursor)`;
-  - local repositories: committing on a branch of the connected repository is enough. GitHub repositories: push;
-  - `review_closed`, `commits_not_available`, and the other error codes of docs/specs/mcp.md section 5.
+- The pages in `docs/user/` and the skill in `docs/user/skill/SKILL.md` exist. They describe the whole proof of concept, so this milestone does not change their content. M35 checks them against the finished implementation. The tests below check the skill against the tools and the error codes now.
 - Links:
   - Settings shows the install command `curl -fsSL <skillUrl> --create-dirs -o .claude/skills/holistic-review/SKILL.md`, built from `links.skillUrl` of `/api/v1/me`, and a link to `/docs/connect-your-agent`;
   - the agent prompt snippet of the review header links to `/docs/connect-your-agent`.
@@ -40,7 +35,6 @@ M16, M18 for the prompt snippet, M19 for the Settings screen.
 
 - `src/Controller/DocsController.php`, `src/Docs/DocsCatalog.php`, `src/Docs/MarkdownRenderer.php`, `src/Docs/DocsLinkRewriter.php`.
 - `templates/docs/layout.html.twig`, `templates/docs/page.html.twig`.
-- `docs/user/*.md` and `docs/user/skill/SKILL.md`: corrections only.
 - `assets/settings/SkillInstall.tsx`, `assets/settings/skillInstall.ts`, `assets/settings/skillInstall.test.ts`.
 - `tests/Functional/Docs/*Test.php`, `tests/Unit/Docs/*Test.php`.
 
@@ -48,9 +42,8 @@ M16, M18 for the prompt snippet, M19 for the Settings screen.
 
 1. Install the packages and configure the converter.
 2. Write the catalog, the renderer, the link rewriter, and the controller.
-3. Check and correct the pages and the skill.
-4. Add the install command to Settings and the documentation link to the prompt snippet.
-5. Write the tests.
+3. Add the install command to Settings and the documentation link to the prompt snippet.
+4. Write the tests.
 
 ## Acceptance tests
 

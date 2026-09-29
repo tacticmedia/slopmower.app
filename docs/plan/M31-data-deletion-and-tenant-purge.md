@@ -14,19 +14,19 @@ M16, M19, M24, M25 for drafts and viewed files, M26 for the index, M29 for the l
 
 - V13 `DELETE /api/v1/reviews/{reviewId}`, session only, 204 without a body:
   - it works for open and closed reviews, and for reviews of a repository whose access was removed;
-  - `DeleteReview` deletes, in one transaction, the review and all its rows: requests, comments, commit links, events, the location cache entries, the drafts of every user, and the viewed-file marks;
+  - `DeleteReview` deletes, in one transaction under the tenant row lock of M07, the review and all its rows: requests, comments, commit links, events, the location cache entries, the drafts of every user, and the viewed-file marks;
   - after the commit, when the clone exists, it deletes `refs/holistic-review/reviews/<reviewId>` and each `refs/holistic-review/commits/<sha>` that no remaining link in the repository uses;
   - the index stays, because it belongs to the repository and the commit;
   - it publishes a `repository` live update, because `openReviewCount` can change;
   - afterwards the IDs of the review, its requests, and its drafts answer 404.
 - R6 `DELETE /api/v1/repositories/{repositoryId}?confirm={name}`, session only:
   - `confirm` must equal the repository `name`, else 422;
-  - in the request: mark the repository as being deleted with a new column, so that the repository and its reviews answer 404. Revoke the tokens scoped to it. Publish `{type: "repository_deleted", repositoryId}`;
-  - in a Messenger job, as the normal database role: delete the clone with its pin refs, the index, the reviews, the requests, the events, the drafts, the viewed files, the location cache, the revoked tokens scoped to the repository, and the repository row. The directory or GitHub repository can then be connected again;
+  - in the request, in one transaction under the tenant row lock: delete the repository row and all its rows: the reviews, the requests, the comments, the commit links, the events, the drafts, the viewed files, the location cache, the index, and the tokens scoped to it. So no query needs a "being deleted" filter. After the commit, publish `{type: "repository_deleted", repositoryId}` and queue `DeleteRepositoryFilesJob`;
+  - the job holds the `RepositoryLock`, so it waits for a running fetch, and deletes the clone with its pin refs. A new connect of the same directory or GitHub repository gets a new repository ID, so it works before the job runs;
   - the response is 202 without a body. The GitHub App installation does not change.
 - A2 `DELETE /api/v1/account?confirm={login}`, session only:
   - `confirm` must equal `user.login`, else 422;
-  - in the request: revoke all tokens, invalidate the session so that the response clears the cookie, and mark the tenant as being deleted, so that all its IDs answer 404 and its user cannot sign in;
+  - in the request: revoke all tokens, invalidate the session so that the response clears the cookie, and mark the tenant as being deleted. The sign-in paths refuse a tenant that is being deleted, so no caller gets its tenant context again, and all its IDs answer 404 without a change to the queries;
   - in a Messenger job, as the normal database role: `PurgeTenant` deletes all rows and files of the tenant: every tenant table, the tenant directory with the clones and their pin refs, and the tokens. The `sessions` table has no tenant column. Other sessions of the user end at their next request, because `TenantUserProvider` refuses a user whose tenant is being deleted or gone;
   - the response is 202 without a body. The GitHub App stays installed until the user uninstalls it on GitHub.
 - `app:tenant:purge <tenantId>`: an operator command that runs `PurgeTenant` inside `TenantFilter::suspend()`.
@@ -43,7 +43,7 @@ M16, M19, M24, M25 for drafts and viewed files, M26 for the index, M29 for the l
 ## Files (representative)
 
 - `src/Application/DeleteReview.php`, `DeleteRepositoryData.php`, `DeleteAccount.php`, `PurgeTenant.php`.
-- `src/Message/DeleteRepositoryDataJob.php`, `src/Message/PurgeTenantJob.php`, `src/MessageHandler/*.php`.
+- `src/Message/DeleteRepositoryFilesJob.php`, `src/Message/PurgeTenantJob.php`, `src/MessageHandler/*.php`.
 - `src/Command/PurgeTenantCommand.php`.
 - `src/Controller/Api/ReviewController.php`, `src/Controller/Api/RepositoryController.php`, `src/Controller/Api/AccountController.php`, `migrations/Version*.php`.
 - `assets/review/DeleteReviewDialog.tsx`, `assets/settings/DeleteRepositoryDialog.tsx`, `assets/settings/DeleteAccountDialog.tsx`.
@@ -51,7 +51,7 @@ M16, M19, M24, M25 for drafts and viewed files, M26 for the index, M29 for the l
 
 ## Tasks (ordered)
 
-1. Add the "being deleted" columns to `Repository` and `Tenant`, run `make migration`, and make the queries and the user provider respect them.
+1. Add the "being deleted" column to `Tenant` and run `make migration`. Make the sign-in lookups of M10 and M14 refuse such a tenant. M32 does the same for GitHub sign-in.
 2. Implement `DeleteReview`, `DeleteRepositoryData`, `DeleteAccount`, and `PurgeTenant`.
 3. Write the endpoints, the jobs, and the command. Add the cross-tenant cases.
 4. Build the dialogs.
@@ -66,10 +66,9 @@ M16, M19, M24, M25 for drafts and viewed files, M26 for the index, M29 for the l
   - "The IDs of the review and its requests answer 404 afterwards"
 - **F `DeleteRepositoryDataTest`** proves R6.
   - "A confirm value that differs from the name gives 422"
-  - "The response is 202, and the repository and its reviews answer 404 at once"
-  - "Tokens scoped to the repository are revoked, and repository_deleted is published"
-  - "After the job, the clone, the index, the reviews, the requests, and the events are gone"
-  - "After the job, the repository row and its scoped tokens are gone, and the same directory connects again"
+  - "The response is 202, the repository and all its rows are gone, and repository_deleted is published"
+  - "The same directory connects again before the job runs"
+  - "The job deletes the clone"
   - "Other repositories of the tenant are untouched"
 - **F `DeleteAccountTest`** proves A2.
   - "A confirm value that differs from the login gives 422"

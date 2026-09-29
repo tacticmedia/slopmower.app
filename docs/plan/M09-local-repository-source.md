@@ -18,21 +18,33 @@ M07, M08.
   - skips files, names that start with `.`, `.git` files of worktrees and submodules, and symlinks. The `realpath()` of a child must have `realpath(APP_LOCAL_REPOSITORIES_DIR)` as its parent;
   - sorts by name and returns at most 1,000 items with a `truncated` flag.
 - `ConnectLocalRepository`, as docs/specs/rest-api.md R3 says:
+  - local repositories disabled gives `invalid_input`. This check runs first;
   - the directory must be in a fresh discovery listing, else `not_found`;
-  - local repositories disabled gives `invalid_input`;
   - an already connected directory returns the existing repository;
   - a new repository gets `syncState = cloning`. After the row commits, a `CloneRepositoryJob` message is dispatched. If the dispatch throws, the repository gets `syncState = failed`, so that R5 queues the clone again.
 - The clone handler creates the bare clone at the ID path, fetches, and sets the default branch and `syncState = idle`. A failure sets `syncState = failed` and `lastError`.
 - `LocalFetchCommand`: every fetch passes `-c safe.directory=<realpath>` and `-c safe.directory=<realpath>/.git`, and uses `file://<realpath>` as the remote.
 - `FetchRepository`, as docs/specs/webhooks-and-live-updates.md section 2 says:
   - single flight: the `RepositoryLock` of M08 makes one fetch run at a time;
-  - a new column `Repository.fetchRequested`. An asynchronous trigger sets it from false to true, and `syncState` from `idle` to `fetching`, with one atomic conditional update outside any transaction. It dispatches a `FetchRepositoryJob` only when the update changed a row, and clears the flag again when the dispatch throws. So a queued fetch is reused, and a request during a running fetch queues exactly one more;
+  - a new column `Repository.fetchRequested`. An asynchronous trigger runs one atomic conditional update outside any transaction: it sets `fetchRequested = true` and `syncState = fetching` where `fetchRequested` is false and `syncState` is `idle` or `fetching`. It dispatches a `FetchRepositoryJob` only when the update changed a row, and clears the flag again when the dispatch throws. So a queued fetch is reused, and a request during a running fetch queues exactly one more;
   - the job handler clears `fetchRequested` first, then waits for the lock and fetches. A handler that fails later cannot leave the flag set;
-  - every fetch sets `syncState` back to `idle` when it ends;
-  - a synchronous caller waits for the lock for at most 60 seconds, then fetches itself. A lock timeout gives `repository_unavailable` with reason `fetch_failed`;
-  - after success: set `lastFetchedAt`, clear `lastError`, read `defaultBranch` and `defaultBranchHead`. After that update commits, dispatch the `RepositoryFetched` Symfony event. Its listeners write through `CommandExecutor`, which refuses an open transaction;
+  - a synchronous caller has one deadline of 60 seconds for the lock wait and the git fetch together. Symfony Lock has no acquire timeout, and the PostgreSQL store blocks without limit, so the caller polls `acquire(false)` until the deadline from `ClockInterface`. The git fetch gets the remaining time as its timeout. A missed deadline gives `repository_unavailable` with reason `fetch_failed`;
+  - after success: set `lastFetchedAt`, clear `lastError`, read `defaultBranch` and `defaultBranchHead`. After that update commits, dispatch the `RepositoryFetched` Symfony event with the previous and the new `defaultBranchHead`. Its listeners write through `CommandExecutor`, which refuses an open transaction;
   - after a failure: set `lastError`. A synchronous caller gets `repository_unavailable` with reason `fetch_failed`.
-- Messenger tenant context: a `TenantStamp` on every tenant message, and a `TenantContextMiddleware` that sets the tenant from the stamp and restores the previous context after the message. It clears the entity manager only when no context existed before the message. So a message that the `sync://` transport of `e2e` handles inside an HTTP request keeps the context and the entities of that request. A message without a stamp fails closed, unless its class is on the explicit tenantless list of the middleware. The list is empty at this point.
+- Sync state transitions, with the states of `Sync.state` in `docs/specs/schemas/repository.schema.json`:
+
+  | From | Event | To |
+  |---|---|---|
+  | none | Connect queues the clone job | `cloning` |
+  | `cloning` | The clone succeeds | `idle` |
+  | `cloning` | The clone fails | `failed`, with `lastError` |
+  | `failed` | R5 queues the clone job again | `cloning` |
+  | `idle`, `fetching` | An asynchronous fetch is requested, or a synchronous fetch starts | `fetching` |
+  | `fetching` | A fetch ends, with success or failure | `idle`, but `fetching` while `fetchRequested` is true |
+  | any | Access is removed, M33 and M34 | `unavailable` |
+
+  A synchronous fetch in `cloning`, `failed`, or `unavailable` gives `repository_unavailable` with reason `cloning`, `clone_failed`, or `removed`.
+- Messenger tenant context: a `TenantContextMiddleware` on the default bus. At dispatch it adds a `TenantStamp` from `TenantContext` when the envelope has none. At handling it sets the tenant from the stamp and restores the previous context after the message. It clears the entity manager only when no context existed before the message. So a message that the `sync://` transport of `e2e` handles inside an HTTP request keeps the context and the entities of that request. A message without a stamp fails closed, unless its class is on the explicit tenantless list of the middleware. The list is empty at this point.
 - `CommitAvailability::ensureAvailable(repository, sha or prefix)`:
   - checks the server clone;
   - if the commit is missing, fetches once and checks again;
@@ -64,7 +76,7 @@ M07, M08.
 
 - **F `LocalRepositoryDiscoveryTest`** proves the listing rules.
   - "Lists normal and bare repositories, sorted by name"
-  - "Ignores files, dot directories, worktree and submodule .git files, and symlinks that leave the directory"
+  - "Ignores files, dot directories, worktree and submodule .git files, and symlinks"
 - **F `LocalSourcesDisabledTest`** proves that the feature is off without the variable.
   - "With an empty variable, discovery reports disabled and connect gives invalid_input"
 - **F `ConnectLocalRepositoryTest`** proves the connect flow.
@@ -72,6 +84,7 @@ M07, M08.
   - "The clone heads equal the source heads"
   - "Detects the default branch"
   - "A second connect returns the existing repository"
+  - "A source owned by another user clones and fetches through safe.directory". The container runs as root, so this case gives the source another owner with `chown`.
   - "A failed dispatch of the clone job leaves the repository failed, so R5 clones again"
 - **F `ConnectRejectsPathTricksTest`** proves that input cannot reach other directories.
   - "../x, a/b, and absolute paths give invalid_input and write nothing to disk"
@@ -86,6 +99,7 @@ M07, M08.
   - "A fetch requested during a running fetch runs once afterwards and never in parallel"
   - "A second asynchronous request while a fetch is queued dispatches nothing"
   - "A synchronous caller waits for a running fetch, then fetches"
+  - "A synchronous caller that misses the 60-second deadline gets repository_unavailable with fetch_failed"
   - "A failed job leaves fetchRequested false, so the next request queues a fetch"
 - **F `MessengerTenantContextTest`** proves tenant isolation in the worker.
   - "A stamped message runs under its tenant"

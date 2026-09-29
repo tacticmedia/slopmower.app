@@ -44,7 +44,7 @@ Related documents:
 
 Reuse decisions:
 
-- **Batch Review:** ideas only. Keep the CLI output contract: one JSON document on stdout, progress on stderr, a non-zero exit code on error. Keep the JSON and Markdown export and the path check on every write. Do not copy the Python code, the memory-only storage, or the open CORS policy. Its claimed gaps: "no lifecycle" and "not GitHub-like" are correct. "Line-range anchors only" is partly wrong, because file and document-region anchors exist.
+- **Batch Review:** ideas only. Keep the path check on every write. Do not copy the Python code, the memory-only storage, or the open CORS policy. Its claimed gaps: "no lifecycle" and "not GitHub-like" are correct. "Line-range anchors only" is partly wrong, because file and document-region anchors exist.
 - **CodeReview.json:** ideas only. Keep the event log with one pure reducer, "outdated" as a derived flag, and the nearest-match search as one fallback step. Do not copy positional comment IDs: they break after a git merge that changes the event order, and the study proved this. Do not let the agent write raw events.
 - **difit:** ideas only. It has no whole-file mode, and its components are internal to the app: 31 files and 4,258 lines with hardcoded API paths. Copying and adapting them is the same as writing our own viewer, which Principle B forbids. Keep the `path:Lx-Ly` location format and the index of viewed files.
 - **GitHub orphan-branch PR:** the UX reference and the state vocabulary, not the product. A PR shows at most 20,000 diff lines or 1 MB, and 300 to 3,000 files. The Symfony skeleton alone uses 66% of the line budget. All code must go to GitHub, and every agent commit needs `[skip ci]`. GitHub has only two thread states. Its resolution reasons ADDRESSED, WONT_FIX, and INVALID apply to Copilot threads only.
@@ -155,7 +155,7 @@ Every entity except `Tenant` carries `tenantId`.
 | `Tenant` | `id`, `createdAt`, `eventSeq: int` (the last event number of the tenant) |
 | `User` | `id`, `tenantId`, `signInMethod: github\|local`, `login: string`, `githubUserId: ?int`, `name: ?string`, `avatarUrl: ?string`, `createdAt`, `lastSignInAt` |
 | `GitHubInstallation` | `id`, `tenantId`, `installationId: int`, `accountLogin: string`, `accountType: User\|Organization`, `suspendedAt: ?DateTimeImmutable` |
-| `Repository` | `id`, `tenantId`, `source: RepositorySource`, `name: RepositoryName`, `installation: ?GitHubInstallation`, `githubRepositoryId: ?int`, `localDirectory: ?string`, `defaultBranch: ?string`, `defaultBranchHead: ?CommitSha`, `syncState: SyncState`, `lastFetchedAt: ?DateTimeImmutable`, `lastError: ?string`, `access: active\|removed`. A `github` repository sets `installation` and `githubRepositoryId`. A `local` repository sets `localDirectory`. |
+| `Repository` | `id`, `tenantId`, `source: RepositorySource`, `name: RepositoryName`, `githubInstallationId: ?int`, `githubRepositoryId: ?int`, `localDirectory: ?string`, `defaultBranch: ?string`, `defaultBranchHead: ?CommitSha`, `syncState: SyncState`, `lastFetchedAt: ?DateTimeImmutable`, `lastError: ?string`, `access: active\|removed`. A `github` repository sets `githubInstallationId` and `githubRepositoryId`. The installation ID is a plain column, not a foreign key, so it survives the deletion of the `GitHubInstallation` row. A `local` repository sets `localDirectory`. |
 | `Review` | `id`, `tenantId`, `repository: Repository`, `title: string`, `ref: string`, `commitSha: CommitSha`, `startedBy: Actor`, `indexState: pending\|running\|ready\|failed`, `createdAt`, `closedAt: ?DateTimeImmutable`, `closedBy: ?Actor`, `closeNote: ?string` |
 | `ChangeRequest` | `id`, `tenantId`, `review: Review`, `anchor: Anchor`, `body: string` (Markdown), `author: Actor`, `createdAt`, `status: RequestStatus`, `statusBeforeClaim: ?RequestStatus`, `claimedBy: ?Actor`, `awaiting: Awaiting`, `resolution: ?Resolution`, `lastEventSeq: int`, `updatedAt` |
 | `Comment` | `id`, `tenantId`, `request: ChangeRequest`, `author: Actor`, `body: string`, `question: bool`, `batchId: ?BatchId`, `createdAt` |
@@ -197,7 +197,7 @@ Table `review_event`, append-only:
 | `request.wont_do` | `reason`, at least 20 characters |
 | `request.verified` | `note: ?string` |
 | `request.reopened` | `note` |
-| `batch.submitted` | `batchId`, `summary: ?string`, `requestIds`, `commentIds` |
+| `batch.submitted` | `batchId`, `summary: ?string`, `requestIds` (the opened and the commented requests), `commentIds` |
 
 Stored events are never rewritten. New payload fields are additive, and readers use a default for a missing field. Each type has an explicit codec. The API `Event` is a derived representation, not the stored payload. The `commit.*` payloads carry the git data of `CommitLink`, so a rebuild from the log needs no clone.
 
@@ -217,7 +217,7 @@ Example `request.opened` payload:
     "snapshot": {
       "lines": ["    /**", "     * Sum of all invoice lines.", "     */", "    public function total(): float", "    {", "        $sum = 0.0;", "        foreach ($this->lines as $line) {", "            $sum += $line->amount;", "        }", "", "        return $sum;", "    }"],
       "truncated": false, "lineCount": 12, "before": ["    }", "", ""], "after": ["", "    public function tax(): float", "    {"],
-      "normalizedHash": "sha256:5d0f3c8e9a1b2c4d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5"
+      "normalizedHash": "sha256:4cd0f94b186ef4903963fa0397ae6175cd9f82d31d4512d8e9b67a2b3a0142f9"
     }
   }
 }
@@ -275,7 +275,7 @@ Server clone rules:
 
 - One bare clone per repository at `<data>/tenants/<tenantId>/repositories/<repositoryId>.git`.
 - The fetch refspecs are `+refs/heads/*:refs/heads/*` and `+refs/tags/*:refs/tags/*`, with `--prune`. Never `--mirror`.
-- Each pending linked SHA is also fetched by ID into `refs/holistic-review/commits/<sha>`. A failure for one SHA is ignored.
+- A second `git fetch` gets the pending linked SHAs by ID into `refs/holistic-review/commits/<sha>`. One unknown SHA fails a whole `git fetch`, so after a failure the server fetches one SHA per command and ignores the failures.
 - A commit is available when `git cat-file -e <sha>^{commit}` succeeds in the clone.
 - **Pin refs.** At review start the server writes `refs/holistic-review/reviews/<reviewId>` to the review commit. When a linked commit is available, it writes `refs/holistic-review/commits/<sha>`. The fetch refspecs never touch `refs/holistic-review/*`, so force-pushes, `--prune`, and `git gc` cannot remove reviewed or linked commits. Deleting a review deletes its review pin. A commit pin is deleted when no remaining link in the repository uses the SHA.
 
@@ -311,7 +311,7 @@ Fetch triggers:
 
 ### Deletion
 
-When a repository leaves the installation, or the installation is deleted, the server deletes the clone and the index at once and marks the repository `removed`. Reviews stay until the user deletes them, because they are the user's work. See D22. The user can delete one review, one repository's data, or the whole account. The deletion jobs run in the Messenger worker as the normal database role, with the tenant context of the tenant whose data they delete. They delete the rows, the pin refs, and the files. The purge command deletes all rows and files of one tenant.
+When a repository leaves the installation, or the installation is deleted, the server deletes the clone and the index at once and marks the repository `removed`. Reviews stay until the user deletes them, because they are the user's work. See D22. The user can delete one review, one repository's data, or the whole account. A review deletion and a repository deletion delete their rows in the request, under the tenant row lock of the write transaction. A Messenger job then deletes the clone of a deleted repository. An account deletion marks the tenant, and a job deletes all rows and files of the tenant. The jobs run as the normal database role, with the tenant context of the tenant whose data they delete. The purge command deletes all rows and files of one tenant.
 
 ## 5. Anchoring and re-anchoring
 
@@ -325,7 +325,9 @@ All anchors are captured at the review commit, which never changes.
 | `line`, `range` | As `file`, plus `range` and `snapshot` |
 | `symbol` | As `range`, plus `symbol`. The range comes from `nikic/php-parser` and includes the doc comment (D7). |
 
-Snapshot rules: normalize each line to LF line endings with no trailing whitespace. `lines` holds up to 200 lines, else the first 100 and the last 100 with `truncated: true`. `before` and `after` hold 3 context lines each. `normalizedHash` is the SHA-256 of the normalized full region.
+Snapshot rules: normalize each line to LF line endings with no trailing whitespace. `lines` holds up to 200 lines, else the first 100 and the last 100 with `truncated: true`. `before` and `after` hold 3 context lines each.
+
+All content comparisons use the comparison form of a line: leading and trailing whitespace removed, each inner whitespace run replaced by one space. So a re-indented region still matches. `normalizedHash` is `sha256:` and the SHA-256 hex of the comparison form of the full region, lines joined with LF, no final LF. A match for a truncated snapshot is a window of `lineCount` lines with the same hash.
 
 ### 5.2 Targets
 
@@ -345,7 +347,7 @@ For changes that are not in the server clone, the agent finds the code itself fr
 |---|---|
 | `exact` | Same path, same lines, same normalized content |
 | `shifted` | Same normalized content at other lines or another path |
-| `changed` | Region found, content differs. `confidence` is the line similarity, 0 to 1. |
+| `changed` | Region found, content differs. `confidence` is 1 for a file anchor and for a symbol found by its FQN, else the line similarity of section 5.4. |
 | `orphaned` | Region not found. `reason` says why. |
 
 A request is `outdated` when its location at the default-branch head is `changed` or `orphaned`. This is the meaning of "outdated" on GitHub.
@@ -389,6 +391,8 @@ searchOtherFiles(anchor, targetSha):
 ```
 
 `mapRange` maps each boundary line through the `--unified=0` hunks. A line before a hunk moves by the sum of the earlier deltas. A line inside a hunk maps to the new side of that hunk.
+
+`similarity(a, b)` is `2 * m / (|a| + |b|)`, where `m` is the length of the longest common subsequence of the two line lists in comparison form (section 5.1).
 
 ### 5.5 Failure cases
 

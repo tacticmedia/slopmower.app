@@ -15,7 +15,7 @@ M29, M22.
 - Q9 `GET /api/v1/requests/{requestId}/commits/{commitSha}`, as docs/specs/rest-api-requests.md section 2 says:
   - `CommitDiffQuery` compares the commit with its first parent through `git diff-tree -r -M --numstat` plus the raw output;
   - at most 300 files, with `truncated` beyond that;
-  - per file: `status`, paths, blob SHAs, modes, `additions`, `deletions`, `binary`, `tooLarge` when a side is above 1 MiB, and `touchesAnchor`;
+  - per file: `status`, paths, blob SHAs, modes, `additions`, `deletions`, `binary`, `tooLarge` when a side is above 1 MiB, and `touchesAnchor` as Q9 defines it;
   - `location` is the request located at this commit, with target `linked_commit`;
   - errors: 404 when the commit is not linked to the request, 409 `commits_not_available` when the link is pending, 409 `repository_unavailable`.
 - `assets/code/CommitDiff.tsx`: the only wrapper around `FileDiff`. It loads the old and the new side through R7 with `oldBlobSha` and `newBlobSha`.
@@ -44,6 +44,7 @@ M29, M22.
 - **F `CommitDiffApiTest`** proves Q9, with a cross-tenant case.
   - "Returns the files of the commit with blob SHAs, counts, and touchesAnchor"
   - "The location has the target linked_commit"
+  - "touchesAnchor follows location.path, and the anchor path when the location is orphaned"
   - "A commit that is not linked gives 404"
   - "A pending link gives 409 commits_not_available"
 - **E `ChangesTabTest`** proves the diff view.

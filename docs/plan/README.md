@@ -18,7 +18,7 @@ Highest first:
 4. This plan.
 5. [AGENTS.md](../../AGENTS.md): the Symfony conventions.
 
-When two sources conflict, follow the higher source and record the difference in the report. Stop and report when the highest relevant source is silent or contradicts itself. When a task needs a wire format that docs/specs does not define, stop and report. Never invent a contract.
+When two sources conflict, follow the higher source and record the difference in the report. Stop and report when no source decides the question, or when a source contradicts itself. When a task needs a wire format that docs/specs does not define, stop and report. Never invent a contract.
 
 The spec files that milestones name:
 
@@ -34,7 +34,7 @@ The spec files that milestones name:
 
 ## Precondition
 
-- Before M00, all of `docs/` is committed, and `git status --porcelain` shows only `?? .idea/`.
+- Before M00, all of `docs/` is committed, and `git status --porcelain` shows nothing.
 - docs/specs/ exists, with its README, its schemas, and its fixtures.
 - The host has these tools:
   - Docker Desktop with Compose v2;
@@ -139,6 +139,7 @@ PHP, Composer, the console, and PHPUnit run in the `php` container. `make` wraps
 | `make up` | `docker compose up -d --wait`: services `php`, `worker`, `database` |
 | `make down` | `docker compose down`, without `--volumes` |
 | `make sh` | Shell in the `php` container |
+| `make worker-restart` | `bin/console messenger:stop-workers`. Compose restarts the worker with the new code. Run it after a PHP change that the worker uses. |
 | `make console c="<arguments>"` | `bin/console <arguments>` |
 | `make composer c="<arguments>"` | `composer <arguments>` |
 | `make migration` | `bin/console make:migration --no-interaction` |
@@ -203,7 +204,8 @@ make up
   | `src/EventStore`, `src/Projection` | Event log writes and projections |
   | `src/Git`, `src/Source` | Git primitives and repository sources |
   | `src/Tenancy`, `src/Security` | Tenant context, SQL filter, authenticators |
-  | `src/Controller` | `Api/`, `DocsController`, `ShellController`, `E2e/` |
+  | `src/Controller` | `Api/`, `E2e/`, and the controllers outside `/api/v1` |
+  | `src/Http` | The REST exception listener, the CSRF listener, the cursor codec |
   | `src/Serializer/Normalizer` | The JSON normalizers that REST and MCP share |
   | `src/Mcp` | `Tool/`, `McpToolRunner`, generated `BundledSchemas` |
   | `src/Live`, `src/Index`, `src/Anchoring`, `src/Docs` | Mercure, symbol index, re-anchoring, public documentation |
@@ -239,7 +241,7 @@ make up
   - Primer for components. CSS modules for our layout CSS.
   - `@pierre/diffs` only inside `assets/code/CodeFile.tsx` and `assets/code/CommitDiff.tsx`.
   - API types in `assets/api/types/`, written from docs/specs and checked against `docs/specs/fixtures/`.
-- PHP, TypeScript, and CSS files have 200 to 400 lines, 800 at most. Generated files are exempt. One class per file.
+- PHP, TypeScript, and CSS files have typically 200 to 400 lines, 800 at most. Generated files are exempt. One class per file.
 
 ## Test conventions
 
@@ -247,7 +249,7 @@ Suite markers: **U** unit, **F** functional, **E** Panther E2E, **V** Vitest.
 
 - Unit tests live in `tests/Unit`. They extend `KernelTestCase` and never boot the kernel.
 - Functional tests live in `tests/Functional`. They extend `KernelTestCase` or `WebTestCase`. They run against real PostgreSQL in `app_test` and real git in temporary directories under `var/test/`. They use the `ResetDatabase` and `TemporaryDirectories` traits.
-  - The `test` environment routes `async` to `in-memory://`. A test asserts the queued messages, then runs their handlers through the `QueuedMessages` trait.
+  - The `test` environment routes `async` to `in-memory://`. A test asserts the queued messages, then runs them through the `QueuedMessages` trait. The trait sends each envelope through the bus with a `ReceivedStamp`, so the middleware runs as in the worker.
 - E2E tests live in `tests/E2E`. They extend `PantherTestCase` and run against `http://localhost:8081` through `PANTHER_EXTERNAL_BASE_URI`.
   - Fixtures are created through services in the PHPUnit process, in the same `app_test` database.
   - The code view uses open shadow roots. Use the `ShadowDom` helpers.
@@ -333,7 +335,7 @@ Checked on 2026-09-29.
 | `symfony/panther`, `php-webdriver/webdriver`, `dbrekelmans/bdi` | 2.4.0, 1.16.0, 1.4.1 | https://repo.packagist.org/p2/symfony/panther.json |
 | `friendsofphp/php-cs-fixer` | 3.95.27 | https://repo.packagist.org/p2/friendsofphp/php-cs-fixer.json |
 | `react`, `react-dom`, `@types/react`, `@types/react-dom` | 19.3.0 | https://www.npmjs.com/package/react |
-| `react-router` | 8.4.0, Data Mode. React peer `>=19.2.7`, needs Vite 7 or later. | https://www.npmjs.com/package/react-router |
+| `react-router` | 8.4.0, Data Mode. Peers `react` and `react-dom` `>=19.2.7`. | https://www.npmjs.com/package/react-router |
 | `vite`, `@vitejs/plugin-react`, `typescript` | 8.3.1, 6.1.1, 7.0.2 | https://www.npmjs.com/package/vite |
 | `@pierre/diffs` | 1.5.1, exact pin, Apache-2.0 | https://www.npmjs.com/package/@pierre/diffs |
 | `@primer/react`, `@primer/primitives`, `@primer/octicons-react`, `@primer/css` | 38.40.0, 11.10.0, 19.38.0, 22.3.2 | https://www.npmjs.com/package/@primer/react |
