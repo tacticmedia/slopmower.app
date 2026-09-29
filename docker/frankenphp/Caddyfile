@@ -21,7 +21,7 @@
 		worker {
 			file ./public/index.php
 			# A bare watch also matches var/, where test runs write PHP files, and reboots every PHP thread.
-			watch ./src/**/*.php ./config/**/*.{php,yaml} ./templates/**/*.twig ./.env*
+			watch ./src/**/*.php ./config/**/*.{php,yaml} ./templates/**/*.twig ./.env* ./vendor/composer/installed.php
 		}
 	}
 }
