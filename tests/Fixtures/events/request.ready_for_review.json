@@ -1,0 +1,1 @@
+{"note":"Replaced `float` with `Money` in `total()` and `tax()`. Added rounding cases to `InvoiceTotalsTest`. `make test` passes."}

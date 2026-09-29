@@ -1,0 +1,1 @@
+{"reason":"`InvoiceTotals::tax()` already rounds half-even at line 55, and `InvoiceTotalsTest::testTaxRounding` covers it."}

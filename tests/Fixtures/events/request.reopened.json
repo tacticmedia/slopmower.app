@@ -1,0 +1,1 @@
+{"note":"`tax()` still returns a float. Return `Money` there too."}
