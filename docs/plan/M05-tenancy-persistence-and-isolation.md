@@ -36,10 +36,10 @@ M01, M02.
 
 ## Tasks (ordered)
 
-1. Write the entities, the filter, the context, and `TenantFilter`.
-2. `TenantFilter::suspend()` uses `FilterCollection::suspend()` and calls `restore()` in a `finally` block. These keep the filter instance and its parameter. `disable()` and `enable()` would create a new instance without the parameter. `FilterCollection::suspend()` throws for a filter that is already suspended, so a nested `TenantFilter::suspend()` runs its callable directly.
-3. Run `make migration`, then `make db-test`.
-4. Write the test support.
+1. [x] Write the entities, the filter, the context, and `TenantFilter`.
+2. [x] `TenantFilter::suspend()` uses `FilterCollection::suspend()` and calls `restore()` in a `finally` block. These keep the filter instance and its parameter. `disable()` and `enable()` would create a new instance without the parameter. `FilterCollection::suspend()` throws for a filter that is already suspended, so a nested `TenantFilter::suspend()` runs its callable directly.
+3. [x] Run `make migration`, then `make db-test`.
+4. [x] Write the test support.
 
 ## Acceptance tests
 
