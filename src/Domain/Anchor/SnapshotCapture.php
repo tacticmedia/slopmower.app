@@ -58,12 +58,7 @@ final class SnapshotCapture
      */
     public static function normalizeLine(string $line): string
     {
-        $text = \UConverter::transcode($line, 'UTF-8', 'UTF-8');
-        if (false === $text) {
-            throw new \LogicException('UTF-8 repair failed: '.intl_get_error_message());
-        }
-
-        return rtrim(str_replace("\0", "\u{FFFD}", $text), self::WHITESPACE);
+        return rtrim(str_replace("\0", "\u{FFFD}", \UConverter::transcode($line, 'UTF-8', 'UTF-8')), self::WHITESPACE);
     }
 
     public static function comparisonForm(string $line): string
