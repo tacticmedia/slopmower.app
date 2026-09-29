@@ -30,9 +30,11 @@ migration: ## Generate a migration from the mapping
 	$(CONSOLE) make:migration --no-interaction
 
 db-reset: ## Drop, create, and migrate the dev database. Ask Jan first.
-	$(CONSOLE) doctrine:database:drop --force --if-exists
-	$(CONSOLE) doctrine:database:create
-	$(CONSOLE) doctrine:migrations:migrate --no-interaction --allow-no-migration
+	$(DOCKER_COMPOSE) stop worker php
+	$(DOCKER_COMPOSE) exec -T database dropdb --username=app --if-exists --force app
+	$(DOCKER_COMPOSE) exec -T database createdb --username=app app
+	@echo 'The php entrypoint runs the migrations.'
+	$(DOCKER_COMPOSE) up -d --wait
 
 db-test: ## Create app_test if it is missing, then migrate it
 	$(CONSOLE) doctrine:database:create --if-not-exists --env=test
