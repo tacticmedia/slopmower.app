@@ -28,7 +28,7 @@ final class NoContainerMockingTest extends KernelTestCase
             return true;
         }
 
-        preg_match_all('/\$(\w+)\s*=\s*(?:self|static|parent|\$this)\s*(?:::|->)\s*getContainer\(\)/', $code, $matches);
+        preg_match_all('/\$(\w+)\s*=\s*(?:self|static|parent|\$this)\s*(?:::|->)\s*getContainer\(\)\s*;/', $code, $matches);
         foreach (array_unique($matches[1]) as $variable) {
             if (1 === preg_match('/\$'.$variable.'\s*->\s*set\(/', $code)) {
                 return true;
