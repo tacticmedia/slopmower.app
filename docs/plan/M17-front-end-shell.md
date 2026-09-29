@@ -60,7 +60,7 @@ M10, M11.
   - "Sends the CSRF proof only on writes"
 - **V `ContractEnumsTest`** proves that the TypeScript enums follow the schemas.
   - "Each enum array equals its enum in docs/specs"
-- **V `ContractFixturesTypeTest`** proves that the TypeScript types fit the real payloads. It is a type-level check that `tsc -b` compiles.
+- **V `ContractFixturesTypeTest`** proves that the TypeScript types fit the real payloads. It is a type-level check that `tsc -b` compiles. TypeScript types an imported JSON file with `string` in place of string-literal unions, so the check uses each DTO type with its string-literal unions widened to `string`.
   - "Each REST fixture satisfies its widened DTO type"
 - **F `ShellRouteTest`** proves the catch-all route.
   - "A signed-in user gets the shell page"

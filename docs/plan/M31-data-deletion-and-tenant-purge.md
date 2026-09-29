@@ -8,13 +8,13 @@ Users delete a review, a repository's data, or their account. Pin refs and files
 
 ## Depends on
 
-M16, M19, M24.
+M16, M19, M24, M25 for drafts and viewed files, M26 for the index, M29 for the location cache.
 
 ## In scope
 
 - V13 `DELETE /api/v1/reviews/{reviewId}`, session only, 204 without a body:
   - it works for open and closed reviews, and for reviews of a repository whose access was removed;
-  - `DeleteReview` deletes, in one transaction, the review and all its rows: requests, comments, commit links, events, the drafts of every user, and the viewed-file marks;
+  - `DeleteReview` deletes, in one transaction, the review and all its rows: requests, comments, commit links, events, the location cache entries, the drafts of every user, and the viewed-file marks;
   - after the commit, when the clone exists, it deletes `refs/holistic-review/reviews/<reviewId>` and each `refs/holistic-review/commits/<sha>` that no remaining link in the repository uses;
   - the index stays, because it belongs to the repository and the commit;
   - it publishes a `repository` live update, because `openReviewCount` can change;
@@ -22,12 +22,12 @@ M16, M19, M24.
 - R6 `DELETE /api/v1/repositories/{repositoryId}?confirm={name}`, session only:
   - `confirm` must equal the repository `name`, else 422;
   - in the request: mark the repository as being deleted with a new column, so that the repository and its reviews answer 404. Revoke the tokens scoped to it. Publish `{type: "repository_deleted", repositoryId}`;
-  - in a Messenger job, as the normal database role: delete the clone with its pin refs, the index, the reviews, the requests, the events, the drafts, the viewed files, and the location cache;
+  - in a Messenger job, as the normal database role: delete the clone with its pin refs, the index, the reviews, the requests, the events, the drafts, the viewed files, the location cache, the revoked tokens scoped to the repository, and the repository row. The directory or GitHub repository can then be connected again;
   - the response is 202 without a body. The GitHub App installation does not change.
 - A2 `DELETE /api/v1/account?confirm={login}`, session only:
   - `confirm` must equal `user.login`, else 422;
   - in the request: revoke all tokens, invalidate the session so that the response clears the cookie, and mark the tenant as being deleted, so that all its IDs answer 404 and its user cannot sign in;
-  - in a Messenger job, as the normal database role: `PurgeTenant` deletes all rows and files of the tenant: every tenant table, the tenant directory with the clones and their pin refs, the sessions, and the tokens;
+  - in a Messenger job, as the normal database role: `PurgeTenant` deletes all rows and files of the tenant: every tenant table, the tenant directory with the clones and their pin refs, and the tokens. The `sessions` table has no tenant column. Other sessions of the user end at their next request, because `TenantUserProvider` refuses a user whose tenant is being deleted or gone;
   - the response is 202 without a body. The GitHub App stays installed until the user uninstalls it on GitHub.
 - `app:tenant:purge <tenantId>`: an operator command that runs `PurgeTenant` inside `TenantFilter::suspend()`.
 - UI:
@@ -69,11 +69,13 @@ M16, M19, M24.
   - "The response is 202, and the repository and its reviews answer 404 at once"
   - "Tokens scoped to the repository are revoked, and repository_deleted is published"
   - "After the job, the clone, the index, the reviews, the requests, and the events are gone"
+  - "After the job, the repository row and its scoped tokens are gone, and the same directory connects again"
   - "Other repositories of the tenant are untouched"
 - **F `DeleteAccountTest`** proves A2.
   - "A confirm value that differs from the login gives 422"
   - "The response is 202 and clears the session cookie"
   - "All tokens are revoked and all IDs of the tenant answer 404"
+  - "Another session of the same user is signed out at its next request"
 - **F `PurgeTenantTest`** proves the purge.
   - "information_schema shows 0 rows of the tenant in every table with tenant_id"
   - "The tenant directory is gone"

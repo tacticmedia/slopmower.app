@@ -265,7 +265,7 @@ Right away, in the request:
 - the server revokes the tokens scoped to the repository;
 - it publishes `repository_deleted`.
 
-Then a Messenger job deletes the clone with its pin refs, the index, the reviews, the requests, and the events. The GitHub App installation does not change.
+Then a Messenger job deletes the clone with its pin refs, the index, the reviews, the requests, the events, the revoked tokens scoped to the repository, and the repository. The directory or GitHub repository can then be connected again. The GitHub App installation does not change.
 
 ### R7 Get a blob
 
@@ -556,7 +556,7 @@ The call is idempotent per path.
 
 The endpoint works for open and closed reviews, and for reviews of a repository whose access was removed. The UI asks for a confirmation in a dialog first.
 
-- One transaction deletes the review and all its rows: requests, comments, commit links, events, the drafts of every user, and the viewed-file marks.
+- One transaction deletes the review and all its rows: requests, comments, commit links, events, the location cache entries, the drafts of every user, and the viewed-file marks.
 - After the commit, the server deletes `refs/holistic-review/reviews/<reviewId>` and each `refs/holistic-review/commits/<sha>` that no remaining link in the repository uses, when the clone exists.
 - The index stays, because it belongs to the repository and the commit, not to the review.
 - The server publishes a `repository` live update, because `openReviewCount` can change.

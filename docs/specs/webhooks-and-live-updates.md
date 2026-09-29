@@ -8,8 +8,8 @@ This file specifies the GitHub webhooks, the fetches that make commits available
 |---|---|
 | URL | `POST https://<host>/webhook/github`: the route prefix `/webhook` of the `symfony/webhook` recipe in `config/routes/webhook.yaml`, type `github`. This is the webhook URL of the GitHub App. |
 | Wiring | `framework.webhook.routing.github: {service: App\Webhook\GitHubRequestParser, secret: '%env(GITHUB_APP_WEBHOOK_SECRET)%'}`. The consumer is `#[AsRemoteEventConsumer('github')]`. Route `Symfony\Component\Webhook\Messenger\ConsumeRemoteEventMessage` to the `async` transport. |
-| Request matcher | Method POST, `Content-Type: application/json`, and the headers `X-GitHub-Event`, `X-GitHub-Delivery`, and `X-Hub-Signature-256`. Any other request gets 406, the Symfony default. |
-| Signature | `X-Hub-Signature-256` must be `sha256=` plus the lower-case hex of `hash_hmac('sha256', $request->getContent(), $secret)`. The parser compares with `hash_equals()` on the raw body, before JSON decoding. A missing or wrong signature throws `RejectWebhookException(403, 'Invalid signature.')`. The parser ignores the SHA-1 header `X-Hub-Signature`. |
+| Request matcher | Method POST, `Content-Type: application/json`, and the headers `X-GitHub-Event` and `X-GitHub-Delivery`. Any other request gets 406, the Symfony default. The matcher does not check `X-Hub-Signature-256`, so a missing signature gets the 403 of the signature check. |
+| Signature | `X-Hub-Signature-256` must be `sha256=` plus the lower-case hex of `hash_hmac('sha256', $request->getContent(), $secret)`. The parser compares with `hash_equals()` on the raw body, before JSON decoding. A missing or wrong signature throws `RejectWebhookException(403, 'Invalid signature.')`. An empty secret refuses every delivery with 403, because anyone can compute an HMAC with an empty key. The parser ignores the SHA-1 header `X-Hub-Signature`. |
 | Parsing | Unparsable JSON gets 406. After verification, every delivery returns a `RemoteEvent`: name `github.<X-GitHub-Event>`, id = `X-GitHub-Delivery`, payload = the decoded body. Events that the server does not handle get the name `github.ignored`. A parser that returns `null` makes Symfony answer 406, so the parser never returns `null` for a verified delivery. |
 | Response | 202 with an empty body, the `AbstractRequestParser` default, within the 10-second limit of GitHub. The work runs in the Messenger worker. |
 | Duplicates | The consumer inserts `X-GitHub-Delivery` into `webhook_delivery (id PRIMARY KEY, received_at)`. A duplicate, including a redelivery, is a no-op. Rows older than 7 days are purged. |
@@ -22,7 +22,7 @@ Events. Subscribe to `push` and `repository` in the App settings. The `installat
 | `ping` | none | No-op |
 | `push` | any, for branches and tags | For each tenant repository with `github.repositoryId = repository.id` and `access = active`, queue `FetchRepository(tenantId, repositoryId, reason: push)`. The fetch then does the steps of [section 2.2](#22-after-every-successful-fetch). |
 | `installation` | `created` | If a user has `githubUserId = sender.id`, record the `GitHubInstallation` for that tenant and publish `candidates_changed`. Otherwise ignore it: the next sign-in records it. |
-| `installation` | `deleted` | For each tenant with this installation: mark all its repositories `access = removed`, delete their clones with the pin refs and their index at once, publish `repository` for each, and delete the installation row. Reviews stay, by decision D22. |
+| `installation` | `deleted` | For each tenant with this installation: mark all its repositories `access = removed`, delete their clones with the pin refs and their index at once, publish `repository` for each, delete the candidates of the installation, publish `candidates_changed`, and delete the installation row. Reviews stay, by decision D22. |
 | `installation` | `suspend`, `unsuspend` | Set or clear `suspendedAt`. While suspended, fetches fail with `sync.lastError = "GitHub App installation suspended"`, and operations that need a fetch get `repository_unavailable` with reason `fetch_failed`. |
 | `installation` | `new_permissions_accepted` | No-op |
 | `installation_repositories` | `added` | For installations on the own account of the user, where `account.type = User` and the GitHub user is the same, add the repositories to the candidate list of the tenant and publish `candidates_changed`. Organization installations refresh at the next sign-in, because user access cannot be checked without the user token. |
@@ -60,7 +60,7 @@ The refspecs, the pin refs, and the meaning of "available" are in [README.md sec
 2. Resolve pending links. The fetch has already fetched each pending linked SHA by ID into `refs/holistic-review/commits/<sha>`. For each pending `CommitLink` of the repository whose SHA is now present:
    - set it to `available`;
    - make sure that the pin ref `refs/holistic-review/commits/<sha>` exists;
-   - write one `commit.found` event per review. The actor is `system`, and the payload is `{commitSha, requestIds}` for the requests linked in that review.
+   - write one `commit.found` event per review, in its own transaction. The actor is `system`, and the stored payload is `{commitSha, requestIds, subject, committedAt}` for the requests linked in that review.
 3. If `defaultBranchHead` changed, queue `RecomputeLocations(reviewId)` for each open review. The job recomputes the default-branch location of each request. When at least one `outdated` flag changed, it publishes `outdated` with the IDs of those requests. `outdated` means that the location at the default-branch head is `changed` or `orphaned`.
 4. Publish `repository`, and one `events` update per review that got `commit.found`.
 

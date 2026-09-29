@@ -15,8 +15,8 @@ M05.
 - `TenantUserProvider`: loads a user by ID through `TenantFilter::suspend()` and sets `TenantContext`.
 - Firewalls, as docs/specs/README.md section 3 says:
   - `dev` for the profiler and the build assets, without security;
-  - `api` for `^/api/v1`: `lazy: true`, and a shared security context with `main`, so a session also authenticates API calls. M14 adds the bearer authenticator to it;
-  - `main` for everything else: session, `lazy: true`.
+  - `api` for `^/api/v1`: `lazy: true` and `context: web`, shared with `main`, so a session also authenticates API calls. M14 adds the stateless firewall `api_bearer` before it, for bearer requests;
+  - `main` for everything else: session, `lazy: true`, `context: web`.
 - `TenantContextListener`: runs after the firewall and sets the tenant from the user.
 - Entry points:
   - under `/api/v1`: JSON 401 with the Error body, code `unauthorized`, `details: null`, and `WWW-Authenticate: Bearer realm="holistic-review"`;
@@ -29,10 +29,10 @@ M05.
 - The route `POST /login/local` exists only when `APP_ENV=dev` and `APP_LOCAL_SIGN_IN` is not empty, as docs/specs/rest-api-requests.md section 7 says: `env: 'dev'` on `#[Route]` plus a route condition on the variable. The `/login` page shows a "Sign in as <login>" button in local sign-in mode. The button posts the stateless CSRF token `authenticate`.
 - `E2eSignInController`: `#[When('e2e')]` and `#[Route('/_e2e/sign-in/{login}', env: 'e2e')]`. It provisions and signs in a fixture user.
 - `POST /logout` with CSRF.
-- `PdoSessionHandler` for `dev` and `e2e`. The `sessions` table comes from Doctrine's schema listener through `make migration`.
+- `PdoSessionHandler` on the Doctrine connection as `framework.session.handler_id` in the base configuration. `when@test` overrides only `storage_factory_id` with `mock_file`. So every environment knows the `sessions` table, and `doctrine:schema:validate --env=test` passes. The table comes from Doctrine's schema listener through `make migration`.
 - CSRF for API writes: add the token ID `api` to the stateless token IDs with `check_header: true`. Read `SameOriginCsrfTokenManager` to confirm the header and cookie protocol. docs/specs/README.md section 3 requires `Sec-Fetch-Site: same-origin`, or an `Origin` or `Referer` that matches the host. M11 enforces it on session writes.
 - A Twig login page.
-- A1 `GET /api/v1/me`: `user` with `signInMethod`, `tenantId`, `caller`, `token` as null for sessions, `features` with `localRepositories` and `githubApp` as null until M33, and `links` with `mcpUrl`, `docsUrl`, and `skillUrl`. The shape is `docs/specs/schemas/me.schema.json`.
+- A1 `GET /api/v1/me`: `user` with `signInMethod`, `tenantId`, `caller`, `token` as null for sessions, `features` with `localRepositories` and `githubApp` as null until M33, and `links` with `mcpUrl`, `docsUrl`, and `skillUrl`, as absolute URLs from the current request, not from `DEFAULT_URI`. The shape is `docs/specs/schemas/me.schema.json`.
 
 ## Out of scope
 
@@ -53,7 +53,7 @@ M05.
 2. Write the user provider, the tenant context listener, and the entry points.
 3. Write the local sign-in authenticator, its route, and the login page.
 4. Write the `e2e` sign-in controller.
-5. Configure `PdoSessionHandler` for `dev` and `e2e`. Run `make migration` for the `sessions` table.
+5. Configure `PdoSessionHandler` in the base configuration. Run `make migration` for the `sessions` table.
 6. Configure the CSRF token ID `api`.
 7. Write `MeController`.
 

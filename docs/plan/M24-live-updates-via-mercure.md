@@ -13,7 +13,7 @@ M22.
 ## In scope
 
 - `composer require symfony/mercure-bundle`, version 0.5.0. With `extra.symfony.docker=false` the recipe adds no compose service. If a compose block appears, remove it.
-- `config/packages/mercure.yaml`: an explicit `hubs.default.url` from `MERCURE_URL`, `public_url` from `MERCURE_PUBLIC_URL`, and the JWT secret from `MERCURE_JWT_SECRET`. The URL must always be set, decision P11.
+- `config/packages/mercure.yaml`: an explicit `hubs.default.url` from `MERCURE_URL`, `public_url` from `MERCURE_PUBLIC_URL`, and the JWT secret from `MERCURE_JWT_SECRET`. The URL must always be set, decision D41.
 - `LiveTopics`, with `{base}` equal to `DEFAULT_URI` without a trailing slash:
   - `{base}/tenants/{tenantId}/repositories`, matched exactly in the JWT;
   - `{base}/tenants/{tenantId}/reviews/{reviewId}`. The JWT holds this URI template, so it matches every review of the tenant.

@@ -50,8 +50,11 @@ M03.
 
 All are unit tests.
 
-- **U `TransitionMatrixTest`** proves the complete state machine: 6 statuses by 10 commands by 3 actor kinds, 180 cases, each with its expected event or error code.
-  - "Command <command> by <actor kind> on status <status> gives <outcome>", one data set per case
+- **U `TransitionMatrixTest`** proves the complete state machine, each case with its expected event or error code. The dimensions:
+  - the state before the command: none for `open`, else the 6 statuses, with `wont_do` split into "set by an agent" and "set by the user";
+  - the 10 request commands of architecture section 6;
+  - the caller: user, claiming agent, or another agent. `system` issues no command.
+  - "Command <command> by <caller> on <state> gives <outcome>", one data set per case
 - **U `ClaimIdempotenceTest`** proves the claim rules.
   - "A repeated claim by the same agent gives no event"
   - "Tokens with the same agent name count as the same agent"

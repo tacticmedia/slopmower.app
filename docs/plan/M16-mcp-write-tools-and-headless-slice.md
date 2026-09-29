@@ -29,16 +29,16 @@ M15, M09.
 - `LinkCommits`, Q7:
   - `commitSha` is a full SHA. `requestIds` holds 1 to 50 unique IDs of one review. Requests of several reviews give 422 `invalid_input`. An unknown request ID gives 404;
   - every request must be `in_progress` and claimed by the caller. The first one that fails gives 409 `invalid_transition`, and nothing is written;
-  - the availability check runs `git cat-file -e` in the clone, without a fetch. A present commit gets the link state `available`, `foundAt` equal to the link time, and the pin `refs/holistic-review/commits/<sha>`, decision D26;
-  - a missing commit gets the link state `pending`, and an asynchronous fetch is queued, debounced 5 seconds per repository;
+  - the availability check runs `git cat-file -e` in the clone, without a fetch. A present commit gets the link state `available`, `foundAt` equal to the link time, and the pin `refs/holistic-review/commits/<sha>`, decision D26. `commit.linked` then carries `available: true`, `subject`, and `committedAt` from git, read by a new `GitReader::commitInfo()`;
+  - a missing commit gets the link state `pending`. After `CommandExecutor::execute()` returns, `LinkCommits` requests an asynchronous fetch through the `fetchRequested` flag of M09, with a `DelayStamp` of 5 seconds. This is the debounce per repository;
   - one `commit.linked` event names the newly linked requests. Pairs that are already linked are skipped. The response is `LinkCommitsResult`.
 - `UnlinkCommit`, Q8: writes `commit.unlinked` and removes the commit pin when no other link in the repository uses the commit. A commit that is not linked gives 422.
 - `MarkReadyForReview`, Q10:
   1. If any link is `pending`, fetch synchronously with a 60-second timeout.
-  2. Write `commit.found`, actor `system`, payload `{commitSha, requestIds}`, for each commit that is now present, and pin it.
+  2. The fetch dispatches `RepositoryFetched`. `ResolvePendingCommitLinks` writes `commit.found` and the pins in its own transaction. `MarkReadyForReview` does not write `commit.found`. It reads the links again, and its `events` hold only `request.ready_for_review`.
   3. Then check the links. A link that is still `pending` gives 409 `commits_not_available` with `pendingCommits`. A failed fetch gives 409 `repository_unavailable` with reason `fetch_failed`. Zero links are allowed.
 - The fetch passes the SHAs of pending links as extra refspecs into `refs/holistic-review/commits/<sha>`.
-- `ResolvePendingCommitLinks`, a listener on `RepositoryFetched`: for each pending link of the repository whose commit is now present, set it `available`, pin it, and write one `commit.found` per review.
+- `ResolvePendingCommitLinks`, a listener on `RepositoryFetched`: for each pending link of the repository whose commit is now present, set it `available`, pin it, and write one `commit.found` per review, with `subject` and `committedAt` from git. It is the only writer of `commit.found`.
 - Every agent write on a closed review gives `review_closed`.
 - A cross-tenant case for every new route and tool.
 
@@ -61,6 +61,7 @@ M15, M09.
 3. Add the cross-tenant cases.
 4. Write the slice test.
 5. Extend `McpRestParityTest` to the write results.
+6. Extend `ToolsListContractTest` and `tests/Fixtures/mcp/tools-list.json` to all 12 tools.
 
 ## Acceptance tests
 
@@ -78,6 +79,7 @@ All are functional tests. Every response and every `structuredContent` validates
 - **F `LinkCommitsTest`** proves Q7 and `link_commits`.
   - "An available commit gets the state available and a pin"
   - "A missing commit gets the state pending and queues a fetch"
+  - "A second pending link while the fetch is queued dispatches no second fetch"
   - "A short SHA gives -32602 over MCP and 422 over REST"
   - "One commit covers two requests"
   - "Requests of two reviews give invalid_input"
@@ -87,7 +89,8 @@ All are functional tests. Every response and every `structuredContent` validates
   - "Unlinking removes the link and the unused pin"
   - "Unlinking a commit that is not linked gives invalid_input"
 - **F `MarkReadyTest`** proves Q10.
-  - "Runs one fetch, writes commit.found, then marks the request ready"
+  - "Runs one fetch, the listener writes commit.found once, then the request is ready"
+  - "The result events hold only request.ready_for_review"
   - "A commit that is still missing gives commits_not_available with its SHA"
   - "Zero links are allowed"
 - **F `PendingLinkResolutionTest`** proves resolution after a fetch.
@@ -108,7 +111,7 @@ All are functional tests. Every response and every `structuredContent` validates
   4. The test commits a fix on a branch of the source.
   5. The agent calls `link_commits` and `mark_ready_for_review`.
   6. The user verifies. The request is `verified` and awaits nobody.
-  7. `GET /api/v1/reviews/{reviewId}/updates?cursor=0&includeOwn=true` for the user returns every event of the review in `seq` order. The agent's `get_updates` with cursor 0 returns the same events without the agent's own.
+  7. `GET /api/v1/reviews/{reviewId}/updates?cursor=0&includeOwn=true` for the user returns every event of the review, in `seq` order after the groups are flattened. The agent's `get_updates` with cursor 0 returns the same events without the agent's own.
   - "The user and the agent complete a request through REST and MCP"
 - **F `McpRestParityTest`**, extended, proves equal write results.
   - "Each write tool returns the same body as its REST endpoint"

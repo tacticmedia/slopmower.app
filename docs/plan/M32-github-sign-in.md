@@ -21,7 +21,8 @@ M10.
   - a tenantless lookup by `githubUserId` through `TenantFilter::suspend()`;
   - the first sign-in creates the tenant and the user with `signInMethod = github`;
   - later sign-ins update `login`, `name`, `avatarUrl`, and `lastSignInAt`.
-- A "Sign in with GitHub" button on `/login` when `GITHUB_APP_CLIENT_ID` is set.
+- Variables, as the README table says: empty `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_SLUG` in `.env`, the secrets through `%env(default::<NAME>)%`, and fake values in `.env.test`. A local run without a GitHub App then needs no variable.
+- A "Sign in with GitHub" button on `/login` when `GITHUB_APP_CLIENT_ID` is set. With an empty `GITHUB_APP_CLIENT_ID`, `/connect/github` and `/login/check-github` answer 404.
 - GitHub HTTP in tests goes through `framework.http_client.mock_response_factory` with recorded responses in `tests/Fixtures/github/`.
 - Check that `docs/user/getting-started.md` describes the GitHub App registration of architecture section 9 and the environment variables. Correct it where it differs.
 
@@ -51,11 +52,13 @@ All are functional tests.
 - **F `GitHubUserProviderTest`** proves provisioning.
   - "The first GitHub sign-in creates one tenant and one user"
   - "A later sign-in finds the same user and updates the profile"
+  - "A new user signs in with a login that another user held before"
 - **F `OAuthStateTest`** proves the `state` check.
   - "A callback with a missing or wrong state is rejected"
 - **F `LoginRoutesTest`** proves the routes and the button.
   - "/connect/github redirects to GitHub with the client ID and a state"
   - "/login shows the GitHub button only when the App is configured"
+  - "Without a client ID, /connect/github answers 404"
 - **F `LocalSignInStillDevOnlyTest`** proves that GitHub sign-in does not open local sign-in.
   - "With GitHub configured and APP_LOCAL_SIGN_IN set, local sign-in still gives 404 outside dev"
 

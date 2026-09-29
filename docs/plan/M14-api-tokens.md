@@ -27,10 +27,11 @@ M11.
   - unknown, revoked, and expired tokens get 401. A token is expired when `expiresAt <= now`;
   - `lastUsedAt` is updated at most once per 60 seconds;
   - it returns an `AgentUser` with the agent name and an `AccessScope`, and sets the tenant context.
-- The `api` firewall gets the `access_token` authenticator with this handler:
-  - when a request has both a bearer token and a session cookie, the bearer token wins;
-  - a bearer request never starts a session: the response has no `Set-Cookie`. The firewall shares its context with `main`, so confirm in the installed SecurityBundle how a bearer request stays stateless. If the shared context cannot keep it stateless, stop and report;
+- The firewall `api_bearer`, before `api`, with the `access_token` authenticator and this handler:
+  - the request matcher service `BearerApiRequestMatcher` selects it for `^/api/v1` with an `Authorization: Bearer` header. So the bearer token wins over a session cookie;
+  - `stateless: true`, so a bearer request never starts a session, and the response has no `Set-Cookie`. On a stateful firewall, `ContextListener::onKernelResponse` would write the token into the session;
   - every 401 carries `WWW-Authenticate: Bearer realm="holistic-review"`, plus `, error="invalid_token"` when a token was sent.
+- `BearerAuthenticationFailure`: the `failure_handler` of `api_bearer`. M15 also makes it the `failure_handler` and the `entry_point` of `mcp`. It answers 401 with the Error body, code `unauthorized`, and the `WWW-Authenticate` header of docs/specs/README.md section 3. Without it, `AccessTokenAuthenticator` answers with an empty body and its own header format, and it has no entry point.
 - `CurrentActor`: actor `user` for a session, actor `agent` with `userId` and `agentName` for a token.
 - The actor-kind rule of docs/specs/README.md section 3: a session-only endpoint called with a token, or a bearer-only endpoint called with a session, gets 403 `forbidden`. A 404 for an invisible ID comes first.
 - `AccessScope` in every query: a token scoped to one repository sees only that repository and its reviews, requests, drafts, and blobs. Every other ID answers 404 `not_found`.
@@ -48,7 +49,7 @@ M11.
 ## Files (representative)
 
 - `src/Entity/ApiToken.php`, `src/Repository/ApiTokenRepository.php`.
-- `src/Security/ApiTokenHandler.php`, `AgentUser.php`, `CurrentActor.php`, `AccessScope.php`.
+- `src/Security/ApiTokenHandler.php`, `AgentUser.php`, `CurrentActor.php`, `AccessScope.php`, `BearerApiRequestMatcher.php`, `BearerAuthenticationFailure.php`.
 - `src/Application/ApiTokenIssuer.php`, `src/Controller/Api/TokenController.php`.
 - `config/packages/security.yaml`, `migrations/Version*.php`.
 - `tests/Unit/Security/*Test.php`, `tests/Functional/Security/*Test.php`, `tests/Functional/Api/Token*Test.php`.
@@ -57,7 +58,7 @@ M11.
 
 1. Write the entity and run `make migration`.
 2. Write the issuer and the handler.
-3. Configure the authenticator on the `api` firewall.
+3. Configure the `api_bearer` firewall and its request matcher.
 4. Enforce the actor-kind rule and `AccessScope` in the existing controllers and queries.
 5. Write `TokenController` and extend `MeController`.
 6. Add the cross-tenant cases.
@@ -73,8 +74,10 @@ M11.
 - **F `BearerAuthenticationTest`** proves bearer authentication.
   - "A valid token makes the caller an agent with the token name"
   - "Malformed, unknown, revoked, and expired tokens get 401 with error invalid_token"
+  - "A 401 has the Error body and exactly the WWW-Authenticate header of docs/specs"
   - "A bearer response has no Set-Cookie header"
   - "The bearer token wins over a session cookie"
+  - "A bearer call with a session cookie leaves the session unchanged"
   - "The secret never appears in var/log"
 - **F `TokenScopeTest`** proves repository scope.
   - "A scoped token lists only its repository"

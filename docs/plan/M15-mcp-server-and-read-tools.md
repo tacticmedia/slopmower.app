@@ -18,13 +18,13 @@ M13, M14.
   - transports: HTTP only, no stdio;
   - `http.path: /_mcp`;
   - `http.allowed_hosts: ['%env(APP_PUBLIC_HOST)%']`, with `APP_PUBLIC_HOST=localhost` in `.env`. Read how the bundle compares the `Host` header, with or without the port, so that `localhost:8000` and `localhost:8081` pass;
-  - the session store `file` with `directory: '%kernel.project_dir%/var/mcp-sessions'`, decision P10. The default directory is under `%kernel.cache_dir%`, which `cache:clear` removes;
+  - the session store `file` with `directory: '%kernel.project_dir%/var/mcp-sessions'`, decision D40. The default directory is under `%kernel.cache_dir%`, which `cache:clear` removes;
   - tool discovery in `src/Mcp/Tool`;
   - `instructions`: the text of docs/specs/mcp.md section 2, through the parameter `app.mcp_instructions`.
 - `config/routes/mcp.yaml` with the route type `mcp`.
 - Resolve the double PSR-17 aliases of the `nyholm/psr7` and `php-http/discovery` recipes. Keep one set.
-- Firewall `mcp`: pattern `^/_mcp`, `stateless: true`, `access_token` with the M14 handler, role `ROLE_AGENT`. A wrong token gets HTTP 401 before JSON-RPC, with `WWW-Authenticate: Bearer realm="holistic-review", error="invalid_token"` and the Error JSON body. `/.well-known/oauth-protected-resource` answers 404, decision D18.
-- `app:schema:bundle`: generates `src/Mcp/BundledSchemas.php` with one `public const array` per output root. Each constant is a bundled copy of a schema: the root with `type: "object"`, its `properties` and `required`, and a `$defs` section with every referenced definition, with the `$ref`s rewritten to `#/$defs/<Name>`. Attribute arguments must be constant expressions, so the schemas live in constants.
+- Firewall `mcp`: pattern `^/_mcp`, `stateless: true`, `access_token` with the M14 handler, role `ROLE_AGENT`. `BearerAuthenticationFailure` of M14 is its `failure_handler` and its `entry_point`, so a call without a token also gets the Error body. A wrong token gets HTTP 401 before JSON-RPC, with `WWW-Authenticate: Bearer realm="holistic-review", error="invalid_token"` and the Error JSON body. `/.well-known/oauth-protected-resource` answers 404, decision D18.
+- `app:schema:bundle`: generates `src/Mcp/BundledSchemas.php` with one `public const array` per output root. Each constant is a bundled copy of a schema: the root with `type: "object"`, its `properties` and `required`, and a `$defs` section with every referenced definition, with the `$ref`s rewritten to `#/$defs/<Name>`. Attribute arguments must be constant expressions, so the schemas live in constants. The file is generated, so add it to the exception list of `FileSizeLimitTest`.
 - Read tools. One class per tool in `src/Mcp/Tool`, each with one `#[McpTool]` method. Parameters are scalars and backed enums only. Names, titles, descriptions, `#[Schema]` constraints, annotations, and output schemas equal docs/specs/mcp.md section 4:
   - `list_repositories(cursor, limit)`;
   - `list_reviews(repository, includeClosed, cursor, limit)`. `repository` resolves as docs/specs/README.md section 7 says: a ULID, a GitHub `owner/name`, or a local directory name;
@@ -55,7 +55,7 @@ M13, M14.
 2. Write the configuration, the route, and the firewall.
 3. Write `app:schema:bundle` and generate `BundledSchemas.php`.
 4. Write `McpToolRunner` and the five tools.
-5. Write the test client and the wire tests. When `docs/specs/fixtures/` holds a `tools/list` fixture, compare against it. Otherwise copy the input schemas of docs/specs/mcp.md section 4 verbatim into `tests/Fixtures/mcp/tools-list.json`.
+5. Write the test client and the wire tests. `docs/specs/fixtures/` has no `tools/list` fixture. Copy the input schemas of the five read tools of docs/specs/mcp.md section 4 verbatim into `tests/Fixtures/mcp/tools-list.json`.
 6. Add the cross-tenant cases for the tools.
 
 ## Acceptance tests
@@ -71,9 +71,10 @@ All are functional tests on the wire level.
   - "A call without a token gets 401 with WWW-Authenticate"
   - "A revoked token gets 401"
   - "A session cookie alone gets 401"
+  - "Every 401 has the Error body"
   - "/.well-known/oauth-protected-resource answers 404"
-- **F `ToolsListContractTest`** proves the tool contract.
-  - "tools/list names, input schemas, and annotations equal docs/specs"
+- **F `ToolsListContractTest`** proves the tool contract. M16 extends it to all 12 tools.
+  - "tools/list names, input schemas, and annotations of the five read tools equal docs/specs"
 - **F `BundledSchemasUpToDateTest`** proves that the output schemas follow the schema files.
   - "BundledSchemas.php equals the output of app:schema:bundle"
 - **F `ReadToolsTest`** proves the read tools. Every `structuredContent` validates against the tool's output schema.

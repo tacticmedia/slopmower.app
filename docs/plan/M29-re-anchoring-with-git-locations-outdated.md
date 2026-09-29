@@ -15,12 +15,12 @@ M28, M26, M16. M24 for the `outdated` live update.
 - `Locator`, as architecture section 5.4 says:
   - `diff --name-status -M` maps the path;
   - blob comparison;
-  - symbol lookup at the target through on-demand extraction, cached by blob SHA in the `symbol` table;
+  - symbol lookup at the target through `BlobSymbols` of M26;
   - hunk mapping, content search, and the fuzzy window of M28;
   - `searchOtherFiles` through `git grep -n -F`, at most 20 candidate files.
 - `LocationCacheEntry` entity and a migration. The key is the `request.opened` event ID and the target SHA.
-- An `outdated` column on `ChangeRequest`: true when the location at the default-branch head is `changed` or `orphaned`, null until computed or when the clone is gone.
-- `RecomputeLocations(reviewId)`: queued for each open review after a fetch that changed `defaultBranchHead`. The handler recomputes the default-branch location of each request, updates `outdated`, and publishes `{type: "outdated", reviewId, requestIds}` with the requests whose flag changed.
+- An `outdated` column on `ChangeRequest`: true when the location at the default-branch head is `changed` or `orphaned`, null until computed or when the clone is gone. It is not event data, so `app:projections:rebuild` keeps it.
+- `RecomputeLocations(reviewId)`: queued for each open review after a fetch that changed `defaultBranchHead`. A listener of `EventsCommitted` also queues it for the review when the recorded events contain `request.opened`. The handler recomputes the default-branch location of each request, updates `outdated`, and publishes `{type: "outdated", reviewId, requestIds}` with the requests whose flag changed.
 - Q3 `GET /api/v1/requests/{requestId}?at=&context=` and MCP `get_request`:
   - `at` resolves with `rev-parse --verify --end-of-options <at>^{commit}`. A missing commit triggers one synchronous fetch, then 422 `commit_not_found`. An ambiguous prefix gives 422 `invalid_input`;
   - with `at`, `location.target` is `requested`. Without `at`, the location is at the default-branch head with target `default_branch`. `location` is null when the clone is gone;
@@ -74,6 +74,8 @@ All are functional tests on real temporary git repositories. Each case asserts t
   - "context returns an excerpt of at most 400 lines"
 - **F `OutdatedFlagTest`** proves the outdated flag.
   - "A default-branch commit that edits the region sets outdated to true"
+  - "A new request gets its outdated flag without a fetch"
+  - "A projection rebuild keeps the outdated flag"
   - "The recompute publishes an outdated update with the request ID"
   - "The outdated filter finds the request"
 

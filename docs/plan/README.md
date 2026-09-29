@@ -18,7 +18,7 @@ Highest first:
 4. This plan.
 5. [AGENTS.md](../../AGENTS.md): the Symfony conventions.
 
-When two sources conflict, stop and report. When a task needs a wire format that docs/specs does not define, stop and report. Never invent a contract.
+When two sources conflict, follow the higher source and record the difference in the report. Stop and report when the highest relevant source is silent or contradicts itself. When a task needs a wire format that docs/specs does not define, stop and report. Never invent a contract.
 
 The spec files that milestones name:
 
@@ -34,12 +34,12 @@ The spec files that milestones name:
 
 ## Precondition
 
-- Before M00, the working tree equals commit `79f8595` plus the untracked `docs/` and `.idea/`. `git status --porcelain` shows only `?? .idea/` and `?? docs/`.
+- Before M00, all of `docs/` is committed, and `git status --porcelain` shows only `?? .idea/`.
 - docs/specs/ exists, with its README, its schemas, and its fixtures.
 - The host has these tools:
   - Docker Desktop with Compose v2;
   - git and make;
-  - PHP 8.5 and Composer, for M00 only;
+  - PHP 8.5 and Composer, for M00 and the M01 baseline;
   - Node.js 24 LTS with npm, from M17 on;
   - Claude Code, for the manual checks in M15, M16, and M35.
 
@@ -52,7 +52,10 @@ The spec files that milestones name:
    - a milestone with the status "Blocked" needs a decision from Jan. Stop and ask.
 3. Read the milestone file completely. Read the architecture sections and the docs/specs files that it names.
 4. Run `git status`. Earlier milestones can be uncommitted, because Jan commits. If you find changes that no earlier report explains, stop and ask Jan.
-5. From M01 on, run `make up`, `make db-test`, and `make check`. For M00, run the M00 verification commands on the host. If the baseline is red, stop and report. Do not fix unrelated failures silently.
+5. Check the baseline. If it is red, stop and report. Do not fix unrelated failures silently.
+   - M00: `composer validate` and `bin/console lint:container` on the host;
+   - M01: the M00 verification commands on the host;
+   - from M02 on: `make up`, `make db-test`, and `make check`.
 6. Set the status of the milestone to "In progress".
 7. Do the tasks in order. Write each acceptance test together with the code that it proves, or before it.
 8. Run the verification commands of the milestone, then `make check`.
@@ -65,7 +68,7 @@ The spec files that milestones name:
 - If a milestone is clearly too large for one session, stop at a consistent point with all tests green. Report, propose a split, keep the status "In progress", and write the done tasks into the Notes column.
 - Stop and report when:
   - the baseline is red;
-  - docs/specs is missing, contradicts itself, or conflicts with the architecture;
+  - docs/specs is missing or contradicts itself;
   - a pinned package behaves differently from this plan;
   - a task needs a decision that no document makes.
 - Destructive operations need Jan's approval first:
@@ -123,30 +126,13 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M34 | [GitHub webhooks](M34-github-webhooks.md) | Not started | | |
 | M35 | [Isolation audit and acceptance](M35-isolation-audit-and-acceptance.md) | Not started | | |
 
-## Order and dependencies
+## Order
 
-Sessions run the milestones in number order. The list shows which earlier work each milestone builds on.
-
-- Base: M00, then M01.
-- Domain: M02 after M01. M03 after M02. M04 after M03.
-- Persistence: M05 after M01 and M02. M06 after M04 and M05. M07 after M06.
-- Git: M08 after M01 and M02. M09 after M07 and M08.
-- Security and REST: M10 after M05. M11 after M09 and M10. M12 after M11. M13 after M12. M14 after M11.
-- MCP: M15 after M13 and M14. M16 after M15 and M09. This completes the headless slice.
-- Front end: M17 after M10 and M11. M18 after M12 and M17. M19 after M14 and M17. M20 after M18. M21 after M13 and M20. M22 after M16, M19, and M21. This completes the vertical slice.
-- Later features:
-  - M23 public documentation, after M16 and M17;
-  - M24 Mercure, after M22;
-  - M25 drafts, after M21;
-  - M26 and M27 symbols;
-  - M28, M29, and M30 re-anchoring;
-  - M31 deletion;
-  - M32, M33, and M34 GitHub;
-  - M35 audit, after all others.
+Sessions run the milestones in number order. The "Depends on" section of each milestone file names the earlier work that it builds on.
 
 ## Environment and commands
 
-PHP, Composer, the console, and PHPUnit run in the `php` container. `make` wraps `docker compose exec -T php`. npm and the Vite dev server run on the host. M00 alone uses host PHP and Composer, because the container arrives in M01.
+PHP, Composer, the console, and PHPUnit run in the `php` container. `make` wraps `docker compose exec -T php`. npm and the Vite dev server run on the host. M00 and the M01 baseline use host PHP and Composer, because the container arrives in M01.
 
 | Command | Does |
 |---|---|
@@ -186,10 +172,12 @@ For verbose PHPUnit output, use `--debug`. Never use `-v` or `--verbose`. Exampl
 | `APP_LOCAL_REPOSITORIES_DIR` | `.env` files | Empty in `.env`, which means that local repositories are off. `/repositories` in `.env.dev`, `var/test/local-repositories` in `.env.test` and `.env.e2e`. It is an instance feature: every tenant of the instance may connect the repositories under it. |
 | `APP_LOCAL_SIGN_IN` | Host shell, passed through compose | Login of the one local user. Honoured only when `APP_ENV=dev`. |
 | `APP_TENANT_DATA_DIR` | `.env` files | Root of the tenant files, for example the clones: the `<data>/tenants` directory of docs/specs. `/srv/tenants` in `.env.dev`, on the `tenant_data` volume. `var/test/tenants` in `.env.test` and `.env.e2e`. |
+| `DEFAULT_URI` | `.env` | Base of the Mercure topics, from M24 on. Not the base of the links in `/api/v1/me`, which come from the request. |
 | `APP_PUBLIC_HOST` | `.env` | Host that the MCP transport accepts, from M15 on |
-| `MERCURE_URL`, `MERCURE_PUBLIC_URL`, `MERCURE_JWT_SECRET` | `.env` files, and `MERCURE_URL` in the compose `worker` service | Hub URL for the publisher, hub URL for the browser, JWT secret |
-| `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_SLUG` | `.env.local` | GitHub App identity, from M32 on |
-| `GITHUB_APP_CLIENT_SECRET`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET` | Secrets vault or `.env.local` | GitHub App credentials, from M32 on |
+| `LOCK_DSN` | `.env`, with the host `database` | Store of `symfony/lock`: PostgreSQL advisory locks, from M08 on |
+| `MERCURE_URL`, `MERCURE_PUBLIC_URL`, `MERCURE_JWT_SECRET` | `.env` files. Also `MERCURE_URL` in the compose `worker` service, and `MERCURE_JWT_SECRET` in the compose `php` service, because Caddy reads only the container environment. | Hub URL for the publisher, hub URL for the browser, JWT secret |
+| `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_SLUG` | Empty in `.env`, real values in `.env.local`, fake values in `.env.test` | GitHub App identity, from M32 on. Empty means that no GitHub App is configured. |
+| `GITHUB_APP_CLIENT_SECRET`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET` | Secrets vault or `.env.local`, fake values in `.env.test` | GitHub App credentials, from M32 on. Read with `%env(default::<NAME>)%`, not with a default in `.env`, because a `.env` value wins over the vault. |
 
 A local run with local repositories and local sign-in needs no GitHub App:
 
@@ -226,19 +214,20 @@ make up
   - Install packages with `composer require` and let the Flex recipe write the configuration. Write configuration by hand only where no recipe exists, with a one-line header comment that says so.
   - Use attributes: `#[Route]`, `#[IsGranted]`, `#[MapRequestPayload]`, `#[MapQueryString]`, `#[AsCommand]`, `#[AsMessageHandler]`, `#[AsEventListener]`, `#[Autowire]`, `#[When]`. A route that exists only in one environment also sets `env:` on `#[Route]`.
   - Rely on autowiring. No YAML service definition unless it is unavoidable.
-- Controllers are thin: map the input, call one service, return the normalized JSON. Errors are `DomainError` subclasses. `ApiExceptionListener` maps them for REST, and `McpToolRunner` maps them for MCP.
+- Controllers are thin: map the input, call one service, return the normalized JSON. Path IDs resolve to visible entities in argument value resolvers, so the error check order of docs/specs holds. See M11. Errors are `DomainError` subclasses. `ApiExceptionListener` maps them for REST, and `McpToolRunner` maps them for MCP.
 - Tenancy:
   - Every tenant entity implements `TenantOwned`.
   - The Doctrine SQL filter is on by default and fails closed without a tenant context.
   - Only these paths turn it off, and only through `TenantFilter::suspend()`: the sign-in and token lookups, the webhook consumer, the projection rebuild, and the purge.
-  - Raw SQL always includes `tenant_id`.
+  - Raw SQL lives only in `final` classes named `*Sql`, and every statement names `tenant_id`. `RawSqlTenantAuditTest` enforces this from M07 on.
   - File paths come only from typed IDs.
   - Mercure topics include the tenant ID.
 - Git:
   - Git runs only through `GitRunner`, with `symfony/process` argument arrays.
   - Refs and SHAs are validated, and `--end-of-options` goes before them.
   - Secrets go only into the environment.
-  - One `RepositoryLock` per repository, through `LockFactory`.
+  - One `RepositoryLock` per repository, through `LockFactory`. Fetch, clone, and clone deletion hold it. Pin writes and reads do not.
+- Dispatch Messenger messages only outside a database transaction. In `e2e`, `sync://` runs the handler during the dispatch, and `CommandExecutor` refuses to run inside a transaction.
 - Time comes from `Psr\Clock\ClockInterface`.
 - No `echo`, `print`, `var_dump`, `print_r`, `dump`, or `dd` in `src/`.
 - Schema changes go through `make migration`, never through `doctrine:schema:update`.
@@ -250,7 +239,7 @@ make up
   - Primer for components. CSS modules for our layout CSS.
   - `@pierre/diffs` only inside `assets/code/CodeFile.tsx` and `assets/code/CommitDiff.tsx`.
   - API types in `assets/api/types/`, written from docs/specs and checked against `docs/specs/fixtures/`.
-- Files have 200 to 400 lines, 800 at most. One class per file.
+- PHP, TypeScript, and CSS files have 200 to 400 lines, 800 at most. Generated files are exempt. One class per file.
 
 ## Test conventions
 
@@ -258,6 +247,7 @@ Suite markers: **U** unit, **F** functional, **E** Panther E2E, **V** Vitest.
 
 - Unit tests live in `tests/Unit`. They extend `KernelTestCase` and never boot the kernel.
 - Functional tests live in `tests/Functional`. They extend `KernelTestCase` or `WebTestCase`. They run against real PostgreSQL in `app_test` and real git in temporary directories under `var/test/`. They use the `ResetDatabase` and `TemporaryDirectories` traits.
+  - The `test` environment routes `async` to `in-memory://`. A test asserts the queued messages, then runs their handlers through the `QueuedMessages` trait.
 - E2E tests live in `tests/E2E`. They extend `PantherTestCase` and run against `http://localhost:8081` through `PANTHER_EXTERNAL_BASE_URI`.
   - Fixtures are created through services in the PHPUnit process, in the same `app_test` database.
   - The code view uses open shadow roots. Use the `ShadowDom` helpers.
@@ -310,24 +300,9 @@ The final message of the session:
 - **Next milestone:** its preconditions.
 ```
 
-## Plan-level technical decisions
+## Technical decisions
 
-| # | Decision | Reason |
-|---|---|---|
-| P1 | PHP, Composer, the console, and PHPUnit run in the `php` container through `make`. npm and Vite run on the host. M00 alone uses host PHP and Composer. | One PHP runtime for all sessions. The host needs no PHP after M00. |
-| P2 | The dev app is served over HTTP at `http://localhost:8000`. | Localhost is a secure context, so the clipboard API and EventSource work. TLS is operations. |
-| P3 | A fourth kernel environment, `e2e`, serves the Panther test site at `http://localhost:8081` in the same container. It uses classic mode, native sessions in PostgreSQL, `sync://` Messenger, its own Mercure hub, and the database `app_test`, which it shares with `test`. | The `test` environment uses `session.storage.factory.mock_file`, which cannot keep a real browser session. |
-| P4 | Each package is installed in the milestone that first uses it. | Each step stays small and reviewable. |
-| P5 | `extra.symfony.docker` is `false` from M01 on. The compose files are maintained by hand. | Recipes, for example Mercure, then add no compose services. |
-| P6 | Tests reset the database by truncation, through the `ResetDatabase` trait. | The E2E and concurrency tests need committed rows. |
-| P7 | Event payloads use explicit codecs, without Serializer and without reflection. REST and MCP use one shared set of Serializer normalizers. | Stored events are never rewritten, so their format must not drift. REST and MCP return the same JSON. |
-| P8 | Tokens reach git only through the `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`, and `GIT_CONFIG_VALUE_<n>` environment variables, never through argv. | `symfony/process` exception messages print the argv. |
-| P9 | `symfony/lock` uses PostgreSQL advisory locks. | The `php` and `worker` containers share the clones. |
-| P10 | MCP sessions use the bundle's `file` store under `var/mcp-sessions`. | There is one `php` container. A shared store is [docs/backlog/mcp-session-store.md](../backlog/mcp-session-store.md). |
-| P11 | The Mercure hub URL is always set explicitly. Live updates carry only IDs. The browser revalidates its React Router loaders and reads the data through REST. | Without a hub URL, the bundle compiles `FrankenPhpHub` and CLI processes break. With IDs only, there is one data model. |
-| P12 | Convention meta-tests enforce the test rules and the file-size rule. | The rules hold without review effort. |
-| P13 | One database role. No row-level security, no special grants. Tenant isolation: the Doctrine SQL filter, the fail-closed tenant context, file paths from IDs, Mercure topics per tenant, and the cross-tenant test suite. | Database hardening is out of the proof of concept: [docs/backlog/database-hardening.md](../backlog/database-hardening.md). |
-| P14 | No usage limits in the proof of concept. | [docs/backlog/usage-limits.md](../backlog/usage-limits.md) holds the proposal. |
+[Architecture section 11](../architecture.md#11-decisions) holds every decision. The milestones cite them by number, for example D35.
 
 ## Verified versions
 
@@ -338,16 +313,18 @@ Checked on 2026-09-29.
 | PHP | 8.5.11 | https://www.php.net/releases/index.php?json&version=8 |
 | Symfony | 8.1.7. 8.2 is due 11/2026. 8.1 ends 01/2027. | https://symfony.com/releases/8.1.json |
 | PostgreSQL | 18.6, Docker tag `18-alpine` | https://www.postgresql.org/versions.json |
-| FrankenPHP | 1.12.7, Docker tag `dunglas/frankenphp:1.12.7-php8.5-trixie` | https://github.com/php/frankenphp/releases/tag/v1.12.7 |
+| FrankenPHP | 1.12.7, Docker tag `dunglas/frankenphp:1.12.7-php8.5-trixie`, worker mode through Symfony Runtime's `FrankenPhpWorkerRunner` | https://github.com/php/frankenphp/releases/tag/v1.12.7 |
 | dunglas/symfony-docker | Template, guide "Using Symfony Docker with an existing project" | https://github.com/dunglas/symfony-docker |
 | Node.js | 24 LTS, 24.21.0 | https://nodejs.org/dist/index.json |
+| `doctrine/orm`, `doctrine/doctrine-migrations-bundle`, `symfony/messenger` with the Doctrine transport | 3.7.2, 4.0.1, 8.1, installed | `composer show` |
+| `symfony/process`, `symfony/uid` | 8.1.7, 8.1.5 | https://repo.packagist.org/p2/symfony/process.json |
 | `mcp/sdk`, `symfony/mcp-bundle` | 0.8.1, 0.14.1, exact pins | https://repo.packagist.org/p2/mcp/sdk.json |
 | `nyholm/psr7` | 1.8 | https://repo.packagist.org/p2/nyholm/psr7.json |
-| `hwi/oauth-bundle` | 2.5.0 | https://repo.packagist.org/p2/hwi/oauth-bundle.json |
-| `lcobucci/jwt` | 5.6.0 | https://repo.packagist.org/p2/lcobucci/jwt.json |
+| `hwi/oauth-bundle` | 2.5.0 of 2026-02-19, MIT, PHP 8.3 or later, Symfony `^6.4\|^7.4\|^8.0`, uses Symfony HttpClient | https://repo.packagist.org/p2/hwi/oauth-bundle.json |
+| `lcobucci/jwt` | 5.6.0, for the GitHub App JWT | https://repo.packagist.org/p2/lcobucci/jwt.json |
 | `symfony/mercure-bundle` | 0.5.0 | https://repo.packagist.org/p2/symfony/mercure-bundle.json |
 | `symfony/webhook`, `symfony/remote-event` | 8.1.7, 8.1.0 | https://repo.packagist.org/p2/symfony/webhook.json |
-| `symfony/reprise`, `@symfony/reprise` | 1.3.0, exact pins | https://repo.packagist.org/p2/symfony/reprise.json |
+| `symfony/reprise`, `@symfony/reprise` | 1.3.0, exact pins, stable since 1.0.0 of 2026-08-26 | https://repo.packagist.org/p2/symfony/reprise.json |
 | `nikic/php-parser` | 5.9.0 | https://repo.packagist.org/p2/nikic/php-parser.json |
 | `twig/markdown-extra` | 3.29.0 | https://repo.packagist.org/p2/twig/markdown-extra.json |
 | `league/commonmark` | 2.10.3 | https://repo.packagist.org/p2/league/commonmark.json |
@@ -363,8 +340,6 @@ Checked on 2026-09-29.
 | `react-markdown`, `remark-gfm`, `vitest` | 10.1.0, 4.0.1, 5.0.2 | https://www.npmjs.com/package/react-markdown |
 
 ## Known gotchas
-
-The milestone that meets a gotcha repeats it.
 
 ### Package removal, M00
 
@@ -422,6 +397,8 @@ The milestone that meets a gotcha repeats it.
 
 - **Process messages.** `symfony/process` exception messages include the command line. Secrets go through the environment only.
 - **SQL filter coverage.** The Doctrine SQL filter does not cover DBAL queries or identity-map hits. Reset the entity manager between worker requests and between Messenger messages.
+- **SQL filter parameter.** Between worker requests, DoctrineBundle's `Registry::reset()` only calls `clear()` on an open entity manager. The filter keeps its parameter. `TenantContext::reset()` must drop it. See M05.
 - **Environment-specific firewalls.** Do not rely on merging a security firewall across `when@<environment>` blocks. Keep the authenticators in the base firewall and guard them in code.
-- **Bearer requests and sessions.** The `api` firewall shares its security context with `main`. A bearer request must never write a session or send `Set-Cookie`. M14 proves this with a test.
+- **Bearer requests and sessions.** A stateful firewall writes every authenticated token into the session in `ContextListener::onKernelResponse`. Bearer requests therefore use their own stateless firewall `api_bearer`. See M14.
+- **Messenger deduplication.** Do not use `DeduplicateStamp` with the advisory-lock store. An advisory lock belongs to one database session, so the worker cannot release a lock that the web process took.
 - **Live-update payloads.** They carry IDs only. Never put a `RequestSummary`, a `Review`, or other data into a Mercure update.

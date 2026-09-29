@@ -26,7 +26,7 @@ M04, M05.
   - the index status fields: `indexState`, `filesTotal` or null, `filesDone`, `symbolsTotal`, `indexStartedAt` or null, `indexFinishedAt` or null, `indexError` or null. They exist from here on, so that the `Review` response of M12 is complete. M26 fills them.
 - `ChangeRequest`: every field the reducer needs, the anchor as `jsonb`, `Actor` as an embeddable for `author` and `claimedBy`, `claimedAt`, `statusBeforeClaim`, `awaiting`, `resolution`, `lastEventSeq`, `updatedAt`.
 - `Comment`.
-- `CommitLink`: `state`, `linkedBy`, `linkedAt`, `note`, `foundAt`, `subject`, `committedAt`. Unique per request and commit.
+- `CommitLink`: `state`, `linkedBy`, `linkedAt`, `note`, `foundAt`, `subject`, `committedAt`. Unique per request and commit. `state`, `foundAt`, `subject`, and `committedAt` come from the `commit.linked` or `commit.found` payload, so a rebuild needs no clone.
 - `ReviewEvent`:
   - a read-only entity;
   - a `requestIds` column as a `jsonb` array, copied from the payload, so that thread and updates queries select events by request;

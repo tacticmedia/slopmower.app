@@ -12,13 +12,13 @@ M01, M02.
 
 ## In scope
 
-- `composer require symfony/lock`. `LOCK_DSN` uses PostgreSQL advisory locks, decision P9. Confirm the DSN form in the Lock component documentation.
+- `composer require symfony/lock`. `LOCK_DSN` in `.env` uses PostgreSQL advisory locks, decision D39, with the host `database`, as `DATABASE_URL` does. Confirm the DSN form in the Lock component documentation.
 - `GitRunner`:
   - argument arrays only;
   - environment `GIT_TERMINAL_PROMPT=0`, `GIT_CONFIG_NOSYSTEM=1`, `GIT_CONFIG_GLOBAL=/dev/null`, `LC_ALL=C`;
   - timeouts;
-  - secrets only as environment values through `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`, and `GIT_CONFIG_VALUE_<n>`, decision P8. They are redacted from exception messages and logs.
-- `TenantDataPaths`: `<APP_TENANT_DATA_DIR>/<tenantId>/repositories/<repositoryId>.git`. `APP_TENANT_DATA_DIR` is the `<data>/tenants` directory of docs/specs/README.md section 7. Paths come only from typed IDs, and the class checks that each path stays under the root.
+  - secrets only as environment values through `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`, and `GIT_CONFIG_VALUE_<n>`, decision D38. They are redacted from exception messages and logs.
+- `TenantDataPaths`: `<APP_TENANT_DATA_DIR>/<tenantId>/repositories/<repositoryId>.git`. `APP_TENANT_DATA_DIR` is the `<data>/tenants` directory of docs/specs/README.md section 7. Paths come only from typed IDs, and the class checks that each path stays under the root. A relative `APP_TENANT_DATA_DIR` resolves against `%kernel.project_dir%`, never against the working directory, which differs between the web server and the CLI.
 - `BareClone`:
   - `init --bare`;
   - `fetch <url> --prune +refs/heads/*:refs/heads/* +refs/tags/*:refs/tags/*`, never `--mirror`;
@@ -35,7 +35,7 @@ M01, M02.
   - `blobAt`, `readBlob` through one `cat-file --batch` process;
   - binary detection: a NUL byte in the first 8,000 bytes;
   - `lineCount`.
-- `RepositoryLock`: one lock per repository through `LockFactory`.
+- `RepositoryLock`: one lock per repository through `LockFactory`, with the key `fetch:<repositoryId>` that docs/specs names. Fetch, clone, and clone deletion hold it. Pin writes and reads do not.
 
 ## Out of scope
 
@@ -80,6 +80,7 @@ M01, M02.
   - "An unknown ref gives commit_not_found"
 - **U `TenantDataPathsTest`** proves that paths come from IDs only.
   - "Builds the clone path from the tenant ID and the repository ID"
+  - "Resolves a relative root against the project directory"
 - **F `GitRunnerRedactionTest`** proves that secrets never leak.
   - "A secret in the environment never appears in exception messages or logs"
 - **F `RepositoryLockTest`** proves the lock scope.

@@ -49,8 +49,8 @@ This directory is the v1 contract of Holistic Review: the REST API, the MCP serv
 | Session (`S`) | Session cookie from the GitHub sign-in at `/login/check-github` through HWIOAuthBundle, or from the local sign-in when `APP_ENV=dev` | `user` | Required for POST, PUT, PATCH, DELETE | Web UI |
 | Bearer (`B`) | `Authorization: Bearer hr_<43 base64url characters>` | `agent`: `userId` is the token owner, `agentName` is the token name | Not checked | Agents without MCP |
 
-- **Firewalls.** The firewalls `main` and `api` both set `context: web`, so `api` shares the security token of `main`. The firewall `api` covers `^/api/v1` with `lazy: true`. It adds an `access_token` authenticator whose token handler looks up the SHA-256 hex digest of the full token string. The MCP endpoint has its own stateless firewall. See [mcp.md](mcp.md#1-endpoint-and-authentication).
-- **Precedence and sessions.** When a request has both an `Authorization` header and a session cookie, the bearer token wins. A bearer request never starts a session: the response has no `Set-Cookie`.
+- **Firewalls.** The stateless firewall `api_bearer` comes first. A request matcher selects it for `^/api/v1` requests with an `Authorization: Bearer` header. It uses an `access_token` authenticator whose token handler looks up the SHA-256 hex digest of the full token string. The firewalls `api`, for the other `^/api/v1` requests, and `main` both set `context: web`, so `api` shares the security token of `main`. `api` sets `lazy: true`. The MCP endpoint has its own stateless firewall. See [mcp.md](mcp.md#1-endpoint-and-authentication).
+- **Precedence and sessions.** When a request has both an `Authorization` header and a session cookie, the bearer token wins, because `api_bearer` matches first. A bearer request never starts a session: the response has no `Set-Cookie`.
 - **Token checks.** A token that does not match `^hr_[A-Za-z0-9_-]{43}$` gets 401 without a database lookup. Unknown, revoked, and expired tokens get 401. A token is expired when `expiresAt <= now`. `lastUsedAt` is updated at most once per 60 seconds.
 - **401 headers.** Every 401 carries `WWW-Authenticate: Bearer realm="holistic-review"`. When the request sent a token, the header adds `, error="invalid_token"`.
 - **CSRF.** Session writes must pass `SameOriginCsrfTokenManager` with the stateless token ID `api`. The request needs `Sec-Fetch-Site: same-origin`, or an `Origin` or `Referer` header that matches the host. A failure gets 403 `forbidden`.
@@ -86,6 +86,11 @@ Check order:
 7. `repository_unavailable`, `commit_not_found`, and `commits_not_available`.
 
 If an ID is not visible, the caller gets 404 before any 403.
+
+Two exceptions follow from the Symfony request cycle:
+
+- The router runs before the firewall. An unknown route gets 404, and a wrong method gets 405, also without a credential.
+- IDs in the request body are checked after the body validation. An invalid body gets 400 or 422 before a 404 for a body ID.
 
 Fixtures: one file per code, `fixtures/error.<code>.json` with `-` in place of `_`. See [section 11](#11-fixtures).
 

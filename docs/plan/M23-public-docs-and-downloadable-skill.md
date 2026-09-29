@@ -8,7 +8,7 @@ Render the public documentation of `docs/user/` at `/docs`, and serve the skill 
 
 ## Depends on
 
-M16, M17.
+M16, M18 for the prompt snippet, M19 for the Settings screen.
 
 ## In scope
 

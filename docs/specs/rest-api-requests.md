@@ -289,7 +289,7 @@ The endpoint writes `commit.unlinked`. It deletes the pin ref `refs/holistic-rev
 Steps:
 
 1. If any link is `pending`, the server fetches the source synchronously, with a 60-second timeout.
-2. It writes `commit.found` for each commit that is now present, and writes its pin ref.
+2. The steps after the fetch, [webhooks-and-live-updates.md section 2.2](webhooks-and-live-updates.md#22-after-every-successful-fetch), write `commit.found` for each commit that is now present, and write its pin ref. They run in their own transaction, so the `events` of the result hold only `request.ready_for_review`.
 3. Then it checks the links.
 
 A request with zero links is allowed.
@@ -506,7 +506,7 @@ The endpoint sets `revokedAt`. The row stays, so its events keep their agent nam
 
 | Method | Path | Authentication | Purpose |
 |---|---|---|---|
-| GET | `/`, `/repositories`, `/reviews/{id}`, `/reviews/{id}/requests`, `/requests/{id}`, `/settings` | Session, else a redirect to `/login` | Twig shell page for the React single-page application, with the Reprise entry tags. React Router 8.4.0 in Data Mode renders the screens. |
+| GET | `/`, `/repositories`, `/repositories/{id}`, `/reviews/{id}`, `/reviews/{id}/files/{path}`, `/reviews/{id}/requests`, `/requests/{id}`, `/settings` | Session, else a redirect to `/login` | Twig shell page for the React single-page application, with the Reprise entry tags. React Router 8.4.0 in Data Mode renders the screens. |
 | GET | `/login` | public | "Sign in with GitHub". When the local sign-in is on, also the local sign-in button. |
 | GET | `/connect/github` | public | HWIOAuthBundle redirect to GitHub, route `hwi_oauth_service_redirect` |
 | GET | `/login/check-github` | public | OAuth callback, which is also the callback URL of the GitHub App. Lists installations and repositories. Creates the tenant and the user at the first sign-in. |

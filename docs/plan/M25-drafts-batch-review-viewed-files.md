@@ -23,7 +23,7 @@ M21. M24 is optional: the batch then arrives in other windows as one live update
   - D5 `POST /api/v1/reviews/{reviewId}/drafts/submit`: `{summary}`, optional. One transaction takes all the caller's drafts of the review sorted by `createdAt`, creates one `batchId`, writes `request.opened` or `request.commented` with that `batchId` per draft, then `batch.submitted` with `summary`, `requestIds`, and `commentIds`, and deletes the drafts. 201 with `BatchSubmission`. 422 when there are no drafts. 409 `review_closed`;
   - V11 `GET /api/v1/reviews/{reviewId}/viewed-files`: `{reviewId, paths}`. The marks never reset inside a review;
   - V12 `PUT /api/v1/reviews/{reviewId}/viewed-files`: `{path, viewed}`, idempotent per path. 422 when the path is not a file at the review commit. 409 `review_closed`.
-- V4 close deletes the caller's drafts of the review in its transaction.
+- `DraftProjector` runs inside the `CommandExecutor` transaction. On `batch.submitted` and on `review.closed`, it deletes the drafts of the event actor in the review. So D5 and V4 delete the drafts in the transaction of their events. `app:projections:rebuild` skips `DraftProjector`, because drafts are not event data and a replay of an old `batch.submitted` would delete newer drafts.
 - UI:
   - "Start a review" next to "Add single comment" creates a draft;
   - a "Pending" label on draft threads;
@@ -38,7 +38,7 @@ M21. M24 is optional: the batch then arrives in other windows as one live update
 ## Files (representative)
 
 - `src/Entity/Draft.php`, `src/Entity/ViewedFile.php`, `migrations/Version*.php`.
-- `src/Application/DraftService.php`, `SubmitBatch.php`, `ViewedFiles.php`.
+- `src/Application/DraftService.php`, `SubmitBatch.php`, `ViewedFiles.php`, `src/Projection/DraftProjector.php`.
 - `src/Controller/Api/DraftController.php`, `src/Controller/Api/ViewedFileController.php`, normalizers.
 - `assets/review/FinishReviewOverlay.tsx`, `assets/review/ViewedCheckbox.tsx`, `assets/comments/*` changes.
 - `tests/Functional/Api/Draft*Test.php`, `tests/Functional/Api/ViewedFilesTest.php`, `tests/E2E/BatchReviewTest.php`, `tests/E2E/ViewedTest.php`.
@@ -47,7 +47,7 @@ M21. M24 is optional: the batch then arrives in other windows as one live update
 
 1. Write the entities and run `make migration`.
 2. Implement the draft service, the batch submission, and the viewed files.
-3. Extend V4 close to delete the caller's drafts.
+3. Write `DraftProjector`.
 4. Write the controllers and add the cross-tenant cases.
 5. Build the UI.
 
@@ -67,6 +67,7 @@ M21. M24 is optional: the batch then arrives in other windows as one live update
   - "MCP sees nothing before submit and everything after"
 - **F `CloseDeletesDraftsTest`** proves the close rule.
   - "Closing a review deletes the caller's drafts of that review"
+  - "A projection rebuild keeps the current drafts"
 - **F `ViewedFilesTest`** proves V11 and V12.
   - "Marks and unmarks a file, idempotently"
   - "A directory path gives 422"

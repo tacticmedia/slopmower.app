@@ -15,12 +15,17 @@ M09, M10.
 - `ApiExceptionListener`, as docs/specs/README.md section 4 says:
   - `DomainError` to its HTTP status and Error body;
   - `#[MapRequestPayload]` and `#[MapQueryString]` validation failures to 422 `invalid_input` with `violations`, each with a dotted `field` path;
-  - unparsable JSON or a query value of the wrong type to 400 `invalid_input`;
+  - unparsable JSON or a query value of the wrong type to 400 `invalid_input`. `#[MapQueryString]` fails with 404 by default: set `validationFailedStatusCode: 422` on every use. A query violation without a constraint is a type error, and the listener answers 400 for it;
   - a body that is not JSON to 415, a body above 1 MiB to 413, a wrong method to 405 with an `Allow` header, all `invalid_input`;
   - an unknown route under `/api/v1` to 404 `not_found`;
   - an ID of another tenant to 404 `not_found`;
   - any other exception to 500 `internal_error` with a generic message. The exception is logged.
-- The check order of docs/specs/README.md section 4: 401, then 404, then 403, then 400 and 422, then the 409 codes.
+- The check order of docs/specs/README.md section 4: 401, then 404, then 403, then 400 and 422, then the 409 codes. The Symfony request cycle gives it when:
+  - path IDs resolve to visible entities in `ValueResolverInterface` implementations, which run before `kernel.controller_arguments`. An invisible ID gives 404;
+  - `#[IsGranted]` checks the actor kind, at priority 20 of `kernel.controller_arguments`;
+  - the CSRF listener runs on `kernel.controller_arguments`, after the ID resolution, not on `kernel.request`;
+  - `#[MapRequestPayload]` and `#[MapQueryString]` map and validate at priority -10100;
+  - the services give the 409 codes.
 - CSRF on session writes: POST, PUT, PATCH, and DELETE under `/api/v1` with a session pass `SameOriginCsrfTokenManager` with the token ID `api`. A failure gives 403 `forbidden`.
 - Serializer normalizers in `src/Serializer/Normalizer`. MCP uses the same normalizers in M15. They emit every schema property, ULIDs in upper case, SHAs in lower case, and times in RFC 3339 UTC with second precision.
 - A cursor codec for docs/specs/README.md section 5: base64url JSON of the last sort key plus a hash of the filters. A cursor used with other filters gives 422 `invalid_input`.
@@ -76,6 +81,8 @@ All are functional tests.
   - "A validation failure gives 422 with violations"
   - "An unknown ID gives 404 not_found"
   - "A domain error gives its documented status and details"
+  - "An invisible ID with an invalid body gives 404, and without a CSRF proof gives 404"
+  - "A query value of the wrong type gives 400, and an out-of-range query value gives 422"
   - "An unexpected exception gives 500 internal_error with a generic message"
 - **F `ApiCsrfTest`** proves CSRF protection of session writes.
   - "A session POST without same-origin proof gets 403 forbidden"

@@ -190,16 +190,16 @@ Table `review_event`, append-only:
 | `request.commented` | `commentId`, `body`, `question: bool`, `batchId: ?BatchId` |
 | `request.claimed` | none |
 | `request.released` | `note: ?string` |
-| `commit.linked` | `commitSha`, `requestIds: list<RequestId>`, `note: ?string` |
+| `commit.linked` | `commitSha`, `requestIds: list<RequestId>`, `note: ?string`, `available: bool`, `subject: ?string`, `committedAt: ?DateTimeImmutable`. `subject` and `committedAt` are set when `available` is true. |
 | `commit.unlinked` | `commitSha`, `requestId` |
-| `commit.found` | `commitSha`, `requestIds: list<RequestId>`. Actor `system`. One event per review. |
+| `commit.found` | `commitSha`, `requestIds: list<RequestId>`, `subject: string`, `committedAt: DateTimeImmutable`. Actor `system`. One event per review. |
 | `request.ready_for_review` | `note` |
 | `request.wont_do` | `reason`, at least 20 characters |
 | `request.verified` | `note: ?string` |
 | `request.reopened` | `note` |
 | `batch.submitted` | `batchId`, `summary: ?string`, `requestIds`, `commentIds` |
 
-Stored events are never rewritten. New payload fields are additive, and readers use a default for a missing field. Each type has an explicit codec. The API `Event` is a derived representation, not the stored payload.
+Stored events are never rewritten. New payload fields are additive, and readers use a default for a missing field. Each type has an explicit codec. The API `Event` is a derived representation, not the stored payload. The `commit.*` payloads carry the git data of `CommitLink`, so a rebuild from the log needs no clone.
 
 Example `request.opened` payload:
 
@@ -227,7 +227,7 @@ Example `request.opened` payload:
 
 ### PostgreSQL
 
-PostgreSQL 18 is the source of truth, through Doctrine ORM, with schema changes through Doctrine Migrations. The application uses one database role. The event store only inserts into `review_event`. Only the deletion jobs delete events. Projections change in the same transaction as their events. A console command rebuilds all projections from the log.
+PostgreSQL 18 is the source of truth, through Doctrine ORM, with schema changes through Doctrine Migrations. The application uses one database role. The event store only inserts into `review_event`. Only the deletion use cases delete events. Projections change in the same transaction as their events. A console command rebuilds all projections from the log.
 
 Write transaction:
 
@@ -298,7 +298,7 @@ Fetch triggers:
 ### Reading code and the index
 
 - **Reading code.** No import step. The server reads the pinned commit from its clone: `git ls-tree` for directories, one `git cat-file --batch` process for content, the blob SHA as `ETag`. The phase 1 demonstration proved this chain with a clone of nikic/FastRoute. See section 2.
-- **Index.** A Messenger job at review start writes the path list of the commit into `indexed_file`, with the columns `tenantId`, `repositoryId`, `commitSha`, `path`, `blobSha`, `mode`, and `sizeBytes`. It writes the PHP symbols of each blob into `symbol`, with the columns `tenantId`, `repositoryId`, `blobSha`, `kind`, `fqn`, `startLine`, `endLine`, and `docStartLine`. Blobs that are already indexed are skipped. The index belongs to a commit of a repository, not to a review, because it is code data. Reviews of the same commit share it. `nikic/php-parser` needs 22 ms for a 3,534-line file. The UI shows the progress.
+- **Index.** A Messenger job at review start writes the path list of the commit into `indexed_file`, with the columns `tenantId`, `repositoryId`, `commitSha`, `path`, `blobSha`, `mode`, and `sizeBytes`. It writes the PHP symbols of each blob into `symbol`, with the columns `tenantId`, `repositoryId`, `blobSha`, `kind`, `fqn`, `startLine`, `endLine`, and `docStartLine`. `indexed_blob` marks each parsed blob, with `parseError`, so blobs without symbols are also skipped. The index belongs to a commit of a repository, not to a review, because it is code data. Reviews of the same commit share it. `nikic/php-parser` needs 22 ms for a 3,534-line file. The UI shows the progress.
 - **Limits.** Files above 1 MB and binary files show no code but take file comments. The proof of concept has no limit on repository size or counts. See [usage-limits.md](backlog/usage-limits.md).
 
 ### Sign-in and sessions
@@ -307,7 +307,7 @@ Fetch triggers:
 - **Local sign-in.** `APP_LOCAL_SIGN_IN=<login>` signs the browser in as one local user and tenant, without OAuth. The `/login` page then shows a "Sign in as <login>" button that posts to `POST /login/local`. It works only when `APP_ENV=dev`: the route exists only in `dev`, and the authenticator supports no request in any other environment. It logs a warning when the variable is set outside `dev`. The first sign-in creates the tenant and the local user.
 - **E2E sign-in.** The route `/_e2e/sign-in/{login}` exists only in the `e2e` environment, for Panther tests.
 - **Sessions.** A Symfony session, stored in PostgreSQL with `PdoSessionHandler`. The session holds only the login and the OAuth `state`, never review data.
-- **Firewalls.** `main` uses the session. `api` covers `^/api/v1`, shares the security context of `main`, and adds the `access_token` authenticator. When a request has both a bearer token and a session cookie, the bearer token wins, and a bearer request never sets a cookie. `mcp` covers `^/_mcp`, is stateless, and uses the same token handler. The token handler looks up the SHA-256 hex digest of the token.
+- **Firewalls.** `api_bearer` is stateless and uses the `access_token` authenticator. A request matcher selects it for `^/api/v1` with an `Authorization: Bearer` header, so the bearer token wins over a session cookie, and a bearer request never touches the session. `api` covers the other `^/api/v1` requests and shares the security context of `main`. `main` uses the session. `mcp` covers `^/_mcp`, is stateless, and uses the same token handler. The token handler looks up the SHA-256 hex digest of the token.
 
 ### Deletion
 
@@ -625,36 +625,7 @@ Protection: `framework.trusted_hosts`, `http.allowed_hosts` of the MCP transport
 
 ## 9. Stack
 
-Versions checked on 2026-09-29.
-
-| Component | Version | Source |
-|---|---|---|
-| PHP | 8.5.11 | https://www.php.net/releases/index.php?json&version=8 |
-| Symfony | 8.1.7. 8.2 is due 11/2026. 8.1 ends 01/2027. | https://symfony.com/releases/8.1.json |
-| PostgreSQL | 18.6, Docker tag `18-alpine` | https://www.postgresql.org/versions.json |
-| FrankenPHP | 1.12.7, worker mode through Symfony Runtime's `FrankenPhpWorkerRunner` | https://github.com/php/frankenphp/releases/tag/v1.12.7 |
-| `dunglas/symfony-docker` | Template, with the guide "Using Symfony Docker with an existing project" | https://github.com/dunglas/symfony-docker |
-| `doctrine/orm`, `doctrine/doctrine-migrations-bundle`, `symfony/messenger` with the Doctrine transport | 3.7.2, 4.0.1, 8.1 (installed) | `composer show` |
-| `symfony/mercure-bundle` | 0.5.0 | https://repo.packagist.org/p2/symfony/mercure-bundle.json |
-| `symfony/webhook`, `symfony/remote-event` | 8.1.7, 8.1.0 | https://repo.packagist.org/p2/symfony/webhook.json |
-| `hwi/oauth-bundle` | 2.5.0 of 2026-02-19, MIT, PHP 8.3 or later, Symfony `^6.4\|^7.4\|^8.0`, uses Symfony HttpClient | https://repo.packagist.org/p2/hwi/oauth-bundle.json |
-| `lcobucci/jwt` | 5.6.0, for the GitHub App JWT | https://repo.packagist.org/p2/lcobucci/jwt.json |
-| `mcp/sdk`, `symfony/mcp-bundle` | 0.8.1, 0.14.1 | https://repo.packagist.org/p2/mcp/sdk.json |
-| `nyholm/psr7` | 1.8 | https://repo.packagist.org/p2/nyholm/psr7.json |
-| `nikic/php-parser` | 5.9.0 | https://repo.packagist.org/p2/nikic/php-parser.json |
-| `twig/markdown-extra`, `league/commonmark` | 3.29.0, 2.10.3 | https://repo.packagist.org/p2/twig/markdown-extra.json, https://repo.packagist.org/p2/league/commonmark.json |
-| `opis/json-schema` | 2.6.0, with draft 2020-12 support | https://repo.packagist.org/p2/opis/json-schema.json |
-| `symfony/process`, `symfony/uid` | 8.1.7, 8.1.5 | https://repo.packagist.org/p2/symfony/process.json |
-| `phpunit/phpunit`, `phpstan/phpstan` | 13.3.5, 2.2.16 | https://repo.packagist.org/p2/phpunit/phpunit.json |
-| `symfony/panther`, `php-webdriver/webdriver`, `dbrekelmans/bdi` | 2.4.0, 1.16.0, 1.4.1 | https://repo.packagist.org/p2/symfony/panther.json |
-| `friendsofphp/php-cs-fixer` | 3.95.27 | https://repo.packagist.org/p2/friendsofphp/php-cs-fixer.json |
-| `symfony/reprise`, `@symfony/reprise` | 1.3.0, stable since 1.0.0 of 2026-08-26 | https://repo.packagist.org/p2/symfony/reprise.json |
-| `react`, `react-dom` | 19.3.0 | https://www.npmjs.com/package/react |
-| `react-router` | 8.4.0, Data Mode. Peer `react >=19.2.7`. Needs Vite 7 or later. | https://www.npmjs.com/package/react-router |
-| `vite`, `@vitejs/plugin-react`, `typescript` | 8.3.1, 6.1.1, 7.0.2 | https://www.npmjs.com/package/vite |
-| `@pierre/diffs` | 1.5.1, Apache-2.0 | https://www.npmjs.com/package/@pierre/diffs |
-| `@primer/react`, `@primer/primitives`, `@primer/octicons-react`, `@primer/css` | 38.40.0, 11.10.0, 19.38.0, 22.3.2 | https://www.npmjs.com/package/@primer/react |
-| `react-markdown`, `remark-gfm`, `vitest` | 10.1.0, 4.0.1, 5.0.2 | https://www.npmjs.com/package/react-markdown |
+The package versions, checked on 2026-09-29, are in the [verified versions](plan/README.md#verified-versions) table of the plan.
 
 Pin `mcp/sdk`, `symfony/mcp-bundle`, `symfony/reprise`, `@symfony/reprise`, and `@pierre/diffs` to exact versions. Each package is installed in the milestone that first uses it, by decision D35.
 
@@ -697,7 +668,7 @@ All PHP tests extend `KernelTestCase` or its subclasses. Unit tests do not boot 
 | Layer | Type | Base | What the tests prove |
 |---|---|---|---|
 | Value objects, state machine, `awaiting` rules, reducer | Unit | `KernelTestCase` without boot | Every status, command, and actor combination. Every `awaiting` rule. The closed-review rule. |
-| Event codecs | Unit | `KernelTestCase` without boot | All 14 event types round-trip. Unknown fields and wrong types are refused. |
+| Event codecs | Unit | `KernelTestCase` without boot | All 14 event types round-trip. Wrong types are refused. Unknown fields are ignored, so an older release reads newer events. |
 | Hunk mapping, snapshot search, similarity | Unit | `KernelTestCase` without boot | Pure functions on line arrays |
 | Re-anchoring | Functional | `KernelTestCase` | F1 to F14 on real temporary git repositories built with `symfony/process` |
 | Symbol extraction and index job | Functional | `KernelTestCase` | PHP 8.5 fixtures give the expected tables. Indexed blobs are skipped. |
@@ -726,7 +697,7 @@ Decided on 2026-09-29.
 |---|---|---|
 | D1 | Code viewer | `@pierre/diffs`, pinned |
 | D2 | Comment thread box | Composed from public Primer parts and layout CSS |
-| D3 | Storage | PostgreSQL 18 as the source of truth, append-only event log. One database role. Tenant isolation in the application. Database hardening: [database-hardening.md](backlog/database-hardening.md). |
+| D3 | Storage | PostgreSQL 18 as the source of truth, append-only event log. One database role, no row-level security, no special grants. Tenant isolation in the application: the Doctrine SQL filter, the fail-closed tenant context, file paths from IDs, Mercure topics per tenant, and the cross-tenant test suite. Database hardening: [database-hardening.md](backlog/database-hardening.md). |
 | D4 | Agent `wont_do` | Waits for the user. The agent must justify it with evidence, in 20 or more characters. |
 | D5 | `invalid` outcome | No new state. The `wont_do` justification says it. |
 | D6 | Stale claims | Manual release, claim age in the UI, "Unassign" for the user |
@@ -756,16 +727,18 @@ Decided on 2026-09-29.
 | D30 | Token scope | Name as agent name. Scope: all repositories of the tenant, or one repository. Optional expiry. Secret `hr_` and 32 random bytes in base64url, shown once, stored as SHA-256. Revocable, last use shown. |
 | D31 | Keyboard access | "Comment on lines", "Symbols", and "Comment on file" in the file header. The library's gutter is not changed. A Panther keyboard-only test. |
 | D32 | Usage limits | None in the proof of concept. Proposal: [usage-limits.md](backlog/usage-limits.md). |
-| D33 | Container tooling | PHP, Composer, the console, and PHPUnit run in the `php` container through `make`. npm and Vite run on the host. |
-| D34 | `e2e` environment | A fourth kernel environment, `e2e`, serves the Panther test site on `:8081` in the `php` container. It uses real sessions, because the mock session storage of `test` cannot keep a browser session. |
-| D35 | Package installs | Each package is installed in the milestone that first uses it. `extra.symfony.docker` is `false`. |
-| D36 | Test databases | Tests reset the database by truncation |
-| D37 | Event payloads | Explicit codecs per event type. REST and MCP use one set of Serializer normalizers. |
-| D38 | Git secrets | Tokens reach git only through `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`, and `GIT_CONFIG_VALUE_<n>` environment variables, never through argv |
+| D33 | Container tooling | PHP, Composer, the console, and PHPUnit run in the `php` container through `make`. npm and Vite run on the host. M00 and the M01 baseline use host PHP and Composer. The host needs no PHP after that. |
+| D34 | `e2e` environment | A fourth kernel environment, `e2e`, serves the Panther test site on `:8081` in the `php` container. It uses classic mode, native sessions in PostgreSQL, `sync://` Messenger, its own Mercure hub, and the database `app_test`, which it shares with `test`. It needs real sessions, because the mock session storage of `test` cannot keep a browser session. |
+| D35 | Package installs | Each package is installed in the milestone that first uses it, so each step stays small and reviewable. `extra.symfony.docker` is `false` from M01 on, so recipes, for example Mercure, add no compose services. The compose files are maintained by hand. |
+| D36 | Test databases | Tests reset the database by truncation, through the `ResetDatabase` trait, because the E2E and concurrency tests need committed rows |
+| D37 | Event payloads | Explicit codecs per event type, without Serializer and without reflection, because stored events are never rewritten and their format must not drift. REST and MCP use one set of Serializer normalizers. |
+| D38 | Git secrets | Tokens reach git only through `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`, and `GIT_CONFIG_VALUE_<n>` environment variables, never through argv, because `symfony/process` exception messages print the argv |
 | D39 | Locks | `symfony/lock` with PostgreSQL advisory locks, because the `php` and `worker` containers share the clones |
-| D40 | MCP sessions | The bundle's `file` session store under `var/mcp-sessions`. A shared store: [mcp-session-store.md](backlog/mcp-session-store.md). |
+| D40 | MCP sessions | The bundle's `file` session store under `var/mcp-sessions`, because there is one `php` container. A shared store: [mcp-session-store.md](backlog/mcp-session-store.md). |
 | D41 | Mercure hub URL | Always set. Without it the bundle compiles `FrankenPhpHub` inside FrankenPHP, and CLI processes that share the cache break. |
-| D42 | Live update payloads | IDs only. Clients read the data again through REST. |
+| D42 | Live update payloads | IDs only. Clients read the data again through REST. The browser revalidates its React Router loaders, so there is one data model. |
+| D43 | Dev transport | The dev app runs over HTTP at `http://localhost:8000`. Localhost is a secure context, so the clipboard API and EventSource work. TLS is operations. |
+| D44 | Convention tests | Meta-tests enforce the test rules and the file-size rule, so the rules hold without review effort. |
 
 ## 12. Risks
 

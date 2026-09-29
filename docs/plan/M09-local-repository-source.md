@@ -21,15 +21,18 @@ M07, M08.
   - the directory must be in a fresh discovery listing, else `not_found`;
   - local repositories disabled gives `invalid_input`;
   - an already connected directory returns the existing repository;
-  - a new repository gets `syncState = cloning`, and a `CloneRepositoryJob` message is dispatched.
+  - a new repository gets `syncState = cloning`. After the row commits, a `CloneRepositoryJob` message is dispatched. If the dispatch throws, the repository gets `syncState = failed`, so that R5 queues the clone again.
 - The clone handler creates the bare clone at the ID path, fetches, and sets the default branch and `syncState = idle`. A failure sets `syncState = failed` and `lastError`.
 - `LocalFetchCommand`: every fetch passes `-c safe.directory=<realpath>` and `-c safe.directory=<realpath>/.git`, and uses `file://<realpath>` as the remote.
 - `FetchRepository`, as docs/specs/webhooks-and-live-updates.md section 2 says:
-  - single flight: a `symfony/lock` key `fetch:<repositoryId>`. A request that arrives during a fetch sets a flag, and one more fetch runs afterwards;
-  - a synchronous mode with a 60-second timeout, and an asynchronous `FetchRepositoryJob` message;
-  - after success: set `lastFetchedAt`, clear `lastError`, read `defaultBranch` and `defaultBranchHead`, dispatch the `RepositoryFetched` Symfony event;
+  - single flight: the `RepositoryLock` of M08 makes one fetch run at a time;
+  - a new column `Repository.fetchRequested`. An asynchronous trigger sets it from false to true, and `syncState` from `idle` to `fetching`, with one atomic conditional update outside any transaction. It dispatches a `FetchRepositoryJob` only when the update changed a row, and clears the flag again when the dispatch throws. So a queued fetch is reused, and a request during a running fetch queues exactly one more;
+  - the job handler clears `fetchRequested` first, then waits for the lock and fetches. A handler that fails later cannot leave the flag set;
+  - every fetch sets `syncState` back to `idle` when it ends;
+  - a synchronous caller waits for the lock for at most 60 seconds, then fetches itself. A lock timeout gives `repository_unavailable` with reason `fetch_failed`;
+  - after success: set `lastFetchedAt`, clear `lastError`, read `defaultBranch` and `defaultBranchHead`. After that update commits, dispatch the `RepositoryFetched` Symfony event. Its listeners write through `CommandExecutor`, which refuses an open transaction;
   - after a failure: set `lastError`. A synchronous caller gets `repository_unavailable` with reason `fetch_failed`.
-- Messenger tenant context: a `TenantStamp` on every tenant message, and a `TenantContextMiddleware` that sets the tenant from the stamp, resets the context after each message, and clears the entity manager. A message without a stamp fails closed.
+- Messenger tenant context: a `TenantStamp` on every tenant message, and a `TenantContextMiddleware` that sets the tenant from the stamp and restores the previous context after the message. It clears the entity manager only when no context existed before the message. So a message that the `sync://` transport of `e2e` handles inside an HTTP request keeps the context and the entities of that request. A message without a stamp fails closed, unless its class is on the explicit tenantless list of the middleware. The list is empty at this point.
 - `CommitAvailability::ensureAvailable(repository, sha or prefix)`:
   - checks the server clone;
   - if the commit is missing, fetches once and checks again;
@@ -46,6 +49,7 @@ M07, M08.
 - `src/Application/ConnectLocalRepository.php`, `FetchRepository.php`, `CommitAvailability.php`, `src/Application/Event/RepositoryFetched.php`.
 - `src/Message/CloneRepositoryJob.php`, `src/Message/FetchRepositoryJob.php`, `src/MessageHandler/*.php`.
 - `src/Messenger/TenantStamp.php`, `src/Messenger/TenantContextMiddleware.php`, `config/packages/messenger.yaml`.
+- `migrations/Version*.php` for `fetchRequested`.
 - `tests/Functional/Source/*Test.php`, `tests/Unit/Source/*Test.php`, `tests/Functional/Messenger/*Test.php`.
 
 ## Tasks (ordered)
@@ -68,6 +72,7 @@ M07, M08.
   - "The clone heads equal the source heads"
   - "Detects the default branch"
   - "A second connect returns the existing repository"
+  - "A failed dispatch of the clone job leaves the repository failed, so R5 clones again"
 - **F `ConnectRejectsPathTricksTest`** proves that input cannot reach other directories.
   - "../x, a/b, and absolute paths give invalid_input and write nothing to disk"
   - "A valid name that is not listed gives not_found and writes nothing to disk"
@@ -79,10 +84,15 @@ M07, M08.
   - "The arguments include safe.directory, both refspecs, --prune, and a file:// URL"
 - **F `FetchSingleFlightTest`** proves single flight.
   - "A fetch requested during a running fetch runs once afterwards and never in parallel"
+  - "A second asynchronous request while a fetch is queued dispatches nothing"
+  - "A synchronous caller waits for a running fetch, then fetches"
+  - "A failed job leaves fetchRequested false, so the next request queues a fetch"
 - **F `MessengerTenantContextTest`** proves tenant isolation in the worker.
   - "A stamped message runs under its tenant"
-  - "The tenant context and the entity manager are cleared after each message"
+  - "In the worker, the tenant context and the entity manager are cleared after each message"
+  - "A message handled inside a request restores the tenant context of that request"
   - "A message without a stamp fails closed"
+  - "A message class on the tenantless list runs without a tenant context"
 - **F `CommitAvailabilityTest`** proves availability, decision D24.
   - "A new source commit becomes available after one fetch"
   - "An unknown SHA is null after exactly one fetch"

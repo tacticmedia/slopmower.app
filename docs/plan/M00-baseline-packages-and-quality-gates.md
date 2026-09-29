@@ -67,8 +67,8 @@ Remove the unused skeleton packages. Enforce static analysis, code style, and th
   - "Every test method has a TestDox attribute"
 - **U `NoContainerMockingTest`** proves that no test replaces a container service. It searches `tests/` for `getContainer()->set(`.
   - "No test replaces a service in the container"
-- **U `FileSizeLimitTest`** proves the file-size rule.
-  - "No file in src, tests, or assets has more than 800 lines"
+- **U `FileSizeLimitTest`** proves the file-size rule. It keeps an explicit exception list for generated files, which is empty at this point.
+  - "No PHP, TypeScript, or CSS file in src, tests, or assets has more than 800 lines"
 - **U `NoDebugOutputInSrcTest`** proves that production code writes no debug output.
   - "No PHP file in src calls echo, print, var_dump, print_r, dump, or dd"
 - **F `KernelBootsTest`** proves that the package removal left a working container.

@@ -58,7 +58,7 @@ M18.
   - "Line 1 text is readable from the shadow root"
   - "The view has one line-number column"
 - **E `LargeFileTest`** proves virtualization.
-  - "#L3000 is in the viewport and far fewer than 3,500 rows are rendered"
+  - "#L3000 is in the viewport and fewer than 300 rows are rendered"
 - **E `BinaryFileTest`** proves the placeholder.
   - "A binary file shows the placeholder instead of code"
 
