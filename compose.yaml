@@ -1,8 +1,52 @@
+# Maintained by hand, decision D35. Per-environment values belong in the .env files: a value here reaches the test and e2e processes too.
+x-php: &php
+  image: holistic-review-php-dev
+  build:
+    context: .
+    target: frankenphp_dev
+  volumes:
+    - .:/app
+    - tenant_data:/srv/tenants
+    - ${LOCAL_REPOSITORIES_HOST_DIR:-./var/local-repositories}:/repositories:ro
+    - caddy_data:/data
+    - caddy_config:/config
 
 services:
-###> doctrine/doctrine-bundle ###
+  php:
+    <<: *php
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    environment:
+      SERVER_NAME: ":80"
+      MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET}
+      APP_LOCAL_SIGN_IN: ${APP_LOCAL_SIGN_IN:-}
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(false === @file_get_contents('http://localhost/healthz') ? 1 : 0);"]
+      start_period: 180s
+      start_interval: 2s
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      database:
+        condition: service_healthy
+
+  worker:
+    <<: *php
+    command: ["bin/console", "messenger:consume", "async", "--time-limit=3600", "--memory-limit=256M", "-vv"]
+    restart: unless-stopped
+    # The image probes the Caddy admin API, which only php runs.
+    healthcheck:
+      disable: true
+    environment:
+      MERCURE_URL: http://php/.well-known/mercure
+    depends_on:
+      php:
+        condition: service_healthy
+
   database:
-    image: postgres:${POSTGRES_VERSION:-16}-alpine
+    image: postgres:${POSTGRES_VERSION:-18}-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-app}
       # You should definitely change the password in production
@@ -14,12 +58,11 @@ services:
       retries: 5
       start_period: 60s
     volumes:
-      - database_data:/var/lib/postgresql/data:rw
-      # You may use a bind-mounted host directory instead, so that it is harder to accidentally remove the volume and lose all your data!
-      # - ./docker/db/data:/var/lib/postgresql/data:rw
-###< doctrine/doctrine-bundle ###
+      # PostgreSQL 18 stores its data under /var/lib/postgresql/18/docker.
+      - database_data:/var/lib/postgresql:rw
 
 volumes:
-###> doctrine/doctrine-bundle ###
+  tenant_data:
+  caddy_data:
+  caddy_config:
   database_data:
-###< doctrine/doctrine-bundle ###
