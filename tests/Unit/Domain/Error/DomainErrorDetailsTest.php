@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Domain\Error;
 
 use App\Domain\Actor\Actor;
+use App\Domain\Actor\ActorKind;
 use App\Domain\Error\CommitNotFound;
 use App\Domain\Error\CommitsNotAvailable;
 use App\Domain\Error\DomainError;
 use App\Domain\Error\ErrorCode;
+use App\Domain\Error\Forbidden;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Error\InvalidTransition;
 use App\Domain\Error\NotFound;
@@ -35,6 +37,7 @@ final class DomainErrorDetailsTest extends KernelTestCase
      */
     public static function errors(): iterable
     {
+        yield 'forbidden' => [ErrorCode::Forbidden, Forbidden::actorKind(ActorKind::Agent, 'open')];
         yield 'not_found' => [ErrorCode::NotFound, NotFound::resource('Request', RequestId::generate())];
         yield 'invalid_input' => [ErrorCode::InvalidInput, InvalidInput::field('reason', 'must have at least 20 characters')];
         yield 'invalid_transition' => [ErrorCode::InvalidTransition, new InvalidTransition(
