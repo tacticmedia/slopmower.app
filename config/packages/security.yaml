@@ -3,29 +3,34 @@ security:
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
 
-    # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
-        users_in_memory: { memory: null }
+        tenant_users:
+            id: App\Security\TenantUserProvider
 
+    # docs/specs/README.md section 3. Authenticators stay in the base configuration and guard their environment in code.
     firewalls:
         dev:
-            # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
+        api:
+            pattern: ^/api/v1
+            lazy: true
+            context: web
+            entry_point: App\Security\ApiEntryPoint
         main:
             lazy: true
-            provider: users_in_memory
+            context: web
+            entry_point: App\Security\LoginEntryPoint
+            custom_authenticators:
+                - App\Security\LocalSignInAuthenticator
+            logout:
+                path: logout
+                enable_csrf: true
+                target: login
 
-            # Activate different ways to authenticate:
-            # https://symfony.com/doc/current/security.html#the-firewall
-
-            # https://symfony.com/doc/current/security/impersonating_user.html
-            # switch_user: true
-
-    # Note: Only the *first* matching rule is applied
+    # Without a tenant context, a path ID resolver hits the fail-closed SQL filter. This rule answers 401 first.
     access_control:
-        # - { path: ^/admin, roles: ROLE_ADMIN }
-        # - { path: ^/profile, roles: ROLE_USER }
+        - { path: ^/api/v1, roles: IS_AUTHENTICATED }
 
 when@test:
     security:

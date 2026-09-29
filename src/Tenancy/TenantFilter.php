@@ -5,13 +5,10 @@ declare(strict_types=1);
 namespace App\Tenancy;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 
 /**
  * The only way to run tenantless ORM queries and writes.
- * Public for the same reason as {@see TenantContext}.
  */
-#[Autoconfigure(public: true)]
 final class TenantFilter
 {
     public function __construct(

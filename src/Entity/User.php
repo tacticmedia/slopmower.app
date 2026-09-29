@@ -138,4 +138,9 @@ class User implements TenantOwned
     {
         return $this->lastSignInAt;
     }
+
+    public function recordSignIn(\DateTimeImmutable $signedInAt): void
+    {
+        $this->lastSignInAt = $signedInAt;
+    }
 }

@@ -5,7 +5,10 @@ framework:
             token_id: submit
 
     csrf_protection:
+        # A csrf-token header must equal the submitted token. docs/specs/README.md section 3.
+        check_header: true
         stateless_token_ids:
             - submit
             - authenticate
             - logout
+            - api

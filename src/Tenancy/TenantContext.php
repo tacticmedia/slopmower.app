@@ -8,13 +8,8 @@ use App\Domain\Identity\TenantId;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use Symfony\Contracts\Service\ResetInterface;
 
-/**
- * Public, because the compiler removes a private service that no other service uses, also from the test container.
- */
-#[Autoconfigure(public: true)]
 final class TenantContext implements ResetInterface
 {
     private ?TenantId $tenantId = null;

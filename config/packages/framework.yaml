@@ -3,7 +3,9 @@ framework:
     secret: '%env(APP_SECRET)%'
 
     # Note that the session will be started ONLY if you read or write from it.
-    session: true
+    # The handler is in the base configuration, so the Doctrine schema of every environment has the sessions table.
+    session:
+        handler_id: App\Security\ReconnectingSessionHandler
 
     #esi: true
     #fragments: true
