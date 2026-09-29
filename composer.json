@@ -90,6 +90,9 @@
             "allow-contrib": true,
             "require": "8.1.*",
             "docker": false
+        },
+        "runtime": {
+            "test_envs": ["test", "e2e"]
         }
     },
     "require-dev": {
