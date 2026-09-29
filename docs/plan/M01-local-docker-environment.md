@@ -69,11 +69,11 @@ M00.
     - environment `MERCURE_URL=http://php/.well-known/mercure`. The worker runs only the `dev` environment, so this value cannot leak;
     - it starts when `php` is healthy.
 11. `compose.yaml`, service `database`: image `postgres:${POSTGRES_VERSION:-18}-alpine` with the volume `database_data:/var/lib/postgresql`. PostgreSQL 18 stores data under `/var/lib/postgresql/18/docker`, so do not mount `/var/lib/postgresql/data`. No init scripts: one database role, decision D3. `compose.override.yaml` publishes `127.0.0.1:5432:5432`.
-12. Add `e2e` to `Kernel::getAllowedEnvs()`.
+12. [x] Add `e2e` to `Kernel::getAllowedEnvs()`.
 13. Configuration per environment:
     - `when@e2e`: native sessions, Doctrine `dbname_suffix: _test`, Messenger transport `async: sync://`;
     - `when@test`: Messenger transport `async: in-memory://`, so tests can assert queued messages. The `QueuedMessages` trait in `tests/Support/Messenger/` sends each queued envelope through the bus with a `ReceivedStamp`, so the middleware runs.
-14. `HealthController` at `/healthz`: an HTML page with a `<title>` and a `<span id="js">`. An inline script sets the span text to `ok`.
+14. [x] `HealthController` at `/healthz`: an HTML page with a `<title>` and a `<span id="js">`. An inline script sets the span text to `ok`.
 15. Run `make migration`. It yields only the `messenger_messages` table, through Doctrine's schema listener, so the worker can start.
 16. Write the `Makefile` with the targets in the [README](README.md#environment-and-commands). `make e2e` and `make front` skip npm while there is no `package.json`.
 
