@@ -398,7 +398,11 @@ Checked on 2026-09-29.
 ### Application code
 
 - **Process messages.** `symfony/process` exception messages include the command line. Secrets go through the environment only.
-- **SQL filter coverage.** The Doctrine SQL filter does not cover DBAL queries or identity-map hits. Reset the entity manager between worker requests and between Messenger messages.
+- **SQL filter coverage.** The Doctrine SQL filter does not cover DBAL queries, identity-map hits, or UnitOfWork writes. Reset the entity manager between worker requests and between Messenger messages.
+  - `TenantWriteGuard` makes a flush outside `TenantFilter::suspend()` throw when it writes a row of another tenant or runs without a tenant context.
+  - `TenantContext::set()` and the end of `TenantFilter::suspend()` detach the loaded entities of other tenants. So a `suspend()` callable returns IDs or scalars, not entities of another tenant, and flushes its own changes to them.
+  - `TenantContext::set()` refuses a different tenant. Call `reset()` first, which also clears the entity manager.
+- **Doctrine Query objects.** A `Query` keeps the SQL of its first parse, with the tenant constraint of that moment, after `TenantContext::set()`, `reset()`, `TenantFilter::suspend()`, and the services resetter. Never keep a `Query` object across these calls or across requests. Build it from the `QueryBuilder` for each execution. `NoStoredQueryTest` fails when a class in `src/` has a property typed as a Doctrine query.
 - **SQL filter parameter.** Between worker requests, DoctrineBundle's `Registry::reset()` only calls `clear()` on an open entity manager. The filter keeps its parameter. `TenantContext::reset()` must drop it. See M05.
 - **Environment-specific firewalls.** Do not rely on merging a security firewall across `when@<environment>` blocks. Keep the authenticators in the base firewall and guard them in code.
 - **Bearer requests and sessions.** A stateful firewall writes every authenticated token into the session in `ContextListener::onKernelResponse`. Bearer requests therefore use their own stateless firewall `api_bearer`. See M14.
