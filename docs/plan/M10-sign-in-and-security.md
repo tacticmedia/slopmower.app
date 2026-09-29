@@ -50,13 +50,13 @@ M05.
 
 ## Tasks (ordered)
 
-1. Configure the providers and the firewalls.
-2. Write the user provider, the tenant context listener, and the entry points.
-3. Write the local sign-in authenticator, its route, and the login page.
-4. Write the `e2e` sign-in controller.
-5. Configure `PdoSessionHandler` in the base configuration. Run `make migration` for the `sessions` table.
-6. Configure the CSRF token ID `api`.
-7. Write `MeController`.
+1. [x] Configure the providers and the firewalls.
+2. [x] Write the user provider, the tenant context listener, and the entry points.
+3. [x] Write the local sign-in authenticator, its route, and the login page.
+4. [x] Write the `e2e` sign-in controller.
+5. [x] Configure `PdoSessionHandler` in the base configuration. Run `make migration` for the `sessions` table.
+6. [x] Configure the CSRF token ID `api`.
+7. [x] Write `MeController`.
 
 ## Acceptance tests
 
