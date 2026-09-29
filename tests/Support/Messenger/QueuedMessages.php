@@ -28,7 +28,8 @@ trait QueuedMessages
     {
         return array_map(
             static fn (Envelope $envelope): object => $envelope->getMessage(),
-            iterator_to_array(self::asyncTransport()->get(), false),
+            // get() returns one envelope unless it gets a fetch size.
+            iterator_to_array(self::asyncTransport()->get(\PHP_INT_MAX), false),
         );
     }
 
