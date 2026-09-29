@@ -89,7 +89,7 @@
         "symfony": {
             "allow-contrib": true,
             "require": "8.1.*",
-            "docker": true
+            "docker": false
         }
     },
     "require-dev": {

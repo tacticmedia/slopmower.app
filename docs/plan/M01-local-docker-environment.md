@@ -33,7 +33,7 @@ M00.
 
 ## Tasks (ordered)
 
-1. Set `extra.symfony.docker` to `false` in `composer.json`, decision D35.
+1. [x] Set `extra.symfony.docker` to `false` in `composer.json`, decision D35.
 2. Take the Dockerfile, Caddyfile, entrypoint, and PHP ini files from the [dunglas/symfony-docker](https://github.com/dunglas/symfony-docker) template. Follow its guide "Using Symfony Docker with an existing project". Put the files under `docker/frankenphp/` and adapt them as the next tasks say.
 3. Dockerfile, base stage:
    - image `dunglas/frankenphp:1.12.7-php8.5-trixie`. Check the tag on Docker Hub;
