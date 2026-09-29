@@ -14,11 +14,27 @@ final class NoContainerMockingTest extends KernelTestCase
     {
         $violations = [];
         foreach (ProjectFiles::find(['tests'], ['*.php']) as $path => $file) {
-            if (1 === preg_match('/getContainer\(\)\s*->\s*set\(/', $file->getContents())) {
+            if (self::replacesService($file->getContents())) {
                 $violations[] = $path;
             }
         }
 
         self::assertSame([], $violations);
+    }
+
+    private static function replacesService(string $code): bool
+    {
+        if (1 === preg_match('/getContainer\(\)\s*->\s*set\(/', $code)) {
+            return true;
+        }
+
+        preg_match_all('/\$(\w+)\s*=\s*(?:self|static|parent|\$this)\s*(?:::|->)\s*getContainer\(\)/', $code, $matches);
+        foreach (array_unique($matches[1]) as $variable) {
+            if (1 === preg_match('/\$'.$variable.'\s*->\s*set\(/', $code)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
