@@ -1,0 +1,45 @@
+{
+	skip_install_trust
+
+	frankenphp {
+		# The :8081 site otherwise gets one PHP thread next to the dev worker.
+		max_threads auto
+	}
+}
+
+{$SERVER_NAME} {
+	root /app/public
+	encode zstd br gzip
+
+	mercure {
+		publisher_jwt {env.MERCURE_JWT_SECRET}
+		subscriber_jwt {env.MERCURE_JWT_SECRET}
+		cors_origins http://localhost:8000
+	}
+
+	php_server {
+		worker {
+			file ./public/index.php
+			# A bare watch also matches var/, where test runs write PHP files, and reboots every PHP thread.
+			watch ./src/**/*.php ./config/**/*.{php,yaml} ./templates/**/*.twig ./.env*
+		}
+	}
+}
+
+:8081 {
+	root /app/public
+	encode zstd br gzip
+
+	mercure {
+		publisher_jwt {env.MERCURE_JWT_SECRET}
+		subscriber_jwt {env.MERCURE_JWT_SECRET}
+		# Hubs with the same transport configuration share one transport.
+		transport bolt {
+			path /data/caddy/mercure-e2e.db
+		}
+	}
+
+	php_server {
+		env APP_ENV e2e
+	}
+}
