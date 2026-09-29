@@ -44,8 +44,8 @@ M03.
 
 ## Tasks (ordered)
 
-1. Implement the decider tables, the reducers, and the policies.
-2. Write the expected outcomes in the tests literally from architecture section 6 and docs/specs/rest-api-requests.md section 1.
+1. [x] Implement the decider tables, the reducers, and the policies.
+2. [x] Write the expected outcomes in the tests literally from architecture section 6 and docs/specs/rest-api-requests.md section 1.
 
 ## Acceptance tests
 
