@@ -47,6 +47,8 @@ final class EventRoundTripTest extends KernelTestCase
     private const string REQUEST_ID = '01K6B3P2A9QRSTVWXYZ0123456';
     private const string OTHER_REQUEST_ID = '01K6B3P2A9QRSTVWXYZ0123457';
     private const string COMMENT_ID = '01K6B3Q4C5D6E7F8G9H0J1K2M3';
+    /** A Markdown indented code block and hard break, which a trimming codec would lose. */
+    private const string INDENTED_TEXT = "    \$total = 1;\n\nIndented code, then a hard break  \n";
 
     /**
      * The event of each fixture, built through the domain constructors.
@@ -87,6 +89,35 @@ final class EventRoundTripTest extends KernelTestCase
         ];
         yield 'request.verified with a note' => [EventType::RequestVerified, new RequestVerified('Checked in the browser.')];
         yield 'batch.submitted without a summary or comments' => [EventType::BatchSubmitted, BatchSubmitted::of($batchId, null, $requestIds, [])];
+
+        $text = self::INDENTED_TEXT;
+        $committedAt = new \DateTimeImmutable('2026-09-29T07:44:10Z');
+        foreach ([
+            new ReviewStarted($text, RefName::fromString('main'), self::reviewCommitSha()),
+            new ReviewClosed($text),
+            new RequestOpened(self::lineAnchor(), $text, null),
+            new RequestCommented(CommentId::fromString(self::COMMENT_ID), $text, false, null),
+            new RequestReleased($text),
+            CommitLinked::available(self::fixCommitSha(), $requestIds, $text, $text, $committedAt),
+            CommitFound::of(self::fixCommitSha(), $requestIds, $text, $committedAt),
+            new RequestReadyForReview($text),
+            new RequestWontDo($text),
+            new RequestVerified($text),
+            new RequestReopened($text),
+            BatchSubmitted::of($batchId, $text, $requestIds, []),
+        ] as $event) {
+            yield $event::type()->value.' with whitespace around its text' => [$event::type(), $event];
+        }
+
+        foreach ([
+            new ReviewClosed(''),
+            new RequestReleased(''),
+            CommitLinked::pending(self::fixCommitSha(), $requestIds, ''),
+            new RequestVerified(''),
+            BatchSubmitted::of($batchId, '', $requestIds, []),
+        ] as $event) {
+            yield $event::type()->value.' with an empty optional text' => [$event::type(), $event];
+        }
     }
 
     #[DataProvider('events')]
@@ -96,8 +127,32 @@ final class EventRoundTripTest extends KernelTestCase
         self::assertSame($type, $event::type());
         self::assertSame($event::class, EventCodec::eventClass($type));
 
-        self::assertEquals($event, $event::fromPayload($event->toPayload()));
+        $decoded = $event::fromPayload($event->toPayload());
+        self::assertEquals($event, $decoded);
+        // assertEquals() takes '' and null as equal.
+        self::assertSame($event->toPayload(), $decoded->toPayload());
         self::assertEquals($event, EventCodec::decode($type->value, EventCodec::encode($event)));
+    }
+
+    #[TestDox('A commit time with an offset reads back as the same UTC date-time')]
+    public function testACommitTimeWithAnOffsetReadsBackAsTheSameUtcDateTime(): void
+    {
+        $committedAt = new \DateTimeImmutable('2026-09-29T19:41:12+09:30');
+        $requestIds = [RequestId::fromString(self::REQUEST_ID)];
+        $linked = CommitLinked::available(self::fixCommitSha(), $requestIds, null, 'Use Money', $committedAt);
+        $found = CommitFound::of(self::fixCommitSha(), $requestIds, 'Use Money', $committedAt);
+
+        $commitTimes = [
+            $linked->committedAt,
+            CommitLinked::fromPayload($linked->toPayload())->committedAt,
+            $found->committedAt,
+            CommitFound::fromPayload($found->toPayload())->committedAt,
+        ];
+
+        self::assertSame(
+            array_fill(0, 4, '2026-09-29T10:11:12+00:00'),
+            array_map(static fn (?\DateTimeImmutable $commitTime): ?string => $commitTime?->format('Y-m-d\TH:i:sP'), $commitTimes),
+        );
     }
 
     #[DataProvider('fixtureEvents')]
@@ -135,7 +190,12 @@ final class EventRoundTripTest extends KernelTestCase
                 new \DateTimeImmutable('2026-09-29T07:44:10Z'),
             ),
             EventType::CommitUnlinked => new CommitUnlinked(self::fixCommitSha(), $otherRequestId),
-            EventType::CommitFound => CommitFound::of(self::fixCommitSha(), [$otherRequestId], 'Extract the tax rounding into TaxRounding', new \DateTimeImmutable('2026-09-29T07:52:30Z')),
+            EventType::CommitFound => CommitFound::of(
+                self::fixCommitSha(),
+                [$otherRequestId, $requestId],
+                'Extract the tax rounding into TaxRounding',
+                new \DateTimeImmutable('2026-09-29T07:52:30Z'),
+            ),
             EventType::RequestReadyForReview => new RequestReadyForReview(
                 'Replaced `float` with `Money` in `total()` and `tax()`. Added rounding cases to `InvoiceTotalsTest`. `make test` passes.',
             ),
@@ -146,7 +206,7 @@ final class EventRoundTripTest extends KernelTestCase
                 BatchId::fromString(self::BATCH_ID),
                 'First pass over billing.',
                 [$requestId, $otherRequestId],
-                [CommentId::fromString('01K6C3C0MMENT0000000000001')],
+                [CommentId::fromString('01K6C3C0MMENT0000000000002'), CommentId::fromString('01K6C3C0MMENT0000000000001')],
             ),
         };
     }

@@ -6,6 +6,8 @@ namespace App\Tests\Unit\Domain\Event;
 
 use App\Domain\Actor\Actor;
 use App\Domain\Event\CommitFound;
+use App\Domain\Event\CommitLinked;
+use App\Domain\Event\CommitUnlinked;
 use App\Domain\Event\DomainEvent;
 use App\Domain\Event\EventType;
 use App\Domain\Event\RecordedEvent;
@@ -83,6 +85,18 @@ final class RecordedEventTest extends KernelTestCase
         self::assertSame($system, self::recordedEvent(type: EventType::CommitFound, actor: $system, event: $event)->actor);
         foreach ([Actor::user($userId), Actor::agent($userId, 'Claude Code')] as $actor) {
             self::assertSame(['actor'], self::violatedFields(static fn (): RecordedEvent => self::recordedEvent(type: EventType::CommitFound, actor: $actor, event: $event)));
+        }
+    }
+
+    #[TestDox('Accepts an agent actor for commit.linked and commit.unlinked')]
+    public function testAcceptsAnAgentActorForCommitLinkedAndCommitUnlinked(): void
+    {
+        $commitSha = CommitSha::fromString('e5f6a7b8c9d0e1f2a3b4c5d6e7f8091a2b3c4d5e');
+        $requestId = RequestId::fromString(self::ULID);
+        $agent = Actor::agent(UserId::fromString(self::ULID), 'Claude Code');
+
+        foreach ([CommitLinked::pending($commitSha, [$requestId], null), new CommitUnlinked($commitSha, $requestId)] as $event) {
+            self::assertSame($agent, self::recordedEvent(type: $event::type(), actor: $agent, event: $event)->actor);
         }
     }
 

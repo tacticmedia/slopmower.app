@@ -26,6 +26,7 @@ final class WontDoReasonTest extends KernelTestCase
         yield '19 characters inside tabs and line breaks' => ["\t\n".str_repeat('a', 19)."\r\n"];
         yield '19 characters inside Unicode spaces' => ["\u{00A0}".str_repeat('a', 19)."\u{3000}"];
         yield '19 two-byte characters' => [str_repeat("\u{00E9}", 19)];
+        yield '19 astral characters' => [str_repeat("\u{1F642}", 19)];
     }
 
     #[DataProvider('shortReasons')]
@@ -36,11 +37,20 @@ final class WontDoReasonTest extends KernelTestCase
         self::assertSame(['payload.reason'], self::violatedFields(static fn (): RequestWontDo => RequestWontDo::fromPayload(['reason' => $reason])));
     }
 
-    #[TestDox('Accepts a reason of 20 characters after trimming and keeps it untrimmed')]
-    public function testAcceptsAReasonOf20Characters(): void
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function reasonsOf20Characters(): iterable
     {
-        $reason = ' '.str_repeat("\u{00E9}", 20)."\n";
+        yield '20 two-byte characters inside whitespace' => [' '.str_repeat("\u{00E9}", 20)."\n"];
+        // inputs.schema.json minLength counts code points: 20 code points, 10 graphemes.
+        yield '10 letters with a combining mark each' => [str_repeat("e\u{0301}", 10)];
+    }
 
+    #[DataProvider('reasonsOf20Characters')]
+    #[TestDox('Accepts a reason of 20 characters after trimming and keeps it untrimmed')]
+    public function testAcceptsAReasonOf20Characters(string $reason): void
+    {
         self::assertSame($reason, new RequestWontDo($reason)->reason);
         self::assertSame($reason, RequestWontDo::fromPayload(['reason' => $reason])->reason);
     }

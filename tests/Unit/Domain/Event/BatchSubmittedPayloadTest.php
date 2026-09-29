@@ -23,6 +23,7 @@ final class BatchSubmittedPayloadTest extends KernelTestCase
     private const string OPENED_REQUEST_ID = '01K6B3P2A9QRSTVWXYZ0123456';
     private const string COMMENTED_REQUEST_ID = '01K6B3P2A9QRSTVWXYZ0123457';
     private const string COMMENT_ID = '01K6C3C0MMENT0000000000001';
+    private const string OTHER_COMMENT_ID = '01K6C3C0MMENT0000000000002';
 
     #[TestDox('Carries the batch ID, the summary, and the request and comment IDs')]
     public function testCarriesTheBatchIdTheSummaryAndTheRequestAndCommentIds(): void
@@ -36,7 +37,7 @@ final class BatchSubmittedPayloadTest extends KernelTestCase
                 BatchId::fromString(self::BATCH_ID),
                 'First pass over billing.',
                 [RequestId::fromString(self::OPENED_REQUEST_ID), RequestId::fromString(self::COMMENTED_REQUEST_ID)],
-                [CommentId::fromString(self::COMMENT_ID)],
+                [CommentId::fromString(self::OTHER_COMMENT_ID), CommentId::fromString(self::COMMENT_ID)],
             ),
             $event,
         );

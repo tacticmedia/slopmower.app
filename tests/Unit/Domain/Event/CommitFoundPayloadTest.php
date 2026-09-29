@@ -19,7 +19,8 @@ final class CommitFoundPayloadTest extends KernelTestCase
     use ViolatedFields;
 
     private const string COMMIT_SHA = 'e5f6a7b8c9d0e1f2a3b4c5d6e7f8091a2b3c4d5e';
-    private const string REQUEST_ID = '01K6B3P2A9QRSTVWXYZ0123457';
+    /** Descending, so a reader that sorts fails. */
+    private const array REQUEST_IDS = ['01K6B3P2A9QRSTVWXYZ0123457', '01K6B3P2A9QRSTVWXYZ0123456'];
     private const string SUBJECT = 'Extract the tax rounding into TaxRounding';
     private const string COMMITTED_AT = '2026-09-29T07:52:30Z';
 
@@ -31,14 +32,11 @@ final class CommitFoundPayloadTest extends KernelTestCase
 
         self::assertInstanceOf(CommitFound::class, $event);
         self::assertSame(
-            [self::COMMIT_SHA, [self::REQUEST_ID], self::SUBJECT],
+            [self::COMMIT_SHA, self::REQUEST_IDS, self::SUBJECT],
             [$event->commitSha->toString(), array_map(strval(...), $event->requestIds), $event->subject],
         );
         self::assertEquals(new \DateTimeImmutable(self::COMMITTED_AT), $event->committedAt);
-        self::assertEquals(
-            CommitFound::of(CommitSha::fromString(self::COMMIT_SHA), [RequestId::fromString(self::REQUEST_ID)], self::SUBJECT, new \DateTimeImmutable(self::COMMITTED_AT)),
-            $event,
-        );
+        self::assertEquals(self::commitFound(self::SUBJECT, new \DateTimeImmutable(self::COMMITTED_AT)), $event);
         self::assertSame($fixture, EventCodec::encode($event));
     }
 
@@ -47,10 +45,10 @@ final class CommitFoundPayloadTest extends KernelTestCase
      */
     public static function invalidPayloads(): iterable
     {
-        $payload = ['commitSha' => self::COMMIT_SHA, 'requestIds' => [self::REQUEST_ID], 'subject' => self::SUBJECT, 'committedAt' => self::COMMITTED_AT];
+        $payload = ['commitSha' => self::COMMIT_SHA, 'requestIds' => self::REQUEST_IDS, 'subject' => self::SUBJECT, 'committedAt' => self::COMMITTED_AT];
 
         yield 'empty requestIds' => [[...$payload, 'requestIds' => []], ['payload.requestIds']];
-        yield 'duplicate requestIds' => [[...$payload, 'requestIds' => [self::REQUEST_ID, self::REQUEST_ID]], ['payload.requestIds']];
+        yield 'duplicate requestIds' => [[...$payload, 'requestIds' => [...self::REQUEST_IDS, self::REQUEST_IDS[0]]], ['payload.requestIds']];
         yield 'missing subject' => [array_diff_key($payload, ['subject' => true]), ['payload.subject']];
         yield 'null subject' => [[...$payload, 'subject' => null], ['payload.subject']];
         yield 'missing commit time' => [array_diff_key($payload, ['committedAt' => true]), ['payload.committedAt']];
@@ -77,5 +75,43 @@ final class CommitFoundPayloadTest extends KernelTestCase
             self::SUBJECT,
             new \DateTimeImmutable(self::COMMITTED_AT),
         )));
+    }
+
+    /**
+     * @return iterable<string, array{\DateTimeImmutable}>
+     */
+    public static function commitTimesOutsideTheYearRange(): iterable
+    {
+        yield 'year 10000' => [new \DateTimeImmutable('@253402300800')];
+        yield 'year -1' => [new \DateTimeImmutable('@-62167219201')];
+    }
+
+    #[DataProvider('commitTimesOutsideTheYearRange')]
+    #[TestDox('Rejects a commit time with a UTC year outside 0000-9999, which the payload cannot hold')]
+    public function testRejectsACommitTimeOutsideTheYearRange(\DateTimeImmutable $committedAt): void
+    {
+        self::assertSame(['payload.committedAt'], self::violatedFields(static fn (): CommitFound => self::commitFound(self::SUBJECT, $committedAt)));
+        self::assertSame(['input.requestIds', 'input.committedAt'], self::violatedFields(
+            static fn (): CommitFound => CommitFound::of(CommitSha::fromString(self::COMMIT_SHA), [], self::SUBJECT, $committedAt, 'input'),
+        ));
+    }
+
+    #[TestDox('Replaces invalid UTF-8 and NUL in the git subject, so the event encodes and round-trips')]
+    public function testReplacesInvalidUtf8AndNulInTheSubject(): void
+    {
+        $event = self::commitFound("Caf\xE9 totals\0", new \DateTimeImmutable(self::COMMITTED_AT));
+
+        self::assertSame("Caf\u{FFFD} totals\u{FFFD}", $event->subject);
+        self::assertEquals($event, EventCodec::decode('commit.found', EventCodec::encode($event)));
+    }
+
+    private static function commitFound(string $subject, \DateTimeImmutable $committedAt): CommitFound
+    {
+        return CommitFound::of(
+            CommitSha::fromString(self::COMMIT_SHA),
+            array_map(static fn (string $id): RequestId => RequestId::fromString($id), self::REQUEST_IDS),
+            $subject,
+            $committedAt,
+        );
     }
 }

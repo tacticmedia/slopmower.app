@@ -37,6 +37,14 @@ final class PayloadJsonTest extends KernelTestCase
         self::assertSame('{"before":[]}', PayloadJson::encode(['before' => []]));
     }
 
+    #[TestDox('Throws a JsonException for invalid UTF-8 instead of storing replaced text')]
+    public function testThrowsAJsonExceptionForInvalidUtf8(): void
+    {
+        $this->expectException(\JsonException::class);
+
+        PayloadJson::encode(['subject' => "Caf\xE9"]);
+    }
+
     #[TestDox('Decodes a JSON object with surrounding whitespace into an array')]
     public function testDecodesAJsonObject(): void
     {

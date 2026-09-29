@@ -6,10 +6,12 @@ namespace App\Tests\Unit\Domain\Event\Codec;
 
 use App\Domain\Anchor\AnchorKind;
 use App\Domain\Error\InvalidInput;
+use App\Domain\Event\Codec\PayloadJson;
 use App\Domain\Event\Codec\PayloadReader;
 use App\Domain\Git\BlobSha;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\BatchId;
+use App\Domain\Identity\CommentId;
 use App\Domain\Identity\RequestId;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -135,6 +137,15 @@ final class PayloadReaderTest extends KernelTestCase
         }
 
         self::fail('InvalidInput was not thrown.');
+    }
+
+    #[TestDox('Reads {} and an object keyed 0 to n as a list, which only a hand-written payload holds')]
+    public function testReadsAListShapedJsonObjectAsAList(): void
+    {
+        $reader = PayloadReader::of(PayloadJson::decode('{"commentIds":{},"lines":{"0":"a","1":"b"}}'));
+
+        self::assertSame([], $reader->idList('commentIds', CommentId::class));
+        self::assertSame(['a', 'b'], $reader->stringList('lines'));
     }
 
     #[TestDox('Passes the value and its dotted field to a parser')]

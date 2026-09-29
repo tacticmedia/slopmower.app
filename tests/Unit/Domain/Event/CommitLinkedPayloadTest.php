@@ -83,4 +83,41 @@ final class CommitLinkedPayloadTest extends KernelTestCase
             new \DateTimeImmutable(self::COMMITTED_AT),
         )));
     }
+
+    /**
+     * @return iterable<string, array{\DateTimeImmutable}>
+     */
+    public static function commitTimesOutsideTheYearRange(): iterable
+    {
+        yield 'year 10000' => [new \DateTimeImmutable('@253402300800')];
+        yield 'year -1' => [new \DateTimeImmutable('@-62167219201')];
+    }
+
+    #[DataProvider('commitTimesOutsideTheYearRange')]
+    #[TestDox('Rejects a commit time with a UTC year outside 0000-9999, which the payload cannot hold')]
+    public function testRejectsACommitTimeOutsideTheYearRange(\DateTimeImmutable $committedAt): void
+    {
+        $commitSha = CommitSha::fromString(self::COMMIT_SHA);
+        $requestIds = [RequestId::fromString(self::REQUEST_ID)];
+
+        self::assertSame(['payload.committedAt'], self::violatedFields(static fn (): CommitLinked => CommitLinked::available($commitSha, $requestIds, null, 'Use Money', $committedAt)));
+        self::assertSame(['input.requestIds', 'input.committedAt'], self::violatedFields(
+            static fn (): CommitLinked => CommitLinked::fromParts($commitSha, [], null, true, 'Use Money', $committedAt, 'input'),
+        ));
+    }
+
+    #[TestDox('Replaces invalid UTF-8 and NUL in the git subject, so the event encodes and round-trips')]
+    public function testReplacesInvalidUtf8AndNulInTheSubject(): void
+    {
+        $event = CommitLinked::available(
+            CommitSha::fromString(self::COMMIT_SHA),
+            [RequestId::fromString(self::REQUEST_ID)],
+            null,
+            "Caf\xE9 totals\0",
+            new \DateTimeImmutable(self::COMMITTED_AT),
+        );
+
+        self::assertSame("Caf\u{FFFD} totals\u{FFFD}", $event->subject);
+        self::assertEquals($event, EventCodec::decode('commit.linked', EventCodec::encode($event)));
+    }
 }

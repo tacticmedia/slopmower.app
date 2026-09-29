@@ -51,6 +51,18 @@ final class PayloadStrictnessTest extends KernelTestCase
         $linked = EventFixtures::payload(EventType::CommitLinked);
         $symbol = ['language' => 'php', 'kind' => 'macro', 'fqn' => 'App\Billing\InvoiceTotals::total()'];
 
+        // A symbol anchor requires every nested field.
+        $symbolOpened = array_replace_recursive($opened, ['anchor' => ['kind' => 'symbol', 'symbol' => [...$symbol, 'kind' => 'method']]]);
+        foreach (self::nestedFields($symbolOpened) as [$keys, $value]) {
+            $name = implode('.', $keys);
+            yield 'request.opened on a symbol without '.$name => [self::decode(EventType::RequestOpened, self::without($symbolOpened, ...$keys)), 'payload.'.$name, 'is required'];
+            yield 'request.opened on a symbol with '.$name.' of the wrong type' => [
+                self::decode(EventType::RequestOpened, self::with($symbolOpened, self::wrongType($value), ...$keys)),
+                'payload.'.$name,
+                'must be a',
+            ];
+        }
+
         yield 'request.opened without anchor.range.endLine' => [
             self::decode(EventType::RequestOpened, self::without($opened, 'anchor', 'range', 'endLine')),
             'payload.anchor.range.endLine',
@@ -198,5 +210,44 @@ final class PayloadStrictnessTest extends KernelTestCase
         $payload[$key] = \is_array($child) ? self::without($child, ...$nestedKeys) : throw new \LogicException($key.' is not an object.');
 
         return $payload;
+    }
+
+    /**
+     * @param array<mixed> $payload
+     *
+     * @return array<mixed>
+     */
+    private static function with(array $payload, mixed $value, string $key, string ...$nestedKeys): array
+    {
+        if ([] === $nestedKeys) {
+            $payload[$key] = $value;
+
+            return $payload;
+        }
+        $child = $payload[$key] ?? null;
+        $payload[$key] = \is_array($child) ? self::with($child, $value, ...$nestedKeys) : throw new \LogicException($key.' is not an object.');
+
+        return $payload;
+    }
+
+    /**
+     * The keys and value of every field below the top level, depth first, for example [['anchor', 'range', 'endLine'], 55].
+     *
+     * @param array<mixed> $object
+     * @param list<string> $keys   the keys of $object
+     *
+     * @return iterable<array{non-empty-list<string>, mixed}>
+     */
+    private static function nestedFields(array $object, array $keys = []): iterable
+    {
+        foreach ($object as $key => $value) {
+            $valueKeys = [...$keys, (string) $key];
+            if ([] !== $keys) {
+                yield [$valueKeys, $value];
+            }
+            if (\is_array($value) && !array_is_list($value)) {
+                yield from self::nestedFields($value, $valueKeys);
+            }
+        }
     }
 }
