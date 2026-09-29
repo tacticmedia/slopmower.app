@@ -92,7 +92,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M00 | [Baseline packages and quality gates](M00-baseline-packages-and-quality-gates.md) | Done | 2026-09-29 | [Report](reports/M00.md) |
 | M01 | [Local Docker environment](M01-local-docker-environment.md) | Done | 2026-09-29 | [Report](reports/M01.md) |
 | M02 | [Domain value objects and errors](M02-domain-value-objects-and-errors.md) | Done | 2026-09-29 | [Report](reports/M02.md) |
-| M03 | [Domain events and payload codec](M03-domain-events-and-payload-codec.md) | In progress | 2026-09-29 | Ticked tasks in the milestone file are done |
+| M03 | [Domain events and payload codec](M03-domain-events-and-payload-codec.md) | Done | 2026-09-29 | [Report](reports/M03.md) |
 | M04 | [Request lifecycle](M04-request-lifecycle.md) | In progress | 2026-09-29 | Branch `m04-request-lifecycle`. Ticked tasks in the milestone file are done. |
 | M05 | [Tenancy persistence and isolation](M05-tenancy-persistence-and-isolation.md) | In progress | 2026-09-29 | Branch `m05-tenancy`. Ticked tasks in the milestone file are done. |
 | M06 | [Review data schema](M06-review-data-schema.md) | Not started | | |
