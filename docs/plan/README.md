@@ -99,7 +99,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M07 | [Event store and command service](M07-event-store-and-command-service.md) | Not started | | |
 | M08 | [Git plumbing](M08-git-plumbing.md) | In progress | 2026-09-29 | Branch `m08-git-plumbing`. Ticked tasks in the milestone file are done. |
 | M09 | [Local repository source](M09-local-repository-source.md) | Not started | | |
-| M10 | [Sign-in and security](M10-sign-in-and-security.md) | Not started | | |
+| M10 | [Sign-in and security](M10-sign-in-and-security.md) | In progress | 2026-09-29 | Branch `m10-sign-in`. Ticked tasks in the milestone file are done. |
 | M11 | [REST foundation and repositories API](M11-rest-foundation-and-repositories-api.md) | Not started | | |
 | M12 | [Reviews API](M12-reviews-api.md) | Not started | | |
 | M13 | [Requests API, user side](M13-requests-api-user-side.md) | Not started | | |
