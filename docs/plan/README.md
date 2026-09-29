@@ -53,7 +53,7 @@ The spec files that milestones name:
 3. Read the milestone file completely. Read the architecture sections and the docs/specs files that it names.
 4. Run `git status`. Earlier milestones can be uncommitted, because Jan commits. If you find changes that no earlier report explains, stop and ask Jan.
 5. Check the baseline. If it is red, stop and report. Do not fix unrelated failures silently.
-   - M00: `composer validate` and `bin/console lint:container` on the host;
+   - M00: `composer validate --no-check-publish` and `bin/console lint:container` on the host;
    - M01: the M00 verification commands on the host;
    - from M02 on: `make up`, `make db-test`, and `make check`.
 6. Set the status of the milestone to "In progress".
