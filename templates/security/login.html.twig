@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Sign in{% endblock %}
+
+{% block body %}
+    <main>
+        <h1>Holistic Review</h1>
+
+        {% if error %}
+            <p id="sign-in-error" role="alert">{{ error.messageKey|trans(error.messageData, 'security') }}</p>
+        {% endif %}
+
+        {% if signed_in_login is not null %}
+            <p>Signed in as <strong id="signed-in-login">{{ signed_in_login }}</strong></p>
+            <form method="post" action="{{ path('logout') }}">
+                <input type="hidden" name="{{ csrf_parameter }}" value="{{ csrf_token('logout') }}">
+                <button type="submit">Sign out</button>
+            </form>
+        {% elseif local_login is not null %}
+            <form method="post" action="{{ path('login_local') }}">
+                <input type="hidden" name="{{ csrf_parameter }}" value="{{ csrf_token('authenticate') }}">
+                <button type="submit" id="local-sign-in">Sign in as {{ local_login }}</button>
+            </form>
+        {% else %}
+            <p id="no-sign-in-method">No sign-in method is configured.</p>
+        {% endif %}
+    </main>
+{% endblock %}
