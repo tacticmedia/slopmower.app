@@ -9,7 +9,7 @@ use App\Domain\Event\Codec\PayloadReader;
 
 final readonly class RequestWontDo implements DomainEvent
 {
-    private const int MIN_TRIMMED_REASON_LENGTH = 20;
+    public const int MIN_TRIMMED_REASON_LENGTH = 20;
 
     public function __construct(
         public string $reason,
