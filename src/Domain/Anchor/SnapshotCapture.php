@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Anchor;
 
 use App\Domain\Error\InvalidInput;
+use App\Domain\Text\Utf8;
 
 /**
  * Capture rules and comparison form of architecture section 5.1. Lines split at LF, as git counts them,
@@ -52,13 +53,9 @@ final class SnapshotCapture
         return array_map(self::normalizeLine(...), $lines);
     }
 
-    /**
-     * Also replaces each invalid UTF-8 sequence and each NUL with U+FFFD, as a browser shows them,
-     * so that every snapshot fits JSON and jsonb.
-     */
     public static function normalizeLine(string $line): string
     {
-        return rtrim(str_replace("\0", "\u{FFFD}", \UConverter::transcode($line, 'UTF-8', 'UTF-8')), self::WHITESPACE);
+        return rtrim(Utf8::scrub($line), self::WHITESPACE);
     }
 
     public static function comparisonForm(string $line): string

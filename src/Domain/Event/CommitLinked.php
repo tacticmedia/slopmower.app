@@ -10,6 +10,7 @@ use App\Domain\Event\Codec\PayloadDateTime;
 use App\Domain\Event\Codec\PayloadReader;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\RequestId;
+use App\Domain\Text\Utf8;
 
 /**
  * `available` means the server clone has the commit, which gives `subject` and `committedAt`.
@@ -59,7 +60,10 @@ final readonly class CommitLinked implements DomainEvent
         ?\DateTimeImmutable $committedAt,
         string $field = 'payload',
     ): self {
-        $violations = IdListViolations::nonEmptySet($requestIds, $field.'.requestIds');
+        $violations = [
+            ...IdListViolations::nonEmptySet($requestIds, $field.'.requestIds'),
+            ...PayloadDateTime::yearViolations($committedAt, $field.'.committedAt'),
+        ];
         foreach (['subject' => $subject, 'committedAt' => $committedAt] as $name => $gitValue) {
             if ($available !== (null !== $gitValue)) {
                 $violations[] = new Violation($field.'.'.$name, $available ? 'is required when available is true' : 'must be null when available is false');
@@ -69,7 +73,14 @@ final readonly class CommitLinked implements DomainEvent
             throw InvalidInput::fromViolations($violations);
         }
 
-        return new self($commitSha, $requestIds, $note, $available, $subject, $committedAt);
+        return new self(
+            $commitSha,
+            $requestIds,
+            $note,
+            $available,
+            null === $subject ? null : Utf8::scrub($subject),
+            null === $committedAt ? null : PayloadDateTime::utc($committedAt),
+        );
     }
 
     public static function type(): EventType

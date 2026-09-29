@@ -9,6 +9,7 @@ use App\Domain\Event\Codec\PayloadDateTime;
 use App\Domain\Event\Codec\PayloadReader;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\RequestId;
+use App\Domain\Text\Utf8;
 
 /**
  * A fetch found a pending linked commit. The system actor writes one per review.
@@ -31,12 +32,15 @@ final readonly class CommitFound implements DomainEvent
      */
     public static function of(CommitSha $commitSha, array $requestIds, string $subject, \DateTimeImmutable $committedAt, string $field = 'payload'): self
     {
-        $violations = IdListViolations::nonEmptySet($requestIds, $field.'.requestIds');
+        $violations = [
+            ...IdListViolations::nonEmptySet($requestIds, $field.'.requestIds'),
+            ...PayloadDateTime::yearViolations($committedAt, $field.'.committedAt'),
+        ];
         if ([] !== $violations) {
             throw InvalidInput::fromViolations($violations);
         }
 
-        return new self($commitSha, $requestIds, $subject, $committedAt);
+        return new self($commitSha, $requestIds, Utf8::scrub($subject), PayloadDateTime::utc($committedAt));
     }
 
     public static function type(): EventType

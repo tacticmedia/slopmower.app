@@ -72,6 +72,7 @@ final readonly class PayloadReader
     public function stringList(string $key): array
     {
         $value = $this->required($key);
+        // `{}` and `{"0": ...}` also decode to a list. Only the codec writes payloads, and it writes lists as JSON arrays.
         if (!\is_array($value) || !array_is_list($value)) {
             throw InvalidInput::field($this->field($key), 'must be a list');
         }
