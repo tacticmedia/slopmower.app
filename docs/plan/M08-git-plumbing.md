@@ -49,10 +49,10 @@ M01, M02.
 
 ## Tasks (ordered)
 
-1. Install `symfony/lock` and configure `LOCK_DSN`.
-2. Implement the primitives.
-3. Write the test builders: `GitRepositoryBuilder` creates source repositories with commits, branches, and tags under `var/test/`. `TemporaryDirectories` removes them after each test.
-4. Write the convention test that keeps processes inside `src/Git`.
+1. [x] Install `symfony/lock` and configure `LOCK_DSN`.
+2. [x] Implement the primitives.
+3. [x] Write the test builders: `GitRepositoryBuilder` creates source repositories with commits, branches, and tags under `var/test/`. `TemporaryDirectories` removes them after each test.
+4. [x] Write the convention test that keeps processes inside `src/Git`.
 
 ## Acceptance tests
 
