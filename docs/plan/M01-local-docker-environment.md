@@ -55,7 +55,7 @@ M00.
    - create `app_test` when it is missing, and migrate it;
    - run `setfacl` on `var/`.
 8. [x] `compose.yaml`, service `php`:
-   - ports `8000:80`;
+   - ports `127.0.0.1:8000:80`, loopback only;
    - volumes `.:/app`, `tenant_data:/srv/tenants`, `${LOCAL_REPOSITORIES_HOST_DIR:-./var/local-repositories}:/repositories:ro`, `caddy_data`, `caddy_config`;
    - environment: `SERVER_NAME=:80`, `MERCURE_JWT_SECRET=${MERCURE_JWT_SECRET}` for Caddy, `APP_LOCAL_SIGN_IN=${APP_LOCAL_SIGN_IN:-}`. The secret is the same in every environment, so it cannot leak a wrong value into `test` or `e2e`;
    - healthcheck on `/healthz`.

@@ -34,7 +34,7 @@ if [ "$1" = 'frankenphp' ]; then
 	php bin/console doctrine:database:create --if-not-exists --env=test
 	php bin/console doctrine:migrations:migrate --no-interaction --all-or-nothing --allow-no-migration --env=test
 
-	# Docker Desktop bind mounts on macOS do not support ACLs.
+	# macOS bind mounts (Docker Desktop, OrbStack) do not support ACLs.
 	if setfacl -m u:www-data:rwX var 2>/dev/null; then
 		setfacl -R -m u:www-data:rwX -m u:"$(whoami)":rwX var
 		setfacl -dR -m u:www-data:rwX -m u:"$(whoami)":rwX var

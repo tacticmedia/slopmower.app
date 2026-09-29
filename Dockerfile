@@ -19,6 +19,7 @@ RUN <<-EOF
 		@composer \
 		intl \
 		opcache \
+		pcntl \
 		pdo_pgsql \
 		zip
 	rm -rf /var/lib/apt/lists/*

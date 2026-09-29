@@ -1,6 +1,8 @@
 # Maintained by hand, decision D35. Per-environment values belong in the .env files: a value here reaches the test and e2e processes too.
 x-php: &php
   image: holistic-review-php-dev
+  # Reaps the Chromium processes of the E2E suite and forwards SIGTERM.
+  init: true
   build:
     context: .
     target: frankenphp_dev
@@ -16,7 +18,8 @@ services:
     <<: *php
     restart: unless-stopped
     ports:
-      - "8000:80"
+      # Loopback only: the profiler shows the secrets.
+      - "127.0.0.1:8000:80"
     environment:
       SERVER_NAME: ":80"
       MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET}
@@ -47,6 +50,7 @@ services:
 
   database:
     image: postgres:${POSTGRES_VERSION:-18}-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-app}
       # You should definitely change the password in production
