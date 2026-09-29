@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/link-commits-result.schema.json",
+  "title": "LinkCommitsResult",
+  "type": "object",
+  "required": ["commitSha", "state", "requests", "events"],
+  "properties": {
+    "commitSha": {
+      "$ref": "common.schema.json#/$defs/CommitSha"
+    },
+    "state": {
+      "$ref": "common.schema.json#/$defs/CommitLinkState"
+    },
+    "requests": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "request-summary.schema.json"
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "event.schema.json"
+      }
+    }
+  }
+}

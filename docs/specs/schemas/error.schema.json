@@ -1,0 +1,283 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/error.schema.json",
+  "title": "Error",
+  "type": "object",
+  "required": ["error"],
+  "properties": {
+    "error": {
+      "type": "object",
+      "required": ["code", "message", "details"],
+      "properties": {
+        "code": {
+          "$ref": "common.schema.json#/$defs/ErrorCode"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "description": "English. Not stable: branch on code."
+        },
+        "details": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/InvalidInputDetails"
+            },
+            {
+              "$ref": "#/$defs/InvalidTransitionDetails"
+            },
+            {
+              "$ref": "#/$defs/ReviewClosedDetails"
+            },
+            {
+              "$ref": "#/$defs/CommitsNotAvailableDetails"
+            },
+            {
+              "$ref": "#/$defs/CommitNotFoundDetails"
+            },
+            {
+              "$ref": "#/$defs/RepositoryUnavailableDetails"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "$ref": "#/$defs/DetailsByCode"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "DetailsByCode": {
+      "description": "The details shape of each known code. Unknown codes are not constrained.",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "enum": ["unauthorized", "forbidden", "not_found", "internal_error"]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "invalid_input"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/$defs/InvalidInputDetails"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "invalid_transition"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/InvalidTransitionDetails"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "review_closed"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/ReviewClosedDetails"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "commits_not_available"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/CommitsNotAvailableDetails"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "commit_not_found"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/CommitNotFoundDetails"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "repository_unavailable"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/RepositoryUnavailableDetails"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "InvalidInputDetails": {
+      "type": "object",
+      "required": ["violations"],
+      "properties": {
+        "violations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["field", "message"],
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "Dotted input path, for example 'anchor.range.endLine' or 'requestIds.1'; '' for the whole input."
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "InvalidTransitionDetails": {
+      "type": "object",
+      "required": ["requestId", "action", "status", "claimedBy", "allowedActions"],
+      "properties": {
+        "requestId": {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        "action": {
+          "$ref": "common.schema.json#/$defs/Action"
+        },
+        "status": {
+          "$ref": "common.schema.json#/$defs/RequestStatus"
+        },
+        "claimedBy": {
+          "anyOf": [
+            {
+              "$ref": "actor.schema.json"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "allowedActions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/Action"
+          }
+        }
+      }
+    },
+    "ReviewClosedDetails": {
+      "type": "object",
+      "required": ["reviewId", "closedAt"],
+      "properties": {
+        "reviewId": {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        "closedAt": {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        }
+      }
+    },
+    "CommitsNotAvailableDetails": {
+      "type": "object",
+      "required": ["pendingCommits"],
+      "properties": {
+        "pendingCommits": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/CommitSha"
+          }
+        }
+      }
+    },
+    "CommitNotFoundDetails": {
+      "type": "object",
+      "required": ["commit"],
+      "properties": {
+        "commit": {
+          "type": "string",
+          "description": "The SHA or ref as the caller gave it."
+        }
+      }
+    },
+    "RepositoryUnavailableDetails": {
+      "type": "object",
+      "required": ["repositoryId", "reason"],
+      "properties": {
+        "repositoryId": {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        "reason": {
+          "enum": ["cloning", "clone_failed", "fetch_failed", "removed"]
+        }
+      }
+    }
+  }
+}

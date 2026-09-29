@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/repository.schema.json",
+  "title": "Repository",
+  "type": "object",
+  "required": ["id", "source", "name", "github", "local", "defaultBranch", "access", "sync", "openReviewCount", "createdAt"],
+  "properties": {
+    "id": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "source": {
+      "$ref": "common.schema.json#/$defs/RepositorySource"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "github: owner/name. local: directory name. Unique per tenant."
+    },
+    "github": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": ["repositoryId", "installationId", "owner", "private", "htmlUrl"],
+          "properties": {
+            "repositoryId": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "installationId": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "owner": {
+              "type": "string",
+              "minLength": 1
+            },
+            "private": {
+              "type": "boolean"
+            },
+            "htmlUrl": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
+        }
+      ]
+    },
+    "local": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": ["directory"],
+          "properties": {
+            "directory": {
+              "$ref": "#/$defs/LocalDirectory"
+            }
+          }
+        }
+      ]
+    },
+    "defaultBranch": {
+      "type": ["string", "null"],
+      "description": "Null until the first clone finishes."
+    },
+    "access": {
+      "$ref": "common.schema.json#/$defs/RepositoryAccess"
+    },
+    "sync": {
+      "$ref": "#/$defs/Sync"
+    },
+    "openReviewCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/DateTime"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "const": "github"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "github": {
+            "type": "object"
+          },
+          "local": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "github": {
+            "type": "null"
+          },
+          "local": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "access": {
+            "const": "removed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "sync": {
+            "properties": {
+              "state": {
+                "const": "unavailable"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "LocalDirectory": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^(?!\\.)[^/\\x00-\\x1f]+$",
+      "description": "Name of a direct child directory of APP_LOCAL_REPOSITORIES_DIR."
+    },
+    "Sync": {
+      "type": "object",
+      "required": ["state", "lastFetchedAt", "lastError", "defaultBranchHead"],
+      "properties": {
+        "state": {
+          "enum": ["cloning", "failed", "idle", "fetching", "unavailable"],
+          "description": "cloning: first clone queued or running; failed: first clone failed, no clone; idle: clone ready; fetching: fetch queued or running; unavailable: access removed, clone deleted."
+        },
+        "lastFetchedAt": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/DateTime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lastError": {
+          "type": ["string", "null"],
+          "description": "Message of the last failed clone or fetch; null after a success."
+        },
+        "defaultBranchHead": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/CommitSha"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

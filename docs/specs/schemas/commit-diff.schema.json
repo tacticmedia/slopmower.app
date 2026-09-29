@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/commit-diff.schema.json",
+  "title": "CommitDiff",
+  "type": "object",
+  "required": ["requestId", "commitSha", "parentSha", "subject", "message", "authorName", "authorEmail", "committedAt", "location", "files", "truncated"],
+  "properties": {
+    "requestId": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "commitSha": {
+      "$ref": "common.schema.json#/$defs/CommitSha"
+    },
+    "parentSha": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/CommitSha"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "First parent; null for a root commit."
+    },
+    "subject": {
+      "type": "string"
+    },
+    "message": {
+      "type": "string"
+    },
+    "authorName": {
+      "type": "string"
+    },
+    "authorEmail": {
+      "type": "string"
+    },
+    "committedAt": {
+      "$ref": "common.schema.json#/$defs/DateTime"
+    },
+    "location": {
+      "anyOf": [
+        {
+          "$ref": "location.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "files": {
+      "type": "array",
+      "maxItems": 300,
+      "items": {
+        "$ref": "#/$defs/CommitDiffFile"
+      }
+    },
+    "truncated": {
+      "type": "boolean"
+    }
+  },
+  "$defs": {
+    "CommitDiffFile": {
+      "type": "object",
+      "required": ["status", "path", "oldPath", "oldBlobSha", "newBlobSha", "oldMode", "newMode", "additions", "deletions", "binary", "tooLarge", "touchesAnchor"],
+      "properties": {
+        "status": {
+          "enum": ["added", "modified", "deleted", "renamed", "copied", "type_changed"]
+        },
+        "path": {
+          "$ref": "common.schema.json#/$defs/RepoPath",
+          "description": "New path; the old path for deleted."
+        },
+        "oldPath": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/RepoPath"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "renamed and copied only."
+        },
+        "oldBlobSha": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ObjectSha"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "newBlobSha": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ObjectSha"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "oldMode": {
+          "type": ["string", "null"],
+          "pattern": "^[0-7]{6}$"
+        },
+        "newMode": {
+          "type": ["string", "null"],
+          "pattern": "^[0-7]{6}$"
+        },
+        "additions": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "Null for binary files."
+        },
+        "deletions": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "binary": {
+          "type": "boolean"
+        },
+        "tooLarge": {
+          "type": "boolean",
+          "description": "A side is above 1 MiB; no diff shown."
+        },
+        "touchesAnchor": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

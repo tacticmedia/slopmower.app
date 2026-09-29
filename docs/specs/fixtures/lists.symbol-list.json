@@ -1,0 +1,57 @@
+{
+  "reviewId": "01K6B3A1B2C3D4E5F6G7H8J9KM",
+  "path": "src/Billing/InvoiceTotals.php",
+  "blobSha": "3b18e512dba79e4c8300dd08aeb37f8e728b8dad",
+  "language": "php",
+  "parseError": false,
+  "items": [
+    {
+      "kind": "class",
+      "fqn": "App\\Billing\\InvoiceTotals",
+      "name": "InvoiceTotals",
+      "parentFqn": null,
+      "range": {
+        "startLine": 9,
+        "endLine": 74
+      },
+      "declarationStartLine": 9,
+      "docStartLine": null
+    },
+    {
+      "kind": "property",
+      "fqn": "App\\Billing\\InvoiceTotals::$taxRate",
+      "name": "taxRate",
+      "parentFqn": "App\\Billing\\InvoiceTotals",
+      "range": {
+        "startLine": 12,
+        "endLine": 12
+      },
+      "declarationStartLine": 12,
+      "docStartLine": null
+    },
+    {
+      "kind": "method",
+      "fqn": "App\\Billing\\InvoiceTotals::total()",
+      "name": "total",
+      "parentFqn": "App\\Billing\\InvoiceTotals",
+      "range": {
+        "startLine": 38,
+        "endLine": 49
+      },
+      "declarationStartLine": 41,
+      "docStartLine": 38
+    },
+    {
+      "kind": "method",
+      "fqn": "App\\Billing\\InvoiceTotals::tax()",
+      "name": "tax",
+      "parentFqn": "App\\Billing\\InvoiceTotals",
+      "range": {
+        "startLine": 51,
+        "endLine": 58
+      },
+      "declarationStartLine": 51,
+      "docStartLine": null
+    }
+  ]
+}

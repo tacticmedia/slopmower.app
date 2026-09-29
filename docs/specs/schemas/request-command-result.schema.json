@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/request-command-result.schema.json",
+  "title": "RequestCommandResult",
+  "type": "object",
+  "required": ["request", "allowedActions", "events"],
+  "properties": {
+    "request": {
+      "$ref": "request-summary.schema.json"
+    },
+    "allowedActions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/Action"
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "event.schema.json"
+      },
+      "description": "Events written by the command; empty for a no-op."
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "user": {
+    "id": "01K6AZZ9JAN000000000000001",
+    "login": "jan",
+    "name": null,
+    "avatarUrl": null,
+    "signInMethod": "local"
+  },
+  "tenantId": "01K6AZZ0TENANT000000000002",
+  "caller": {
+    "kind": "user",
+    "userId": "01K6AZZ9JAN000000000000001",
+    "agentName": null,
+    "name": "jan",
+    "avatarUrl": null
+  },
+  "token": null,
+  "features": {
+    "localRepositories": true,
+    "githubApp": null
+  },
+  "links": {
+    "mcpUrl": "http://localhost:8000/_mcp",
+    "docsUrl": "http://localhost:8000/docs",
+    "skillUrl": "http://localhost:8000/docs/skill/SKILL.md"
+  }
+}

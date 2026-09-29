@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/review.schema.json",
+  "title": "Review",
+  "type": "object",
+  "required": ["id", "repositoryId", "repositoryName", "title", "ref", "commitSha", "state", "startedBy", "createdAt", "closedAt", "closedBy", "closeNote", "index", "counts", "lastEventSeq"],
+  "properties": {
+    "id": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "repositoryId": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "repositoryName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "As given at start: branch, tag, or SHA."
+    },
+    "commitSha": {
+      "$ref": "common.schema.json#/$defs/CommitSha"
+    },
+    "state": {
+      "$ref": "common.schema.json#/$defs/ReviewState"
+    },
+    "startedBy": {
+      "$ref": "actor.schema.json"
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/DateTime"
+    },
+    "closedAt": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "closedBy": {
+      "anyOf": [
+        {
+          "$ref": "actor.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "closeNote": {
+      "type": ["string", "null"],
+      "maxLength": 65536
+    },
+    "index": {
+      "$ref": "#/$defs/IndexStatus"
+    },
+    "counts": {
+      "$ref": "#/$defs/RequestCounts"
+    },
+    "lastEventSeq": {
+      "$ref": "common.schema.json#/$defs/EventSeq"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "open"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "closedAt": {
+            "type": "null"
+          },
+          "closedBy": {
+            "type": "null"
+          },
+          "closeNote": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "closedAt": {
+            "$ref": "common.schema.json#/$defs/DateTime"
+          },
+          "closedBy": {
+            "$ref": "actor.schema.json"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "IndexStatus": {
+      "type": "object",
+      "required": ["state", "filesTotal", "filesDone", "symbolsTotal", "startedAt", "finishedAt", "error"],
+      "properties": {
+        "state": {
+          "$ref": "common.schema.json#/$defs/IndexState"
+        },
+        "filesTotal": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "Null until the path list is written."
+        },
+        "filesDone": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "symbolsTotal": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "startedAt": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/DateTime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "finishedAt": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/DateTime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "RequestCounts": {
+      "type": "object",
+      "required": ["total", "byStatus", "byAwaiting", "outdated"],
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "byStatus": {
+          "type": "object",
+          "required": ["open", "in_progress", "ready_for_review", "verified", "reopened", "wont_do"],
+          "properties": {
+            "open": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "in_progress": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "ready_for_review": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "verified": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "reopened": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wont_do": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "byAwaiting": {
+          "type": "object",
+          "required": ["agent", "user", "none"],
+          "properties": {
+            "agent": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "user": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "none": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "outdated": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

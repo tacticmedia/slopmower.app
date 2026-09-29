@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/repository-candidate.schema.json",
+  "title": "RepositoryCandidate",
+  "type": "object",
+  "required": ["source", "name", "connectedRepositoryId", "github", "local"],
+  "properties": {
+    "source": {
+      "$ref": "common.schema.json#/$defs/RepositorySource"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "connectedRepositoryId": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "github": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": ["repositoryId", "installationId", "accountLogin", "owner", "private", "defaultBranch", "htmlUrl"],
+          "properties": {
+            "repositoryId": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "installationId": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "accountLogin": {
+              "type": "string",
+              "description": "Account that installed the App."
+            },
+            "owner": {
+              "type": "string"
+            },
+            "private": {
+              "type": "boolean"
+            },
+            "defaultBranch": {
+              "type": "string"
+            },
+            "htmlUrl": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
+        }
+      ]
+    },
+    "local": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": ["directory", "bare", "headBranch"],
+          "properties": {
+            "directory": {
+              "$ref": "repository.schema.json#/$defs/LocalDirectory"
+            },
+            "bare": {
+              "type": "boolean"
+            },
+            "headBranch": {
+              "type": ["string", "null"],
+              "description": "Null for a detached HEAD."
+            }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "const": "github"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "github": {
+            "type": "object"
+          },
+          "local": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "github": {
+            "type": "null"
+          },
+          "local": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  ]
+}

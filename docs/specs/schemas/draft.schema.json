@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/draft.schema.json",
+  "title": "Draft",
+  "type": "object",
+  "required": ["id", "reviewId", "kind", "anchor", "requestId", "body", "createdAt", "updatedAt"],
+  "properties": {
+    "id": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "reviewId": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "kind": {
+      "enum": ["new_request", "reply"]
+    },
+    "anchor": {
+      "anyOf": [
+        {
+          "$ref": "anchor.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "requestId": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "body": {
+      "$ref": "common.schema.json#/$defs/Markdown"
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/DateTime"
+    },
+    "updatedAt": {
+      "$ref": "common.schema.json#/$defs/DateTime"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "new_request"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "anchor": {
+            "$ref": "anchor.schema.json"
+          },
+          "requestId": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "anchor": {
+            "type": "null"
+          },
+          "requestId": {
+            "$ref": "common.schema.json#/$defs/Ulid"
+          }
+        }
+      }
+    }
+  ]
+}

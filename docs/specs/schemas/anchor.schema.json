@@ -1,0 +1,342 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/anchor.schema.json",
+  "title": "Anchor",
+  "description": "Where a request points at the review commit. Never changes.",
+  "type": "object",
+  "required": ["kind", "path", "commitSha", "blobSha", "range", "symbol", "snapshot"],
+  "properties": {
+    "kind": {
+      "$ref": "common.schema.json#/$defs/AnchorKind"
+    },
+    "path": {
+      "$ref": "common.schema.json#/$defs/RepoPath"
+    },
+    "commitSha": {
+      "$ref": "common.schema.json#/$defs/CommitSha"
+    },
+    "blobSha": {
+      "$ref": "common.schema.json#/$defs/ObjectSha"
+    },
+    "range": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LineRange"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "symbol": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SymbolRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "snapshot": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ContentSnapshot"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "$ref": "#/$defs/KindRules"
+    }
+  ],
+  "$defs": {
+    "KindRules": {
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "file"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "range": {
+                "type": "null"
+              },
+              "symbol": {
+                "type": "null"
+              },
+              "snapshot": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["line", "range"]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "range": {
+                "$ref": "#/$defs/LineRange"
+              },
+              "symbol": {
+                "type": "null"
+              },
+              "snapshot": {
+                "$ref": "#/$defs/ContentSnapshot"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "symbol"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "range": {
+                "$ref": "#/$defs/LineRange"
+              },
+              "symbol": {
+                "$ref": "#/$defs/SymbolRef"
+              },
+              "snapshot": {
+                "$ref": "#/$defs/ContentSnapshot"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "LineRange": {
+      "type": "object",
+      "required": ["startLine", "endLine"],
+      "description": "1-based, inclusive; endLine >= startLine.",
+      "properties": {
+        "startLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endLine": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "SymbolRef": {
+      "type": "object",
+      "required": ["language", "kind", "fqn"],
+      "properties": {
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "description": "'php' in v1."
+        },
+        "kind": {
+          "$ref": "common.schema.json#/$defs/SymbolKind"
+        },
+        "fqn": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      }
+    },
+    "ContentSnapshot": {
+      "type": "object",
+      "required": ["lines", "truncated", "lineCount", "before", "after", "normalizedHash"],
+      "properties": {
+        "lines": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "type": "string"
+          },
+          "description": "Normalized lines (LF, no trailing whitespace); all lines up to 200, else the first 100 and the last 100."
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "lineCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "before": {
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "type": "string"
+          }
+        },
+        "after": {
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "type": "string"
+          }
+        },
+        "normalizedHash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "AnchorSummary": {
+      "type": "object",
+      "required": ["kind", "path", "range", "symbol"],
+      "properties": {
+        "kind": {
+          "$ref": "common.schema.json#/$defs/AnchorKind"
+        },
+        "path": {
+          "$ref": "common.schema.json#/$defs/RepoPath"
+        },
+        "range": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LineRange"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "symbol": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SymbolRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "$ref": "#/$defs/KindRules"
+        }
+      ]
+    },
+    "AnchorInput": {
+      "type": "object",
+      "required": ["kind", "path"],
+      "properties": {
+        "kind": {
+          "$ref": "common.schema.json#/$defs/AnchorKind"
+        },
+        "path": {
+          "$ref": "common.schema.json#/$defs/RepoPath"
+        },
+        "range": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LineRange"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "line: startLine = endLine. range: endLine > startLine. Absent or null otherwise."
+        },
+        "symbol": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": ["fqn"],
+              "properties": {
+                "fqn": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "symbol only: the FQN must match exactly one symbol of the file."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["line", "range"]
+              }
+            }
+          },
+          "then": {
+            "required": ["range"],
+            "properties": {
+              "range": {
+                "$ref": "#/$defs/LineRange"
+              },
+              "symbol": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "symbol"
+              }
+            }
+          },
+          "then": {
+            "required": ["symbol"],
+            "properties": {
+              "symbol": {
+                "type": "object"
+              },
+              "range": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "file"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "range": {
+                "type": "null"
+              },
+              "symbol": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

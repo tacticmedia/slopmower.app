@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/file-content.schema.json",
+  "title": "FileContent",
+  "description": "Metadata of one file at the review commit. Bytes come from rawUrl.",
+  "type": "object",
+  "required": ["reviewId", "commitSha", "path", "blobSha", "mode", "type", "sizeBytes", "language", "binary", "tooLarge", "renderable", "lineCount", "symlinkTarget", "rawUrl"],
+  "properties": {
+    "reviewId": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "commitSha": {
+      "$ref": "common.schema.json#/$defs/CommitSha"
+    },
+    "path": {
+      "$ref": "common.schema.json#/$defs/RepoPath"
+    },
+    "blobSha": {
+      "$ref": "common.schema.json#/$defs/ObjectSha"
+    },
+    "mode": {
+      "type": "string",
+      "pattern": "^[0-7]{6}$"
+    },
+    "type": {
+      "enum": ["file", "symlink"]
+    },
+    "sizeBytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "language": {
+      "type": ["string", "null"],
+      "description": "Highlighting language by file name, for example php, javascript, or markdown. Open set."
+    },
+    "binary": {
+      "type": "boolean",
+      "description": "NUL byte in the first 8000 bytes."
+    },
+    "tooLarge": {
+      "type": "boolean",
+      "description": "sizeBytes > 1048576."
+    },
+    "renderable": {
+      "type": "boolean",
+      "description": "type = file, not binary, not tooLarge."
+    },
+    "lineCount": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Null when not renderable."
+    },
+    "symlinkTarget": {
+      "type": ["string", "null"]
+    },
+    "rawUrl": {
+      "type": "string",
+      "format": "uri-reference"
+    }
+  }
+}

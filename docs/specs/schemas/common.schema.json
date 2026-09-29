@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/common.schema.json",
+  "title": "Common definitions",
+  "$defs": {
+    "Ulid": {
+      "type": "string",
+      "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+      "description": "ULID, Crockford base32. Upper case in output, case-insensitive in input."
+    },
+    "CommitSha": {
+      "type": "string",
+      "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$",
+      "description": "Full SHA-1 or SHA-256 commit ID, lower case."
+    },
+    "CommitShaPrefix": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{7,64}$",
+      "description": "Full or abbreviated commit ID."
+    },
+    "ObjectSha": {
+      "type": "string",
+      "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$",
+      "description": "Full git object ID of a blob, tree, or commit."
+    },
+    "RepoPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "^(?!/)(?!-)(?!.*//)(?!(.*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$",
+      "description": "Relative path, '/' separators, no leading '/' or '-', no empty, '.' or '..' segment, no NUL byte."
+    },
+    "DateTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339, UTC, 'Z' suffix, second precision."
+    },
+    "Markdown": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 65536,
+      "description": "GitHub-flavoured Markdown with at least one non-whitespace character."
+    },
+    "Cursor": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "Opaque pagination cursor."
+    },
+    "EventSeq": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Per-tenant event number, gapless, in commit order."
+    },
+    "RepositorySource": {
+      "enum": ["github", "local"]
+    },
+    "RepositoryAccess": {
+      "enum": ["active", "removed"]
+    },
+    "ReviewState": {
+      "enum": ["open", "closed"]
+    },
+    "IndexState": {
+      "enum": ["pending", "running", "ready", "failed"]
+    },
+    "RequestStatus": {
+      "enum": ["open", "in_progress", "ready_for_review", "verified", "reopened", "wont_do"]
+    },
+    "Awaiting": {
+      "enum": ["agent", "user", "none"]
+    },
+    "Resolution": {
+      "enum": ["fixed", "wont_do"]
+    },
+    "AnchorKind": {
+      "enum": ["line", "range", "symbol", "file"]
+    },
+    "ActorKind": {
+      "enum": ["user", "agent", "system"]
+    },
+    "CommitLinkState": {
+      "enum": ["pending", "available"]
+    },
+    "LocationStatus": {
+      "enum": ["exact", "shifted", "changed", "orphaned"]
+    },
+    "OrphanReason": {
+      "enum": ["file_deleted", "region_deleted", "ambiguous", "content_not_found"]
+    },
+    "SymbolKind": {
+      "anyOf": [
+        {
+          "enum": ["class", "interface", "trait", "enum", "function", "method", "property", "class_constant", "enum_case", "constant"]
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "Open set."
+    },
+    "Action": {
+      "anyOf": [
+        {
+          "enum": ["reply", "claim", "release", "link_commits", "unlink_commit", "mark_ready_for_review", "mark_wont_do", "verify", "reopen"]
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "Open set."
+    },
+    "EventType": {
+      "anyOf": [
+        {
+          "enum": ["review.started", "review.closed", "request.opened", "request.commented", "request.claimed", "request.released", "commit.linked", "commit.unlinked", "commit.found", "request.ready_for_review", "request.wont_do", "request.verified", "request.reopened", "batch.submitted"]
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "Open set."
+    },
+    "ThreadEntryType": {
+      "anyOf": [
+        {
+          "enum": ["request.opened", "request.commented", "request.claimed", "request.released", "commit.linked", "commit.unlinked", "commit.found", "request.ready_for_review", "request.wont_do", "request.verified", "request.reopened"]
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "Open set."
+    },
+    "ErrorCode": {
+      "anyOf": [
+        {
+          "enum": ["unauthorized", "forbidden", "not_found", "invalid_input", "invalid_transition", "review_closed", "commits_not_available", "commit_not_found", "repository_unavailable", "internal_error"]
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "Open set."
+    }
+  }
+}

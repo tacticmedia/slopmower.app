@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/lists.schema.json",
+  "title": "Lists and pages",
+  "$defs": {
+    "NextCursor": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Cursor"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "RepositoryPage": {
+      "type": "object",
+      "required": ["items", "nextCursor"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "repository.schema.json"
+          }
+        },
+        "nextCursor": {
+          "$ref": "#/$defs/NextCursor"
+        }
+      }
+    },
+    "CandidateList": {
+      "type": "object",
+      "required": ["items", "truncated", "localEnabled", "githubListedAt", "githubConfigureUrl"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "repository-candidate.schema.json"
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "localEnabled": {
+          "type": "boolean"
+        },
+        "githubListedAt": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/DateTime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "githubConfigureUrl": {
+          "type": ["string", "null"],
+          "format": "uri"
+        }
+      }
+    },
+    "ReviewPage": {
+      "type": "object",
+      "required": ["repository", "items", "nextCursor"],
+      "properties": {
+        "repository": {
+          "$ref": "repository.schema.json"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "review.schema.json"
+          }
+        },
+        "nextCursor": {
+          "$ref": "#/$defs/NextCursor"
+        }
+      }
+    },
+    "RequestPage": {
+      "type": "object",
+      "required": ["reviewId", "reviewState", "total", "items", "nextCursor"],
+      "properties": {
+        "reviewId": {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        "reviewState": {
+          "$ref": "common.schema.json#/$defs/ReviewState"
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "request-summary.schema.json"
+          }
+        },
+        "nextCursor": {
+          "$ref": "#/$defs/NextCursor"
+        }
+      }
+    },
+    "TreeListing": {
+      "type": "object",
+      "required": ["reviewId", "commitSha", "dir", "recursive", "items", "nextCursor"],
+      "properties": {
+        "reviewId": {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        "commitSha": {
+          "$ref": "common.schema.json#/$defs/CommitSha"
+        },
+        "dir": {
+          "type": "string",
+          "description": "'' for the root."
+        },
+        "recursive": {
+          "type": "boolean"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "tree-entry.schema.json"
+          }
+        },
+        "nextCursor": {
+          "$ref": "#/$defs/NextCursor"
+        }
+      }
+    },
+    "SymbolList": {
+      "type": "object",
+      "required": ["reviewId", "path", "blobSha", "language", "parseError", "items"],
+      "properties": {
+        "reviewId": {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        "path": {
+          "$ref": "common.schema.json#/$defs/RepoPath"
+        },
+        "blobSha": {
+          "$ref": "common.schema.json#/$defs/ObjectSha"
+        },
+        "language": {
+          "type": ["string", "null"]
+        },
+        "parseError": {
+          "type": "boolean"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "symbol.schema.json"
+          }
+        }
+      }
+    },
+    "DraftList": {
+      "type": "object",
+      "required": ["reviewId", "items"],
+      "properties": {
+        "reviewId": {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "$ref": "draft.schema.json"
+          }
+        }
+      }
+    },
+    "TokenList": {
+      "type": "object",
+      "required": ["items"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "api-token.schema.json"
+          }
+        }
+      }
+    },
+    "ViewedFiles": {
+      "type": "object",
+      "required": ["reviewId", "paths"],
+      "properties": {
+        "reviewId": {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        "paths": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/RepoPath"
+          }
+        }
+      }
+    },
+    "MercureAuthorization": {
+      "type": "object",
+      "required": ["hubUrl", "topics", "expiresAt"],
+      "properties": {
+        "hubUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "topics": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "description": "Topic selectors in the subscriber JWT."
+        },
+        "expiresAt": {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        }
+      }
+    }
+  }
+}

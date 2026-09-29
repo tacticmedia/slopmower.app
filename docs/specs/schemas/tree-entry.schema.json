@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/tree-entry.schema.json",
+  "title": "TreeEntry",
+  "type": "object",
+  "required": ["path", "name", "type", "mode", "sha", "sizeBytes"],
+  "properties": {
+    "path": {
+      "$ref": "common.schema.json#/$defs/RepoPath"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "enum": ["directory", "file", "symlink", "submodule"]
+    },
+    "mode": {
+      "type": "string",
+      "pattern": "^[0-7]{6}$",
+      "description": "040000, 100644, 100755, 120000, 160000."
+    },
+    "sha": {
+      "$ref": "common.schema.json#/$defs/ObjectSha"
+    },
+    "sizeBytes": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Files and symlinks only."
+    }
+  }
+}

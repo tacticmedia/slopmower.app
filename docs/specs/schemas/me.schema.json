@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/me.schema.json",
+  "title": "Me",
+  "type": "object",
+  "required": ["user", "tenantId", "caller", "token", "features", "links"],
+  "properties": {
+    "user": {
+      "type": "object",
+      "required": ["id", "login", "name", "avatarUrl", "signInMethod"],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        "login": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": ["string", "null"]
+        },
+        "avatarUrl": {
+          "type": ["string", "null"],
+          "format": "uri"
+        },
+        "signInMethod": {
+          "enum": ["github", "local"]
+        }
+      }
+    },
+    "tenantId": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "caller": {
+      "$ref": "actor.schema.json"
+    },
+    "token": {
+      "anyOf": [
+        {
+          "$ref": "api-token.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "features": {
+      "type": "object",
+      "required": ["localRepositories", "githubApp"],
+      "properties": {
+        "localRepositories": {
+          "type": "boolean"
+        },
+        "githubApp": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": ["slug", "installUrl"],
+              "properties": {
+                "slug": {
+                  "type": "string"
+                },
+                "installUrl": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "links": {
+      "type": "object",
+      "required": ["mcpUrl", "docsUrl", "skillUrl"],
+      "properties": {
+        "mcpUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "docsUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "skillUrl": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "error": {
+    "code": "invalid_input",
+    "message": "The reason must have at least 20 characters.",
+    "details": {
+      "violations": [
+        {
+          "field": "reason",
+          "message": "This value is too short. It should have 20 characters or more."
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "user": {
+    "id": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+    "login": "janklan",
+    "name": "Jan Klan",
+    "avatarUrl": "https://avatars.githubusercontent.com/u/1?v=4",
+    "signInMethod": "github"
+  },
+  "tenantId": "01K6AZZ0TENANT000000000001",
+  "caller": {
+    "kind": "agent",
+    "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+    "agentName": "claude-code laptop",
+    "name": "claude-code laptop",
+    "avatarUrl": null
+  },
+  "token": {
+    "id": "01K6C0T0KEN0000000000000AB",
+    "name": "claude-code laptop",
+    "scope": "repository",
+    "repositoryId": "01K6B2Z0R3P0S1T2V3W4X5Y6Z7",
+    "repositoryName": "acme/billing",
+    "prefix": "hr_KXidQQ",
+    "state": "active",
+    "createdAt": "2026-09-29T07:00:00Z",
+    "expiresAt": null,
+    "lastUsedAt": "2026-09-29T07:30:00Z",
+    "revokedAt": null
+  },
+  "features": {
+    "localRepositories": false,
+    "githubApp": {
+      "slug": "holistic-review",
+      "installUrl": "https://github.com/apps/holistic-review/installations/new"
+    }
+  },
+  "links": {
+    "mcpUrl": "https://hr.example/_mcp",
+    "docsUrl": "https://hr.example/docs",
+    "skillUrl": "https://hr.example/docs/skill/SKILL.md"
+  }
+}

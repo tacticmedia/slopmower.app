@@ -1,0 +1,47 @@
+{
+  "items": [
+    {
+      "id": "01K6B2Z0R3P0S1T2V3W4X5Y6Z7",
+      "source": "github",
+      "name": "acme/billing",
+      "github": {
+        "repositoryId": 812345,
+        "installationId": 5551,
+        "owner": "acme",
+        "private": true,
+        "htmlUrl": "https://github.com/acme/billing"
+      },
+      "local": null,
+      "defaultBranch": "main",
+      "access": "active",
+      "sync": {
+        "state": "idle",
+        "lastFetchedAt": "2026-09-29T07:31:00Z",
+        "lastError": null,
+        "defaultBranchHead": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091"
+      },
+      "openReviewCount": 1,
+      "createdAt": "2026-09-29T07:01:00Z"
+    },
+    {
+      "id": "01K6B2Z0R3P0S1T2V3W4X5Y6Z8",
+      "source": "local",
+      "name": "billing",
+      "github": null,
+      "local": {
+        "directory": "billing"
+      },
+      "defaultBranch": "main",
+      "access": "active",
+      "sync": {
+        "state": "idle",
+        "lastFetchedAt": "2026-09-29T07:31:05Z",
+        "lastError": null,
+        "defaultBranchHead": "c0ffee0123456789abcdef0123456789abcdef01"
+      },
+      "openReviewCount": 1,
+      "createdAt": "2026-09-29T06:58:00Z"
+    }
+  ],
+  "nextCursor": null
+}

@@ -1,0 +1,106 @@
+# M09 Local repository source
+
+Workflow, conventions, and status: [README](README.md).
+
+## Goal
+
+List the repositories under `APP_LOCAL_REPOSITORIES_DIR`, connect one, keep a server clone fetched over `file://`, and answer whether a commit is available. Decision D24.
+
+## Depends on
+
+M07, M08.
+
+## In scope
+
+- `LocalRepositoryDiscovery`:
+  - enabled only when the variable is non-empty and the directory is readable. A relative value resolves against the project directory;
+  - lists the direct children that contain a `.git` directory or are bare repositories, as `LocalRepositoryCandidate` with `directory`, `bare`, and `headBranch`;
+  - skips files, names that start with `.`, `.git` files of worktrees and submodules, and symlinks. The `realpath()` of a child must have `realpath(APP_LOCAL_REPOSITORIES_DIR)` as its parent;
+  - sorts by name and returns at most 1,000 items with a `truncated` flag.
+- `ConnectLocalRepository`, as docs/specs/rest-api.md R3 says:
+  - the directory must be in a fresh discovery listing, else `not_found`;
+  - local repositories disabled gives `invalid_input`;
+  - an already connected directory returns the existing repository;
+  - a new repository gets `syncState = cloning`, and a `CloneRepositoryJob` message is dispatched.
+- The clone handler creates the bare clone at the ID path, fetches, and sets the default branch and `syncState = idle`. A failure sets `syncState = failed` and `lastError`.
+- `LocalFetchCommand`: every fetch passes `-c safe.directory=<realpath>` and `-c safe.directory=<realpath>/.git`, and uses `file://<realpath>` as the remote.
+- `FetchRepository`, as docs/specs/webhooks-and-live-updates.md section 2 says:
+  - single flight: a `symfony/lock` key `fetch:<repositoryId>`. A request that arrives during a fetch sets a flag, and one more fetch runs afterwards;
+  - a synchronous mode with a 60-second timeout, and an asynchronous `FetchRepositoryJob` message;
+  - after success: set `lastFetchedAt`, clear `lastError`, read `defaultBranch` and `defaultBranchHead`, dispatch the `RepositoryFetched` Symfony event;
+  - after a failure: set `lastError`. A synchronous caller gets `repository_unavailable` with reason `fetch_failed`.
+- Messenger tenant context: a `TenantStamp` on every tenant message, and a `TenantContextMiddleware` that sets the tenant from the stamp, resets the context after each message, and clears the entity manager. A message without a stamp fails closed.
+- `CommitAvailability::ensureAvailable(repository, sha or prefix)`:
+  - checks the server clone;
+  - if the commit is missing, fetches once and checks again;
+  - returns the full SHA or null;
+  - an ambiguous prefix gives `invalid_input`.
+
+## Out of scope
+
+- HTTP, GitHub.
+
+## Files (representative)
+
+- `src/Source/LocalRepositoryDiscovery.php`, `LocalRepositoryCandidate.php`, `LocalFetchCommand.php`. Not in `src/Repository`, which Doctrine uses.
+- `src/Application/ConnectLocalRepository.php`, `FetchRepository.php`, `CommitAvailability.php`, `src/Application/Event/RepositoryFetched.php`.
+- `src/Message/CloneRepositoryJob.php`, `src/Message/FetchRepositoryJob.php`, `src/MessageHandler/*.php`.
+- `src/Messenger/TenantStamp.php`, `src/Messenger/TenantContextMiddleware.php`, `config/packages/messenger.yaml`.
+- `tests/Functional/Source/*Test.php`, `tests/Unit/Source/*Test.php`, `tests/Functional/Messenger/*Test.php`.
+
+## Tasks (ordered)
+
+1. Implement discovery. Treat every directory name as untrusted input.
+2. Implement the connect use case and the clone handler.
+3. Implement the fetch use case with single flight.
+4. Implement the Messenger stamp and middleware, and register the middleware on the default bus.
+5. Implement `CommitAvailability`.
+
+## Acceptance tests
+
+- **F `LocalRepositoryDiscoveryTest`** proves the listing rules.
+  - "Lists normal and bare repositories, sorted by name"
+  - "Ignores files, dot directories, worktree and submodule .git files, and symlinks that leave the directory"
+- **F `LocalSourcesDisabledTest`** proves that the feature is off without the variable.
+  - "With an empty variable, discovery reports disabled and connect gives invalid_input"
+- **F `ConnectLocalRepositoryTest`** proves the connect flow.
+  - "Creates the row and the clone at the ID path"
+  - "The clone heads equal the source heads"
+  - "Detects the default branch"
+  - "A second connect returns the existing repository"
+- **F `ConnectRejectsPathTricksTest`** proves that input cannot reach other directories.
+  - "../x, a/b, and absolute paths give invalid_input and write nothing to disk"
+  - "A valid name that is not listed gives not_found and writes nothing to disk"
+- **F `CloneFailureTest`** proves the failure state.
+  - "A source that stops being a repository before the clone sets failed with lastError"
+- **F `SourceUntouchedTest`** proves that the server never writes to the source. The container runs as root, so it compares content hashes and modification times.
+  - "File hashes and modification times of the source are equal before and after a fetch"
+- **U `LocalFetchCommandTest`** proves the fetch arguments.
+  - "The arguments include safe.directory, both refspecs, --prune, and a file:// URL"
+- **F `FetchSingleFlightTest`** proves single flight.
+  - "A fetch requested during a running fetch runs once afterwards and never in parallel"
+- **F `MessengerTenantContextTest`** proves tenant isolation in the worker.
+  - "A stamped message runs under its tenant"
+  - "The tenant context and the entity manager are cleared after each message"
+  - "A message without a stamp fails closed"
+- **F `CommitAvailabilityTest`** proves availability, decision D24.
+  - "A new source commit becomes available after one fetch"
+  - "An unknown SHA is null after exactly one fetch"
+  - "A prefix resolves to the full SHA"
+  - "A fetch dispatches RepositoryFetched"
+- **F `TenantIsolatedClonePathTest`** proves separate clones per tenant.
+  - "Two tenants that connect one directory get two clones"
+
+## Verification commands
+
+```sh
+make test
+make stan
+make check
+```
+
+The read-only mount is exercised by hand in M11.
+
+## Done
+
+The local source is fully covered by tests.

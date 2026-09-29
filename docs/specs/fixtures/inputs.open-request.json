@@ -1,0 +1,11 @@
+{
+  "anchor": {
+    "kind": "range",
+    "path": "src/Billing/InvoiceTotals.php",
+    "range": {
+      "startLine": 52,
+      "endLine": 58
+    }
+  },
+  "body": "Extract the tax rounding into `TaxRounding`."
+}

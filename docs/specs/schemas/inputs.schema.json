@@ -1,0 +1,304 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/inputs.schema.json",
+  "title": "REST request bodies",
+  "$defs": {
+    "ConnectRepositoryInput": {
+      "type": "object",
+      "required": ["source"],
+      "properties": {
+        "source": {
+          "$ref": "common.schema.json#/$defs/RepositorySource"
+        },
+        "githubRepositoryId": {
+          "type": ["integer", "null"],
+          "minimum": 1
+        },
+        "directory": {
+          "anyOf": [
+            {
+              "$ref": "repository.schema.json#/$defs/LocalDirectory"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "source": {
+                "const": "github"
+              }
+            }
+          },
+          "then": {
+            "required": ["githubRepositoryId"],
+            "properties": {
+              "githubRepositoryId": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "source": {
+                "const": "local"
+              }
+            }
+          },
+          "then": {
+            "required": ["directory"],
+            "properties": {
+              "directory": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "StartReviewInput": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "Default: the default branch."
+        },
+        "title": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 200
+        }
+      }
+    },
+    "CloseReviewInput": {
+      "type": "object",
+      "properties": {
+        "note": {
+          "type": ["string", "null"],
+          "maxLength": 65536
+        }
+      }
+    },
+    "OpenRequestInput": {
+      "type": "object",
+      "required": ["anchor", "body"],
+      "properties": {
+        "anchor": {
+          "$ref": "anchor.schema.json#/$defs/AnchorInput"
+        },
+        "body": {
+          "$ref": "common.schema.json#/$defs/Markdown"
+        }
+      }
+    },
+    "CommentInput": {
+      "type": "object",
+      "required": ["body"],
+      "properties": {
+        "body": {
+          "$ref": "common.schema.json#/$defs/Markdown"
+        },
+        "question": {
+          "type": "boolean",
+          "default": false,
+          "description": "Agents only."
+        }
+      }
+    },
+    "OptionalNoteInput": {
+      "type": "object",
+      "properties": {
+        "note": {
+          "type": ["string", "null"],
+          "maxLength": 65536
+        }
+      }
+    },
+    "RequiredNoteInput": {
+      "type": "object",
+      "required": ["note"],
+      "properties": {
+        "note": {
+          "$ref": "common.schema.json#/$defs/Markdown"
+        }
+      }
+    },
+    "WontDoInput": {
+      "type": "object",
+      "required": ["reason"],
+      "properties": {
+        "reason": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 65536,
+          "description": "20 or more characters after trimming."
+        }
+      }
+    },
+    "LinkCommitsInput": {
+      "type": "object",
+      "required": ["commitSha", "requestIds"],
+      "properties": {
+        "commitSha": {
+          "$ref": "common.schema.json#/$defs/CommitSha"
+        },
+        "requestIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/Ulid"
+          }
+        },
+        "note": {
+          "type": ["string", "null"],
+          "maxLength": 65536
+        }
+      }
+    },
+    "CreateDraftInput": {
+      "type": "object",
+      "required": ["kind", "body"],
+      "properties": {
+        "kind": {
+          "enum": ["new_request", "reply"]
+        },
+        "anchor": {
+          "anyOf": [
+            {
+              "$ref": "anchor.schema.json#/$defs/AnchorInput"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requestId": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Ulid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "body": {
+          "$ref": "common.schema.json#/$defs/Markdown"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "new_request"
+              }
+            }
+          },
+          "then": {
+            "required": ["anchor"],
+            "properties": {
+              "anchor": {
+                "type": "object"
+              },
+              "requestId": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "reply"
+              }
+            }
+          },
+          "then": {
+            "required": ["requestId"],
+            "properties": {
+              "requestId": {
+                "type": "string"
+              },
+              "anchor": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "UpdateDraftInput": {
+      "type": "object",
+      "required": ["body"],
+      "properties": {
+        "body": {
+          "$ref": "common.schema.json#/$defs/Markdown"
+        }
+      }
+    },
+    "SubmitDraftsInput": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": ["string", "null"],
+          "maxLength": 65536
+        }
+      }
+    },
+    "ViewedFileInput": {
+      "type": "object",
+      "required": ["path", "viewed"],
+      "properties": {
+        "path": {
+          "$ref": "common.schema.json#/$defs/RepoPath"
+        },
+        "viewed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "CreateTokenInput": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "$ref": "api-token.schema.json#/$defs/TokenName"
+        },
+        "repositoryId": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Ulid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Null: all repositories of the tenant."
+        },
+        "expiresAt": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/DateTime"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Null: no expiry. Else from now + 1 minute to now + 366 days."
+        }
+      }
+    }
+  }
+}

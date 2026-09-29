@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/symbol.schema.json",
+  "title": "Symbol",
+  "type": "object",
+  "required": ["kind", "fqn", "name", "parentFqn", "range", "declarationStartLine", "docStartLine"],
+  "properties": {
+    "kind": {
+      "$ref": "common.schema.json#/$defs/SymbolKind"
+    },
+    "fqn": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Short name, for example 'total'."
+    },
+    "parentFqn": {
+      "type": ["string", "null"],
+      "description": "Enclosing class-like symbol of a member."
+    },
+    "range": {
+      "$ref": "anchor.schema.json#/$defs/LineRange",
+      "description": "The anchor range: from the doc comment, if any, to the last line of the node."
+    },
+    "declarationStartLine": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "First line of the node, attributes included, doc comment excluded."
+    },
+    "docStartLine": {
+      "type": ["integer", "null"],
+      "minimum": 1
+    }
+  }
+}

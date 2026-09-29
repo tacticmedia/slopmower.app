@@ -1,0 +1,290 @@
+# Holistic Review API specification v1
+
+This directory is the v1 contract of Holistic Review: the REST API, the MCP server, the GitHub webhooks, the live updates, and the JSON Schemas that all of them share. REST responses, MCP `structuredContent`, the PHP contract tests, and the TypeScript types of the web UI use the same schema files. [architecture.md](../architecture.md) gives the overview and the decisions.
+
+## 1. Files
+
+| File | Content |
+|---|---|
+| [README.md](README.md) | Conventions, authentication, errors, pagination, caching, repository sources, versioning, schema and fixture index |
+| [rest-api.md](rest-api.md) | REST endpoint index, account, repositories, reviews and code |
+| [rest-api-requests.md](rest-api-requests.md) | REST requests, updates, drafts, API tokens, and the routes outside `/api/v1` |
+| [mcp.md](mcp.md) | MCP endpoint, server instructions, the 12 tools, error mapping, parity with REST |
+| [webhooks-and-live-updates.md](webhooks-and-live-updates.md) | GitHub webhooks, fetch triggers and post-fetch steps, Mercure live updates |
+| [schemas/](schemas/) | 27 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
+| [fixtures/](fixtures/) | One realistic example per response shape, error code, live-update type, and request body. See [section 11](#11-fixtures). |
+
+## 2. Conventions
+
+### 2.1 Transport and formats
+
+| Topic | Rule |
+|---|---|
+| Base path | `/api/v1`. Hosted runs use HTTPS only, through the Caddy server in FrankenPHP. The local development environment serves `http://localhost:8000`. |
+| Request body | `Content-Type: application/json`, UTF-8, at most 1 MiB. Other content types get 415 `invalid_input`. Larger bodies get 413 `invalid_input`. |
+| Response body | `application/json; charset=utf-8`. The raw and blob endpoints return bytes. Every response under `/api/v1` with a status other than 2xx or 3xx is an [Error](schemas/error.schema.json). That includes unknown routes, which get 404 `not_found`, and wrong methods, which get 405 `invalid_input` with an `Allow` header. |
+| IDs | ULID, 26 characters of Crockford base32. Output is upper case. Input is case-insensitive. |
+| SHAs | Lower-case hex, 40 characters for SHA-1 or 64 characters for SHA-256 |
+| Times | RFC 3339 in UTC with `Z`, second precision: `2026-09-29T07:31:12Z` |
+| Nulls | Responses contain every property of their schema. An empty value is `null` or `[]`, never left out. A map is never serialized as `[]`. |
+| Unknown input | Unknown body properties and query parameters are ignored. Optional body properties may be left out or sent as `null`. |
+| Query values | Booleans: `true`, `false`, `1`, `0`. Lists: comma-separated, for example `status=open,reopened`. |
+| CORS | None. The browser UI is same-origin. Bearer clients are not browsers. |
+
+### 2.2 Text limits
+
+| Field | Limit |
+|---|---|
+| `body`, required `note` | 1 to 65,536 characters, at least one non-whitespace character |
+| optional `note`, `summary`, close `note` | 0 to 65,536 characters, or null |
+| `reason` of won't do | 20 to 65,536 characters after trimming |
+| review `title` | 1 to 200 characters |
+| `ref` | 1 to 255 characters |
+| token `name` | 1 to 64 characters, pattern in [api-token.schema.json](schemas/api-token.schema.json) |
+
+## 3. Authentication, actors, and scope
+
+| Mode | Credential | Actor | CSRF | Used by |
+|---|---|---|---|---|
+| Session (`S`) | Session cookie from the GitHub sign-in at `/login/check-github` through HWIOAuthBundle, or from the local sign-in when `APP_ENV=dev` | `user` | Required for POST, PUT, PATCH, DELETE | Web UI |
+| Bearer (`B`) | `Authorization: Bearer hr_<43 base64url characters>` | `agent`: `userId` is the token owner, `agentName` is the token name | Not checked | Agents without MCP |
+
+- **Firewalls.** The firewalls `main` and `api` both set `context: web`, so `api` shares the security token of `main`. The firewall `api` covers `^/api/v1` with `lazy: true`. It adds an `access_token` authenticator whose token handler looks up the SHA-256 hex digest of the full token string. The MCP endpoint has its own stateless firewall. See [mcp.md](mcp.md#1-endpoint-and-authentication).
+- **Precedence and sessions.** When a request has both an `Authorization` header and a session cookie, the bearer token wins. A bearer request never starts a session: the response has no `Set-Cookie`.
+- **Token checks.** A token that does not match `^hr_[A-Za-z0-9_-]{43}$` gets 401 without a database lookup. Unknown, revoked, and expired tokens get 401. A token is expired when `expiresAt <= now`. `lastUsedAt` is updated at most once per 60 seconds.
+- **401 headers.** Every 401 carries `WWW-Authenticate: Bearer realm="holistic-review"`. When the request sent a token, the header adds `, error="invalid_token"`.
+- **CSRF.** Session writes must pass `SameOriginCsrfTokenManager` with the stateless token ID `api`. The request needs `Sec-Fetch-Site: same-origin`, or an `Origin` or `Referer` header that matches the host. A failure gets 403 `forbidden`.
+- **Tenant context.** Each request sets a fail-closed tenant context from the session user or from the token. A Doctrine SQL filter limits every ORM query to that tenant. Without a tenant context, no tenant data is read.
+- **Visibility.** A caller sees only its own tenant. A token scoped to one repository sees only that repository and its reviews, requests, drafts, and blobs. Any ID outside that visibility gets **404 `not_found`**, in the path, the query, or the body. Unknown repository names and GitHub repository IDs that are not candidates also get 404.
+- **Actor kinds.** The "Authentication" column of the [endpoint index](rest-api.md#2-endpoint-index) lists the modes that may call each endpoint. A token call to an `S`-only endpoint, or a session call to a `B`-only endpoint, gets 403 `forbidden`.
+
+## 4. Errors
+
+The body is `{"error": {"code", "message", "details"}}`. `message` is English and not stable. `details` is `null` or an object. Its shape depends on the code. [error.schema.json](schemas/error.schema.json) defines each shape.
+
+| Code | HTTP | Meaning | `details` |
+|---|---|---|---|
+| `unauthorized` | 401 | No credential, or the credential is wrong, revoked, or expired | null |
+| `forbidden` | 403 | Authenticated, but this actor kind may not call this endpoint, or the CSRF check failed | null |
+| `not_found` | 404 | Unknown route, ID, or name. Also another tenant's ID, a repository outside the token's scope, a commit that is not linked to the request, and a blob that is not in the clone. | null |
+| `invalid_input` | 400, 405, 413, 415, 422 | 400: unparsable JSON or a query value of the wrong type. 405: wrong method. 413: body too large. 415: not JSON. 422: validation or domain rule failed. | `{violations: [{field, message}]}` for 400 and 422. Otherwise null. |
+| `invalid_transition` | 409 | The status of the request, or the claim holder, does not allow the command | `{requestId, action, status, claimedBy, allowedActions}` |
+| `review_closed` | 409 | A write on a closed review or on one of its requests | `{reviewId, closedAt}` |
+| `commits_not_available` | 409 | `mark_ready_for_review` while a linked commit is still `pending` after one fetch, or a commit diff of a pending link | `{pendingCommits: [sha]}` |
+| `commit_not_found` | 422 | A ref or commit that the caller named, such as `at` or the review `ref`, is not in the server clone after one fetch | `{commit}` |
+| `repository_unavailable` | 409 | The operation needs the clone or a fetch, and the repository is cloning, its clone failed, its fetch failed, or its access was removed | `{repositoryId, reason: cloning\|clone_failed\|fetch_failed\|removed}` |
+| `internal_error` | 500 | An unexpected failure. The server logs it with the exception. The message is generic. | null |
+
+Check order:
+
+1. 401 `unauthorized`.
+2. 404 `not_found`: existence and visibility.
+3. 403 `forbidden`: actor kind or CSRF.
+4. 400 or 422 `invalid_input`.
+5. 409 `review_closed`.
+6. 409 `invalid_transition`.
+7. `repository_unavailable`, `commit_not_found`, and `commits_not_available`.
+
+If an ID is not visible, the caller gets 404 before any 403.
+
+Fixtures: one file per code, `fixtures/error.<code>.json` with `-` in place of `_`. See [section 11](#11-fixtures).
+
+## 5. Pagination
+
+- Lists that can grow take `limit` and `cursor` and return `nextCursor`. `nextCursor` is null on the last page.
+- A cursor is opaque: base64url JSON of the sort key of the last item, plus a hash of the filters. It never expires. A cursor sent with other filters gets 422 `invalid_input`.
+- Bounded lists are not paginated: drafts, tokens, viewed files, candidates, and symbols. Candidates stop at 1,000 items and set `truncated`.
+- `GET /api/v1/reviews/{reviewId}/updates` uses a different cursor: the integer event number. See [rest-api-requests.md](rest-api-requests.md#4-updates).
+
+## 6. Caching and ETags
+
+| Endpoint | ETag | Cache-Control | 304 |
+|---|---|---|---|
+| `GET /reviews/{id}/raw`, `GET /repositories/{id}/blobs/{sha}` | `"<blobSha>"`, strong | `private, max-age=31536000, immutable` | When `If-None-Match` matches with the weak comparison, or is `*` |
+| `GET /reviews/{id}/file`, `GET /reviews/{id}/symbols` | `W/"v1-<blobSha>"`. Increase `v1` when the representation changes. | `private, no-cache` | Same rule |
+| Everything else | none | `no-store` | never |
+
+All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body and repeats `ETag` and `Cache-Control`.
+
+## 7. Repository sources, names, and commit availability
+
+| Source | `name` | Identity | Connect input |
+|---|---|---|---|
+| `github` | `owner/name` as on GitHub. The `repository.renamed` webhook and each sign-in update it. | `github.repositoryId` | `githubRepositoryId` from the candidates |
+| `local` | The name of a **direct child directory** of `APP_LOCAL_REPOSITORIES_DIR`: no `/`, no leading `.` | `local.directory` | `directory` from the candidates |
+
+- **Local repositories are an instance feature.** When `APP_LOCAL_REPOSITORIES_DIR` is set, every tenant of the instance may list and connect the repositories under it. The feature is meant for local and self-hosted runs. When the variable is unset or empty, the feature is off.
+- **Resolving a `repository` argument** in MCP tools and in `GET /api/v1/repositories?name=`:
+  1. A valid ULID is a repository ID.
+  2. A value that contains `/` is a GitHub name, compared case-insensitively.
+  3. Any other value is a local directory name, compared exactly.
+- **Uniqueness.** Names are unique per tenant: GitHub names always contain `/`, local names never do. A second connect of the same source identity returns the existing repository.
+- **Local directories.** The server resolves the directory with `realpath()`. Its parent must equal `realpath(APP_LOCAL_REPOSITORIES_DIR)`, so symlinks cannot escape the mount. Git commands for a local source run with `-c safe.directory=<realpath>`. The server never writes to the source directory.
+- **Server clone.** Every repository has one bare clone at `<data>/tenants/<tenantId>/repositories/<repositoryId>.git`. Two tenants that connect the same source get two clones.
+- **Fetch.** A fetch from the source takes `+refs/heads/*:refs/heads/*` and `+refs/tags/*:refs/tags/*` with `--prune`, never `--mirror`. It also fetches each pending linked SHA by ID into `refs/holistic-review/commits/<sha>`. The server ignores failures per SHA.
+- **Pin refs.** At review start the server writes `refs/holistic-review/reviews/<reviewId>` to the review commit. When a linked commit is present in the clone, the server writes `refs/holistic-review/commits/<sha>`. The fetch refspecs never touch the `refs/holistic-review/` namespace, so force-pushes, pruning, and `git gc` cannot remove reviewed or linked commits. Deleting a review, unlinking the last link of a commit, or deleting the repository data deletes the matching pin refs.
+- **Available.** A commit is *available* when `git cat-file -e <sha>^{commit}` succeeds in the clone. For a local source, a local commit becomes available at the next fetch, without a push. For a GitHub source, the commit must be pushed.
+- **When fetches run.** See [webhooks-and-live-updates.md](webhooks-and-live-updates.md#2-fetches-and-commit-availability).
+
+## 8. Versioning and compatibility
+
+1. **Version identifiers.** REST uses `/api/v1`. MCP is one endpoint, `/_mcp`. Its contract version is the major number of `serverInfo.version`, which is `1.x.y`. Schemas are served at `/docs/schemas/v1/`. One v1 contract covers REST, MCP, the schemas, the live-update payloads, and `SKILL.md`.
+2. **Allowed within v1:**
+   - new endpoints and tools;
+   - new optional input fields or query parameters whose absence keeps the old behaviour;
+   - new response properties;
+   - new values in **open** sets: `Action`, `EventType`, `ThreadEntryType`, `ErrorCode`, `SymbolKind`, `language`, and the live-update `type`;
+   - new error codes for new situations;
+   - relaxed validation, for example higher limits;
+   - new headers.
+3. **Breaking changes, which need v2:**
+   - removing or renaming an endpoint, tool, parameter, or property;
+   - changing a type, format, or nullability. Making a non-null field nullable is breaking.
+   - a new required input;
+   - tighter validation;
+   - new values in **closed** sets: `RequestStatus`, `Awaiting`, `Resolution`, `AnchorKind`, `ActorKind`, `CommitLinkState`, `LocationStatus`, `OrphanReason`, `RepositorySource`, `RepositoryAccess`, `ReviewState`, `IndexState`, `sync.state`, token `scope` and `state`, commit file `status`, tree entry `type`;
+   - a different HTTP status or error code for an existing situation;
+   - changed defaults, sort orders, or pagination style;
+   - a changed meaning of an existing field.
+4. **Clients must:**
+   - ignore unknown properties;
+   - show unknown open-set values generically;
+   - treat unknown error codes by HTTP status class, and in MCP as a generic failure;
+   - not parse `message`;
+   - pass cursors back unchanged;
+   - follow `nextCursor` and `hasMore`.
+5. **The server must:**
+   - emit every schema property;
+   - never add `additionalProperties: false` to response schemas;
+   - validate every response in tests: REST responses against the files in [schemas/](schemas/), and MCP `structuredContent` against the `outputSchema` of each tool, both with `opis/json-schema` 2.6.0.
+6. **Deprecation:**
+   - The `/docs` changelog announces it.
+   - Deprecated REST endpoints send `Deprecation: @<unix time>` as in RFC 9745, `Sunset: <HTTP-date>` as in RFC 8594, and `Link: <https://<host>/docs/<page>>; rel="deprecation"`.
+   - The description of a deprecated MCP tool starts with `Deprecated: use <tool>.`
+   - A v2 runs next to v1 for at least 90 days.
+7. **SKILL.md** carries `metadata: {api: "v1"}` in its frontmatter and names only v1 tools. Its source is `docs/user/skill/SKILL.md`, and `GET /docs/skill/SKILL.md` serves it raw. The PHPUnit skill test fails when the skill names a tool that does not exist.
+8. **Stored events** are never rewritten. New payload fields are additive, and readers use a default for a missing field. The API `Event` is a derived representation, not the stored payload.
+9. **MCP protocol revisions**, 2025-11-25 with the handshake and 2026-07-28 stateless, are independent of the API version. Every output schema keeps an object root, which the handshake era requires.
+
+## 9. Contract tests
+
+- Every REST response in the functional tests is validated against its schema with `opis/json-schema` 2.6.0.
+- Every MCP `structuredContent` is validated against the `outputSchema` of its tool.
+- Every fixture in [section 11](#11-fixtures) is validated against the schema that the table names. The TypeScript types of the web UI are checked against the same fixture files.
+- A contract test runs each use case through REST and MCP and compares the payloads. See [mcp.md](mcp.md#6-mcp-and-rest).
+
+## 10. Schemas
+
+- Every file uses `"$schema": "https://json-schema.org/draft/2020-12/schema"` and a 2-space indent.
+- `$id` has the base `https://holistic-review.invalid/schemas/v1/`. The `.invalid` top-level domain of RFC 2606 makes it a stable identifier that never resolves.
+- The tests register an `opis/json-schema` loader that maps this prefix to `docs/specs/schemas/`: `$validator->resolver()->registerPrefix('https://holistic-review.invalid/schemas/v1/', $schemaDir)`.
+- `GET /docs/schemas/v1/{file}.schema.json` serves the same files as `application/schema+json`.
+- Response schemas never set `additionalProperties: false`.
+- Patterns use only syntax that both ECMA-262 and PCRE accept, for example `\x00` and not `\u0000`.
+
+| File | `$id` | Content |
+|---|---|---|
+| [common.schema.json](schemas/common.schema.json) | `https://holistic-review.invalid/schemas/v1/common.schema.json` | `$defs` only: IDs, SHAs, paths, times, cursors, and every enum |
+| [error.schema.json](schemas/error.schema.json) | `https://holistic-review.invalid/schemas/v1/error.schema.json` | Error body and the `details` shape per code |
+| [actor.schema.json](schemas/actor.schema.json) | `https://holistic-review.invalid/schemas/v1/actor.schema.json` | Actor: user, agent, or system |
+| [anchor.schema.json](schemas/anchor.schema.json) | `https://holistic-review.invalid/schemas/v1/anchor.schema.json` | Anchor, plus `LineRange`, `SymbolRef`, `ContentSnapshot`, `AnchorSummary`, `AnchorInput` |
+| [location.schema.json](schemas/location.schema.json) | `https://holistic-review.invalid/schemas/v1/location.schema.json` | Location of an anchor at another commit |
+| [repository.schema.json](schemas/repository.schema.json) | `https://holistic-review.invalid/schemas/v1/repository.schema.json` | Repository, plus `LocalDirectory` and `Sync` |
+| [repository-candidate.schema.json](schemas/repository-candidate.schema.json) | `https://holistic-review.invalid/schemas/v1/repository-candidate.schema.json` | A repository that the user can connect |
+| [review.schema.json](schemas/review.schema.json) | `https://holistic-review.invalid/schemas/v1/review.schema.json` | Review, plus `IndexStatus` and `RequestCounts` |
+| [request-summary.schema.json](schemas/request-summary.schema.json) | `https://holistic-review.invalid/schemas/v1/request-summary.schema.json` | RequestSummary for lists and command results |
+| [request.schema.json](schemas/request.schema.json) | `https://holistic-review.invalid/schemas/v1/request.schema.json` | Request in full, plus `CodeExcerpt` |
+| [thread-entry.schema.json](schemas/thread-entry.schema.json) | `https://holistic-review.invalid/schemas/v1/thread-entry.schema.json` | One entry of a request thread |
+| [event.schema.json](schemas/event.schema.json) | `https://holistic-review.invalid/schemas/v1/event.schema.json` | One event of the review event log |
+| [commit-link.schema.json](schemas/commit-link.schema.json) | `https://holistic-review.invalid/schemas/v1/commit-link.schema.json` | A commit linked to a request |
+| [commit-diff.schema.json](schemas/commit-diff.schema.json) | `https://holistic-review.invalid/schemas/v1/commit-diff.schema.json` | Diff data of one linked commit, plus `CommitDiffFile` |
+| [tree-entry.schema.json](schemas/tree-entry.schema.json) | `https://holistic-review.invalid/schemas/v1/tree-entry.schema.json` | One entry of a tree listing |
+| [file-content.schema.json](schemas/file-content.schema.json) | `https://holistic-review.invalid/schemas/v1/file-content.schema.json` | File metadata at the review commit |
+| [symbol.schema.json](schemas/symbol.schema.json) | `https://holistic-review.invalid/schemas/v1/symbol.schema.json` | One PHP symbol of a file |
+| [draft.schema.json](schemas/draft.schema.json) | `https://holistic-review.invalid/schemas/v1/draft.schema.json` | A draft of the pending batch |
+| [batch-submission.schema.json](schemas/batch-submission.schema.json) | `https://holistic-review.invalid/schemas/v1/batch-submission.schema.json` | Result of a batch submission |
+| [api-token.schema.json](schemas/api-token.schema.json) | `https://holistic-review.invalid/schemas/v1/api-token.schema.json` | ApiToken, plus `TokenName` and `ApiTokenWithSecret` |
+| [updates-page.schema.json](schemas/updates-page.schema.json) | `https://holistic-review.invalid/schemas/v1/updates-page.schema.json` | Result of the updates endpoint and `get_updates`, plus `UpdatedRequest` |
+| [request-command-result.schema.json](schemas/request-command-result.schema.json) | `https://holistic-review.invalid/schemas/v1/request-command-result.schema.json` | Result of a request command |
+| [link-commits-result.schema.json](schemas/link-commits-result.schema.json) | `https://holistic-review.invalid/schemas/v1/link-commits-result.schema.json` | Result of `link_commits` |
+| [me.schema.json](schemas/me.schema.json) | `https://holistic-review.invalid/schemas/v1/me.schema.json` | The caller, the tenant, the features, and the links |
+| [lists.schema.json](schemas/lists.schema.json) | `https://holistic-review.invalid/schemas/v1/lists.schema.json` | `$defs` only: every page and list, and `MercureAuthorization` |
+| [inputs.schema.json](schemas/inputs.schema.json) | `https://holistic-review.invalid/schemas/v1/inputs.schema.json` | `$defs` only: every REST request body |
+| [live-update.schema.json](schemas/live-update.schema.json) | `https://holistic-review.invalid/schemas/v1/live-update.schema.json` | Data of one Mercure update, IDs only |
+
+## 11. Fixtures
+
+- A fixture is a complete, realistic document. Its name is `<schema>.<case>.json`, where `<schema>` is the base name of its schema file.
+- Most fixtures tell one story: the user reviews `acme/billing` at commit `79f8595a4c1e`, opens two requests, and the agent `claude-code laptop` works on them. The others show a closed review, other token states, and a local sign-in.
+- Every fixture must validate against the schema in the table. Every inline JSON example in these specification files that names a fixture must equal that fixture.
+
+| Fixture | Schema | Used by |
+|---|---|---|
+| [api-token.with-secret.json](fixtures/api-token.with-secret.json) | `api-token.schema.json#/$defs/ApiTokenWithSecret` | T2 |
+| [batch-submission.submitted.json](fixtures/batch-submission.submitted.json) | `batch-submission.schema.json` | D5 |
+| [commit-diff.modified.json](fixtures/commit-diff.modified.json) | `commit-diff.schema.json` | Q9 |
+| [draft.new-request.json](fixtures/draft.new-request.json) | `draft.schema.json` | D2, D3 |
+| [draft.reply.json](fixtures/draft.reply.json) | `draft.schema.json` | D2, D3 |
+| [error.commit-not-found.json](fixtures/error.commit-not-found.json) | `error.schema.json` | V1, Q3, `get_request` |
+| [error.commits-not-available.json](fixtures/error.commits-not-available.json) | `error.schema.json` | Q9, Q10, `mark_ready_for_review` |
+| [error.forbidden.json](fixtures/error.forbidden.json) | `error.schema.json` | Any `S`-only endpoint called with a token |
+| [error.internal-error.json](fixtures/error.internal-error.json) | `error.schema.json` | Any endpoint and tool |
+| [error.invalid-input-method.json](fixtures/error.invalid-input-method.json) | `error.schema.json` | Any path with a wrong method, 405 |
+| [error.invalid-input.json](fixtures/error.invalid-input.json) | `error.schema.json` | Q11, `mark_wont_do` |
+| [error.invalid-transition.json](fixtures/error.invalid-transition.json) | `error.schema.json` | Q5, `claim_request` |
+| [error.not-found.json](fixtures/error.not-found.json) | `error.schema.json` | Any invisible ID |
+| [error.repository-unavailable.json](fixtures/error.repository-unavailable.json) | `error.schema.json` | R5, V1, V6 to V9, Q2, Q3, Q9, Q10 |
+| [error.review-closed.json](fixtures/error.review-closed.json) | `error.schema.json` | Writes on a closed review |
+| [error.unauthorized.json](fixtures/error.unauthorized.json) | `error.schema.json` | Any endpoint, the MCP transport |
+| [file-content.php.json](fixtures/file-content.php.json) | `file-content.schema.json` | V7 |
+| [inputs.close-review.json](fixtures/inputs.close-review.json) | `inputs.schema.json#/$defs/CloseReviewInput` | V4 |
+| [inputs.comment.json](fixtures/inputs.comment.json) | `inputs.schema.json#/$defs/CommentInput` | Q4 |
+| [inputs.connect-github.json](fixtures/inputs.connect-github.json) | `inputs.schema.json#/$defs/ConnectRepositoryInput` | R3 |
+| [inputs.connect-local.json](fixtures/inputs.connect-local.json) | `inputs.schema.json#/$defs/ConnectRepositoryInput` | R3 |
+| [inputs.create-draft-new-request.json](fixtures/inputs.create-draft-new-request.json) | `inputs.schema.json#/$defs/CreateDraftInput` | D2 |
+| [inputs.create-draft-reply.json](fixtures/inputs.create-draft-reply.json) | `inputs.schema.json#/$defs/CreateDraftInput` | D2 |
+| [inputs.create-token.json](fixtures/inputs.create-token.json) | `inputs.schema.json#/$defs/CreateTokenInput` | T2 |
+| [inputs.link-commits.json](fixtures/inputs.link-commits.json) | `inputs.schema.json#/$defs/LinkCommitsInput` | Q7 |
+| [inputs.open-request.json](fixtures/inputs.open-request.json) | `inputs.schema.json#/$defs/OpenRequestInput` | Q2 |
+| [inputs.ready.json](fixtures/inputs.ready.json) | `inputs.schema.json#/$defs/RequiredNoteInput` | Q10, Q13 |
+| [inputs.release.json](fixtures/inputs.release.json) | `inputs.schema.json#/$defs/OptionalNoteInput` | Q6, Q12 |
+| [inputs.start-review.json](fixtures/inputs.start-review.json) | `inputs.schema.json#/$defs/StartReviewInput` | V1 |
+| [inputs.submit-drafts.json](fixtures/inputs.submit-drafts.json) | `inputs.schema.json#/$defs/SubmitDraftsInput` | D5 |
+| [inputs.update-draft.json](fixtures/inputs.update-draft.json) | `inputs.schema.json#/$defs/UpdateDraftInput` | D3 |
+| [inputs.viewed-file.json](fixtures/inputs.viewed-file.json) | `inputs.schema.json#/$defs/ViewedFileInput` | V12 |
+| [inputs.wont-do.json](fixtures/inputs.wont-do.json) | `inputs.schema.json#/$defs/WontDoInput` | Q11 |
+| [link-commits-result.available.json](fixtures/link-commits-result.available.json) | `link-commits-result.schema.json` | Q7, `link_commits` |
+| [link-commits-result.pending.json](fixtures/link-commits-result.pending.json) | `link-commits-result.schema.json` | Q7, `link_commits` |
+| [lists.candidate-list.json](fixtures/lists.candidate-list.json) | `lists.schema.json#/$defs/CandidateList` | R2 |
+| [lists.draft-list.json](fixtures/lists.draft-list.json) | `lists.schema.json#/$defs/DraftList` | D1 |
+| [lists.mercure-authorization.json](fixtures/lists.mercure-authorization.json) | `lists.schema.json#/$defs/MercureAuthorization` | A3 |
+| [lists.repository-page.json](fixtures/lists.repository-page.json) | `lists.schema.json#/$defs/RepositoryPage` | R1, `list_repositories` |
+| [lists.request-page.json](fixtures/lists.request-page.json) | `lists.schema.json#/$defs/RequestPage` | Q1, `list_requests` |
+| [lists.review-page.json](fixtures/lists.review-page.json) | `lists.schema.json#/$defs/ReviewPage` | V2, `list_reviews` |
+| [lists.symbol-list.json](fixtures/lists.symbol-list.json) | `lists.schema.json#/$defs/SymbolList` | V9 |
+| [lists.token-list.json](fixtures/lists.token-list.json) | `lists.schema.json#/$defs/TokenList` | T1 |
+| [lists.tree-listing.json](fixtures/lists.tree-listing.json) | `lists.schema.json#/$defs/TreeListing` | V6 |
+| [lists.viewed-files.json](fixtures/lists.viewed-files.json) | `lists.schema.json#/$defs/ViewedFiles` | V11, V12 |
+| [live-update.candidates-changed.json](fixtures/live-update.candidates-changed.json) | `live-update.schema.json` | Repositories topic |
+| [live-update.events-batch.json](fixtures/live-update.events-batch.json) | `live-update.schema.json` | Review topic |
+| [live-update.events.json](fixtures/live-update.events.json) | `live-update.schema.json` | Review topic |
+| [live-update.index.json](fixtures/live-update.index.json) | `live-update.schema.json` | Review topic |
+| [live-update.outdated.json](fixtures/live-update.outdated.json) | `live-update.schema.json` | Review topic |
+| [live-update.repository-deleted.json](fixtures/live-update.repository-deleted.json) | `live-update.schema.json` | Repositories topic |
+| [live-update.repository.json](fixtures/live-update.repository.json) | `live-update.schema.json` | Repositories topic |
+| [me.agent.json](fixtures/me.agent.json) | `me.schema.json` | A1 with a scoped token |
+| [me.local-user.json](fixtures/me.local-user.json) | `me.schema.json` | A1 with a local sign-in session |
+| [repository.github-cloning.json](fixtures/repository.github-cloning.json) | `repository.schema.json` | R3, R4, R5 |
+| [repository.local-idle.json](fixtures/repository.local-idle.json) | `repository.schema.json` | R3, R4, R5 |
+| [request-command-result.claim.json](fixtures/request-command-result.claim.json) | `request-command-result.schema.json` | Q5, `claim_request` |
+| [request-command-result.question.json](fixtures/request-command-result.question.json) | `request-command-result.schema.json` | Q4, `reply_to_request` |
+| [request-command-result.ready.json](fixtures/request-command-result.ready.json) | `request-command-result.schema.json` | Q10, `mark_ready_for_review` |
+| [request-command-result.release.json](fixtures/request-command-result.release.json) | `request-command-result.schema.json` | Q6, `release_request` |
+| [request.in-progress.json](fixtures/request.in-progress.json) | `request.schema.json` | Q3 with `at`, `get_request` |
+| [request.opened-range.json](fixtures/request.opened-range.json) | `request.schema.json` | Q2 |
+| [request.with-excerpt.json](fixtures/request.with-excerpt.json) | `request.schema.json` | Q3 with `context`, `get_request` |
+| [review.closed.json](fixtures/review.closed.json) | `review.schema.json` | V3, V4 |
+| [review.index-status.json](fixtures/review.index-status.json) | `review.schema.json#/$defs/IndexStatus` | V5 |
+| [review.open.json](fixtures/review.open.json) | `review.schema.json` | V1, V3 |
+| [updates-page.cursor.json](fixtures/updates-page.cursor.json) | `updates-page.schema.json` | V10 with a cursor, `get_updates` |
+| [updates-page.first-call.json](fixtures/updates-page.first-call.json) | `updates-page.schema.json` | V10 without a cursor, `get_updates` |

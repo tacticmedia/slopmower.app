@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "forbidden",
+    "message": "API tokens cannot call this endpoint.",
+    "details": null
+  }
+}

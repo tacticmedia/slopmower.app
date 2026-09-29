@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/actor.schema.json",
+  "title": "Actor",
+  "type": "object",
+  "required": ["kind", "userId", "agentName", "name", "avatarUrl"],
+  "properties": {
+    "kind": {
+      "$ref": "common.schema.json#/$defs/ActorKind"
+    },
+    "userId": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The user; for an agent, the user it acts for."
+    },
+    "agentName": {
+      "type": ["string", "null"],
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "API token name. Agents only."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Display name: login for users, agentName for agents, 'Holistic Review' for system."
+    },
+    "avatarUrl": {
+      "type": ["string", "null"],
+      "format": "uri",
+      "description": "Users only."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "user"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "userId": {
+            "$ref": "common.schema.json#/$defs/Ulid"
+          },
+          "agentName": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "agent"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "userId": {
+            "$ref": "common.schema.json#/$defs/Ulid"
+          },
+          "agentName": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "system"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "userId": {
+            "type": "null"
+          },
+          "agentName": {
+            "type": "null"
+          },
+          "avatarUrl": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
+}

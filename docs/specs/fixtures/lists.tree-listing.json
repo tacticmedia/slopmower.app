@@ -1,0 +1,25 @@
+{
+  "reviewId": "01K6B3A1B2C3D4E5F6G7H8J9KM",
+  "commitSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091",
+  "dir": "src/Billing",
+  "recursive": false,
+  "items": [
+    {
+      "path": "src/Billing/Tax",
+      "name": "Tax",
+      "type": "directory",
+      "mode": "040000",
+      "sha": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+      "sizeBytes": null
+    },
+    {
+      "path": "src/Billing/InvoiceTotals.php",
+      "name": "InvoiceTotals.php",
+      "type": "file",
+      "mode": "100644",
+      "sha": "3b18e512dba79e4c8300dd08aeb37f8e728b8dad",
+      "sizeBytes": 2210
+    }
+  ],
+  "nextCursor": null
+}

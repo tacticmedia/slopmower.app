@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/request.schema.json",
+  "title": "Request",
+  "description": "A request in full. Same fields as RequestSummary, with the full anchor and more.",
+  "type": "object",
+  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq", "body", "reviewState", "reviewCommitSha", "location", "excerpt", "thread", "commits", "allowedActions"],
+  "properties": {
+    "id": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "reviewId": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "repositoryId": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "status": {
+      "$ref": "common.schema.json#/$defs/RequestStatus"
+    },
+    "awaiting": {
+      "$ref": "common.schema.json#/$defs/Awaiting"
+    },
+    "resolution": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Resolution"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "closed": {
+      "type": "boolean"
+    },
+    "anchor": {
+      "$ref": "anchor.schema.json"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "author": {
+      "$ref": "actor.schema.json"
+    },
+    "claimedBy": {
+      "anyOf": [
+        {
+          "$ref": "actor.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "claimedAt": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "commentCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "commitCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "pendingCommitCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "outdated": {
+      "type": ["boolean", "null"]
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/DateTime"
+    },
+    "updatedAt": {
+      "$ref": "common.schema.json#/$defs/DateTime"
+    },
+    "lastEventSeq": {
+      "$ref": "common.schema.json#/$defs/EventSeq"
+    },
+    "body": {
+      "$ref": "common.schema.json#/$defs/Markdown"
+    },
+    "reviewState": {
+      "$ref": "common.schema.json#/$defs/ReviewState"
+    },
+    "reviewCommitSha": {
+      "$ref": "common.schema.json#/$defs/CommitSha"
+    },
+    "location": {
+      "anyOf": [
+        {
+          "$ref": "location.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "At `at` when given, else at the default-branch head."
+    },
+    "excerpt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodeExcerpt"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Only when `context` was given."
+    },
+    "thread": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "thread-entry.schema.json"
+      },
+      "description": "Ascending seq; starts with request.opened."
+    },
+    "commits": {
+      "type": "array",
+      "items": {
+        "$ref": "commit-link.schema.json"
+      }
+    },
+    "allowedActions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/Action"
+      },
+      "description": "For the caller. Empty when the review is closed."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "in_progress"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "claimedBy": {
+            "$ref": "actor.schema.json"
+          },
+          "claimedAt": {
+            "$ref": "common.schema.json#/$defs/DateTime"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "claimedBy": {
+            "type": "null"
+          },
+          "claimedAt": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "CodeExcerpt": {
+      "type": "object",
+      "required": ["targetSha", "path", "startLine", "endLine", "lines", "truncated"],
+      "properties": {
+        "targetSha": {
+          "$ref": "common.schema.json#/$defs/CommitSha"
+        },
+        "path": {
+          "$ref": "common.schema.json#/$defs/RepoPath"
+        },
+        "startLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "lines": {
+          "type": "array",
+          "maxItems": 400,
+          "items": {
+            "type": "string"
+          },
+          "description": "Raw lines startLine to endLine, without line endings."
+        },
+        "truncated": {
+          "type": "boolean",
+          "description": "True when cut at 400 lines."
+        }
+      }
+    }
+  }
+}

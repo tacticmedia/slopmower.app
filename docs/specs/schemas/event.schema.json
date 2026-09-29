@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/event.schema.json",
+  "title": "Event",
+  "description": "An entry of the review event log as returned by get_updates, the updates endpoint, and command results.",
+  "type": "object",
+  "required": ["seq", "eventId", "type", "reviewId", "requestId", "requestIds", "actor", "occurredAt", "body", "commentId", "question", "batchId", "commitSha", "statusAfter"],
+  "properties": {
+    "seq": {
+      "$ref": "common.schema.json#/$defs/EventSeq"
+    },
+    "eventId": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "type": {
+      "$ref": "common.schema.json#/$defs/EventType"
+    },
+    "reviewId": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "requestId": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Set for request.* and commit.unlinked."
+    },
+    "requestIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/Ulid"
+      },
+      "description": "Every request the event concerns: [requestId] for request events; covered requests for commit.linked and commit.found; opened and commented requests for batch.submitted; [] for review events."
+    },
+    "actor": {
+      "$ref": "actor.schema.json"
+    },
+    "occurredAt": {
+      "$ref": "common.schema.json#/$defs/DateTime"
+    },
+    "body": {
+      "type": ["string", "null"],
+      "description": "As ThreadEntry.body; plus review.started: title; review.closed: note; batch.submitted: summary."
+    },
+    "commentId": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "question": {
+      "type": "boolean"
+    },
+    "batchId": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "commitSha": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/CommitSha"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "commit.* and review.started."
+    },
+    "statusAfter": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/RequestStatus"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Status of requestId after the event; null when requestId is null."
+    }
+  }
+}

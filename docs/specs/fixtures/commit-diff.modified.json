@@ -1,0 +1,53 @@
+{
+  "requestId": "01K6B3P2A9QRSTVWXYZ0123456",
+  "commitSha": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+  "parentSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091",
+  "subject": "Use Money for invoice totals (01K6B3P2A9QRSTVWXYZ0123456)",
+  "message": "Use Money for invoice totals (01K6B3P2A9QRSTVWXYZ0123456)\n",
+  "authorName": "Jan Klan",
+  "authorEmail": "jan@example.com",
+  "committedAt": "2026-09-29T07:44:10Z",
+  "location": {
+    "target": "linked_commit",
+    "targetSha": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+    "status": "changed",
+    "path": "src/Billing/InvoiceTotals.php",
+    "range": {
+      "startLine": 38,
+      "endLine": 51
+    },
+    "confidence": 0.58,
+    "reason": null
+  },
+  "files": [
+    {
+      "status": "modified",
+      "path": "src/Billing/InvoiceTotals.php",
+      "oldPath": null,
+      "oldBlobSha": "3b18e512dba79e4c8300dd08aeb37f8e728b8dad",
+      "newBlobSha": "9c2e4a1f0b3d5e7f8091a2b3c4d5e6f708192a3b",
+      "oldMode": "100644",
+      "newMode": "100644",
+      "additions": 6,
+      "deletions": 4,
+      "binary": false,
+      "tooLarge": false,
+      "touchesAnchor": true
+    },
+    {
+      "status": "added",
+      "path": "tests/Billing/InvoiceTotalsTest.php",
+      "oldPath": null,
+      "oldBlobSha": null,
+      "newBlobSha": "d4e5f60718293a4b5c6d7e8f9012345678a1b2c3",
+      "oldMode": null,
+      "newMode": "100644",
+      "additions": 41,
+      "deletions": 0,
+      "binary": false,
+      "tooLarge": false,
+      "touchesAnchor": false
+    }
+  ],
+  "truncated": false
+}

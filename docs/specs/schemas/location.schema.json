@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/location.schema.json",
+  "title": "Location",
+  "description": "Where the anchor is found at another commit. Computed and cached, never an event.",
+  "type": "object",
+  "required": ["target", "targetSha", "status", "path", "range", "confidence", "reason"],
+  "properties": {
+    "target": {
+      "enum": ["default_branch", "requested", "linked_commit"],
+      "description": "default_branch: head at the last fetch; requested: the `at` commit; linked_commit: in a commit diff."
+    },
+    "targetSha": {
+      "$ref": "common.schema.json#/$defs/CommitSha"
+    },
+    "status": {
+      "$ref": "common.schema.json#/$defs/LocationStatus"
+    },
+    "path": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/RepoPath"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "range": {
+      "anyOf": [
+        {
+          "$ref": "anchor.schema.json#/$defs/LineRange"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Null for file anchors and orphaned locations."
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "1 for exact and shifted, line similarity for changed, 0 for orphaned."
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/OrphanReason"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "orphaned"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "path": {
+            "type": "null"
+          },
+          "range": {
+            "type": "null"
+          },
+          "confidence": {
+            "const": 0
+          },
+          "reason": {
+            "$ref": "common.schema.json#/$defs/OrphanReason"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "path": {
+            "$ref": "common.schema.json#/$defs/RepoPath"
+          },
+          "reason": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": ["exact", "shifted"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "confidence": {
+            "const": 1
+          }
+        }
+      }
+    }
+  ]
+}

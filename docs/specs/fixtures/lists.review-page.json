@@ -1,0 +1,75 @@
+{
+  "repository": {
+    "id": "01K6B2Z0R3P0S1T2V3W4X5Y6Z7",
+    "source": "github",
+    "name": "acme/billing",
+    "github": {
+      "repositoryId": 812345,
+      "installationId": 5551,
+      "owner": "acme",
+      "private": true,
+      "htmlUrl": "https://github.com/acme/billing"
+    },
+    "local": null,
+    "defaultBranch": "main",
+    "access": "active",
+    "sync": {
+      "state": "idle",
+      "lastFetchedAt": "2026-09-29T07:31:00Z",
+      "lastError": null,
+      "defaultBranchHead": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091"
+    },
+    "openReviewCount": 1,
+    "createdAt": "2026-09-29T07:01:00Z"
+  },
+  "items": [
+    {
+      "id": "01K6B3A1B2C3D4E5F6G7H8J9KM",
+      "repositoryId": "01K6B2Z0R3P0S1T2V3W4X5Y6Z7",
+      "repositoryName": "acme/billing",
+      "title": "main @ 79f8595a4c1e",
+      "ref": "main",
+      "commitSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091",
+      "state": "open",
+      "startedBy": {
+        "kind": "user",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "agentName": null,
+        "name": "janklan",
+        "avatarUrl": "https://avatars.githubusercontent.com/u/1?v=4"
+      },
+      "createdAt": "2026-09-29T07:05:00Z",
+      "closedAt": null,
+      "closedBy": null,
+      "closeNote": null,
+      "index": {
+        "state": "ready",
+        "filesTotal": 1240,
+        "filesDone": 1240,
+        "symbolsTotal": 3318,
+        "startedAt": "2026-09-29T07:05:02Z",
+        "finishedAt": "2026-09-29T07:06:11Z",
+        "error": null
+      },
+      "counts": {
+        "total": 2,
+        "byStatus": {
+          "open": 2,
+          "in_progress": 0,
+          "ready_for_review": 0,
+          "verified": 0,
+          "reopened": 0,
+          "wont_do": 0
+        },
+        "byAwaiting": {
+          "agent": 2,
+          "user": 0,
+          "none": 0
+        },
+        "outdated": 0
+      },
+      "lastEventSeq": 1832
+    }
+  ],
+  "nextCursor": null
+}

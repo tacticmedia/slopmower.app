@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "commit_not_found",
+    "message": "Commit 4f2a9c1 is not in the server clone after a fetch.",
+    "details": {
+      "commit": "4f2a9c1"
+    }
+  }
+}

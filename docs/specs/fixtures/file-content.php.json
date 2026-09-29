@@ -1,0 +1,16 @@
+{
+  "reviewId": "01K6B3A1B2C3D4E5F6G7H8J9KM",
+  "commitSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091",
+  "path": "src/Billing/InvoiceTotals.php",
+  "blobSha": "3b18e512dba79e4c8300dd08aeb37f8e728b8dad",
+  "mode": "100644",
+  "type": "file",
+  "sizeBytes": 2210,
+  "language": "php",
+  "binary": false,
+  "tooLarge": false,
+  "renderable": true,
+  "lineCount": 74,
+  "symlinkTarget": null,
+  "rawUrl": "/api/v1/reviews/01K6B3A1B2C3D4E5F6G7H8J9KM/raw?path=src%2FBilling%2FInvoiceTotals.php"
+}

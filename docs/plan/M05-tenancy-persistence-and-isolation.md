@@ -1,0 +1,74 @@
+# M05 Tenancy persistence and isolation
+
+Workflow, conventions, and status: [README](README.md).
+
+## Goal
+
+Persist `Tenant` and `User`. Add a tenant context that fails closed, and a Doctrine SQL filter that scopes every ORM query to the tenant.
+
+## Depends on
+
+M01, M02.
+
+## In scope
+
+- `Tenant` entity: `id`, `createdAt`, `eventSeq`.
+- `User` entity: `id`, `tenantId`, `signInMethod` with the values `github` and `local`, `githubUserId` as a nullable unique integer, `login`, `name` or null, `avatarUrl` or null, `createdAt`, `lastSignInAt`. Unique `(sign_in_method, login)`. `User` and `Tenant` are separate tables. There is one user per tenant.
+- `TenantOwned` interface.
+- `TenantSqlFilter`: enabled by default in `config/packages/doctrine.yaml`. A missing filter parameter throws.
+- `TenantContext`: implements `ResetInterface`, so a worker request never inherits a tenant.
+- `TenantFilter::suspend(callable)`: the only way to run tenantless ORM queries.
+- Test support:
+  - the `ResetDatabase` trait: `TRUNCATE ... RESTART IDENTITY CASCADE` on every table except `doctrine_migration_versions`, decision P6;
+  - a `TenantFixtures` builder.
+- One database role, decision P13. No row-level security, no grants, no `SET LOCAL`.
+
+## Out of scope
+
+- Sign-in.
+
+## Files (representative)
+
+- `src/Entity/Tenant.php`, `src/Entity/User.php`, `src/Repository/*.php`.
+- `src/Tenancy/TenantOwned.php`, `TenantSqlFilter.php`, `TenantContext.php`, `TenantFilter.php`.
+- `config/packages/doctrine.yaml`, `migrations/Version*.php`.
+- `tests/Support/Database/ResetDatabase.php`, `tests/Support/Fixtures/TenantFixtures.php`, `tests/Functional/Tenancy/*Test.php`.
+
+## Tasks (ordered)
+
+1. Write the entities, the filter, the context, and `TenantFilter`.
+2. `TenantFilter::suspend()` re-enables the filter in a `finally` block.
+3. Run `make migration`, then `make db-test`.
+4. Write the test support.
+
+## Acceptance tests
+
+All are functional tests.
+
+- **F `TenantSqlFilterTest`** proves that the filter scopes ORM reads.
+  - "With context A, findAll() returns only A's rows"
+  - "With context A, find() of a B ID returns null"
+- **F `FailClosedTest`** proves that a missing context never leaks data.
+  - "A query without a tenant context throws"
+- **F `TenantFilterSuspendTest`** proves the one tenantless path.
+  - "Inside the callable, results cross tenants"
+  - "The filter is on again after the callable, also when the callable throws"
+- **F `TenantContextResetTest`** proves that workers do not carry a tenant over.
+  - "The services resetter clears the tenant context"
+- **F `EntityTenancyConventionTest`** proves that every new entity is tenant scoped. It keeps an explicit exception list, which holds only `Tenant` at this point.
+  - "Every entity except the listed exceptions implements TenantOwned and maps a non-null tenant_id"
+
+## Verification commands
+
+```sh
+make migration
+make db-test
+make test
+make lint
+make stan
+make check
+```
+
+## Done
+
+`TenantFilter::suspend()` is the only tenantless path for ORM queries.

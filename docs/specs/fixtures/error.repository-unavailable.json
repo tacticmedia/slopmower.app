@@ -1,0 +1,10 @@
+{
+  "error": {
+    "code": "repository_unavailable",
+    "message": "Repository acme/billing is still cloning.",
+    "details": {
+      "repositoryId": "01K6B2Z0R3P0S1T2V3W4X5Y6Z7",
+      "reason": "cloning"
+    }
+  }
+}

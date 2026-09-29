@@ -1,0 +1,84 @@
+{
+  "id": "01K6B3P2A9QRSTVWXYZ0123457",
+  "reviewId": "01K6B3A1B2C3D4E5F6G7H8J9KM",
+  "repositoryId": "01K6B2Z0R3P0S1T2V3W4X5Y6Z7",
+  "status": "open",
+  "awaiting": "agent",
+  "resolution": null,
+  "closed": false,
+  "anchor": {
+    "kind": "range",
+    "path": "src/Billing/InvoiceTotals.php",
+    "commitSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091",
+    "blobSha": "3b18e512dba79e4c8300dd08aeb37f8e728b8dad",
+    "range": {
+      "startLine": 52,
+      "endLine": 58
+    },
+    "symbol": null,
+    "snapshot": {
+      "lines": ["    {", "        $tax = $this->total() * $this->taxRate;", "        $cents = $tax * 100;", "        $rounded = round($cents, 0, PHP_ROUND_HALF_EVEN);", "", "        return $rounded / 100;", "    }"],
+      "truncated": false,
+      "lineCount": 7,
+      "before": ["    }", "", "    public function tax(): float"],
+      "after": ["", "    public function lines(): array", "    {"],
+      "normalizedHash": "sha256:77dacc4cb2626e75c44ae4de099257b95eb83ba738ec08fdec458720fb1fa4cf"
+    }
+  },
+  "summary": "Extract the tax rounding into `TaxRounding`.",
+  "author": {
+    "kind": "user",
+    "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+    "agentName": null,
+    "name": "janklan",
+    "avatarUrl": "https://avatars.githubusercontent.com/u/1?v=4"
+  },
+  "claimedBy": null,
+  "claimedAt": null,
+  "commentCount": 0,
+  "commitCount": 0,
+  "pendingCommitCount": 0,
+  "outdated": false,
+  "createdAt": "2026-09-29T07:10:00Z",
+  "updatedAt": "2026-09-29T07:10:00Z",
+  "lastEventSeq": 1810,
+  "body": "Extract the tax rounding into `TaxRounding`.",
+  "reviewState": "open",
+  "reviewCommitSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091",
+  "location": {
+    "target": "default_branch",
+    "targetSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091",
+    "status": "exact",
+    "path": "src/Billing/InvoiceTotals.php",
+    "range": {
+      "startLine": 52,
+      "endLine": 58
+    },
+    "confidence": 1,
+    "reason": null
+  },
+  "excerpt": null,
+  "thread": [
+    {
+      "seq": 1810,
+      "eventId": "01K6C2EVT00000000000001810",
+      "type": "request.opened",
+      "actor": {
+        "kind": "user",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "agentName": null,
+        "name": "janklan",
+        "avatarUrl": "https://avatars.githubusercontent.com/u/1?v=4"
+      },
+      "occurredAt": "2026-09-29T07:10:00Z",
+      "body": "Extract the tax rounding into `TaxRounding`.",
+      "commentId": null,
+      "question": false,
+      "batchId": null,
+      "commitSha": null,
+      "statusAfter": "open"
+    }
+  ],
+  "commits": [],
+  "allowedActions": ["reply", "mark_wont_do"]
+}

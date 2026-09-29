@@ -1,0 +1,3 @@
+{
+  "body": "Use `Money` instead of `float` for totals and taxes."
+}

@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "invalid_input",
+    "message": "Method PATCH is not allowed. Allowed methods: GET, POST.",
+    "details": null
+  }
+}

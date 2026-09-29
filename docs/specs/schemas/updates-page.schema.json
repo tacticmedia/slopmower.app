@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/updates-page.schema.json",
+  "title": "UpdatesPage",
+  "type": "object",
+  "required": ["reviewId", "reviewState", "cursor", "hasMore", "awaitingTotal", "requests", "reviewEvents"],
+  "properties": {
+    "reviewId": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "reviewState": {
+      "$ref": "common.schema.json#/$defs/ReviewState"
+    },
+    "cursor": {
+      "$ref": "common.schema.json#/$defs/EventSeq",
+      "description": "Pass as cursor next time."
+    },
+    "hasMore": {
+      "type": "boolean",
+      "description": "More events wait: call again at once with cursor."
+    },
+    "awaitingTotal": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "requests": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/UpdatedRequest"
+      }
+    },
+    "reviewEvents": {
+      "type": "array",
+      "items": {
+        "$ref": "event.schema.json"
+      },
+      "description": "review.started, review.closed, batch.submitted."
+    }
+  },
+  "$defs": {
+    "UpdatedRequest": {
+      "type": "object",
+      "required": ["request", "newEvents", "omittedEvents"],
+      "properties": {
+        "request": {
+          "$ref": "request-summary.schema.json"
+        },
+        "newEvents": {
+          "type": "array",
+          "items": {
+            "$ref": "event.schema.json"
+          }
+        },
+        "omittedEvents": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Older unseen events left out in null-cursor mode. Read them with get_request."
+        }
+      }
+    }
+  }
+}

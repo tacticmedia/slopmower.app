@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/live-update.schema.json",
+  "title": "LiveUpdate",
+  "description": "Data of one Mercure update. It carries IDs only: the browser reloads data through REST. Clients ignore unknown types.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/EventsUpdate"
+    },
+    {
+      "$ref": "#/$defs/OutdatedUpdate"
+    },
+    {
+      "$ref": "#/$defs/IndexUpdate"
+    },
+    {
+      "$ref": "#/$defs/RepositoryUpdate"
+    },
+    {
+      "$ref": "#/$defs/RepositoryDeletedUpdate"
+    },
+    {
+      "$ref": "#/$defs/CandidatesChangedUpdate"
+    }
+  ],
+  "$defs": {
+    "EventsUpdate": {
+      "type": "object",
+      "required": ["type", "reviewId", "seq", "requestIds"],
+      "properties": {
+        "type": {
+          "const": "events"
+        },
+        "reviewId": {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        "seq": {
+          "$ref": "common.schema.json#/$defs/EventSeq",
+          "description": "seq of the last event that the transaction wrote."
+        },
+        "requestIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/Ulid"
+          },
+          "description": "Every request that the events of the transaction concern; [] when only review events were written."
+        }
+      }
+    },
+    "OutdatedUpdate": {
+      "type": "object",
+      "required": ["type", "reviewId", "requestIds"],
+      "properties": {
+        "type": {
+          "const": "outdated"
+        },
+        "reviewId": {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        "requestIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/Ulid"
+          },
+          "description": "Requests whose outdated flag changed."
+        }
+      }
+    },
+    "IndexUpdate": {
+      "type": "object",
+      "required": ["type", "reviewId"],
+      "properties": {
+        "type": {
+          "const": "index"
+        },
+        "reviewId": {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        }
+      }
+    },
+    "RepositoryUpdate": {
+      "type": "object",
+      "required": ["type", "repositoryId"],
+      "properties": {
+        "type": {
+          "const": "repository"
+        },
+        "repositoryId": {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        }
+      }
+    },
+    "RepositoryDeletedUpdate": {
+      "type": "object",
+      "required": ["type", "repositoryId"],
+      "properties": {
+        "type": {
+          "const": "repository_deleted"
+        },
+        "repositoryId": {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        }
+      }
+    },
+    "CandidatesChangedUpdate": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "const": "candidates_changed"
+        }
+      }
+    }
+  }
+}

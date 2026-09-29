@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/commit-link.schema.json",
+  "title": "CommitLink",
+  "type": "object",
+  "required": ["commitSha", "state", "linkedBy", "linkedAt", "note", "foundAt", "subject", "committedAt", "otherRequestIds"],
+  "properties": {
+    "commitSha": {
+      "$ref": "common.schema.json#/$defs/CommitSha"
+    },
+    "state": {
+      "$ref": "common.schema.json#/$defs/CommitLinkState",
+      "description": "pending until the commit is in the server clone after a fetch from the source."
+    },
+    "linkedBy": {
+      "$ref": "actor.schema.json"
+    },
+    "linkedAt": {
+      "$ref": "common.schema.json#/$defs/DateTime"
+    },
+    "note": {
+      "type": ["string", "null"],
+      "maxLength": 65536
+    },
+    "foundAt": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "subject": {
+      "type": ["string", "null"],
+      "description": "First line of the commit message."
+    },
+    "committedAt": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "otherRequestIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/Ulid"
+      },
+      "description": "Other requests of the same review linked to this commit."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "pending"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "foundAt": {
+            "type": "null"
+          },
+          "subject": {
+            "type": "null"
+          },
+          "committedAt": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "foundAt": {
+            "$ref": "common.schema.json#/$defs/DateTime"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "committedAt": {
+            "$ref": "common.schema.json#/$defs/DateTime"
+          }
+        }
+      }
+    }
+  ]
+}

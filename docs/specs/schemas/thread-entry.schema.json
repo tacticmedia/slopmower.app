@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/thread-entry.schema.json",
+  "title": "ThreadEntry",
+  "description": "One event in a request's timeline: comments, status changes, commit links.",
+  "type": "object",
+  "required": ["seq", "eventId", "type", "actor", "occurredAt", "body", "commentId", "question", "batchId", "commitSha", "statusAfter"],
+  "properties": {
+    "seq": {
+      "$ref": "common.schema.json#/$defs/EventSeq"
+    },
+    "eventId": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "type": {
+      "$ref": "common.schema.json#/$defs/ThreadEntryType"
+    },
+    "actor": {
+      "$ref": "actor.schema.json"
+    },
+    "occurredAt": {
+      "$ref": "common.schema.json#/$defs/DateTime"
+    },
+    "body": {
+      "type": ["string", "null"],
+      "description": "opened: request body; commented: comment; released, ready_for_review, verified, reopened, commit.linked: note; wont_do: reason; else null."
+    },
+    "commentId": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "request.commented only."
+    },
+    "question": {
+      "type": "boolean",
+      "description": "True only for an agent comment that asks the user."
+    },
+    "batchId": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "commitSha": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/CommitSha"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "commit.* only."
+    },
+    "statusAfter": {
+      "$ref": "common.schema.json#/$defs/RequestStatus"
+    }
+  }
+}

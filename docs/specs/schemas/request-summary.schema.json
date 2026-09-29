@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/request-summary.schema.json",
+  "title": "RequestSummary",
+  "type": "object",
+  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq"],
+  "properties": {
+    "id": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "reviewId": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "repositoryId": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "status": {
+      "$ref": "common.schema.json#/$defs/RequestStatus"
+    },
+    "awaiting": {
+      "$ref": "common.schema.json#/$defs/Awaiting"
+    },
+    "resolution": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Resolution"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "closed": {
+      "type": "boolean",
+      "description": "verified, or wont_do set by the user."
+    },
+    "anchor": {
+      "$ref": "anchor.schema.json#/$defs/AnchorSummary"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "First non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS."
+    },
+    "author": {
+      "$ref": "actor.schema.json"
+    },
+    "claimedBy": {
+      "anyOf": [
+        {
+          "$ref": "actor.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "claimedAt": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "commentCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "commitCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "pendingCommitCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "outdated": {
+      "type": ["boolean", "null"],
+      "description": "Location at the default-branch head is changed or orphaned. Null until computed or when the clone is gone."
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/DateTime"
+    },
+    "updatedAt": {
+      "$ref": "common.schema.json#/$defs/DateTime"
+    },
+    "lastEventSeq": {
+      "$ref": "common.schema.json#/$defs/EventSeq"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "in_progress"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "claimedBy": {
+            "$ref": "actor.schema.json"
+          },
+          "claimedAt": {
+            "$ref": "common.schema.json#/$defs/DateTime"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "claimedBy": {
+            "type": "null"
+          },
+          "claimedAt": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
+}

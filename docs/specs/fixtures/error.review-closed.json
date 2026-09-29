@@ -1,0 +1,10 @@
+{
+  "error": {
+    "code": "review_closed",
+    "message": "Review 01K6A9Z8Y7X6W5V4T3S2R1Q0PN is closed.",
+    "details": {
+      "reviewId": "01K6A9Z8Y7X6W5V4T3S2R1Q0PN",
+      "closedAt": "2026-09-28T16:30:00Z"
+    }
+  }
+}

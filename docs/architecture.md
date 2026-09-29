@@ -1,0 +1,792 @@
+# Holistic Review: architecture
+
+Status: approved architecture, implementation not started. Date: 2026-09-29. The implementation follows the milestones in [docs/plan/README.md](plan/README.md).
+
+Holistic Review is a hosted, multi-tenant web application. A developer signs in, connects repositories, and reviews a full codebase at one pinned commit. A repository comes from the Holistic Review GitHub App, or from a local directory that the instance mounts read-only. The developer writes change requests on lines, line ranges, symbols, or files. The developer's coding agent runs next to the developer's local clone and connects to the application's MCP endpoint. The agent discusses a request in its thread, or does the work, links each commit to the requests that it covers, and marks requests ready for review. The developer verifies or reopens each request in the web UI.
+
+Related documents:
+
+- [Requirements](requirements.md): the problem, the principles, the functional requirements, the non-goals, and the standing rules.
+- [Specifications](specs/README.md): the REST API, the MCP server, webhooks and live updates, and the JSON Schemas. They are the source of truth for every contract.
+- [Implementation plan](plan/README.md): the milestones, the workflow, and the setup gotchas.
+- [Backlog](backlog/README.md): work outside the proof of concept.
+- [User documentation](user/index.md) and the [Agent Skill](user/skill/SKILL.md).
+- [Tool findings](architecture/tool-findings.md): Step 1, per tool, read from source.
+- [Spike results](architecture/spike-results.md): Principle B, per component, with requirement tables.
+- [Stack findings](architecture/stack-findings.md): MCP SDK, Agent Skills, versions, git plumbing.
+- Screenshots: [architecture/](architecture/). The spike code stays in the phase 1 scratch directory. It is not part of the repository.
+
+| Term | Meaning |
+|---|---|
+| Tenant | One developer account and all its data. A tenant never sees the data of another tenant. The proof of concept has one user per tenant. `User` and `Tenant` are separate tables. |
+| Instance | One deployment of Holistic Review with its own configuration |
+| Repository | A git repository that a tenant connected. Its source is a GitHub App installation or a local directory under `APP_LOCAL_REPOSITORIES_DIR`. |
+| Server clone | The bare clone that the server keeps for each repository and fetches from the source. A commit in it is available. |
+| Review | One review round of one repository, pinned to one revision: a commit SHA. Several open reviews of one repository are fully separate. |
+| Request | One change request, or feedback unit: a thread that asks for one change |
+| Batch | Draft requests and replies that the user submits together |
+| Anchor | Where a request points at the review commit |
+| Location | Where the anchor is found at another commit |
+| Actor | The user, an agent that acts for the user, or the system |
+
+## 1. Findings from Step 1
+
+| | Batch Review | CodeReview.json | difit | GitHub orphan-branch PR |
+|---|---|---|---|---|
+| Version read | `831d427`, 1.3.0 | `df806b5`, 0.0.2 | `82a765c`, 5.0.12 | Docs and schema, 2026-09 |
+| Storage | Process memory. JSON array and Markdown written on explicit save. No SHA, no lock, not atomic. | `.review/<name>.log.jsonl` append-only events, `.view.json` projection, `state.json` | Browser localStorage and server memory. Lost after a restart on another port. | GitHub PR review threads |
+| Data model | `Comment {id, file_path, line_start, line_end, reference, text, highlighted_text, region fields, created_at, outdated}` | `add_thread {id, file, range, snapshot, author, body, ts}`, `reply`, `resolve`, `reopen`, `edit_comment` | `DiffCommentThread {id, filePath, position {side, line}, codeSnapshot, messages[]}` | `PullRequestReviewThread {isResolved, isOutdated, path, line, originalLine, subjectType, comments}` |
+| Anchoring | Compare the text at the stored lines with the snapshot. No relocation. | Exact block at stored lines, else nearest exact block, else outdated. No whitespace tolerance, no git. | Snapshot compare inside one diff. No relocation. | Follows unchanged lines. A changed line makes the thread outdated with `line = null`. |
+| Lifecycle | None. Done means deleted. | `open`, `resolved`. No actor on resolve. | None. Resolve deletes the thread. | Resolved or unresolved, plus outdated. |
+| Agent interface | 20 MCP tools, REST, CLI with JSON on stdout. Reviewer skill only. | `SKILL.md` with `jq` reads and `>>` appends. No CLI, no MCP. | Copy-as-prompt `path:L40-L46`, CLI `comment get/add/resolve`. No MCP. | GraphQL, REST, official GitHub MCP server |
+| UI | React 18, Monaco from a CDN, comments as side-panel cards | VS Code Comments API | Own table renderer, Prism per line | The reference UX |
+| License | MIT | MIT | MIT | Not applicable |
+
+Reuse decisions:
+
+- **Batch Review:** ideas only. Keep the CLI output contract: one JSON document on stdout, progress on stderr, a non-zero exit code on error. Keep the JSON and Markdown export and the path check on every write. Do not copy the Python code, the memory-only storage, or the open CORS policy. Its claimed gaps: "no lifecycle" and "not GitHub-like" are correct. "Line-range anchors only" is partly wrong, because file and document-region anchors exist.
+- **CodeReview.json:** ideas only. Keep the event log with one pure reducer, "outdated" as a derived flag, and the nearest-match search as one fallback step. Do not copy positional comment IDs: they break after a git merge that changes the event order, and the study proved this. Do not let the agent write raw events.
+- **difit:** ideas only. It has no whole-file mode, and its components are internal to the app: 31 files and 4,258 lines with hardcoded API paths. Copying and adapting them is the same as writing our own viewer, which Principle B forbids. Keep the `path:Lx-Ly` location format and the index of viewed files.
+- **GitHub orphan-branch PR:** the UX reference and the state vocabulary, not the product. A PR shows at most 20,000 diff lines or 1 MB, and 300 to 3,000 files. The Symfony skeleton alone uses 66% of the line budget. All code must go to GitHub, and every agent commit needs `[skip ci]`. GitHub has only two thread states. Its resolution reasons ADDRESSED, WONT_FIX, and INVALID apply to Copilot threads only.
+
+What the design takes from all four:
+
+1. An append-only event log with an actor on every event, reduced by one pure function.
+2. An original anchor that never changes, plus a location that is computed per target, like GitHub's `originalLine` and `line`.
+3. "Outdated" is a derived flag. It never changes the lifecycle state.
+4. Explicit states between "open" and "resolved", because the agent workflow needs them.
+5. A pending review that the human submits as one batch, so the agent never starts on a half-written review.
+6. A validating MCP server for the agent. The agent never edits review data directly.
+
+## 2. UI component spikes and the selected component set
+
+Each spike rendered two unchanged files: Symfony `Command.php` with 733 lines, and Doctrine `UnitOfWork.php` with 3,534 lines. Tests used real mouse events through puppeteer-core and headless Chrome. `@pierre/diffs` was not in the brief. I added it because it has a file view that is not a diff.
+
+| Requirement | `@git-diff-view/react` 0.1.7 | `react-diff-view` 3.3.3 | `@pierre/diffs` 1.5.1 | difit 5.0.12 |
+|---|---|---|---|---|
+| R1 full unchanged file | Workaround. Identical content gives 0 lines (issue #16, "wontfix"). An 11-line hand-built hunk fixes it. | Yes, `textLinesToHunk` | Yes, native `File` and `CodeView` | No. Lines show as added, or a change is necessary. |
+| R2 one line-number column | CSS override of internal markup | Yes, in an undocumented layout mode | Yes, native | No, two columns |
+| R3 PHP highlighting | lowlight. Highlighting stops without warning above 2,000 lines. | refractor 5 needs a 3-line adapter. The types do not catch a wrong adapter. | Shiki 4.4.3 with GitHub themes | Prism per line. Docblocks get wrong colours. |
+| R4 hover "+" | Native | Own button in `renderGutter` | Native | Speech-bubble icon |
+| R5 widget below the line | Native, one at a time | Native `widgets` | Native annotation slot | Native |
+| R6 drag and shift-click range | Native drag loses the range (2 bugs). No shift-click. 35 lines of glue. | Not native. 91 lines of glue. | Native gestures. 25 lines of glue open the widget. | Native, inside one hunk only |
+| R7 programmatic range | 9 lines | 9 lines | Native `selectedLines` and `scrollTo` in `CodeView` | Not tested |
+| R8 several threads, any React | Yes | Yes | Yes. Primer components work inside. | Two inline threads, own UI only |
+| R9 3,534-line file | 0.5 s. No virtualization. 100-130 ms per interaction. | 0.42-0.47 s. No virtualization. | Virtualized. First rows in 41 ms, 0 main-thread long tasks with workers. | 0.44 s, 186,662 DOM nodes |
+| R10 GitHub look | Built-in themes | 348 lines of our own CSS | Shiki GitHub themes and CSS variables | Own theme |
+| Glue code | 77 lines | About 175 lines and 348 lines of CSS | About 72 lines | Not reusable |
+| Library JS, gzip | 336 kB, of which highlight.js 299 kB | 34 kB with PHP grammar | 115 kB, or 175 kB with `CodeView`, plus 87 kB lazy PHP grammar | Not a library |
+| License | MIT | MIT | Apache-2.0 | MIT |
+| Maintenance | 527 of 530 commits by one person, 0.1.x | Last releases 2025-07 and 2026-03 | 63 versions in 6 months. Breaking changes ship in minor versions. | Active app |
+
+`@primer/react` is not a code viewer. Its spike built the surrounding GitHub UI: file tree, file header with "Viewed", thread boxes with state labels, reply box, "Finish your review" overlay, and the request list. It has no public comment-thread box, Markdown editor, or Markdown renderer. GitHub keeps those internal.
+
+### Selected component set
+
+| Part | Package | Why |
+|---|---|---|
+| File view | `@pierre/diffs` `CodeView` | Only candidate with a native full-file view, native range gestures, and virtualization |
+| Fix diff in the verify view | `@pierre/diffs` `FileDiff` | Same library, same look |
+| Tree, buttons, menus, labels, overlays, table | `@primer/react`, `@primer/primitives`, `@primer/octicons-react` | GitHub's own design system |
+| Comment bodies | `react-markdown` with `remark-gfm`, styled by `markdown.css` from `@primer/css` | Secure by default: it escapes raw HTML and drops `javascript:` URLs |
+| Framework and build | React 19, TypeScript 7, Vite 8 through Symfony Reprise | Both selected libraries are React libraries. AssetMapper cannot compile JSX. Reprise is Symfony's own Vite integration. |
+
+The smallest adaptation for `@pierre/diffs`, from the spike, is about 72 lines:
+
+1. Strip the trailing newline with the public `cleanLastNewline()`. Otherwise a phantom last row shows.
+2. Wait for the annotation slot before focus and scroll: 28 lines.
+3. Clear the selection after submit or cancel: 15 lines. While a selection exists, the "+" stays on its last line and does not follow the mouse. This is gap G1.
+4. Find the bottom line of a range in both drag directions: 6 lines.
+5. Put all threads of one line into one annotation, because slot names are per line: 11 lines.
+6. Keep the annotations array identity stable. Otherwise each keystroke re-renders the file, which cost 108 ms per key on the large file: 2 lines.
+7. Wrap annotation content in Primer `BaseStyles`. Otherwise widgets inherit the code font.
+
+The thread box is composed from public Primer parts: Avatar, RelativeTime, Label, ActionMenu, Textarea, Button, Stack, and about 250 lines of layout CSS. See decision D2.
+
+| | |
+|---|---|
+| ![Hover "+"](architecture/pierre-diffs-b-hover-plus.png) `@pierre/diffs`: native "+" on hover | ![Drag range](architecture/pierre-diffs-d-drag-range-widget.png) `@pierre/diffs`: drag range, box below the last line |
+| ![Threads](architecture/pierre-diffs-e-several-threads.png) `@pierre/diffs`: several threads with Primer buttons | ![Method range](architecture/pierre-diffs-f-programmatic-run-method.png) `@pierre/diffs`: programmatic range of `run()`, lines 231-286 |
+| ![Large file](architecture/pierre-diffs-g3-large-file-codeview-programmatic.png) `CodeView`: range 3000-3010 in the 3,534-line file | ![Dark](architecture/pierre-diffs-h-dark-theme.png) `@pierre/diffs`: dark theme |
+| ![Primer page](architecture/primer-full-page.png) Primer: tree, file header, thread with state label | ![Primer states](architecture/primer-resolved-and-outdated.png) Primer: resolved, reopened, and outdated threads |
+| ![Primer review](architecture/primer-review-dialog.png) Primer: "Finish your review" overlay | ![Primer list](architecture/primer-request-list.png) Primer: request list with status filter |
+| ![git-diff-view bug](architecture/git-diff-view-native-range-then-plus.png) `@git-diff-view`: native range, then "+", gives "line 85" only | ![react-diff-view](architecture/react-diff-view-drag-range.png) `react-diff-view`: drag range with 91 lines of glue |
+| ![difit added](architecture/difit-b-empty-base-unified-range-thread.png) difit: empty-tree diff, every line added | ![difit context](architecture/difit-c2-context-99999-range-thread.png) difit: full context, two number columns |
+
+The spikes were joined into one end-to-end demonstration. A Symfony API, installed in its own directory, read the tree and the files of a clone of nikic/FastRoute from git at a pinned commit. The browser rendered them with the Primer tree and `@pierre/diffs`, including a comment box. Afterwards the clone was unchanged, and the API directory held no copy of the code.
+
+![FastRoute demonstration](architecture/demo-thirdparty-fastroute.png)
+
+## 3. Domain model
+
+### Value objects
+
+| Type | Fields and types | Rules |
+|---|---|---|
+| `TenantId`, `UserId`, `RepositoryId`, `ReviewId`, `RequestId`, `CommentId`, `EventId`, `BatchId`, `ApiTokenId` | `Symfony\Component\Uid\Ulid` | 26 characters, Crockford base32 |
+| `CommitSha`, `BlobSha` | `string` | `^[0-9a-f]{40}$` or `^[0-9a-f]{64}$` for SHA-256 repositories |
+| `RepositorySource` | enum: `github`, `local` | |
+| `RepositoryName` | `string` | `owner/name` for `github`, as on GitHub. The directory name for `local`: no `/`, no leading `.`. Unique per tenant. |
+| `RepoPath` | `string` | Relative, `/` separators, no `..`, no leading `/` |
+| `LineRange` | `startLine: int`, `endLine: int` | `1 <= startLine <= endLine` |
+| `SymbolKind` | enum: `class`, `interface`, `trait`, `enum`, `function`, `method`, `property`, `class_constant`, `enum_case`, `constant` | |
+| `SymbolRef` | `language: string`, `kind: SymbolKind`, `fqn: string` | `language` is `php` in the proof of concept. FQN example: `App\Billing\InvoiceTotals::total()` |
+| `AnchorKind` | enum: `line`, `range`, `symbol`, `file` | |
+| `ContentSnapshot` | `lines: list<string>`, `truncated: bool`, `lineCount: int`, `before: list<string>`, `after: list<string>`, `normalizedHash: string` | Section 5.1 |
+| `Anchor` | `kind: AnchorKind`, `path: RepoPath`, `commitSha: CommitSha`, `blobSha: BlobSha`, `range: ?LineRange`, `symbol: ?SymbolRef`, `snapshot: ?ContentSnapshot` | `range` and `snapshot` are null only for `file`. `symbol` is set only for `symbol`. |
+| `ActorKind` | enum: `user`, `agent`, `system` | `system` is the server itself, for example when a fetch finds a linked commit |
+| `Actor` | `kind: ActorKind`, `userId: ?UserId`, `agentName: ?string` | An agent always acts for a user. `agentName` is the name of the API token. |
+| `RequestStatus` | enum: `open`, `in_progress`, `ready_for_review`, `verified`, `reopened`, `wont_do` | Section 6 |
+| `Awaiting` | enum: `agent`, `user`, `none` | Whose turn it is. Section 6. |
+| `Resolution` | enum: `fixed`, `wont_do` | Set when a request closes |
+| `ReviewState` | enum: `open`, `closed` | `closed` when `closedAt` is set |
+| `SyncState` | enum: `cloning`, `failed`, `idle`, `fetching`, `unavailable` | State of the server clone. `unavailable` after access removal. |
+| `CommitLinkState` | enum: `pending`, `available` | `pending` until the commit is in the server clone |
+| `LocationStatus` | enum: `exact`, `shifted`, `changed`, `orphaned` | Section 5.3 |
+| `OrphanReason` | enum: `file_deleted`, `region_deleted`, `ambiguous`, `content_not_found` | |
+| `Location` | `targetSha: CommitSha`, `status: LocationStatus`, `path: ?RepoPath`, `range: ?LineRange`, `confidence: float`, `reason: ?OrphanReason` | Computed and cached, not an event |
+
+### Entities
+
+Every entity except `Tenant` carries `tenantId`.
+
+| Entity | Fields and types |
+|---|---|
+| `Tenant` | `id`, `createdAt`, `eventSeq: int` (the last event number of the tenant) |
+| `User` | `id`, `tenantId`, `signInMethod: github\|local`, `login: string`, `githubUserId: ?int`, `name: ?string`, `avatarUrl: ?string`, `createdAt`, `lastSignInAt` |
+| `GitHubInstallation` | `id`, `tenantId`, `installationId: int`, `accountLogin: string`, `accountType: User\|Organization`, `suspendedAt: ?DateTimeImmutable` |
+| `Repository` | `id`, `tenantId`, `source: RepositorySource`, `name: RepositoryName`, `installation: ?GitHubInstallation`, `githubRepositoryId: ?int`, `localDirectory: ?string`, `defaultBranch: ?string`, `defaultBranchHead: ?CommitSha`, `syncState: SyncState`, `lastFetchedAt: ?DateTimeImmutable`, `lastError: ?string`, `access: active\|removed`. A `github` repository sets `installation` and `githubRepositoryId`. A `local` repository sets `localDirectory`. |
+| `Review` | `id`, `tenantId`, `repository: Repository`, `title: string`, `ref: string`, `commitSha: CommitSha`, `startedBy: Actor`, `indexState: pending\|running\|ready\|failed`, `createdAt`, `closedAt: ?DateTimeImmutable`, `closedBy: ?Actor`, `closeNote: ?string` |
+| `ChangeRequest` | `id`, `tenantId`, `review: Review`, `anchor: Anchor`, `body: string` (Markdown), `author: Actor`, `createdAt`, `status: RequestStatus`, `statusBeforeClaim: ?RequestStatus`, `claimedBy: ?Actor`, `awaiting: Awaiting`, `resolution: ?Resolution`, `lastEventSeq: int`, `updatedAt` |
+| `Comment` | `id`, `tenantId`, `request: ChangeRequest`, `author: Actor`, `body: string`, `question: bool`, `batchId: ?BatchId`, `createdAt` |
+| `CommitLink` | `tenantId`, `request: ChangeRequest`, `commitSha: CommitSha`, `state: CommitLinkState`, `linkedBy: Actor`, `linkedAt`, `foundAt: ?DateTimeImmutable`, `note: ?string`. Unique per request and commit. |
+| `Draft` | `id`, `tenantId`, `review: Review`, `user: User`, `kind: new_request\|reply`, `anchor: ?Anchor`, `request: ?ChangeRequest`, `body: string`, `createdAt`, `updatedAt` |
+| `ViewedFile` | `tenantId`, `review: Review`, `user: User`, `path: RepoPath` |
+| `ApiToken` | `id`, `tenantId`, `user: User`, `name: string` (the agent name), `repository: ?Repository` (null means all repositories of the tenant), `tokenHash: string` (SHA-256), `prefix: string` (for display), `createdAt`, `expiresAt: ?DateTimeImmutable`, `lastUsedAt: ?DateTimeImmutable`, `revokedAt: ?DateTimeImmutable` |
+
+`ChangeRequest`, `Comment`, and `CommitLink` are projections of the event log. `User` and `Tenant` are separate so that a tenant can get more users later. Each request, comment, draft, viewed-file mark, and `get_updates` cursor belongs to exactly one review.
+
+### Events
+
+Table `review_event`, append-only:
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | `EventId` | |
+| `tenantId` | `TenantId` | |
+| `seq` | `int` | Gapless per tenant and in commit order. Section 4. |
+| `reviewId` | `ReviewId` | |
+| `requestId` | `?RequestId` | Null for review, batch, and commit events |
+| `type` | `string` | Table below |
+| `actor` | `Actor` | |
+| `occurredAt` | `timestamptz` | |
+| `payload` | `jsonb` | Per type |
+
+| Type | Payload |
+|---|---|
+| `review.started` | `title`, `ref`, `commitSha` |
+| `review.closed` | `note: ?string` |
+| `request.opened` | `anchor: Anchor`, `body`, `batchId: ?BatchId` |
+| `request.commented` | `commentId`, `body`, `question: bool`, `batchId: ?BatchId` |
+| `request.claimed` | none |
+| `request.released` | `note: ?string` |
+| `commit.linked` | `commitSha`, `requestIds: list<RequestId>`, `note: ?string` |
+| `commit.unlinked` | `commitSha`, `requestId` |
+| `commit.found` | `commitSha`, `requestIds: list<RequestId>`. Actor `system`. One event per review. |
+| `request.ready_for_review` | `note` |
+| `request.wont_do` | `reason`, at least 20 characters |
+| `request.verified` | `note: ?string` |
+| `request.reopened` | `note` |
+| `batch.submitted` | `batchId`, `summary: ?string`, `requestIds`, `commentIds` |
+
+Stored events are never rewritten. New payload fields are additive, and readers use a default for a missing field. Each type has an explicit codec. The API `Event` is a derived representation, not the stored payload.
+
+Example `request.opened` payload:
+
+```json
+{
+  "batchId": "01K6B3P1Z8Y7X6W5V4T3S2R1Q0",
+  "body": "Use `Money` instead of `float` for totals.",
+  "anchor": {
+    "kind": "symbol",
+    "path": "src/Billing/InvoiceTotals.php",
+    "commitSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091",
+    "blobSha": "3b18e512dba79e4c8300dd08aeb37f8e728b8dad",
+    "range": {"startLine": 38, "endLine": 49},
+    "symbol": {"language": "php", "kind": "method", "fqn": "App\\Billing\\InvoiceTotals::total()"},
+    "snapshot": {
+      "lines": ["    /**", "     * Sum of all invoice lines.", "     */", "    public function total(): float", "    {", "        $sum = 0.0;", "        foreach ($this->lines as $line) {", "            $sum += $line->amount;", "        }", "", "        return $sum;", "    }"],
+      "truncated": false, "lineCount": 12, "before": ["    }", "", ""], "after": ["", "    public function tax(): float", "    {"],
+      "normalizedHash": "sha256:5d0f3c8e9a1b2c4d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5"
+    }
+  }
+}
+```
+
+## 4. Storage
+
+### PostgreSQL
+
+PostgreSQL 18 is the source of truth, through Doctrine ORM, with schema changes through Doctrine Migrations. The application uses one database role. The event store only inserts into `review_event`. Only the deletion jobs delete events. Projections change in the same transaction as their events. A console command rebuilds all projections from the log.
+
+Write transaction:
+
+```text
+BEGIN
+  SELECT event_seq FROM tenant WHERE id = :tenantId FOR UPDATE    -- one writer per tenant at a time
+  load the projections of the affected requests
+  events = command.decide(state)                                  -- throws a DomainError
+  number the events from event_seq + 1, UPDATE tenant SET event_seq
+  INSERT INTO review_event ..., UPDATE the projections
+COMMIT
+publish one live update for the transaction
+```
+
+`:tenantId` comes from the tenant context of the application, never from input. The per-tenant counter under a row lock gives numbers without gaps, in commit order. So `get_updates(review, cursor)` never misses an event that commits late, which a global database sequence cannot promise. With one user per tenant, the lock has almost no contention.
+
+### Tenant isolation
+
+| Layer | Measure |
+|---|---|
+| Tenant context | Set from the signed-in user, the API token, or the tenant stamp of a Messenger message. It fails closed: without a tenant context, a query on a tenant table fails. |
+| Application | A Doctrine SQL filter adds `tenant_id = :tenant` to every ORM query. It is on by default. Only `TenantFilter::suspend()` turns it off, in four places: the sign-in and token lookup, the webhook router, the projection rebuild, and the purge. |
+| Raw SQL | The SQL filter does not cover DBAL queries or identity-map hits. Every raw SQL statement on a tenant table names `tenant_id`, and an audit test checks this. The entity manager is cleared between worker requests and between Messenger messages. |
+| Files | Clones in `<data>/tenants/<tenantId>/repositories/<repositoryId>.git`. Paths come from IDs, never from input. Two tenants who connect the same repository get two clones. |
+| Live updates | Mercure topics contain the tenant ID. The subscriber token allows only the tenant's own topics. |
+| Scoped tokens | A token scoped to one repository sees only that repository and its reviews. Everything else answers `not_found`. |
+| GitHub | Each installation token is limited to one repository and `contents: read` |
+| Tests | A cross-tenant suite calls every route and MCP tool with another tenant's IDs and expects 404. See section 10. |
+
+Row-level security and separate database roles are a backlog item: [database-hardening.md](backlog/database-hardening.md).
+
+### Repository sources and the server clone
+
+| | GitHub source | Local source |
+|---|---|---|
+| Enabled | The GitHub App is configured | `APP_LOCAL_REPOSITORIES_DIR` is set. Off when the variable is empty. An instance feature: every tenant of the instance may connect these repositories. |
+| Candidates | Installation repositories, listed at each sign-in | Direct child directories of `APP_LOCAL_REPOSITORIES_DIR` that contain `.git` or are bare repositories. Names that start with `.` are skipped. |
+| Fetch source | `https://github.com/<owner>/<name>.git` | `file://` and the realpath of the directory |
+| Credentials | A fresh installation token as a per-command `http.https://github.com/.extraheader` with `AUTHORIZATION: basic`, the method of `actions/checkout`. It reaches git only through the `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`, and `GIT_CONFIG_VALUE_<n>` environment variables, never through argv or `.git/config`, because `symfony/process` exceptions print the argv. | None. Every command passes `-c safe.directory=<realpath>` and `-c safe.directory=<realpath>/.git`. |
+| Path check | Not applicable | The parent of `realpath(<directory>)` must equal `realpath(APP_LOCAL_REPOSITORIES_DIR)`, so symlinks cannot escape the mount |
+| Commit becomes available | After a push and a fetch | After a commit on a branch of the connected repository and a fetch |
+| Writes to the source | Never | Never. Docker mounts the directory read-only. |
+
+Server clone rules:
+
+- One bare clone per repository at `<data>/tenants/<tenantId>/repositories/<repositoryId>.git`.
+- The fetch refspecs are `+refs/heads/*:refs/heads/*` and `+refs/tags/*:refs/tags/*`, with `--prune`. Never `--mirror`.
+- Each pending linked SHA is also fetched by ID into `refs/holistic-review/commits/<sha>`. A failure for one SHA is ignored.
+- A commit is available when `git cat-file -e <sha>^{commit}` succeeds in the clone.
+- **Pin refs.** At review start the server writes `refs/holistic-review/reviews/<reviewId>` to the review commit. When a linked commit is available, it writes `refs/holistic-review/commits/<sha>`. The fetch refspecs never touch `refs/holistic-review/*`, so force-pushes, `--prune`, and `git gc` cannot remove reviewed or linked commits. Deleting a review deletes its review pin. A commit pin is deleted when no remaining link in the repository uses the SHA.
+
+Fetch triggers:
+
+| Trigger | GitHub source | Local source | Mode |
+|---|---|---|---|
+| Connect | clone | clone | async job |
+| `push` webhook | fetch | none, because no webhooks exist | async job |
+| "Refresh" in the UI (`POST /api/v1/repositories/{id}/fetch`) | fetch, or clone again after a failed clone | same | async job |
+| Review start, unless `ref` is a full SHA already in the clone | fetch | fetch | sync, 60 s |
+| `link_commits` with a pending link | fetch, as a fallback to the webhook | fetch | async job, debounced 5 s per repository |
+| `mark_ready_for_review` with pending links | fetch | fetch | sync, 60 s |
+| `get_request` with an `at` commit that is not in the clone | fetch | fetch | sync, 60 s |
+
+- **Single flight.** A `symfony/lock` key `fetch:<repositoryId>` lets one fetch run at a time. The lock store uses PostgreSQL advisory locks, because the `php` and `worker` containers share the clones. A request that arrives during a fetch sets a flag, and one more fetch runs afterwards.
+- **After every successful fetch:** set `lastFetchedAt`, clear `lastError`, read the default branch and its head, and resolve pending links. A resolved link becomes `available`, gets its pin, and causes one `commit.found` event per review. When the default-branch head changed, the default-branch locations of the open reviews are computed again. Then the live updates are published. The steps are in [webhooks-and-live-updates.md](specs/webhooks-and-live-updates.md).
+- **Failure.** `lastError` is set. A synchronous trigger answers `repository_unavailable` with reason `fetch_failed`.
+
+### Reading code and the index
+
+- **Reading code.** No import step. The server reads the pinned commit from its clone: `git ls-tree` for directories, one `git cat-file --batch` process for content, the blob SHA as `ETag`. The phase 1 demonstration proved this chain with a clone of nikic/FastRoute. See section 2.
+- **Index.** A Messenger job at review start writes the path list of the commit into `indexed_file`, with the columns `tenantId`, `repositoryId`, `commitSha`, `path`, `blobSha`, `mode`, and `sizeBytes`. It writes the PHP symbols of each blob into `symbol`, with the columns `tenantId`, `repositoryId`, `blobSha`, `kind`, `fqn`, `startLine`, `endLine`, and `docStartLine`. Blobs that are already indexed are skipped. The index belongs to a commit of a repository, not to a review, because it is code data. Reviews of the same commit share it. `nikic/php-parser` needs 22 ms for a 3,534-line file. The UI shows the progress.
+- **Limits.** Files above 1 MB and binary files show no code but take file comments. The proof of concept has no limit on repository size or counts. See [usage-limits.md](backlog/usage-limits.md).
+
+### Sign-in and sessions
+
+- **GitHub sign-in.** The `oauth` authenticator of HWIOAuthBundle with its `github` resource owner and `csrf: true`. A custom `OAuthAwareUserProviderInterface` service creates the tenant and the user at the first sign-in.
+- **Local sign-in.** `APP_LOCAL_SIGN_IN=<login>` signs the browser in as one local user and tenant, without OAuth. The `/login` page then shows a "Sign in as <login>" button that posts to `POST /login/local`. It works only when `APP_ENV=dev`: the route exists only in `dev`, and the authenticator supports no request in any other environment. It logs a warning when the variable is set outside `dev`. The first sign-in creates the tenant and the local user.
+- **E2E sign-in.** The route `/_e2e/sign-in/{login}` exists only in the `e2e` environment, for Panther tests.
+- **Sessions.** A Symfony session, stored in PostgreSQL with `PdoSessionHandler`. The session holds only the login and the OAuth `state`, never review data.
+- **Firewalls.** `main` uses the session. `api` covers `^/api/v1`, shares the security context of `main`, and adds the `access_token` authenticator. When a request has both a bearer token and a session cookie, the bearer token wins, and a bearer request never sets a cookie. `mcp` covers `^/_mcp`, is stateless, and uses the same token handler. The token handler looks up the SHA-256 hex digest of the token.
+
+### Deletion
+
+When a repository leaves the installation, or the installation is deleted, the server deletes the clone and the index at once and marks the repository `removed`. Reviews stay until the user deletes them, because they are the user's work. See D22. The user can delete one review, one repository's data, or the whole account. The deletion jobs run in the Messenger worker as the normal database role, with the tenant context of the tenant whose data they delete. They delete the rows, the pin refs, and the files. The purge command deletes all rows and files of one tenant.
+
+## 5. Anchoring and re-anchoring
+
+### 5.1 Capture
+
+All anchors are captured at the review commit, which never changes.
+
+| Kind | Stored data |
+|---|---|
+| `file` | `path`, `commitSha`, `blobSha` |
+| `line`, `range` | As `file`, plus `range` and `snapshot` |
+| `symbol` | As `range`, plus `symbol`. The range comes from `nikic/php-parser` and includes the doc comment (D7). |
+
+Snapshot rules: normalize each line to LF line endings with no trailing whitespace. `lines` holds up to 200 lines, else the first 100 and the last 100 with `truncated: true`. `before` and `after` hold 3 context lines each. `normalizedHash` is the SHA-256 of the normalized full region.
+
+### 5.2 Targets
+
+The server sees only commits in its clone. It cannot see the developer's working tree. A commit reaches the clone after a push for a GitHub source, or after a commit on a branch of the connected repository for a local source. Both cases need a fetch, see section 4.
+
+| Target | Used by | Cache |
+|---|---|---|
+| Default branch head at the last fetch | "Outdated" label and filter | Key: event ID and target SHA |
+| A linked commit | "Changes" tab of the request | Key: event ID and target SHA |
+| A commit that the agent names | `get_request` with `at` | Key: event ID and target SHA |
+
+For changes that are not in the server clone, the agent finds the code itself from the snapshot, the context lines, and the symbol FQN. The skill tells it how.
+
+### 5.3 Location statuses
+
+| Status | Meaning |
+|---|---|
+| `exact` | Same path, same lines, same normalized content |
+| `shifted` | Same normalized content at other lines or another path |
+| `changed` | Region found, content differs. `confidence` is the line similarity, 0 to 1. |
+| `orphaned` | Region not found. `reason` says why. |
+
+A request is `outdated` when its location at the default-branch head is `changed` or `orphaned`. This is the meaning of "outdated" on GitHub.
+
+### 5.4 Algorithm
+
+```text
+locate(anchor, targetSha):
+  path = mapPath(anchor.commitSha, targetSha, anchor.path)          # git diff --name-status -M
+  if path is null:
+    return searchOtherFiles(anchor, targetSha) or orphaned(file_deleted)
+  if blobSha(targetSha, path) == anchor.blobSha:
+    return (path == anchor.path) ? exact(anchor.range) : shifted(path, anchor.range)
+  if anchor.kind == file:
+    return changed(path, range: null, confidence: 1.0)
+  if anchor.kind == symbol:
+    symbol = symbolIndex(targetSha, path).find(anchor.symbol.fqn)    # parse error gives no table
+    if symbol found:
+      same = hash(symbol.range) == anchor.snapshot.normalizedHash
+      return same ? shifted-or-exact(path, symbol.range) : changed(path, symbol.range, 1.0)
+  hunks  = git diff --unified=0 -M <anchor.commitSha> <targetSha> -- <anchor.path> <path>
+  mapped = mapRange(anchor.range, hunks)
+  if mapped.untouched:
+    return shifted-or-exact(path, mapped.range)
+  if snapshot is distinctive:                                        # at least 8 non-whitespace characters
+    matches = exactNormalizedMatches(targetSha, path, anchor.snapshot)
+    if matches not empty:
+      best = nearest(matches, mapped.start)
+      return tie ? orphaned(ambiguous) : shifted(path, best)
+  if mapped.keepsSomeLines:
+    return changed(path, mapped.range, similarity(mapped.range, anchor.snapshot))
+  fuzzy = bestWindow(targetSha, path, anchor.snapshot, near: mapped.start)
+  if fuzzy.score >= 0.6:
+    return changed(path, fuzzy.range, fuzzy.score)
+  return searchOtherFiles(anchor, targetSha) or orphaned(region_deleted)
+
+searchOtherFiles(anchor, targetSha):
+  only for a distinctive snapshot of 3 or more lines
+  git grep -n -F -e <longest snapshot line> <targetSha>              # at most 20 candidate files
+  verify each candidate with exactNormalizedMatches
+```
+
+`mapRange` maps each boundary line through the `--unified=0` hunks. A line before a hunk moves by the sum of the earlier deltas. A line inside a hunk maps to the new side of that hunk.
+
+### 5.5 Failure cases
+
+| # | Case | Result |
+|---|---|---|
+| F1 | File deleted, no rename | `orphaned`, `file_deleted`, unless another file has the snapshot |
+| F2 | File renamed, 50% or more similar | Path mapped, then normal steps |
+| F3 | File renamed and much changed | Delete and add for git. `searchOtherFiles` may find it. Else `orphaned`. |
+| F4 | Lines added or removed above the region | `shifted` |
+| F5 | Region edited, for example by the agent's fix | `changed`, with the mapped range and a similarity |
+| F6 | Region moved inside the file | `shifted` |
+| F7 | Region moved to another file | `shifted` through `git grep`, else `orphaned` |
+| F8 | Region deleted | `orphaned`, `region_deleted` |
+| F9 | Duplicate code, equal distance | `orphaned`, `ambiguous`. We do not guess. |
+| F10 | Trivial snapshot, such as `}` | No content search, diff mapping only |
+| F11 | Whitespace or line-ending change | `exact` or `shifted`, because the comparison is normalized |
+| F12 | PHP syntax error at the target | No symbol table. Line steps run instead. |
+| F13 | Symbol renamed | FQN not found. Line steps give `changed` or `orphaned`. |
+| F14 | Target commit not in the server clone | One fetch, then error `commit_not_found` |
+
+A request is never dropped. An orphaned request keeps its original anchor. The review view always shows the code at the review commit, so the thread stays at its original position there, with an "Outdated" label.
+
+## 6. Lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> open : open (user)
+    open --> in_progress : claim (agent)
+    reopened --> in_progress : claim (agent)
+    in_progress --> open : release, when claimed from open
+    in_progress --> reopened : release, when claimed from reopened
+    in_progress --> ready_for_review : mark_ready_for_review (claiming agent)
+    open --> wont_do : mark_wont_do
+    reopened --> wont_do : mark_wont_do
+    in_progress --> wont_do : mark_wont_do
+    ready_for_review --> verified : verify (user)
+    wont_do --> verified : verify (user), only when an agent set wont_do
+    ready_for_review --> reopened : reopen (user)
+    wont_do --> reopened : reopen (user)
+    verified --> reopened : reopen (user)
+```
+
+| Command | From | To | Actor | Input | Checks |
+|---|---|---|---|---|---|
+| `open` | none | `open` | User | Anchor, body | Anchor valid at the review commit |
+| `claim` | `open`, `reopened` | `in_progress` | Agent | None | A second claim by the same agent succeeds and changes nothing |
+| `release` | `in_progress` | Status before the claim | Claiming agent, or user ("Unassign") | Optional note | |
+| `link_commits` | `in_progress` | Unchanged | Claiming agent | Full commit SHA, 1 to 50 request IDs of one review, optional note | Every named request is claimed by the caller. One commit may cover several requests. The commit may still be missing from the server clone: its link is `pending`. Pairs that are already linked are skipped. |
+| `unlink_commit` | `in_progress` | Unchanged | Claiming agent | Full commit SHA, request ID | |
+| `mark_ready_for_review` | `in_progress` | `ready_for_review` | Claiming agent | Note | Every linked commit must be `available`. The server fetches once. A `pending` link gives `commits_not_available`. Zero links are allowed, for a request that needs no code change. |
+| `mark_wont_do` | `open`, `reopened`, `in_progress` | `wont_do` | Agent (the claiming agent when `in_progress`), or user | Justification of 20 or more characters | The agent must give evidence |
+| `verify` | `ready_for_review`, or `wont_do` set by an agent | `verified` | User | Optional note | |
+| `reopen` | `ready_for_review`, `wont_do`, `verified` | `reopened` | User | Note | |
+| `reply` | Any | Unchanged | User or agent | Body; `question` flag for agents | |
+
+A linked commit never changes the status. Only `mark_ready_for_review` says that the agent is finished. Two actors are the same when kind, `userId`, and `agentName` match, so a rotated token with the same name acts as the same agent.
+
+`awaiting` is derived after each event. The first matching rule wins:
+
+| # | Rule | `awaiting` |
+|---|---|---|
+| 1 | `verified`, or `wont_do` set by the user | `none` |
+| 2 | The last thread message is from the user and is newer than the last agent event | `agent` |
+| 3 | The last agent event is a reply with `question: true` | `user` |
+| 4 | `open`, `reopened`, `in_progress` | `agent` |
+| 5 | `ready_for_review`, or `wont_do` set by an agent | `user` |
+
+Derived fields: `closed` is true for `verified` and for `wont_do` set by the user. `resolution` is `fixed` after `ready_for_review` and `verify`, and `wont_do` after a `wont_do`.
+
+### Review lifecycle
+
+| Command | From | To | Actor | Input | Effect |
+|---|---|---|---|---|---|
+| `start` | none | `open` | User | `ref`, optional `title` | Resolves the ref to a SHA in the server clone, writes `review.started`, writes the review pin, queues the index job |
+| `close` | `open` | `closed` | User | Optional note | Writes `review.closed`, sets `closedAt`, `closedBy`, and `closeNote`, deletes the user's drafts of the review |
+
+A closed review is read-only. Every write on it or on its requests fails with `review_closed`: commands, comments, new requests, draft creation, draft updates, draft submission, and viewed files. Reads and draft deletion still work. Claims stay as they are. `allowedActions` is empty. Lists hide closed reviews unless the caller asks for them. Reopening a closed review is a backlog item: [review-reopen.md](backlog/review-reopen.md).
+
+| Ours | GitHub concept |
+|---|---|
+| `open` | Unresolved conversation |
+| `in_progress` | No equivalent. Nearest: an assignee. |
+| `ready_for_review` | "Re-request review". Copilot reason ADDRESSED. |
+| `wont_do` | Resolved with a reply. Copilot reason WONT_FIX. |
+| `verified` | "Resolve conversation" |
+| `reopened` | "Unresolve conversation" |
+| `commit.linked` | A commit in the PR timeline |
+| Location `orphaned` at the default branch | Outdated |
+| Draft, batch | Pending review, submitted review |
+| Closed review | Closed pull request |
+
+## 7. Interfaces
+
+### 7.1 One application layer
+
+```text
+Web UI and REST API      MCP over HTTP      Webhook consumer      Messenger handlers
+            \                  |                  |                     /
+             Application services: commands and queries, one Serializer normalizer set
+                                        |
+             Domain: value objects, events, reducer, state machine, locator
+                                        |
+             Ports: Doctrine repositories, GitHubClient, source fetchers, GitReader, SymbolExtractor, UpdatePublisher
+```
+
+- Adapters map input, set the tenant context, call one service, and normalize the result. MCP and REST return the same JSON.
+- Actor: the web UI acts as `user`. An API token acts as `agent` for its user, and `agentName` is the token name, for example "claude-code laptop".
+- Commands return a `RequestCommandResult`: the request summary, the caller's `allowedActions`, and the events that the command wrote. They do not return the full request, so the agent's context stays small.
+
+### 7.2 Contracts
+
+[docs/specs/](specs/README.md) is the source of truth for every contract. When this section and the specifications differ, the specifications win.
+
+- [README.md](specs/README.md): conventions, authentication, errors with their check order and `details` shapes, pagination, caching, repository sources, versioning, and the index of schemas and fixtures.
+- [rest-api.md](specs/rest-api.md) and [rest-api-requests.md](specs/rest-api-requests.md): every REST endpoint with its method, path, authentication mode, input, output, errors, and an example.
+- [mcp.md](specs/mcp.md): the MCP endpoint, the server `instructions`, and every tool with its input schema, output schema, annotations, and errors.
+- [webhooks-and-live-updates.md](specs/webhooks-and-live-updates.md): GitHub webhooks, fetch triggers, and Mercure topics and payloads.
+- [schemas/](specs/schemas/): the JSON Schemas, draft 2020-12, with the `$id` base `https://holistic-review.invalid/schemas/v1/`. Tests validate every REST response and every MCP `structuredContent` against them with `opis/json-schema`. The front-end TypeScript types are written from them.
+
+Error codes for all adapters. The body is `{"error": {"code", "message", "details"}}`. The checks run in a fixed order, and `details` has a fixed shape per code.
+
+| Code | HTTP | Meaning |
+|---|---|---|
+| `unauthorized` | 401 | No credential, or the credential is wrong, revoked, or expired |
+| `forbidden` | 403 | This actor kind may not call this endpoint, or the CSRF check failed |
+| `not_found` | 404 | Unknown route, ID, or name. Also another tenant's ID and a repository outside the token's scope. |
+| `invalid_input` | 400, 405, 413, 415, 422 | Malformed input, wrong method, body too large, not JSON, or a failed validation |
+| `invalid_transition` | 409 | The request's status or claim holder does not allow the command |
+| `review_closed` | 409 | A write on a closed review or on one of its requests |
+| `commits_not_available` | 409 | A linked commit is still `pending` after one fetch |
+| `commit_not_found` | 422 | A ref or commit that the caller named is not in the server clone after one fetch |
+| `repository_unavailable` | 409 | The repository is cloning, its clone or fetch failed, or its access was removed |
+| `internal_error` | 500 | An unexpected failure. It is logged. The message is generic. |
+
+### 7.3 MCP server
+
+- **Endpoint:** `https://<host>/_mcp`, Streamable HTTP, through the `symfony/mcp-bundle` HTTP transport, which needs `nyholm/psr7`. Server name `holistic-review`. The phase 1 spike verified the handshake and the 2026-07-28 `server/discover` over HTTP. `http.allowed_hosts` defaults to localhost, so it must list the public host.
+- **Sessions:** clients of the handshake era, up to 2025-11-25, need MCP sessions. They use the bundle's `file` session store under `var/mcp-sessions`, because there is one `php` container. A shared store is a backlog item: [mcp-session-store.md](backlog/mcp-session-store.md).
+- **Authentication:** the stateless `mcp` firewall with Symfony's `access_token` authenticator. A wrong token gets HTTP 401 before JSON-RPC. The bundle docs say that resource-server authentication is "plain Symfony Security". MCP OAuth is a backlog item: [mcp-oauth.md](backlog/mcp-oauth.md). See D18.
+- **Configuration** in the developer's repository:
+
+```json
+{"mcpServers": {"holistic-review": {"type": "http", "url": "https://<host>/_mcp", "headers": {"Authorization": "Bearer ${HOLISTIC_REVIEW_TOKEN}"}}}}
+```
+
+| Tool | Input | Annotations |
+|---|---|---|
+| `list_repositories` | `cursor?`, `limit?` | readOnly, idempotent |
+| `list_reviews` | `repository` (ID, GitHub `owner/name`, or local directory name), `includeClosed?`, `cursor?`, `limit?` | readOnly, idempotent |
+| `list_requests` | `review`, `status?`, `awaiting?`, `path?`, `outdated?`, `cursor?`, `limit?` | readOnly, idempotent |
+| `get_updates` | `review`, `cursor?`, `limit?` | readOnly, idempotent |
+| `get_request` | `id`, `at?` (commit SHA, 7 to 64 hex digits), `context?` | readOnly, idempotent |
+| `claim_request` | `id` | idempotent |
+| `release_request` | `id`, `note?` | |
+| `reply_to_request` | `id`, `body`, `question?` | |
+| `link_commits` | `commitSha` (full SHA), `requestIds` (1 to 50, one review), `note?` | idempotent |
+| `unlink_commit` | `commitSha` (full SHA), `requestId` | |
+| `mark_ready_for_review` | `id`, `note` | |
+| `mark_wont_do` | `id`, `reason` with `minLength: 20` | |
+
+All tools set `destructiveHint: false` and `openWorldHint: false`. Parameters are scalars and backed enums, because the SDK does not support object parameters. Array parameters declare `items` through `#[Schema]`. A domain error becomes a `ToolCallException` with the Error JSON as text, so the result has `isError: true` and no `structuredContent`. Every other exception becomes `internal_error`. Input-schema violations give JSON-RPC error -32602 before the tool runs. `unauthorized` arrives as HTTP 401 on the transport, and `forbidden` never occurs in MCP.
+
+The agent polls `get_updates` with the last cursor, for example through Claude Code's `/loop`. The server never pushes to the agent.
+
+### 7.4 REST API
+
+The web UI and agents without MCP use the same services under `/api/v1`. The UI authenticates with its session and the stateless CSRF token ID `api`. Agents authenticate with the bearer token. The JSON is the same as in MCP.
+
+The endpoint groups are account, repositories, reviews and code, requests, drafts, and tokens. The index with every method, path, authentication mode, and schema is in [rest-api.md](specs/rest-api.md). Routes outside `/api/v1`: the Twig shell pages of the React application, the sign-in routes, `/docs` and `/docs/<slug>`, `/docs/skill/SKILL.md`, `/_mcp`, `POST /webhook/github`, and the Mercure hub at `/.well-known/mercure`.
+
+### 7.5 Webhooks and live updates
+
+- **Webhooks:** `POST /webhook/github`, from the route prefix `/webhook` of the `symfony/webhook` recipe. The parser checks the HMAC of the raw body with `hash_equals()` before it decodes JSON. Every verified delivery returns a `RemoteEvent`, because a `null` result gives 406. A `webhook_delivery` table drops duplicate deliveries. Handled events: `push`, `installation`, `installation_repositories`, and `repository`. The consumer runs with the tenant filter suspended, and each resulting job carries its `tenantId`.
+- **Live updates:** private Mercure updates, published after the transaction commits, one update per transaction. Topics: `{base}/tenants/{tenantId}/repositories` and `{base}/tenants/{tenantId}/reviews/{reviewId}`. The subscriber cookie comes from `POST /api/v1/mercure/authorize`. Agents do not subscribe.
+- **Payloads carry IDs only.** The review topic carries `events` as `{type, reviewId, seq, requestIds}`, `outdated` as `{type, reviewId, requestIds}`, and `index` as `{type, reviewId}`. The repositories topic carries `repository` and `repository_deleted` as `{type, repositoryId}`, and `candidates_changed` as `{type}`. The browser revalidates its React Router loaders when an update arrives, and reads the data again through REST. After a reconnect, it catches up with `GET /api/v1/reviews/{id}/updates?cursor=`. A failed publish is logged and not retried, because the write already committed.
+
+### 7.6 Console
+
+Console commands serve operators only: rebuild projections, rebuild an index, purge a tenant. Agents use MCP or the REST API. See D20.
+
+### 7.7 Agent Skill and public documentation
+
+- The skill source is [docs/user/skill/SKILL.md](user/skill/SKILL.md). The application serves it raw at `GET /docs/skill/SKILL.md`. The developer installs it into `.claude/skills/holistic-review/SKILL.md` of the reviewed repository with one `curl` command. See D9 and D28.
+- The skill teaches the agent to identify the repository, to call `list_reviews` and ask the user when several reviews are open and none was named, to poll `get_updates(review, cursor)`, to answer or ask in threads, to claim before editing, to commit per request, to link commits with the full SHA, to push for GitHub sources, to commit on a branch for local sources, to justify every refusal with evidence, and to stop on `review_closed`.
+- The public pages in `docs/user/*.md` render at `/docs/<slug>` through `twig/markdown-extra` with `league/commonmark`, configured to escape raw HTML and drop unsafe links. Slugs come from a whitelist built from the directory listing. No path comes from input.
+
+## 8. Web UI
+
+### Screens
+
+| Screen | Content | Main components |
+|---|---|---|
+| Sign in | "Sign in with GitHub". With local sign-in in `dev`, "Sign in as <login>". | Primer `Button` |
+| Repositories | Candidates from both sources: the repositories of the user's installations with "Configure on GitHub", and the directories under `APP_LOCAL_REPOSITORIES_DIR`. A notice when a source is off. Connect, clone status, "Refresh" to fetch at once, the reviews of a repository with "Show closed", "Start review" with a ref. | Primer `DataTable`, `Label`, `ProgressBar` |
+| Review | Header: title, ref, short SHA, the copyable review ID, the ready agent prompt "Work on Holistic Review <id>", and "Close review". A read-only banner when the review is closed. File tree at the review commit. File header with "Comment on lines", "Symbols", "Comment on file", and "Viewed". Code with inline threads. "Finish your review (n)". | Primer `TreeView`, `ActionMenu`, `Checkbox`, `Dialog`; `@pierre/diffs` `CodeView` |
+| Requests | Filters: status, "Waiting for you" (`awaiting = user`), path, outdated | Primer `DataTable`, `SegmentedControl` |
+| Request detail | The conversation with the agent, live. Linked commits with state and a `FileDiff` per commit. "Resolve conversation", "Reopen", "Close as won't do", "Unassign". Read-only when the review is closed. | Primer parts; `@pierre/diffs` `FileDiff` |
+| Settings | API tokens: create with name, scope, and optional expiry; the secret is shown once; revoke; last use; the `.mcp.json` snippet; links to `/docs` and to the skill install command. Delete repository data. Delete account. | Primer `DataTable`, `Dialog` |
+| Docs | The public pages at `/docs`, without sign-in | Twig |
+
+**Front-end approach, decision D29.** React 19 and React Router 8.4.0 in Data Mode with `createBrowserRouter`. Route `loader`s read. Route `action`s and `useFetcher` write. `useRevalidator` refreshes the data after a Mercure message, through one small `useEventSource` hook. Local component state with `useState` and `useReducer` holds the selection and drafts in progress. `useOptimistic` shows thread replies at once. There is no Redux, no global store, and no query-cache library. CSS modules hold our layout CSS. The TypeScript types are written from the JSON Schemas and checked against the fixture files that the PHP contract tests use.
+
+Live updates: section 7.5. An agent reply shows in the open thread without a reload.
+
+### Flows
+
+1. **Start, hosted.** Sign in with GitHub. Install the GitHub App on selected repositories. Connect a repository. Start a review at the default branch or another ref. The index runs, and the tree opens.
+2. **Start, local run.** Set `LOCAL_REPOSITORIES_HOST_DIR` and `APP_LOCAL_SIGN_IN`, then run `make up`. Open `http://localhost:8000` and click "Sign in as <login>". Connect a directory and start a review. No GitHub App is necessary.
+3. **Connect the agent.** Create an API token in Settings, put it in `HOLISTIC_REVIEW_TOKEN`, add the `.mcp.json` snippet, install the skill with `curl`, and give the agent the prompt from the review header.
+4. **Comment with the mouse.** Line: hover, click "+", the box opens below the line. Range: drag from the "+" or on the numbers, or shift-click, and the box opens below the last line. Symbol: choose it in "Symbols", or select exactly its range, and the box anchors to the FQN. File: the button in the file header. "Add single comment" submits at once. "Start a review" collects drafts until "Submit review".
+5. **Comment with the keyboard, decision D31.** The library's gutter is not changed. "Comment on lines" in the file header takes a start line and an end line, selects the range through `selectedLines`, and opens the draft box below the last line. "Symbols", a Primer `ActionMenu`, selects the range of a symbol. "Comment on file" opens a file comment. The draft box receives focus. A Panther test covers a keyboard-only comment. The front-end milestone checks whether the library's "+" button is focusable and records the result.
+6. **Converse.** Agent questions show as "Waiting for you". A reply hands the turn back to the agent.
+7. **Verify.** Open a request that is ready, read the note, look at the linked commits' diffs, then "Resolve conversation" or "Reopen" with a note.
+8. **Close the review.** "Close review" in the review header opens a Primer `Dialog` with an optional note. It warns when drafts exist. The review becomes read-only and leaves the default lists.
+
+Protection: `framework.trusted_hosts`, `http.allowed_hosts` of the MCP transport, CSRF protection on session-authenticated writes, `react-markdown` for all Markdown in the UI, raw HTML escaped in the public docs, and git commands only through `symfony/process` argument arrays with validated SHAs and refs and `--end-of-options`. Git secrets travel only in environment variables. TLS in a hosted run is part of operations.
+
+### Differences from the GitHub PR UI
+
+| GitHub | Holistic Review | Reason |
+|---|---|---|
+| Diff with `+`/`-` and two number columns | Full file, one number column, no markers | The target is an unchanged file |
+| Tree of changed files | Tree of all files at the review commit | Holistic review |
+| Two thread states | Six states, `awaiting`, "Resolve conversation" means verify | The agent workflow needs more states |
+| Submit review: Comment, Approve, Request changes | Submit with a summary only | No merge gate |
+| Close pull request | "Close review" makes the review read-only | No merge gate |
+| No symbol comments | "Symbols" and automatic symbol anchors | Requirement |
+| "+" always follows the mouse | While a selection exists, "+" stays on its last line | Library behaviour (G1) |
+| Outdated after a push | "Outdated" against the default branch head. The review view never changes. | Pinned commit |
+| Viewed resets when the file changes | Viewed never resets inside a review | Pinned commit |
+| Markdown editor with preview | Primer `Textarea` | GitHub's `MarkdownEditor` is internal |
+| Suggested changes | Not in the proof of concept: [suggested-changes.md](backlog/suggested-changes.md) | Scope |
+| Commits of a PR | Commits linked per request, each with its diff | One commit can cover several requests |
+
+## 9. Stack
+
+Versions checked on 2026-09-29.
+
+| Component | Version | Source |
+|---|---|---|
+| PHP | 8.5.11 | https://www.php.net/releases/index.php?json&version=8 |
+| Symfony | 8.1.7. 8.2 is due 11/2026. 8.1 ends 01/2027. | https://symfony.com/releases/8.1.json |
+| PostgreSQL | 18.6, Docker tag `18-alpine` | https://www.postgresql.org/versions.json |
+| FrankenPHP | 1.12.7, worker mode through Symfony Runtime's `FrankenPhpWorkerRunner` | https://github.com/php/frankenphp/releases/tag/v1.12.7 |
+| `dunglas/symfony-docker` | Template, with the guide "Using Symfony Docker with an existing project" | https://github.com/dunglas/symfony-docker |
+| `doctrine/orm`, `doctrine/doctrine-migrations-bundle`, `symfony/messenger` with the Doctrine transport | 3.7.2, 4.0.1, 8.1 (installed) | `composer show` |
+| `symfony/mercure-bundle` | 0.5.0 | https://repo.packagist.org/p2/symfony/mercure-bundle.json |
+| `symfony/webhook`, `symfony/remote-event` | 8.1.7, 8.1.0 | https://repo.packagist.org/p2/symfony/webhook.json |
+| `hwi/oauth-bundle` | 2.5.0 of 2026-02-19, MIT, PHP 8.3 or later, Symfony `^6.4\|^7.4\|^8.0`, uses Symfony HttpClient | https://repo.packagist.org/p2/hwi/oauth-bundle.json |
+| `lcobucci/jwt` | 5.6.0, for the GitHub App JWT | https://repo.packagist.org/p2/lcobucci/jwt.json |
+| `mcp/sdk`, `symfony/mcp-bundle` | 0.8.1, 0.14.1 | https://repo.packagist.org/p2/mcp/sdk.json |
+| `nyholm/psr7` | 1.8 | https://repo.packagist.org/p2/nyholm/psr7.json |
+| `nikic/php-parser` | 5.9.0 | https://repo.packagist.org/p2/nikic/php-parser.json |
+| `twig/markdown-extra`, `league/commonmark` | 3.29.0, 2.10.3 | https://repo.packagist.org/p2/twig/markdown-extra.json, https://repo.packagist.org/p2/league/commonmark.json |
+| `opis/json-schema` | 2.6.0, with draft 2020-12 support | https://repo.packagist.org/p2/opis/json-schema.json |
+| `symfony/process`, `symfony/uid` | 8.1.7, 8.1.5 | https://repo.packagist.org/p2/symfony/process.json |
+| `phpunit/phpunit`, `phpstan/phpstan` | 13.3.5, 2.2.16 | https://repo.packagist.org/p2/phpunit/phpunit.json |
+| `symfony/panther`, `php-webdriver/webdriver`, `dbrekelmans/bdi` | 2.4.0, 1.16.0, 1.4.1 | https://repo.packagist.org/p2/symfony/panther.json |
+| `friendsofphp/php-cs-fixer` | 3.95.27 | https://repo.packagist.org/p2/friendsofphp/php-cs-fixer.json |
+| `symfony/reprise`, `@symfony/reprise` | 1.3.0, stable since 1.0.0 of 2026-08-26 | https://repo.packagist.org/p2/symfony/reprise.json |
+| `react`, `react-dom` | 19.3.0 | https://www.npmjs.com/package/react |
+| `react-router` | 8.4.0, Data Mode. Peer `react >=19.2.7`. Needs Vite 7 or later. | https://www.npmjs.com/package/react-router |
+| `vite`, `@vitejs/plugin-react`, `typescript` | 8.3.1, 6.1.1, 7.0.2 | https://www.npmjs.com/package/vite |
+| `@pierre/diffs` | 1.5.1, Apache-2.0 | https://www.npmjs.com/package/@pierre/diffs |
+| `@primer/react`, `@primer/primitives`, `@primer/octicons-react`, `@primer/css` | 38.40.0, 11.10.0, 19.38.0, 22.3.2 | https://www.npmjs.com/package/@primer/react |
+| `react-markdown`, `remark-gfm`, `vitest` | 10.1.0, 4.0.1, 5.0.2 | https://www.npmjs.com/package/react-markdown |
+
+Pin `mcp/sdk`, `symfony/mcp-bundle`, `symfony/reprise`, `@symfony/reprise`, and `@pierre/diffs` to exact versions. Each package is installed in the milestone that first uses it, by decision D35.
+
+Front-end pipeline: Symfony Reprise with Vite and `@vitejs/plugin-react`. One Twig shell page calls `reprise_entry_link_tags('app')` and `reprise_entry_script_tags('app')`. In development the tags point at the Vite dev server with hot reload. npm and the Vite dev server run on the host.
+
+### Local development environment
+
+These documents cover only the local development environment. Operations belong to the operator: production hosting, TLS, backups, monitoring, and CI.
+
+- The environment follows the `dunglas/symfony-docker` template and its guide "Using Symfony Docker with an existing project". `extra.symfony.docker` is `false`, so recipes do not change the compose files. The compose files are maintained by hand.
+- PHP, Composer, the console, and PHPUnit run in the `php` container through `make`. npm and Vite run on the host. `make up` starts the environment. The command list is in [docs/plan/README.md](plan/README.md).
+
+| Service | Runs | Notes |
+|---|---|---|
+| `php` | FrankenPHP 1.12.7 with the built-in Mercure hub | The `dev` application at `http://localhost:8000` over HTTP, in worker mode. The `e2e` site on `:8081` in the same container, in classic mode, for Panther. |
+| `worker` | `messenger:consume async` | Same image and volumes as `php` |
+| `database` | `postgres:18-alpine` | The data volume mounts `/var/lib/postgresql`. One database role. |
+
+- **Volumes:** the database, the tenant data, and the host directory that `LOCAL_REPOSITORIES_HOST_DIR` names. That directory is mounted read-only at `/repositories`, and the application reads `APP_LOCAL_REPOSITORIES_DIR=/repositories`. When `APP_LOCAL_REPOSITORIES_DIR` is empty, local sources are off.
+- **Local sign-in:** `APP_LOCAL_SIGN_IN=<login>` in `dev`. A local run needs no GitHub App.
+- **Worker mode:** services must stay stateless between requests, because a worker serves many requests. FrankenPHP restarts a worker after 500 requests by default. `FRANKENPHP_LOOP_MAX` sets the number.
+
+### GitHub App registration for hosted runs
+
+| Setting | Value |
+|---|---|
+| Repository permissions | Contents: read-only. Metadata: read-only, which GitHub requires. |
+| Webhook URL | `https://<host>/webhook/github` |
+| Webhook events | `push` and `repository`. The `installation` and `installation_repositories` events are also needed. Whether they arrive without a subscription is UNVERIFIED. |
+| Callback URL | `https://<host>/login/check-github`, the HWIOAuthBundle check path. Web flow with the `state` check. HWIOAuthBundle sends no PKCE. |
+| Setup URL | `https://<host>/github/installed` |
+| Configuration | `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_SLUG`, and in the secrets vault `GITHUB_APP_CLIENT_SECRET`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET` |
+
+Tokens: the server signs a JWT with RS256, `iat` 60 seconds in the past, a lifetime of at most 10 minutes, and the client ID as issuer. It exchanges the JWT at `POST /app/installations/{id}/access_tokens` for a token that lasts 1 hour. The user token from sign-in lasts 8 hours. It lists the user's installations and repositories with `GET /user/installations` and `GET /user/installations/{id}/repositories`. The server does not store the user token. It lists again at each sign-in and marks repositories that the user can no longer access as `removed`.
+
+## 10. Test strategy
+
+All PHP tests extend `KernelTestCase` or its subclasses. Unit tests do not boot the kernel. No test mocks the container. HTTP calls to GitHub go through Symfony's `MockHttpClient` with recorded responses. Every test has a short TestDox description. Run PHPUnit with `--debug`. Tests reset the database by truncation, because the E2E and concurrency tests need committed rows. See D36.
+
+| Layer | Type | Base | What the tests prove |
+|---|---|---|---|
+| Value objects, state machine, `awaiting` rules, reducer | Unit | `KernelTestCase` without boot | Every status, command, and actor combination. Every `awaiting` rule. The closed-review rule. |
+| Event codecs | Unit | `KernelTestCase` without boot | All 14 event types round-trip. Unknown fields and wrong types are refused. |
+| Hunk mapping, snapshot search, similarity | Unit | `KernelTestCase` without boot | Pure functions on line arrays |
+| Re-anchoring | Functional | `KernelTestCase` | F1 to F14 on real temporary git repositories built with `symfony/process` |
+| Symbol extraction and index job | Functional | `KernelTestCase` | PHP 8.5 fixtures give the expected tables. Indexed blobs are skipped. |
+| Event store and projections | Functional | `KernelTestCase` on PostgreSQL | Per-tenant sequence without gaps under two concurrent writers. Rebuilt projections equal live ones. |
+| Tenant isolation | Functional | `WebTestCase` | Two tenants. Every REST route and MCP tool with the other tenant's IDs gives 404. No tenant context means no query. Every raw SQL statement on a tenant table names `tenant_id`. |
+| Local source | Functional | `KernelTestCase` | Discovery lists normal and bare repositories only. Connect clones over `file://`. Path tricks give `invalid_input` and write nothing. The source bytes and mtimes do not change after a fetch. A new source commit becomes available after one fetch. |
+| Clone, fetch, pin refs | Functional | `KernelTestCase` | Against local bare repositories as remotes. Only heads and tags are fetched. Pin refs survive a force-push, `--prune`, and `git gc`. The token never appears in `.git/config`, argv, exception messages, or logs. Ref injection is blocked. |
+| Review separation | Functional | `WebTestCase` | Two open reviews of one repository keep separate requests, drafts, viewed files, and cursors. `list_reviews` returns both. |
+| Review close | Functional | `WebTestCase` | After close, every write answers `review_closed`, reads and draft deletion work, and `allowedActions` is empty |
+| API tokens | Functional | `WebTestCase` | Secret format, SHA-256 storage, shown once, scope to one repository, expiry, revocation, `lastUsedAt` throttle. Bearer calls set no cookie. |
+| Sign-in and GitHub client | Functional | `WebTestCase`, `KernelTestCase` with `MockHttpClient` | Local sign-in works only in `dev`. The e2e route does not exist outside `e2e`. JWT claims, token exchange, installation and repository listing, token scoping. The OAuth user provider creates the tenant and user at the first sign-in and finds them again later. |
+| Webhooks | Functional | `WebTestCase` | Valid and invalid `X-Hub-Signature-256`. Duplicates are dropped. `push` resolves pending commit links. Access removal deletes the clone and index. |
+| MCP | Functional, wire level | `WebTestCase` | JSON-RPC over HTTP to `/_mcp` with a bearer token: handshake, `server/discover`, a `tools/list` snapshot that equals the specs, and `tools/call` per tool. Each `structuredContent` is validated against its `outputSchema` with `opis/json-schema`. |
+| Contract | Functional | `WebTestCase` | Every REST response validates against its schema in `docs/specs/schemas/`. One use case through MCP and REST gives the same payload. |
+| Public docs and skill | Functional and unit | `WebTestCase`, `KernelTestCase` | Pages render without sign-in. Traversal attempts get 404. The raw `SKILL.md` bytes equal the file. Frontmatter rules. Every tool and error code that the skill names exists in the specs. |
+| Front-end logic | Unit | Vitest | Pure TypeScript only |
+| UI behaviour | E2E | `PantherTestCase` | Comment flows, symbol anchor, keyboard-only comment, batch submit, live agent reply through Mercure, verify, reopen, close review, token creation. The tests run against the `e2e` site on `:8081`, which signs in a fixture user through its e2e-only route. The code view uses open shadow roots, which php-webdriver 1.16.0 reaches with `getShadowRoot()`. |
+
+Static checks: PHPStan level 8 on `src/` and `tests/`, php-cs-fixer with `@Symfony`, `tsc -b` in strict mode, and `bin/console lint:container`.
+
+## 11. Decisions
+
+Decided on 2026-09-29.
+
+| # | Decision | Chosen |
+|---|---|---|
+| D1 | Code viewer | `@pierre/diffs`, pinned |
+| D2 | Comment thread box | Composed from public Primer parts and layout CSS |
+| D3 | Storage | PostgreSQL 18 as the source of truth, append-only event log. One database role. Tenant isolation in the application. Database hardening: [database-hardening.md](backlog/database-hardening.md). |
+| D4 | Agent `wont_do` | Waits for the user. The agent must justify it with evidence, in 20 or more characters. |
+| D5 | `invalid` outcome | No new state. The `wont_do` justification says it. |
+| D6 | Stale claims | Manual release, claim age in the UI, "Unassign" for the user |
+| D7 | Symbol range | Includes the doc comment |
+| D8 | Agent scope | Agent tools work per review. `list_reviews(repository)` finds the open reviews. `list_requests` and `get_updates` take `review`. The agent asks the user when several reviews are open and none was named. |
+| D9 | Skill location | `.claude/skills/holistic-review/SKILL.md` in the developer's repository. A plugin is a backlog item: [skill-plugin.md](backlog/skill-plugin.md). |
+| D10 | Skeleton packages | Keep Doctrine, Messenger, Security, Twig. Add Mercure, Webhook, and HWIOAuthBundle. Remove Mailer, Notifier, Turbo, Stimulus, and AssetMapper. Form stays, because HWIOAuthBundle requires it. |
+| D11 | Hosting | Docker Compose: FrankenPHP in worker mode, Messenger worker, PostgreSQL |
+| D12 | Live UI updates | Mercure through FrankenPHP's built-in hub |
+| D13 | Agent identity | The API token's user, with the token name as agent name |
+| D14 | Names | Product "Holistic Review", MCP server `holistic-review` |
+| D15 | Pending state changes | Only new requests and replies are drafts. State changes happen at once. |
+| D16 | Build integration | Symfony Reprise with Vite, pinned |
+| D17 | Tenancy | Multi-tenant, one user per tenant, `User` and `Tenant` in separate tables. Full isolation in the application, files, and live updates. A tenant with several users gets unrestricted access inside the tenant: [multiple-users-per-tenant.md](backlog/multiple-users-per-tenant.md). No teams, no billing. |
+| D18 | Agent authentication | Per-user API tokens. MCP OAuth is a backlog item: [mcp-oauth.md](backlog/mcp-oauth.md). |
+| D19 | Commits before `ready_for_review` | Every linked commit must be available in the server clone: pushed for a GitHub source, committed on a branch for a local source |
+| D20 | Agent interfaces | MCP, plus the REST API for agents without MCP. No agent CLI. |
+| D21 | Agent updates | The agent polls `get_updates`. No server push to the agent. |
+| D22 | Data after access removal | Delete the clone and index at once. Keep reviews until the user deletes them. |
+| D23 | GitHub sign-in | `hwi/oauth-bundle` with its `github` resource owner and `csrf: true` for the `state` check |
+| D24 | Local repositories | Two repository sources: the GitHub App and local directories. `APP_LOCAL_REPOSITORIES_DIR` names a directory that Docker mounts read-only. An instance feature: every tenant of the instance may connect the repositories under it. Off when the variable is unset. The server keeps its own bare clone of every repository and fetches from the source over `file://`, on demand. |
+| D25 | Local sign-in | `APP_LOCAL_SIGN_IN=<login>` signs the browser in as one local user and tenant without OAuth, only when `APP_ENV=dev` |
+| D26 | Pin refs | `refs/holistic-review/reviews/<reviewId>` at review start, `refs/holistic-review/commits/<sha>` for linked commits. The fetch refspecs never touch them. |
+| D27 | Review close | "Close review" in the review header with an optional note. Event `review.closed`. A closed review is read-only, and writes answer `review_closed`. Reopening: [review-reopen.md](backlog/review-reopen.md). |
+| D28 | Public docs | `docs/user/*.md` rendered at `/docs` with `twig/markdown-extra` and `league/commonmark`. `SKILL.md` served raw at `/docs/skill/SKILL.md`, installed with one `curl` command. |
+| D29 | Front-end approach | React 19, React Router 8.4.0 in Data Mode, local component state, no global store, CSS modules, TypeScript types from the JSON Schemas |
+| D30 | Token scope | Name as agent name. Scope: all repositories of the tenant, or one repository. Optional expiry. Secret `hr_` and 32 random bytes in base64url, shown once, stored as SHA-256. Revocable, last use shown. |
+| D31 | Keyboard access | "Comment on lines", "Symbols", and "Comment on file" in the file header. The library's gutter is not changed. A Panther keyboard-only test. |
+| D32 | Usage limits | None in the proof of concept. Proposal: [usage-limits.md](backlog/usage-limits.md). |
+| D33 | Container tooling | PHP, Composer, the console, and PHPUnit run in the `php` container through `make`. npm and Vite run on the host. |
+| D34 | `e2e` environment | A fourth kernel environment, `e2e`, serves the Panther test site on `:8081` in the `php` container. It uses real sessions, because the mock session storage of `test` cannot keep a browser session. |
+| D35 | Package installs | Each package is installed in the milestone that first uses it. `extra.symfony.docker` is `false`. |
+| D36 | Test databases | Tests reset the database by truncation |
+| D37 | Event payloads | Explicit codecs per event type. REST and MCP use one set of Serializer normalizers. |
+| D38 | Git secrets | Tokens reach git only through `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`, and `GIT_CONFIG_VALUE_<n>` environment variables, never through argv |
+| D39 | Locks | `symfony/lock` with PostgreSQL advisory locks, because the `php` and `worker` containers share the clones |
+| D40 | MCP sessions | The bundle's `file` session store under `var/mcp-sessions`. A shared store: [mcp-session-store.md](backlog/mcp-session-store.md). |
+| D41 | Mercure hub URL | Always set. Without it the bundle compiles `FrankenPhpHub` inside FrankenPHP, and CLI processes that share the cache break. |
+| D42 | Live update payloads | IDs only. Clients read the data again through REST. |
+
+## 12. Risks
+
+| Risk | Evidence | Mitigation |
+|---|---|---|
+| We host other developers' source code | Every connected repository is cloned on our disk | Read-only GitHub permission, encrypted volume, deletion on access removal, no code in logs |
+| Tenant data leaks | One code path without the tenant filter is enough | Fail-closed tenant context, the Doctrine SQL filter, file paths from IDs, per-tenant Mercure topics, the raw SQL audit, the cross-tenant test suite. Further hardening: [database-hardening.md](backlog/database-hardening.md). |
+| A mounted directory in a hosted run | Local repositories are an instance feature, so every tenant of the instance can connect them | Off unless `APP_LOCAL_REPOSITORIES_DIR` is set. Meant for local and self-hosted runs. The mount is read-only, and `realpath()` keeps symlinks inside it. |
+| Local sign-in outside `dev` | Local sign-in skips authentication | The authenticator supports no request outside `dev` and logs a warning. A test proves it in `test`. |
+| Git `safe.directory` on the mount | Git refuses a repository whose owner differs from the current user, which is normal for a mount | `-c safe.directory=<realpath>` per command, never a system-wide setting |
+| Feedback text drives the developer's agent | Requests and replies become agent instructions | One user per tenant writes their own feedback. When tenants get several users, every member can instruct the agent, by decision D17. |
+| `@pierre/diffs` API changes | Breaking changes in minor versions, 63 versions in 6 months | Pin. One wrapper component. E2E suite. |
+| MCP SDK and bundle changes | Pre-1.0, breaking changes in every SDK minor version, Tier 3 | Pin. Thin adapter. Wire-level tests. |
+| MCP OAuth needs our own authorization server | The SDK and bundle stop at the resource-server role | API tokens (D18). Evaluate `league/oauth2-server-bundle` when OAuth becomes necessary. |
+| MCP sessions on one container | The `file` session store is local to the `php` container | One `php` container in the proof of concept (D40) |
+| No PKCE in the GitHub sign-in | HWIOAuthBundle 2.5.0 has no PKCE code, and GitHub strongly recommends PKCE | Confidential client with a client secret, `csrf: true` for the `state` check, the user token is not stored |
+| GitHub limits and token expiry | Installation tokens last 1 hour, and API rate limits apply per installation | New token per job. Fetch on webhooks, not on a timer. |
+| Webhook coverage | Delivery of `installation` events without subscription is UNVERIFIED | Also compare installations at each sign-in |
+| Disk growth | One clone per tenant and repository. Pin refs keep reviewed and linked commits. | `git gc`, deletion on access removal. Size limits: [usage-limits.md](backlog/usage-limits.md). |
+| Worker-mode state leaks | A FrankenPHP worker serves many requests | Stateless services, kernel reset between requests, worker restart after 500 requests |
+| Primer maturity | 0 stable components | Pin. Keep Primer behind a few of our components. |
+| Young Reprise 1.x line | 1.0.0 on 2026-08-26, then six releases in one month | Pin. Only the shell template and `vite.config.ts` use it. |
+| Panther with PHPUnit 13 not run | No chromedriver download in phase 1 | The Panther smoke test of the local environment milestone proves it first |
+| Symfony 8.1 end of life in 01/2027 | Symfony releases | Upgrade to 8.2 or 8.4 in time |

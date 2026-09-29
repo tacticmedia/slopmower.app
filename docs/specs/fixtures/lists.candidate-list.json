@@ -1,0 +1,60 @@
+{
+  "items": [
+    {
+      "source": "github",
+      "name": "acme/billing",
+      "connectedRepositoryId": "01K6B2Z0R3P0S1T2V3W4X5Y6Z7",
+      "github": {
+        "repositoryId": 812345,
+        "installationId": 5551,
+        "accountLogin": "acme",
+        "owner": "acme",
+        "private": true,
+        "defaultBranch": "main",
+        "htmlUrl": "https://github.com/acme/billing"
+      },
+      "local": null
+    },
+    {
+      "source": "github",
+      "name": "acme/shipping",
+      "connectedRepositoryId": null,
+      "github": {
+        "repositoryId": 812399,
+        "installationId": 5551,
+        "accountLogin": "acme",
+        "owner": "acme",
+        "private": true,
+        "defaultBranch": "develop",
+        "htmlUrl": "https://github.com/acme/shipping"
+      },
+      "local": null
+    },
+    {
+      "source": "local",
+      "name": "billing",
+      "connectedRepositoryId": "01K6B2Z0R3P0S1T2V3W4X5Y6Z8",
+      "github": null,
+      "local": {
+        "directory": "billing",
+        "bare": false,
+        "headBranch": "main"
+      }
+    },
+    {
+      "source": "local",
+      "name": "mirror.git",
+      "connectedRepositoryId": null,
+      "github": null,
+      "local": {
+        "directory": "mirror.git",
+        "bare": true,
+        "headBranch": null
+      }
+    }
+  ],
+  "truncated": false,
+  "localEnabled": true,
+  "githubListedAt": "2026-09-29T06:59:10Z",
+  "githubConfigureUrl": "https://github.com/apps/holistic-review/installations/new"
+}

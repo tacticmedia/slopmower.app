@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/batch-submission.schema.json",
+  "title": "BatchSubmission",
+  "type": "object",
+  "required": ["batchId", "reviewId", "summary", "submittedAt", "seq", "openedRequests", "replies"],
+  "properties": {
+    "batchId": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "reviewId": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "summary": {
+      "type": ["string", "null"],
+      "maxLength": 65536
+    },
+    "submittedAt": {
+      "$ref": "common.schema.json#/$defs/DateTime"
+    },
+    "seq": {
+      "$ref": "common.schema.json#/$defs/EventSeq",
+      "description": "seq of batch.submitted, the last event of the batch."
+    },
+    "openedRequests": {
+      "type": "array",
+      "items": {
+        "$ref": "request-summary.schema.json"
+      }
+    },
+    "replies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["requestId", "commentId"],
+        "properties": {
+          "requestId": {
+            "$ref": "common.schema.json#/$defs/Ulid"
+          },
+          "commentId": {
+            "$ref": "common.schema.json#/$defs/Ulid"
+          }
+        }
+      }
+    }
+  }
+}

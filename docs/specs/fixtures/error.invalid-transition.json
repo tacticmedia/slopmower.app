@@ -1,0 +1,19 @@
+{
+  "error": {
+    "code": "invalid_transition",
+    "message": "Request 01K6B3P2A9QRSTVWXYZ0123456 is in progress by another agent.",
+    "details": {
+      "requestId": "01K6B3P2A9QRSTVWXYZ0123456",
+      "action": "claim",
+      "status": "in_progress",
+      "claimedBy": {
+        "kind": "agent",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "agentName": "codex desktop",
+        "name": "codex desktop",
+        "avatarUrl": null
+      },
+      "allowedActions": ["reply"]
+    }
+  }
+}

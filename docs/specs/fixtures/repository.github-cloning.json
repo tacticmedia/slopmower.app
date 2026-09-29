@@ -1,0 +1,23 @@
+{
+  "id": "01K6B2Z0R3P0S1T2V3W4X5Y6Z7",
+  "source": "github",
+  "name": "acme/billing",
+  "github": {
+    "repositoryId": 812345,
+    "installationId": 5551,
+    "owner": "acme",
+    "private": true,
+    "htmlUrl": "https://github.com/acme/billing"
+  },
+  "local": null,
+  "defaultBranch": null,
+  "access": "active",
+  "sync": {
+    "state": "cloning",
+    "lastFetchedAt": null,
+    "lastError": null,
+    "defaultBranchHead": null
+  },
+  "openReviewCount": 0,
+  "createdAt": "2026-09-29T07:01:00Z"
+}

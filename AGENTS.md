@@ -4,6 +4,10 @@ This is a Symfony project. Check `composer.json` for the exact Symfony/PHP versi
 in use, and read `symfony.lock` to see which recipes ran. Don't assume Doctrine,
 Twig, API Platform, Messenger, or Lock are installed unless one of those says so.
 
+## Project documentation
+
+Every session starts at [docs/plan/README.md](docs/plan/README.md). It says how to start, which milestone comes next, and which documents are the sources of truth. The product requirements are in [docs/requirements.md](docs/requirements.md), the architecture is in [docs/architecture.md](docs/architecture.md), and the API contracts are in [docs/specs/](docs/specs/).
+
 ## Ask before generating
 
 If the task doesn't specify, ask rather than guess:

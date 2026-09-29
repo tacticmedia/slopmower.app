@@ -1,0 +1,11 @@
+{
+  "kind": "new_request",
+  "anchor": {
+    "kind": "symbol",
+    "path": "src/Billing/InvoiceTotals.php",
+    "symbol": {
+      "fqn": "App\\Billing\\InvoiceTotals::total()"
+    }
+  },
+  "body": "Use `Money` instead of `float` for totals."
+}

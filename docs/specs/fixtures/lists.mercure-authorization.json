@@ -1,0 +1,5 @@
+{
+  "hubUrl": "https://hr.example/.well-known/mercure",
+  "topics": ["https://hr.example/tenants/01K6AZZ0TENANT000000000001/repositories", "https://hr.example/tenants/01K6AZZ0TENANT000000000001/reviews/{reviewId}"],
+  "expiresAt": "2026-09-29T08:31:12Z"
+}
