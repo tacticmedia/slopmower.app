@@ -91,13 +91,13 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 |---|---|---|---|---|
 | M00 | [Baseline packages and quality gates](M00-baseline-packages-and-quality-gates.md) | Done | 2026-09-29 | [Report](reports/M00.md) |
 | M01 | [Local Docker environment](M01-local-docker-environment.md) | Done | 2026-09-29 | [Report](reports/M01.md) |
-| M02 | [Domain value objects and errors](M02-domain-value-objects-and-errors.md) | In progress | 2026-09-29 | Ticked tasks in the milestone file are done |
-| M03 | [Domain events and payload codec](M03-domain-events-and-payload-codec.md) | Not started | | |
+| M02 | [Domain value objects and errors](M02-domain-value-objects-and-errors.md) | In progress | 2026-09-29 | Merged. Review running. |
+| M03 | [Domain events and payload codec](M03-domain-events-and-payload-codec.md) | In progress | 2026-09-29 | Ticked tasks in the milestone file are done |
 | M04 | [Request lifecycle](M04-request-lifecycle.md) | Not started | | |
-| M05 | [Tenancy persistence and isolation](M05-tenancy-persistence-and-isolation.md) | Not started | | |
+| M05 | [Tenancy persistence and isolation](M05-tenancy-persistence-and-isolation.md) | In progress | 2026-09-29 | Branch `m05-tenancy`. Ticked tasks in the milestone file are done. |
 | M06 | [Review data schema](M06-review-data-schema.md) | Not started | | |
 | M07 | [Event store and command service](M07-event-store-and-command-service.md) | Not started | | |
-| M08 | [Git plumbing](M08-git-plumbing.md) | Not started | | |
+| M08 | [Git plumbing](M08-git-plumbing.md) | In progress | 2026-09-29 | Branch `m08-git-plumbing`. Ticked tasks in the milestone file are done. |
 | M09 | [Local repository source](M09-local-repository-source.md) | Not started | | |
 | M10 | [Sign-in and security](M10-sign-in-and-security.md) | Not started | | |
 | M11 | [REST foundation and repositories API](M11-rest-foundation-and-repositories-api.md) | Not started | | |
