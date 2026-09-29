@@ -46,7 +46,7 @@ final readonly class RefName implements \Stringable
     private static function problem(string $value): ?string
     {
         return match (true) {
-            '' === $value, \strlen($value) > self::MAX_LENGTH => 'must have 1 to 255 characters',
+            '' === $value, mb_strlen($value, 'UTF-8') > self::MAX_LENGTH => 'must have 1 to 255 characters',
             str_starts_with($value, '-') => 'must not start with -',
             '@' === $value => 'must not be @',
             1 === preg_match('/[\x00-\x20\x7f~^:?*\[\\\\]/', $value) => 'must not contain control characters, spaces, or any of ~ ^ : ? * [ \\',
