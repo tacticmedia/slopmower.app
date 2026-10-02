@@ -36,3 +36,12 @@ when@e2e:
         messenger:
             transports:
                 async: 'sync://'
+
+# A message that a crashed dev worker held returns after 15 minutes, not the 1-hour default; above the 600 s git timeout.
+when@dev:
+    framework:
+        messenger:
+            transports:
+                async:
+                    options:
+                        redeliver_timeout: 900
