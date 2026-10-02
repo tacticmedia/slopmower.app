@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use App\Domain\Identity\TenantId;
+use App\Messenger\TenantStamp;
 use App\Tests\Support\Messenger\QueuedMessages;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -22,7 +24,7 @@ final class QueuedMessagesTest extends KernelTestCase
     public function testRunQueuedMessagesDrainsTheQueue(): void
     {
         // The handler of RedispatchMessage queues the RunCommandMessage on async.
-        self::asyncTransport()->send(new Envelope(new RedispatchMessage(new RunCommandMessage('list'), 'async')));
+        self::asyncTransport()->send(new Envelope(new RedispatchMessage(new RunCommandMessage('list'), 'async'), [new TenantStamp(TenantId::generate())]));
 
         self::runQueuedMessages();
 

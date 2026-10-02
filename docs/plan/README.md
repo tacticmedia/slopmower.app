@@ -99,7 +99,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M06 | [Review data schema](M06-review-data-schema.md) | Done | 2026-10-02 | [Report](reports/M06.md) |
 | M07 | [Event store and command service](M07-event-store-and-command-service.md) | Done | 2026-10-02 | [Report](reports/M07.md) |
 | M08 | [Git plumbing](M08-git-plumbing.md) | Done | 2026-10-02 | [Report](reports/M08.md) |
-| M09 | [Local repository source](M09-local-repository-source.md) | Not started | | |
+| M09 | [Local repository source](M09-local-repository-source.md) | Done | 2026-10-02 | [Report](reports/M09.md) |
 | M10 | [Sign-in and security](M10-sign-in-and-security.md) | Done | 2026-10-02 | [Report](reports/M10.md) |
 | M11 | [REST foundation and repositories API](M11-rest-foundation-and-repositories-api.md) | Not started | | |
 | M12 | [Reviews API](M12-reviews-api.md) | Not started | | |

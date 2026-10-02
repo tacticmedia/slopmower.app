@@ -28,15 +28,24 @@ final class BareClone
     }
 
     /**
+     * @return list<string> The arguments of the heads and tags fetch
+     */
+    public static function fetchArguments(string $url, ?string $uploadPack = null): array
+    {
+        return ['fetch', ...self::remoteOptions($uploadPack), '--no-auto-maintenance', '--prune', '--end-of-options', $url, ...self::REFSPECS];
+    }
+
+    /**
      * Fetches the heads and tags, then the pending SHAs into their pins, then points HEAD at the default branch.
      * The timeout covers all of it.
      *
      * @param list<CommitSha>       $pendingShas
      * @param array<string, string> $secretConfiguration
+     * @param string|null           $uploadPack          The `--upload-pack` command, which reads the source
      *
      * @throws GitFailed
      */
-    public function fetch(string $gitDir, string $url, array $pendingShas = [], float $timeoutSeconds = GitRunner::TIMEOUT_SECONDS, array $secretConfiguration = []): void
+    public function fetch(string $gitDir, string $url, array $pendingShas = [], float $timeoutSeconds = GitRunner::TIMEOUT_SECONDS, array $secretConfiguration = [], ?string $uploadPack = null): void
     {
         $deadlineNanoseconds = hrtime(true) + (int) ($timeoutSeconds * 1e9);
         $hasTimedOut = static fn (): bool => hrtime(true) >= $deadlineNanoseconds;
@@ -50,13 +59,14 @@ final class BareClone
             return $this->git->run($gitDir, array_values($arguments), $remainingSeconds, $secretConfiguration);
         };
 
-        $run('fetch', '--no-auto-maintenance', '--prune', '--end-of-options', $url, ...self::REFSPECS);
+        $remoteOptions = self::remoteOptions($uploadPack);
+        $run(...self::fetchArguments($url, $uploadPack));
 
         if ([] !== $pendingShas) {
             $refspecs = array_map(static fn (CommitSha $sha): string => "{$sha}:".PinRefs::COMMITS.$sha, $pendingShas);
 
             try {
-                $run('fetch', '--no-auto-maintenance', '--end-of-options', $url, ...$refspecs);
+                $run('fetch', ...$remoteOptions, ...['--no-auto-maintenance', '--end-of-options', $url, ...$refspecs]);
             } catch (GitFailed $failure) {
                 if ($hasTimedOut()) {
                     throw $failure;
@@ -65,7 +75,7 @@ final class BareClone
                 // One SHA that the source does not have fails the whole fetch.
                 foreach ($refspecs as $refspec) {
                     try {
-                        $run('fetch', '--no-auto-maintenance', '--end-of-options', $url, $refspec);
+                        $run('fetch', ...$remoteOptions, ...['--no-auto-maintenance', '--end-of-options', $url, $refspec]);
                     } catch (GitFailed $failure) {
                         if ($hasTimedOut()) {
                             throw $failure;
@@ -75,8 +85,16 @@ final class BareClone
             }
         }
 
-        if (1 === preg_match('~^ref: (refs/heads/\S+)\tHEAD$~m', $run('ls-remote', '--symref', '--end-of-options', $url, 'HEAD'), $match)) {
+        if (1 === preg_match('~^ref: (refs/heads/\S+)\tHEAD$~m', $run('ls-remote', ...$remoteOptions, ...['--symref', '--end-of-options', $url, 'HEAD']), $match)) {
             $run('symbolic-ref', 'HEAD', $match[1]);
         }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function remoteOptions(?string $uploadPack): array
+    {
+        return null === $uploadPack ? [] : ["--upload-pack={$uploadPack}"];
     }
 }

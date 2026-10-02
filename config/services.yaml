@@ -9,6 +9,8 @@
 parameters:
     # Used by doctrine.dbal.dbname_suffix and the session DSN.
     app.database_suffix: ''
+    # Message classes that the worker handles without a TenantStamp and without a tenant context.
+    app.tenantless_messages: []
 
 services:
     # default configuration for services in *this* file
@@ -41,9 +43,13 @@ when@test:
     parameters:
         # "TEST_TOKEN" is typically set by ParaTest
         app.database_suffix: '_test%env(default::TEST_TOKEN)%'
+        app.tenantless_messages: ['App\Tests\Support\Messenger\TenantlessProbe']
 
     services:
         App\Tests\Support\GitHub\GitHubResponses: ~
+        App\Tests\Support\Messenger\TenantProbeHandler:
+            autowire: true
+            autoconfigure: true
 
 when@e2e:
     parameters:

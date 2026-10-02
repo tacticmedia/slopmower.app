@@ -30,6 +30,11 @@ final class TenantContext implements ResetInterface
         return $this->tenantId ?? throw new MissingTenantContext();
     }
 
+    public function current(): ?TenantId
+    {
+        return $this->tenantId;
+    }
+
     /**
      * Between worker requests DoctrineBundle only clears an open entity manager, so its filter keeps the parameter.
      * A new filter instance has none.

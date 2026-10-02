@@ -23,6 +23,9 @@ use Symfony\Component\Uid\Ulid;
 /**
  * The partial index lets a second GitHub connect find the existing row. Its predicate is in the form PostgreSQL
  * returns, so the schema comparison finds no change.
+ *
+ * The sync columns change only through the conditional updates of {@see RepositoryRepository}, which bypass the
+ * identity map. Read them with {@see RepositoryRepository::findFresh()}.
  */
 #[ORM\Entity(repositoryClass: RepositoryRepository::class)]
 #[ORM\UniqueConstraint(name: 'uniq_repository_name', columns: ['tenant_id', 'source', 'name'])]
@@ -56,6 +59,10 @@ class Repository implements TenantOwned
 
     #[ORM\Column(enumType: SyncState::class)]
     private SyncState $syncState = SyncState::Cloning;
+
+    /** A queued fetch job has not started yet. */
+    #[ORM\Column]
+    private bool $fetchRequested = false;
 
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $lastFetchedAt = null;
@@ -164,5 +171,10 @@ class Repository implements TenantOwned
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function isFetchRequested(): bool
+    {
+        return $this->fetchRequested;
     }
 }

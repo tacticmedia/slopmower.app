@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Git;
 
 use App\Domain\Error\CommitNotFound;
+use App\Domain\Error\InvalidInput;
 use App\Domain\Git\BlobSha;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\CommitShaPrefix;
@@ -17,6 +18,8 @@ use Symfony\Contracts\Service\ResetInterface;
  */
 final class GitReader implements ResetInterface
 {
+    private const string HEADS = 'refs/heads/';
+
     /** @var array<string, CatFileBatch> */
     private array $batches = [];
 
@@ -26,18 +29,20 @@ final class GitReader implements ResetInterface
 
     /**
      * @throws CommitNotFound
+     * @throws InvalidInput   For a short SHA that matches more than one commit
      */
     public function resolveCommit(string $gitDir, RefName $ref): CommitSha
     {
-        return $this->resolve($gitDir, $ref->toString());
+        return $this->resolve($gitDir, $ref->toString(), 'ref');
     }
 
     /**
      * @throws CommitNotFound
+     * @throws InvalidInput   For a prefix that matches more than one commit
      */
     public function resolvePrefix(string $gitDir, CommitShaPrefix $prefix): CommitSha
     {
-        $commit = $this->resolve($gitDir, $prefix->toString());
+        $commit = $this->resolve($gitDir, $prefix->toString(), 'commit');
 
         // A ref with the same name as the prefix wins in rev-parse.
         if (!str_starts_with($commit->toString(), $prefix->toString())) {
@@ -45,6 +50,20 @@ final class GitReader implements ResetInterface
         }
 
         return $commit;
+    }
+
+    /**
+     * @return string|null The branch that HEAD names, for example `main`. Null for a detached HEAD.
+     */
+    public function headBranch(string $gitDir): ?string
+    {
+        try {
+            $ref = trim($this->git->run($gitDir, ['symbolic-ref', '--quiet', 'HEAD']));
+        } catch (GitFailed) {
+            return null;
+        }
+
+        return str_starts_with($ref, self::HEADS) ? substr($ref, strlen(self::HEADS)) : null;
     }
 
     public function hasCommit(string $gitDir, CommitSha $commit): bool
@@ -102,12 +121,16 @@ final class GitReader implements ResetInterface
         $this->batches = [];
     }
 
-    private function resolve(string $gitDir, string $revision): CommitSha
+    /**
+     * The `^{commit}` peel makes git count only commits as candidates of a short SHA.
+     */
+    private function resolve(string $gitDir, string $revision, string $field): CommitSha
     {
         try {
             return CommitSha::fromString(trim($this->git->run($gitDir, ['rev-parse', '--verify', '--end-of-options', "{$revision}^{commit}"])));
-        } catch (GitFailed) {
-            throw new CommitNotFound($revision);
+        } catch (GitFailed $failure) {
+            // GitRunner sets LC_ALL=C, so the message is stable.
+            throw str_contains($failure->getMessage(), "short object ID {$revision} is ambiguous") ? InvalidInput::field($field, "{$revision} matches more than one commit.") : new CommitNotFound($revision);
         }
     }
 
