@@ -91,7 +91,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | # | Milestone | Status | Date | Notes |
 |---|---|---|---|---|
 | M00 | [Baseline packages and quality gates](M00-baseline-packages-and-quality-gates.md) | Done | 2026-10-02 | [Report](reports/M00.md) |
-| M01 | [Local Docker environment](M01-local-docker-environment.md) | Not started | | |
+| M01 | [Local Docker environment](M01-local-docker-environment.md) | Done | 2026-10-02 | [Report](reports/M01.md) |
 | M02 | [Domain value objects and errors](M02-domain-value-objects-and-errors.md) | Not started | | |
 | M03 | [Domain events and payload codec](M03-domain-events-and-payload-codec.md) | Not started | | |
 | M04 | [Request lifecycle](M04-request-lifecycle.md) | Not started | | |
@@ -137,7 +137,7 @@ PHP, Composer, the console, and PHPUnit run in the `php` container. `make` wraps
 
 | Command | Does |
 |---|---|
-| `make up` | `docker compose up -d --wait`: services `php`, `worker`, `database` |
+| `make up` | `docker compose up -d --wait --build`: services `php`, `worker`, `database` |
 | `make down` | `docker compose down`, without `--volumes` |
 | `make sh` | Shell in the `php` container |
 | `make worker-restart` | `bin/console messenger:stop-workers`. Compose restarts the worker with the new code. Run it after a PHP change that the worker uses. |
@@ -170,6 +170,7 @@ For verbose PHPUnit output, use `--debug`. Never use `-v` or `--verbose`. Exampl
 
 | Variable | Set in | Meaning |
 |---|---|---|
+| `HTTP_PORT`, `DATABASE_PORT` | `.env.make.local` (git-ignored), read by the `Makefile` | Host ports of `php` and `database`. Default 8000 and 5432. A second checkout, for example a git worktree, sets its own ports. |
 | `LOCAL_REPOSITORIES_HOST_DIR` | Host shell | Host directory that compose mounts read-only at `/repositories`. Default `./var/local-repositories`. |
 | `APP_LOCAL_REPOSITORIES_DIR` | `.env` files | Empty in `.env`, which means that local repositories are off. `/repositories` in `.env.dev`, `var/test/local-repositories` in `.env.test` and `.env.e2e`. It is an instance feature: every tenant of the instance may connect the repositories under it. |
 | `APP_LOCAL_SIGN_IN` | Host shell, passed through compose | Login of the one local user. Honoured only when `APP_ENV=dev`. |

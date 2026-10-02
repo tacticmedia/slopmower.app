@@ -1,0 +1,57 @@
+# Adapted from https://github.com/dunglas/symfony-docker. Local development only.
+{
+	skip_install_trust
+}
+
+(redact_mercure_authorization) {
+	log {
+		format filter {
+			request>uri query {
+				replace authorization REDACTED
+			}
+		}
+	}
+}
+
+# dev environment, worker mode
+{$SERVER_NAME} {
+	import redact_mercure_authorization
+
+	root /app/public
+	encode zstd br gzip
+
+	mercure {
+		publisher_jwt {env.MERCURE_JWT_SECRET}
+		subscriber_jwt {env.MERCURE_JWT_SECRET}
+		cors_origins http://localhost:{$HTTP_PORT:8000}
+	}
+
+	php_server {
+		worker {
+			file /app/public/index.php
+			# Only application directories: a pattern at /app would also watch the worktrees under /app/.claude.
+			watch /app/src/**/*.php
+			watch /app/config/**/*.{php,yaml}
+			watch /app/templates/**/*.twig
+		}
+	}
+}
+
+# e2e environment, classic mode, for Panther inside this container
+:8081 {
+	import redact_mercure_authorization
+
+	root /app/public
+	encode zstd br gzip
+
+	mercure {
+		publisher_jwt {env.MERCURE_JWT_SECRET}
+		subscriber_jwt {env.MERCURE_JWT_SECRET}
+		# The default bolt transport is shared by every hub that uses it.
+		transport local
+	}
+
+	php_server {
+		env APP_ENV e2e
+	}
+}
