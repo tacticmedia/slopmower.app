@@ -22,6 +22,7 @@ use App\Messenger\TenantStamp;
 use App\Repository\GitHubCandidateRepository;
 use App\Repository\GitHubInstallationRepository;
 use App\Repository\RepositoryRepository;
+use App\Repository\TenantRepository;
 use App\Repository\UserRepository;
 use App\Tenancy\TenantFilter;
 use App\Tenancy\TenantOwned;
@@ -51,6 +52,7 @@ final class GitHubWebhookConsumer implements ConsumerInterface
         private readonly GitHubInstallationRepository $installations,
         private readonly GitHubCandidateRepository $candidates,
         private readonly UserRepository $users,
+        private readonly TenantRepository $tenants,
         private readonly DenormalizerInterface $denormalizer,
         private readonly MessageBusInterface $bus,
         private readonly ClockInterface $clock,
@@ -76,12 +78,17 @@ final class GitHubWebhookConsumer implements ConsumerInterface
     }
 
     /**
+     * A tenant that is being deleted gets no job.
+     *
      * @return list<array{TenantId, object}>
      */
     private function tenantJobs(RemoteEvent $event): array
     {
         try {
-            return $this->tenantFilter->suspend(fn (): array => $this->route($event->getName(), $event->getPayload()));
+            return $this->tenantFilter->suspend(fn (): array => array_values(array_filter(
+                $this->route($event->getName(), $event->getPayload()),
+                fn (array $tenantJob): bool => $this->tenants->isActive($tenantJob[0]),
+            )));
         } finally {
             // The SQL filter does not cover identity-map hits.
             $this->entityManager->clear();

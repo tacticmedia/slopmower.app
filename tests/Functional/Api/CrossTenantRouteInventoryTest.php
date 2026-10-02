@@ -52,7 +52,7 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
     }
 
     /**
-     * @param array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null, bearer?: true} $case
+     * @param array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null, bearer?: true, query?: array<string, string>} $case
      */
     #[TestDox("Each case with the other tenant's IDs gets 404 not_found")]
     #[DataProvider('casesWithIds')]
@@ -73,7 +73,7 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
     }
 
     /**
-     * @param array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null, bearer?: true} $case
+     * @param array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null, bearer?: true, query?: array<string, string>} $case
      */
     #[TestDox("List routes return none of the other tenant's items")]
     #[DataProvider('casesWithoutIds')]
@@ -83,8 +83,12 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
 
         $response = self::caseRequest($client, $secret, $case, $case['path'], $case['body']);
 
-        self::assertNotNull($case['schema'], 'A list or create route answers with a body.');
-        self::assertApiResponse($response, $case['status'], $case['schema']);
+        if (null === $case['schema']) {
+            self::assertSame($case['status'], $response->getStatusCode());
+            self::assertSame('', (string) $response->getContent(), 'A case without a schema answers without a body.');
+        } else {
+            self::assertApiResponse($response, $case['status'], $case['schema']);
+        }
 
         foreach ($otherTenantIds as $id) {
             self::assertStringNotContainsStringIgnoringCase($id, (string) $response->getContent());
@@ -92,7 +96,7 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
     }
 
     /**
-     * @return iterable<string, array{array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null, bearer?: true}}>
+     * @return iterable<string, array{array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null, bearer?: true, query?: array<string, string>}}>
      */
     public static function casesWithIds(): iterable
     {
@@ -104,7 +108,7 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
     }
 
     /**
-     * @return iterable<string, array{array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null, bearer?: true}}>
+     * @return iterable<string, array{array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null, bearer?: true, query?: array<string, string>}}>
      */
     public static function casesWithoutIds(): iterable
     {
@@ -124,12 +128,14 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
     }
 
     /**
-     * @param array{method: string, bearer?: true, ...} $case
-     * @param array<string, mixed>|null                 $body
+     * @param array{method: string, bearer?: true, query?: array<string, string>, ...} $case
+     * @param array<string, mixed>|null                                                $body
      */
     private static function caseRequest(KernelBrowser $client, #[\SensitiveParameter] string $secret, array $case, string $path, ?array $body): Response
     {
-        return ($case['bearer'] ?? false) ? self::bearerRequest($client, $secret, $case['method'], $path, $body) : self::apiRequest($client, $case['method'], $path, $body);
+        $uri = isset($case['query']) ? $path.'?'.http_build_query($case['query']) : $path;
+
+        return ($case['bearer'] ?? false) ? self::bearerRequest($client, $secret, $case['method'], $uri, $body) : self::apiRequest($client, $case['method'], $uri, $body);
     }
 
     /**

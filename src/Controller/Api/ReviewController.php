@@ -25,7 +25,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * V1 to V4 of docs/specs/rest-api.md section 5.
+ * V1 to V4 and V13 of docs/specs/rest-api.md section 5.
  */
 #[Route(name: 'api_review_')]
 final class ReviewController extends AbstractController
@@ -73,5 +73,14 @@ final class ReviewController extends AbstractController
         $this->reviewCommands->close($review->getId(), new CloseReview($input->note), $this->currentActor->get());
 
         return $this->json($this->reviews->get($review->getId()));
+    }
+
+    #[Route('/api/v1/reviews/{reviewId}', name: 'delete', methods: ['DELETE'])]
+    #[IsGranted(User::ROLE, message: CurrentActor::SESSION_ONLY)]
+    public function delete(#[MapEntity(id: 'reviewId')] Review $review): Response
+    {
+        $this->reviewCommands->delete($review->getId());
+
+        return new Response(status: Response::HTTP_NO_CONTENT);
     }
 }

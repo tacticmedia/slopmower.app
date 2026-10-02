@@ -45,7 +45,7 @@
     overflow-x: auto;
 }
 
-.noTokens {
+.emptyTable {
     grid-area: table;
     margin: var(--base-size-8) 0 0;
 }

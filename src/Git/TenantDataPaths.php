@@ -24,8 +24,19 @@ final class TenantDataPaths
 
     public function clonePath(TenantId $tenantId, RepositoryId $repositoryId): string
     {
-        $path = Path::join($this->root, $tenantId->toString(), 'repositories', $repositoryId->toString().'.git');
+        return $this->under(Path::join($this->root, $tenantId->toString(), 'repositories', $repositoryId->toString().'.git'));
+    }
 
+    /**
+     * Holds every file of the tenant.
+     */
+    public function tenantPath(TenantId $tenantId): string
+    {
+        return $this->under(Path::join($this->root, $tenantId->toString()));
+    }
+
+    private function under(string $path): string
+    {
         if (!Path::isBasePath($this->root, $path) || $path === $this->root) {
             throw new \LogicException("The path {$path} is not under {$this->root}.");
         }

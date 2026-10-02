@@ -1,4 +1,5 @@
-import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
+import { type ActionFunctionArgs, type LoaderFunctionArgs, redirectDocument } from 'react-router';
+import { actionError, type ActionResult, writeResult } from '../../api/actionResult';
 import { ApiError, apiGet, apiWrite } from '../../api/client';
 import type { ApiToken, ApiTokenWithSecret } from '../../api/types/api-token';
 import type { Ulid } from '../../api/types/common';
@@ -14,7 +15,11 @@ export type SettingsData = {
     repositories: Repository[];
 };
 
-export type SettingsIntent = { intent: 'create'; input: Required<CreateTokenInput> } | { intent: 'revoke'; tokenId: Ulid };
+export type SettingsIntent =
+    | { intent: 'create'; input: Required<CreateTokenInput> }
+    | { intent: 'revoke'; tokenId: Ulid }
+    | { intent: 'delete-repository'; repositoryId: Ulid; confirm: string }
+    | { intent: 'delete-account'; confirm: string };
 
 export type CreateTokenFailure = {
     message: string;
@@ -30,19 +35,37 @@ export async function settingsLoader({ request }: LoaderFunctionArgs): Promise<S
 }
 
 /**
- * Answers a create with the secret or with the input failure, for the dialog. Other errors go to the error page.
+ * Answers a create with the secret or with the input failure, for the dialog, and a delete with an ActionResult. After
+ * the account delete, /login loads as a new document. Other errors go to the error page.
  */
-export async function settingsAction({ request }: ActionFunctionArgs): Promise<CreateTokenResult | null> {
+export async function settingsAction({ request }: ActionFunctionArgs): Promise<CreateTokenResult | ActionResult | Response> {
     const submitted = (await request.json()) as SettingsIntent;
 
-    if ('revoke' === submitted.intent) {
-        await apiWrite('DELETE', `/api/v1/tokens/${encodeURIComponent(submitted.tokenId)}`, undefined, request.signal);
+    switch (submitted.intent) {
+        case 'revoke':
+            await apiWrite('DELETE', `/api/v1/tokens/${encodeURIComponent(submitted.tokenId)}`, undefined, request.signal);
 
-        return null;
+            return null;
+        case 'delete-repository':
+            return writeResult(() =>
+                apiWrite('DELETE', `/api/v1/repositories/${encodeURIComponent(submitted.repositoryId)}?confirm=${encodeURIComponent(submitted.confirm)}`, undefined, request.signal),
+            );
+        case 'delete-account':
+            try {
+                await apiWrite('DELETE', `/api/v1/account?confirm=${encodeURIComponent(submitted.confirm)}`, undefined, request.signal);
+            } catch (error) {
+                return actionError(error);
+            }
+
+            return redirectDocument('/login');
+        case 'create':
+            return createToken(submitted.input, request.signal);
     }
+}
 
+async function createToken(input: Required<CreateTokenInput>, signal: AbortSignal): Promise<CreateTokenResult> {
     try {
-        return { token: await apiWrite<ApiTokenWithSecret>('POST', '/api/v1/tokens', submitted.input, request.signal), failure: null };
+        return { token: await apiWrite<ApiTokenWithSecret>('POST', '/api/v1/tokens', input, signal), failure: null };
     } catch (error) {
         if (error instanceof ApiError && ('invalid_input' === error.code || 'not_found' === error.code)) {
             const violations = null !== error.details && 'violations' in error.details ? error.details.violations : [];

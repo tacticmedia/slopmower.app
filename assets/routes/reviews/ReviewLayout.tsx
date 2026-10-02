@@ -4,6 +4,7 @@ import { Outlet, Link as RouterLink, useLoaderData, useMatch } from 'react-route
 import type { Review } from '../../api/types/review';
 import { AgentPromptSnippet } from '../../review/AgentPromptSnippet';
 import { CloseReviewDialog } from '../../review/CloseReviewDialog';
+import { DeleteReviewDialog } from '../../review/DeleteReviewDialog';
 import { FinishReviewOverlay } from '../../review/FinishReviewOverlay';
 import { IndexProgress } from '../../review/IndexProgress';
 import { ReviewIdCopy } from '../../review/ReviewIdCopy';
@@ -65,12 +66,11 @@ export function ReviewLayout() {
                             {review.startedBy.name} <RelativeTime datetime={review.createdAt} />
                         </span>
                     </div>
-                    {'open' === review.state && (
-                        <div className={styles.reviewActions}>
-                            {drafts.length > 0 && <FinishReviewOverlay draftCount={drafts.length} />}
-                            <CloseReviewDialog draftCount={drafts.length} />
-                        </div>
-                    )}
+                    <div className={styles.reviewActions}>
+                        {'open' === review.state && drafts.length > 0 && <FinishReviewOverlay draftCount={drafts.length} />}
+                        {'open' === review.state && <CloseReviewDialog draftCount={drafts.length} />}
+                        <DeleteReviewDialog repositoryId={review.repositoryId} />
+                    </div>
                 </div>
                 <div className={styles.agent}>
                     <ReviewIdCopy reviewId={review.id} />

@@ -1,5 +1,5 @@
-import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
-import { type ActionResult, optionalText, writeResult } from '../../api/actionResult';
+import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'react-router';
+import { actionError, type ActionResult, optionalText, writeResult } from '../../api/actionResult';
 import { apiGet, apiWrite } from '../../api/client';
 import type { BatchSubmission } from '../../api/types/batch-submission';
 import type { Draft } from '../../api/types/draft';
@@ -28,12 +28,22 @@ export async function reviewLoader({ request, params }: LoaderFunctionArgs): Pro
 }
 
 /**
- * Form field `intent`: `close` for V4, `submit` for D5.
+ * Form field `intent`: `close` for V4, `submit` for D5, `delete` for V13 with the form field `repositoryId`.
  */
-export async function reviewAction({ request, params }: ActionFunctionArgs): Promise<ActionResult> {
+export async function reviewAction({ request, params }: ActionFunctionArgs): Promise<ActionResult | Response> {
     const form = await request.formData();
     const review = `/api/v1/reviews/${encodedRouteParam(params, 'reviewId')}`;
     const intent = form.get('intent');
+
+    if ('delete' === intent) {
+        try {
+            await apiWrite('DELETE', review);
+        } catch (error) {
+            return actionError(error);
+        }
+
+        return redirect(`/repositories/${encodeURIComponent(String(form.get('repositoryId')))}`);
+    }
 
     if ('submit' === intent) {
         const input: SubmitDraftsInput = { summary: optionalText(form.get('summary')) };

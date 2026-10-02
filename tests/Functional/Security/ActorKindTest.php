@@ -59,12 +59,15 @@ final class ActorKindTest extends WebTestCase
      */
     public static function sessionOnlyEndpoints(): iterable
     {
+        yield 'A2' => ['DELETE', '/api/v1/account'];
         yield 'R2' => ['GET', '/api/v1/repositories/candidates'];
         yield 'R3' => ['POST', '/api/v1/repositories'];
+        yield 'R6' => ['DELETE', '/api/v1/repositories/{repositoryId}'];
         yield 'V1' => ['POST', '/api/v1/repositories/{repositoryId}/reviews'];
         yield 'V4' => ['POST', '/api/v1/reviews/{reviewId}/close'];
         yield 'V11' => ['GET', '/api/v1/reviews/{reviewId}/viewed-files'];
         yield 'V12' => ['PUT', '/api/v1/reviews/{reviewId}/viewed-files'];
+        yield 'V13' => ['DELETE', '/api/v1/reviews/{reviewId}'];
         yield 'Q2' => ['POST', '/api/v1/reviews/{reviewId}/requests'];
         yield 'Q12' => ['POST', '/api/v1/requests/{requestId}/verify'];
         yield 'Q13' => ['POST', '/api/v1/requests/{requestId}/reopen'];

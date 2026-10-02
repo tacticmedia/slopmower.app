@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Security;
 
+use App\Domain\Identity\UserId;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Tenancy\TenantContext;
@@ -15,6 +16,9 @@ use Symfony\Component\Security\Core\User\UserProviderInterface;
 use Symfony\Component\Uid\Ulid;
 
 /**
+ * A user whose tenant is being deleted or gone is not found, so the firewall signs out each of its sessions at its
+ * next request.
+ *
  * @implements UserProviderInterface<User>
  */
 final class TenantUserProvider implements UserProviderInterface
@@ -28,9 +32,13 @@ final class TenantUserProvider implements UserProviderInterface
 
     public function loadUserByIdentifier(string $identifier): User
     {
-        $user = Ulid::isValid($identifier)
-            ? $this->tenantFilter->suspend(fn (): ?User => $this->users->find(Ulid::fromString($identifier)))
-            : null;
+        try {
+            $user = Ulid::isValid($identifier)
+                ? $this->tenantFilter->suspend(fn (): ?User => $this->users->findSignedIn(UserId::fromString($identifier)))
+                : null;
+        } catch (TenantBeingDeleted) {
+            $user = null;
+        }
 
         if (null === $user) {
             $exception = new UserNotFoundException();

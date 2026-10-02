@@ -60,7 +60,7 @@ export function TokenTable({ tokens, labelledBy, describedBy }: Props) {
     return (
         <>
             {0 === tokens.length ? (
-                <p className={styles.noTokens}>No tokens yet. Create one to connect an agent.</p>
+                <p className={styles.emptyTable}>No tokens yet. Create one to connect an agent.</p>
             ) : (
                 <DataTable aria-labelledby={labelledBy} aria-describedby={describedBy} data={tokens} columns={columns} />
             )}

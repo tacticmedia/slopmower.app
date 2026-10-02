@@ -111,6 +111,18 @@ final class CommandExecutor
     }
 
     /**
+     * Deletes events and projections with the rows that belong to them, under the tenant row lock, so no command of
+     * the tenant writes meanwhile. Clears the entity manager, because raw deletes bypass the identity map.
+     *
+     * @param \Closure(): void $delete
+     */
+    public function delete(TenantId $tenantId, \Closure $delete): void
+    {
+        $this->transactional($tenantId, $delete);
+        $this->entityManager->clear();
+    }
+
+    /**
      * Refuses an open transaction, so {@see EventsCommitted} always follows a real commit. On any exception it rolls
      * back and clears the entity manager, so no changed entity stays in the identity map.
      *

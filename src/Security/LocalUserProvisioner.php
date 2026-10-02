@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Security;
 
 use App\Domain\Identity\TenantId;
-use App\Domain\User\SignInMethod;
 use App\Entity\Tenant;
 use App\Entity\User;
 use App\Repository\UserRepository;
@@ -25,13 +24,13 @@ final class LocalUserProvisioner
 
     /**
      * Creates the tenant and the local user at the first sign-in.
+     *
+     * @throws TenantBeingDeleted
      */
     public function provision(string $login): User
     {
         $now = $this->clock->now();
-        $user = $this->tenantFilter->suspend(
-            fn (): ?User => $this->users->findOneBy(['signInMethod' => SignInMethod::Local, 'login' => $login]),
-        );
+        $user = $this->tenantFilter->suspend(fn (): ?User => $this->users->findLocalByLogin($login));
 
         if (null === $user) {
             $tenant = new Tenant(TenantId::generate(), $now);

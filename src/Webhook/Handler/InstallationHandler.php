@@ -25,6 +25,7 @@ use App\Message\GitHubRepositoriesRemovedJob;
 use App\Repository\GitHubCandidateRepository;
 use App\Repository\GitHubInstallationRepository;
 use App\Repository\RepositoryRepository;
+use App\Repository\TenantRepository;
 use App\Tenancy\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -51,6 +52,7 @@ final class InstallationHandler
         private readonly GitHubInstallationRepository $installations,
         private readonly GitHubCandidateRepository $candidates,
         private readonly RepositoryRepository $repositories,
+        private readonly TenantRepository $tenants,
         private readonly FetchRepository $fetchRepository,
         private readonly TenantContext $tenantContext,
         private readonly LockFactory $lockFactory,
@@ -202,7 +204,7 @@ final class InstallationHandler
     }
 
     /**
-     * @param \Closure(): void $work Runs in a transaction
+     * @param \Closure(): void $work Runs in a transaction, not for a tenant that is gone or being deleted
      */
     private function locked(TenantId $tenantId, \Closure $work): void
     {
@@ -210,7 +212,11 @@ final class InstallationHandler
         $lock->acquire(true);
 
         try {
-            $this->entityManager->wrapInTransaction($work);
+            $this->entityManager->wrapInTransaction(function () use ($tenantId, $work): void {
+                if ($this->tenants->lockActive($tenantId)) {
+                    $work();
+                }
+            });
         } finally {
             $lock->release();
         }

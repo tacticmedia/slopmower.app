@@ -16,9 +16,14 @@ use Symfony\Component\Uid\Ulid;
 /**
  * Two index jobs at one commit, or V9 and a job, write the same rows. A unique key violation in the ORM closes the
  * entity manager, so the writes skip conflicting rows instead.
+ *
+ * Each write locks the repository row FOR KEY SHARE, the weakest lock that {@see \App\Repository\DeletionSql} waits for,
+ * so the sync state updates of the row do not wait. A write for a deleted repository, or one whose access was removed,
+ * writes nothing.
  */
 final class IndexSql
 {
+    private const string LOCK_REPOSITORY = "SELECT id FROM repository WHERE tenant_id = :tenantId AND id = :repositoryId AND access = 'active' FOR KEY SHARE";
     private const string INSERT_FILES = 'INSERT INTO indexed_file (tenant_id, repository_id, commit_sha, path_sha256, path, blob_sha, mode, size_bytes) VALUES ';
     private const string INSERT_BLOB = 'INSERT INTO indexed_blob (tenant_id, repository_id, blob_sha, parse_error) VALUES (:tenantId, :repositoryId, :blobSha, :parseError) ON CONFLICT DO NOTHING';
     private const string INSERT_SYMBOLS = 'INSERT INTO symbol (tenant_id, repository_id, blob_sha, kind, fqn, name, parent_fqn, start_line, end_line, declaration_start_line, doc_start_line) VALUES ';
@@ -46,22 +51,32 @@ final class IndexSql
      */
     public function insertFiles(TenantId $tenantId, RepositoryId $repositoryId, CommitSha $commit, array $entries): void
     {
-        foreach (array_chunk($entries, self::ROWS_PER_STATEMENT) as $chunk) {
-            $rows = array_map(static fn (TreeEntry $entry): array => [
-                self::uuid($tenantId), self::uuid($repositoryId), $commit->toString(), hash('sha256', $entry->path), $entry->path, $entry->objectId, $entry->mode, $entry->sizeBytes,
-            ], $chunk);
-            $this->insertRows(self::INSERT_FILES, $rows);
-        }
+        $this->connection->transactional(function () use ($tenantId, $repositoryId, $commit, $entries): void {
+            if (!$this->lockRepository($tenantId, $repositoryId)) {
+                return;
+            }
+
+            foreach (array_chunk($entries, self::ROWS_PER_STATEMENT) as $chunk) {
+                $rows = array_map(static fn (TreeEntry $entry): array => [
+                    self::uuid($tenantId), self::uuid($repositoryId), $commit->toString(), hash('sha256', $entry->path), $entry->path, $entry->objectId, $entry->mode, $entry->sizeBytes,
+                ], $chunk);
+                $this->insertRows(self::INSERT_FILES, $rows);
+            }
+        });
     }
 
     /**
      * The blob row and its symbols commit together. A blob that another writer stored keeps its symbols.
      *
-     * @return bool False when the blob has a row already
+     * @return bool False when the blob has a row already, or the repository is gone or removed
      */
     public function insertBlob(TenantId $tenantId, RepositoryId $repositoryId, BlobSha $blob, SymbolTable $table): bool
     {
         return $this->connection->transactional(function () use ($tenantId, $repositoryId, $blob, $table): bool {
+            if (!$this->lockRepository($tenantId, $repositoryId)) {
+                return false;
+            }
+
             $inserted = $this->connection->executeStatement(self::INSERT_BLOB, [
                 'tenantId' => self::uuid($tenantId),
                 'repositoryId' => self::uuid($repositoryId),
@@ -111,6 +126,14 @@ final class IndexSql
             $this->connection->executeStatement(self::DELETE_SYMBOLS, $parameters);
             $this->connection->executeStatement(self::DELETE_BLOBS, $parameters);
         });
+    }
+
+    /**
+     * @return bool False when the repository is gone or removed
+     */
+    private function lockRepository(TenantId $tenantId, RepositoryId $repositoryId): bool
+    {
+        return false !== $this->connection->fetchOne(self::LOCK_REPOSITORY, ['tenantId' => self::uuid($tenantId), 'repositoryId' => self::uuid($repositoryId)]);
     }
 
     /**

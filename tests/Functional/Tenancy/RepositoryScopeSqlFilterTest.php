@@ -72,9 +72,10 @@ final class RepositoryScopeSqlFilterTest extends KernelTestCase
         }
 
         self::entityManager()->flush();
-        self::insertEvent(new RecordedEvent(EventId::generate(), $tenantId, 1, $scenario->review()->id, $requestId, RequestScenario::claimingAgent(), $time, new RequestClaimedEvent()));
+        $eventId = EventId::generate();
+        self::insertEvent(new RecordedEvent($eventId, $tenantId, 1, $scenario->review()->id, $requestId, RequestScenario::claimingAgent(), $time, new RequestClaimedEvent()));
         self::insertIndexRows($review);
-        self::getContainer()->get(LocationCacheSql::class)->insert($tenantId, $review->getRepository()->getId(), EventId::generate(), Location::exact($review->getCommitSha(), RepoPath::fromString('src/Totals.php'), null));
+        self::getContainer()->get(LocationCacheSql::class)->insert($tenantId, $review->getRepository()->getId(), $eventId, Location::exact($review->getCommitSha(), RepoPath::fromString('src/Totals.php'), null));
         $unscoped = ['ApiToken' => 0, 'User' => 1];
         $noReviewData = ['ChangeRequest' => 0, 'Comment' => 0, 'CommitLink' => 0, 'Draft' => 0];
         $noIndex = ['IndexedBlob' => 0, 'IndexedFile' => 0, 'LocationCacheEntry' => 0];

@@ -25,6 +25,10 @@ class Tenant
     #[ORM\Column(type: Types::BIGINT)]
     private int $eventSeq = 0;
 
+    /** Set by A2. Only the sign-in lookups and the GitHub webhook consumer and jobs read it. */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $deletionRequestedAt = null;
+
     public function __construct(TenantId $id, \DateTimeImmutable $createdAt)
     {
         $this->id = Ulid::fromString($id->toString());
@@ -44,5 +48,13 @@ class Tenant
     public function getEventSeq(): int
     {
         return $this->eventSeq;
+    }
+
+    /**
+     * Keeps the first request time.
+     */
+    public function requestDeletion(\DateTimeImmutable $now): void
+    {
+        $this->deletionRequestedAt ??= $now->setTimezone(new \DateTimeZone('UTC'));
     }
 }

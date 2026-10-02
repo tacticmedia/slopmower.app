@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Doctrine\Type\CommitShaType;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\RepositoryId;
+use App\Domain\Identity\ReviewId;
 use App\Domain\Identity\TenantId;
 use App\Domain\Request\CommitLinkState;
 use App\Entity\ChangeRequest;
@@ -70,6 +71,22 @@ final class CommitLinkRepository extends ServiceEntityRepository
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
             ->getResult();
+    }
+
+    /**
+     * @return list<CommitSha>
+     */
+    public function commitShasOfReview(ReviewId $reviewId): array
+    {
+        $shas = $this->createQueryBuilder('link')
+            ->select('DISTINCT link.commitSha')
+            ->join('link.request', 'request')
+            ->where('request.review = :review')
+            ->setParameter('review', Ulid::fromString($reviewId->toString()), UlidType::NAME)
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        return array_values(array_map(static fn (string $sha): CommitSha => CommitSha::fromString($sha), $shas));
     }
 
     /**

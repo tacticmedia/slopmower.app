@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application;
 
+use App\Application\Event\RepositoryChanged;
 use App\Domain\Actor\Actor;
 use App\Domain\Error\CommitNotFound;
 use App\Domain\Error\InvalidInput;
@@ -26,13 +27,18 @@ use App\EventStore\CommandExecutor;
 use App\Git\GitFailed;
 use App\Git\GitReader;
 use App\Git\PinRefs;
+use App\Git\TenantDataPaths;
 use App\Message\IndexReview;
+use App\Repository\CommitLinkRepository;
+use App\Repository\DeletionSql;
 use App\Repository\DraftRepository;
 use App\Repository\RepositoryRepository;
 use App\Repository\ReviewRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Uid\Ulid;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 final class ReviewCommands
 {
@@ -52,6 +58,11 @@ final class ReviewCommands
         private readonly GitReader $reader,
         private readonly PinRefs $pins,
         private readonly MessageBusInterface $bus,
+        private readonly DeletionSql $deletion,
+        private readonly CommitLinkRepository $links,
+        private readonly TenantDataPaths $paths,
+        private readonly EventDispatcherInterface $dispatcher,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -146,6 +157,53 @@ final class ReviewCommands
                 $this->drafts->deleteOfUser($actor->userId ?? throw new \LogicException('Only a user closes a review.'), $reviewId);
             },
         );
+    }
+
+    /**
+     * V13, for open and closed reviews, also of a removed repository. The index stays: it belongs to the commit.
+     * The `repository` live update follows, because `openReviewCount` can change.
+     *
+     * @throws NotFound
+     */
+    public function delete(ReviewId $reviewId): void
+    {
+        $review = $this->reviews->findFresh($reviewId) ?? throw new NotFound();
+        $tenantId = $review->getTenantId();
+        $repositoryId = $review->getRepository()->getId();
+        $linkedShas = [];
+
+        $this->executor->delete($tenantId, function () use ($tenantId, $reviewId, &$linkedShas): void {
+            $linkedShas = $this->links->commitShasOfReview($reviewId);
+            $this->deletion->deleteReview($tenantId, $reviewId);
+        });
+
+        $this->unpinDeletedReview($this->paths->clonePath($tenantId, $repositoryId), $repositoryId, $reviewId, $linkedShas);
+        $this->dispatcher->dispatch(new RepositoryChanged($tenantId, $repositoryId));
+    }
+
+    /**
+     * After the commit. A commit pin stays while another link in the repository names the commit.
+     *
+     * @param list<CommitSha> $linkedShas
+     */
+    private function unpinDeletedReview(string $gitDir, RepositoryId $repositoryId, ReviewId $reviewId, array $linkedShas): void
+    {
+        if (!is_dir($gitDir)) {
+            return;
+        }
+
+        try {
+            $this->pins->unpinReview($gitDir, $reviewId);
+
+            foreach ($linkedShas as $commitSha) {
+                if (!$this->links->isLinkedInRepository($repositoryId, $commitSha)) {
+                    $this->pins->unpinCommit($gitDir, $commitSha);
+                }
+            }
+        } catch (GitFailed $failure) {
+            // The rows are deleted. A clone that DeleteCloneJob removes meanwhile has no pins left.
+            $this->logger->warning('The pins of the deleted review {reviewId} could not be deleted.', ['reviewId' => $reviewId->toString(), 'exception' => $failure]);
+        }
     }
 
     private function isFullShaInClone(string $gitDir, ?RefName $ref): bool

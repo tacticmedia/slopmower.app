@@ -7,6 +7,9 @@ namespace App\Tests\Functional\Webhook;
 use App\Application\FetchRepository;
 use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Error\RepositoryUnavailableReason;
+use App\GitHub\GitHubAccountType;
+use App\Message\GitHubInstallationCreatedJob;
+use App\Messenger\TenantStamp;
 use App\Repository\GitHubCandidateRepository;
 use App\Tenancy\TenantContext;
 use App\Tests\Support\Database\ResetDatabase;
@@ -23,6 +26,8 @@ use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
+use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Uid\Ulid;
 
 final class InstallationWebhookTest extends WebTestCase
@@ -58,6 +63,23 @@ final class InstallationWebhookTest extends WebTestCase
         self::assertSame(0, self::countTenantRows('github_installation', $other));
         self::assertContains(['type' => 'candidates_changed'], self::repositoriesTopicUpdates($sender));
         self::assertSame([], self::repositoriesTopicUpdates($other));
+    }
+
+    #[TestDox('A tenant that is being deleted gets no job, and a job queued before the mark writes no row')]
+    public function testTenantBeingDeletedGetsNoInstallation(): void
+    {
+        $client = static::createClient();
+        $sender = TenantFixtures::of(self::getContainer())->withGitHubUser(1)->create()->getTenantId();
+        self::getContainer()->get(Connection::class)->executeStatement('UPDATE tenant SET deletion_requested_at = now()');
+
+        self::deliverFixture($client, 'installation.created');
+        self::runQueuedMessages();
+        $routedJobs = array_filter([...self::asyncTransport()->getSent()], static fn (Envelope $envelope): bool => $envelope->getMessage() instanceof GitHubInstallationCreatedJob);
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new GitHubInstallationCreatedJob(5554, 'octocat', GitHubAccountType::User, null), [new TenantStamp($sender)]);
+        self::runQueuedMessages();
+
+        self::assertSame([], $routedJobs);
+        self::assertSame(0, self::countTenantRows('github_installation', $sender));
     }
 
     #[TestDox('suspend makes fetches fail with repository_unavailable')]

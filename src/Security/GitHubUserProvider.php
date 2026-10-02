@@ -44,7 +44,7 @@ final class GitHubUserProvider implements OAuthAwareUserProviderInterface
         $name = $this->optionalString($response->getRealName());
         $avatarUrl = $this->optionalString($response->getProfilePicture());
         $now = $this->clock->now();
-        $user = $this->tenantFilter->suspend(fn (): ?User => $this->users->findOneBy(['githubUserId' => $githubUserId]));
+        $user = $this->tenantFilter->suspend(fn (): ?User => $this->users->findByGitHubUserId($githubUserId));
 
         if (null === $user) {
             $tenant = new Tenant(TenantId::generate(), $now);

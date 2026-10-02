@@ -7,7 +7,9 @@ namespace App\Security;
 use App\Domain\ApiToken\ApiTokenSecret;
 use App\Domain\ApiToken\ApiTokenState;
 use App\Entity\ApiToken;
+use App\Entity\User;
 use App\Repository\ApiTokenRepository;
+use App\Repository\UserRepository;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantFilter;
 use Doctrine\ORM\EntityManagerInterface;
@@ -23,6 +25,7 @@ final class ApiTokenHandler implements AccessTokenHandlerInterface
 {
     public function __construct(
         private readonly ApiTokenRepository $tokens,
+        private readonly UserRepository $users,
         private readonly TenantFilter $tenantFilter,
         private readonly TenantContext $tenantContext,
         private readonly EntityManagerInterface $entityManager,
@@ -38,6 +41,11 @@ final class ApiTokenHandler implements AccessTokenHandlerInterface
 
         if (null === $token || ApiTokenState::Active !== $token->state($now)) {
             throw new BadCredentialsException('Unknown, revoked, or expired API token.');
+        }
+
+        // A2 revokes every token of the tenant. This also refuses a token that a request created meanwhile.
+        if (null === $this->tenantFilter->suspend(fn (): ?User => $this->users->findSignedIn($token->getUser()->getId()))) {
+            throw new BadCredentialsException('The owner of the API token is gone.');
         }
 
         $scope = $token->getScope();

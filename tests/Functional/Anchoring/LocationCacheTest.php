@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Anchoring;
 
-use App\Domain\Identity\EventId;
+use App\Application\ReviewCommands;
+use App\Domain\Actor\Actor;
+use App\Domain\Git\RefName;
+use App\Domain\Identity\ReviewId;
+use App\Domain\Review\Command\StartReview;
 use App\Tests\Support\Anchoring\LocatorFixtures;
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Environment\EnvironmentVariables;
@@ -32,7 +36,9 @@ final class LocationCacheTest extends KernelTestCase
         $base = $this->cloneSource([self::TOTALS => self::codeLines(1, 40)]);
         $target = $this->commitAndFetch([self::TOTALS => self::codeLines(1, 10)."    \$total += 1100;\n".self::codeLines(12, 40)]);
         $anchor = $this->rangeAnchor($base, self::TOTALS, 10, 13);
-        $openedEventId = EventId::generate();
+        // The cache stores entries only for an event of an existing review.
+        $openedEventId = self::getContainer()->get(ReviewCommands::class)
+            ->recordStarted(ReviewId::generate(), $this->repository->getId(), new StartReview('Cache', RefName::fromString('main'), $base), Actor::user($this->user->getId()))[0]->id;
         $first = $this->locate($anchor, $target, $openedEventId);
         new Filesystem()->remove(self::clonePath($this->repository));
 

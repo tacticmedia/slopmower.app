@@ -33,7 +33,12 @@ final class E2eSignInController extends AbstractController
     ): Response {
         $user = null === $githubUserId
             ? $provisioner->provision($login)
-            : $tenantFilter->suspend(fn (): ?User => $users->findOneBy(['githubUserId' => $githubUserId, 'login' => $login])) ?? throw $this->createNotFoundException();
+            : $tenantFilter->suspend(fn (): ?User => $users->findByGitHubUserId($githubUserId));
+
+        if (null === $user || $login !== $user->getLogin()) {
+            throw $this->createNotFoundException();
+        }
+
         $security->login($user, LocalSignInAuthenticator::class);
 
         return new Response("Signed in as {$login}", headers: ['Content-Type' => 'text/plain; charset=utf-8']);

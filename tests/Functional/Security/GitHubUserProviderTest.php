@@ -7,6 +7,7 @@ namespace App\Tests\Functional\Security;
 use App\Domain\User\SignInMethod;
 use App\Entity\User;
 use App\Security\GitHubUserProvider;
+use App\Security\TenantBeingDeleted;
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\GitHub\GitHubResponses;
 use Doctrine\DBAL\Connection;
@@ -14,6 +15,7 @@ use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
+use Symfony\Component\Uid\Ulid;
 
 final class GitHubUserProviderTest extends KernelTestCase
 {
@@ -98,6 +100,27 @@ final class GitHubUserProviderTest extends KernelTestCase
                 'SELECT (SELECT count(*) FROM tenant) AS tenants, (SELECT count(*) FROM app_user) AS users',
             ),
         );
+    }
+
+    #[TestDox('A user whose tenant is being deleted cannot sign in, and no new tenant is created')]
+    public function testUserOfTenantBeingDeletedCannotSignIn(): void
+    {
+        $user = $this->signIn();
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->executeStatement('UPDATE tenant SET deletion_requested_at = now()');
+        self::getContainer()->get('doctrine')->getManager()->clear();
+
+        try {
+            $this->signIn();
+            self::fail('The sign-in did not fail.');
+        } catch (TenantBeingDeleted $exception) {
+            self::assertSame('The account is being deleted.', $exception->getMessageKey());
+        }
+
+        self::assertSame([$user->getTenantId()->toString()], array_map(
+            static fn (string $id): string => Ulid::fromString($id)->toBase32(),
+            $connection->fetchFirstColumn('SELECT id FROM tenant'),
+        ));
     }
 
     /**

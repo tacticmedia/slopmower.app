@@ -14,6 +14,7 @@ use App\Domain\Error\RepositoryUnavailableReason;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\RefName;
 use App\Domain\Identity\RepositoryId;
+use App\Domain\Identity\TenantId;
 use App\Domain\Repository\RepositorySource;
 use App\Domain\Repository\SyncState;
 use App\Entity\Repository;
@@ -30,6 +31,7 @@ use App\Message\DeleteCloneJob;
 use App\Message\FetchRepositoryJob;
 use App\Message\RecomputeLocations;
 use App\Repository\CommitLinkRepository;
+use App\Repository\DeletionSql;
 use App\Repository\GitHubInstallationRepository;
 use App\Repository\RepositoryRepository;
 use App\Repository\ReviewRepository;
@@ -75,6 +77,7 @@ final class FetchRepository
         #[Autowire(env: 'GITHUB_GIT_BASE_URL')]
         private readonly string $gitHubGitBaseUrl,
         private readonly TenantDataPaths $paths,
+        private readonly DeletionSql $deletion,
         private readonly MessageBusInterface $bus,
         private readonly EventDispatcherInterface $dispatcher,
         private readonly Connection $connection,
@@ -205,8 +208,8 @@ final class FetchRepository
     }
 
     /**
-     * D22: marks the repository removed and queues the deletion of its clone. Its reviews stay, and the recompute
-     * sets the `outdated` flags of their requests to null.
+     * D22: marks the repository removed and queues the deletion of its clone and index. Its reviews stay, and the
+     * recompute sets the `outdated` flags of their requests to null.
      */
     public function removeAccess(Repository $repository): void
     {
@@ -227,16 +230,26 @@ final class FetchRepository
     }
 
     /**
-     * Waits for a running clone or fetch, which cannot start again: the row is gone, or its access is removed.
+     * The index and the location cache go with the clone.
      */
     #[AsMessageHandler]
     public function handleDeleteClone(DeleteCloneJob $job): void
     {
-        $lock = $this->repositoryLock->create($job->repositoryId);
+        $this->deleteClone($job->tenantId, $job->repositoryId);
+        $this->deletion->deleteRepositoryIndex($job->tenantId, $job->repositoryId);
+    }
+
+    /**
+     * Deletes the clone with its pin refs. Waits for a running clone or fetch, which cannot start again: the row is
+     * gone, or its access is removed.
+     */
+    public function deleteClone(TenantId $tenantId, RepositoryId $repositoryId): void
+    {
+        $lock = $this->repositoryLock->create($repositoryId);
         $this->acquire($lock, null);
 
         try {
-            new Filesystem()->remove($this->paths->clonePath($job->tenantId, $job->repositoryId));
+            new Filesystem()->remove($this->paths->clonePath($tenantId, $repositoryId));
         } finally {
             $lock->release();
         }

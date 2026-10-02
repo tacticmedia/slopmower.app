@@ -21,7 +21,7 @@ final class ApiCsrfListener
 {
     private const string SESSION_FIREWALL = 'api';
 
-    private const string TOKEN_ID = 'api';
+    public const string TOKEN_ID = 'api';
 
     public function __construct(
         private readonly Security $security,

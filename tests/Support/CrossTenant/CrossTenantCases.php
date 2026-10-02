@@ -9,27 +9,31 @@ namespace App\Tests\Support\CrossTenant;
  * success response. A `{name}` placeholder takes the ID of the other tenant, and the call expects 404 not_found. A
  * case without a placeholder expects its success response, which holds none of the other tenant's IDs.
  * `schema` is null for a response without a JSON body: no body, or bytes. A body value `{name}`, also in a list, takes
- * an ID too. `bearer` cases call with an API token of the caller's tenant, because sessions may not call them.
+ * an ID too. `bearer` cases call with an API token of the caller's tenant, because sessions may not call them. `query`
+ * holds the query parameters of the call.
  */
 final class CrossTenantCases
 {
     /**
-     * @return array<string, array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null, bearer?: true}>
+     * @return array<string, array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null, bearer?: true, query?: array<string, string>}>
      */
     public static function all(): array
     {
         return [
             'api_me' => ['method' => 'GET', 'path' => '/api/v1/me', 'body' => null, 'status' => 200, 'schema' => 'me.schema.json'],
+            'api_account_delete' => ['method' => 'DELETE', 'path' => '/api/v1/account', 'body' => null, 'status' => 202, 'schema' => null, 'query' => ['confirm' => 'jan']],
             'api_mercure_authorize' => ['method' => 'POST', 'path' => '/api/v1/mercure/authorize', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/MercureAuthorization'],
             'api_repository_list' => ['method' => 'GET', 'path' => '/api/v1/repositories', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/RepositoryPage'],
             'api_repository_candidates' => ['method' => 'GET', 'path' => '/api/v1/repositories/candidates', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/CandidateList'],
             'api_repository_connect' => ['method' => 'POST', 'path' => '/api/v1/repositories', 'body' => ['source' => 'local', 'directory' => 'billing'], 'status' => 201, 'schema' => 'repository.schema.json'],
             'api_repository_get' => ['method' => 'GET', 'path' => '/api/v1/repositories/{repositoryId}', 'body' => null, 'status' => 200, 'schema' => 'repository.schema.json'],
+            'api_repository_delete' => ['method' => 'DELETE', 'path' => '/api/v1/repositories/{repositoryId}', 'body' => null, 'status' => 202, 'schema' => null, 'query' => ['confirm' => 'billing']],
             'api_repository_fetch' => ['method' => 'POST', 'path' => '/api/v1/repositories/{repositoryId}/fetch', 'body' => null, 'status' => 202, 'schema' => 'repository.schema.json'],
             'api_repository_blob' => ['method' => 'GET', 'path' => '/api/v1/repositories/{repositoryId}/blobs/{blobSha}', 'body' => null, 'status' => 200, 'schema' => null],
             'api_review_start' => ['method' => 'POST', 'path' => '/api/v1/repositories/{repositoryId}/reviews', 'body' => ['ref' => 'main'], 'status' => 201, 'schema' => 'review.schema.json'],
             'api_review_list' => ['method' => 'GET', 'path' => '/api/v1/repositories/{repositoryId}/reviews', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/ReviewPage'],
             'api_review_get' => ['method' => 'GET', 'path' => '/api/v1/reviews/{reviewId}', 'body' => null, 'status' => 200, 'schema' => 'review.schema.json'],
+            'api_review_delete' => ['method' => 'DELETE', 'path' => '/api/v1/reviews/{reviewId}', 'body' => null, 'status' => 204, 'schema' => null],
             'api_review_close' => ['method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/close', 'body' => null, 'status' => 200, 'schema' => 'review.schema.json'],
             'api_review_index' => ['method' => 'GET', 'path' => '/api/v1/reviews/{reviewId}/index', 'body' => null, 'status' => 200, 'schema' => 'review.schema.json#/$defs/IndexStatus'],
             'api_review_symbols' => ['method' => 'GET', 'path' => '/api/v1/reviews/{reviewId}/symbols', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/SymbolList'],
