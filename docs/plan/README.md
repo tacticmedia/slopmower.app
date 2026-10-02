@@ -125,6 +125,8 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M32 | [GitHub sign-in](M32-github-sign-in.md) | Done | 2026-10-02 | [Report](reports/M32.md) |
 | M33 | [GitHub App repositories](M33-github-app-repositories.md) | Done | 2026-10-02 | [Report](reports/M33.md) |
 | M34 | [GitHub webhooks](M34-github-webhooks.md) | Done | 2026-10-03 | [Report](reports/M34.md) |
+| M34b | [Mocked UI suite](M34b-mocked-ui-suite.md) | In progress | 2026-10-03 | |
+| M34c | [Full-stack suite on Playwright](M34c-full-stack-suite-on-playwright.md) | Not started | | |
 | M35 | [Isolation audit and acceptance](M35-isolation-audit-and-acceptance.md) | Not started | | |
 
 ## Order
