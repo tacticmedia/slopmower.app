@@ -107,8 +107,8 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
     }
 
     /**
-     * The other tenant connected the local source "billing", has a review of it, and has an API token. The signed-in
-     * tenant has its own repository "alpha".
+     * The other tenant connected the local source "billing", has a review of it with a request, and has an API token.
+     * The signed-in tenant has its own repository "alpha".
      *
      * @return array{KernelBrowser, array<string, string>} The client, and the IDs of the other tenant by placeholder name
      */
@@ -127,6 +127,7 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
             'userId' => $other->getId()->toString(),
             'repositoryId' => $otherReview->getRepository()->getId()->toString(),
             'reviewId' => $otherReview->getId()->toString(),
+            'requestId' => self::storeRequest($otherReview)->getId()->toString(),
             'blobSha' => $source->revParse('main:README.md'),
             'tokenId' => $otherToken->getId()->toString(),
         ]];

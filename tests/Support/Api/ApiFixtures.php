@@ -5,13 +5,19 @@ declare(strict_types=1);
 namespace App\Tests\Support\Api;
 
 use App\Domain\Actor\Actor;
+use App\Domain\Anchor\Anchor;
+use App\Domain\Anchor\AnchorKind;
 use App\Domain\ApiToken\ApiTokenSecret;
+use App\Domain\Git\BlobSha;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\RefName;
+use App\Domain\Git\RepoPath;
+use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Identity\TenantId;
 use App\Domain\Repository\RepositoryName;
 use App\Entity\ApiToken;
+use App\Entity\ChangeRequest;
 use App\Entity\Repository;
 use App\Entity\Review;
 use App\Entity\User;
@@ -108,6 +114,23 @@ trait ApiFixtures
         $entityManager->clear();
 
         return $review;
+    }
+
+    /**
+     * An open file request row of the review, without events. Clears the entity manager.
+     */
+    private static function storeRequest(Review $review): ChangeRequest
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $stored = self::getContainer()->get(TenantFilter::class)->suspend(static fn (): ?Review => $entityManager->find(Review::class, Ulid::fromString($review->getId()->toString())));
+        \assert($stored instanceof Review);
+        $anchor = Anchor::of(AnchorKind::File, RepoPath::fromString('README.md'), $stored->getCommitSha(), BlobSha::fromString('e965047ad7c57865823c7d992b1d046ea66edf78'), null, null, null);
+        $request = new ChangeRequest(RequestId::generate(), $stored, $anchor, 'Use `Money` instead of `float` for totals.', $stored->getStartedBy(), Clock::get()->now());
+        $entityManager->persist($request);
+        $entityManager->flush();
+        $entityManager->clear();
+
+        return $request;
     }
 
     /**

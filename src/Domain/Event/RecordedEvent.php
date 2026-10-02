@@ -35,6 +35,14 @@ final readonly class RecordedEvent
     }
 
     /**
+     * `Event.requestId` of event.schema.json: set for request events and commit.unlinked.
+     */
+    public function subjectRequestId(): ?RequestId
+    {
+        return $this->event instanceof CommitUnlinkedEvent ? $this->event->requestId : $this->requestId;
+    }
+
+    /**
      * `Event.requestIds` of event.schema.json: every request that the event concerns.
      *
      * @return list<RequestId>

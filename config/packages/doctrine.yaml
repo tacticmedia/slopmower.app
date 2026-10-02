@@ -23,6 +23,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Doctrine/Embeddable'
                 prefix: 'App\Doctrine\Embeddable'
                 alias: Embeddable
+        dql:
+            string_functions:
+                JSONB_CONTAINS: App\Doctrine\Query\JsonbContains
+                JSONB_PATH_TEXT: App\Doctrine\Query\JsonbPathText
+            numeric_functions:
+                JSONB_PATH_INTEGER: App\Doctrine\Query\JsonbPathInteger
         filters:
             tenant:
                 class: App\Tenancy\TenantSqlFilter

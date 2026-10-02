@@ -43,6 +43,11 @@ final readonly class FileContent
         return !$this->symlink && !$this->binary && !$this->isTooLarge();
     }
 
+    public function text(): ?string
+    {
+        return $this->isRenderable() ? $this->blob?->bytes : null;
+    }
+
     public function lineCount(): ?int
     {
         return $this->isRenderable() ? $this->blob?->lineCount() : null;

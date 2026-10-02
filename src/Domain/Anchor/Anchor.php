@@ -46,13 +46,7 @@ final readonly class Anchor
             }
         }
 
-        if (AnchorKind::Line === $kind && null !== $range && 1 !== $range->lineCount()) {
-            $violations[] = ['field' => 'range.endLine', 'message' => 'Must equal startLine for a line anchor.'];
-        }
-
-        if (AnchorKind::Range === $kind && null !== $range && 1 === $range->lineCount()) {
-            $violations[] = ['field' => 'range.endLine', 'message' => 'Must be after startLine for a range anchor.'];
-        }
+        $violations = [...$violations, ...self::rangeViolations($kind, $range)];
 
         if (null !== $range && null !== $snapshot && $range->lineCount() !== $snapshot->lineCount) {
             $violations[] = ['field' => 'snapshot.lineCount', 'message' => 'Must equal the line count of range.'];
@@ -63,6 +57,21 @@ final readonly class Anchor
         }
 
         return new self($kind, $path, $commitSha, $blobSha, $range, $symbol, $snapshot);
+    }
+
+    /**
+     * The line count rules of `line` and `range`, which need no file content.
+     *
+     * @return list<array{field: string, message: string}>
+     */
+    public static function rangeViolations(AnchorKind $kind, ?LineRange $range): array
+    {
+        return match (true) {
+            null === $range => [],
+            AnchorKind::Line === $kind && 1 !== $range->lineCount() => [['field' => 'range.endLine', 'message' => 'Must equal startLine for a line anchor.']],
+            AnchorKind::Range === $kind && 1 === $range->lineCount() => [['field' => 'range.endLine', 'message' => 'Must be after startLine for a range anchor.']],
+            default => [],
+        };
     }
 
     public function equals(self $other): bool

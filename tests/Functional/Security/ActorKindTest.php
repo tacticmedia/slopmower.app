@@ -30,7 +30,12 @@ final class ActorKindTest extends WebTestCase
         $user = TenantFixtures::of(self::getContainer())->create();
         [$token, $secret] = self::storeToken($user);
         $review = self::storeReview($user, 'billing');
-        $path = strtr($path, ['{tokenId}' => $token->getId()->toString(), '{repositoryId}' => $review->getRepository()->getId()->toString(), '{reviewId}' => $review->getId()->toString()]);
+        $path = strtr($path, [
+            '{tokenId}' => $token->getId()->toString(),
+            '{repositoryId}' => $review->getRepository()->getId()->toString(),
+            '{reviewId}' => $review->getId()->toString(),
+            '{requestId}' => self::storeRequest($review)->getId()->toString(),
+        ]);
 
         $response = self::bearerRequest($client, $secret, $method, $path, 'GET' === $method ? null : []);
 
@@ -56,6 +61,9 @@ final class ActorKindTest extends WebTestCase
         yield 'R3' => ['POST', '/api/v1/repositories'];
         yield 'V1' => ['POST', '/api/v1/repositories/{repositoryId}/reviews'];
         yield 'V4' => ['POST', '/api/v1/reviews/{reviewId}/close'];
+        yield 'Q2' => ['POST', '/api/v1/reviews/{reviewId}/requests'];
+        yield 'Q12' => ['POST', '/api/v1/requests/{requestId}/verify'];
+        yield 'Q13' => ['POST', '/api/v1/requests/{requestId}/reopen'];
         yield 'T1' => ['GET', '/api/v1/tokens'];
         yield 'T2' => ['POST', '/api/v1/tokens'];
         yield 'T3' => ['DELETE', '/api/v1/tokens/{tokenId}'];

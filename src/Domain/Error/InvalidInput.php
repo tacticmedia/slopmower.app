@@ -25,6 +25,17 @@ final class InvalidInput extends DomainError
         return new self([['field' => $field, 'message' => $message]]);
     }
 
+    /**
+     * The same violations under $prefix: `range.endLine` becomes `anchor.range.endLine`, and `` becomes `anchor`.
+     */
+    public function prefixed(string $prefix): self
+    {
+        return new self(array_map(
+            static fn (array $violation): array => ['field' => '' === $violation['field'] ? $prefix : "{$prefix}.{$violation['field']}", 'message' => $violation['message']],
+            $this->violations,
+        ));
+    }
+
     public function code(): ErrorCode
     {
         return ErrorCode::InvalidInput;

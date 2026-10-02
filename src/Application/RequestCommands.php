@@ -29,13 +29,11 @@ use App\Projection\RequestStateMapper;
 use App\Repository\ChangeRequestRepository;
 use App\Repository\CommitLinkRepository;
 use App\Repository\ReviewRepository;
-use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use Symfony\Component\Uid\Ulid;
 
 /**
  * Each method returns the events that the command wrote. The ID of an opened request is in the requestId of its event.
  */
-#[Autoconfigure(public: true)]
 final class RequestCommands
 {
     public function __construct(
