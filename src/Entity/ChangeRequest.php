@@ -95,12 +95,20 @@ class ChangeRequest implements TenantOwned
         $this->id = Ulid::fromString($id->toString());
         $this->tenantId = Ulid::fromString($review->getTenantId()->toString());
         $this->review = $review;
+        $this->opened($anchor, $body, $author, $createdAt);
+        $this->claimedBy = ActorEmbeddable::of(null);
+        $this->updatedAt = $createdAt;
+    }
+
+    /**
+     * The projection rebuild recomputes an existing row in place.
+     */
+    public function opened(Anchor $anchor, string $body, Actor $author, \DateTimeImmutable $createdAt): void
+    {
         $this->anchor = $anchor;
         $this->body = $body;
         $this->author = ActorEmbeddable::of($author);
         $this->createdAt = $createdAt;
-        $this->claimedBy = ActorEmbeddable::of(null);
-        $this->updatedAt = $createdAt;
     }
 
     public function project(

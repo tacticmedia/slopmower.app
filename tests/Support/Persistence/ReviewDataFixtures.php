@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Support\Persistence;
 
-use App\Domain\Event\Codec\PayloadJson;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\RefName;
@@ -18,14 +17,13 @@ use App\Entity\ChangeRequest;
 use App\Entity\CommitLink;
 use App\Entity\Repository;
 use App\Entity\Review;
+use App\EventStore\EventStoreSql;
 use App\Projection\RequestStateMapper;
 use App\Tenancy\TenantContext;
 use App\Tests\Support\Domain\RequestScenario;
 use App\Tests\Support\Fixtures\TenantFixtures;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * Rows of the review data tables for KernelTestCase tests that use ResetDatabase.
@@ -40,9 +38,9 @@ trait ReviewDataFixtures
         return self::getContainer()->get(EntityManagerInterface::class);
     }
 
-    private static function enterNewTenant(): TenantId
+    private static function enterNewTenant(string $login = 'jan'): TenantId
     {
-        $tenantId = TenantFixtures::of(self::getContainer())->create()->getTenantId();
+        $tenantId = TenantFixtures::of(self::getContainer())->withLogin($login)->create()->getTenantId();
         self::getContainer()->get(TenantContext::class)->set($tenantId);
 
         return $tenantId;
@@ -106,30 +104,10 @@ trait ReviewDataFixtures
     }
 
     /**
-     * The event store inserts events with SQL, so tests do too.
+     * Appends without the decider and the projectors, so a test can store any event.
      */
     private static function insertEvent(RecordedEvent $event): void
     {
-        $actor = $event->actor;
-
-        self::getContainer()->get(Connection::class)->insert('review_event', [
-            'id' => self::uuid($event->id),
-            'tenant_id' => self::uuid($event->tenantId),
-            'seq' => $event->seq,
-            'review_id' => self::uuid($event->reviewId),
-            'request_id' => null === $event->requestId ? null : self::uuid($event->requestId),
-            'request_ids' => json_encode(array_map(static fn (RequestId $id): string => $id->toString(), $event->requestIds()), \JSON_THROW_ON_ERROR),
-            'type' => $event->type->value,
-            'actor_kind' => $actor->kind->value,
-            'actor_user_id' => null === $actor->userId ? null : self::uuid($actor->userId),
-            'actor_agent_name' => $actor->agentName,
-            'occurred_at' => $event->occurredAt,
-            'payload' => PayloadJson::encode($event->event->toPayload()),
-        ], ['occurred_at' => Types::DATETIMETZ_IMMUTABLE]);
-    }
-
-    private static function uuid(\Stringable $id): string
-    {
-        return Ulid::fromString((string) $id)->toRfc4122();
+        new EventStoreSql(self::getContainer()->get(Connection::class))->append([$event]);
     }
 }

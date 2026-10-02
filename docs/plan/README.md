@@ -97,7 +97,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M04 | [Request lifecycle](M04-request-lifecycle.md) | Done | 2026-10-02 | [Report](reports/M04.md) |
 | M05 | [Tenancy persistence and isolation](M05-tenancy-persistence-and-isolation.md) | Done | 2026-10-02 | [Report](reports/M05.md) |
 | M06 | [Review data schema](M06-review-data-schema.md) | Done | 2026-10-02 | [Report](reports/M06.md) |
-| M07 | [Event store and command service](M07-event-store-and-command-service.md) | Not started | | |
+| M07 | [Event store and command service](M07-event-store-and-command-service.md) | Done | 2026-10-02 | [Report](reports/M07.md) |
 | M08 | [Git plumbing](M08-git-plumbing.md) | Done | 2026-10-02 | [Report](reports/M08.md) |
 | M09 | [Local repository source](M09-local-repository-source.md) | Not started | | |
 | M10 | [Sign-in and security](M10-sign-in-and-security.md) | Done | 2026-10-02 | [Report](reports/M10.md) |

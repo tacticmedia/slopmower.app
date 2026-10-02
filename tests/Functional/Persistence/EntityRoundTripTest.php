@@ -31,6 +31,7 @@ use App\Domain\Identity\RequestId;
 use App\Domain\Request\Awaiting;
 use App\Domain\Request\RequestStatus;
 use App\Domain\Request\Resolution;
+use App\Domain\Review\ReviewSnapshot;
 use App\Entity\ChangeRequest;
 use App\Entity\Comment;
 use App\Entity\CommitLink;
@@ -59,8 +60,7 @@ final class EntityRoundTripTest extends KernelTestCase
         $agent = RequestScenario::claimingAgent();
         $time = new \DateTimeImmutable('2026-09-29T08:15:30Z');
         $review = self::newReview($tenantId);
-        $review->close($time, RequestScenario::user(), 'Shipped in 2.4');
-        $review->setLastEventSeq(9);
+        $review->project(new ReviewSnapshot($review->getId(), $review->getTitle(), $review->getRef(), $review->getCommitSha(), $review->getStartedBy(), $review->getCreatedAt(), $time, RequestScenario::user(), 'Shipped in 2.4'), 9);
         $claimed = self::newRequest($review, self::symbolAnchor());
         $claimed->project(RequestStatus::InProgress, RequestStatus::Reopened, $agent, $time, null, null, Awaiting::Agent, 7, 6, true, 8, $time);
         $wontDo = self::newRequest($review, self::symbolAnchor());

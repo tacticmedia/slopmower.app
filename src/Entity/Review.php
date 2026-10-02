@@ -13,6 +13,7 @@ use App\Domain\Git\RefName;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Identity\TenantId;
 use App\Domain\Review\IndexState;
+use App\Domain\Review\ReviewSnapshot;
 use App\Domain\Review\ReviewState;
 use App\Repository\ReviewRepository;
 use App\Tenancy\TenantOwned;
@@ -115,17 +116,37 @@ class Review implements TenantOwned
         $this->lastEventSeq = $lastEventSeq;
     }
 
-    public function close(\DateTimeImmutable $closedAt, Actor $closedBy, ?string $closeNote): void
+    public function project(ReviewSnapshot $snapshot, int $lastEventSeq): void
     {
-        $this->state = ReviewState::Closed;
-        $this->closedAt = $closedAt;
-        $this->closedBy = ActorEmbeddable::of($closedBy);
-        $this->closeNote = $closeNote;
+        if (!$snapshot->id->equals($this->getId())) {
+            throw new \LogicException("The snapshot of {$snapshot->id} does not fit the review {$this->getId()}.");
+        }
+
+        $this->title = $snapshot->title;
+        $this->ref = $snapshot->ref->toString();
+        $this->commitSha = $snapshot->commitSha;
+        $this->startedBy = ActorEmbeddable::of($snapshot->startedBy);
+        $this->createdAt = $snapshot->createdAt;
+        $this->state = $snapshot->isClosed() ? ReviewState::Closed : ReviewState::Open;
+        $this->closedAt = $snapshot->closedAt;
+        $this->closedBy = ActorEmbeddable::of($snapshot->closedBy);
+        $this->closeNote = $snapshot->closeNote;
+        $this->lastEventSeq = $lastEventSeq;
     }
 
-    public function setLastEventSeq(int $lastEventSeq): void
+    public function toSnapshot(): ReviewSnapshot
     {
-        $this->lastEventSeq = $lastEventSeq;
+        return new ReviewSnapshot(
+            id: $this->getId(),
+            title: $this->title,
+            ref: $this->getRef(),
+            commitSha: $this->commitSha,
+            startedBy: $this->getStartedBy(),
+            createdAt: $this->createdAt,
+            closedAt: $this->closedAt,
+            closedBy: $this->getClosedBy(),
+            closeNote: $this->closeNote,
+        );
     }
 
     public function getId(): ReviewId
