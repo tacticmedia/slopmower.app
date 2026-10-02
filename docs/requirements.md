@@ -148,7 +148,7 @@ These two principles control all decisions.
 ### FR15 Storage and safety
 
 - The review data is safe when the web UI and the agent write at the same time.
-- Every change is an event in an append-only log with an actor.
+- Every review and request state change and every comment is an event in an append-only log with an actor. Drafts, viewed-file marks, repositories, and API tokens are plain rows.
 - The user can delete a review, the data of one repository, or the whole account. When GitHub access to a repository ends, the server deletes its clone and index at once and keeps the reviews until the user deletes them.
 
 ## 4. Non-goals of the proof of concept
