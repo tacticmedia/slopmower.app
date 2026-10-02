@@ -19,6 +19,12 @@
     gap: var(--base-size-16);
 }
 
+.reviewActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--base-size-8);
+}
+
 .titleText {
     display: flex;
     flex-direction: column;

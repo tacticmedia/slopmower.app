@@ -4,12 +4,11 @@ import { lazy, Suspense, useOptimistic, useRef, useTransition } from 'react';
 import { useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
 import type { Actor } from '../api/types/actor';
-import type { LineRange } from '../code/lineHash';
 import { StatusLabel } from '../requests/StatusLabel';
 import { CommentBox, type CommentBoxHandle } from './CommentBox';
 import type { CommentIntent } from './commentIntent';
 import styles from './ThreadBox.module.css';
-import { type CommentView, pendingComment, type ThreadView } from './threadView';
+import { type CommentView, linesText, pendingComment, type ThreadView } from './threadView';
 
 // A separate chunk, so the Markdown libraries stay out of the bundles that import this box.
 const MarkdownBody = lazy(() => import('./MarkdownBody').then(({ MarkdownBody }) => ({ default: MarkdownBody })));
@@ -116,12 +115,4 @@ function AuthorPicture({ author }: { author: Actor }) {
     }
 
     return 'agent' === author.kind ? <HubotIcon size={20} aria-hidden /> : <PersonIcon size={20} aria-hidden />;
-}
-
-function linesText(range: LineRange | null): string {
-    if (null === range) {
-        return 'File';
-    }
-
-    return range.start === range.end ? `Line ${range.start}` : `Lines ${range.start} to ${range.end}`;
 }

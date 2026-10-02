@@ -17,6 +17,8 @@ type Props = {
     submitLabel: string;
     /** False when the submit was not accepted, for example while another write runs. */
     onSubmit(body: string): boolean;
+    /** A second write of the same text, the primary button. */
+    alternative?: { label: string; onSubmit(body: string): boolean };
     onCancel?: () => void;
     initialBody?: string;
     error: string | null;
@@ -28,7 +30,7 @@ type Props = {
 /**
  * The text stays while the write runs and clears when it succeeds, so a failed write keeps it.
  */
-export function CommentBox({ label, submitLabel, onSubmit, onCancel, initialBody = '', error, busy, focusOnMount = false, ref }: Props) {
+export function CommentBox({ label, submitLabel, onSubmit, alternative, onCancel, initialBody = '', error, busy, focusOnMount = false, ref }: Props) {
     const [body, setBody] = useState(initialBody);
     const [sent, setSent] = useState(false);
     const textarea = useRef<HTMLTextAreaElement>(null);
@@ -58,11 +60,14 @@ export function CommentBox({ label, submitLabel, onSubmit, onCancel, initialBody
         }
     }, [focusOnMount]);
 
-    const submit = (event: FormEvent<HTMLFormElement>): void => {
-        event.preventDefault();
-        if ('' !== body.trim() && !busy && onSubmit(body)) {
+    const send = (write: (text: string) => boolean): void => {
+        if ('' !== body.trim() && !busy && write(body)) {
             setSent(true);
         }
+    };
+    const submit = (event: FormEvent<HTMLFormElement>): void => {
+        event.preventDefault();
+        send(onSubmit);
     };
 
     return (
@@ -89,9 +94,14 @@ export function CommentBox({ label, submitLabel, onSubmit, onCancel, initialBody
                         Cancel
                     </Button>
                 )}
-                <Button type="submit" variant="primary" disabled={'' === body.trim()} loading={busy}>
+                <Button type="submit" variant={undefined === alternative ? 'primary' : 'default'} disabled={'' === body.trim()} loading={busy}>
                     {submitLabel}
                 </Button>
+                {undefined !== alternative && (
+                    <Button variant="primary" onClick={() => send(alternative.onSubmit)} disabled={'' === body.trim()} loading={busy}>
+                        {alternative.label}
+                    </Button>
+                )}
             </div>
         </form>
     );

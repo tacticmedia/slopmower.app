@@ -1,4 +1,4 @@
-import { FileIcon, FileSubmoduleIcon, FileSymlinkFileIcon } from '@primer/octicons-react';
+import { CheckIcon, FileIcon, FileSubmoduleIcon, FileSymlinkFileIcon } from '@primer/octicons-react';
 import { TreeView } from '@primer/react';
 import { type ComponentProps, useEffect, useState } from 'react';
 import { useFetcher, useNavigate } from 'react-router';
@@ -6,36 +6,37 @@ import type { TreeEntry } from '../api/types/tree-entry';
 import { type TreeResult, treeHref } from '../routes/reviews/treeData';
 import { fileHref } from './fileHref';
 
-type EntryProps = {
+type TreeProps = {
     reviewId: string;
-    entry: TreeEntry;
+    entries: TreeEntry[];
     currentPath: string | null;
+    /** The paths that the caller marked as viewed. */
+    viewed: ReadonlySet<string>;
 };
+
+type EntryProps = Omit<TreeProps, 'entries'> & { entry: TreeEntry };
 
 /**
  * The tree at the review commit. Directories list their entries through V6 when they expand.
  */
-export function FileTree({ reviewId, entries, currentPath }: { reviewId: string; entries: TreeEntry[]; currentPath: string | null }) {
+export function FileTree(props: TreeProps) {
     return (
         <nav aria-label="Files" data-testid="file-tree">
             <TreeView aria-label="Files" truncate>
-                <Entries reviewId={reviewId} entries={entries} currentPath={currentPath} />
+                <Entries {...props} />
             </TreeView>
         </nav>
     );
 }
 
-function Entries({ reviewId, entries, currentPath }: { reviewId: string; entries: TreeEntry[]; currentPath: string | null }) {
+function Entries({ entries, ...props }: TreeProps) {
     return entries.map((entry) =>
-        'directory' === entry.type ? (
-            <DirectoryItem key={entry.path} reviewId={reviewId} entry={entry} currentPath={currentPath} />
-        ) : (
-            <LeafItem key={entry.path} reviewId={reviewId} entry={entry} currentPath={currentPath} />
-        ),
+        'directory' === entry.type ? <DirectoryItem key={entry.path} entry={entry} {...props} /> : <LeafItem key={entry.path} entry={entry} {...props} />,
     );
 }
 
-function DirectoryItem({ reviewId, entry, currentPath }: EntryProps) {
+function DirectoryItem({ entry, ...props }: EntryProps) {
+    const { reviewId, currentPath } = props;
     const { load, state, data } = useFetcher<TreeResult>();
     const [expanded, setExpanded] = useState(() => null !== currentPath && currentPath.startsWith(`${entry.path}/`));
     const href = treeHref(reviewId, entry.path);
@@ -52,9 +53,7 @@ function DirectoryItem({ reviewId, entry, currentPath }: EntryProps) {
                 <TreeView.DirectoryIcon />
             </TreeView.LeadingVisual>
             {entry.name}
-            <TreeView.SubTree state={subTreeState(state, data)}>
-                {undefined !== data && 'items' in data && <Entries reviewId={reviewId} entries={data.items} currentPath={currentPath} />}
-            </TreeView.SubTree>
+            <TreeView.SubTree state={subTreeState(state, data)}>{undefined !== data && 'items' in data && <Entries entries={data.items} {...props} />}</TreeView.SubTree>
             {expanded && undefined !== data && 'error' in data && (
                 <TreeView.ErrorDialog onRetry={() => void load(href)} onDismiss={() => setExpanded(false)}>
                     {data.error}
@@ -67,7 +66,7 @@ function DirectoryItem({ reviewId, entry, currentPath }: EntryProps) {
 /**
  * V7 refuses submodules, so they are not links.
  */
-function LeafItem({ reviewId, entry, currentPath }: EntryProps) {
+function LeafItem({ reviewId, entry, currentPath, viewed }: EntryProps) {
     const navigate = useNavigate();
     const Icon = 'symlink' === entry.type ? FileSymlinkFileIcon : 'submodule' === entry.type ? FileSubmoduleIcon : FileIcon;
 
@@ -82,6 +81,13 @@ function LeafItem({ reviewId, entry, currentPath }: EntryProps) {
                 <Icon />
             </TreeView.LeadingVisual>
             {entry.name}
+            {viewed.has(entry.path) && (
+                <TreeView.TrailingVisual label="Viewed">
+                    <span data-testid="viewed-mark">
+                        <CheckIcon />
+                    </span>
+                </TreeView.TrailingVisual>
+            )}
         </TreeView.Item>
     );
 }

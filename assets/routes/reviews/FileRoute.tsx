@@ -4,18 +4,20 @@ import { useLoaderData, useRouteLoaderData } from 'react-router';
 import type { Actor } from '../../api/types/actor';
 import type { FileContent } from '../../api/types/file-content';
 import type { Me } from '../../api/types/me';
-import type { Review } from '../../api/types/review';
 import { type CodeAnnotation, NO_ANNOTATIONS, stableAnnotations, threadsByLine } from '../../code/annotations';
 import { type LineRange, lineRange } from '../../code/lineHash';
 import { bottomLine, type GestureRange } from '../../code/rangeSelection';
 import { CommentBox } from '../../comments/CommentBox';
 import { CommentOnLinesForm } from '../../comments/CommentOnLinesForm';
+import { type DraftView, fileDraftViews } from '../../comments/draftView';
 import { ThreadList } from '../../comments/ThreadList';
-import { type Composer, useFileComments } from '../../comments/useFileComments';
+import { type Composer, type SubmitMode, useFileComments } from '../../comments/useFileComments';
 import { FileHeader } from '../../review/FileHeader';
 import { FilePlaceholder } from '../../review/FilePlaceholder';
+import { ViewedCheckbox } from '../../review/ViewedCheckbox';
 import type { FileView } from './fileData';
 import styles from './FileRoute.module.css';
+import type { ReviewData } from './reviewData';
 import { useLineSelection } from './useLineSelection';
 
 // A separate chunk, so the code viewer library stays out of the shell bundle.
@@ -30,11 +32,14 @@ type LineSelection = ReturnType<typeof useLineSelection>;
 export function FileRoute() {
     const { content, text, threads } = useLoaderData<FileView>();
     const { caller } = loaded(useRouteLoaderData<Me>('root'), 'root');
-    const review = loaded(useRouteLoaderData<Review>('review'), 'review');
+    const { review, drafts, viewedPaths } = loaded(useRouteLoaderData<ReviewData>('review'), 'review');
+    const fileDrafts = useMemo(() => fileDraftViews(drafts, content.path), [drafts, content.path]);
     const selection = useLineSelection(content.path, content.lineCount);
-    const comments = useFileComments({ path: content.path, threads, caller, clearSelection: selection.clear });
+    const comments = useFileComments({ path: content.path, threads, drafts: fileDrafts, caller, clearSelection: selection.clear });
     const commentable = 'open' === review.state;
+    const reviewLabel = 0 === drafts.length ? 'Start a review' : 'Add review comment';
     const fileThreads = useMemo(() => comments.threads.filter((thread) => null === thread.range), [comments.threads]);
+    const filePendingDrafts = useMemo(() => comments.drafts.filter((draft) => null === draft.range), [comments.drafts]);
     const fileComposer = null !== comments.composer && null === comments.composer.range ? comments.composer : null;
     const { select } = selection;
     const { open } = comments;
@@ -55,18 +60,19 @@ export function FileRoute() {
                         Comment on file
                     </Button>
                 )}
+                <ViewedCheckbox path={content.path} viewed={viewedPaths.includes(content.path)} disabled={!commentable} />
             </FileHeader>
-            {(fileThreads.length > 0 || null !== fileComposer) && (
+            {(fileThreads.length > 0 || filePendingDrafts.length > 0 || null !== fileComposer) && (
                 <div className={styles.fileThreads} data-testid="file-threads">
-                    <ThreadList threads={fileThreads} caller={caller}>
-                        {null !== fileComposer && <ComposerBox composer={fileComposer} onSubmit={comments.submit} onCancel={comments.cancel} />}
+                    <ThreadList threads={fileThreads} caller={caller} drafts={filePendingDrafts} draftsEditable={commentable}>
+                        {null !== fileComposer && <ComposerBox composer={fileComposer} reviewLabel={reviewLabel} onSubmit={comments.submit} onCancel={comments.cancel} />}
                     </ThreadList>
                 </div>
             )}
             {null === text ? (
                 <FilePlaceholder content={content} />
             ) : (
-                <Code content={content} text={text} selection={selection} comments={comments} caller={caller} commentable={commentable} />
+                <Code content={content} text={text} selection={selection} comments={comments} caller={caller} commentable={commentable} reviewLabel={reviewLabel} />
             )}
         </section>
     );
@@ -79,15 +85,19 @@ type CodeProps = {
     comments: Comments;
     caller: Actor;
     commentable: boolean;
+    reviewLabel: string;
 };
 
-function Code({ content, text, selection, comments, caller, commentable }: CodeProps) {
-    const { composer, threads, open, submit, cancel } = comments;
+const draftLine = (draft: DraftView): number | null => (null === draft.range ? null : bottomLine(draft.range));
+
+function Code({ content, text, selection, comments, caller, commentable, reviewLabel }: CodeProps) {
+    const { composer, threads, drafts, open, submit, cancel } = comments;
     const composerLine = null !== composer && null !== composer.range ? bottomLine(composer.range) : null;
     const lines = useMemo(() => threadsByLine(threads, (thread) => (null === thread.range ? null : bottomLine(thread.range)), composerLine), [threads, composerLine]);
+    const draftLines = useMemo(() => threadsByLine(drafts, draftLine, null), [drafts]);
     // Kept per path: a line keeps its annotation index while its file is shown.
     const [annotated, setAnnotated] = useState<{ path: string; annotations: readonly CodeAnnotation[] }>({ path: content.path, annotations: NO_ANNOTATIONS });
-    const currentAnnotations = stableAnnotations(annotated.path === content.path ? annotated.annotations : NO_ANNOTATIONS, lines.keys());
+    const currentAnnotations = stableAnnotations(annotated.path === content.path ? annotated.annotations : NO_ANNOTATIONS, [...lines.keys(), ...draftLines.keys()]);
 
     if (annotated.path !== content.path || currentAnnotations !== annotated.annotations) {
         setAnnotated({ path: content.path, annotations: currentAnnotations });
@@ -96,14 +106,15 @@ function Code({ content, text, selection, comments, caller, commentable }: CodeP
     const renderAnnotation = useCallback(
         (lineNumber: number) => {
             const line = lines.get(lineNumber);
+            const lineDrafts = draftLines.get(lineNumber)?.threads;
 
-            return undefined === line ? null : (
-                <ThreadList threads={line.threads} caller={caller}>
-                    {line.composer && null !== composer && <ComposerBox composer={composer} onSubmit={submit} onCancel={cancel} />}
+            return undefined === line && undefined === lineDrafts ? null : (
+                <ThreadList threads={line?.threads ?? []} caller={caller} drafts={lineDrafts} draftsEditable={commentable}>
+                    {true === line?.composer && null !== composer && <ComposerBox composer={composer} reviewLabel={reviewLabel} onSubmit={submit} onCancel={cancel} />}
                 </ThreadList>
             );
         },
-        [lines, caller, composer, submit, cancel],
+        [lines, draftLines, caller, commentable, composer, reviewLabel, submit, cancel],
     );
     const comment = useCallback((gesture: GestureRange) => open(lineRange(gesture.start, gesture.end)), [open]);
 
@@ -135,17 +146,20 @@ function Code({ content, text, selection, comments, caller, commentable }: CodeP
 
 type ComposerBoxProps = {
     composer: Composer;
-    onSubmit(body: string): boolean;
+    /** "Start a review" or "Add review comment". */
+    reviewLabel: string;
+    onSubmit(body: string, mode: SubmitMode): boolean;
     onCancel(): void;
 };
 
-function ComposerBox({ composer, onSubmit, onCancel }: ComposerBoxProps) {
+function ComposerBox({ composer, reviewLabel, onSubmit, onCancel }: ComposerBoxProps) {
     return (
         <CommentBox
             key={composer.key}
             label={composerLabel(composer.range)}
             submitLabel="Add single comment"
-            onSubmit={onSubmit}
+            onSubmit={(body) => onSubmit(body, 'single')}
+            alternative={{ label: reviewLabel, onSubmit: (body) => onSubmit(body, 'draft') }}
             onCancel={onCancel}
             initialBody={composer.initialBody}
             error={composer.error}

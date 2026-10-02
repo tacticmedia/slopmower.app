@@ -61,3 +61,11 @@ export function pendingThread(range: LineRange | null, body: string, author: Act
 
     return { key: opened.key, requestId: null, status: 'open', range, comments: [opened], replyable: false };
 }
+
+export function linesText(range: LineRange | null): string {
+    if (null === range) {
+        return 'File';
+    }
+
+    return range.start === range.end ? `Line ${range.start}` : `Lines ${range.start} to ${range.end}`;
+}

@@ -36,4 +36,17 @@ final class CurrentActor
             default => throw new \LogicException('The request has no authenticated caller.'),
         };
     }
+
+    /**
+     * For actions behind #[IsGranted(User::ROLE)]. Not #[CurrentUser] User: its resolver runs before #[IsGranted] and
+     * denies an agent with its own message.
+     *
+     * @throws \LogicException Without a session user
+     */
+    public function sessionUser(): User
+    {
+        $user = $this->security->getUser();
+
+        return $user instanceof User ? $user : throw new \LogicException('The request has no session user.');
+    }
 }

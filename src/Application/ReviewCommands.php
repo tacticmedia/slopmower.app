@@ -27,6 +27,7 @@ use App\Git\GitFailed;
 use App\Git\GitReader;
 use App\Git\PinRefs;
 use App\Message\IndexReview;
+use App\Repository\DraftRepository;
 use App\Repository\RepositoryRepository;
 use App\Repository\ReviewRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -46,6 +47,7 @@ final class ReviewCommands
         private readonly EntityManagerInterface $entityManager,
         private readonly RepositoryRepository $repositories,
         private readonly ReviewRepository $reviews,
+        private readonly DraftRepository $drafts,
         private readonly FetchRepository $fetchRepository,
         private readonly GitReader $reader,
         private readonly PinRefs $pins,
@@ -123,6 +125,8 @@ final class ReviewCommands
     }
 
     /**
+     * Deletes the drafts of the closing user in the review, in the transaction of review.closed.
+     *
      * @return list<RecordedEvent>
      *
      * @throws NotFound
@@ -130,11 +134,18 @@ final class ReviewCommands
      */
     public function close(ReviewId $reviewId, CloseReview $command, Actor $actor): array
     {
-        return $this->executor->execute($reviewId, $actor, function () use ($reviewId, $command, $actor): array {
-            $review = $this->reviews->findFresh($reviewId) ?? throw new NotFound();
+        return $this->executor->execute(
+            $reviewId,
+            $actor,
+            function () use ($reviewId, $command, $actor): array {
+                $review = $this->reviews->findFresh($reviewId) ?? throw new NotFound();
 
-            return ReviewDecider::decide($command, $review->toSnapshot(), $actor);
-        });
+                return ReviewDecider::decide($command, $review->toSnapshot(), $actor);
+            },
+            function () use ($reviewId, $actor): void {
+                $this->drafts->deleteOfUser($actor->userId ?? throw new \LogicException('Only a user closes a review.'), $reviewId);
+            },
+        );
     }
 
     private function isFullShaInClone(string $gitDir, ?RefName $ref): bool

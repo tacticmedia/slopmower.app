@@ -5,6 +5,7 @@ import type { Actor } from '../api/types/actor';
 import type { LineRange } from '../code/lineHash';
 import { anchorInput } from '../code/rangeSelection';
 import type { CommentIntent } from './commentIntent';
+import { type DraftView, pendingDraft } from './draftView';
 import { pendingThread, type ThreadView } from './threadView';
 
 export type Composer = {
@@ -16,9 +17,13 @@ export type Composer = {
     error: string | null;
 };
 
+/** `single` opens a request at once with Q2, `draft` adds a pending comment with D2. */
+export type SubmitMode = 'single' | 'draft';
+
 type Options = {
     path: string;
     threads: ThreadView[];
+    drafts: DraftView[];
     caller: Actor;
     /** Gap G1: while a selection exists, the "+" stays on its last line. */
     clearSelection(): void;
@@ -27,13 +32,14 @@ type Options = {
 type Sent = { path: string; range: LineRange | null; body: string };
 
 /**
- * The one comment box of a file, and Q2. The new thread shows at once; when Q2 fails, the box opens again with the
- * text and the error.
+ * The one comment box of a file, Q2, and D2. The new thread or pending comment shows at once; when the write fails,
+ * the box opens again with the text and the error.
  */
-export function useFileComments({ path, threads, caller, clearSelection }: Options) {
+export function useFileComments({ path, threads, drafts, caller, clearSelection }: Options) {
     const fetcher = useFetcher<ActionResult>();
     const [sending, startSending] = useTransition();
     const [shownThreads, addThread] = useOptimistic(threads, (current: ThreadView[], added: ThreadView) => [...current, added]);
+    const [shownDrafts, addDraft] = useOptimistic(drafts, (current: DraftView[], added: DraftView) => [...current, added]);
     const opened = useRef(0);
     const [composer, setComposer] = useState<(Composer & { path: string }) | null>(null);
     const [sent, setSent] = useState<Sent | null>(null);
@@ -65,7 +71,7 @@ export function useFileComments({ path, threads, caller, clearSelection }: Optio
     }, [clearSelection]);
 
     const submit = useCallback(
-        (body: string): boolean => {
+        (body: string, mode: SubmitMode): boolean => {
             if (sending || null === shownComposer) {
                 return false;
             }
@@ -73,16 +79,21 @@ export function useFileComments({ path, threads, caller, clearSelection }: Optio
             setComposer(null);
             clearSelection();
             setSent({ path, range, body });
-            const intent: CommentIntent = { intent: 'open', input: { anchor: anchorInput(path, range), body } };
+            const anchor = anchorInput(path, range);
+            const intent: CommentIntent = 'draft' === mode ? { intent: 'draft', input: { kind: 'new_request', anchor, body } } : { intent: 'open', input: { anchor, body } };
             startSending(async () => {
-                addThread(pendingThread(range, body, caller));
+                if ('draft' === mode) {
+                    addDraft(pendingDraft(range, body));
+                } else {
+                    addThread(pendingThread(range, body, caller));
+                }
                 await fetcher.submit(intent, { method: 'post', encType: 'application/json' });
             });
 
             return true;
         },
-        [sending, shownComposer, path, caller, clearSelection, addThread, fetcher.submit],
+        [sending, shownComposer, path, caller, clearSelection, addThread, addDraft, fetcher.submit],
     );
 
-    return { threads: shownThreads, composer: shownComposer, open, cancel, submit };
+    return { threads: shownThreads, drafts: shownDrafts, composer: shownComposer, open, cancel, submit };
 }

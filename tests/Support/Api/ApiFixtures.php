@@ -18,6 +18,7 @@ use App\Domain\Identity\TenantId;
 use App\Domain\Repository\RepositoryName;
 use App\Entity\ApiToken;
 use App\Entity\ChangeRequest;
+use App\Entity\Draft;
 use App\Entity\Repository;
 use App\Entity\Review;
 use App\Entity\User;
@@ -131,6 +132,27 @@ trait ApiFixtures
         $entityManager->clear();
 
         return $request;
+    }
+
+    /**
+     * A reply draft of the user to the request. Clears the entity manager.
+     */
+    private static function storeDraft(User $user, ChangeRequest $request): Draft
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $draft = self::getContainer()->get(TenantFilter::class)->suspend(static function () use ($entityManager, $user, $request): Draft {
+            $owner = $entityManager->find(User::class, Ulid::fromString($user->getId()->toString()));
+            $stored = $entityManager->find(ChangeRequest::class, Ulid::fromString($request->getId()->toString()));
+            \assert($owner instanceof User && $stored instanceof ChangeRequest);
+            $draft = Draft::reply($owner, $stored, 'Keep the rounding mode configurable.', Clock::get()->now());
+            $entityManager->persist($draft);
+            $entityManager->flush();
+
+            return $draft;
+        });
+        $entityManager->clear();
+
+        return $draft;
     }
 
     /**

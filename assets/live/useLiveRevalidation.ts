@@ -4,7 +4,7 @@ import { ApiError, apiGet, apiWrite } from '../api/client';
 import type { MercureAuthorization } from '../api/types/lists';
 import type { LiveUpdate } from '../api/types/live-update';
 import type { Request as ReviewRequest } from '../api/types/request';
-import type { Review } from '../api/types/review';
+import type { ReviewData } from '../routes/reviews/reviewData';
 import type { UpdatesPage } from '../api/types/updates-page';
 import { type EventPositions, eventPositions } from './eventPositions';
 
@@ -321,7 +321,7 @@ export function useLiveRevalidation(): boolean {
     if (undefined === router) {
         throw new Error('useLiveRevalidation needs a data router.');
     }
-    const review = useRouteLoaderData<Review>('review');
+    const review = useRouteLoaderData<ReviewData>('review')?.review;
     const request = useRouteLoaderData<ReviewRequest>('request');
     const reviewId = review?.id ?? request?.reviewId ?? null;
     const [connected, setConnected] = useState(false);

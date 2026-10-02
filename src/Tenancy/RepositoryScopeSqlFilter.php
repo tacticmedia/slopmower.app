@@ -8,6 +8,7 @@ use App\Entity\ApiToken;
 use App\Entity\ChangeRequest;
 use App\Entity\Comment;
 use App\Entity\CommitLink;
+use App\Entity\Draft;
 use App\Entity\GitHubCandidate;
 use App\Entity\GitHubInstallation;
 use App\Entity\IndexedBlob;
@@ -17,6 +18,7 @@ use App\Entity\Review;
 use App\Entity\ReviewEvent;
 use App\Entity\Symbol;
 use App\Entity\User;
+use App\Entity\ViewedFile;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Query\Filter\SQLFilter;
 
@@ -50,7 +52,7 @@ final class RepositoryScopeSqlFilter extends SQLFilter
             Review::class, IndexedFile::class, IndexedBlob::class, Symbol::class => "{$targetTableAlias}.repository_id = {$repositoryId}",
             GitHubInstallation::class => "{$targetTableAlias}.installation_id IN ({$repositoryColumn('github_installation_id')})",
             GitHubCandidate::class => "{$targetTableAlias}.github_repository_id IN ({$repositoryColumn('github_repository_id')})",
-            ChangeRequest::class, ReviewEvent::class => "{$targetTableAlias}.review_id IN ({$reviewsOfRepository})",
+            ChangeRequest::class, ReviewEvent::class, Draft::class, ViewedFile::class => "{$targetTableAlias}.review_id IN ({$reviewsOfRepository})",
             Comment::class, CommitLink::class => "{$targetTableAlias}.request_id IN (SELECT scope_request.id FROM change_request scope_request WHERE scope_request.review_id IN ({$reviewsOfRepository}))",
             default => throw new \LogicException("The repository scope has no rule for {$class}."),
         };

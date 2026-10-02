@@ -28,10 +28,14 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted(User::ROLE, message: CurrentActor::SESSION_ONLY)]
 final class TokenController extends AbstractController
 {
+    public function __construct(private readonly CurrentActor $currentActor)
+    {
+    }
+
     #[Route('', name: 'list', methods: ['GET'])]
     public function list(ApiTokenRepository $tokens): JsonResponse
     {
-        return $this->json(['items' => $tokens->findBy(['user' => $this->sessionUser()], ['createdAt' => 'DESC', 'id' => 'DESC'])]);
+        return $this->json(['items' => $tokens->findBy(['user' => $this->currentActor->sessionUser()], ['createdAt' => 'DESC', 'id' => 'DESC'])]);
     }
 
     #[Route('', name: 'create', methods: ['POST'])]
@@ -40,7 +44,7 @@ final class TokenController extends AbstractController
         \assert(null !== $input->name);
         $repositoryId = null === $input->repositoryId ? null : RepositoryId::fromString($input->repositoryId, 'repositoryId');
 
-        return $this->json($issuer->issue($this->sessionUser(), $input->name, $repositoryId, $input->expiresAt), Response::HTTP_CREATED);
+        return $this->json($issuer->issue($this->currentActor->sessionUser(), $input->name, $repositoryId, $input->expiresAt), Response::HTTP_CREATED);
     }
 
     /**
@@ -53,15 +57,5 @@ final class TokenController extends AbstractController
         $entityManager->flush();
 
         return new Response(status: Response::HTTP_NO_CONTENT);
-    }
-
-    /**
-     * Not #[CurrentUser] User: its resolver runs before #[IsGranted] and denies an agent with its own message.
-     */
-    private function sessionUser(): User
-    {
-        $user = $this->getUser();
-
-        return $user instanceof User ? $user : throw new \LogicException('#[IsGranted] admits only session users.');
     }
 }

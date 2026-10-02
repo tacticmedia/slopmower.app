@@ -9,6 +9,7 @@ use App\Domain\Anchor\AnchorKind;
 use App\Domain\Anchor\SymbolKind;
 use App\Domain\ApiToken\ApiTokenState;
 use App\Domain\ApiToken\TokenScope;
+use App\Domain\Draft\DraftKind;
 use App\Domain\Error\RepositoryUnavailableReason;
 use App\Domain\Event\EventType;
 use App\Domain\Location\LocationStatus;
@@ -75,5 +76,6 @@ final class EnumContractTest extends KernelTestCase
         yield 'RepositoryUnavailableReason' => [RepositoryUnavailableReason::class, 'error.schema.json', ['$defs', 'RepositoryUnavailableDetails', 'properties', 'reason', 'enum']];
         yield 'ApiTokenState' => [ApiTokenState::class, 'api-token.schema.json', ['properties', 'state', 'enum']];
         yield 'TokenScope' => [TokenScope::class, 'api-token.schema.json', ['properties', 'scope', 'enum']];
+        yield 'DraftKind' => [DraftKind::class, 'draft.schema.json', ['properties', 'kind', 'enum']];
     }
 }

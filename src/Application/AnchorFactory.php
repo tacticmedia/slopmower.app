@@ -110,9 +110,9 @@ final class AnchorFactory
         try {
             return $this->fetchRepository->readyClonePath($review->getRepository()->getId());
         } catch (RepositoryUnavailable $unavailable) {
-            $closedAt = $review->getClosedAt();
+            $review->assertOpen();
 
-            throw null === $closedAt ? $unavailable : new ReviewClosed($review->getId(), $closedAt);
+            throw $unavailable;
         }
     }
 }

@@ -9,16 +9,20 @@ use App\Domain\Anchor\SymbolKind;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Event\RequestClaimedEvent;
 use App\Domain\Git\BlobSha;
+use App\Domain\Git\RepoPath;
 use App\Domain\Identity\CommentId;
 use App\Domain\Identity\EventId;
 use App\Domain\Identity\RepositoryId;
 use App\Domain\Repository\RepositoryName;
 use App\Entity\ChangeRequest;
 use App\Entity\Comment;
+use App\Entity\Draft;
 use App\Entity\GitHubCandidate;
 use App\Entity\GitHubInstallation;
 use App\Entity\Repository;
 use App\Entity\Review;
+use App\Entity\User;
+use App\Entity\ViewedFile;
 use App\Git\ObjectType;
 use App\Git\TreeEntry;
 use App\GitHub\GitHubAccountType;
@@ -51,6 +55,9 @@ final class RepositoryScopeSqlFilterTest extends KernelTestCase
         $other = Repository::local($tenantId, RepositoryName::local('alpha'), 'alpha', $time);
         $gitHub = Repository::gitHub($tenantId, RepositoryName::github('acme/billing'), 812345, 5551, true, $time);
         self::entityManager()->persist(new Comment(CommentId::generate(), $request, RequestScenario::user(), 'Also cover shipping.', false, null, $time));
+        $user = self::entityManager()->getRepository(User::class)->findOneBy([]) ?? self::fail('No user.');
+        self::entityManager()->persist(Draft::reply($user, $request, 'Also cover refunds.', $time));
+        self::entityManager()->persist(new ViewedFile($user, $review, RepoPath::fromString('README.md')));
         self::entityManager()->persist($other);
         self::entityManager()->persist($gitHub);
 
@@ -66,12 +73,12 @@ final class RepositoryScopeSqlFilterTest extends KernelTestCase
         self::insertEvent(new RecordedEvent(EventId::generate(), $tenantId, 1, $scenario->review()->id, $requestId, RequestScenario::claimingAgent(), $time, new RequestClaimedEvent()));
         self::insertIndexRows($review);
         $unscoped = ['ApiToken' => 0, 'User' => 1];
-        $noReviewData = ['ChangeRequest' => 0, 'Comment' => 0, 'CommitLink' => 0];
+        $noReviewData = ['ChangeRequest' => 0, 'Comment' => 0, 'CommitLink' => 0, 'Draft' => 0];
         $noIndex = ['IndexedBlob' => 0, 'IndexedFile' => 0];
 
-        self::assertSame(['ChangeRequest' => 1, 'Comment' => 1, 'CommitLink' => 1, 'GitHubCandidate' => 0, 'GitHubInstallation' => 0, 'IndexedBlob' => 1, 'IndexedFile' => 1, 'Repository' => 1, 'Review' => 1, 'ReviewEvent' => 1, 'Symbol' => 1] + $unscoped, self::rowCounts($review->getRepository()->getId()));
-        self::assertSame($noReviewData + ['GitHubCandidate' => 0, 'GitHubInstallation' => 0] + $noIndex + ['Repository' => 1, 'Review' => 0, 'ReviewEvent' => 0, 'Symbol' => 0] + $unscoped, self::rowCounts($other->getId()));
-        self::assertSame($noReviewData + ['GitHubCandidate' => 1, 'GitHubInstallation' => 1] + $noIndex + ['Repository' => 1, 'Review' => 0, 'ReviewEvent' => 0, 'Symbol' => 0] + $unscoped, self::rowCounts($gitHub->getId()), 'Only its candidate and its installation.');
+        self::assertSame(['ChangeRequest' => 1, 'Comment' => 1, 'CommitLink' => 1, 'Draft' => 1, 'GitHubCandidate' => 0, 'GitHubInstallation' => 0, 'IndexedBlob' => 1, 'IndexedFile' => 1, 'Repository' => 1, 'Review' => 1, 'ReviewEvent' => 1, 'Symbol' => 1, 'ViewedFile' => 1] + $unscoped, self::rowCounts($review->getRepository()->getId()));
+        self::assertSame($noReviewData + ['GitHubCandidate' => 0, 'GitHubInstallation' => 0] + $noIndex + ['Repository' => 1, 'Review' => 0, 'ReviewEvent' => 0, 'Symbol' => 0, 'ViewedFile' => 0] + $unscoped, self::rowCounts($other->getId()));
+        self::assertSame($noReviewData + ['GitHubCandidate' => 1, 'GitHubInstallation' => 1] + $noIndex + ['Repository' => 1, 'Review' => 0, 'ReviewEvent' => 0, 'Symbol' => 0, 'ViewedFile' => 0] + $unscoped, self::rowCounts($gitHub->getId()), 'Only its candidate and its installation.');
     }
 
     /**

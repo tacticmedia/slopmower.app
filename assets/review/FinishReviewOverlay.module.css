@@ -1,0 +1,13 @@
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-8);
+    width: min(28rem, calc(100vw - var(--base-size-32)));
+    padding: var(--base-size-16);
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--base-size-8);
+}

@@ -1,28 +1,15 @@
 import { CodeIcon, CommentDiscussionIcon } from '@primer/octicons-react';
 import { Banner, Heading, Link, RelativeTime, UnderlineNav } from '@primer/react';
-import { type ActionFunctionArgs, type LoaderFunctionArgs, Outlet, Link as RouterLink, useLoaderData, useMatch } from 'react-router';
-import { type ActionResult, optionalText, writeResult } from '../../api/actionResult';
-import { apiGet, apiWrite } from '../../api/client';
-import type { CloseReviewInput } from '../../api/types/inputs';
+import { Outlet, Link as RouterLink, useLoaderData, useMatch } from 'react-router';
 import type { Review } from '../../api/types/review';
 import { AgentPromptSnippet } from '../../review/AgentPromptSnippet';
 import { CloseReviewDialog } from '../../review/CloseReviewDialog';
+import { FinishReviewOverlay } from '../../review/FinishReviewOverlay';
 import { IndexProgress } from '../../review/IndexProgress';
 import { ReviewIdCopy } from '../../review/ReviewIdCopy';
 import { shortSha } from '../../review/shortSha';
-import { encodedRouteParam } from '../encodedRouteParam';
 import styles from './ReviewLayout.module.css';
-
-export function reviewLoader({ request, params }: LoaderFunctionArgs): Promise<Review> {
-    return apiGet<Review>(`/api/v1/reviews/${encodedRouteParam(params, 'reviewId')}`, request.signal);
-}
-
-export async function reviewAction({ request, params }: ActionFunctionArgs): Promise<ActionResult> {
-    const form = await request.formData();
-    const input: CloseReviewInput = { note: optionalText(form.get('note')) };
-
-    return writeResult(() => apiWrite('POST', `/api/v1/reviews/${encodedRouteParam(params, 'reviewId')}/close`, input));
-}
+import type { ReviewData } from './reviewData';
 
 function ClosedBanner({ review }: { review: Extract<Review, { state: 'closed' }> }) {
     return (
@@ -62,7 +49,7 @@ function ReviewNavigation({ review }: { review: Review }) {
 }
 
 export function ReviewLayout() {
-    const review = useLoaderData<Review>();
+    const { review, drafts } = useLoaderData<ReviewData>();
 
     return (
         <div className={styles.page}>
@@ -78,7 +65,12 @@ export function ReviewLayout() {
                             {review.startedBy.name} <RelativeTime datetime={review.createdAt} />
                         </span>
                     </div>
-                    {'open' === review.state && <CloseReviewDialog />}
+                    {'open' === review.state && (
+                        <div className={styles.reviewActions}>
+                            {drafts.length > 0 && <FinishReviewOverlay draftCount={drafts.length} />}
+                            <CloseReviewDialog draftCount={drafts.length} />
+                        </div>
+                    )}
                 </div>
                 <div className={styles.agent}>
                     <ReviewIdCopy reviewId={review.id} />

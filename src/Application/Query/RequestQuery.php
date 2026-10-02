@@ -7,7 +7,10 @@ namespace App\Application\Query;
 use App\Domain\Actor\Actor;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Error\NotFound;
+use App\Domain\Event\BatchSubmittedEvent;
 use App\Domain\Event\RecordedEvent;
+use App\Domain\Event\RequestCommentedEvent;
+use App\Domain\Event\RequestOpenedEvent;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\Identifier;
 use App\Domain\Identity\RequestId;
@@ -127,6 +130,36 @@ final class RequestQuery
             // A commit.linked event has no subject request, so its Event.statusAfter is null.
             array_map(static fn (RecordedEvent $event): EventView => new EventView($event, null), $events),
         );
+    }
+
+    /**
+     * @param list<RecordedEvent> $events The events of a draft submission, batch.submitted last
+     *
+     * @throws NotFound
+     */
+    public function batchSubmission(array $events): BatchSubmission
+    {
+        $submitted = array_last($events);
+        $batch = $submitted?->event;
+
+        if (!$batch instanceof BatchSubmittedEvent) {
+            throw new \LogicException('A draft submission ends with batch.submitted.');
+        }
+
+        $opened = [];
+        $replies = [];
+
+        foreach ($events as $event) {
+            $requestId = $event->requestId;
+
+            if ($event->event instanceof RequestOpenedEvent && null !== $requestId) {
+                $opened[] = $this->fresh($requestId);
+            } elseif ($event->event instanceof RequestCommentedEvent && null !== $requestId) {
+                $replies[] = ['requestId' => $requestId, 'commentId' => $event->event->commentId];
+            }
+        }
+
+        return new BatchSubmission($batch->batchId, $submitted->reviewId, $batch->summary, $submitted->occurredAt, $submitted->seq, $this->summaries($opened), $replies);
     }
 
     /**

@@ -146,6 +146,7 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
         $client = static::createClient();
         $other = TenantFixtures::of(self::getContainer())->withLogin('other')->create();
         $otherReview = self::storeReview($other, 'billing');
+        $otherRequest = self::storeRequest($otherReview);
         [$otherToken] = self::storeToken($other);
         $user = self::signIn($client);
         self::storeRepository($user->getTenantId(), 'alpha');
@@ -156,7 +157,8 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
             'userId' => $other->getId()->toString(),
             'repositoryId' => $otherReview->getRepository()->getId()->toString(),
             'reviewId' => $otherReview->getId()->toString(),
-            'requestId' => self::storeRequest($otherReview)->getId()->toString(),
+            'requestId' => $otherRequest->getId()->toString(),
+            'draftId' => self::storeDraft($other, $otherRequest)->getId()->toString(),
             'blobSha' => $source->revParse('main:README.md'),
             'tokenId' => $otherToken->getId()->toString(),
             'commitSha' => $otherReview->getCommitSha()->toString(),

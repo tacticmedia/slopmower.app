@@ -37,6 +37,13 @@ describe('AnnotationsTest', () => {
         expect(stableAnnotations(annotations, [1, 3, 9])).toEqual([{ lineNumber: 7 }, { lineNumber: 3 }, { lineNumber: 1 }, { lineNumber: 9 }]);
     });
 
+    it('Adds a line with a thread and a draft once', () => {
+        const threadLines = [3, 7];
+        const draftLines = [7, 9];
+
+        expect(stableAnnotations(NO_ANNOTATIONS, [...threadLines, ...draftLines])).toEqual([{ lineNumber: 3 }, { lineNumber: 7 }, { lineNumber: 9 }]);
+    });
+
     it('Finds the bottom line for both drag directions', () => {
         expect(bottomLine({ start: 5, end: 9 })).toBe(9);
         expect(bottomLine({ start: 9, end: 5 })).toBe(9);

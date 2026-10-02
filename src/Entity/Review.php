@@ -8,6 +8,7 @@ use App\Doctrine\Embeddable\ActorEmbeddable;
 use App\Doctrine\Type\CommitShaType;
 use App\Domain\Actor\Actor;
 use App\Domain\Error\InvalidInput;
+use App\Domain\Error\ReviewClosed;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\RefName;
 use App\Domain\Identity\ReviewId;
@@ -242,6 +243,16 @@ class Review implements TenantOwned
     public function getClosedAt(): ?\DateTimeImmutable
     {
         return $this->closedAt;
+    }
+
+    /**
+     * @throws ReviewClosed
+     */
+    public function assertOpen(): void
+    {
+        if (null !== $this->closedAt) {
+            throw new ReviewClosed($this->getId(), $this->closedAt);
+        }
     }
 
     public function getClosedBy(): ?Actor

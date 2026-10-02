@@ -10,7 +10,8 @@ import { RepositoryRoute, repositoryAction, repositoryLoader } from './routes/re
 import { requestAction, requestListLoader, requestLoader } from './routes/requests/requestData';
 import { CodeLayout, codeLayoutLoader, NoFileSelected } from './routes/reviews/CodeLayout';
 import { fileAction, fileLoader } from './routes/reviews/fileData';
-import { ReviewLayout, reviewAction, reviewLoader } from './routes/reviews/ReviewLayout';
+import { ReviewLayout } from './routes/reviews/ReviewLayout';
+import { reviewAction, reviewLoader } from './routes/reviews/reviewData';
 import { treeLoader } from './routes/reviews/treeData';
 import { SettingsRoute } from './routes/settings/SettingsRoute';
 import { settingsAction, settingsLoader } from './routes/settings/settingsData';

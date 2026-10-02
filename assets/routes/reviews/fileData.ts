@@ -8,6 +8,7 @@ import type { RequestCommandResult } from '../../api/types/request-command-resul
 import type { CommentIntent } from '../../comments/commentIntent';
 import { type ThreadView, threadView } from '../../comments/threadView';
 import { rememberEvents } from '../../live/eventPositions';
+import type { ViewedIntent } from '../../review/ViewedCheckbox';
 import { encodedRouteParam } from '../encodedRouteParam';
 
 const REQUEST_PAGE_LIMIT = 200;
@@ -31,13 +32,26 @@ export async function fileLoader({ request, params }: LoaderFunctionArgs): Promi
 }
 
 export async function fileAction({ request, params }: ActionFunctionArgs): Promise<ActionResult> {
-    const submitted = (await request.json()) as CommentIntent;
+    const submitted = (await request.json()) as CommentIntent | ViewedIntent;
+    const review = `/api/v1/reviews/${encodedRouteParam(params, 'reviewId')}`;
+    const { signal } = request;
 
-    return writeResult(async () =>
-        'open' === submitted.intent
-            ? apiWrite('POST', `/api/v1/reviews/${encodedRouteParam(params, 'reviewId')}/requests`, submitted.input, request.signal)
-            : rememberEvents((await apiWrite<RequestCommandResult>('POST', `/api/v1/requests/${encodeURIComponent(submitted.requestId)}/comments`, submitted.input, request.signal)).events),
-    );
+    return writeResult(async () => {
+        switch (submitted.intent) {
+            case 'open':
+                return apiWrite('POST', `${review}/requests`, submitted.input, signal);
+            case 'reply':
+                return rememberEvents((await apiWrite<RequestCommandResult>('POST', `/api/v1/requests/${encodeURIComponent(submitted.requestId)}/comments`, submitted.input, signal)).events);
+            case 'draft':
+                return apiWrite('POST', `${review}/drafts`, submitted.input, signal);
+            case 'editDraft':
+                return apiWrite('PATCH', `/api/v1/drafts/${encodeURIComponent(submitted.draftId)}`, submitted.input, signal);
+            case 'deleteDraft':
+                return apiWrite('DELETE', `/api/v1/drafts/${encodeURIComponent(submitted.draftId)}`, undefined, signal);
+            case 'viewed':
+                return apiWrite('PUT', `${review}/viewed-files`, submitted.input, signal);
+        }
+    });
 }
 
 /**

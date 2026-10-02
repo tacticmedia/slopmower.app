@@ -35,13 +35,13 @@ export function threadsByLine<T>(threads: readonly T[], endLine: (thread: T) => 
 }
 
 /**
- * Appends the lines that `previous` lacks, so every line keeps its index: the code view keys slot content by index,
- * and a shifted index remounts it. A line without threads stays and renders nothing. A new array makes the code view
- * render the whole file again, so `previous` comes back while no line is new.
+ * Appends the lines that `previous` lacks, each once, so every line keeps its index: the code view keys slot content
+ * by index, and a shifted index remounts it. A line without threads stays and renders nothing. A new array makes the
+ * code view render the whole file again, so `previous` comes back while no line is new.
  */
 export function stableAnnotations(previous: readonly CodeAnnotation[], lines: Iterable<number>): readonly CodeAnnotation[] {
     const known = new Set(previous.map(({ lineNumber }) => lineNumber));
-    const added = [...lines].filter((line) => !known.has(line));
+    const added = [...new Set(lines)].filter((line) => !known.has(line));
 
     return 0 === added.length ? previous : [...previous, ...added.map((lineNumber) => ({ lineNumber }))];
 }
