@@ -44,7 +44,7 @@
     "Cursor": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 512,
+      "maxLength": 2048,
       "description": "Opaque pagination cursor."
     },
     "EventSeq": {

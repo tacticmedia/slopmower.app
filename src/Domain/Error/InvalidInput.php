@@ -12,7 +12,7 @@ final class InvalidInput extends DomainError
     public function __construct(private readonly array $violations)
     {
         parent::__construct('Invalid input. '.implode(' ', array_map(
-            static fn (array $violation): string => "{$violation['field']}: {$violation['message']}",
+            static fn (array $violation): string => '' === $violation['field'] ? $violation['message'] : "{$violation['field']}: {$violation['message']}",
             $violations,
         )));
     }

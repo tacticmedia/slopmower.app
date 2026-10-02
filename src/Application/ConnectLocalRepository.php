@@ -13,10 +13,8 @@ use App\Source\LocalRepositoryDiscovery;
 use App\Tenancy\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
-use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use Symfony\Component\Lock\LockFactory;
 
-#[Autoconfigure(public: true)]
 final class ConnectLocalRepository
 {
     public function __construct(

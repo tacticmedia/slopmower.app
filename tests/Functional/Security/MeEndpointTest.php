@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Security;
 
+use App\Tests\Support\Contract\JsonApiAssertions;
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Fixtures\TenantFixtures;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -11,6 +12,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class MeEndpointTest extends WebTestCase
 {
+    use JsonApiAssertions;
     use ResetDatabase;
 
     #[TestDox('An anonymous call gets 401 unauthorized with WWW-Authenticate')]
@@ -20,12 +22,11 @@ final class MeEndpointTest extends WebTestCase
 
         $client->request('GET', '/api/v1/me');
 
-        self::assertResponseStatusCodeSame(401);
-        self::assertResponseHeaderSame('WWW-Authenticate', 'Bearer realm="holistic-review"');
         self::assertSame(
-            ['error' => ['code' => 'unauthorized', 'message' => 'Authentication is required.', 'details' => null]],
-            json_decode((string) $client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR),
+            ['code' => 'unauthorized', 'message' => 'Authentication is required.', 'details' => null],
+            self::assertApiError($client->getResponse(), 401, 'unauthorized'),
         );
+        self::assertResponseHeaderSame('WWW-Authenticate', 'Bearer realm="holistic-review"');
         self::assertFalse($client->getResponse()->headers->has('Set-Cookie'), 'An anonymous API call starts no session.');
     }
 
@@ -40,7 +41,7 @@ final class MeEndpointTest extends WebTestCase
         // DEFAULT_URI is http://localhost, so this host proves that the links come from the request.
         $client->request('GET', '/api/v1/me', server: ['HTTP_HOST' => 'hr.example:8443']);
 
-        self::assertResponseIsSuccessful();
+        $me = self::assertApiResponse($client->getResponse(), 200, 'me.schema.json');
         self::assertSame(
             [
                 'user' => ['id' => $userId, 'login' => 'jan', 'name' => null, 'avatarUrl' => null, 'signInMethod' => 'local'],
@@ -54,7 +55,7 @@ final class MeEndpointTest extends WebTestCase
                     'skillUrl' => 'http://hr.example:8443/docs/skill/SKILL.md',
                 ],
             ],
-            json_decode((string) $client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR),
+            $me,
         );
     }
 }

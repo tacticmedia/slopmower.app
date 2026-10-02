@@ -38,9 +38,11 @@ final class LocalRepositoryDiscovery
     }
 
     /**
-     * Empty when local repositories are off.
+     * Empty when local repositories are off. The limit and `truncated` count only the names that $acceptsName accepts.
+     *
+     * @param (\Closure(string): bool)|null $acceptsName
      */
-    public function list(): LocalRepositoryListing
+    public function list(?\Closure $acceptsName = null): LocalRepositoryListing
     {
         $root = $this->root();
 
@@ -53,7 +55,7 @@ final class LocalRepositoryDiscovery
         $candidates = [];
 
         foreach ($names as $name) {
-            $candidate = $this->candidate($root, $name);
+            $candidate = null === $acceptsName || $acceptsName($name) ? $this->candidate($root, $name) : null;
 
             if (null === $candidate) {
                 continue;

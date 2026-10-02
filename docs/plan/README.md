@@ -101,7 +101,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M08 | [Git plumbing](M08-git-plumbing.md) | Done | 2026-10-02 | [Report](reports/M08.md) |
 | M09 | [Local repository source](M09-local-repository-source.md) | Done | 2026-10-02 | [Report](reports/M09.md) |
 | M10 | [Sign-in and security](M10-sign-in-and-security.md) | Done | 2026-10-02 | [Report](reports/M10.md) |
-| M11 | [REST foundation and repositories API](M11-rest-foundation-and-repositories-api.md) | Not started | | |
+| M11 | [REST foundation and repositories API](M11-rest-foundation-and-repositories-api.md) | Done | 2026-10-02 | [Report](reports/M11.md) |
 | M12 | [Reviews API](M12-reviews-api.md) | Not started | | |
 | M13 | [Requests API, user side](M13-requests-api-user-side.md) | Not started | | |
 | M14 | [API tokens](M14-api-tokens.md) | Not started | | |

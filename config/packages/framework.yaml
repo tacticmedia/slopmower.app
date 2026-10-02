@@ -6,6 +6,11 @@ framework:
     session:
         handler_id: Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler
 
+    # Domain errors are answers to the client, not failures of the server.
+    exceptions:
+        App\Domain\Error\DomainError:
+            log_level: info
+
     http_client:
         scoped_clients:
             github.client:
