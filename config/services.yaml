@@ -51,6 +51,10 @@ services:
     # The bundle builds its own client. A framework client honours framework.http_client.mock_response_factory.
     hwi_oauth.http_client: '@github.client'
 
+    # docs/user renders as on GitHub. twig/extra-bundle adds every CommonMark extension with this tag to markdown_to_html.
+    League\CommonMark\Extension\GithubFlavoredMarkdownExtension:
+        tags: ['twig.markdown.league_extension']
+
 when@test:
     parameters:
         # "TEST_TOKEN" is typically set by ParaTest

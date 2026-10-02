@@ -49,3 +49,13 @@
     grid-area: table;
     margin: var(--base-size-8) 0 0;
 }
+
+.pageSection {
+    margin-top: var(--base-size-32);
+}
+
+.pageSectionTitle {
+    margin: 0;
+    font-size: var(--text-body-size-medium);
+    font-weight: var(--base-text-weight-semibold);
+}

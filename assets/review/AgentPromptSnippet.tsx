@@ -1,3 +1,4 @@
+import { Link } from '@primer/react';
 import { CopyButton } from '../layout/CopyButton';
 import styles from './CopyField.module.css';
 import { agentPrompt } from './promptSnippet';
@@ -12,6 +13,9 @@ export function AgentPromptSnippet({ reviewId }: { reviewId: string }) {
                 {prompt}
             </code>
             <CopyButton text={prompt} label="Copy prompt" />
+            <Link href="/docs/connect-your-agent" className={styles.label}>
+                Connect your agent
+            </Link>
         </div>
     );
 }

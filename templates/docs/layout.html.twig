@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Holistic Review documentation{% endblock %}
+
+{% block stylesheets %}
+    <style>
+        body { margin: 0; font: 16px/1.6 system-ui, sans-serif; color: #1f2328; }
+        .docs-header, .docs-content { max-width: 52rem; margin: 0 auto; padding: 0 1rem; }
+        .docs-header { padding-block: 0.75rem; border-bottom: 1px solid #d1d9e0; }
+        .docs-header a { color: inherit; font-weight: 600; text-decoration: none; }
+        a { color: #0969da; }
+        code, pre { font-family: ui-monospace, monospace; font-size: 0.875em; background: #f6f8fa; border-radius: 6px; }
+        code { padding: 0.1em 0.3em; }
+        pre { padding: 0.75rem 1rem; overflow-x: auto; }
+        pre code { padding: 0; background: none; }
+        table { border-collapse: collapse; }
+        th, td { padding: 0.375rem 0.75rem; border: 1px solid #d1d9e0; text-align: left; vertical-align: top; }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <header class="docs-header">
+        <a href="{{ path('docs_index') }}">Holistic Review documentation</a>
+    </header>
+    <main class="docs-content">
+        {% block content %}{% endblock %}
+    </main>
+{% endblock %}

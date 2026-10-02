@@ -1,0 +1,5 @@
+{% extends 'docs/layout.html.twig' %}
+
+{% block content %}
+    {{ markdown|markdown_to_html }}
+{% endblock %}

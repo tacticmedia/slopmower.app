@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useLoaderData, useRouteLoaderData } from 'react-router';
 import type { Me } from '../../api/types/me';
 import { CreateTokenDialog } from '../../settings/CreateTokenDialog';
+import { SkillInstall } from '../../settings/SkillInstall';
 import { TokenTable } from '../../settings/TokenTable';
 import type { SettingsData } from './settingsData';
 
@@ -33,6 +34,7 @@ export function SettingsRoute() {
                 </Table.Actions>
                 <TokenTable tokens={tokens} labelledBy="api-tokens" describedBy="api-tokens-subtitle" />
             </Table.Container>
+            <SkillInstall skillUrl={me.links.skillUrl} />
             {creating && <CreateTokenDialog repositories={repositories} mcpUrl={me.links.mcpUrl} onClose={() => setCreating(false)} />}
         </>
     );
