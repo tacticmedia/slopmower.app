@@ -1,0 +1,30 @@
+# Written by hand: no official Flex recipe exists for PHPStan.
+includes:
+    - vendor/phpstan/phpstan-symfony/extension.neon
+    - vendor/phpstan/phpstan-symfony/rules.neon
+    - vendor/phpstan/phpstan-doctrine/extension.neon
+    - vendor/phpstan/phpstan-doctrine/rules.neon
+    - vendor/phpstan/phpstan-phpunit/extension.neon
+    - vendor/phpstan/phpstan-phpunit/rules.neon
+
+parameters:
+    level: 8
+    paths:
+        - bin
+        - config
+        - public
+        - src
+        - tests
+    excludePaths:
+        analyse:
+            - config/reference.php
+    symfony:
+        containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml
+    doctrine:
+        objectManagerLoader: tests/object-manager.php
+    ignoreErrors:
+        # KernelTrait calls getAllowedEnvs() through MicroKernelTrait.
+        -
+            identifier: method.unused
+            message: '#getAllowedEnvs\(\)#'
+            path: src/Kernel.php

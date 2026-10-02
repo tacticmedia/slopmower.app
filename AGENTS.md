@@ -50,7 +50,11 @@ Symfony:
   instead of hardcoded URLs.
 - Before hand-writing infrastructure (locks, queues, caches, HTTP clients,
   mailers, schedulers) or reaching for a third-party library, check whether a
-  Symfony component covers it. It usually does.
+  Symfony component covers it. It usually does. The `symfony-components` skill
+  (`.claude/skills/symfony-components/SKILL.md`) lists every component with the
+  situations where it helps.
+- Keep it simple. Do not create a service class that has only one consumer. Put
+  the logic in the consumer, or use a framework feature.
 
 Three specifics worth spelling out, because they are easy to get wrong:
 

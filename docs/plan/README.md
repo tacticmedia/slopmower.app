@@ -90,7 +90,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 
 | # | Milestone | Status | Date | Notes |
 |---|---|---|---|---|
-| M00 | [Baseline packages and quality gates](M00-baseline-packages-and-quality-gates.md) | Not started | | |
+| M00 | [Baseline packages and quality gates](M00-baseline-packages-and-quality-gates.md) | Done | 2026-10-02 | [Report](reports/M00.md) |
 | M01 | [Local Docker environment](M01-local-docker-environment.md) | Not started | | |
 | M02 | [Domain value objects and errors](M02-domain-value-objects-and-errors.md) | Not started | | |
 | M03 | [Domain events and payload codec](M03-domain-events-and-payload-codec.md) | Not started | | |
