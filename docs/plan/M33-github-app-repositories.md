@@ -29,6 +29,7 @@ M32, M09.
   - a configurable git base URL, so tests fetch from a local bare repository;
   - a suspended installation makes the fetch fail with `lastError` "GitHub App installation suspended".
 - `GET /github/installed`, session only: the App's setup URL. It redirects through `/connect/github?_target_path=/repositories`, so the sign-in lists the installations again.
+- Set `hwi_oauth.target_path_parameter: _target_path`, else HWIOAuthBundle ignores `_target_path`. Keep `target_path_domains_whitelist` empty, so a relative path passes.
 - A GitHub section on the repositories screen: the GitHub candidates, connect, and a "Configure on GitHub" link from `githubConfigureUrl`.
 - A cross-tenant case for every new route.
 

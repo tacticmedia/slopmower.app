@@ -46,7 +46,7 @@ The spec files that milestones name:
 ## Start a session
 
 1. Read this README completely.
-2. Find the milestone to work on in the status table:
+2. Work on the milestone that Jan assigned. Without an assignment, find it in the status table:
    - the first milestone with the status "In progress" continues a split. Its Notes column names the tasks that are done;
    - else the first milestone with the status "Not started";
    - a milestone with the status "Blocked" needs a decision from Jan. Stop and ask.
@@ -129,7 +129,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 
 ## Order
 
-Sessions run the milestones in number order. The "Depends on" section of each milestone file names the earlier work that it builds on.
+Jan assigns the milestones. Without an assignment, sessions run them in number order. A milestone can start when the milestones in its "Depends on" section are done. The "Depends on" section of each milestone file names the earlier work that it builds on.
 
 ## Environment and commands
 
@@ -170,7 +170,7 @@ For verbose PHPUnit output, use `--debug`. Never use `-v` or `--verbose`. Exampl
 
 | Variable | Set in | Meaning |
 |---|---|---|
-| `HTTP_PORT`, `DATABASE_PORT` | `.env.make.local` (git-ignored), read by the `Makefile` | Host ports of `php` and `database`. Default 8000 and 5432. A second checkout, for example a git worktree, sets its own ports. |
+| `HTTP_PORT`, `DATABASE_PORT` | `.env.make.local` (git-ignored), read by the `Makefile` | Host ports of `php` and `database`. Default 8000 and 5432. A second checkout, for example a git worktree, sets its own ports. Each line needs `export`, for example `export HTTP_PORT=8101`, or make does not pass it to compose. |
 | `LOCAL_REPOSITORIES_HOST_DIR` | Host shell | Host directory that compose mounts read-only at `/repositories`. Default `./var/local-repositories`. |
 | `APP_LOCAL_REPOSITORIES_DIR` | `.env` files | Empty in `.env`, which means that local repositories are off. `/repositories` in `.env.dev`, `var/test/local-repositories` in `.env.test` and `.env.e2e`. It is an instance feature: every tenant of the instance may connect the repositories under it. |
 | `APP_LOCAL_SIGN_IN` | Host shell, passed through compose | Login of the one local user. Honoured only when `APP_ENV=dev`. |
@@ -180,7 +180,7 @@ For verbose PHPUnit output, use `--debug`. Never use `-v` or `--verbose`. Exampl
 | `LOCK_DSN` | `.env`, with the host `database` | Store of `symfony/lock`: PostgreSQL advisory locks, from M08 on |
 | `MERCURE_URL`, `MERCURE_PUBLIC_URL`, `MERCURE_JWT_SECRET` | `.env` files. Also `MERCURE_URL` in the compose `worker` service, and `MERCURE_JWT_SECRET` in the compose `php` service, because Caddy reads only the container environment. | Hub URL for the publisher, hub URL for the browser, JWT secret |
 | `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_SLUG` | Empty in `.env`, real values in `.env.local`, fake values in `.env.test` | GitHub App identity, from M32 on. Empty means that no GitHub App is configured. |
-| `GITHUB_APP_CLIENT_SECRET`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET` | Secrets vault or `.env.local`, fake values in `.env.test` | GitHub App credentials, from M32 on. Read with `%env(default::<NAME>)%`, not with a default in `.env`, because a `.env` value wins over the vault. |
+| `GITHUB_APP_CLIENT_SECRET`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET` | Secrets vault or `.env.local`, fake values in `.env.test` | GitHub App credentials: the client secret from M32 on, the private key from M33 on, the webhook secret from M34 on. Read with `%env(default::<NAME>)%`, not with a default in `.env`, because a `.env` value wins over the vault. |
 
 A local run with local repositories and local sign-in needs no GitHub App:
 
@@ -194,7 +194,6 @@ make up
 - `declare(strict_types=1);` in every PHP file.
 - Classes are `final` by default. Doctrine entities are not `final`.
 - Value objects and DTOs are `final readonly` with constructor promotion. Closed sets are backed enums.
-- Do not mark a service `readonly` when it may become `lazy: true`. A lazy proxy cannot extend a `readonly` class.
 - Layout:
 
   | Directory | Content |
@@ -223,7 +222,7 @@ make up
   - Every tenant entity implements `TenantOwned`.
   - The Doctrine SQL filter is on by default and fails closed without a tenant context.
   - Only these paths turn it off, and only through `TenantFilter::suspend()`: the sign-in and token lookups, the webhook consumer, the projection rebuild, and the purge.
-  - Raw SQL lives only in `final` classes named `*Sql`, and every statement names `tenant_id`. `RawSqlTenantAuditTest` enforces this from M07 on.
+  - Raw SQL lives only in `final` classes named `*Sql`, and every statement names its tenant column: `tenant_id`, or `id` on the `tenant` table. `RawSqlTenantAuditTest` enforces this from M07 on.
   - File paths come only from typed IDs.
   - Mercure topics include the tenant ID.
 - Git:

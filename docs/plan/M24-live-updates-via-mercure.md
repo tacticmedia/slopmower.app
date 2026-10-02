@@ -33,7 +33,7 @@ M22.
   - calls A3 again before `expiresAt`;
   - keeps `lastSeq` per review from `events` updates, from `events[].seq` of command results, from `Review.lastEventSeq`, and from the `cursor` of the updates endpoint. An `events` update whose `seq` is not above `lastSeq` is ignored;
   - on an update, calls `revalidate()` of `useRevalidator`: for `events`, `outdated`, and `index` when `reviewId` is the open review, and always for `repository`, `repository_deleted`, and `candidates_changed`. Only one revalidation runs at a time. Updates that arrive during a revalidation cause one more revalidation after it. Unknown types are ignored;
-  - after a reconnect, and when the tab becomes visible, calls `GET /api/v1/reviews/{reviewId}/updates?cursor=<lastSeq>&includeOwn=true` until `hasMore` is false, sets `lastSeq` to the last `cursor`, then revalidates once. The built-in hub keeps no history.
+  - after a reconnect, and when the tab becomes visible, calls `GET /api/v1/reviews/{reviewId}/updates?cursor=<lastSeq>&includeOwn=true` until `hasMore` is false, sets `lastSeq` to the last `cursor`, then revalidates once. The UI does not rely on `Last-Event-ID` replay.
 - `RootLayout` mounts the hook once, so there is one connection. It subscribes to the repositories topic, and to the topic of the open review, which it takes from the route data.
 
 ## Out of scope

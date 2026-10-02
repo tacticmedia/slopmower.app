@@ -36,8 +36,9 @@ Symfony:
 - Use PHP attributes for framework metadata, and not only on controllers:
   `#[Route]`, `#[MapRequestPayload]`, `#[IsGranted]` on actions, `#[Assert\...]`
   on properties, `#[AsCommand]`, `#[AsEventListener]`, `#[AsMessageHandler]`, and
-  `#[AsAlias]` / `#[AsTaggedItem]` / `#[Autoconfigure]` on services. No YAML or
-  XML routing.
+  `#[AsAlias]` / `#[AsTaggedItem]` / `#[Autoconfigure]` on services. Define
+  application routes with `#[Route]`. YAML under `config/routes/` only imports
+  bundle routes.
 - Rely on autowiring and autoconfiguration. Type-hint constructor arguments and
   let the container resolve them. Where a type-hint can't express it, stay in the
   class with `#[Autowire]` (parameters, env vars, expressions) or `#[Target]` (one
@@ -64,15 +65,14 @@ Three specifics worth spelling out, because they are easy to get wrong:
   installed yet, `composer require` them rather than falling back to manual
   parsing.
 - Use constructor property promotion, and `readonly` for DTOs and value objects.
-  Don't mark a service `readonly` if it might become `lazy: true`: a lazy proxy
-  can't extend a `readonly` class.
 - Use `symfony/lock` (`LockFactory`) for mutual exclusion. A hand-built flag or
   lock file looks fine in review and is usually wrong under concurrency.
 
 ## Everyday workflow
 
-- Run the app with `symfony serve -d`, and commands with `symfony console ...`
-  (or `bin/console` when the Symfony CLI isn't available).
+- Run the app with `make up`, and console commands with `make console c="..."`.
+  [docs/plan/README.md](docs/plan/README.md#environment-and-commands) lists every
+  target.
 - When something fails, read `var/log/dev.log` and the web profiler
   (`/_profiler`) before changing code.
 - If `maker-bundle` is installed, prefer `bin/console make:*` with every argument
@@ -88,17 +88,15 @@ Three specifics worth spelling out, because they are easy to get wrong:
 
 ## Testing
 
-Install `symfony/test-pack` if it isn't already. Functional/HTTP tests extend
-`WebTestCase`; service-level tests extend `KernelTestCase`. Run
-`php bin/phpunit` (falls back to `vendor/bin/phpunit`). A feature isn't done
-until it has a test that exercises it the way a caller would, an HTTP request for
-a controller or a service call for a service, not just "it didn't throw."
+Functional/HTTP tests extend `WebTestCase`; service-level tests extend
+`KernelTestCase`. Run `make test` and `make e2e`. A feature isn't done until it
+has a test that exercises it the way a caller would, an HTTP request for a
+controller or a service call for a service, not just "it didn't throw."
 
 ## Code style
 
 Symfony's coding standard, the `@Symfony` php-cs-fixer ruleset (a PSR-12-derived
-superset). Run `vendor/bin/php-cs-fixer fix` if `friendsofphp/php-cs-fixer` is
-installed; it isn't part of the skeleton by default.
+superset). Run `make cs-fix`.
 
 ## Discover, don't guess
 

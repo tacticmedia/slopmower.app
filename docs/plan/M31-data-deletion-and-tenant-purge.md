@@ -51,7 +51,7 @@ M16, M19, M24, M25 for drafts and viewed files, M26 for the index, M29 for the l
 
 ## Tasks (ordered)
 
-1. Add the "being deleted" column to `Tenant` and run `make migration`. Make the sign-in lookups of M10 and M14 refuse such a tenant. M32 does the same for GitHub sign-in.
+1. Add the "being deleted" column to `Tenant` and run `make migration`. Make the sign-in lookups of M10 and M14, `TenantUserProvider`, and `GitHubUserProvider` of M32 refuse such a tenant.
 2. Implement `DeleteReview`, `DeleteRepositoryData`, `DeleteAccount`, and `PurgeTenant`.
 3. Write the endpoints, the jobs, and the command. Add the cross-tenant cases.
 4. Build the dialogs.
