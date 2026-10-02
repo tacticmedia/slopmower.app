@@ -3,9 +3,11 @@ import { Link as RouterLink } from 'react-router';
 import type { CommitLink } from '../api/types/commit-link';
 import { shortSha } from '../review/shortSha';
 import styles from './Requests.module.css';
+import { CHANGES_TAB } from './requestTabs';
 
 /**
- * The commit note shows in the thread, as the body of its `commit.linked` entry.
+ * The commit note shows in the thread, as the body of its `commit.linked` entry. An available commit links to the
+ * "Changes" tab.
  */
 export function CommitList({ commits }: { commits: CommitLink[] }) {
     return (
@@ -24,7 +26,9 @@ export function CommitList({ commits }: { commits: CommitLink[] }) {
                                 {'available' === commit.state ? (
                                     <>
                                         <Label variant="success">Available</Label>
-                                        <span className={styles.subject}>{commit.subject}</span>
+                                        <Link as={RouterLink} to={`?tab=${CHANGES_TAB}`} className={styles.subject}>
+                                            {commit.subject}
+                                        </Link>
                                     </>
                                 ) : (
                                     <>

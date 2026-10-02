@@ -4,6 +4,7 @@ import { lazy, Suspense, useOptimistic, useRef, useTransition } from 'react';
 import { useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
 import type { Actor } from '../api/types/actor';
+import { OutdatedLabel } from '../requests/OutdatedLabel';
 import { StatusLabel } from '../requests/StatusLabel';
 import { CommentBox, type CommentBoxHandle } from './CommentBox';
 import type { CommentIntent } from './commentIntent';
@@ -59,6 +60,7 @@ export function ThreadBox({ thread, caller, showHeader = true }: Props) {
             {showHeader && (
                 <header className={styles.header}>
                     <StatusLabel status={thread.status} />
+                    <OutdatedLabel outdated={thread.outdated} />
                     <span className={styles.lines}>{linesText(thread.range)}</span>
                 </header>
             )}

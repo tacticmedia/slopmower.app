@@ -5,7 +5,7 @@ import { fileHref } from '../review/fileHref';
 /**
  * `path:L5-L9`, `path:L5`, or the path of a file anchor.
  */
-export function anchorLocation({ path, range }: AnchorSummary): string {
+export function anchorLocation({ path, range }: Pick<AnchorSummary, 'path' | 'range'>): string {
     return null === range ? path : `${path}:${lineHash(range).slice(1)}`;
 }
 

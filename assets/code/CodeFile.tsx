@@ -46,7 +46,7 @@ const BASE_VIEW_OPTIONS = {
 } as const satisfies CodeViewReactOptions<undefined, undefined>;
 
 /**
- * The only wrapper around `@pierre/diffs`. The worker pool outlives file changes, the view does not.
+ * The only wrapper around `CodeView`. The worker pool outlives file changes, the view does not.
  */
 export const CodeFile = memo(function CodeFile(props: CodeFileProps) {
     return (

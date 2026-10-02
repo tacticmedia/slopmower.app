@@ -7,6 +7,7 @@ import type { RequestPage } from '../../api/types/lists';
 import type { RequestSummary } from '../../api/types/request-summary';
 import { anchorHref, anchorLocation } from '../../requests/anchorLocation';
 import { ClaimedBy } from '../../requests/ClaimedBy';
+import { OutdatedLabel } from '../../requests/OutdatedLabel';
 import shared from '../../requests/Requests.module.css';
 import { StatusLabel } from '../../requests/StatusLabel';
 import { STATUS_TEXT } from '../../requests/statusText';
@@ -31,7 +32,17 @@ function columns(reviewId: string): Column<RequestSummary>[] {
                 </Link>
             ),
         },
-        { id: 'status', header: 'Status', width: 'auto', renderCell: (request) => <StatusLabel status={request.status} /> },
+        {
+            id: 'status',
+            header: 'Status',
+            width: 'auto',
+            renderCell: (request) => (
+                <span className={styles.labels}>
+                    <StatusLabel status={request.status} />
+                    <OutdatedLabel outdated={request.outdated} />
+                </span>
+            ),
+        },
         { id: 'turn', header: 'Turn', width: 'auto', renderCell: (request) => <TurnLabel awaiting={request.awaiting} /> },
         {
             id: 'location',
@@ -55,7 +66,7 @@ export function RequestList() {
     const { reviewId, total, items } = useLoaderData<RequestPage>();
     const [searchParams, setSearchParams] = useSearchParams();
     const filters = requestFilters(searchParams);
-    const setFilter = (name: 'status' | 'awaiting' | 'path', value: string | null): void => {
+    const setFilter = (name: 'status' | 'awaiting' | 'path' | 'outdated', value: string | null): void => {
         setSearchParams((current) => {
             const next = new URLSearchParams(current);
             if (null === value) {
@@ -91,6 +102,10 @@ export function RequestList() {
                 <FormControl>
                     <Checkbox checked={filters.waitingForYou} onChange={(event) => setFilter('awaiting', event.target.checked ? 'user' : null)} />
                     <FormControl.Label>Waiting for you</FormControl.Label>
+                </FormControl>
+                <FormControl>
+                    <Checkbox checked={filters.outdated} onChange={(event) => setFilter('outdated', event.target.checked ? 'true' : null)} />
+                    <FormControl.Label>Outdated</FormControl.Label>
                 </FormControl>
                 <form className={styles.pathFilter} onSubmit={filterByPath} role="search">
                     <TextInput key={filters.path} name="path" defaultValue={filters.path} aria-label="Path prefix" placeholder="Path prefix" size="small" />

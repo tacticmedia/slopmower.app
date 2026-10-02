@@ -15,3 +15,9 @@
     display: flex;
     gap: var(--base-size-8);
 }
+
+.labels {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--base-size-4);
+}

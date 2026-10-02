@@ -99,6 +99,104 @@ final class GitReader implements ResetInterface
     }
 
     /**
+     * The raw author identity, without the mailmap of the repository. The committer time.
+     *
+     * @throws CommitNotFound
+     */
+    public function commitDetails(string $gitDir, CommitSha $commit): CommitDetails
+    {
+        try {
+            // `format:` adds no line feed after the message.
+            $output = $this->git->run($gitDir, ['log', '-1', '--no-mailmap', '--format=format:%P%x00%an%x00%ae%x00%ct%x00%s%x00%B', '--end-of-options', "{$commit}^{commit}"]);
+        } catch (GitFailed) {
+            throw new CommitNotFound($commit->toString());
+        }
+
+        [$parents, $authorName, $authorEmail, $committedAtUnixSeconds, $subject, $message] = explode("\0", $output, 6) + ['', '', '', '0', '', ''];
+        $firstParent = explode(' ', $parents)[0];
+
+        return new CommitDetails(
+            $commit,
+            '' === $firstParent ? null : CommitSha::fromString($firstParent),
+            mb_scrub($subject, 'UTF-8'),
+            mb_scrub($message, 'UTF-8'),
+            mb_scrub($authorName, 'UTF-8'),
+            mb_scrub($authorEmail, 'UTF-8'),
+            new \DateTimeImmutable('@'.$committedAtUnixSeconds),
+        );
+    }
+
+    /**
+     * `diff-tree -r -M --raw --numstat` of the commit against its first parent, or against the empty tree.
+     *
+     * @return list<ChangedFile> In git's order
+     *
+     * @throws GitFailed
+     */
+    public function changedFiles(string $gitDir, ?CommitSha $parent, CommitSha $commit): array
+    {
+        $revisions = null === $parent ? ['--root', '--end-of-options', $commit->toString()] : ['--end-of-options', $parent->toString(), $commit->toString()];
+        $records = explode("\0", rtrim($this->git->run($gitDir, ['diff-tree', '-r', '-M', '-z', '--raw', '--numstat', '--no-commit-id', ...$revisions]), "\0"));
+        $index = 0;
+        $raw = [];
+
+        // Paths are read by position, so a path that starts with ":" is no raw record.
+        while (1 === preg_match('/^:(\d{6}) (\d{6}) ([0-9a-f]{40,64}) ([0-9a-f]{40,64}) ([A-Z])\d*$/D', $records[$index] ?? '', $match)) {
+            $status = ChangeStatus::fromRawLetter($match[5]);
+            $raw[] = [$status, $match, $records[$index + 1] ?? '', $status->hasTwoPaths() ? $records[$index + 2] ?? '' : null];
+            $index += $status->hasTwoPaths() ? 3 : 2;
+        }
+
+        // The numstat records follow in the same order. A rename has an empty path field, then both paths.
+        return array_map(static function (array $entry) use ($records, &$index): ChangedFile {
+            [$status, $match, $firstPath, $secondPath] = $entry;
+            [$additions, $deletions, $numstatPath] = explode("\t", $records[$index] ?? '', 3) + ['', '', ''];
+            $index += '' === $numstatPath ? 3 : 1;
+            $isAdded = ChangeStatus::Added === $status;
+            $isDeleted = ChangeStatus::Deleted === $status;
+
+            return new ChangedFile(
+                $status,
+                $secondPath ?? $firstPath,
+                null === $secondPath ? null : $firstPath,
+                $isAdded ? null : $match[1],
+                $isDeleted ? null : $match[2],
+                $isAdded ? null : $match[3],
+                $isDeleted ? null : $match[4],
+                '-' === $additions ? null : (int) $additions,
+                '-' === $deletions ? null : (int) $deletions,
+            );
+        }, $raw);
+    }
+
+    /**
+     * `cat-file --batch-check`.
+     *
+     * @param list<string> $objectIds
+     *
+     * @return array<string, int> The size in bytes by object ID, without missing objects
+     *
+     * @throws GitFailed
+     */
+    public function objectSizes(string $gitDir, array $objectIds): array
+    {
+        if ([] === $objectIds) {
+            return [];
+        }
+
+        $output = $this->git->run($gitDir, ['cat-file', '--batch-check=%(objectname) %(objectsize)'], standardInput: implode("\n", $objectIds)."\n");
+        $sizes = [];
+
+        foreach (explode("\n", $output) as $line) {
+            if (1 === preg_match('/^([0-9a-f]{40,64}) (\d+)$/D', $line, $match)) {
+                $sizes[$match[1]] = (int) $match[2];
+            }
+        }
+
+        return $sizes;
+    }
+
+    /**
      * @return list<TreeEntry>
      *
      * @throws GitFailed When the directory is missing or not a directory

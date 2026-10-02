@@ -1,0 +1,33 @@
+.commits {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-24);
+}
+
+.commitTitle {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-8);
+    margin: 0;
+    font-size: var(--text-title-size-small);
+    font-weight: var(--base-text-weight-normal);
+}
+
+.loading {
+    display: flex;
+    align-items: center;
+    gap: var(--base-size-8);
+    margin: 0;
+    color: var(--fgColor-muted);
+}
+
+.error {
+    margin: 0;
+    color: var(--fgColor-danger);
+}
+
+.note {
+    margin: 0;
+    color: var(--fgColor-muted);
+}

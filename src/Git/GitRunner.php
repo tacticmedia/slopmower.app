@@ -34,9 +34,9 @@ final class GitRunner
      *
      * @throws GitFailed
      */
-    public function run(string $gitDir, array $arguments, float $timeoutSeconds = self::TIMEOUT_SECONDS, #[\SensitiveParameter] array $secretConfiguration = []): string
+    public function run(string $gitDir, array $arguments, float $timeoutSeconds = self::TIMEOUT_SECONDS, #[\SensitiveParameter] array $secretConfiguration = [], ?string $standardInput = null): string
     {
-        $process = $this->process($gitDir, $arguments, $secretConfiguration)->setTimeout($timeoutSeconds);
+        $process = $this->process($gitDir, $arguments, $secretConfiguration)->setTimeout($timeoutSeconds)->setInput($standardInput);
 
         try {
             $process->run();

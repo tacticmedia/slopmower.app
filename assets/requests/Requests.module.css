@@ -8,6 +8,15 @@
     overflow-wrap: anywhere;
 }
 
+.locationInfo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-8);
+    margin: 0;
+    font-size: var(--text-body-size-medium);
+}
+
 .section {
     display: flex;
     flex-direction: column;

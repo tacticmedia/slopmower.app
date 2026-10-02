@@ -7,6 +7,7 @@ import { RouteError } from './layout/RouteError';
 import { HomeRoute } from './routes/HomeRoute';
 import { RepositoriesRoute, repositoriesAction, repositoriesLoader } from './routes/repositories/RepositoriesRoute';
 import { RepositoryRoute, repositoryAction, repositoryLoader } from './routes/repositories/RepositoryRoute';
+import { commitDiffLoader, diffSidesLoader, shouldRevalidateChanges } from './routes/requests/changesData';
 import { requestAction, requestListLoader, requestLoader } from './routes/requests/requestData';
 import { CodeLayout, codeLayoutLoader, NoFileSelected } from './routes/reviews/CodeLayout';
 import { fileAction, fileLoader } from './routes/reviews/fileData';
@@ -71,7 +72,9 @@ export const router = createBrowserRouter([
                         loader: requestLoader,
                         action: requestAction,
                         lazy: { Component: () => import('./routes/requests/RequestDetail').then(({ RequestDetail }) => RequestDetail) },
+                        children: [{ path: 'commits/:commitSha', loader: commitDiffLoader, shouldRevalidate: shouldRevalidateChanges }],
                     },
+                    { path: 'repositories/:repositoryId/diff-sides', loader: diffSidesLoader, shouldRevalidate: shouldRevalidateChanges },
                     { path: 'settings', loader: settingsLoader, action: settingsAction, element: <SettingsRoute /> },
                 ],
             },

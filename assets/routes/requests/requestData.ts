@@ -26,6 +26,7 @@ export type RequestFilters = {
     waitingForYou: boolean;
     /** Q1 rejects a leading slash. */
     path: string;
+    outdated: boolean;
 };
 
 export function requestFilters(search: URLSearchParams): RequestFilters {
@@ -35,6 +36,7 @@ export function requestFilters(search: URLSearchParams): RequestFilters {
         status: REQUEST_STATUSES.find((known) => known === status) ?? null,
         waitingForYou: 'user' === search.get('awaiting'),
         path: (search.get('path') ?? '').replace(/^\/+/, ''),
+        outdated: 'true' === search.get('outdated'),
     };
 }
 
@@ -42,7 +44,7 @@ export function requestFilters(search: URLSearchParams): RequestFilters {
  * Most recently updated first, so the agent's latest work is on top.
  */
 export function requestListLoader({ request, params }: LoaderFunctionArgs): Promise<RequestPage> {
-    const { status, waitingForYou, path } = requestFilters(new URL(request.url).searchParams);
+    const { status, waitingForYou, path, outdated } = requestFilters(new URL(request.url).searchParams);
     const query = new URLSearchParams({ sort: 'updated', limit: String(REQUEST_PAGE_LIMIT) });
     if (null !== status) {
         query.set('status', status);
@@ -52,6 +54,9 @@ export function requestListLoader({ request, params }: LoaderFunctionArgs): Prom
     }
     if ('' !== path) {
         query.set('path', path);
+    }
+    if (outdated) {
+        query.set('outdated', 'true');
     }
 
     return apiGetAllPages<RequestPage>(`/api/v1/reviews/${encodedRouteParam(params, 'reviewId')}/requests?${query.toString()}`, request.signal);

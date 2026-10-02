@@ -27,7 +27,8 @@ final class ClosedRequestReadOnlyTest extends PantherTestCase
         self::assertSelectorExists('[data-testid="review-closed"]');
         self::waitForStatus($client, 'Open');
         self::assertSelectorNotExists('[data-testid="request-actions"]');
-        self::assertSelectorNotExists(self::DETAIL.' button');
+        // The tab navigation always renders its hidden "More" button.
+        self::assertSelectorNotExists(self::DETAIL.' > :not(nav) button');
         self::assertSelectorNotExists(self::DETAIL.' textarea');
     }
 }
