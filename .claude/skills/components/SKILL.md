@@ -33,7 +33,8 @@ version costs whoever maintains it.
 
 ## Using one
 
-Check `symfony.lock` first; the project may already have it. If not:
+Check `composer show <package>` first; the project may already have it. `symfony.lock`
+lists only the packages that have a Flex recipe. If not:
 
 ```bash
 symfony composer require symfony/lock

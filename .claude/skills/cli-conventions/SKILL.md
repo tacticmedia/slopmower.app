@@ -11,7 +11,10 @@ symfony-versions: ">=6.4"
 Run the app with `symfony serve -d`; run commands with `symfony console ...` (or
 `bin/console` if the Symfony CLI is not available).
 
-`command -v symfony` tells you which case you are in.
+When `compose.yaml` defines a `php` service, run every command in that container through
+the project wrapper (`make console c="..."`, `make composer c="..."`, `make test`) and do
+not start `symfony serve`. Otherwise `command -v symfony` tells you whether the Symfony CLI
+is available.
 
 ## Prefixes
 

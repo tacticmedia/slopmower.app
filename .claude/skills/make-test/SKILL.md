@@ -29,8 +29,7 @@ The choice is about how much of the framework the test needs, and each step up c
 | `ApiTestCase` | API-oriented scenarios, with API Platform |
 | `PantherTestCase` | a real browser and a real server, for JavaScript |
 
-Reaching for `KernelTestCase` where `TestCase` would do boots the kernel for every test and
-buys nothing.
+`KernelTestCase` boots the kernel only when a test calls `bootKernel()` or `getContainer()`.
 
 ## What a test is for
 

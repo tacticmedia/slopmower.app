@@ -55,4 +55,6 @@ final class Post
 symfony console secrets:set DATABASE_PASSWORD
 ```
 
-The vault is encrypted and safe to commit. Each environment has its own.
+The encrypted values and the encryption key are safe to commit. Never commit the prod
+decryption key, `config/secrets/prod/prod.decrypt.private.php`. Each environment has its
+own vault.

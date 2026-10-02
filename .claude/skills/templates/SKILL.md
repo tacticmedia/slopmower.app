@@ -44,3 +44,6 @@ until someone changes a route.
 AssetMapper, not Webpack or Encore. It serves modern JavaScript and CSS without a build
 step. Encore remains valid in projects that already use it — this is about what to reach
 for in a project that has neither.
+
+A project that documents another front-end build keeps it. This project builds with Vite
+through Symfony Reprise (docs/architecture.md D16, D29): do not install AssetMapper.
