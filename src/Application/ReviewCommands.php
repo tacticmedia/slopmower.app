@@ -26,9 +26,11 @@ use App\EventStore\CommandExecutor;
 use App\Git\GitFailed;
 use App\Git\GitReader;
 use App\Git\PinRefs;
+use App\Message\IndexReview;
 use App\Repository\RepositoryRepository;
 use App\Repository\ReviewRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Uid\Ulid;
 
 final class ReviewCommands
@@ -47,12 +49,13 @@ final class ReviewCommands
         private readonly FetchRepository $fetchRepository,
         private readonly GitReader $reader,
         private readonly PinRefs $pins,
+        private readonly MessageBusInterface $bus,
     ) {
     }
 
     /**
-     * V1: fetches unless the ref is a full SHA in the clone, resolves the ref, pins the commit (D26), and records
-     * review.started. A failed record deletes the pin.
+     * V1: fetches unless the ref is a full SHA in the clone, resolves the ref, pins the commit (D26), records
+     * review.started, and queues the index job. A failed record deletes the pin.
      *
      * @param RefName|null $ref   Null for the default branch
      * @param string|null  $title Null for "<ref> @ <12 SHA characters>"
@@ -83,6 +86,8 @@ final class ReviewCommands
 
             throw $failure;
         }
+
+        $this->bus->dispatch(new IndexReview($reviewId));
 
         return $reviewId;
     }

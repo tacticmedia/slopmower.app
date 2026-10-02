@@ -7,6 +7,7 @@ import type { CloseReviewInput } from '../../api/types/inputs';
 import type { Review } from '../../api/types/review';
 import { AgentPromptSnippet } from '../../review/AgentPromptSnippet';
 import { CloseReviewDialog } from '../../review/CloseReviewDialog';
+import { IndexProgress } from '../../review/IndexProgress';
 import { ReviewIdCopy } from '../../review/ReviewIdCopy';
 import { shortSha } from '../../review/shortSha';
 import { encodedRouteParam } from '../encodedRouteParam';
@@ -83,6 +84,7 @@ export function ReviewLayout() {
                     <ReviewIdCopy reviewId={review.id} />
                     <AgentPromptSnippet reviewId={review.id} />
                 </div>
+                <IndexProgress index={review.index} />
                 <ReviewNavigation review={review} />
             </header>
             {'closed' === review.state && <ClosedBanner review={review} />}

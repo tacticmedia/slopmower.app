@@ -31,6 +31,8 @@ final class CrossTenantCases
             'api_review_list' => ['method' => 'GET', 'path' => '/api/v1/repositories/{repositoryId}/reviews', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/ReviewPage'],
             'api_review_get' => ['method' => 'GET', 'path' => '/api/v1/reviews/{reviewId}', 'body' => null, 'status' => 200, 'schema' => 'review.schema.json'],
             'api_review_close' => ['method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/close', 'body' => null, 'status' => 200, 'schema' => 'review.schema.json'],
+            'api_review_index' => ['method' => 'GET', 'path' => '/api/v1/reviews/{reviewId}/index', 'body' => null, 'status' => 200, 'schema' => 'review.schema.json#/$defs/IndexStatus'],
+            'api_review_symbols' => ['method' => 'GET', 'path' => '/api/v1/reviews/{reviewId}/symbols', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/SymbolList'],
             'api_review_tree' => ['method' => 'GET', 'path' => '/api/v1/reviews/{reviewId}/tree', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/TreeListing'],
             'api_review_file' => ['method' => 'GET', 'path' => '/api/v1/reviews/{reviewId}/file', 'body' => null, 'status' => 200, 'schema' => 'file-content.schema.json'],
             'api_review_raw' => ['method' => 'GET', 'path' => '/api/v1/reviews/{reviewId}/raw', 'body' => null, 'status' => 200, 'schema' => null],

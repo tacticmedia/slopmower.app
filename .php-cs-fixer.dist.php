@@ -9,6 +9,8 @@ $finder = (new PhpCsFixer\Finder())
         'node_modules',
         'public/build',
         'public/build-e2e',
+        // The symbol extractor tests expect the line numbers of these files.
+        'tests/Fixtures/php',
     ])
     ->notPath([
         'config/bundles.php',

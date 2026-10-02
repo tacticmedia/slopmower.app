@@ -134,6 +134,44 @@ class Review implements TenantOwned
         $this->lastEventSeq = $lastEventSeq;
     }
 
+    public function resetIndex(): void
+    {
+        $this->indexState = IndexState::Pending;
+        $this->filesTotal = null;
+        $this->filesDone = 0;
+        $this->symbolsTotal = 0;
+        $this->indexStartedAt = null;
+        $this->indexFinishedAt = null;
+        $this->indexError = null;
+    }
+
+    public function startIndex(\DateTimeImmutable $startedAt): void
+    {
+        $this->resetIndex();
+        $this->indexState = IndexState::Running;
+        $this->indexStartedAt = $startedAt;
+    }
+
+    public function recordIndexProgress(int $filesTotal, int $filesDone, int $symbolsTotal): void
+    {
+        $this->filesTotal = $filesTotal;
+        $this->filesDone = $filesDone;
+        $this->symbolsTotal = $symbolsTotal;
+    }
+
+    public function finishIndex(\DateTimeImmutable $finishedAt): void
+    {
+        $this->indexState = IndexState::Ready;
+        $this->indexFinishedAt = $finishedAt;
+    }
+
+    public function failIndex(string $error, \DateTimeImmutable $finishedAt): void
+    {
+        $this->indexState = IndexState::Failed;
+        $this->indexError = $error;
+        $this->indexFinishedAt = $finishedAt;
+    }
+
     public function toSnapshot(): ReviewSnapshot
     {
         return new ReviewSnapshot(

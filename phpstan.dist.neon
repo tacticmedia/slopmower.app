@@ -18,6 +18,8 @@ parameters:
     excludePaths:
         analyse:
             - config/reference.php
+            # Input of the symbol extractor tests, with undefined names.
+            - tests/Fixtures/php
     symfony:
         containerXmlPath: var/cache/test/App_KernelTestDebugContainer.xml
     doctrine:

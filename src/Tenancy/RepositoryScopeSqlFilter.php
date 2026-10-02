@@ -10,9 +10,12 @@ use App\Entity\Comment;
 use App\Entity\CommitLink;
 use App\Entity\GitHubCandidate;
 use App\Entity\GitHubInstallation;
+use App\Entity\IndexedBlob;
+use App\Entity\IndexedFile;
 use App\Entity\Repository;
 use App\Entity\Review;
 use App\Entity\ReviewEvent;
+use App\Entity\Symbol;
 use App\Entity\User;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Query\Filter\SQLFilter;
@@ -44,7 +47,7 @@ final class RepositoryScopeSqlFilter extends SQLFilter
 
         return match ($class) {
             Repository::class => "{$targetTableAlias}.id = {$repositoryId}",
-            Review::class => "{$targetTableAlias}.repository_id = {$repositoryId}",
+            Review::class, IndexedFile::class, IndexedBlob::class, Symbol::class => "{$targetTableAlias}.repository_id = {$repositoryId}",
             GitHubInstallation::class => "{$targetTableAlias}.installation_id IN ({$repositoryColumn('github_installation_id')})",
             GitHubCandidate::class => "{$targetTableAlias}.github_repository_id IN ({$repositoryColumn('github_repository_id')})",
             ChangeRequest::class, ReviewEvent::class => "{$targetTableAlias}.review_id IN ({$reviewsOfRepository})",

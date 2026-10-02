@@ -1,0 +1,23 @@
+.running {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-8);
+}
+
+.bar {
+    width: 16rem;
+    max-width: 100%;
+}
+
+.text,
+.done {
+    color: var(--fgColor-muted);
+    font-size: var(--text-body-size-small);
+}
+
+.failed {
+    color: var(--fgColor-danger);
+    font-size: var(--text-body-size-small);
+    overflow-wrap: anywhere;
+}

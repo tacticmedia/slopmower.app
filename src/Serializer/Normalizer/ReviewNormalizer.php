@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Serializer\Normalizer;
 
+use App\Application\Query\IndexStatus;
 use App\Application\Query\ReviewView;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareTrait;
@@ -39,15 +40,7 @@ final class ReviewNormalizer implements NormalizerInterface, NormalizerAwareInte
             'closedAt' => $review->getClosedAt(),
             'closedBy' => $review->getClosedBy(),
             'closeNote' => $review->getCloseNote(),
-            'index' => [
-                'state' => $review->getIndexState(),
-                'filesTotal' => $review->getFilesTotal(),
-                'filesDone' => $review->getFilesDone(),
-                'symbolsTotal' => $review->getSymbolsTotal(),
-                'startedAt' => $review->getIndexStartedAt(),
-                'finishedAt' => $review->getIndexFinishedAt(),
-                'error' => $review->getIndexError(),
-            ],
+            'index' => IndexStatus::of($review),
             'counts' => [
                 'total' => array_sum($data->requestsByStatus),
                 'byStatus' => $data->requestsByStatus,

@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Tenancy;
 
+use App\Domain\Anchor\LineRange;
+use App\Domain\Anchor\SymbolKind;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Event\RequestClaimedEvent;
+use App\Domain\Git\BlobSha;
 use App\Domain\Identity\CommentId;
 use App\Domain\Identity\EventId;
 use App\Domain\Identity\RepositoryId;
@@ -16,7 +19,12 @@ use App\Entity\GitHubCandidate;
 use App\Entity\GitHubInstallation;
 use App\Entity\Repository;
 use App\Entity\Review;
+use App\Git\ObjectType;
+use App\Git\TreeEntry;
 use App\GitHub\GitHubAccountType;
+use App\Index\ExtractedSymbol;
+use App\Index\IndexSql;
+use App\Index\SymbolTable;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantOwned;
 use App\Tests\Support\Database\ResetDatabase;
@@ -56,12 +64,27 @@ final class RepositoryScopeSqlFilterTest extends KernelTestCase
 
         self::entityManager()->flush();
         self::insertEvent(new RecordedEvent(EventId::generate(), $tenantId, 1, $scenario->review()->id, $requestId, RequestScenario::claimingAgent(), $time, new RequestClaimedEvent()));
+        self::insertIndexRows($review);
         $unscoped = ['ApiToken' => 0, 'User' => 1];
         $noReviewData = ['ChangeRequest' => 0, 'Comment' => 0, 'CommitLink' => 0];
+        $noIndex = ['IndexedBlob' => 0, 'IndexedFile' => 0];
 
-        self::assertSame(['ChangeRequest' => 1, 'Comment' => 1, 'CommitLink' => 1, 'GitHubCandidate' => 0, 'GitHubInstallation' => 0, 'Repository' => 1, 'Review' => 1, 'ReviewEvent' => 1] + $unscoped, self::rowCounts($review->getRepository()->getId()));
-        self::assertSame($noReviewData + ['GitHubCandidate' => 0, 'GitHubInstallation' => 0, 'Repository' => 1, 'Review' => 0, 'ReviewEvent' => 0] + $unscoped, self::rowCounts($other->getId()));
-        self::assertSame($noReviewData + ['GitHubCandidate' => 1, 'GitHubInstallation' => 1, 'Repository' => 1, 'Review' => 0, 'ReviewEvent' => 0] + $unscoped, self::rowCounts($gitHub->getId()), 'Only its candidate and its installation.');
+        self::assertSame(['ChangeRequest' => 1, 'Comment' => 1, 'CommitLink' => 1, 'GitHubCandidate' => 0, 'GitHubInstallation' => 0, 'IndexedBlob' => 1, 'IndexedFile' => 1, 'Repository' => 1, 'Review' => 1, 'ReviewEvent' => 1, 'Symbol' => 1] + $unscoped, self::rowCounts($review->getRepository()->getId()));
+        self::assertSame($noReviewData + ['GitHubCandidate' => 0, 'GitHubInstallation' => 0] + $noIndex + ['Repository' => 1, 'Review' => 0, 'ReviewEvent' => 0, 'Symbol' => 0] + $unscoped, self::rowCounts($other->getId()));
+        self::assertSame($noReviewData + ['GitHubCandidate' => 1, 'GitHubInstallation' => 1] + $noIndex + ['Repository' => 1, 'Review' => 0, 'ReviewEvent' => 0, 'Symbol' => 0] + $unscoped, self::rowCounts($gitHub->getId()), 'Only its candidate and its installation.');
+    }
+
+    /**
+     * One indexed file of the review commit, its blob, and one symbol.
+     */
+    private static function insertIndexRows(Review $review): void
+    {
+        $repository = $review->getRepository();
+        $blobSha = 'e965047ad7c57865823c7d992b1d046ea66edf78';
+        $indexSql = self::getContainer()->get(IndexSql::class);
+        $indexSql->insertFiles($repository->getTenantId(), $repository->getId(), $review->getCommitSha(), [new TreeEntry('src/Totals.php', '100644', ObjectType::Blob, $blobSha, 20)]);
+        $symbol = new ExtractedSymbol(SymbolKind::Class_, 'App\Totals', 'Totals', null, LineRange::of(3, 5), 3, null);
+        $indexSql->insertBlob($repository->getTenantId(), $repository->getId(), BlobSha::fromString($blobSha), new SymbolTable('php', false, [$symbol]));
     }
 
     /**
