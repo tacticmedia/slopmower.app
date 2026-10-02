@@ -19,6 +19,13 @@ trait McpAssertions
         'list_requests' => 'lists.schema.json#/$defs/RequestPage',
         'get_updates' => 'updates-page.schema.json',
         'get_request' => 'request.schema.json',
+        'claim_request' => 'request-command-result.schema.json',
+        'release_request' => 'request-command-result.schema.json',
+        'reply_to_request' => 'request-command-result.schema.json',
+        'link_commits' => 'link-commits-result.schema.json',
+        'unlink_commit' => 'request-command-result.schema.json',
+        'mark_ready_for_review' => 'request-command-result.schema.json',
+        'mark_wont_do' => 'request-command-result.schema.json',
     ];
 
     /**

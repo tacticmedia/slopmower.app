@@ -8,12 +8,13 @@ namespace App\Tests\Support\CrossTenant;
  * One case per /api/v1 route, keyed by route name. The path is the route path, `status` and `schema` describe its
  * success response. A `{name}` placeholder takes the ID of the other tenant, and the call expects 404 not_found. A
  * case without a placeholder expects its success response, which holds none of the other tenant's IDs.
- * `schema` is null for a response without a JSON body: no body, or bytes.
+ * `schema` is null for a response without a JSON body: no body, or bytes. A body value `{name}`, also in a list, takes
+ * an ID too. `bearer` cases call with an API token of the caller's tenant, because sessions may not call them.
  */
 final class CrossTenantCases
 {
     /**
-     * @return array<string, array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null}>
+     * @return array<string, array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null, bearer?: true}>
      */
     public static function all(): array
     {
@@ -37,6 +38,10 @@ final class CrossTenantCases
             'api_request_open' => ['method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/requests', 'body' => ['anchor' => ['kind' => 'file', 'path' => 'README.md'], 'body' => 'Use `Money`.'], 'status' => 201, 'schema' => 'request.schema.json'],
             'api_request_get' => ['method' => 'GET', 'path' => '/api/v1/requests/{requestId}', 'body' => null, 'status' => 200, 'schema' => 'request.schema.json'],
             'api_request_comment' => ['method' => 'POST', 'path' => '/api/v1/requests/{requestId}/comments', 'body' => ['body' => 'Keep the old method.'], 'status' => 201, 'schema' => 'request-command-result.schema.json'],
+            'api_request_claim' => ['method' => 'POST', 'path' => '/api/v1/requests/{requestId}/claim', 'body' => null, 'status' => 200, 'schema' => 'request-command-result.schema.json', 'bearer' => true],
+            'api_request_unlink_commit' => ['method' => 'DELETE', 'path' => '/api/v1/requests/{requestId}/commits/{commitSha}', 'body' => null, 'status' => 200, 'schema' => 'request-command-result.schema.json', 'bearer' => true],
+            'api_request_ready' => ['method' => 'POST', 'path' => '/api/v1/requests/{requestId}/ready', 'body' => ['note' => 'Extracted TaxRounding.'], 'status' => 200, 'schema' => 'request-command-result.schema.json', 'bearer' => true],
+            'api_commit_link_create' => ['method' => 'POST', 'path' => '/api/v1/commit-links', 'body' => ['commitSha' => '79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091', 'requestIds' => ['{requestId}']], 'status' => 200, 'schema' => 'link-commits-result.schema.json', 'bearer' => true],
             'api_request_release' => ['method' => 'POST', 'path' => '/api/v1/requests/{requestId}/release', 'body' => null, 'status' => 200, 'schema' => 'request-command-result.schema.json'],
             'api_request_wont_do' => ['method' => 'POST', 'path' => '/api/v1/requests/{requestId}/wont-do', 'body' => ['reason' => 'The totals already use integer cents.'], 'status' => 200, 'schema' => 'request-command-result.schema.json'],
             'api_request_verify' => ['method' => 'POST', 'path' => '/api/v1/requests/{requestId}/verify', 'body' => null, 'status' => 200, 'schema' => 'request-command-result.schema.json'],

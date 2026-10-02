@@ -13,6 +13,7 @@ use App\Domain\Identity\Identifier;
 use App\Domain\Identity\RequestId;
 use App\Domain\Request\AllowedActions;
 use App\Domain\Request\Awaiting;
+use App\Domain\Request\CommitLinkState;
 use App\Domain\Request\RequestStatus;
 use App\Entity\ChangeRequest;
 use App\Entity\Comment;
@@ -29,7 +30,7 @@ use Symfony\Bridge\Doctrine\Types\UlidType;
 use Symfony\Component\Uid\Ulid;
 
 /**
- * Q1, Q3, and the result of a request command. Reads refresh the rows, so a read after a command sees it.
+ * Q1, Q3, and the results of the request commands. Reads refresh the rows, so a read after a command sees it.
  */
 final class RequestQuery
 {
@@ -108,6 +109,23 @@ final class RequestQuery
             $summary,
             AllowedActions::for($summary->state, $request->getReview()->toSnapshot(), $caller),
             array_map(static fn (RecordedEvent $event): EventView => ($thread[$event->seq] ?? throw new \LogicException("The event {$event->seq} is not in the thread of {$id}."))->eventView(), $events),
+        );
+    }
+
+    /**
+     * @param list<RequestId>     $requestIds The requests that the command named
+     * @param list<RecordedEvent> $events     The commit.linked event that the command wrote, if any
+     *
+     * @throws NotFound
+     */
+    public function linkCommitsResult(CommitSha $commitSha, CommitLinkState $state, array $requestIds, array $events): LinkCommitsResult
+    {
+        return new LinkCommitsResult(
+            $commitSha,
+            $state,
+            $this->summaries(array_map($this->fresh(...), $requestIds)),
+            // A commit.linked event has no subject request, so its Event.statusAfter is null.
+            array_map(static fn (RecordedEvent $event): EventView => new EventView($event, null), $events),
         );
     }
 

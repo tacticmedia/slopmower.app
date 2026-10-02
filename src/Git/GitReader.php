@@ -7,6 +7,7 @@ namespace App\Git;
 use App\Domain\Error\CommitNotFound;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Git\BlobSha;
+use App\Domain\Git\CommitInfo;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\CommitShaPrefix;
 use App\Domain\Git\RefName;
@@ -75,6 +76,24 @@ final class GitReader implements ResetInterface
         } catch (GitFailed) {
             return false;
         }
+    }
+
+    /**
+     * The committer time, and the subject with invalid UTF-8 replaced, because event payloads are JSON.
+     *
+     * @throws CommitNotFound
+     */
+    public function commitInfo(string $gitDir, CommitSha $commit): CommitInfo
+    {
+        try {
+            $output = $this->git->run($gitDir, ['log', '-1', '--format=%ct%x00%s', '--end-of-options', "{$commit}^{commit}"]);
+        } catch (GitFailed) {
+            throw new CommitNotFound($commit->toString());
+        }
+
+        [$committedAtUnixSeconds, $subject] = explode("\0", rtrim($output, "\n"), 2) + [1 => ''];
+
+        return new CommitInfo($commit, mb_scrub($subject, 'UTF-8'), new \DateTimeImmutable('@'.$committedAtUnixSeconds));
     }
 
     /**

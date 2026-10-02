@@ -22,7 +22,7 @@ final class ToolsListContractTest extends WebTestCase
 
     private const array COMPARED_MEMBERS = ['name', 'title', 'description', 'inputSchema', 'annotations'];
 
-    #[TestDox('tools/list names, input schemas, and annotations of the five read tools equal docs/specs')]
+    #[TestDox('tools/list names, input schemas, and annotations of all 12 tools equal docs/specs')]
     public function testToolsEqualDocsSpecs(): void
     {
         $client = static::createClient();

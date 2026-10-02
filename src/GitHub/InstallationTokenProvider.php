@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\GitHub;
 
+use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface as HttpClientException;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
@@ -18,6 +19,7 @@ final class InstallationTokenProvider
     ];
 
     public function __construct(
+        #[Target('github.client')]
         private readonly HttpClientInterface $githubClient,
         private readonly GitHubAppJwtFactory $jwtFactory,
     ) {

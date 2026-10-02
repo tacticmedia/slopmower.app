@@ -11,6 +11,7 @@ use App\Domain\Error\InvalidInput;
 use App\Domain\Error\NotFound;
 use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Error\RepositoryUnavailableReason;
+use App\Domain\Git\CommitSha;
 use App\Domain\Git\RefName;
 use App\Domain\Identity\RepositoryId;
 use App\Domain\Repository\RepositorySource;
@@ -27,6 +28,7 @@ use App\GitHub\InstallationTokenProvider;
 use App\Message\CloneRepositoryJob;
 use App\Message\DeleteCloneJob;
 use App\Message\FetchRepositoryJob;
+use App\Repository\CommitLinkRepository;
 use App\Repository\GitHubInstallationRepository;
 use App\Repository\RepositoryRepository;
 use App\Source\GitHubFetchCommand;
@@ -42,6 +44,7 @@ use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Lock\LockInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
@@ -59,6 +62,7 @@ final class FetchRepository
 
     public function __construct(
         private readonly RepositoryRepository $repositories,
+        private readonly CommitLinkRepository $links,
         private readonly RepositoryLock $repositoryLock,
         private readonly BareClone $bareClone,
         private readonly GitReader $reader,
@@ -80,10 +84,12 @@ final class FetchRepository
      * R5: queues a fetch, or the clone again after a failed clone. A queued fetch or clone is reused. A request during
      * a running fetch queues one more.
      *
+     * @param int $delayMilliseconds Of the fetch job. A request meanwhile reuses it, which debounces fetches.
+     *
      * @throws NotFound
      * @throws RepositoryUnavailable With the reason `removed`
      */
-    public function request(RepositoryId $id): void
+    public function request(RepositoryId $id, int $delayMilliseconds = 0): void
     {
         $this->refuseOpenTransaction();
         $state = ($this->repositories->findFresh($id) ?? throw new NotFound())->getSyncState();
@@ -98,7 +104,7 @@ final class FetchRepository
 
         if (in_array($state, [SyncState::Idle, SyncState::Fetching], true) && $this->repositories->requestFetch($id)) {
             try {
-                $this->bus->dispatch(new FetchRepositoryJob($id));
+                $this->bus->dispatch(new FetchRepositoryJob($id), $delayMilliseconds > 0 ? [new DelayStamp($delayMilliseconds)] : []);
             } catch (\Throwable $failure) {
                 $this->repositories->clearFetchRequest($id);
 
@@ -282,7 +288,7 @@ final class FetchRepository
                 $this->bareClone->init($gitDir);
             }
 
-            $this->bareClone->fetch($gitDir, $command->url, timeoutSeconds: $timeoutSeconds, secretConfiguration: $command->secretConfiguration, uploadPack: $command->uploadPack);
+            $this->bareClone->fetch($gitDir, $command->url, $this->pendingShas($id), $timeoutSeconds, $command->secretConfiguration, $command->uploadPack);
         } catch (GitFailed|SourceUnavailable|GitHubRequestFailed|IOExceptionInterface $failure) {
             $this->logger->warning('The sync of repository {repositoryId} failed.', ['repositoryId' => $id->toString(), 'exception' => $failure]);
             // Recorded first, so a failing removal cannot leave the row in `cloning`.
@@ -308,6 +314,20 @@ final class FetchRepository
         $this->repositories->recordSuccess($id, $this->clock->now(), null === $head ? null : $defaultBranch, $head);
 
         return new RepositoryFetched($repository->getTenantId(), $id, $repository->getDefaultBranchHead(), $head);
+    }
+
+    /**
+     * @return list<CommitSha> The commits of the pending links, which {@see ResolvePendingCommitLinks} resolves
+     */
+    private function pendingShas(RepositoryId $id): array
+    {
+        $shas = [];
+
+        foreach ($this->links->findFreshPendingOfRepository($id) as $link) {
+            $shas[$link->getCommitSha()->toString()] = $link->getCommitSha();
+        }
+
+        return array_values($shas);
     }
 
     /**

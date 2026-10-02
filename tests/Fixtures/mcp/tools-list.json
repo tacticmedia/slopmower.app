@@ -249,6 +249,236 @@
                 "idempotentHint": true,
                 "openWorldHint": false
             }
+        },
+        {
+            "name": "claim_request",
+            "title": "Claim request",
+            "description": "Claim an open or reopened request before you edit code for it. Status becomes in_progress. Claiming a request that you already hold succeeds and changes nothing. Fails with invalid_transition when the status does not allow it or another agent holds it: then take the next request.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Request ID",
+                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                    }
+                },
+                "required": [
+                    "id"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            }
+        },
+        {
+            "name": "release_request",
+            "title": "Release request",
+            "description": "Give back a request that you claimed but will not finish. Its status returns to what it was before the claim (open or reopened).",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Request ID",
+                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                    },
+                    "note": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "Why you stop, for the user",
+                        "default": null,
+                        "maxLength": 65536
+                    }
+                },
+                "required": [
+                    "id"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": false
+            }
+        },
+        {
+            "name": "reply_to_request",
+            "title": "Reply to request",
+            "description": "Add a comment to a request's thread, in any status. Set question to true when you need the user's answer; the request then waits for the user and comes back through get_updates when they reply.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Request ID",
+                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                    },
+                    "body": {
+                        "type": "string",
+                        "description": "Markdown comment",
+                        "minLength": 1,
+                        "maxLength": 65536
+                    },
+                    "question": {
+                        "type": "boolean",
+                        "description": "True when you need an answer from the user",
+                        "default": false
+                    }
+                },
+                "required": [
+                    "id",
+                    "body"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": false
+            }
+        },
+        {
+            "name": "link_commits",
+            "title": "Link commits",
+            "description": "Record that a commit implements one or more requests that you hold (status in_progress). Use the full SHA from `git rev-parse HEAD`. The commit may be unpushed: the link stays pending until the server's clone has it. Linking does not finish a request.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "commitSha": {
+                        "type": "string",
+                        "description": "Full commit SHA",
+                        "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+                    },
+                    "requestIds": {
+                        "type": "array",
+                        "description": "Every request that this commit covers, all from one review",
+                        "items": {
+                            "type": "string",
+                            "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                        },
+                        "minItems": 1,
+                        "maxItems": 50,
+                        "uniqueItems": true
+                    },
+                    "note": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "Optional note shown with the link",
+                        "default": null,
+                        "maxLength": 65536
+                    }
+                },
+                "required": [
+                    "commitSha",
+                    "requestIds"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            }
+        },
+        {
+            "name": "unlink_commit",
+            "title": "Unlink commit",
+            "description": "Remove a commit link that you made by mistake from a request that you hold.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "commitSha": {
+                        "type": "string",
+                        "description": "Full commit SHA",
+                        "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+                    },
+                    "requestId": {
+                        "type": "string",
+                        "description": "Request ID",
+                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                    }
+                },
+                "required": [
+                    "commitSha",
+                    "requestId"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": false
+            }
+        },
+        {
+            "name": "mark_ready_for_review",
+            "title": "Mark ready for review",
+            "description": "Tell the user that a request you hold is done. The note says what you changed and how you tested it. Every linked commit must be in the server's clone: for GitHub repositories push first (the server fetches once), otherwise this fails with commits_not_available. A request that needs no code change may have no commits; say why in the note.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Request ID",
+                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                    },
+                    "note": {
+                        "type": "string",
+                        "description": "What you changed and how you tested it",
+                        "minLength": 1,
+                        "maxLength": 65536
+                    }
+                },
+                "required": [
+                    "id",
+                    "note"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": false
+            }
+        },
+        {
+            "name": "mark_wont_do",
+            "title": "Mark won't do",
+            "description": "Decline an open or reopened request, or one that you hold. Give evidence that the user can check: a file and line, a test result, a conflicting requirement, or why the request is wrong. At least 20 characters. The user then verifies or reopens it.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Request ID",
+                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "description": "Checkable justification, at least 20 characters",
+                        "minLength": 20,
+                        "maxLength": 65536
+                    }
+                },
+                "required": [
+                    "id",
+                    "reason"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": false
+            }
         }
     ]
 }

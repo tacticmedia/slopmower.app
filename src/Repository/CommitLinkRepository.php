@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Doctrine\Type\CommitShaType;
+use App\Domain\Git\CommitSha;
+use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\TenantId;
+use App\Domain\Request\CommitLinkState;
 use App\Entity\ChangeRequest;
 use App\Entity\CommitLink;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Query;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bridge\Doctrine\Types\UlidType;
 use Symfony\Component\Uid\Ulid;
@@ -49,5 +54,43 @@ final class CommitLinkRepository extends ServiceEntityRepository
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
             ->getResult();
+    }
+
+    /**
+     * With their requests and reviews, refreshed like {@see findFreshOf()}.
+     *
+     * @return list<CommitLink>
+     */
+    public function findFreshPendingOfRepository(RepositoryId $repositoryId): array
+    {
+        return $this->ofRepository($repositoryId)
+            ->addSelect('request', 'review')
+            ->andWhere('link.state = :pending')
+            ->setParameter('pending', CommitLinkState::Pending)
+            ->getQuery()
+            ->setHint(Query::HINT_REFRESH, true)
+            ->getResult();
+    }
+
+    /**
+     * Whether a link of any request of the repository names the commit, so its pin is in use.
+     */
+    public function isLinkedInRepository(RepositoryId $repositoryId, CommitSha $commitSha): bool
+    {
+        return 0 < (int) $this->ofRepository($repositoryId)
+            ->select('COUNT(link.commitSha)')
+            ->andWhere('link.commitSha = :commitSha')
+            ->setParameter('commitSha', $commitSha, CommitShaType::NAME)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    private function ofRepository(RepositoryId $repositoryId): QueryBuilder
+    {
+        return $this->createQueryBuilder('link')
+            ->join('link.request', 'request')
+            ->join('request.review', 'review')
+            ->where('review.repository = :repository')
+            ->setParameter('repository', Ulid::fromString($repositoryId->toString()), UlidType::NAME);
     }
 }

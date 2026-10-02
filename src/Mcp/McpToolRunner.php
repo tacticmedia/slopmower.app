@@ -21,6 +21,7 @@ final class McpToolRunner
 {
     /** The `#[Schema]` patterns of docs/specs/mcp.md section 3. */
     public const string ULID = '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$';
+    public const string FULL_SHA = '^([0-9a-f]{40}|[0-9a-f]{64})$';
     public const string SHA_PREFIX = '^[0-9a-f]{7,64}$';
 
     public function __construct(

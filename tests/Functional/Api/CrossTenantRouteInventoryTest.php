@@ -16,6 +16,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\RouterInterface;
 
 final class CrossTenantRouteInventoryTest extends WebTestCase
@@ -51,28 +52,36 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
     }
 
     /**
-     * @param array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null} $case
+     * @param array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null, bearer?: true} $case
      */
     #[TestDox("Each case with the other tenant's IDs gets 404 not_found")]
     #[DataProvider('casesWithIds')]
     public function testOtherTenantIdsGetNotFound(array $case): void
     {
-        [$client, $otherTenantIds] = $this->twoTenants();
-        $path = (string) preg_replace_callback('/\{(\w+)}/', static fn (array $match): string => $otherTenantIds[$match[1]] ?? self::fail("No ID of the other tenant for {$match[0]}."), $case['path']);
+        [$client, $otherTenantIds, $secret] = $this->twoTenants();
+        $withId = static fn (array $match): string => $otherTenantIds[$match[1]] ?? self::fail("No ID of the other tenant for {$match[0]}.");
+        $path = (string) preg_replace_callback('/\{(\w+)}/', $withId, $case['path']);
+        $body = $case['body'];
 
-        self::assertApiError(self::apiRequest($client, $case['method'], $path, $case['body']), 404, 'not_found');
+        if (null !== $body) {
+            array_walk_recursive($body, static function (mixed &$value) use ($withId): void {
+                $value = \is_string($value) ? preg_replace_callback('/^\{(\w+)}$/', $withId, $value) : $value;
+            });
+        }
+
+        self::assertApiError(self::caseRequest($client, $secret, $case, $path, $body), 404, 'not_found');
     }
 
     /**
-     * @param array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null} $case
+     * @param array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null, bearer?: true} $case
      */
     #[TestDox("List routes return none of the other tenant's items")]
     #[DataProvider('casesWithoutIds')]
     public function testResponsesHoldNoOtherTenantIds(array $case): void
     {
-        [$client, $otherTenantIds] = $this->twoTenants();
+        [$client, $otherTenantIds, $secret] = $this->twoTenants();
 
-        $response = self::apiRequest($client, $case['method'], $case['path'], $case['body']);
+        $response = self::caseRequest($client, $secret, $case, $case['path'], $case['body']);
 
         self::assertNotNull($case['schema'], 'A list or create route answers with a body.');
         self::assertApiResponse($response, $case['status'], $case['schema']);
@@ -83,34 +92,52 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
     }
 
     /**
-     * @return iterable<string, array{array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null}}>
+     * @return iterable<string, array{array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null, bearer?: true}}>
      */
     public static function casesWithIds(): iterable
     {
         foreach (CrossTenantCases::all() as $name => $case) {
-            if (str_contains($case['path'], '{')) {
+            if (self::hasPlaceholder($case)) {
                 yield $name => [$case];
             }
         }
     }
 
     /**
-     * @return iterable<string, array{array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null}}>
+     * @return iterable<string, array{array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null, bearer?: true}}>
      */
     public static function casesWithoutIds(): iterable
     {
         foreach (CrossTenantCases::all() as $name => $case) {
-            if (!str_contains($case['path'], '{')) {
+            if (!self::hasPlaceholder($case)) {
                 yield $name => [$case];
             }
         }
     }
 
     /**
+     * @param array{path: string, body: array<string, mixed>|null, ...} $case
+     */
+    private static function hasPlaceholder(array $case): bool
+    {
+        return str_contains($case['path'], '{') || 1 === preg_match('/"\{\w+}"/', json_encode($case['body'], \JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * @param array{method: string, bearer?: true, ...} $case
+     * @param array<string, mixed>|null                 $body
+     */
+    private static function caseRequest(KernelBrowser $client, #[\SensitiveParameter] string $secret, array $case, string $path, ?array $body): Response
+    {
+        return ($case['bearer'] ?? false) ? self::bearerRequest($client, $secret, $case['method'], $path, $body) : self::apiRequest($client, $case['method'], $path, $body);
+    }
+
+    /**
      * The other tenant connected the local source "billing", has a review of it with a request, and has an API token.
-     * The signed-in tenant has its own repository "alpha".
+     * The signed-in tenant has its own repository "alpha" and an API token.
      *
-     * @return array{KernelBrowser, array<string, string>} The client, and the IDs of the other tenant by placeholder name
+     * @return array{KernelBrowser, array<string, string>, string} The client, the IDs of the other tenant by placeholder
+     *                                                             name, and the secret of the signed-in tenant's token
      */
     private function twoTenants(): array
     {
@@ -120,7 +147,9 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
         $other = TenantFixtures::of(self::getContainer())->withLogin('other')->create();
         $otherReview = self::storeReview($other, 'billing');
         [$otherToken] = self::storeToken($other);
-        self::storeRepository(self::signIn($client)->getTenantId(), 'alpha');
+        $user = self::signIn($client);
+        self::storeRepository($user->getTenantId(), 'alpha');
+        [, $secret] = self::storeToken($user);
 
         return [$client, [
             'tenantId' => $other->getTenantId()->toString(),
@@ -130,6 +159,7 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
             'requestId' => self::storeRequest($otherReview)->getId()->toString(),
             'blobSha' => $source->revParse('main:README.md'),
             'tokenId' => $otherToken->getId()->toString(),
-        ]];
+            'commitSha' => $otherReview->getCommitSha()->toString(),
+        ], $secret];
     }
 }

@@ -25,6 +25,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use HWI\Bundle\OAuthBundle\Security\Http\Authenticator\Passport\Badge\OAuthTokenBadge;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Security\Http\Event\LoginSuccessEvent;
@@ -46,6 +47,7 @@ final class InstallationSync
     private const int PAGE_SIZE = 100;
 
     public function __construct(
+        #[Target('github.client')]
         private readonly HttpClientInterface $githubClient,
         private readonly DenormalizerInterface $denormalizer,
         private readonly EntityManagerInterface $entityManager,

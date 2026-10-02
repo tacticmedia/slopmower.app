@@ -106,7 +106,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M13 | [Requests API, user side](M13-requests-api-user-side.md) | Done | 2026-10-02 | [Report](reports/M13.md) |
 | M14 | [API tokens](M14-api-tokens.md) | Done | 2026-10-02 | [Report](reports/M14.md) |
 | M15 | [MCP server and read tools](M15-mcp-server-and-read-tools.md) | Done | 2026-10-02 | [Report](reports/M15.md) |
-| M16 | [MCP write tools and headless slice](M16-mcp-write-tools-and-headless-slice.md) | In progress | 2026-10-02 | |
+| M16 | [MCP write tools and headless slice](M16-mcp-write-tools-and-headless-slice.md) | Done | 2026-10-03 | Headless slice, [Report](reports/M16.md) |
 | M17 | [Front-end shell](M17-front-end-shell.md) | Done | 2026-10-02 | [Report](reports/M17.md) |
 | M18 | [Repositories and reviews screens](M18-repositories-and-reviews-screens.md) | Done | 2026-10-02 | [Report](reports/M18.md) |
 | M19 | [Settings: API tokens](M19-settings-api-tokens.md) | Done | 2026-10-02 | [Report](reports/M19.md) |

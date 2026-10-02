@@ -34,24 +34,25 @@ final class McpCrossTenantInventoryTest extends WebTestCase
     }
 
     /**
-     * @param array<string, string> $arguments
+     * @param array<string, string|bool|list<string>> $arguments
      */
     #[TestDox("Each tool with the other tenant's IDs gives not_found")]
     #[DataProvider('argumentSets')]
     public function testOtherTenantIdsGiveNotFound(string $tool, array $arguments): void
     {
         [$mcp, $otherTenantIds] = $this->twoTenants();
-        $arguments = array_map(static fn (string $value): string => (string) preg_replace_callback(
+        $withIds = static fn (string|bool $value): string|bool => \is_bool($value) ? $value : (string) preg_replace_callback(
             '/^\{(\w+)}$/',
             static fn (array $match): string => $otherTenantIds[$match[1]] ?? self::fail("No ID of the other tenant for {$match[0]}."),
             $value,
-        ), $arguments);
+        );
+        $arguments = array_map(static fn (string|bool|array $value): string|bool|array => \is_array($value) ? array_map($withIds, $value) : $withIds($value), $arguments);
 
         self::assertToolError($mcp->callTool($tool, $arguments), 'not_found');
     }
 
     /**
-     * @return iterable<string, array{string, array<string, string>}>
+     * @return iterable<string, array{string, array<string, string|bool|list<string>>}>
      */
     public static function argumentSets(): iterable
     {

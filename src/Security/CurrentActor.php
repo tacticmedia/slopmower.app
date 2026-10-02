@@ -16,6 +16,9 @@ final class CurrentActor
     /** The 403 message of the actor-kind rule (docs/specs/README.md section 3), with #[IsGranted(User::ROLE)]. */
     public const string SESSION_ONLY = 'This endpoint needs a session. API tokens may not call it.';
 
+    /** The 403 message of the same rule, with #[IsGranted(AgentUser::ROLE)]. */
+    public const string BEARER_ONLY = 'This endpoint needs an API token. Sessions may not call it.';
+
     public function __construct(private readonly Security $security)
     {
     }
