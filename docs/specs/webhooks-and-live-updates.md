@@ -13,19 +13,19 @@ This file specifies the GitHub webhooks, the fetches that make commits available
 | Parsing | Unparsable JSON gets 406. After verification, every delivery returns a `RemoteEvent`: name `github.<X-GitHub-Event>`, id = `X-GitHub-Delivery`, payload = the decoded body. Events that the server does not handle get the name `github.ignored`. A parser that returns `null` makes Symfony answer 406, so the parser never returns `null` for a verified delivery. |
 | Response | 202 with an empty body, the `AbstractRequestParser` default, within the 10-second limit of GitHub. The work runs in the Messenger worker. |
 | Duplicates | The consumer inserts `X-GitHub-Delivery` into `webhook_delivery (id PRIMARY KEY, received_at)`. A duplicate, including a redelivery, is a no-op. Rows older than 7 days are purged. |
-| Tenancy | The consumer runs with the Doctrine tenant filter off. Only `TenantFilter::suspend()` turns the filter off, in four places: the sign-in and token lookup, this webhook router, the projection rebuild, and the tenant purge. See [architecture section 4](../architecture.md). The consumer finds the `Repository` or `GitHubInstallation` of every tenant by GitHub ID. Each job that it queues carries its `tenantId`. The job handler sets the fail-closed tenant context in the application before it reads or writes tenant data. |
+| Tenancy | The consumer runs with the Doctrine tenant filter off. Only `TenantFilter::suspend()` turns the filter off, in four places: the sign-in and token lookup, this webhook router, the projection rebuild, and the tenant purge. See [architecture section 4](../architecture.md). The consumer finds the `Repository` or `GitHubInstallation` of every tenant by GitHub ID. Each job that it queues carries a `TenantStamp` of its tenant. `TenantContextMiddleware` sets the fail-closed tenant context before the handler runs. |
 
-Events. Subscribe to `push` and `repository` in the App settings. The `installation` and `installation_repositories` events should arrive without a subscription. This is not verified: see the risks in [architecture.md](../architecture.md). Sign-in compares the installations anyway.
+Events. Subscribe to `push` and `repository` in the App settings. GitHub sends the `installation` and `installation_repositories` events to every GitHub App without a subscription. Sign-in compares the installations anyway, because a delivery can fail.
 
 | `X-GitHub-Event` | Action | What the server does |
 |---|---|---|
 | `ping` | none | No-op |
-| `push` | any, for branches and tags | For each tenant repository with `github.repositoryId = repository.id` and `access = active`, queue `FetchRepository(tenantId, repositoryId, reason: push)`. The fetch then does the steps of [section 2.2](#22-after-every-successful-fetch). |
+| `push` | any, for branches and tags | For each tenant repository with `github.repositoryId = repository.id` and `access = active`, request a fetch through `FetchRepository::request()` in the tenant context of that repository, as R5 does. The queued `FetchRepositoryJob` carries a `TenantStamp`. The fetch then does the steps of [section 2.2](#22-after-every-successful-fetch). |
 | `installation` | `created` | If a user has `githubUserId = sender.id`, record the `GitHubInstallation` for that tenant and publish `candidates_changed`. Otherwise ignore it: the next sign-in records it. |
 | `installation` | `deleted` | For each tenant with this installation: mark all its repositories `access = removed`, delete their clones with the pin refs and their index at once, publish `repository` for each, delete the candidates of the installation, publish `candidates_changed`, and delete the installation row. Reviews stay, by decision D22. |
 | `installation` | `suspend`, `unsuspend` | Set or clear `suspendedAt`. While suspended, fetches fail with `sync.lastError = "GitHub App installation suspended"`, and operations that need a fetch get `repository_unavailable` with reason `fetch_failed`. |
 | `installation` | `new_permissions_accepted` | No-op |
-| `installation_repositories` | `added` | For installations on the own account of the user, where `account.type = User` and the GitHub user is the same, add the repositories to the candidate list of the tenant and publish `candidates_changed`. The payload has no default branch or HTML URL, so the server reads each repository with `GET /repos/{owner}/{repo}` and an installation token. Organization installations refresh at the next sign-in, because user access cannot be checked without the user token. |
+| `installation_repositories` | `added` | For installations where `installation.account.type = User` and `installation.account.id` equals the `githubUserId` of a tenant user, add the repositories to the candidate list of that tenant and publish `candidates_changed`. The payload has no default branch or HTML URL, so the server reads each repository with `GET /repos/{owner}/{repo}` and an installation token. Organization installations refresh at the next sign-in, because user access cannot be checked without the user token. |
 | `installation_repositories` | `removed` | For each connected repository in `repositories_removed`: `access = removed`, delete the clone and the index, remove it from the candidates, publish `repository` and `candidates_changed` |
 | `repository` | `renamed`, `transferred` | Update `Repository.name` to `repository.full_name` and publish `repository`. The old name answers `not_found`. |
 | `repository` | `deleted` | As `installation_repositories.removed` |
@@ -51,7 +51,7 @@ The refspecs, the pin refs, and the meaning of "available" are in [README.md sec
 
 - **Single flight:** a `symfony/lock` key `fetch:<repositoryId>` makes one fetch run at a time. The lock store uses PostgreSQL advisory locks, because the `php` and `worker` containers share the clones. A request that arrives during a fetch sets a flag, and one more fetch runs afterwards.
 - **Credentials:** a GitHub fetch uses a fresh installation token as `http.https://github.com/.extraheader` with `AUTHORIZATION: basic <base64>`. The token reaches git only through the environment variables `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`, and `GIT_CONFIG_VALUE_<n>`, never through the argument list, because `symfony/process` exceptions print the arguments. The token never goes into the git configuration of the clone.
-- **Local fetches:** the remote is `file://<realpath>`, where `<realpath>` is the real path of the directory. Every git command gets `-c safe.directory=<realpath>`. The source directory is mounted read-only and never written.
+- **Local fetches:** the remote is `file://` plus the real path of the directory, with each segment percent-encoded. The `git upload-pack` command that reads the source gets `-c safe.directory=<realpath>` and `-c safe.directory=<realpath>/.git` through `--upload-pack`, because git drops the `-c` options of the fetching git on a local transport. The source directory is mounted read-only and never written.
 - **Failure:** the server sets `sync.lastError` and publishes a `repository` live update. For a synchronous trigger the caller gets 409 `repository_unavailable` with reason `fetch_failed`.
 
 ### 2.2 After every successful fetch
@@ -79,7 +79,7 @@ Topics:
 | Topic | Selector in the JWT | Update types |
 |---|---|---|
 | `{base}/tenants/{tenantId}/repositories` | exact | `repository`, `repository_deleted`, `candidates_changed` |
-| `{base}/tenants/{tenantId}/reviews/{reviewId}` | URI template `{base}/tenants/{tenantId}/reviews/{reviewId}`, which matches any review of the tenant | `events`, `outdated`, `index` |
+| `{base}/tenants/{tenantId}/reviews/{reviewId}` | URI template with the tenant ID filled in and `{reviewId}` as the only variable, for example `https://hr.example/tenants/01K6AZZ0TENANT000000000001/reviews/{reviewId}`. It matches any review of that tenant only. | `events`, `outdated`, `index` |
 
 Update types. [live-update.schema.json](schemas/live-update.schema.json) defines the payloads.
 
@@ -106,5 +106,5 @@ Client behaviour in the web UI:
 3. **Revalidate.** On an update, call `revalidate()` of `useRevalidator` from React Router 8.4.0 in Data Mode. It runs the loaders of the active routes again, and they read fresh data through REST. Only one revalidation runs at a time. Updates that arrive during a revalidation cause one more revalidation after it.
    - `events`, `outdated`, and `index`: when `reviewId` is the open review.
    - `repository`, `repository_deleted`, and `candidates_changed`: always.
-4. **Catch up after a reconnect.** On every EventSource `open` after an error, and when the tab becomes visible again, call `GET /api/v1/reviews/{id}/updates?cursor=<lastSeq>&includeOwn=true` until `hasMore` is false. Set `lastSeq` to the last `cursor`, then revalidate once. The built-in hub keeps no history, so the UI does not rely on `Last-Event-ID` replay.
+4. **Catch up after a reconnect.** On every EventSource `open` after an error, and when the tab becomes visible again, call `GET /api/v1/reviews/{id}/updates?cursor=<lastSeq>&includeOwn=true` until `hasMore` is false. Set `lastSeq` to the last `cursor`, then revalidate once. The UI does not rely on `Last-Event-ID` replay. Hub history is not part of the contract.
 5. **Request detail.** The loader of the request detail view reads `GET /api/v1/requests/{id}`, so a revalidation also refreshes the thread and `allowedActions`. `allowedActions` depends on the caller, so it is never in a live payload.

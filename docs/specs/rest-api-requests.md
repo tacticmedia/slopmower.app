@@ -508,7 +508,7 @@ The endpoint sets `revokedAt`. The row stays, so its events keep their agent nam
 | Method | Path | Authentication | Purpose |
 |---|---|---|---|
 | GET | `/`, `/repositories`, `/repositories/{id}`, `/reviews/{id}`, `/reviews/{id}/files/{path}`, `/reviews/{id}/requests`, `/requests/{id}`, `/settings` | Session, else a redirect to `/login` | Twig shell page for the React single-page application, with the Reprise entry tags. React Router 8.4.0 in Data Mode renders the screens. |
-| GET | `/login` | public | "Sign in with GitHub". When the local sign-in is on, also the local sign-in button. |
+| GET | `/login` | public | "Sign in with GitHub" when `GITHUB_APP_CLIENT_ID` is not empty. The local sign-in button when the local sign-in is on. With neither: "No sign-in method is configured." |
 | GET | `/connect/github` | public | HWIOAuthBundle redirect to GitHub, route `hwi_oauth_service_redirect` |
 | GET | `/login/check-github` | public | OAuth callback, which is also the callback URL of the GitHub App. Lists installations and repositories. Creates the tenant and the user at the first sign-in. |
 | POST | `/login/local` | public. It exists only when `APP_ENV=dev` and `APP_LOCAL_SIGN_IN` is not empty. | Local sign-in as the user named by `APP_LOCAL_SIGN_IN=<login>`. Creates its tenant and user at first use. A local run needs no GitHub App. |

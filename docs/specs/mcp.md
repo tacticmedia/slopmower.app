@@ -55,13 +55,13 @@ Never verify, reopen, or create requests. Errors are isError results whose text 
 
 ## 3. Conventions
 
-- **Adapter.** There is one `#[McpTool]` method per operation. Parameters are scalars and backed enums, because the SDK does not support object parameters. Each method calls the same application service as REST and returns the normalized array. So `structuredContent` equals the REST JSON, and `content[0].text` is the same JSON as text.
+- **Adapter.** There is one `#[McpTool]` method per operation. Parameters are scalars, backed enums, and lists of strings, because the SDK does not support object parameters. Each method calls the same application service as REST and returns the normalized array. So `structuredContent` equals the REST JSON, and `content[0].text` holds the same data as JSON text.
 - **Titles and descriptions.** Each `#[McpTool]` sets `title:` and `description:` to the texts given for the tool below. Without `description:`, the SDK uses the summary and body of the method docblock. The snippets below do not repeat the description.
 - **Output schemas.** Each output schema is a bundled copy of a file in [schemas/](schemas/): the root with `type: "object"`, `properties`, and `required` at the top level, plus a `$defs` section with every referenced definition, with each `$ref` rewritten to `#/$defs/<Name>`. The command `bin/console app:schema:bundle` generates `src/Mcp/BundledSchemas.php` with one `public const array` per root, because attribute arguments must be constant expressions. A test fails when the generated file differs from the output of the command.
 - **Annotations.** All tools set `destructiveHint: false` and `openWorldHint: false`. The read tools set `readOnlyHint: true` and `idempotentHint: true`. The table in section 4 lists them per tool.
 - **Domain errors.** The adapter catches `DomainError` and throws `ToolCallException(json_encode(['error' => ['code' => ..., 'message' => ..., 'details' => ...]]))`. The SDK turns that into `{"isError": true, "content": [{"type": "text", "text": "<Error JSON>"}]}`, with **no `structuredContent`**. So clients that validate `structuredContent` against the `outputSchema` do not reject the error.
 - **Other exceptions.** The adapter catches every other `Throwable`, logs it, and throws `ToolCallException` with code `internal_error`. The agent therefore never gets a bare -32603.
-- **Protocol-level errors.** The SDK answers these before the tool runs. An unknown tool, or arguments that violate `inputSchema`, give JSON-RPC error -32602 with `data.validation_errors`. Violations are patterns, `minLength`, `minimum`, and required fields. Semantic checks give `isError` with `invalid_input`, for example a body of whitespace only, or a reason shorter than 20 characters after trimming.
+- **Protocol-level errors.** The SDK answers these before the tool runs. An unknown tool gives JSON-RPC error -32602 without `data`. Arguments that violate `inputSchema` give -32602 with `data.validation_errors`. Any `inputSchema` keyword can fail, for example `pattern`, `minLength`, `maximum`, `enum`, `type`, or a missing required field. Semantic checks give `isError` with `invalid_input`, for example a body of whitespace only, or a reason shorter than 20 characters after trimming.
 - **Constants** used in `#[Schema]`:
   - `ULID = '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'`
   - `FULL_SHA = '^([0-9a-f]{40}|[0-9a-f]{64})$'`
@@ -510,7 +510,7 @@ Success. The request:
 {"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"claim_request","arguments":{"id":"01K6B3P2A9QRSTVWXYZ0123456"}}}
 ```
 
-The response. The members `"...": "..."` stand for the rest of [fixtures/request-command-result.claim.json](fixtures/request-command-result.claim.json). `content[0].text` holds the same JSON as `structuredContent`, as a string.
+The response. The members `"...": "..."` stand for the rest of [fixtures/request-command-result.claim.json](fixtures/request-command-result.claim.json). `content[0].text` holds the same data as `structuredContent`, as pretty-printed JSON. Tests compare the decoded JSON, not the bytes.
 
 ```json
 {"jsonrpc":"2.0","id":4,"result":{
@@ -525,8 +525,8 @@ Domain error. The text is [fixtures/error.commits-not-available.json](fixtures/e
 {"jsonrpc":"2.0","id":7,"result":{"content":[{"type":"text","text":"{\"error\":{\"code\":\"commits_not_available\",\"message\":\"1 linked commit is not in the server clone after a fetch. Push it, then try again.\",\"details\":{\"pendingCommits\":[\"e5f6a7b8c9d0e1f2a3b4c5d6e7f8091a2b3c4d5e\"]}}}"}],"isError":true}}
 ```
 
-Schema violation, answered by the SDK before the tool runs:
+Schema violation, answered by the SDK before the tool runs. The message text comes from opis/json-schema.
 
 ```json
-{"jsonrpc":"2.0","id":8,"error":{"code":-32602,"message":"Invalid parameters for tool 'mark_wont_do': Property '/reason': String must be at least 20 characters long.","data":{"validation_errors":[{"pointer":"/reason","keyword":"minLength","message":"String must be at least 20 characters long."}]}}}
+{"jsonrpc":"2.0","id":8,"error":{"code":-32602,"message":"Invalid parameters for tool 'mark_wont_do': Property '/reason': Minimum string length is 20, found 9","data":{"validation_errors":[{"pointer":"/reason","keyword":"minLength","message":"Minimum string length is 20, found 9"}]}}}
 ```
