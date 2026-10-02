@@ -32,7 +32,7 @@ final class ReducerTest extends KernelTestCase
     private const string LINKED = RequestScenario::LINKED_COMMIT;
     private const string OTHER = RequestScenario::OTHER_COMMIT;
 
-    #[TestDox('Every event type updates the state fields')]
+    #[TestDox('Every event type sets its state fields, and batch.submitted changes none')]
     public function testEveryEventTypeUpdatesTheState(): void
     {
         $scenario = new RequestScenario();

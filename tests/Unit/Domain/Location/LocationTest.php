@@ -18,7 +18,7 @@ final class LocationTest extends KernelTestCase
 {
     use InvalidInputAssertions;
 
-    #[TestDox('Gives exact and shifted confidence 1, and orphaned a reason without path, range, or confidence')]
+    #[TestDox('Gives exact and shifted confidence 1, and orphaned a reason, confidence 0, and no path or range')]
     public function testSetsTheFieldsOfEachStatus(): void
     {
         $target = CommitSha::fromString('79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091');

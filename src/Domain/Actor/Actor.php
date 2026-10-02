@@ -62,7 +62,7 @@ final readonly class Actor
     }
 
     /**
-     * Tokens with the same name act as the same agent.
+     * Tokens of one user with the same name act as the same agent.
      */
     public function equals(self $other): bool
     {

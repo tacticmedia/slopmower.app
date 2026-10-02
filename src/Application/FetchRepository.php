@@ -110,7 +110,7 @@ final class FetchRepository
     }
 
     /**
-     * Waits for a running clone or fetch, then fetches. The wait and the fetch share one deadline.
+     * Waits for a running fetch, then fetches. During a clone it throws `cloning`. The wait and the fetch share one deadline.
      *
      * @throws NotFound
      * @throws RepositoryUnavailable

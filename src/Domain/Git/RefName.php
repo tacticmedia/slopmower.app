@@ -7,7 +7,7 @@ namespace App\Domain\Git;
 use App\Domain\Error\InvalidInput;
 
 /**
- * The rules of `git check-ref-format --allow-onelevel`, plus no leading "-". A SHA prefix is a valid ref name.
+ * The rules of `git check-ref-format --allow-onelevel`, plus valid UTF-8, at most 255 characters, and no leading "-". A SHA prefix is a valid ref name.
  */
 final readonly class RefName implements \Stringable
 {

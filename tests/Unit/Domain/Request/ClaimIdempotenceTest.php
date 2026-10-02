@@ -24,7 +24,7 @@ final class ClaimIdempotenceTest extends KernelTestCase
         self::assertSame([], $scenario->decide(new Claim($scenario->requestId()), RequestScenario::claimingAgent()));
     }
 
-    #[TestDox('Tokens with the same agent name count as the same agent')]
+    #[TestDox('Tokens of one user with the same agent name count as the same agent')]
     public function testTokensWithTheSameNameAreOneAgent(): void
     {
         $scenario = RequestScenario::inState('in_progress');

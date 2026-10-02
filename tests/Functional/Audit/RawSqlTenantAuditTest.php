@@ -21,7 +21,7 @@ final class RawSqlTenantAuditTest extends KernelTestCase
     /** DBAL methods that run SQL and share their name with other APIs, for example the ORM query builder. */
     private const array TABLE_METHODS = ['insert', 'update', 'delete'];
 
-    #[TestDox('Every SQL literal in a *Sql class that names a tenant table names tenant_id')]
+    #[TestDox('Every SQL literal in a *Sql class that names a tenant table names its tenant column')]
     public function testSqlLiteralsNameTheTenant(): void
     {
         $tables = self::tenantTables();
