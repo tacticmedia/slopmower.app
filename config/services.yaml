@@ -7,8 +7,8 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
-    # The dbname_suffix of config/packages/doctrine.yaml, for the session connection.
-    app.session_database_suffix: ''
+    # Used by doctrine.dbal.dbname_suffix and the session DSN.
+    app.database_suffix: ''
 
 services:
     # default configuration for services in *this* file
@@ -28,22 +28,23 @@ services:
     # The advisory lock serializes the requests of one session, so no request writes back a session that logout deleted.
     Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler:
         arguments:
-            $pdoOrDsn: 'pgsql:host=%env(key:host:url:DATABASE_URL)%;port=%env(key:port:url:DATABASE_URL)%;dbname=%env(key:path:url:DATABASE_URL)%%app.session_database_suffix%'
+            $pdoOrDsn: 'pgsql:host=%env(key:host:url:DATABASE_URL)%;port=%env(key:port:url:DATABASE_URL)%;dbname=%env(key:path:url:DATABASE_URL)%%app.database_suffix%'
             $options:
                 db_username: '%env(key:user:url:DATABASE_URL)%'
                 db_password: '%env(key:pass:url:DATABASE_URL)%'
                 lock_mode: !php/const Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler::LOCK_ADVISORY
 
-    # The bundle builds its own client. The framework client honours framework.http_client.mock_response_factory.
-    hwi_oauth.http_client: '@http_client'
+    # The bundle builds its own client. A framework client honours framework.http_client.mock_response_factory.
+    hwi_oauth.http_client: '@github.client'
 
 when@test:
     parameters:
-        app.session_database_suffix: '_test%env(default::TEST_TOKEN)%'
+        # "TEST_TOKEN" is typically set by ParaTest
+        app.database_suffix: '_test%env(default::TEST_TOKEN)%'
 
     services:
         App\Tests\Support\GitHub\GitHubResponses: ~
 
 when@e2e:
     parameters:
-        app.session_database_suffix: '_test'
+        app.database_suffix: '_test'

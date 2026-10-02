@@ -115,7 +115,7 @@ final class OAuthStateTest extends WebTestCase
 
         return array_values(array_map(
             static fn (array $trace): string => "{$trace['method']} {$trace['url']}",
-            $collector->getClients()['http_client']['traces'] ?? [],
+            $collector->getClients()['github.client']['traces'] ?? [],
         ));
     }
 

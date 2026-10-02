@@ -6,6 +6,12 @@ framework:
     session:
         handler_id: Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler
 
+    http_client:
+        scoped_clients:
+            github.client:
+                scope: '^https://(api\.)?github\.com/'
+                timeout: 10
+
     #esi: true
     #fragments: true
 
