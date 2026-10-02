@@ -42,7 +42,7 @@ final class LocalRepositoryDiscovery
      *
      * @param (\Closure(string): bool)|null $acceptsName
      */
-    public function list(?\Closure $acceptsName = null): LocalRepositoryListing
+    public function list(?\Closure $acceptsName = null, int $limit = self::MAX_CANDIDATES): LocalRepositoryListing
     {
         $root = $this->root();
 
@@ -61,7 +61,7 @@ final class LocalRepositoryDiscovery
                 continue;
             }
 
-            if (self::MAX_CANDIDATES === count($candidates)) {
+            if ($limit === count($candidates)) {
                 return new LocalRepositoryListing($candidates, true);
             }
 

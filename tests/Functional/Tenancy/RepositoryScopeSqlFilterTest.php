@@ -12,8 +12,11 @@ use App\Domain\Identity\RepositoryId;
 use App\Domain\Repository\RepositoryName;
 use App\Entity\ChangeRequest;
 use App\Entity\Comment;
+use App\Entity\GitHubCandidate;
+use App\Entity\GitHubInstallation;
 use App\Entity\Repository;
 use App\Entity\Review;
+use App\GitHub\GitHubAccountType;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantOwned;
 use App\Tests\Support\Database\ResetDatabase;
@@ -36,15 +39,29 @@ final class RepositoryScopeSqlFilterTest extends KernelTestCase
         $requestId = self::persistScenario($tenantId, $scenario);
         $review = self::entityManager()->find(Review::class, Ulid::fromString($scenario->review()->id->toString())) ?? self::fail('No review.');
         $request = self::entityManager()->find(ChangeRequest::class, Ulid::fromString($requestId->toString())) ?? self::fail('No request.');
-        $other = Repository::local($tenantId, RepositoryName::local('alpha'), 'alpha', new \DateTimeImmutable(self::TIME));
-        self::entityManager()->persist(new Comment(CommentId::generate(), $request, RequestScenario::user(), 'Also cover shipping.', false, null, new \DateTimeImmutable(self::TIME)));
+        $time = new \DateTimeImmutable(self::TIME);
+        $other = Repository::local($tenantId, RepositoryName::local('alpha'), 'alpha', $time);
+        $gitHub = Repository::gitHub($tenantId, RepositoryName::github('acme/billing'), 812345, 5551, true, $time);
+        self::entityManager()->persist(new Comment(CommentId::generate(), $request, RequestScenario::user(), 'Also cover shipping.', false, null, $time));
         self::entityManager()->persist($other);
-        self::entityManager()->flush();
-        self::insertEvent(new RecordedEvent(EventId::generate(), $tenantId, 1, $scenario->review()->id, $requestId, RequestScenario::claimingAgent(), new \DateTimeImmutable(self::TIME), new RequestClaimedEvent()));
-        $unscoped = ['ApiToken' => 0, 'User' => 1];
+        self::entityManager()->persist($gitHub);
 
-        self::assertSame(['ChangeRequest' => 1, 'Comment' => 1, 'CommitLink' => 1, 'Repository' => 1, 'Review' => 1, 'ReviewEvent' => 1] + $unscoped, self::rowCounts($review->getRepository()->getId()));
-        self::assertSame(['ChangeRequest' => 0, 'Comment' => 0, 'CommitLink' => 0, 'Repository' => 1, 'Review' => 0, 'ReviewEvent' => 0] + $unscoped, self::rowCounts($other->getId()));
+        foreach ([5551, 5552] as $installationId) {
+            self::entityManager()->persist(new GitHubInstallation($tenantId, $installationId, 'acme', GitHubAccountType::Organization, null));
+        }
+
+        foreach (['acme/billing' => 812345, 'acme/shipping' => 812399] as $name => $githubRepositoryId) {
+            self::entityManager()->persist(new GitHubCandidate($tenantId, $githubRepositoryId, 5551, 'acme', RepositoryName::github($name), true, 'main', "https://github.com/{$name}", $time));
+        }
+
+        self::entityManager()->flush();
+        self::insertEvent(new RecordedEvent(EventId::generate(), $tenantId, 1, $scenario->review()->id, $requestId, RequestScenario::claimingAgent(), $time, new RequestClaimedEvent()));
+        $unscoped = ['ApiToken' => 0, 'User' => 1];
+        $noReviewData = ['ChangeRequest' => 0, 'Comment' => 0, 'CommitLink' => 0];
+
+        self::assertSame(['ChangeRequest' => 1, 'Comment' => 1, 'CommitLink' => 1, 'GitHubCandidate' => 0, 'GitHubInstallation' => 0, 'Repository' => 1, 'Review' => 1, 'ReviewEvent' => 1] + $unscoped, self::rowCounts($review->getRepository()->getId()));
+        self::assertSame($noReviewData + ['GitHubCandidate' => 0, 'GitHubInstallation' => 0, 'Repository' => 1, 'Review' => 0, 'ReviewEvent' => 0] + $unscoped, self::rowCounts($other->getId()));
+        self::assertSame($noReviewData + ['GitHubCandidate' => 1, 'GitHubInstallation' => 1, 'Repository' => 1, 'Review' => 0, 'ReviewEvent' => 0] + $unscoped, self::rowCounts($gitHub->getId()), 'Only its candidate and its installation.');
     }
 
     /**

@@ -26,16 +26,22 @@ final class RepositoryNormalizer implements NormalizerInterface, NormalizerAware
     {
         \assert($data instanceof RepositoryView);
         $repository = $data->repository;
+        $name = $repository->getName()->toString();
+        $isGitHub = RepositorySource::Github === $repository->getSource();
 
         $normalized = $this->normalizer->normalize([
             'id' => $repository->getId(),
             'source' => $repository->getSource(),
-            'name' => $repository->getName()->toString(),
-            'github' => match ($repository->getSource()) {
-                RepositorySource::Github => throw new \LogicException('A GitHub repository has no installation data to normalize.'),
-                RepositorySource::Local => null,
-            },
-            'local' => ['directory' => $repository->getLocalDirectory()],
+            'name' => $name,
+            // The owner and the page follow the name, which each sign-in updates.
+            'github' => $isGitHub ? [
+                'repositoryId' => $repository->getGithubRepositoryId(),
+                'installationId' => $repository->getGithubInstallationId(),
+                'owner' => explode('/', $name, 2)[0],
+                'private' => $repository->isGithubPrivate(),
+                'htmlUrl' => "https://github.com/{$name}",
+            ] : null,
+            'local' => $isGitHub ? null : ['directory' => $repository->getLocalDirectory()],
             'defaultBranch' => $repository->getDefaultBranch(),
             'access' => $repository->getAccess(),
             'sync' => [

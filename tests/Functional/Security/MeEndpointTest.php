@@ -58,4 +58,18 @@ final class MeEndpointTest extends WebTestCase
             $me,
         );
     }
+
+    #[TestDox('A GitHub user gets the slug and the install URL of the GitHub App')]
+    public function testGitHubUserGetsTheGitHubApp(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(TenantFixtures::of(self::getContainer())->withLogin('octocat')->withGitHubUser(1)->create(), 'web');
+
+        $client->request('GET', '/api/v1/me');
+
+        self::assertSame(
+            ['localRepositories' => true, 'githubApp' => ['slug' => 'holistic-review-test', 'installUrl' => 'https://github.com/apps/holistic-review-test/installations/new']],
+            self::assertApiResponse($client->getResponse(), 200, 'me.schema.json')['features'],
+        );
+    }
 }

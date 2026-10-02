@@ -7,6 +7,7 @@ import type { CandidateList, RepositoryPage } from '../../api/types/lists';
 import type { Me } from '../../api/types/me';
 import type { Repository } from '../../api/types/repository';
 import { ConnectedRepositories } from './ConnectedRepositories';
+import { type GitHubCandidate, GitHubCandidates } from './GitHubCandidates';
 import { type LocalCandidate, LocalCandidates } from './LocalCandidates';
 import styles from './RepositoriesRoute.module.css';
 
@@ -26,7 +27,11 @@ export async function repositoriesLoader({ request }: LoaderFunctionArgs): Promi
 
 export async function repositoriesAction({ request }: ActionFunctionArgs): Promise<ActionResult> {
     const form = await request.formData();
-    const input: ConnectRepositoryInput = { source: 'local', directory: String(form.get('directory')) };
+    const githubRepositoryId = form.get('githubRepositoryId');
+    const input: ConnectRepositoryInput =
+        null === githubRepositoryId
+            ? { source: 'local', directory: String(form.get('directory')) }
+            : { source: 'github', githubRepositoryId: Number(githubRepositoryId) };
 
     return writeResult(() => apiWrite('POST', '/api/v1/repositories', input));
 }
@@ -37,12 +42,16 @@ export function RepositoriesRoute() {
     if (undefined === me) {
         throw new Error('The root route has no data.');
     }
+    const githubCandidates = candidates.items.filter((candidate): candidate is GitHubCandidate => 'github' === candidate.source);
     const localCandidates = candidates.items.filter((candidate): candidate is LocalCandidate => 'local' === candidate.source);
 
     return (
         <div className={styles.page}>
             <Heading as="h1">Repositories</Heading>
             <ConnectedRepositories repositories={repositories} />
+            {null !== candidates.githubConfigureUrl && (
+                <GitHubCandidates candidates={githubCandidates} configureUrl={candidates.githubConfigureUrl} listedAt={candidates.githubListedAt} />
+            )}
             <LocalCandidates enabled={me.features.localRepositories} candidates={localCandidates} />
             {candidates.truncated && <p className={styles.note}>The list shows the first 1,000 candidates.</p>}
         </div>

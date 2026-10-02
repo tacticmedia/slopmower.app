@@ -6,6 +6,7 @@ namespace App\Serializer\Normalizer;
 
 use App\Application\Query\CandidateList;
 use App\Domain\Repository\RepositorySource;
+use App\Entity\GitHubCandidate;
 use App\Source\LocalRepositoryCandidate;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareTrait;
@@ -29,13 +30,30 @@ final class CandidateListNormalizer implements NormalizerInterface, NormalizerAw
         \assert($data instanceof CandidateList);
 
         $normalized = $this->normalizer->normalize([
-            'items' => array_map(static fn (LocalRepositoryCandidate $candidate): array => [
-                'source' => RepositorySource::Local,
-                'name' => $candidate->directory,
-                'connectedRepositoryId' => $data->connectedRepositoryIds[$candidate->directory] ?? null,
-                'github' => null,
-                'local' => ['directory' => $candidate->directory, 'bare' => $candidate->bare, 'headBranch' => $candidate->headBranch],
-            ], $data->localCandidates),
+            'items' => [
+                ...array_map(static fn (GitHubCandidate $candidate): array => [
+                    'source' => RepositorySource::Github,
+                    'name' => $candidate->getFullName()->toString(),
+                    'connectedRepositoryId' => $data->githubConnectedRepositoryIds[$candidate->getGithubRepositoryId()] ?? null,
+                    'github' => [
+                        'repositoryId' => $candidate->getGithubRepositoryId(),
+                        'installationId' => $candidate->getInstallationId(),
+                        'accountLogin' => $candidate->getAccountLogin(),
+                        'owner' => $candidate->getOwner(),
+                        'private' => $candidate->isPrivate(),
+                        'defaultBranch' => $candidate->getDefaultBranch(),
+                        'htmlUrl' => $candidate->getHtmlUrl(),
+                    ],
+                    'local' => null,
+                ], $data->githubCandidates),
+                ...array_map(static fn (LocalRepositoryCandidate $candidate): array => [
+                    'source' => RepositorySource::Local,
+                    'name' => $candidate->directory,
+                    'connectedRepositoryId' => $data->localConnectedRepositoryIds[$candidate->directory] ?? null,
+                    'github' => null,
+                    'local' => ['directory' => $candidate->directory, 'bare' => $candidate->bare, 'headBranch' => $candidate->headBranch],
+                ], $data->localCandidates),
+            ],
             'truncated' => $data->truncated,
             'localEnabled' => $data->localEnabled,
             'githubListedAt' => $data->githubListedAt,

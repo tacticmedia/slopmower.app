@@ -1,0 +1,28 @@
+{
+    "status": 200,
+    "headers": {
+        "content-type": "application/json; charset=utf-8"
+    },
+    "body": {
+        "total_count": 1,
+        "repository_selection": "selected",
+        "repositories": [
+            {
+                "id": 812399,
+                "node_id": "R_kgDOMBi1nw",
+                "name": "Shipping",
+                "full_name": "acme/Shipping",
+                "owner": {
+                    "login": "acme",
+                    "id": 9919,
+                    "type": "Organization"
+                },
+                "private": true,
+                "html_url": "https://github.com/acme/Shipping",
+                "description": null,
+                "fork": false,
+                "default_branch": "develop"
+            }
+        ]
+    }
+}

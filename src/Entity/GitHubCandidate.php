@@ -1,0 +1,131 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Entity;
+
+use App\Domain\Identity\TenantId;
+use App\Domain\Repository\RepositoryName;
+use App\Repository\GitHubCandidateRepository;
+use App\Tenancy\TenantOwned;
+use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Types\UlidType;
+use Symfony\Component\Uid\Ulid;
+
+/**
+ * A repository that the user could connect at the last sign-in (R2).
+ */
+#[ORM\Entity(repositoryClass: GitHubCandidateRepository::class)]
+#[ORM\Table(name: 'github_candidate')]
+#[ORM\UniqueConstraint(name: 'uniq_github_candidate', columns: ['tenant_id', 'github_repository_id'])]
+class GitHubCandidate implements TenantOwned
+{
+    #[ORM\Id]
+    #[ORM\Column(type: UlidType::NAME)]
+    private Ulid $id;
+
+    #[ORM\Column(type: UlidType::NAME)]
+    private Ulid $tenantId;
+
+    #[ORM\Column(type: Types::BIGINT)]
+    private int $githubRepositoryId;
+
+    #[ORM\Column(type: Types::BIGINT)]
+    private int $installationId;
+
+    /** The account that installed the App. */
+    #[ORM\Column]
+    private string $accountLogin;
+
+    #[ORM\Column]
+    private string $owner;
+
+    #[ORM\Column]
+    private string $name;
+
+    #[ORM\Column]
+    private bool $private;
+
+    #[ORM\Column]
+    private string $defaultBranch;
+
+    #[ORM\Column(type: Types::TEXT)]
+    private string $htmlUrl;
+
+    #[ORM\Column]
+    private \DateTimeImmutable $listedAt;
+
+    public function __construct(
+        TenantId $tenantId,
+        int $githubRepositoryId,
+        int $installationId,
+        string $accountLogin,
+        RepositoryName $fullName,
+        bool $private,
+        string $defaultBranch,
+        string $htmlUrl,
+        \DateTimeImmutable $listedAt,
+    ) {
+        $this->id = new Ulid();
+        $this->tenantId = Ulid::fromString($tenantId->toString());
+        $this->githubRepositoryId = $githubRepositoryId;
+        $this->installationId = $installationId;
+        $this->accountLogin = $accountLogin;
+        [$this->owner, $this->name] = explode('/', $fullName->toString(), 2);
+        $this->private = $private;
+        $this->defaultBranch = $defaultBranch;
+        $this->htmlUrl = $htmlUrl;
+        $this->listedAt = $listedAt;
+    }
+
+    public function getTenantId(): TenantId
+    {
+        return TenantId::fromString($this->tenantId->toBase32());
+    }
+
+    public function getGithubRepositoryId(): int
+    {
+        return $this->githubRepositoryId;
+    }
+
+    public function getInstallationId(): int
+    {
+        return $this->installationId;
+    }
+
+    public function getAccountLogin(): string
+    {
+        return $this->accountLogin;
+    }
+
+    public function getOwner(): string
+    {
+        return $this->owner;
+    }
+
+    public function getFullName(): RepositoryName
+    {
+        return RepositoryName::github("{$this->owner}/{$this->name}");
+    }
+
+    public function isPrivate(): bool
+    {
+        return $this->private;
+    }
+
+    public function getDefaultBranch(): string
+    {
+        return $this->defaultBranch;
+    }
+
+    public function getHtmlUrl(): string
+    {
+        return $this->htmlUrl;
+    }
+
+    public function getListedAt(): \DateTimeImmutable
+    {
+        return $this->listedAt;
+    }
+}

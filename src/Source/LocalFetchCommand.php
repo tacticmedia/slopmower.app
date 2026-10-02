@@ -11,10 +11,14 @@ namespace App\Source;
  */
 final readonly class LocalFetchCommand
 {
+    /** @var array<string, string> */
+    public array $secretConfiguration;
+
     private function __construct(
         public string $url,
         public string $uploadPack,
     ) {
+        $this->secretConfiguration = [];
     }
 
     public static function forDirectory(string $realPath): self

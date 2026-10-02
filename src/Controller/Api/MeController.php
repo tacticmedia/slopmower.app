@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Entity\User;
+use App\GitHub\GitHubApp;
 use App\Repository\ApiTokenRepository;
 use App\Repository\UserRepository;
 use App\Security\AgentUser;
@@ -28,6 +29,7 @@ final class MeController extends AbstractController
         CurrentActor $currentActor,
         UserRepository $users,
         ApiTokenRepository $tokens,
+        GitHubApp $gitHubApp,
         Request $request,
         #[Autowire(env: 'APP_LOCAL_REPOSITORIES_DIR')] string $localRepositoriesDir,
     ): JsonResponse {
@@ -56,7 +58,7 @@ final class MeController extends AbstractController
             'token' => $token,
             'features' => [
                 'localRepositories' => '' !== $localRepositoriesDir,
-                'githubApp' => null,
+                'githubApp' => $gitHubApp->featuresFor($user),
             ],
             'links' => [
                 'mcpUrl' => $request->getUriForPath('/_mcp'),

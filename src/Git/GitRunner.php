@@ -34,7 +34,7 @@ final class GitRunner
      *
      * @throws GitFailed
      */
-    public function run(string $gitDir, array $arguments, float $timeoutSeconds = self::TIMEOUT_SECONDS, array $secretConfiguration = []): string
+    public function run(string $gitDir, array $arguments, float $timeoutSeconds = self::TIMEOUT_SECONDS, #[\SensitiveParameter] array $secretConfiguration = []): string
     {
         $process = $this->process($gitDir, $arguments, $secretConfiguration)->setTimeout($timeoutSeconds);
 
@@ -68,7 +68,7 @@ final class GitRunner
      * @param list<string>          $arguments
      * @param array<string, string> $secretConfiguration
      */
-    private function process(string $gitDir, array $arguments, array $secretConfiguration): Process
+    private function process(string $gitDir, array $arguments, #[\SensitiveParameter] array $secretConfiguration): Process
     {
         $environment = self::ENVIRONMENT + ['GIT_CONFIG_COUNT' => (string) count($secretConfiguration)];
 
@@ -84,7 +84,7 @@ final class GitRunner
      * @param list<string>          $arguments
      * @param array<string, string> $secretConfiguration
      */
-    private function failure(array $arguments, string $reason, array $secretConfiguration): GitFailed
+    private function failure(array $arguments, string $reason, #[\SensitiveParameter] array $secretConfiguration): GitFailed
     {
         $redact = static fn (string $text): string => str_replace(array_values($secretConfiguration), self::REDACTED, $text);
         $failure = new GitFailed($redact('git '.implode(' ', $arguments).' '.$reason), $redact("git {$arguments[0]} {$reason}"));

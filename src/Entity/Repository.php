@@ -51,6 +51,13 @@ class Repository implements TenantOwned
     #[ORM\Column(type: Types::BIGINT, nullable: true)]
     private ?int $githubRepositoryId;
 
+    /** Not a foreign key: the installation row can go while the repository stays. */
+    #[ORM\Column(type: Types::BIGINT, nullable: true)]
+    private ?int $githubInstallationId;
+
+    #[ORM\Column(nullable: true)]
+    private ?bool $githubPrivate;
+
     #[ORM\Column(nullable: true)]
     private ?string $defaultBranch = null;
 
@@ -76,29 +83,56 @@ class Repository implements TenantOwned
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
-    private function __construct(TenantId $tenantId, RepositoryName $name, ?string $localDirectory, ?int $githubRepositoryId, \DateTimeImmutable $createdAt)
+    private function __construct(TenantId $tenantId, RepositoryName $name, \DateTimeImmutable $createdAt)
     {
         $this->id = Ulid::fromString(RepositoryId::generate()->toString());
         $this->tenantId = Ulid::fromString($tenantId->toString());
         $this->source = $name->source();
         $this->name = $name->toString();
-        $this->localDirectory = $localDirectory;
-        $this->githubRepositoryId = $githubRepositoryId;
+        $this->localDirectory = null;
+        $this->githubRepositoryId = null;
+        $this->githubInstallationId = null;
+        $this->githubPrivate = null;
         $this->createdAt = $createdAt;
     }
 
     public static function local(TenantId $tenantId, RepositoryName $name, string $localDirectory, \DateTimeImmutable $createdAt): self
     {
-        return RepositorySource::Local === $name->source()
-            ? new self($tenantId, $name, $localDirectory, null, $createdAt)
-            : throw new \LogicException('A local repository needs a local name.');
+        if (RepositorySource::Local !== $name->source()) {
+            throw new \LogicException('A local repository needs a local name.');
+        }
+
+        $repository = new self($tenantId, $name, $createdAt);
+        $repository->localDirectory = $localDirectory;
+
+        return $repository;
     }
 
-    public static function gitHub(TenantId $tenantId, RepositoryName $name, int $githubRepositoryId, \DateTimeImmutable $createdAt): self
+    public static function gitHub(TenantId $tenantId, RepositoryName $name, int $githubRepositoryId, int $installationId, bool $private, \DateTimeImmutable $createdAt): self
     {
-        return RepositorySource::Github === $name->source()
-            ? new self($tenantId, $name, null, $githubRepositoryId, $createdAt)
-            : throw new \LogicException('A GitHub repository needs a GitHub name.');
+        if (RepositorySource::Github !== $name->source()) {
+            throw new \LogicException('A GitHub repository needs a GitHub name.');
+        }
+
+        $repository = new self($tenantId, $name, $createdAt);
+        $repository->githubRepositoryId = $githubRepositoryId;
+        $repository->recordGitHubListing($name, $installationId, $private);
+
+        return $repository;
+    }
+
+    /**
+     * Each sign-in updates the name, the installation, and the visibility from the candidate list.
+     */
+    public function recordGitHubListing(RepositoryName $name, int $installationId, bool $private): void
+    {
+        if (RepositorySource::Github !== $this->source || RepositorySource::Github !== $name->source()) {
+            throw new \LogicException('Only a GitHub repository takes a GitHub listing.');
+        }
+
+        $this->name = $name->toString();
+        $this->githubInstallationId = $installationId;
+        $this->githubPrivate = $private;
     }
 
     public function getId(): RepositoryId
@@ -136,6 +170,16 @@ class Repository implements TenantOwned
     public function getGithubRepositoryId(): ?int
     {
         return $this->githubRepositoryId;
+    }
+
+    public function getGithubInstallationId(): ?int
+    {
+        return $this->githubInstallationId;
+    }
+
+    public function isGithubPrivate(): ?bool
+    {
+        return $this->githubPrivate;
     }
 
     public function getDefaultBranch(): ?string

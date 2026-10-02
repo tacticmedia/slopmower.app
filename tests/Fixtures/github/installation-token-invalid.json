@@ -1,0 +1,11 @@
+{
+    "status": 422,
+    "headers": {
+        "content-type": "application/json; charset=utf-8"
+    },
+    "body": {
+        "message": "Validation Failed",
+        "documentation_url": "https://docs.github.com/rest/apps/apps#create-an-installation-access-token-for-an-app",
+        "status": "422"
+    }
+}

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application;
 
+use App\Application\Event\RepositoryChanged;
 use App\Application\Event\RepositoryFetched;
 use App\Domain\Error\CommitNotFound;
 use App\Domain\Error\InvalidInput;
@@ -21,15 +22,21 @@ use App\Git\GitReader;
 use App\Git\GitRunner;
 use App\Git\RepositoryLock;
 use App\Git\TenantDataPaths;
+use App\GitHub\GitHubRequestFailed;
+use App\GitHub\InstallationTokenProvider;
 use App\Message\CloneRepositoryJob;
+use App\Message\DeleteCloneJob;
 use App\Message\FetchRepositoryJob;
+use App\Repository\GitHubInstallationRepository;
 use App\Repository\RepositoryRepository;
+use App\Source\GitHubFetchCommand;
 use App\Source\LocalFetchCommand;
 use App\Source\LocalRepositoryDiscovery;
 use App\Source\SourceUnavailable;
 use Doctrine\DBAL\Connection;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Clock\ClockInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Lock\LockInterface;
@@ -38,7 +45,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
- * Clones and fetches the server clones, one clone or fetch per repository at a time (D24).
+ * Clones, fetches, and deletes the server clones, one operation per repository at a time (D24).
  * The sync state transitions are the conditional updates of {@see RepositoryRepository}.
  */
 final class FetchRepository
@@ -56,6 +63,10 @@ final class FetchRepository
         private readonly BareClone $bareClone,
         private readonly GitReader $reader,
         private readonly LocalRepositoryDiscovery $discovery,
+        private readonly GitHubInstallationRepository $installations,
+        private readonly InstallationTokenProvider $installationTokens,
+        #[Autowire(env: 'GITHUB_GIT_BASE_URL')]
+        private readonly string $gitHubGitBaseUrl,
         private readonly TenantDataPaths $paths,
         private readonly MessageBusInterface $bus,
         private readonly EventDispatcherInterface $dispatcher,
@@ -172,6 +183,38 @@ final class FetchRepository
         return $this->paths->clonePath($this->cloneReady($id)->getTenantId(), $id);
     }
 
+    /**
+     * D22: marks the repository removed and queues the deletion of its clone. Its reviews stay.
+     */
+    public function removeAccess(Repository $repository): void
+    {
+        $this->refuseOpenTransaction();
+        $id = $repository->getId();
+
+        if (!$this->repositories->removeAccess($id)) {
+            return;
+        }
+
+        $this->bus->dispatch(new DeleteCloneJob($repository->getTenantId(), $id));
+        $this->dispatcher->dispatch(new RepositoryChanged($repository->getTenantId(), $id));
+    }
+
+    /**
+     * Waits for a running clone or fetch, which cannot start again: the row is gone, or its access is removed.
+     */
+    #[AsMessageHandler]
+    public function handleDeleteClone(DeleteCloneJob $job): void
+    {
+        $lock = $this->repositoryLock->create($job->repositoryId);
+        $this->acquire($lock, null);
+
+        try {
+            new Filesystem()->remove($this->paths->clonePath($job->tenantId, $job->repositoryId));
+        } finally {
+            $lock->release();
+        }
+    }
+
     #[AsMessageHandler]
     public function handleClone(CloneRepositoryJob $job): void
     {
@@ -225,9 +268,13 @@ final class FetchRepository
         $filesystem = new Filesystem();
 
         try {
-            $sourcePath = $this->localSourcePath($repository);
-            $serverPaths[] = $sourcePath;
-            $command = LocalFetchCommand::forDirectory($sourcePath);
+            if (RepositorySource::Github === $repository->getSource()) {
+                $command = $this->gitHubFetchCommand($repository);
+            } else {
+                $sourcePath = $this->localSourcePath($repository);
+                $serverPaths[] = $sourcePath;
+                $command = LocalFetchCommand::forDirectory($sourcePath);
+            }
 
             if ($clone) {
                 // A failed earlier attempt may have left a partial clone.
@@ -235,8 +282,8 @@ final class FetchRepository
                 $this->bareClone->init($gitDir);
             }
 
-            $this->bareClone->fetch($gitDir, $command->url, timeoutSeconds: $timeoutSeconds, uploadPack: $command->uploadPack);
-        } catch (GitFailed|SourceUnavailable|IOExceptionInterface $failure) {
+            $this->bareClone->fetch($gitDir, $command->url, timeoutSeconds: $timeoutSeconds, secretConfiguration: $command->secretConfiguration, uploadPack: $command->uploadPack);
+        } catch (GitFailed|SourceUnavailable|GitHubRequestFailed|IOExceptionInterface $failure) {
             $this->logger->warning('The sync of repository {repositoryId} failed.', ['repositoryId' => $id->toString(), 'exception' => $failure]);
             // Recorded first, so a failing removal cannot leave the row in `cloning`.
             $this->repositories->recordFailure($id, self::lastError($failure, $serverPaths));
@@ -268,7 +315,7 @@ final class FetchRepository
      *
      * @param list<string> $serverPaths
      */
-    private static function lastError(GitFailed|SourceUnavailable|IOExceptionInterface $failure, array $serverPaths): string
+    private static function lastError(GitFailed|SourceUnavailable|GitHubRequestFailed|IOExceptionInterface $failure, array $serverPaths): string
     {
         $message = str_replace($serverPaths, GitRunner::REDACTED, $failure instanceof GitFailed ? $failure->summary : $failure->getMessage());
 
@@ -280,15 +327,30 @@ final class FetchRepository
      */
     private function localSourcePath(Repository $repository): string
     {
-        if (RepositorySource::Local !== $repository->getSource()) {
-            throw new \LogicException('Only local sources can be fetched.');
-        }
-
         $directory = (string) $repository->getLocalDirectory();
         $candidate = $this->discovery->find($directory)
             ?? throw new SourceUnavailable("The directory {$directory} is not a repository under the local repositories directory, or local repositories are off.");
 
         return $candidate->realPath;
+    }
+
+    /**
+     * The command carries a new installation token, which lives only as long as the command.
+     *
+     * @throws SourceUnavailable   While the installation is suspended
+     * @throws GitHubRequestFailed
+     */
+    private function gitHubFetchCommand(Repository $repository): GitHubFetchCommand
+    {
+        $installationId = $repository->getGithubInstallationId() ?? throw new \LogicException('A GitHub repository has an installation ID.');
+
+        if ($this->installations->isSuspended($installationId)) {
+            throw new SourceUnavailable(GitHubFetchCommand::SUSPENDED);
+        }
+
+        $token = $this->installationTokens->forRepository($installationId, (int) $repository->getGithubRepositoryId());
+
+        return GitHubFetchCommand::forRepository($this->gitHubGitBaseUrl, $repository->getName(), $token);
     }
 
     /**

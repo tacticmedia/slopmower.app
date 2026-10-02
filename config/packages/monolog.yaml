@@ -28,6 +28,10 @@ when@test:
                 type: stream
                 path: "%kernel.logs_dir%/%kernel.environment%.log"
                 level: debug
+            # Every record of the kernel, for tests that read the logs.
+            records:
+                type: test
+                level: debug
 
 when@e2e:
     monolog:

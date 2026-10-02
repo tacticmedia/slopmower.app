@@ -1,0 +1,35 @@
+{
+    "status": 200,
+    "headers": {
+        "content-type": "application/json; charset=utf-8"
+    },
+    "body": {
+        "total_count": 1,
+        "repository_selection": "all",
+        "repositories": [
+            {
+                "id": 1296269,
+                "node_id": "MDEwOlJlcG9zaXRvcnkxMjk2MjY5",
+                "name": "Hello-World",
+                "full_name": "octocat/Hello-World",
+                "owner": {
+                    "login": "octocat",
+                    "id": 1,
+                    "type": "User"
+                },
+                "private": false,
+                "html_url": "https://github.com/octocat/Hello-World",
+                "description": "This your first repo!",
+                "fork": false,
+                "default_branch": "master",
+                "permissions": {
+                    "admin": true,
+                    "maintain": true,
+                    "push": true,
+                    "triage": true,
+                    "pull": true
+                }
+            }
+        ]
+    }
+}

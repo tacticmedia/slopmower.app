@@ -1,10 +1,7 @@
-import { Banner, Button, Link } from '@primer/react';
+import { Banner } from '@primer/react';
 import { type Column, DataTable, Table } from '@primer/react/experimental';
-import { Link as RouterLink, useFetcher } from 'react-router';
-import type { ActionResult } from '../../api/actionResult';
 import type { RepositoryCandidate } from '../../api/types/repository-candidate';
-import { ActionErrorMessage } from '../../layout/ActionErrorMessage';
-import styles from './LocalCandidates.module.css';
+import { CandidateConnection } from './CandidateConnection';
 
 export type LocalCandidate = Extract<RepositoryCandidate, { source: 'local' }>;
 
@@ -14,30 +11,8 @@ const COLUMNS: Column<CandidateRow>[] = [
     { id: 'name', header: 'Directory', rowHeader: true, renderCell: ({ candidate }) => candidate.name },
     { id: 'branch', header: 'HEAD branch', renderCell: ({ candidate }) => candidate.local.headBranch ?? 'detached' },
     { id: 'bare', header: 'Bare', width: 'auto', renderCell: ({ candidate }) => (candidate.local.bare ? 'Yes' : 'No') },
-    { id: 'action', header: 'Connection', renderCell: ({ candidate }) => <Connection candidate={candidate} /> },
+    { id: 'action', header: 'Connection', renderCell: ({ candidate }) => <CandidateConnection candidate={candidate} /> },
 ];
-
-function Connection({ candidate }: { candidate: LocalCandidate }) {
-    const fetcher = useFetcher<ActionResult>();
-
-    if (null !== candidate.connectedRepositoryId) {
-        return (
-            <Link as={RouterLink} to={`/repositories/${candidate.connectedRepositoryId}`}>
-                Connected
-            </Link>
-        );
-    }
-
-    return (
-        <fetcher.Form method="post" className={styles.connect}>
-            <input type="hidden" name="directory" value={candidate.local.directory} />
-            <Button type="submit" size="small" aria-label={`Connect ${candidate.name}`} loading={'idle' !== fetcher.state}>
-                Connect
-            </Button>
-            <ActionErrorMessage result={fetcher.data} />
-        </fetcher.Form>
-    );
-}
 
 export function LocalCandidates({ enabled, candidates }: { enabled: boolean; candidates: LocalCandidate[] }) {
     return (

@@ -7,6 +7,8 @@ namespace App\Repository;
 use App\Doctrine\Type\CommitShaType;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\RepositoryId;
+use App\Domain\Repository\RepositoryAccess;
+use App\Domain\Repository\RepositoryName;
 use App\Domain\Repository\RepositorySource;
 use App\Domain\Repository\SyncState;
 use App\Entity\Repository;
@@ -47,6 +49,44 @@ final class RepositoryRepository extends ServiceEntityRepository
     public function findLocal(string $directory): ?Repository
     {
         return $this->findOneBy(['source' => RepositorySource::Local, 'name' => $directory]);
+    }
+
+    public function findGitHub(int $githubRepositoryId): ?Repository
+    {
+        return $this->findOneBy(['githubRepositoryId' => $githubRepositoryId]);
+    }
+
+    /**
+     * GitHub names compare case-insensitively, the unique name index does not.
+     */
+    public function findGitHubByName(RepositoryName $name): ?Repository
+    {
+        return $this->createQueryBuilder('repository')
+            ->where('repository.source = :source AND LOWER(repository.name) = LOWER(:name)')
+            ->setParameter('source', RepositorySource::Github)
+            ->setParameter('name', $name->toString())
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
+     * D22: `removed` and `unavailable`, and a queued fetch job finds nothing to do.
+     *
+     * @return bool False when the access was removed already
+     */
+    public function removeAccess(RepositoryId $id): bool
+    {
+        return 1 === $this->update($id)
+            ->set('repository.access', ':removed')
+            ->set('repository.syncState', ':unavailable')
+            ->set('repository.fetchRequested', 'false')
+            ->andWhere('repository.access = :active')
+            ->setParameter('removed', RepositoryAccess::Removed)
+            ->setParameter('unavailable', SyncState::Unavailable)
+            ->setParameter('active', RepositoryAccess::Active)
+            ->getQuery()
+            ->execute();
     }
 
     /**

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
+use App\Application\ConnectGitHubRepository;
 use App\Application\ConnectLocalRepository;
 use App\Application\FetchRepository;
 use App\Application\Query\RepositoryQuery;
 use App\Controller\Api\Input\ConnectRepositoryInput;
 use App\Controller\Api\Input\RepositoryListQuery;
-use App\Domain\Error\NotFound;
 use App\Domain\Repository\RepositorySource;
 use App\Entity\Repository;
 use App\Entity\User;
@@ -46,12 +46,11 @@ final class RepositoryController extends AbstractController
     public function connect(
         #[MapRequestPayload(acceptFormat: 'json')] ConnectRepositoryInput $input,
         ConnectLocalRepository $connectLocalRepository,
+        ConnectGitHubRepository $connectGitHubRepository,
     ): JsonResponse {
-        if (RepositorySource::Local !== $input->source || null === $input->directory) {
-            throw new NotFound('The GitHub repository is not a candidate.');
-        }
-
-        $connected = $connectLocalRepository->connect($input->directory);
+        $connected = RepositorySource::Github === $input->source
+            ? $connectGitHubRepository->connect($input->githubRepositoryId ?? throw new \LogicException('The input validation requires the ID.'))
+            : $connectLocalRepository->connect($input->directory ?? throw new \LogicException('The input validation requires the directory.'));
         $id = $connected->repository->getId();
         $view = $this->repositories->get($id);
 

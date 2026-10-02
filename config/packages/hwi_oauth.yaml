@@ -1,4 +1,7 @@
 hwi_oauth:
+    # /connect/github?_target_path=<relative path> sets the page after the sign-in. A non-empty
+    # target_path_domains_whitelist refuses relative paths.
+    target_path_parameter: _target_path
     # https://github.com/hwi/HWIOAuthBundle/blob/master/docs/2-configuring_resource_owners.md
     resource_owners:
         github:

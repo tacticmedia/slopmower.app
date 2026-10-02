@@ -111,7 +111,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M18 | [Repositories and reviews screens](M18-repositories-and-reviews-screens.md) | Done | 2026-10-02 | [Report](reports/M18.md) |
 | M19 | [Settings: API tokens](M19-settings-api-tokens.md) | Done | 2026-10-02 | [Report](reports/M19.md) |
 | M20 | [Code view](M20-code-view.md) | Done | 2026-10-02 | [Report](reports/M20.md) |
-| M21 | [Commenting UI](M21-commenting-ui.md) | Not started | | |
+| M21 | [Commenting UI](M21-commenting-ui.md) | In progress | 2026-10-02 | |
 | M22 | [Verify UI and vertical slice](M22-verify-ui-and-vertical-slice.md) | Not started | | Vertical slice |
 | M23 | [Public docs and downloadable skill](M23-public-docs-and-downloadable-skill.md) | Not started | | |
 | M24 | [Live updates via Mercure](M24-live-updates-via-mercure.md) | Not started | | |
@@ -123,7 +123,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M30 | [Verify view diffs and outdated UI](M30-verify-view-diffs-and-outdated-ui.md) | Not started | | |
 | M31 | [Data deletion and tenant purge](M31-data-deletion-and-tenant-purge.md) | Not started | | |
 | M32 | [GitHub sign-in](M32-github-sign-in.md) | Done | 2026-10-02 | [Report](reports/M32.md) |
-| M33 | [GitHub App repositories](M33-github-app-repositories.md) | In progress | 2026-10-02 | |
+| M33 | [GitHub App repositories](M33-github-app-repositories.md) | Done | 2026-10-02 | [Report](reports/M33.md) |
 | M34 | [GitHub webhooks](M34-github-webhooks.md) | Not started | | |
 | M35 | [Isolation audit and acceptance](M35-isolation-audit-and-acceptance.md) | Not started | | |
 

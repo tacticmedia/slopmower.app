@@ -45,7 +45,7 @@ final class BareClone
      *
      * @throws GitFailed
      */
-    public function fetch(string $gitDir, string $url, array $pendingShas = [], float $timeoutSeconds = GitRunner::TIMEOUT_SECONDS, array $secretConfiguration = [], ?string $uploadPack = null): void
+    public function fetch(string $gitDir, string $url, array $pendingShas = [], float $timeoutSeconds = GitRunner::TIMEOUT_SECONDS, #[\SensitiveParameter] array $secretConfiguration = [], ?string $uploadPack = null): void
     {
         $deadlineNanoseconds = hrtime(true) + (int) ($timeoutSeconds * 1e9);
         $hasTimedOut = static fn (): bool => hrtime(true) >= $deadlineNanoseconds;

@@ -12,8 +12,10 @@ use App\Domain\Review\ReviewState;
 use App\Entity\Repository;
 use App\Entity\Review;
 use App\Http\Cursor;
+use App\Repository\GitHubCandidateRepository;
 use App\Repository\RepositoryRepository;
 use App\Source\LocalRepositoryDiscovery;
+use App\Source\LocalRepositoryListing;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
@@ -28,6 +30,7 @@ final class RepositoryQuery
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly RepositoryRepository $repositories,
+        private readonly GitHubCandidateRepository $candidates,
         private readonly LocalRepositoryDiscovery $discovery,
     ) {
     }
@@ -88,26 +91,44 @@ final class RepositoryQuery
     }
 
     /**
-     * R2. Local candidates come from a new scan on every call. The filters apply before the 1,000-item limit.
+     * R2. GitHub candidates come from the list of the last sign-in, local candidates from a new scan on every call.
+     * The filters apply before the 1,000-item limit, which GitHub candidates fill first.
      */
-    public function candidates(?RepositorySource $source, ?string $q, bool $includeConnected): CandidateList
+    public function candidates(?RepositorySource $source, ?string $q, bool $includeConnected, ?string $githubConfigureUrl): CandidateList
     {
-        $localEnabled = $this->discovery->isEnabled();
+        $githubConnectedIds = [];
+        $localConnectedIds = [];
 
-        if (RepositorySource::Github === $source) {
-            return new CandidateList([], [], false, $localEnabled);
+        foreach ($this->repositories->findAll() as $repository) {
+            match ($repository->getSource()) {
+                RepositorySource::Github => $githubConnectedIds[(int) $repository->getGithubRepositoryId()] = $repository->getId(),
+                RepositorySource::Local => $localConnectedIds[(string) $repository->getLocalDirectory()] = $repository->getId(),
+            };
         }
 
-        $connectedIds = [];
+        $limit = LocalRepositoryDiscovery::MAX_CANDIDATES;
+        $githubCandidates = RepositorySource::Local === $source
+            ? []
+            : $this->candidates->search($q, $includeConnected ? [] : array_keys($githubConnectedIds), $limit + 1);
+        $githubTruncated = count($githubCandidates) > $limit;
+        $githubCandidates = array_slice($githubCandidates, 0, $limit);
+        $listing = RepositorySource::Github === $source
+            ? new LocalRepositoryListing([], false)
+            : $this->discovery->list(
+                static fn (string $directory): bool => (null === $q || false !== mb_stripos($directory, $q)) && ($includeConnected || !isset($localConnectedIds[$directory])),
+                $limit - count($githubCandidates),
+            );
 
-        foreach ($this->repositories->findBy(['source' => RepositorySource::Local]) as $repository) {
-            $connectedIds[(string) $repository->getLocalDirectory()] = $repository->getId();
-        }
-
-        $listing = $this->discovery->list(static fn (string $directory): bool => (null === $q || false !== mb_stripos($directory, $q))
-            && ($includeConnected || !isset($connectedIds[$directory])));
-
-        return new CandidateList($listing->candidates, $connectedIds, $listing->truncated, $localEnabled);
+        return new CandidateList(
+            githubCandidates: $githubCandidates,
+            githubConnectedRepositoryIds: $githubConnectedIds,
+            localCandidates: $listing->candidates,
+            localConnectedRepositoryIds: $localConnectedIds,
+            truncated: $githubTruncated || $listing->truncated,
+            localEnabled: $this->discovery->isEnabled(),
+            githubListedAt: $this->candidates->lastListedAt(),
+            githubConfigureUrl: $githubConfigureUrl,
+        );
     }
 
     private function select(): QueryBuilder

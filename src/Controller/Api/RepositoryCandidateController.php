@@ -7,6 +7,7 @@ namespace App\Controller\Api;
 use App\Application\Query\RepositoryQuery;
 use App\Controller\Api\Input\CandidateListQuery;
 use App\Entity\User;
+use App\GitHub\GitHubApp;
 use App\Security\CurrentActor;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -24,9 +25,14 @@ final class RepositoryCandidateController extends AbstractController
     #[IsGranted(User::ROLE, message: CurrentActor::SESSION_ONLY)]
     public function __invoke(
         RepositoryQuery $repositories,
+        GitHubApp $gitHubApp,
         #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)]
         CandidateListQuery $query = new CandidateListQuery(),
     ): JsonResponse {
-        return $this->json($repositories->candidates($query->source, $query->q, $query->includeConnected));
+        // Not #[CurrentUser]: argument resolution runs before #[IsGranted] answers a token caller.
+        $user = $this->getUser();
+        \assert($user instanceof User);
+
+        return $this->json($repositories->candidates($query->source, $query->q, $query->includeConnected, $gitHubApp->installUrlFor($user)));
     }
 }
