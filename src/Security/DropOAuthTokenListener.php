@@ -14,7 +14,7 @@ use Symfony\Component\Security\Http\Event\AuthenticationTokenCreatedEvent;
  * The session stores the authenticated token, and an OAuthToken carries the GitHub user token. The server stores no user token.
  * A LoginSuccessEvent listener still finds it in the OAuthTokenBadge of the passport.
  */
-#[AsEventListener(dispatcher: 'security.event_dispatcher.'.self::FIREWALL)]
+#[AsEventListener(event: AuthenticationTokenCreatedEvent::class, dispatcher: 'security.event_dispatcher.'.self::FIREWALL)]
 final class DropOAuthTokenListener
 {
     private const string FIREWALL = 'main';

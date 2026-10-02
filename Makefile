@@ -10,7 +10,7 @@ PACKAGE_JSON   = $(wildcard package.json)
 .PHONY: help up down sh worker-restart console composer migration db-reset db-test test e2e stan cs cs-fix lint front check
 
 help: ## List the targets
-	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "%-16s %s\n", $$1, $$2}'
+	@grep -hE '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "%-16s %s\n", $$1, $$2}'
 
 up: ## Build the images and start php, worker, and database
 	$(DOCKER_COMPOSE) up -d --wait --build

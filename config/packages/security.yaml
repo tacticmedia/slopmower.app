@@ -23,7 +23,7 @@ security:
             context: web
             provider: tenant_users
             entry_point: App\Security\LoginRedirectEntryPoint
-            # Guarded in code: environment-specific firewall blocks do not merge.
+            # D25: in every environment, so it warns outside dev; supports() refuses there.
             custom_authenticators:
                 - App\Security\LocalSignInAuthenticator
             # D23. The check path route answers 404 without a GitHub App.
