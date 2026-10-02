@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Index;
 
-use App\Application\Query\FileContent;
 use App\Domain\Git\BlobSha;
 use App\Domain\Git\RepoPath;
 use App\Entity\IndexedBlob;
@@ -12,7 +11,6 @@ use App\Entity\Repository;
 use App\Entity\Symbol;
 use App\Git\GitFailed;
 use App\Git\GitReader;
-use App\Git\ObjectType;
 use App\Git\TreeEntry;
 use App\Repository\IndexedBlobRepository;
 use App\Repository\SymbolRepository;
@@ -24,8 +22,6 @@ use Symfony\Component\Uid\Ulid;
  */
 final class BlobSymbols
 {
-    private const array REGULAR_FILE_MODES = ['100644', '100755'];
-
     /**
      * @param iterable<SymbolExtractor> $extractors
      */
@@ -56,7 +52,7 @@ final class BlobSymbols
     {
         $extractor = $this->extractorFor(RepoPath::fromString($entry->path));
         $criteria = ['repositoryId' => Ulid::fromString($repository->getId()->toString()), 'blobSha' => BlobSha::fromString($entry->objectId)];
-        $indexed = null !== $extractor && self::isParseable($entry) ? $this->indexedBlobs->findOneBy($criteria) : null;
+        $indexed = null !== $extractor && $entry->isRenderableFile() ? $this->indexedBlobs->findOneBy($criteria) : null;
 
         if (null === $extractor || !$indexed instanceof IndexedBlob) {
             return $this->parse($repository, $gitDir, $entry);
@@ -85,7 +81,7 @@ final class BlobSymbols
 
         $noSymbols = new SymbolTable($extractor->language(), false, []);
         $blobSha = BlobSha::fromString($entry->objectId);
-        $blob = self::isParseable($entry) ? $this->reader->readBlob($gitDir, $blobSha) : null;
+        $blob = $entry->isRenderableFile() ? $this->reader->readBlob($gitDir, $blobSha) : null;
 
         if (null === $blob || $blob->isBinary()) {
             return $noSymbols;
@@ -106,12 +102,5 @@ final class BlobSymbols
         }
 
         return null;
-    }
-
-    private static function isParseable(TreeEntry $entry): bool
-    {
-        return ObjectType::Blob === $entry->type
-            && in_array($entry->mode, self::REGULAR_FILE_MODES, true)
-            && null !== $entry->sizeBytes && $entry->sizeBytes <= FileContent::MAX_RENDERABLE_BYTES;
     }
 }

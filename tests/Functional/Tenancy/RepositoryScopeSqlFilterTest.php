@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Tenancy;
 
+use App\Anchoring\LocationCacheSql;
 use App\Domain\Anchor\LineRange;
 use App\Domain\Anchor\SymbolKind;
 use App\Domain\Event\RecordedEvent;
@@ -13,6 +14,7 @@ use App\Domain\Git\RepoPath;
 use App\Domain\Identity\CommentId;
 use App\Domain\Identity\EventId;
 use App\Domain\Identity\RepositoryId;
+use App\Domain\Location\Location;
 use App\Domain\Repository\RepositoryName;
 use App\Entity\ChangeRequest;
 use App\Entity\Comment;
@@ -72,11 +74,12 @@ final class RepositoryScopeSqlFilterTest extends KernelTestCase
         self::entityManager()->flush();
         self::insertEvent(new RecordedEvent(EventId::generate(), $tenantId, 1, $scenario->review()->id, $requestId, RequestScenario::claimingAgent(), $time, new RequestClaimedEvent()));
         self::insertIndexRows($review);
+        self::getContainer()->get(LocationCacheSql::class)->insert($tenantId, $review->getRepository()->getId(), EventId::generate(), Location::exact($review->getCommitSha(), RepoPath::fromString('src/Totals.php'), null));
         $unscoped = ['ApiToken' => 0, 'User' => 1];
         $noReviewData = ['ChangeRequest' => 0, 'Comment' => 0, 'CommitLink' => 0, 'Draft' => 0];
-        $noIndex = ['IndexedBlob' => 0, 'IndexedFile' => 0];
+        $noIndex = ['IndexedBlob' => 0, 'IndexedFile' => 0, 'LocationCacheEntry' => 0];
 
-        self::assertSame(['ChangeRequest' => 1, 'Comment' => 1, 'CommitLink' => 1, 'Draft' => 1, 'GitHubCandidate' => 0, 'GitHubInstallation' => 0, 'IndexedBlob' => 1, 'IndexedFile' => 1, 'Repository' => 1, 'Review' => 1, 'ReviewEvent' => 1, 'Symbol' => 1, 'ViewedFile' => 1] + $unscoped, self::rowCounts($review->getRepository()->getId()));
+        self::assertSame(['ChangeRequest' => 1, 'Comment' => 1, 'CommitLink' => 1, 'Draft' => 1, 'GitHubCandidate' => 0, 'GitHubInstallation' => 0, 'IndexedBlob' => 1, 'IndexedFile' => 1, 'LocationCacheEntry' => 1, 'Repository' => 1, 'Review' => 1, 'ReviewEvent' => 1, 'Symbol' => 1, 'ViewedFile' => 1] + $unscoped, self::rowCounts($review->getRepository()->getId()));
         self::assertSame($noReviewData + ['GitHubCandidate' => 0, 'GitHubInstallation' => 0] + $noIndex + ['Repository' => 1, 'Review' => 0, 'ReviewEvent' => 0, 'Symbol' => 0, 'ViewedFile' => 0] + $unscoped, self::rowCounts($other->getId()));
         self::assertSame($noReviewData + ['GitHubCandidate' => 1, 'GitHubInstallation' => 1] + $noIndex + ['Repository' => 1, 'Review' => 0, 'ReviewEvent' => 0, 'Symbol' => 0, 'ViewedFile' => 0] + $unscoped, self::rowCounts($gitHub->getId()), 'Only its candidate and its installation.');
     }

@@ -41,7 +41,7 @@ final class FileQuery
     }
 
     /**
-     * Reads only the bytes of the binary check of a blob above {@see FileContent::MAX_RENDERABLE_BYTES}.
+     * Reads only the bytes of the binary check of a blob above {@see TreeEntry::MAX_RENDERABLE_BYTES}.
      *
      * @param TreeEntry $entry From {@see entry()}
      *
@@ -51,7 +51,7 @@ final class FileQuery
     {
         $blobSha = BlobSha::fromString($entry->objectId);
         $sizeBytes = $entry->sizeBytes ?? throw new \LogicException("The blob {$blobSha} has no size.");
-        $blob = $sizeBytes > FileContent::MAX_RENDERABLE_BYTES ? null : $this->reader->readBlob($gitDir, $blobSha);
+        $blob = $sizeBytes > TreeEntry::MAX_RENDERABLE_BYTES ? null : $this->reader->readBlob($gitDir, $blobSha);
 
         return new FileContent(
             $review->getId(),

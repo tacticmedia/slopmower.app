@@ -38,12 +38,14 @@ final class GitReader implements ResetInterface
     }
 
     /**
+     * @param string $field Of the InvalidInput
+     *
      * @throws CommitNotFound
      * @throws InvalidInput   For a prefix that matches more than one commit
      */
-    public function resolvePrefix(string $gitDir, CommitShaPrefix $prefix): CommitSha
+    public function resolvePrefix(string $gitDir, CommitShaPrefix $prefix, string $field = 'commit'): CommitSha
     {
-        $commit = $this->resolve($gitDir, $prefix->toString(), 'commit');
+        $commit = $this->resolve($gitDir, $prefix->toString(), $field);
 
         // A ref with the same name as the prefix wins in rev-parse.
         if (!str_starts_with($commit->toString(), $prefix->toString())) {
@@ -165,6 +167,71 @@ final class GitReader implements ResetInterface
     public function readBlob(string $gitDir, BlobSha $blob): ?Blob
     {
         return $this->readFromBatch($gitDir, $blob->toString());
+    }
+
+    /**
+     * `diff --name-status -M`, architecture section 5.4 `mapPath`.
+     *
+     * @return string|null The raw path of $path at $to: the new path of a rename, else $path. Null when it is deleted.
+     *
+     * @throws GitFailed
+     */
+    public function pathAfter(string $gitDir, CommitSha $from, CommitSha $to, RepoPath $path): ?string
+    {
+        $records = explode("\0", rtrim($this->git->run($gitDir, ['diff', '--name-status', '-M', '-z', '--no-color', '--end-of-options', $from->toString(), $to->toString(), '--']), "\0"));
+        $index = 0;
+
+        // A record is the status and one path, or for a rename the status, the old path, and the new path.
+        while (isset($records[$index + 1])) {
+            $status = $records[$index][0] ?? '';
+
+            if ($records[$index + 1] === $path->toString()) {
+                return match ($status) {
+                    'D' => null,
+                    'R' => $records[$index + 2] ?? throw new GitFailed('git diff --name-status returned a rename without a new path.'),
+                    default => $path->toString(),
+                };
+            }
+
+            $index += 'R' === $status ? 3 : 2;
+        }
+
+        return $path->toString();
+    }
+
+    /**
+     * The `--unified=0` diff of two blobs, one file section that {@see \App\Domain\Anchoring\UnifiedZeroDiffParser}
+     * reads. Pathspecs would also match the files of a directory that took the name of the file.
+     *
+     * @throws GitFailed
+     */
+    public function unifiedZeroDiff(string $gitDir, BlobSha $from, BlobSha $to): string
+    {
+        return $this->git->run($gitDir, ['diff', '--unified=0', '--no-color', '--no-ext-diff', '--no-textconv', '--text', '--end-of-options', $from->toString(), $to->toString()]);
+    }
+
+    /**
+     * `git grep -F` without binary files.
+     *
+     * @return list<string> The raw paths of the files at the commit that contain the text, in path order
+     *
+     * @throws GitFailed
+     */
+    public function filesContaining(string $gitDir, CommitSha $commit, string $fixedText): array
+    {
+        try {
+            $output = $this->git->run($gitDir, ['grep', '--files-with-matches', '-z', '-I', '-F', '--no-color', '-e', $fixedText, '--end-of-options', $commit->toString()]);
+        } catch (GitFailed $failure) {
+            // git grep exits with 1 when no file matches.
+            return 1 === $failure->exitCode ? [] : throw $failure;
+        }
+
+        $prefix = "{$commit}:";
+
+        return array_values(array_map(
+            static fn (string $name): string => str_starts_with($name, $prefix) ? substr($name, strlen($prefix)) : throw new GitFailed('git grep returned a name without the commit.'),
+            array_filter(explode("\0", $output), static fn (string $name): bool => '' !== $name),
+        ));
     }
 
     public function reset(): void

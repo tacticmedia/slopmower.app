@@ -9,6 +9,7 @@ use App\Application\Query\RequestQuery;
 use App\Application\RequestCommands;
 use App\Controller\Api\Input\OpenRequestInput;
 use App\Controller\Api\Input\RequestListQuery;
+use App\Controller\Api\Input\RequestLocationQuery;
 use App\Domain\Request\Command\Open;
 use App\Entity\ChangeRequest;
 use App\Entity\Review;
@@ -63,8 +64,11 @@ final class RequestController extends AbstractController
     }
 
     #[Route('/api/v1/requests/{requestId}', name: 'get', methods: ['GET'])]
-    public function get(#[MapEntity(id: 'requestId')] ChangeRequest $request): JsonResponse
-    {
-        return $this->json($this->requests->get($request->getId(), $this->currentActor->get()));
+    public function get(
+        #[MapEntity(id: 'requestId')] ChangeRequest $request,
+        #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)]
+        RequestLocationQuery $query = new RequestLocationQuery(),
+    ): JsonResponse {
+        return $this->json($this->requests->get($request->getId(), $this->currentActor->get(), $query->at(), $query->context));
     }
 }

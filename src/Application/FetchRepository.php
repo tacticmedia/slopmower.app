@@ -28,9 +28,11 @@ use App\GitHub\InstallationTokenProvider;
 use App\Message\CloneRepositoryJob;
 use App\Message\DeleteCloneJob;
 use App\Message\FetchRepositoryJob;
+use App\Message\RecomputeLocations;
 use App\Repository\CommitLinkRepository;
 use App\Repository\GitHubInstallationRepository;
 use App\Repository\RepositoryRepository;
+use App\Repository\ReviewRepository;
 use App\Source\GitHubFetchCommand;
 use App\Source\LocalFetchCommand;
 use App\Source\LocalRepositoryDiscovery;
@@ -63,6 +65,7 @@ final class FetchRepository
     public function __construct(
         private readonly RepositoryRepository $repositories,
         private readonly CommitLinkRepository $links,
+        private readonly ReviewRepository $reviews,
         private readonly RepositoryLock $repositoryLock,
         private readonly BareClone $bareClone,
         private readonly GitReader $reader,
@@ -202,7 +205,8 @@ final class FetchRepository
     }
 
     /**
-     * D22: marks the repository removed and queues the deletion of its clone. Its reviews stay.
+     * D22: marks the repository removed and queues the deletion of its clone. Its reviews stay, and the recompute
+     * sets the `outdated` flags of their requests to null.
      */
     public function removeAccess(Repository $repository): void
     {
@@ -214,6 +218,11 @@ final class FetchRepository
         }
 
         $this->bus->dispatch(new DeleteCloneJob($repository->getTenantId(), $id));
+
+        foreach ($this->reviews->findOfRepository($id) as $review) {
+            $this->bus->dispatch(new RecomputeLocations($review->getId()));
+        }
+
         $this->dispatcher->dispatch(new RepositoryChanged($repository->getTenantId(), $id));
     }
 

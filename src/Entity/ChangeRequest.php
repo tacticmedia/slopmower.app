@@ -14,6 +14,7 @@ use App\Domain\Identity\TenantId;
 use App\Domain\Request\Awaiting;
 use App\Domain\Request\RequestStatus;
 use App\Domain\Request\Resolution;
+use App\MessageHandler\RecomputeLocationsHandler;
 use App\Projection\RequestStateMapper;
 use App\Repository\ChangeRequestRepository;
 use App\Tenancy\TenantOwned;
@@ -86,6 +87,10 @@ class ChangeRequest implements TenantOwned
 
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
+
+    /** Not event data, so the projection rebuild keeps it. {@see RecomputeLocationsHandler} sets it. */
+    #[ORM\Column(nullable: true)]
+    private ?bool $outdated = null;
 
     /**
      * Sets the fields that request.opened fixes. {@see self::project()} sets the others.
@@ -232,5 +237,19 @@ class ChangeRequest implements TenantOwned
     public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
+    }
+
+    /**
+     * @return bool|null True when the location at the default-branch head is changed or orphaned. Null until computed,
+     *                   and while no clone or no default-branch head exists.
+     */
+    public function getOutdated(): ?bool
+    {
+        return $this->outdated;
+    }
+
+    public function recordOutdated(?bool $outdated): void
+    {
+        $this->outdated = $outdated;
     }
 }

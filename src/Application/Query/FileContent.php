@@ -9,14 +9,13 @@ use App\Domain\Git\CommitSha;
 use App\Domain\Git\RepoPath;
 use App\Domain\Identity\ReviewId;
 use App\Git\Blob;
+use App\Git\TreeEntry;
 
 /**
  * The rules of V7 in docs/specs/rest-api.md section 5. The normalizer adds `language` and `rawUrl`.
  */
 final readonly class FileContent
 {
-    public const int MAX_RENDERABLE_BYTES = 1_048_576;
-
     /**
      * @param Blob|null $blob Null when the blob is too large to hold
      */
@@ -35,7 +34,7 @@ final readonly class FileContent
 
     public function isTooLarge(): bool
     {
-        return $this->sizeBytes > self::MAX_RENDERABLE_BYTES;
+        return $this->sizeBytes > TreeEntry::MAX_RENDERABLE_BYTES;
     }
 
     public function isRenderable(): bool

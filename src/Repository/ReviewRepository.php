@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\ReviewId;
+use App\Domain\Review\ReviewState;
 use App\Entity\Review;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Query;
@@ -33,5 +35,23 @@ final class ReviewRepository extends ServiceEntityRepository
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
             ->getOneOrNullResult();
+    }
+
+    /**
+     * @param ReviewState|null $state Null for every state
+     *
+     * @return list<Review>
+     */
+    public function findOfRepository(RepositoryId $repositoryId, ?ReviewState $state = null): array
+    {
+        $builder = $this->createQueryBuilder('review')
+            ->where('review.repository = :repository')
+            ->setParameter('repository', Ulid::fromString($repositoryId->toString()), UlidType::NAME);
+
+        if (null !== $state) {
+            $builder->andWhere('review.state = :state')->setParameter('state', $state->value);
+        }
+
+        return $builder->getQuery()->getResult();
     }
 }

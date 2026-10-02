@@ -119,7 +119,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M26 | [Symbol index](M26-symbol-index.md) | Done | 2026-10-03 | [Report](reports/M26.md) |
 | M27 | [Symbol anchors and keyboard access](M27-symbol-anchors-and-keyboard-access.md) | Done | 2026-10-03 | [Report](reports/M27.md) |
 | M28 | [Re-anchoring core](M28-re-anchoring-core.md) | Done | 2026-10-02 | [Report](reports/M28.md) |
-| M29 | [Re-anchoring with git, locations, outdated](M29-re-anchoring-with-git-locations-outdated.md) | In progress | 2026-10-03 | |
+| M29 | [Re-anchoring with git, locations, outdated](M29-re-anchoring-with-git-locations-outdated.md) | Done | 2026-10-03 | [Report](reports/M29.md) |
 | M30 | [Verify view diffs and outdated UI](M30-verify-view-diffs-and-outdated-ui.md) | Not started | | |
 | M31 | [Data deletion and tenant purge](M31-data-deletion-and-tenant-purge.md) | Not started | | |
 | M32 | [GitHub sign-in](M32-github-sign-in.md) | Done | 2026-10-02 | [Report](reports/M32.md) |

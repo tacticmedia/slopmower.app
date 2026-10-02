@@ -107,9 +107,15 @@ final class ReviewQuery
         $byStatus = array_fill_keys(array_column(RequestStatus::cases(), 'value'), 0);
         $byAwaiting = array_fill_keys(array_column(Awaiting::cases(), 'value'), 0);
         $counts = [];
-        /** @var list<array{reviewId: string, status: RequestStatus, awaiting: Awaiting, requests: int|string}> $rows */
+        /** @var list<array{reviewId: string, status: RequestStatus, awaiting: Awaiting, requests: int|string, outdated: int|string}> $rows */
         $rows = [] === $reviews ? [] : $this->entityManager->createQueryBuilder()
-            ->select('IDENTITY(request.review) AS reviewId', 'request.status AS status', 'request.awaiting AS awaiting', 'COUNT(request.id) AS requests')
+            ->select(
+                'IDENTITY(request.review) AS reviewId',
+                'request.status AS status',
+                'request.awaiting AS awaiting',
+                'COUNT(request.id) AS requests',
+                'SUM(CASE WHEN request.outdated = TRUE THEN 1 ELSE 0 END) AS outdated',
+            )
             ->from(ChangeRequest::class, 'request')
             ->where('request.review IN (:reviews)')
             ->groupBy('request.review', 'request.status', 'request.awaiting')
@@ -121,14 +127,14 @@ final class ReviewQuery
             $reviewId = Ulid::fromString($row['reviewId'])->toBase32();
             $counts[$reviewId]['status'][$row['status']->value] = ($counts[$reviewId]['status'][$row['status']->value] ?? 0) + (int) $row['requests'];
             $counts[$reviewId]['awaiting'][$row['awaiting']->value] = ($counts[$reviewId]['awaiting'][$row['awaiting']->value] ?? 0) + (int) $row['requests'];
+            $counts[$reviewId]['outdated'] = ($counts[$reviewId]['outdated'] ?? 0) + (int) $row['outdated'];
         }
 
         return array_map(static fn (Review $review): ReviewView => new ReviewView(
             $review,
             array_replace($byStatus, $counts[$review->getId()->toString()]['status'] ?? []),
             array_replace($byAwaiting, $counts[$review->getId()->toString()]['awaiting'] ?? []),
-            // No request has a location yet, so none is outdated.
-            0,
+            $counts[$review->getId()->toString()]['outdated'] ?? 0,
         ), $reviews);
     }
 

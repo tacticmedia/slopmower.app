@@ -45,7 +45,7 @@ final class GitRunner
         }
 
         if (!$process->isSuccessful()) {
-            throw $this->failure($arguments, "exited with {$process->getExitCode()}: ".trim($process->getErrorOutput()), $secretConfiguration);
+            throw $this->failure($arguments, "exited with {$process->getExitCode()}: ".trim($process->getErrorOutput()), $secretConfiguration, $process->getExitCode());
         }
 
         return $process->getOutput();
@@ -84,10 +84,10 @@ final class GitRunner
      * @param list<string>          $arguments
      * @param array<string, string> $secretConfiguration
      */
-    private function failure(array $arguments, string $reason, #[\SensitiveParameter] array $secretConfiguration): GitFailed
+    private function failure(array $arguments, string $reason, #[\SensitiveParameter] array $secretConfiguration, ?int $exitCode = null): GitFailed
     {
         $redact = static fn (string $text): string => str_replace(array_values($secretConfiguration), self::REDACTED, $text);
-        $failure = new GitFailed($redact('git '.implode(' ', $arguments).' '.$reason), $redact("git {$arguments[0]} {$reason}"));
+        $failure = new GitFailed($redact('git '.implode(' ', $arguments).' '.$reason), $redact("git {$arguments[0]} {$reason}"), $exitCode);
         $this->logger->debug($failure->getMessage());
 
         return $failure;

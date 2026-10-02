@@ -13,7 +13,7 @@ use Symfony\Component\Serializer\Normalizer\NormalizerAwareTrait;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
 /**
- * request-summary.schema.json. `outdated` is null.
+ * request-summary.schema.json.
  */
 final class RequestSummaryNormalizer implements NormalizerInterface, NormalizerAwareInterface
 {
@@ -49,7 +49,7 @@ final class RequestSummaryNormalizer implements NormalizerInterface, NormalizerA
             'commentCount' => $data->commentCount,
             'commitCount' => count($state->links),
             'pendingCommitCount' => count(array_filter($state->links, static fn (LinkedCommit $link): bool => CommitLinkState::Pending === $link->state)),
-            'outdated' => null,
+            'outdated' => $data->request->getOutdated(),
             'createdAt' => $state->createdAt,
             'updatedAt' => $state->updatedAt,
             'lastEventSeq' => $state->lastEventSeq,

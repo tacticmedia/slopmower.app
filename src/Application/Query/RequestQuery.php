@@ -4,16 +4,23 @@ declare(strict_types=1);
 
 namespace App\Application\Query;
 
+use App\Anchoring\Locator;
+use App\Application\CommitAvailability;
+use App\Application\FetchRepository;
 use App\Domain\Actor\Actor;
+use App\Domain\Error\CommitNotFound;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Error\NotFound;
+use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Event\BatchSubmittedEvent;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Event\RequestCommentedEvent;
 use App\Domain\Event\RequestOpenedEvent;
 use App\Domain\Git\CommitSha;
+use App\Domain\Git\CommitShaPrefix;
 use App\Domain\Identity\Identifier;
 use App\Domain\Identity\RequestId;
+use App\Domain\Location\LocationTarget;
 use App\Domain\Request\AllowedActions;
 use App\Domain\Request\Awaiting;
 use App\Domain\Request\CommitLinkState;
@@ -51,6 +58,9 @@ final class RequestQuery
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly ThreadQuery $threads,
+        private readonly Locator $locator,
+        private readonly CommitAvailability $commits,
+        private readonly FetchRepository $fetchRepository,
     ) {
     }
 
@@ -80,19 +90,41 @@ final class RequestQuery
     }
 
     /**
+     * @param CommitShaPrefix|null $at           Locates the anchor at this commit instead of the default-branch head
+     * @param int|null             $contextLines Adds the excerpt with this many lines on each side
+     *
      * @throws NotFound
+     * @throws InvalidInput          `at` matches more than one commit
+     * @throws CommitNotFound        `at` is missing after one fetch
+     * @throws RepositoryUnavailable `at` needs the clone or a fetch, and neither is available
      */
-    public function get(RequestId $id, Actor $caller): RequestView
+    public function get(RequestId $id, Actor $caller, ?CommitShaPrefix $at = null, ?int $contextLines = null): RequestView
     {
         $request = $this->fresh($id);
+        $target = $this->target($request, $at);
+
+        // The fetch for `at` can record commit.found.
+        if (null !== $at) {
+            $request = $this->fresh($id);
+        }
+
         $links = $this->linksByRequest([$request])[$id->toString()] ?? [];
         $summary = $this->summary($request, $links, $this->commentCounts([$request])[$id->toString()] ?? 0);
+        $thread = $this->threads->entries($request->getReview()->getId(), $id);
+        // request.opened, whose ID is the cache key of the location.
+        $opened = $thread[0]->event ?? null;
+        $repository = $request->getReview()->getRepository();
+        $location = null !== $target && $opened?->event instanceof RequestOpenedEvent
+            ? new LocationView($target[0], $this->locator->locate($repository, $opened->id, $request->getAnchor(), $target[1]))
+            : null;
 
         return new RequestView(
             $summary,
-            $this->threads->entries($request->getReview()->getId(), $id),
+            $thread,
             $this->commitViews($request, $links),
             AllowedActions::for($summary->state, $request->getReview()->toSnapshot(), $caller),
+            $location,
+            null === $location || null === $contextLines ? null : $this->locator->excerpt($repository, $location->location, $contextLines),
         );
     }
 
@@ -182,6 +214,30 @@ final class RequestQuery
     }
 
     /**
+     * @return array{LocationTarget, CommitSha}|null Null without `at` when the clone is gone or has no default-branch head
+     *
+     * @throws InvalidInput
+     * @throws CommitNotFound
+     * @throws RepositoryUnavailable
+     */
+    private function target(ChangeRequest $request, ?CommitShaPrefix $at): ?array
+    {
+        $repositoryId = $request->getReview()->getRepository()->getId();
+
+        if (null !== $at) {
+            return [LocationTarget::Requested, $this->commits->ensureAvailable($repositoryId, $at, 'at') ?? throw new CommitNotFound($at->toString())];
+        }
+
+        try {
+            $head = $this->fetchRepository->cloneReady($repositoryId)->getDefaultBranchHead();
+        } catch (RepositoryUnavailable) {
+            return null;
+        }
+
+        return null === $head ? null : [LocationTarget::DefaultBranch, $head];
+    }
+
+    /**
      * @param list<CommitLink> $links
      */
     private function summary(ChangeRequest $request, array $links, int $commentCount): RequestSummaryView
@@ -225,9 +281,9 @@ final class RequestQuery
             $builder->andWhere(self::ANCHOR_PATH." LIKE :pathPattern ESCAPE '".self::LIKE_ESCAPE."'")->setParameter('pathPattern', $pattern);
         }
 
-        // Every request has `outdated` null until its location is computed, and null never matches.
+        // Null never matches.
         if (null !== $filter->outdated) {
-            $builder->andWhere('1 = 0');
+            $builder->andWhere('request.outdated = :outdated')->setParameter('outdated', $filter->outdated, Types::BOOLEAN);
         }
     }
 

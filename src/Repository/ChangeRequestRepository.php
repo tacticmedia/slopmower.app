@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Domain\Identity\RequestId;
+use App\Domain\Identity\ReviewId;
 use App\Entity\ChangeRequest;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Query;
@@ -33,5 +34,18 @@ final class ChangeRequestRepository extends ServiceEntityRepository
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
             ->getOneOrNullResult();
+    }
+
+    /**
+     * @return list<ChangeRequest> Overwrites managed instances with the stored rows
+     */
+    public function findFreshOfReview(ReviewId $reviewId): array
+    {
+        return $this->createQueryBuilder('request')
+            ->where('request.review = :review')
+            ->setParameter('review', Ulid::fromString($reviewId->toString()), UlidType::NAME)
+            ->getQuery()
+            ->setHint(Query::HINT_REFRESH, true)
+            ->getResult();
     }
 }

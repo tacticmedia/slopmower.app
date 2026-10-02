@@ -19,12 +19,7 @@ final class SnapshotCapture
 
     public static function capture(string $content, LineRange $range): ContentSnapshot
     {
-        $fileLines = explode("\n", $content);
-
-        if ('' === $content || str_ends_with($content, "\n")) {
-            array_pop($fileLines);
-        }
-
+        $fileLines = self::lines($content);
         $fileLineCount = count($fileLines);
 
         if ($range->endLine > $fileLineCount) {
@@ -45,6 +40,20 @@ final class SnapshotCapture
             self::withoutTrailingWhitespace(array_slice($fileLines, $range->endLine, ContentSnapshot::CONTEXT_LINES)),
             self::normalizedHash($region),
         );
+    }
+
+    /**
+     * @return list<string> Without the empty element after a final LF, so the count is the line count of git
+     */
+    public static function lines(string $content): array
+    {
+        $lines = explode("\n", $content);
+
+        if ('' === $content || str_ends_with($content, "\n")) {
+            array_pop($lines);
+        }
+
+        return $lines;
     }
 
     public static function comparisonForm(string $line): string

@@ -103,10 +103,11 @@ final class OpenRequestTest extends WebTestCase
         $opened = self::openRequest($this->client, $this->reviewId, ['kind' => 'line', 'path' => self::INVOICE_TOTALS, 'range' => ['startLine' => 3, 'endLine' => 3]]);
 
         $author = ['kind' => 'user', 'userId' => $this->user->getId()->toString(), 'agentName' => null, 'name' => 'jan', 'avatarUrl' => null];
+        $location = ['target' => 'default_branch', 'targetSha' => $this->source->revParse('main'), 'status' => 'exact', 'path' => self::INVOICE_TOTALS, 'range' => ['startLine' => 3, 'endLine' => 3], 'confidence' => 1, 'reason' => null];
         $expected = [
             'status' => 'open', 'awaiting' => 'agent', 'resolution' => null, 'closed' => false, 'author' => $author,
             'claimedBy' => null, 'claimedAt' => null, 'commentCount' => 0, 'commitCount' => 0, 'pendingCommitCount' => 0, 'outdated' => null,
-            'createdAt' => '2026-09-29T07:10:00Z', 'updatedAt' => '2026-09-29T07:10:00Z', 'reviewState' => 'open', 'location' => null, 'excerpt' => null,
+            'createdAt' => '2026-09-29T07:10:00Z', 'updatedAt' => '2026-09-29T07:10:00Z', 'reviewState' => 'open', 'location' => $location, 'excerpt' => null,
             'commits' => [], 'allowedActions' => ['reply', 'mark_wont_do'],
         ];
         self::assertSame($expected, array_intersect_key($opened, $expected));

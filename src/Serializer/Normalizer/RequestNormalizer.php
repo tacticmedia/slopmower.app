@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Serializer\Normalizer;
 
+use App\Anchoring\CodeExcerpt;
 use App\Application\Query\RequestView;
 use App\Domain\Event\Codec\AnchorCodec;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareInterface;
@@ -33,8 +34,8 @@ final class RequestNormalizer implements NormalizerInterface, NormalizerAwareInt
             'body' => $state->body,
             'reviewState' => $review->getState(),
             'reviewCommitSha' => $review->getCommitSha(),
-            'location' => null,
-            'excerpt' => null,
+            'location' => $data->location,
+            'excerpt' => null === $data->excerpt ? null : self::excerpt($data->excerpt),
             'thread' => $data->thread,
             'commits' => $data->commits,
             'allowedActions' => $data->allowedActions,
@@ -55,5 +56,20 @@ final class RequestNormalizer implements NormalizerInterface, NormalizerAwareInt
     public function getSupportedTypes(?string $format): array
     {
         return [RequestView::class => true];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function excerpt(CodeExcerpt $excerpt): array
+    {
+        return [
+            'targetSha' => $excerpt->targetSha->toString(),
+            'path' => $excerpt->path->toString(),
+            'startLine' => $excerpt->startLine,
+            'endLine' => $excerpt->endLine,
+            'lines' => $excerpt->lines,
+            'truncated' => $excerpt->truncated,
+        ];
     }
 }

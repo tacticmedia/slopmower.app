@@ -28,17 +28,19 @@ final class CommitAvailability
     /**
      * D24: a commit missing from the server clone gets one synchronous fetch.
      *
+     * @param string $field Of the InvalidInput
+     *
      * @return CommitSha|null Null when the commit is still missing after the fetch
      *
      * @throws NotFound
      * @throws InvalidInput          The prefix matches more than one commit
      * @throws RepositoryUnavailable The clone is not ready, or the fetch failed
      */
-    public function ensureAvailable(RepositoryId $repositoryId, CommitShaPrefix $commit): ?CommitSha
+    public function ensureAvailable(RepositoryId $repositoryId, CommitShaPrefix $commit, string $field = 'commit'): ?CommitSha
     {
         $repository = $this->fetchRepository->cloneReady($repositoryId);
         $gitDir = $this->paths->clonePath($repository->getTenantId(), $repositoryId);
-        $available = $this->find($gitDir, $commit);
+        $available = $this->find($gitDir, $commit, $field);
 
         if (null !== $available) {
             return $available;
@@ -46,13 +48,13 @@ final class CommitAvailability
 
         $this->fetchRepository->fetchNow($repositoryId);
 
-        return $this->find($gitDir, $commit);
+        return $this->find($gitDir, $commit, $field);
     }
 
-    private function find(string $gitDir, CommitShaPrefix $commit): ?CommitSha
+    private function find(string $gitDir, CommitShaPrefix $commit, string $field): ?CommitSha
     {
         try {
-            return $this->reader->resolvePrefix($gitDir, $commit);
+            return $this->reader->resolvePrefix($gitDir, $commit, $field);
         } catch (CommitNotFound) {
             return null;
         }

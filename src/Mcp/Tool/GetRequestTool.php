@@ -6,6 +6,7 @@ namespace App\Mcp\Tool;
 
 use App\Application\Query\RequestQuery;
 use App\Application\Query\RequestView;
+use App\Domain\Git\CommitShaPrefix;
 use App\Domain\Identity\RequestId;
 use App\Mcp\BundledSchemas;
 use App\Mcp\McpToolRunner;
@@ -15,8 +16,7 @@ use Mcp\Capability\Attribute\Schema;
 use Mcp\Schema\ToolAnnotations;
 
 /**
- * docs/specs/mcp.md section 4.5: REST Q3. No location is computed, so `at` and `context` change nothing and the
- * result has `location` and `excerpt` null.
+ * docs/specs/mcp.md section 4.5: REST Q3.
  */
 final class GetRequestTool
 {
@@ -45,6 +45,11 @@ final class GetRequestTool
     )]
     public function getRequest(#[Schema(pattern: McpToolRunner::ULID)] string $id, #[Schema(pattern: McpToolRunner::SHA_PREFIX)] ?string $at = null, #[Schema(minimum: 0, maximum: 50)] ?int $context = null): array
     {
-        return $this->runner->run(self::NAME, fn (): RequestView => $this->requests->get(RequestId::fromString($id, 'id'), $this->currentActor->get()));
+        return $this->runner->run(self::NAME, fn (): RequestView => $this->requests->get(
+            RequestId::fromString($id, 'id'),
+            $this->currentActor->get(),
+            null === $at ? null : CommitShaPrefix::fromString($at, 'at'),
+            $context,
+        ));
     }
 }

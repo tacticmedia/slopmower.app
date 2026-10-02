@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Domain\Actor\Actor;
 use App\Domain\Event\EventType;
+use App\Domain\Identity\EventId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Entity\ReviewEvent;
@@ -116,6 +117,27 @@ final class ReviewEventRepository extends ServiceEntityRepository
             ->getResult();
 
         return array_reverse($newestFirst);
+    }
+
+    /**
+     * @return array<string, EventId> The ID of the request.opened event, by request ID
+     */
+    public function findOpenedEventIds(ReviewId $reviewId): array
+    {
+        /** @var list<array{eventId: Ulid, requestId: Ulid}> $rows */
+        $rows = $this->ofReview($reviewId)
+            ->select('event.id AS eventId', 'event.requestId AS requestId')
+            ->andWhere('event.type = :opened')
+            ->setParameter('opened', EventType::RequestOpened->value)
+            ->getQuery()
+            ->getArrayResult();
+        $eventIds = [];
+
+        foreach ($rows as $row) {
+            $eventIds[$row['requestId']->toBase32()] = EventId::fromString($row['eventId']->toBase32());
+        }
+
+        return $eventIds;
     }
 
     private function ofReview(ReviewId $reviewId): QueryBuilder
