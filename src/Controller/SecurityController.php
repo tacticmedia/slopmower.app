@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Security\LocalSignInAuthenticator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
@@ -13,12 +14,17 @@ use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 final class SecurityController extends AbstractController
 {
     #[Route('/login', name: 'app_login', methods: ['GET'])]
-    public function login(AuthenticationUtils $authenticationUtils, LocalSignInAuthenticator $localSignIn): Response
-    {
+    public function login(
+        AuthenticationUtils $authenticationUtils,
+        LocalSignInAuthenticator $localSignIn,
+        #[Autowire(env: 'GITHUB_APP_CLIENT_ID')]
+        string $gitHubClientId,
+    ): Response {
         return $this->render('security/login.html.twig', [
             'error' => $authenticationUtils->getLastAuthenticationError(),
-            'localLogin' => $localSignIn->localLogin(),
-            'csrfTokenId' => LocalSignInAuthenticator::CSRF_TOKEN_ID,
+            'github_sign_in' => '' !== $gitHubClientId,
+            'local_login' => $localSignIn->localLogin(),
+            'csrf_token_id' => LocalSignInAuthenticator::CSRF_TOKEN_ID,
         ]);
     }
 
@@ -26,6 +32,12 @@ final class SecurityController extends AbstractController
     public function localSignIn(): never
     {
         throw new \LogicException('LocalSignInAuthenticator handles this route.');
+    }
+
+    #[Route('/login/check-github', name: 'github_login_check', methods: ['GET'], condition: "env('GITHUB_APP_CLIENT_ID') !== ''")]
+    public function gitHubCallback(): never
+    {
+        throw new \LogicException('The oauth authenticator of the main firewall handles this route.');
     }
 
     #[Route('/logout', name: 'app_logout', methods: ['POST'])]

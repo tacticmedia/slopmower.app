@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Security;
 
 use App\Tests\Support\Database\ResetDatabase;
+use App\Tests\Support\Environment\EnvironmentVariables;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpKernel\DataCollector\LoggerDataCollector;
@@ -13,25 +14,17 @@ use Symfony\Component\VarDumper\Cloner\Data;
 
 final class LocalSignInGuardTest extends WebTestCase
 {
+    use EnvironmentVariables;
     use ResetDatabase;
 
     private const string VARIABLE = 'APP_LOCAL_SIGN_IN';
 
-    /** @var array{env: mixed, server: mixed} */
-    private array $originalValues;
-
     protected function setUp(): void
     {
         parent::setUp();
-        $this->originalValues = ['env' => $_ENV[self::VARIABLE] ?? null, 'server' => $_SERVER[self::VARIABLE] ?? null];
-        $_ENV[self::VARIABLE] = $_SERVER[self::VARIABLE] = 'jan';
-    }
-
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-        $this->restore($_ENV, $this->originalValues['env']);
-        $this->restore($_SERVER, $this->originalValues['server']);
+        $this->setEnvironmentVariable(self::VARIABLE, 'jan');
+        // LocalSignInStillDevOnlyTest covers the same guard with a GitHub App.
+        $this->setEnvironmentVariable('GITHUB_APP_CLIENT_ID', '');
     }
 
     #[TestDox('In the test environment with APP_LOCAL_SIGN_IN set, POST /login/local gives 404 and /api/v1/me gives 401')]
@@ -66,17 +59,5 @@ final class LocalSignInGuardTest extends WebTestCase
             return 'WARNING' === $log['priorityName'] && \is_string($message) && str_contains($message, self::VARIABLE);
         });
         self::assertCount(1, $warnings);
-    }
-
-    /**
-     * @param array<string, mixed> $variables
-     */
-    private function restore(array &$variables, mixed $originalValue): void
-    {
-        if (null === $originalValue) {
-            unset($variables[self::VARIABLE]);
-        } else {
-            $variables[self::VARIABLE] = $originalValue;
-        }
     }
 }

@@ -26,6 +26,13 @@ security:
             # Guarded in code: environment-specific firewall blocks do not merge.
             custom_authenticators:
                 - App\Security\LocalSignInAuthenticator
+            # D23. The check path route answers 404 without a GitHub App.
+            oauth:
+                resource_owners:
+                    github: /login/check-github
+                login_path: app_login
+                oauth_user_provider:
+                    service: App\Security\GitHubUserProvider
             logout:
                 path: app_logout
                 target: app_login

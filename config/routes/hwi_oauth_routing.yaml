@@ -1,0 +1,5 @@
+# Without a GitHub App the redirect answers 404, as the check path route in SecurityController does.
+hwi_oauth_redirect:
+    resource: "@HWIOAuthBundle/Resources/config/routing/redirect.php"
+    prefix:   /connect
+    condition: "env('GITHUB_APP_CLIENT_ID') !== ''"

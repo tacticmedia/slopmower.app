@@ -1,0 +1,10 @@
+hwi_oauth:
+    # https://github.com/hwi/HWIOAuthBundle/blob/master/docs/2-configuring_resource_owners.md
+    resource_owners:
+        github:
+            type: github
+            client_id: '%env(GITHUB_APP_CLIENT_ID)%'
+            client_secret: '%env(default::GITHUB_APP_CLIENT_SECRET)%'
+            options:
+                # The state check (D23). It defaults to false.
+                csrf: true

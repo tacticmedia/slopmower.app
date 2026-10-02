@@ -34,9 +34,15 @@ services:
                 db_password: '%env(key:pass:url:DATABASE_URL)%'
                 lock_mode: !php/const Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler::LOCK_ADVISORY
 
+    # The bundle builds its own client. The framework client honours framework.http_client.mock_response_factory.
+    hwi_oauth.http_client: '@http_client'
+
 when@test:
     parameters:
         app.session_database_suffix: '_test%env(default::TEST_TOKEN)%'
+
+    services:
+        App\Tests\Support\GitHub\GitHubResponses: ~
 
 when@e2e:
     parameters:

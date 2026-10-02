@@ -95,6 +95,14 @@ class User implements TenantOwned, UserInterface
         $this->lastSignInAt = $signedInAt;
     }
 
+    public function recordGitHubSignIn(string $login, ?string $name, ?string $avatarUrl, \DateTimeImmutable $signedInAt): void
+    {
+        $this->login = $login;
+        $this->name = $name;
+        $this->avatarUrl = $avatarUrl;
+        $this->lastSignInAt = $signedInAt;
+    }
+
     public function getId(): UserId
     {
         return UserId::fromString($this->id->toBase32());

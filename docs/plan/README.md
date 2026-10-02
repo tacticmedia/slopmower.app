@@ -122,7 +122,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M29 | [Re-anchoring with git, locations, outdated](M29-re-anchoring-with-git-locations-outdated.md) | Not started | | |
 | M30 | [Verify view diffs and outdated UI](M30-verify-view-diffs-and-outdated-ui.md) | Not started | | |
 | M31 | [Data deletion and tenant purge](M31-data-deletion-and-tenant-purge.md) | Not started | | |
-| M32 | [GitHub sign-in](M32-github-sign-in.md) | In progress | 2026-10-02 | |
+| M32 | [GitHub sign-in](M32-github-sign-in.md) | Done | 2026-10-02 | [Report](reports/M32.md) |
 | M33 | [GitHub App repositories](M33-github-app-repositories.md) | Not started | | |
 | M34 | [GitHub webhooks](M34-github-webhooks.md) | Not started | | |
 | M35 | [Isolation audit and acceptance](M35-isolation-audit-and-acceptance.md) | Not started | | |
