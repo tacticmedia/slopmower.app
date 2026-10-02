@@ -10,7 +10,7 @@ type Props = {
 };
 
 /**
- * Decision D31: the keyboard way to comment on a range, because the gutter "+" works only with a pointer.
+ * Decision D31: the keyboard way to comment on a range. The keyboard reaches the gutter "+" only on a selection.
  */
 export function CommentOnLinesForm({ lineCount, onSubmit }: Props) {
     const [open, setOpen] = useState(false);

@@ -4,9 +4,11 @@ import { useLoaderData, useRouteLoaderData } from 'react-router';
 import type { Actor } from '../../api/types/actor';
 import type { FileContent } from '../../api/types/file-content';
 import type { Me } from '../../api/types/me';
+import type { Symbol as CodeSymbol } from '../../api/types/symbol';
 import { type CodeAnnotation, NO_ANNOTATIONS, stableAnnotations, threadsByLine } from '../../code/annotations';
 import { type LineRange, lineRange } from '../../code/lineHash';
 import { bottomLine, type GestureRange } from '../../code/rangeSelection';
+import { matchingSymbol, symbolKindLabel } from '../../code/symbolMatch';
 import { CommentBox } from '../../comments/CommentBox';
 import { CommentOnLinesForm } from '../../comments/CommentOnLinesForm';
 import { type DraftView, fileDraftViews } from '../../comments/draftView';
@@ -14,10 +16,12 @@ import { ThreadList } from '../../comments/ThreadList';
 import { type Composer, type SubmitMode, useFileComments } from '../../comments/useFileComments';
 import { FileHeader } from '../../review/FileHeader';
 import { FilePlaceholder } from '../../review/FilePlaceholder';
+import { SymbolsMenu } from '../../review/SymbolsMenu';
 import { ViewedCheckbox } from '../../review/ViewedCheckbox';
 import type { FileView } from './fileData';
 import styles from './FileRoute.module.css';
 import type { ReviewData } from './reviewData';
+import { useFileSymbols } from './symbolsData';
 import { useLineSelection } from './useLineSelection';
 
 // A separate chunk, so the code viewer library stays out of the shell bundle.
@@ -38,15 +42,26 @@ export function FileRoute() {
     const comments = useFileComments({ path: content.path, threads, drafts: fileDrafts, caller, clearSelection: selection.clear });
     const commentable = 'open' === review.state;
     const reviewLabel = 0 === drafts.length ? 'Start a review' : 'Add review comment';
+    const symbols = useFileSymbols(review.id, content.path, commentable && null !== text);
     const fileThreads = useMemo(() => comments.threads.filter((thread) => null === thread.range), [comments.threads]);
     const filePendingDrafts = useMemo(() => comments.drafts.filter((draft) => null === draft.range), [comments.drafts]);
     const fileComposer = null !== comments.composer && null === comments.composer.range ? comments.composer : null;
     const { select } = selection;
     const { open } = comments;
+    // An exact symbol range anchors to the symbol.
+    const openLines = useCallback((range: LineRange) => open(range, null === symbols ? null : matchingSymbol(symbols, range)), [open, symbols]);
     const commentOnLines = useCallback(
         (range: LineRange) => {
             select(range);
-            open(range);
+            openLines(range);
+        },
+        [select, openLines],
+    );
+    const commentOnSymbol = useCallback(
+        (symbol: CodeSymbol) => {
+            const range = lineRange(symbol.range.startLine, symbol.range.endLine);
+            select(range);
+            open(range, symbol);
         },
         [select, open],
     );
@@ -55,6 +70,7 @@ export function FileRoute() {
         <section className={styles.file} aria-label={content.path}>
             <FileHeader path={content.path}>
                 {commentable && null !== text && null !== content.lineCount && <CommentOnLinesForm lineCount={content.lineCount} onSubmit={commentOnLines} />}
+                {commentable && null !== text && <SymbolsMenu symbols={symbols} onChoose={commentOnSymbol} />}
                 {commentable && (
                     <Button size="small" onClick={() => open(null)}>
                         Comment on file
@@ -72,7 +88,7 @@ export function FileRoute() {
             {null === text ? (
                 <FilePlaceholder content={content} />
             ) : (
-                <Code content={content} text={text} selection={selection} comments={comments} caller={caller} commentable={commentable} reviewLabel={reviewLabel} />
+                <Code content={content} text={text} selection={selection} comments={comments} caller={caller} onComment={commentable ? openLines : null} reviewLabel={reviewLabel} />
             )}
         </section>
     );
@@ -84,14 +100,16 @@ type CodeProps = {
     selection: LineSelection;
     comments: Comments;
     caller: Actor;
-    commentable: boolean;
+    /** Null on a closed review. */
+    onComment: ((range: LineRange) => void) | null;
     reviewLabel: string;
 };
 
 const draftLine = (draft: DraftView): number | null => (null === draft.range ? null : bottomLine(draft.range));
 
-function Code({ content, text, selection, comments, caller, commentable, reviewLabel }: CodeProps) {
-    const { composer, threads, drafts, open, submit, cancel } = comments;
+function Code({ content, text, selection, comments, caller, onComment, reviewLabel }: CodeProps) {
+    const { composer, threads, drafts, submit, cancel } = comments;
+    const commentable = null !== onComment;
     const composerLine = null !== composer && null !== composer.range ? bottomLine(composer.range) : null;
     const lines = useMemo(() => threadsByLine(threads, (thread) => (null === thread.range ? null : bottomLine(thread.range)), composerLine), [threads, composerLine]);
     const draftLines = useMemo(() => threadsByLine(drafts, draftLine, null), [drafts]);
@@ -116,7 +134,7 @@ function Code({ content, text, selection, comments, caller, commentable, reviewL
         },
         [lines, draftLines, caller, commentable, composer, reviewLabel, submit, cancel],
     );
-    const comment = useCallback((gesture: GestureRange) => open(lineRange(gesture.start, gesture.end)), [open]);
+    const comment = useCallback((gesture: GestureRange) => onComment?.(lineRange(gesture.start, gesture.end)), [onComment]);
 
     return (
         <div className={styles.viewport} data-testid="code-view">
@@ -136,7 +154,7 @@ function Code({ content, text, selection, comments, caller, commentable, reviewL
                     onSelectionCommit={selection.commit}
                     annotations={currentAnnotations}
                     renderAnnotation={renderAnnotation}
-                    onComment={commentable ? comment : null}
+                    onComment={null === onComment ? null : comment}
                     className={styles.scroller}
                 />
             </Suspense>
@@ -156,7 +174,8 @@ function ComposerBox({ composer, reviewLabel, onSubmit, onCancel }: ComposerBoxP
     return (
         <CommentBox
             key={composer.key}
-            label={composerLabel(composer.range)}
+            label={composerLabel(composer)}
+            labelVisible
             submitLabel="Add single comment"
             onSubmit={(body) => onSubmit(body, 'single')}
             alternative={{ label: reviewLabel, onSubmit: (body) => onSubmit(body, 'draft') }}
@@ -169,7 +188,11 @@ function ComposerBox({ composer, reviewLabel, onSubmit, onCancel }: ComposerBoxP
     );
 }
 
-function composerLabel(range: LineRange | null): string {
+function composerLabel({ range, symbol }: Composer): string {
+    if (null !== symbol) {
+        return `Comment on ${symbolKindLabel(symbol)} ${symbol.fqn}`;
+    }
+
     if (null === range) {
         return 'Comment on file';
     }

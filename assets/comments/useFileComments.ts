@@ -2,6 +2,7 @@ import { useCallback, useOptimistic, useRef, useState, useTransition } from 'rea
 import { useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
 import type { Actor } from '../api/types/actor';
+import type { Symbol as CodeSymbol } from '../api/types/symbol';
 import type { LineRange } from '../code/lineHash';
 import { anchorInput } from '../code/rangeSelection';
 import type { CommentIntent } from './commentIntent';
@@ -13,6 +14,8 @@ export type Composer = {
     key: number;
     /** Null for a file comment. */
     range: LineRange | null;
+    /** With `range`, the symbol that the comment anchors to. */
+    symbol: CodeSymbol | null;
     initialBody: string;
     error: string | null;
 };
@@ -29,7 +32,7 @@ type Options = {
     clearSelection(): void;
 };
 
-type Sent = { path: string; range: LineRange | null; body: string };
+type Sent = { path: string; range: LineRange | null; symbol: CodeSymbol | null; body: string };
 
 /**
  * The one comment box of a file, Q2, and D2. The new thread or pending comment shows at once; when the write fails,
@@ -49,17 +52,17 @@ export function useFileComments({ path, threads, drafts, caller, clearSelection 
         const error = fetcher.data?.error;
         if (undefined !== error) {
             opened.current += 1;
-            setComposer({ key: opened.current, path: sent.path, range: sent.range, initialBody: sent.body, error });
+            setComposer({ key: opened.current, path: sent.path, range: sent.range, symbol: sent.symbol, initialBody: sent.body, error });
         }
     }
 
     const shownComposer = composer?.path === path ? composer : null;
 
     const open = useCallback(
-        (range: LineRange | null): void => {
+        (range: LineRange | null, symbol: CodeSymbol | null = null): void => {
             if (!sending) {
                 opened.current += 1;
-                setComposer({ key: opened.current, path, range, initialBody: '', error: null });
+                setComposer({ key: opened.current, path, range, symbol, initialBody: '', error: null });
             }
         },
         [path, sending],
@@ -75,11 +78,11 @@ export function useFileComments({ path, threads, drafts, caller, clearSelection 
             if (sending || null === shownComposer) {
                 return false;
             }
-            const { range } = shownComposer;
+            const { range, symbol } = shownComposer;
             setComposer(null);
             clearSelection();
-            setSent({ path, range, body });
-            const anchor = anchorInput(path, range);
+            setSent({ path, range, symbol, body });
+            const anchor = anchorInput(path, range, symbol?.fqn ?? null);
             const intent: CommentIntent = 'draft' === mode ? { intent: 'draft', input: { kind: 'new_request', anchor, body } } : { intent: 'open', input: { anchor, body } };
             startSending(async () => {
                 if ('draft' === mode) {

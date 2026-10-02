@@ -4,6 +4,11 @@
     gap: var(--base-size-8);
 }
 
+.header {
+    font-weight: var(--base-text-weight-semibold);
+    overflow-wrap: anywhere;
+}
+
 .actions {
     display: flex;
     justify-content: flex-end;

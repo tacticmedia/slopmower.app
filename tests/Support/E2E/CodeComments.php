@@ -26,6 +26,7 @@ use Facebook\WebDriver\Remote\RemoteWebElement;
 use Facebook\WebDriver\WebDriverBy;
 use Facebook\WebDriver\WebDriverElement;
 use Facebook\WebDriver\WebDriverHasInputDevices;
+use Facebook\WebDriver\WebDriverKeys;
 use Symfony\Component\Panther\Client;
 
 /**
@@ -37,6 +38,7 @@ trait CodeComments
 
     /** The new-comment box. A reply box is labelled "Reply". */
     private const string COMPOSER = 'textarea[aria-label^="Comment on"]';
+    private const int MAXIMUM_TABS = 40;
     private const string SAVED_THREAD = '[data-testid="thread"][data-request-id]';
 
     private User $commenter;
@@ -146,6 +148,55 @@ trait CodeComments
         self::waitForSavedThread($client, $container, $body);
     }
 
+    /**
+     * Types into the focused comment box, then tabs to "Add single comment" and presses Enter.
+     */
+    private static function keyboardComment(Client $client, WebDriverElement $textarea, string $body, string $container): void
+    {
+        $textarea->sendKeys($body);
+        self::tabToButton($client, 'Add single comment');
+        $client->getKeyboard()->sendKeys(WebDriverKeys::ENTER);
+        self::waitForSavedThread($client, $container, $body);
+    }
+
+    private static function tabToButton(Client $client, string $text): void
+    {
+        self::tabUntil($client, 'return "BUTTON" === document.activeElement?.tagName && arguments[0] === document.activeElement.textContent.trim();', "the \"{$text}\" button", [$text]);
+    }
+
+    /**
+     * @param list<string> $arguments
+     */
+    private static function tabUntil(Client $client, string $focusCheck, string $target, array $arguments = []): void
+    {
+        for ($tabs = 0; $tabs < self::MAXIMUM_TABS; ++$tabs) {
+            if (true === $client->executeScript($focusCheck, $arguments)) {
+                return;
+            }
+            $client->getKeyboard()->sendKeys(WebDriverKeys::TAB);
+        }
+
+        self::fail("Tab did not reach {$target}.");
+    }
+
+    /**
+     * The Symbols menu is disabled until V9 answers.
+     */
+    private static function waitForSymbols(Client $client): void
+    {
+        $client->wait()->until(static fn (): bool => true === $client->executeScript(<<<'JS'
+            return [...document.querySelectorAll('[data-testid="file-header"] button')].some((button) => 'Symbols' === button.textContent.trim() && !button.disabled);
+            JS), 'The Symbols menu stayed disabled.');
+    }
+
+    /**
+     * The visible header of the comment box below `$line`.
+     */
+    private static function commentBoxHeader(Client $client, int $line): string
+    {
+        return $client->getWebDriver()->findElement(WebDriverBy::cssSelector("[slot=\"annotation-{$line}\"] [data-testid=\"comment-box-header\"]"))->getText();
+    }
+
     private static function waitForSavedThread(Client $client, string $container, string $text): void
     {
         $client->wait()->until(static function () use ($client, $container, $text): bool {
@@ -178,6 +229,17 @@ trait CodeComments
                 'body' => $request->getBody(),
             ];
         }, $requests);
+    }
+
+    /**
+     * @return list<string|null> The FQN of each saved request in {@see savedRequests()} order
+     */
+    private function savedSymbolFqns(): array
+    {
+        self::getContainer()->get(TenantContext::class)->set($this->commenter->getTenantId());
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+
+        return array_map(static fn (ChangeRequest $request): ?string => $request->getAnchor()->symbol?->fqn, self::getContainer()->get(ChangeRequestRepository::class)->findBy([], ['id' => 'ASC']));
     }
 
     private function closeReview(): void

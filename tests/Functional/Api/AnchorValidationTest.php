@@ -59,6 +59,13 @@ final class AnchorValidationTest extends WebTestCase
         self::assertSame(['anchor.symbol'], $this->violatedFields(['kind' => 'file', 'path' => self::INVOICE_TOTALS, 'symbol' => $symbol]));
     }
 
+    #[TestDox('A symbol anchor without a symbol or with a range gives 422')]
+    public function testSymbolAnchorWithoutSymbolOrWithRangeGivesInvalidInput(): void
+    {
+        self::assertSame(['anchor.symbol'], $this->violatedFields(['kind' => 'symbol', 'path' => 'src/Billing/TaxRounding.php']));
+        self::assertSame(['anchor.range'], $this->violatedFields(['kind' => 'symbol', 'path' => 'src/Billing/TaxRounding.php', 'range' => ['startLine' => 3, 'endLine' => 5], 'symbol' => ['fqn' => 'TaxRounding']]));
+    }
+
     #[TestDox('A line outside the file gives 422 invalid_input')]
     public function testLineOutsideFileGivesInvalidInput(): void
     {

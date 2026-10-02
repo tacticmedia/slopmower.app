@@ -13,6 +13,9 @@ final class FixtureRepositories
 
     public const string NESTED_FILE = 'src/Billing/Tax/TaxRate.php';
 
+    /** `round()` has the lines 11 to 17 with its doc comment, its declaration starts on line 14. */
+    public const string SYMBOL_FILE = 'src/Billing/TaxRounding.php';
+
     public const string LARGE_FILE = 'src/Legacy/UnitOfWork.php';
 
     public const int LARGE_FILE_LINES = 3500;
@@ -45,6 +48,32 @@ final class FixtureRepositories
 
                 PHP,
             self::NESTED_FILE => "<?php\n\nnamespace App\\Billing\\Tax;\n\nfinal class TaxRate\n{\n}\n",
+            self::SYMBOL_FILE => <<<'PHP'
+                <?php
+
+                declare(strict_types=1);
+
+                namespace App\Billing;
+
+                final class TaxRounding
+                {
+                    public const int SCALE = 10000;
+
+                    /**
+                     * Rounds half up to whole cents.
+                     */
+                    public function round(int $amount, int $basisPoints): int
+                    {
+                        return intdiv($amount * $basisPoints + intdiv(self::SCALE, 2), self::SCALE);
+                    }
+
+                    public function ceil(int $amount, int $basisPoints): int
+                    {
+                        return intdiv($amount * $basisPoints + self::SCALE - 1, self::SCALE);
+                    }
+                }
+
+                PHP,
             self::LARGE_FILE => self::largePhpFile(),
             self::BINARY_FILE => "\x89PNG\r\n\x1a\n\0\0\0\rIHDR",
         ];

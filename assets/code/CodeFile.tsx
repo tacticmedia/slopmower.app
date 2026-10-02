@@ -21,7 +21,7 @@ export type CodeFileProps = {
     /** One per line. Pass the same array while the lines stay the same, or the view renders the whole file again. */
     annotations: readonly CodeAnnotation[];
     renderAnnotation(lineNumber: number): ReactNode;
-    /** The range of a click or drag on the gutter "+". Null hides the "+". */
+    /** The range of a click, a drag, Enter, or Space on the gutter "+". Null hides the "+". */
     onComment: ((range: GestureRange) => void) | null;
     className?: string;
 };
@@ -69,17 +69,26 @@ const FileView = memo(function FileView({
     className,
 }: CodeFileProps) {
     const view = useRef<CodeViewHandle<undefined, undefined>>(null);
+    const container = useRef<HTMLDivElement>(null);
     // The last range that the view reported. A different `selection` comes from outside and is scrolled to.
     const reported = useRef<LineRange | null>(null);
     // Changing view options renders the whole file again, so the options read the latest handler.
     const commentHandler = useRef(onComment);
+    const latestSelection = useRef(selection);
     // The view applies a changed item only when its version changes.
     const itemVersion = useRef(0);
     const commentable = null !== onComment;
 
     useEffect(() => {
         commentHandler.current = onComment;
-    }, [onComment]);
+        latestSelection.current = selection;
+    }, [onComment, selection]);
+
+    useEffect(() => {
+        const element = container.current;
+
+        return null === element ? undefined : keyboardGutterUtility(element, () => latestSelection.current, (range) => commentHandler.current?.(range));
+    }, []);
 
     const items = useMemo<CodeViewItem<undefined>[]>(
         () => [
@@ -123,6 +132,7 @@ const FileView = memo(function FileView({
     return (
         <CodeView
             ref={view}
+            containerRef={container}
             items={items}
             selectedLines={selectedLines}
             onSelectedLinesChange={reportSelection}
@@ -132,6 +142,45 @@ const FileView = memo(function FileView({
         />
     );
 });
+
+/**
+ * Decision D31. The library starts a comment on `pointerdown` only and gives the "+" no name. The "+" sits on the
+ * last line of a selection and then acts on the whole selection.
+ *
+ * @returns The cleanup
+ */
+function keyboardGutterUtility(container: HTMLElement, selection: () => LineRange | null, comment: (range: GestureRange) => void): () => void {
+    const utility = (event: Event): { button: HTMLButtonElement; range: LineRange } | null => {
+        const [button] = event.composedPath();
+        const line = button instanceof HTMLButtonElement && button.hasAttribute('data-utility-button') ? Number(button.closest('[data-column-number]')?.getAttribute('data-column-number')) : NaN;
+
+        if (!(button instanceof HTMLButtonElement) || !Number.isInteger(line)) {
+            return null;
+        }
+        const selected = selection();
+
+        return { button, range: null !== selected && selected.end === line ? selected : lineRange(line, line) };
+    };
+    const name = (event: FocusEvent): void => {
+        const found = utility(event);
+        found?.button.setAttribute('aria-label', found.range.start === found.range.end ? `Comment on line ${found.range.start}` : `Comment on lines ${found.range.start} to ${found.range.end}`);
+    };
+    const press = (event: KeyboardEvent): void => {
+        const found = 'Enter' === event.key || ' ' === event.key ? utility(event) : null;
+
+        if (null !== found) {
+            event.preventDefault();
+            comment(found.range);
+        }
+    };
+    container.addEventListener('focusin', name);
+    container.addEventListener('keydown', press);
+
+    return () => {
+        container.removeEventListener('focusin', name);
+        container.removeEventListener('keydown', press);
+    };
+}
 
 function toLineRange(range: SelectedLineRange | null): LineRange | null {
     return null === range ? null : lineRange(range.start, range.end);

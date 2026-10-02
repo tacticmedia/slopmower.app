@@ -117,7 +117,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M24 | [Live updates via Mercure](M24-live-updates-via-mercure.md) | Done | 2026-10-03 | [Report](reports/M24.md) |
 | M25 | [Drafts, batch review, viewed files](M25-drafts-batch-review-viewed-files.md) | Done | 2026-10-03 | [Report](reports/M25.md) |
 | M26 | [Symbol index](M26-symbol-index.md) | Done | 2026-10-03 | [Report](reports/M26.md) |
-| M27 | [Symbol anchors and keyboard access](M27-symbol-anchors-and-keyboard-access.md) | In progress | 2026-10-03 | |
+| M27 | [Symbol anchors and keyboard access](M27-symbol-anchors-and-keyboard-access.md) | Done | 2026-10-03 | [Report](reports/M27.md) |
 | M28 | [Re-anchoring core](M28-re-anchoring-core.md) | Done | 2026-10-02 | [Report](reports/M28.md) |
 | M29 | [Re-anchoring with git, locations, outdated](M29-re-anchoring-with-git-locations-outdated.md) | In progress | 2026-10-03 | |
 | M30 | [Verify view diffs and outdated UI](M30-verify-view-diffs-and-outdated-ui.md) | Not started | | |

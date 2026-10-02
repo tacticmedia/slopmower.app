@@ -22,8 +22,6 @@ final class KeyboardCommentOnLinesTest extends PantherTestCase
     use CodeComments;
     use ResetDatabase;
 
-    private const int MAXIMUM_TABS = 40;
-
     /** True when the focus is on the gutter "+" inside the shadow root of the code view. */
     private const string PLUS_HAS_FOCUS = <<<'JS'
         return document.activeElement?.shadowRoot?.activeElement?.hasAttribute('data-utility-button') ?? false;
@@ -67,29 +65,45 @@ final class KeyboardCommentOnLinesTest extends PantherTestCase
     }
 
     /**
-     * The recorded result: the library adds the "+" only under the pointer or on the last selected line. There it
-     * takes the focus, but it has no accessible name, and Enter and Space do nothing, because the library starts a
-     * comment on pointerdown.
+     * The library adds the "+" only under the pointer or on the last selected line, so the keyboard reaches it only on
+     * a selection.
      */
-    #[TestDox('The focus behaviour of the gutter + button equals the recorded result')]
-    public function testGutterPlusFocusBehaviourEqualsTheRecordedResult(): void
+    #[TestDox('The gutter + of a selection has a name and opens the comment box with Enter and with Space')]
+    public function testGutterPlusOfSelectionHasNameAndOpensCommentBoxWithEnterAndSpace(): void
     {
         $client = $this->browserAtFile(FixtureRepositories::SMALL_FILE);
         self::waitForHighlighting($client, 3);
         self::assertSame(0, ShadowDom::count($client, '[data-utility-button]'), 'Without a pointer and a selection, no "+" exists.');
 
-        $this->openFile($client, FixtureRepositories::SMALL_FILE, '#L3');
-        ShadowDom::waitUntil($client, '[data-column-number="3"][data-selected-line] [data-utility-button]', static fn (): bool => true);
+        $rangeName = $this->pressGutterPlus($client, '#L3-L4', 4, WebDriverKeys::ENTER);
+        self::keyboardComment($client, self::focusedCommentBoxBelow($client, 4), 'Join these lines.', '[slot="annotation-4"]');
+        $lineName = $this->pressGutterPlus($client, '#L6', 6, WebDriverKeys::SPACE);
+        self::keyboardComment($client, self::focusedCommentBoxBelow($client, 6), 'Remove this blank line.', '[slot="annotation-6"]');
+
+        self::assertSame(['Comment on lines 3 to 4', 'Comment on line 6'], [$rangeName, $lineName]);
+        self::assertSame(
+            [
+                ['kind' => 'range', 'path' => FixtureRepositories::SMALL_FILE, 'range' => [3, 4], 'body' => 'Join these lines.'],
+                ['kind' => 'line', 'path' => FixtureRepositories::SMALL_FILE, 'range' => [6, 6], 'body' => 'Remove this blank line.'],
+            ],
+            $this->savedRequests(),
+        );
+    }
+
+    /**
+     * Opens the file at the selection of `$hash`, tabs to the "+" on its last line, and presses `$key`.
+     *
+     * @return string The accessible name of the "+"
+     */
+    private function pressGutterPlus(Client $client, string $hash, int $lastLine, string $key): string
+    {
+        $this->openFile($client, FixtureRepositories::SMALL_FILE, $hash);
+        ShadowDom::waitUntil($client, "[data-column-number=\"{$lastLine}\"][data-selected-line] [data-utility-button]", static fn (): bool => true);
         self::tabUntil($client, self::PLUS_HAS_FOCUS, 'the gutter "+"');
-        $name = ShadowDom::waitUntil($client, '[data-utility-button]', static fn (WebDriverElement $plus): string => ($plus->getAttribute('aria-label') ?? '').$plus->getText());
-        self::assertSame('', $name, 'The "+" has no accessible name.');
+        $name = ShadowDom::waitUntil($client, '[data-utility-button]', static fn (WebDriverElement $plus): ?string => $plus->getAttribute('aria-label'));
+        $client->getKeyboard()->sendKeys($key);
 
-        $client->getKeyboard()->sendKeys(WebDriverKeys::ENTER);
-        $client->getKeyboard()->sendKeys(WebDriverKeys::SPACE);
-        self::waitForFrames($client);
-
-        self::assertSelectorNotExists(self::COMPOSER);
-        self::assertSame([], $this->savedRequests());
+        return $name;
     }
 
     private static function commentOnLines(Client $client, int $startLine, int $endLine): void
@@ -101,49 +115,5 @@ final class KeyboardCommentOnLinesTest extends PantherTestCase
         $client->getKeyboard()->sendKeys(WebDriverKeys::TAB);
         $client->getKeyboard()->sendKeys((string) $endLine);
         $client->getKeyboard()->sendKeys(WebDriverKeys::ENTER);
-    }
-
-    /**
-     * Types into the focused comment box, then tabs to "Add single comment" and presses Enter.
-     */
-    private static function keyboardComment(Client $client, WebDriverElement $textarea, string $body, string $container): void
-    {
-        $textarea->sendKeys($body);
-        self::tabToButton($client, 'Add single comment');
-        $client->getKeyboard()->sendKeys(WebDriverKeys::ENTER);
-        self::waitForSavedThread($client, $container, $body);
-    }
-
-    private static function tabToButton(Client $client, string $text): void
-    {
-        self::tabUntil($client, 'return "BUTTON" === document.activeElement?.tagName && arguments[0] === document.activeElement.textContent.trim();', "the \"{$text}\" button", [$text]);
-    }
-
-    /**
-     * @param list<string> $arguments
-     */
-    private static function tabUntil(Client $client, string $focusCheck, string $target, array $arguments = []): void
-    {
-        for ($tabs = 0; $tabs < self::MAXIMUM_TABS; ++$tabs) {
-            if (true === $client->executeScript($focusCheck, $arguments)) {
-                return;
-            }
-            $client->getKeyboard()->sendKeys(WebDriverKeys::TAB);
-        }
-
-        self::fail("Tab did not reach {$target}.");
-    }
-
-    /**
-     * A key press that opened a comment box would have rendered it by then.
-     */
-    private static function waitForFrames(Client $client): void
-    {
-        $client->executeAsyncScript(<<<'JS'
-            const done = arguments[arguments.length - 1];
-            let frames = 10;
-            const next = () => (0 === --frames ? done() : requestAnimationFrame(next));
-            requestAnimationFrame(next);
-            JS);
     }
 }

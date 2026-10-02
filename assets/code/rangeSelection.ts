@@ -12,9 +12,13 @@ export function bottomLine({ start, end }: GestureRange): number {
 }
 
 /**
- * Q2 rules: `line` for one line, `range` for more, `file` without lines.
+ * Q2 rules: `symbol` with an FQN, `line` for one line, `range` for more, `file` without lines.
  */
-export function anchorInput(path: string, range: LineRange | null): AnchorInput {
+export function anchorInput(path: string, range: LineRange | null, symbolFqn: string | null): AnchorInput {
+    if (null !== symbolFqn) {
+        return { kind: 'symbol', path, symbol: { fqn: symbolFqn } };
+    }
+
     if (null === range) {
         return { kind: 'file', path };
     }

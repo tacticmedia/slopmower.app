@@ -14,6 +14,8 @@ export type CommentBoxHandle = {
 type Props = {
     /** The accessible name of the text field. */
     label: string;
+    /** Shows `label` as the header of the box. */
+    labelVisible?: boolean;
     submitLabel: string;
     /** False when the submit was not accepted, for example while another write runs. */
     onSubmit(body: string): boolean;
@@ -30,7 +32,7 @@ type Props = {
 /**
  * The text stays while the write runs and clears when it succeeds, so a failed write keeps it.
  */
-export function CommentBox({ label, submitLabel, onSubmit, alternative, onCancel, initialBody = '', error, busy, focusOnMount = false, ref }: Props) {
+export function CommentBox({ label, labelVisible = false, submitLabel, onSubmit, alternative, onCancel, initialBody = '', error, busy, focusOnMount = false, ref }: Props) {
     const [body, setBody] = useState(initialBody);
     const [sent, setSent] = useState(false);
     const textarea = useRef<HTMLTextAreaElement>(null);
@@ -72,6 +74,11 @@ export function CommentBox({ label, submitLabel, onSubmit, alternative, onCancel
 
     return (
         <form className={styles.box} onSubmit={submit} data-testid="comment-box">
+            {labelVisible && (
+                <div className={styles.header} aria-hidden="true" data-testid="comment-box-header">
+                    {label}
+                </div>
+            )}
             <Textarea
                 ref={textarea}
                 value={body}

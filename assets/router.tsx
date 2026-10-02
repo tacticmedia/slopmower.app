@@ -12,6 +12,7 @@ import { CodeLayout, codeLayoutLoader, NoFileSelected } from './routes/reviews/C
 import { fileAction, fileLoader } from './routes/reviews/fileData';
 import { ReviewLayout } from './routes/reviews/ReviewLayout';
 import { reviewAction, reviewLoader } from './routes/reviews/reviewData';
+import { shouldRevalidateSymbols, symbolsLoader } from './routes/reviews/symbolsData';
 import { treeLoader } from './routes/reviews/treeData';
 import { SettingsRoute } from './routes/settings/SettingsRoute';
 import { settingsAction, settingsLoader } from './routes/settings/settingsData';
@@ -55,6 +56,7 @@ export const router = createBrowserRouter([
                                 ],
                             },
                             { path: 'tree', loader: treeLoader },
+                            { path: 'symbols', loader: symbolsLoader, shouldRevalidate: shouldRevalidateSymbols },
                             {
                                 path: 'requests',
                                 loader: requestListLoader,
