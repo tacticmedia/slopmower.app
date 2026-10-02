@@ -33,4 +33,21 @@ final readonly class RecordedEvent
             throw new \LogicException($this->type->isRequestEvent() ? "{$this->type->value} needs a requestId." : "{$this->type->value} has no requestId.");
         }
     }
+
+    /**
+     * `Event.requestIds` of event.schema.json: every request that the event concerns.
+     *
+     * @return list<RequestId>
+     */
+    public function requestIds(): array
+    {
+        $event = $this->event;
+
+        return match (true) {
+            $event instanceof CommitLinkedEvent, $event instanceof CommitFoundEvent, $event instanceof BatchSubmittedEvent => $event->requestIds,
+            $event instanceof CommitUnlinkedEvent => [$event->requestId],
+            null !== $this->requestId => [$this->requestId],
+            default => [],
+        };
+    }
 }

@@ -20,6 +20,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Entity'
                 prefix: 'App\Entity'
                 alias: App
+            Embeddable:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Doctrine/Embeddable'
+                prefix: 'App\Doctrine\Embeddable'
+                alias: Embeddable
         filters:
             tenant:
                 class: App\Tenancy\TenantSqlFilter

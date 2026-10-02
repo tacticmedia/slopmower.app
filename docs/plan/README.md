@@ -96,7 +96,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M03 | [Domain events and payload codec](M03-domain-events-and-payload-codec.md) | Done | 2026-10-02 | [Report](reports/M03.md) |
 | M04 | [Request lifecycle](M04-request-lifecycle.md) | Done | 2026-10-02 | [Report](reports/M04.md) |
 | M05 | [Tenancy persistence and isolation](M05-tenancy-persistence-and-isolation.md) | Done | 2026-10-02 | [Report](reports/M05.md) |
-| M06 | [Review data schema](M06-review-data-schema.md) | In progress | 2026-10-02 | |
+| M06 | [Review data schema](M06-review-data-schema.md) | Done | 2026-10-02 | [Report](reports/M06.md) |
 | M07 | [Event store and command service](M07-event-store-and-command-service.md) | Not started | | |
 | M08 | [Git plumbing](M08-git-plumbing.md) | Done | 2026-10-02 | [Report](reports/M08.md) |
 | M09 | [Local repository source](M09-local-repository-source.md) | Not started | | |
@@ -122,7 +122,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M29 | [Re-anchoring with git, locations, outdated](M29-re-anchoring-with-git-locations-outdated.md) | Not started | | |
 | M30 | [Verify view diffs and outdated UI](M30-verify-view-diffs-and-outdated-ui.md) | Not started | | |
 | M31 | [Data deletion and tenant purge](M31-data-deletion-and-tenant-purge.md) | Not started | | |
-| M32 | [GitHub sign-in](M32-github-sign-in.md) | Not started | | |
+| M32 | [GitHub sign-in](M32-github-sign-in.md) | In progress | 2026-10-02 | |
 | M33 | [GitHub App repositories](M33-github-app-repositories.md) | Not started | | |
 | M34 | [GitHub webhooks](M34-github-webhooks.md) | Not started | | |
 | M35 | [Isolation audit and acceptance](M35-isolation-audit-and-acceptance.md) | Not started | | |

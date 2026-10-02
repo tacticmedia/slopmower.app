@@ -22,7 +22,7 @@ final class EntityTenancyConventionTest extends KernelTestCase
         $checked = 0;
 
         foreach ($allMetadata as $metadata) {
-            if (\in_array($metadata->getName(), self::EXCEPTIONS, true)) {
+            if ($metadata->isEmbeddedClass || \in_array($metadata->getName(), self::EXCEPTIONS, true)) {
                 continue;
             }
 
