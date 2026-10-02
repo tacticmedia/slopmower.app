@@ -1,0 +1,18 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domain\Request;
+
+enum Action: string
+{
+    case Reply = 'reply';
+    case Claim = 'claim';
+    case Release = 'release';
+    case LinkCommits = 'link_commits';
+    case UnlinkCommit = 'unlink_commit';
+    case MarkReadyForReview = 'mark_ready_for_review';
+    case MarkWontDo = 'mark_wont_do';
+    case Verify = 'verify';
+    case Reopen = 'reopen';
+}
