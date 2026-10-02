@@ -57,8 +57,9 @@ services:
 
 when@test:
     parameters:
-        # "TEST_TOKEN" is typically set by ParaTest
-        app.database_suffix: '_test%env(default::TEST_TOKEN)%'
+        # "TEST_TOKEN" is typically set by ParaTest. TEST_DATABASE_SUFFIX is "_e2e" in tests/E2E, see E2eDatabaseExtension.
+        app.database_suffix: '%env(default:app.test_database_suffix:TEST_DATABASE_SUFFIX)%%env(default::TEST_TOKEN)%'
+        app.test_database_suffix: '_test'
         app.tenantless_messages: ['Symfony\Component\RemoteEvent\Messenger\ConsumeRemoteEventMessage', 'App\Tests\Support\Messenger\TenantlessProbe']
 
     services:
@@ -71,4 +72,4 @@ when@test:
 
 when@e2e:
     parameters:
-        app.database_suffix: '_test'
+        app.database_suffix: '_e2e'

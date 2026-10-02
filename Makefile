@@ -40,9 +40,11 @@ db-reset: ## Drop, create, and migrate the dev database. Ask Jan first.
 	$(CONSOLE) doctrine:migrations:migrate --no-interaction --all-or-nothing --allow-no-migration
 	$(DOCKER_COMPOSE) start worker
 
-db-test: ## Create app_test when it is missing, then migrate it
+db-test: ## Create app_test and app_e2e when they are missing, then migrate them
 	$(CONSOLE) doctrine:database:create --if-not-exists --env=test
 	$(CONSOLE) doctrine:migrations:migrate --no-interaction --all-or-nothing --allow-no-migration --env=test
+	$(CONSOLE) doctrine:database:create --if-not-exists --env=e2e
+	$(CONSOLE) doctrine:migrations:migrate --no-interaction --all-or-nothing --allow-no-migration --env=e2e
 
 test: ## Unit and functional suites
 ifneq ($(PACKAGE_JSON),)
