@@ -106,12 +106,12 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M13 | [Requests API, user side](M13-requests-api-user-side.md) | Done | 2026-10-02 | [Report](reports/M13.md) |
 | M14 | [API tokens](M14-api-tokens.md) | Done | 2026-10-02 | [Report](reports/M14.md) |
 | M15 | [MCP server and read tools](M15-mcp-server-and-read-tools.md) | Done | 2026-10-02 | [Report](reports/M15.md) |
-| M16 | [MCP write tools and headless slice](M16-mcp-write-tools-and-headless-slice.md) | Not started | | Headless slice |
+| M16 | [MCP write tools and headless slice](M16-mcp-write-tools-and-headless-slice.md) | In progress | 2026-10-02 | |
 | M17 | [Front-end shell](M17-front-end-shell.md) | Done | 2026-10-02 | [Report](reports/M17.md) |
 | M18 | [Repositories and reviews screens](M18-repositories-and-reviews-screens.md) | Done | 2026-10-02 | [Report](reports/M18.md) |
 | M19 | [Settings: API tokens](M19-settings-api-tokens.md) | Done | 2026-10-02 | [Report](reports/M19.md) |
 | M20 | [Code view](M20-code-view.md) | Done | 2026-10-02 | [Report](reports/M20.md) |
-| M21 | [Commenting UI](M21-commenting-ui.md) | In progress | 2026-10-02 | |
+| M21 | [Commenting UI](M21-commenting-ui.md) | Done | 2026-10-03 | [Report](reports/M21.md) |
 | M22 | [Verify UI and vertical slice](M22-verify-ui-and-vertical-slice.md) | Not started | | Vertical slice |
 | M23 | [Public docs and downloadable skill](M23-public-docs-and-downloadable-skill.md) | Not started | | |
 | M24 | [Live updates via Mercure](M24-live-updates-via-mercure.md) | Not started | | |

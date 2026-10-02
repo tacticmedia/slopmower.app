@@ -1,9 +1,12 @@
-import { cleanLastNewline, type CodeViewItem, type CodeViewLineSelection, type SelectedLineRange } from '@pierre/diffs';
+import { cleanLastNewline, type CodeViewItem, type CodeViewLineSelection, type LineAnnotation, type SelectedLineRange } from '@pierre/diffs';
 import { CodeView, type CodeViewHandle, type CodeViewReactOptions, WorkerPoolContextProvider } from '@pierre/diffs/react';
 import type { WorkerInitializationRenderOptions, WorkerPoolOptions } from '@pierre/diffs/worker';
 import diffsWorkerUrl from '@pierre/diffs/worker/worker.js?worker&url';
-import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
+import { BaseStyles } from '@primer/react';
+import { memo, type ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
+import type { CodeAnnotation } from './annotations';
 import { type LineRange, lineRange } from './lineHash';
+import type { GestureRange } from './rangeSelection';
 
 export type CodeFileProps = {
     path: string;
@@ -15,6 +18,11 @@ export type CodeFileProps = {
     onSelectionChange(selection: LineRange | null): void;
     /** The selection after the pointer is released. */
     onSelectionCommit(selection: LineRange | null): void;
+    /** One per line. Pass the same array while the lines stay the same, or the view renders the whole file again. */
+    annotations: readonly CodeAnnotation[];
+    renderAnnotation(lineNumber: number): ReactNode;
+    /** The range of a click or drag on the gutter "+". Null hides the "+". */
+    onComment: ((range: GestureRange) => void) | null;
     className?: string;
 };
 
@@ -48,20 +56,53 @@ export const CodeFile = memo(function CodeFile(props: CodeFileProps) {
     );
 });
 
-const FileView = memo(function FileView({ path, blobSha, contents, selection, onSelectionChange, onSelectionCommit, className }: CodeFileProps) {
+const FileView = memo(function FileView({
+    path,
+    blobSha,
+    contents,
+    selection,
+    onSelectionChange,
+    onSelectionCommit,
+    annotations,
+    renderAnnotation,
+    onComment,
+    className,
+}: CodeFileProps) {
     const view = useRef<CodeViewHandle<undefined, undefined>>(null);
     // The last range that the view reported. A different `selection` comes from outside and is scrolled to.
     const reported = useRef<LineRange | null>(null);
+    // Changing view options renders the whole file again, so the options read the latest handler.
+    const commentHandler = useRef(onComment);
+    // The view applies a changed item only when its version changes.
+    const itemVersion = useRef(0);
+    const commentable = null !== onComment;
+
+    useEffect(() => {
+        commentHandler.current = onComment;
+    }, [onComment]);
 
     const items = useMemo<CodeViewItem<undefined>[]>(
-        // The language follows the name, so equal bytes at another path need their own highlighting.
-        () => [{ id: path, type: 'file', file: { name: path, contents: cleanLastNewline(contents), cacheKey: `${blobSha}:${path}` } }],
-        [path, blobSha, contents],
+        () => [
+            {
+                id: path,
+                type: 'file',
+                // The language follows the name, so equal bytes at another path need their own highlighting.
+                file: { name: path, contents: cleanLastNewline(contents), cacheKey: `${blobSha}:${path}` },
+                annotations: [...annotations],
+                version: ++itemVersion.current,
+            },
+        ],
+        [path, blobSha, contents, annotations],
     );
     const selectedLines = useMemo<CodeViewLineSelection | null>(() => (null === selection ? null : { id: path, range: selection }), [path, selection]);
     const options = useMemo<CodeViewReactOptions<undefined, undefined>>(
-        () => ({ ...BASE_VIEW_OPTIONS, onLineSelected: (range: SelectedLineRange | null) => onSelectionCommit(toLineRange(range)) }),
-        [onSelectionCommit],
+        () => ({
+            ...BASE_VIEW_OPTIONS,
+            onLineSelected: (range: SelectedLineRange | null) => onSelectionCommit(toLineRange(range)),
+            enableGutterUtility: commentable,
+            onGutterUtilityClick: commentable ? ({ start, end }: SelectedLineRange) => commentHandler.current?.({ start, end }) : undefined,
+        }),
+        [onSelectionCommit, commentable],
     );
     const reportSelection = useCallback(
         (next: CodeViewLineSelection | null) => {
@@ -70,6 +111,8 @@ const FileView = memo(function FileView({ path, blobSha, contents, selection, on
         },
         [onSelectionChange],
     );
+    // Without the wrapper, annotation content inherits the code font of the view.
+    const renderSlot = useCallback((annotation: LineAnnotation<undefined>) => <BaseStyles>{renderAnnotation(annotation.lineNumber)}</BaseStyles>, [renderAnnotation]);
 
     useEffect(() => {
         if (null !== selection && !isSameRange(selection, reported.current)) {
@@ -77,7 +120,17 @@ const FileView = memo(function FileView({ path, blobSha, contents, selection, on
         }
     }, [path, selection]);
 
-    return <CodeView ref={view} items={items} selectedLines={selectedLines} onSelectedLinesChange={reportSelection} options={options} className={className} />;
+    return (
+        <CodeView
+            ref={view}
+            items={items}
+            selectedLines={selectedLines}
+            onSelectedLinesChange={reportSelection}
+            options={options}
+            renderAnnotation={renderSlot}
+            className={className}
+        />
+    );
 });
 
 function toLineRange(range: SelectedLineRange | null): LineRange | null {

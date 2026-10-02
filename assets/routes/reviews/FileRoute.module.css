@@ -7,6 +7,10 @@
     overflow: hidden;
 }
 
+.fileThreads {
+    border-bottom: var(--borderWidth-thin) solid var(--borderColor-default);
+}
+
 /* CodeView virtualizes inside its own scroll container, which needs a fixed height. */
 .viewport {
     height: 70vh;

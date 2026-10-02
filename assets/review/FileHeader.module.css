@@ -9,6 +9,13 @@
     background-color: var(--bgColor-muted);
 }
 
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-8);
+}
+
 .path {
     margin: 0;
     font-family: var(--fontStack-monospace);

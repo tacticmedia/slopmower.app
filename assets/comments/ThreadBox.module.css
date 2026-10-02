@@ -1,0 +1,70 @@
+.thread {
+    border: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-radius: var(--borderRadius-medium);
+    background-color: var(--bgColor-default);
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: var(--base-size-8);
+    padding: var(--base-size-8) var(--base-size-12);
+    border-bottom: var(--borderWidth-thin) solid var(--borderColor-muted);
+    background-color: var(--bgColor-muted);
+    border-top-left-radius: var(--borderRadius-medium);
+    border-top-right-radius: var(--borderRadius-medium);
+}
+
+.lines {
+    color: var(--fgColor-muted);
+    font-size: var(--text-body-size-small);
+}
+
+.comments {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.comment {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-4);
+    padding: var(--base-size-12);
+}
+
+.comment + .comment {
+    border-top: var(--borderWidth-thin) solid var(--borderColor-muted);
+}
+
+.comment[aria-busy='true'] {
+    opacity: 0.6;
+}
+
+.meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-6);
+    font-size: var(--text-body-size-medium);
+}
+
+/* The raw Markdown while the renderer loads. */
+.plain {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.muted {
+    color: var(--fgColor-muted);
+}
+
+.menu {
+    margin-left: auto;
+}
+
+.reply {
+    padding: var(--base-size-12);
+    border-top: var(--borderWidth-thin) solid var(--borderColor-muted);
+}

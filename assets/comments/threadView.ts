@@ -1,0 +1,63 @@
+import type { Actor } from '../api/types/actor';
+import type { DateTime, RequestStatus, ThreadEntryType, Ulid } from '../api/types/common';
+import type { Request as ReviewRequest } from '../api/types/request';
+import type { LineRange } from '../code/lineHash';
+
+/** A thread entry with a body. */
+export type CommentView = {
+    key: string;
+    type: ThreadEntryType;
+    author: Actor;
+    occurredAt: DateTime;
+    body: string;
+    question: boolean;
+    /** Shown before the server confirms it. */
+    pending: boolean;
+};
+
+export type ThreadView = {
+    key: string;
+    /** Null until Q2 answers. */
+    requestId: Ulid | null;
+    status: RequestStatus;
+    /** Null for a file anchor. */
+    range: LineRange | null;
+    comments: CommentView[];
+    replyable: boolean;
+};
+
+/**
+ * Entries without a body, such as a claim, are left out: the status label shows their effect.
+ */
+export function threadView(request: ReviewRequest): ThreadView {
+    const comments: CommentView[] = [];
+
+    for (const entry of request.thread) {
+        if (null !== entry.body) {
+            comments.push({ key: entry.eventId, type: entry.type, author: entry.actor, occurredAt: entry.occurredAt, body: entry.body, question: entry.question, pending: false });
+        }
+    }
+
+    return {
+        key: request.id,
+        requestId: request.id,
+        status: request.status,
+        range: null === request.anchor.range ? null : { start: request.anchor.range.startLine, end: request.anchor.range.endLine },
+        comments,
+        replyable: request.allowedActions.includes('reply'),
+    };
+}
+
+let pendingCount = 0;
+
+export function pendingComment(type: ThreadEntryType, body: string, author: Actor): CommentView {
+    pendingCount += 1;
+
+    return { key: `pending-${pendingCount}`, type, author, occurredAt: new Date().toISOString(), body, question: false, pending: true };
+}
+
+export function pendingThread(range: LineRange | null, body: string, author: Actor): ThreadView {
+    const opened = pendingComment('request.opened', body, author);
+
+    return { key: opened.key, requestId: null, status: 'open', range, comments: [opened], replyable: false };
+}

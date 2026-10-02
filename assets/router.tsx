@@ -8,7 +8,7 @@ import { HomeRoute } from './routes/HomeRoute';
 import { RepositoriesRoute, repositoriesAction, repositoriesLoader } from './routes/repositories/RepositoriesRoute';
 import { RepositoryRoute, repositoryAction, repositoryLoader } from './routes/repositories/RepositoryRoute';
 import { CodeLayout, codeLayoutLoader, NoFileSelected } from './routes/reviews/CodeLayout';
-import { FileRoute, fileLoader } from './routes/reviews/FileRoute';
+import { fileAction, fileLoader } from './routes/reviews/fileData';
 import { ReviewLayout, reviewAction, reviewLoader } from './routes/reviews/ReviewLayout';
 import { treeLoader } from './routes/reviews/treeData';
 import { SettingsRoute } from './routes/settings/SettingsRoute';
@@ -42,7 +42,14 @@ export const router = createBrowserRouter([
                                 errorElement: <RouteError embedded />,
                                 children: [
                                     { index: true, element: <NoFileSelected /> },
-                                    { path: 'files/*', loader: fileLoader, element: <FileRoute />, errorElement: <RouteError embedded /> },
+                                    {
+                                        path: 'files/*',
+                                        loader: fileLoader,
+                                        action: fileAction,
+                                        // The loader stays in the shell bundle and runs while the component chunk loads.
+                                        lazy: { Component: () => import('./routes/reviews/FileRoute').then(({ FileRoute }) => FileRoute) },
+                                        errorElement: <RouteError embedded />,
+                                    },
                                 ],
                             },
                             { path: 'tree', loader: treeLoader },

@@ -1,0 +1,4 @@
+/* GitHub comments use the body size, not the 16px of a README. */
+.body {
+    font-size: var(--text-body-size-medium);
+}
