@@ -105,12 +105,12 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M12 | [Reviews API](M12-reviews-api.md) | Done | 2026-10-02 | [Report](reports/M12.md) |
 | M13 | [Requests API, user side](M13-requests-api-user-side.md) | Done | 2026-10-02 | [Report](reports/M13.md) |
 | M14 | [API tokens](M14-api-tokens.md) | Done | 2026-10-02 | [Report](reports/M14.md) |
-| M15 | [MCP server and read tools](M15-mcp-server-and-read-tools.md) | Not started | | |
+| M15 | [MCP server and read tools](M15-mcp-server-and-read-tools.md) | In progress | 2026-10-02 | |
 | M16 | [MCP write tools and headless slice](M16-mcp-write-tools-and-headless-slice.md) | Not started | | Headless slice |
 | M17 | [Front-end shell](M17-front-end-shell.md) | Done | 2026-10-02 | [Report](reports/M17.md) |
 | M18 | [Repositories and reviews screens](M18-repositories-and-reviews-screens.md) | Done | 2026-10-02 | [Report](reports/M18.md) |
 | M19 | [Settings: API tokens](M19-settings-api-tokens.md) | Done | 2026-10-02 | [Report](reports/M19.md) |
-| M20 | [Code view](M20-code-view.md) | In progress | 2026-10-02 | |
+| M20 | [Code view](M20-code-view.md) | Done | 2026-10-02 | [Report](reports/M20.md) |
 | M21 | [Commenting UI](M21-commenting-ui.md) | Not started | | |
 | M22 | [Verify UI and vertical slice](M22-verify-ui-and-vertical-slice.md) | Not started | | Vertical slice |
 | M23 | [Public docs and downloadable skill](M23-public-docs-and-downloadable-skill.md) | Not started | | |
@@ -180,6 +180,7 @@ For verbose PHPUnit output, use `--debug`. Never use `-v` or `--verbose`. Exampl
 | `LOCK_DSN` | `.env`, with the host `database` | Store of `symfony/lock`: PostgreSQL advisory locks, from M08 on |
 | `MERCURE_URL`, `MERCURE_PUBLIC_URL`, `MERCURE_JWT_SECRET` | `.env` files. Also `MERCURE_URL` in the compose `worker` service, and `MERCURE_JWT_SECRET` in the compose `php` service, because Caddy reads only the container environment. | Hub URL for the publisher, hub URL for the browser, JWT secret |
 | `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_SLUG` | Empty in `.env`, real values in `.env.local`, fake values in `.env.test` | GitHub App identity, from M32 on. Empty means that no GitHub App is configured. |
+| `GITHUB_GIT_BASE_URL` | `.env`, default `https://github.com` | Base URL for GitHub clone and fetch, from M33 on. Tests point it at a local bare repository. The token extraheader stays bound to `https://github.com`, so another base URL never receives the token. |
 | `GITHUB_APP_CLIENT_SECRET`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET` | Secrets vault or `.env.local`, fake values in `.env.test` | GitHub App credentials: the client secret from M32 on, the private key from M33 on, the webhook secret from M34 on. Read with `%env(default::<NAME>)%`, not with a default in `.env`, because a `.env` value wins over the vault. |
 
 A local run with local repositories and local sign-in needs no GitHub App:

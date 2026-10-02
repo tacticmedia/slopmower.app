@@ -1,0 +1,25 @@
+.file {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-radius: var(--borderRadius-medium);
+    overflow: hidden;
+}
+
+/* CodeView virtualizes inside its own scroll container, which needs a fixed height. */
+.viewport {
+    height: 70vh;
+    min-height: 20rem;
+}
+
+.scroller {
+    height: 100%;
+    overflow: auto;
+}
+
+.loading {
+    display: flex;
+    justify-content: center;
+    padding: var(--base-size-32);
+}

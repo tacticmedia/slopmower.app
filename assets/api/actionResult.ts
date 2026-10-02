@@ -8,7 +8,7 @@ export type ActionResult = { error: string } | null;
 /**
  * A 401 and failures that are not API errors reach the error boundary.
  */
-export function actionError(error: unknown): ActionResult {
+export function actionError(error: unknown): { error: string } {
     if (error instanceof ApiError && 401 !== error.status) {
         return { error: error.message };
     }

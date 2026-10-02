@@ -1,0 +1,18 @@
+.header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--base-size-8);
+    padding: var(--base-size-8) var(--base-size-16);
+    border-bottom: var(--borderWidth-thin) solid var(--borderColor-default);
+    background-color: var(--bgColor-muted);
+}
+
+.path {
+    margin: 0;
+    font-family: var(--fontStack-monospace);
+    font-size: var(--text-body-size-medium);
+    font-weight: var(--base-text-weight-semibold);
+    overflow-wrap: anywhere;
+}

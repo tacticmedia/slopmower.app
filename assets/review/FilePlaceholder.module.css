@@ -1,0 +1,6 @@
+.placeholder {
+    margin: 0;
+    padding: var(--base-size-32) var(--base-size-16);
+    color: var(--fgColor-muted);
+    text-align: center;
+}

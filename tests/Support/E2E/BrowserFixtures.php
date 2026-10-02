@@ -13,6 +13,7 @@ use App\Entity\Repository;
 use App\Entity\User;
 use App\Tenancy\TenantContext;
 use App\Tests\Support\Fixtures\TenantFixtures;
+use App\Tests\Support\Git\FixtureRepositories;
 use App\Tests\Support\Git\GitRepositoryBuilder;
 use App\Tests\Support\Messenger\QueuedMessages;
 use PHPUnit\Framework\Attributes\After;
@@ -57,14 +58,16 @@ trait BrowserFixtures
     /**
      * A git repository with one commit on main.
      *
+     * @param array<string, string> $files Content by path, for example {@see FixtureRepositories::codeView()}
+     *
      * @return string The directory name
      */
-    private function localSource(): string
+    private function localSource(array $files = ['README.md' => "Hello\n"]): string
     {
         $directory = 'e2e-'.bin2hex(random_bytes(4));
         $path = Path::join(self::environmentPath('APP_LOCAL_REPOSITORIES_DIR'), $directory);
         $this->pathsToRemove[] = $path;
-        GitRepositoryBuilder::init($path)->commit(['README.md' => "Hello\n"]);
+        GitRepositoryBuilder::init($path)->commit($files);
 
         return $directory;
     }

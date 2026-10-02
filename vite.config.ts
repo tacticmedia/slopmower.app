@@ -12,6 +12,10 @@ export default defineConfig(({ mode }) => ({
         react(),
         Symfony('e2e' === mode ? { outputPath: 'public/build-e2e', publicPath: '/build-e2e/' } : {}),
     ],
+    // ES workers split chunks: the @pierre/diffs worker then loads the Shiki WASM engine only on demand.
+    worker: {
+        format: 'es',
+    },
     test: {
         include: ['assets/**/*.test.ts'],
     },

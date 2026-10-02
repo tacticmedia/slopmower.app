@@ -29,6 +29,19 @@ export function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> {
 }
 
 /**
+ * The body of a byte endpoint, decoded as UTF-8.
+ */
+export async function apiGetText(path: string, signal?: AbortSignal): Promise<string> {
+    const response = await fetch(path, { signal, credentials: 'same-origin' });
+
+    if (!response.ok) {
+        throw await toApiError(response);
+    }
+
+    return response.text();
+}
+
+/**
  * Follows `nextCursor` to the last page. Returns the first page with the items of every page.
  */
 export async function apiGetAllPages<P extends { items: unknown[]; nextCursor: string | null }>(path: string, signal?: AbortSignal): Promise<P> {
