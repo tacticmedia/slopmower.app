@@ -1,0 +1,11 @@
+.page {
+    min-height: 100vh;
+    padding: var(--base-size-32) var(--base-size-16);
+    background-color: var(--bgColor-default);
+}
+
+.centered {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

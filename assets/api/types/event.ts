@@ -1,0 +1,23 @@
+import type { Actor } from './actor';
+import type { CommitSha, DateTime, EventSeq, EventType, RequestStatus, Ulid } from './common';
+
+export type Event = {
+    seq: EventSeq;
+    eventId: Ulid;
+    type: EventType;
+    reviewId: Ulid;
+    /** Set for request.* and commit.unlinked. */
+    requestId: Ulid | null;
+    /** Every request the event concerns; [] for review events. */
+    requestIds: Ulid[];
+    actor: Actor;
+    occurredAt: DateTime;
+    body: string | null;
+    commentId: Ulid | null;
+    question: boolean;
+    batchId: Ulid | null;
+    /** commit.* and review.started. */
+    commitSha: CommitSha | null;
+    /** Null when requestId is null. */
+    statusAfter: RequestStatus | null;
+};

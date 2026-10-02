@@ -102,12 +102,12 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M09 | [Local repository source](M09-local-repository-source.md) | Done | 2026-10-02 | [Report](reports/M09.md) |
 | M10 | [Sign-in and security](M10-sign-in-and-security.md) | Done | 2026-10-02 | [Report](reports/M10.md) |
 | M11 | [REST foundation and repositories API](M11-rest-foundation-and-repositories-api.md) | Done | 2026-10-02 | [Report](reports/M11.md) |
-| M12 | [Reviews API](M12-reviews-api.md) | Not started | | |
+| M12 | [Reviews API](M12-reviews-api.md) | In progress | 2026-10-02 | |
 | M13 | [Requests API, user side](M13-requests-api-user-side.md) | Not started | | |
-| M14 | [API tokens](M14-api-tokens.md) | Not started | | |
+| M14 | [API tokens](M14-api-tokens.md) | In progress | 2026-10-02 | |
 | M15 | [MCP server and read tools](M15-mcp-server-and-read-tools.md) | Not started | | |
 | M16 | [MCP write tools and headless slice](M16-mcp-write-tools-and-headless-slice.md) | Not started | | Headless slice |
-| M17 | [Front-end shell](M17-front-end-shell.md) | Not started | | |
+| M17 | [Front-end shell](M17-front-end-shell.md) | Done | 2026-10-02 | [Report](reports/M17.md) |
 | M18 | [Repositories and reviews screens](M18-repositories-and-reviews-screens.md) | Not started | | |
 | M19 | [Settings: API tokens](M19-settings-api-tokens.md) | Not started | | |
 | M20 | [Code view](M20-code-view.md) | Not started | | |
@@ -146,7 +146,7 @@ PHP, Composer, the console, and PHPUnit run in the `php` container. `make` wraps
 | `make migration` | `bin/console make:migration --no-interaction` |
 | `make db-reset` | Dev database: drop, create, migrate. Ask Jan first. |
 | `make db-test` | Database `app_test`: create it if it is missing, then migrate |
-| `make test` | `bin/phpunit --testsuite unit,functional` |
+| `make test` | `bin/phpunit --testsuite unit,functional`. Runs `npm run build:e2e` first when `public/build-e2e` is missing. |
 | `make e2e` | `npm run build:e2e` on the host when `package.json` exists, then `bin/phpunit --testsuite e2e` |
 | `make stan` | `cache:warmup --env=dev`, then `vendor/bin/phpstan analyse` at level 8 |
 | `make cs` | `vendor/bin/php-cs-fixer fix --dry-run --diff` |
@@ -164,7 +164,7 @@ For verbose PHPUnit output, use `--debug`. Never use `-v` or `--verbose`. Exampl
 | App | `http://localhost:8000`: `dev` environment, FrankenPHP worker mode, Mercure hub at `/.well-known/mercure` |
 | E2E site | `http://localhost:8081`: `e2e` environment, classic mode, reachable only inside the `php` container |
 | PostgreSQL | `127.0.0.1:5432`, databases `app` for `dev` and `app_test` for `test` and `e2e` |
-| Vite dev server | `npm run dev` on the host |
+| Vite dev server | `npm run dev` on the host. The `dev` shell pages need it running, or a build from `npm run build`. |
 | MCP endpoint | `http://localhost:8000/_mcp` |
 | Public documentation | `http://localhost:8000/docs`, raw skill at `http://localhost:8000/docs/skill/SKILL.md` |
 

@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block stylesheets %}
+    {{ reprise_entry_link_tags('app') }}
+{% endblock %}
+
+{% block javascripts %}
+    {{ reprise_entry_script_tags('app') }}
+{% endblock %}
+
+{% block body %}
+    <div id="root"></div>
+{% endblock %}

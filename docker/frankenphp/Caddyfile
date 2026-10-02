@@ -33,6 +33,8 @@
 			watch /app/src/**/*.php
 			watch /app/config/**/*.{php,yaml}
 			watch /app/templates/**/*.twig
+			# Reprise keeps the parsed entrypoints in memory. The watched root is public/build.
+			watch /app/public/build/entrypoints.json
 		}
 	}
 }

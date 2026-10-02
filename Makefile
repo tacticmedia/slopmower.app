@@ -45,6 +45,9 @@ db-test: ## Create app_test when it is missing, then migrate it
 	$(CONSOLE) doctrine:migrations:migrate --no-interaction --all-or-nothing --allow-no-migration --env=test
 
 test: ## Unit and functional suites
+ifneq ($(PACKAGE_JSON),)
+	test -f public/build-e2e/entrypoints.json || npm run build:e2e
+endif
 	$(PHP) bin/phpunit --testsuite unit,functional
 
 e2e: ## Panther suite against the e2e site on port 8081

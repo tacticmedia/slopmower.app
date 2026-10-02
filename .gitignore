@@ -18,3 +18,9 @@
 /.php-cs-fixer.php
 /.php-cs-fixer.cache
 ###< friendsofphp/php-cs-fixer ###
+
+###> symfony/reprise ###
+/node_modules/
+/public/build/
+###< symfony/reprise ###
+/public/build-e2e/

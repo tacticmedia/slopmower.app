@@ -18,12 +18,15 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
 use Symfony\Component\Security\Http\SecurityRequestAttributes;
+use Symfony\Component\Security\Http\Util\TargetPathTrait;
 
 /**
  * D25. Configured in every environment, so the guard is in code, not in a `when@dev` firewall.
  */
 final class LocalSignInAuthenticator extends AbstractAuthenticator
 {
+    use TargetPathTrait;
+
     public const string PATH = '/login/local';
     public const string CSRF_TOKEN_ID = 'authenticate';
 
@@ -64,7 +67,11 @@ final class LocalSignInAuthenticator extends AbstractAuthenticator
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): Response
     {
-        return new RedirectResponse('/');
+        $session = $request->getSession();
+        $targetPath = $this->getTargetPath($session, $firewallName) ?? '/';
+        $this->removeTargetPath($session, $firewallName);
+
+        return new RedirectResponse($targetPath);
     }
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): Response
