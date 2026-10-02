@@ -11,6 +11,7 @@ use App\Domain\Git\RefName;
 use App\Domain\Git\RepoPath;
 use App\Git\BareClone;
 use App\Git\Blob;
+use App\Git\GitFailed;
 use App\Git\GitReader;
 use App\Git\GitRunner;
 use App\Git\ObjectType;
@@ -108,6 +109,16 @@ final class GitReaderTest extends KernelTestCase
         }
 
         self::assertEquals($this->commit, $this->reader->resolvePrefix($this->clone, CommitShaPrefix::fromString(substr($this->commit->toString(), 0, 7))));
+    }
+
+    #[TestDox('An entry lookup gives null for a missing path and rethrows other git failures')]
+    public function testEntryAtGivesNullForMissingPathAndRethrowsOtherFailures(): void
+    {
+        $entryAt = fn (string $path): ?TreeEntry => $this->reader->entryAt($this->clone, $this->commit, RepoPath::fromString($path));
+
+        self::assertSame(['src/App.php', null, null, null], [$entryAt('src/App.php')?->path, $entryAt('src/Missing.php'), $entryAt('missing/App.php'), $entryAt('README.md/App.php')]);
+        $this->expectException(GitFailed::class);
+        $this->reader->entryAt($this->temporaryDirectory().'/missing.git', $this->commit, RepoPath::fromString('src/App.php'));
     }
 
     private function blobAt(string $path): Blob

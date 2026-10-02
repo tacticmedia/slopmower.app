@@ -41,7 +41,7 @@ $kernel = new class('appendEvents') extends KernelTestCase {
 
         for ($index = 1; $index <= $eventCount; ++$index) {
             $command = new StartReview("{$writer} {$index}", RefName::fromString('main'), CommitSha::fromString('79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091'));
-            self::getContainer()->get(ReviewCommands::class)->start(ReviewId::generate(), $repositoryId, $command, RequestScenario::user());
+            self::getContainer()->get(ReviewCommands::class)->recordStarted(ReviewId::generate(), $repositoryId, $command, RequestScenario::user());
         }
 
         self::ensureKernelShutdown();

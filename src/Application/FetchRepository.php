@@ -163,6 +163,15 @@ final class FetchRepository
         return null === $reason ? $repository : throw new RepositoryUnavailable($id, $reason);
     }
 
+    /**
+     * @throws NotFound
+     * @throws RepositoryUnavailable
+     */
+    public function readyClonePath(RepositoryId $id): string
+    {
+        return $this->paths->clonePath($this->cloneReady($id)->getTenantId(), $id);
+    }
+
     #[AsMessageHandler]
     public function handleClone(CloneRepositoryJob $job): void
     {

@@ -27,9 +27,12 @@ final class ActorKindTest extends WebTestCase
     public function testSessionOnlyEndpointRefusesToken(string $method, string $path): void
     {
         $client = static::createClient();
-        [$token, $secret] = self::storeToken(TenantFixtures::of(self::getContainer())->create());
+        $user = TenantFixtures::of(self::getContainer())->create();
+        [$token, $secret] = self::storeToken($user);
+        $review = self::storeReview($user, 'billing');
+        $path = strtr($path, ['{tokenId}' => $token->getId()->toString(), '{repositoryId}' => $review->getRepository()->getId()->toString(), '{reviewId}' => $review->getId()->toString()]);
 
-        $response = self::bearerRequest($client, $secret, $method, str_replace('{tokenId}', $token->getId()->toString(), $path), 'GET' === $method ? null : []);
+        $response = self::bearerRequest($client, $secret, $method, $path, 'GET' === $method ? null : []);
 
         self::assertSame(CurrentActor::SESSION_ONLY, self::assertApiError($response, 403, 'forbidden')['message']);
     }
@@ -51,6 +54,8 @@ final class ActorKindTest extends WebTestCase
     {
         yield 'R2' => ['GET', '/api/v1/repositories/candidates'];
         yield 'R3' => ['POST', '/api/v1/repositories'];
+        yield 'V1' => ['POST', '/api/v1/repositories/{repositoryId}/reviews'];
+        yield 'V4' => ['POST', '/api/v1/reviews/{reviewId}/close'];
         yield 'T1' => ['GET', '/api/v1/tokens'];
         yield 'T2' => ['POST', '/api/v1/tokens'];
         yield 'T3' => ['DELETE', '/api/v1/tokens/{tokenId}'];

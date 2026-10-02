@@ -79,21 +79,57 @@ final class GitReader implements ResetInterface
 
     /**
      * @return list<TreeEntry>
+     *
+     * @throws GitFailed When the directory is missing or not a directory
      */
     public function lsTree(string $gitDir, CommitSha $commit, ?RepoPath $directory = null): array
     {
-        $treeish = null === $directory ? $commit->toString() : "{$commit}:{$directory}";
-        $pathPrefix = null === $directory ? '' : "{$directory}/";
-
-        return $this->treeEntries($this->git->run($gitDir, ['ls-tree', '--long', '-z', '--end-of-options', $treeish]), $pathPrefix);
+        return $this->listTree($gitDir, $commit, $directory, []);
     }
 
     /**
      * @return list<TreeEntry> Blobs and submodules, without trees
+     *
+     * @throws GitFailed When the directory is missing or not a directory
      */
-    public function lsTreeRecursive(string $gitDir, CommitSha $commit): array
+    public function lsTreeRecursive(string $gitDir, CommitSha $commit, ?RepoPath $directory = null): array
     {
-        return $this->treeEntries($this->git->run($gitDir, ['ls-tree', '-r', '--long', '-z', '--end-of-options', $commit->toString()]), '');
+        return $this->listTree($gitDir, $commit, $directory, ['-r']);
+    }
+
+    /**
+     * @return TreeEntry|null Null when nothing has this path at the commit
+     *
+     * @throws GitFailed
+     */
+    public function entryAt(string $gitDir, CommitSha $commit, RepoPath $path): ?TreeEntry
+    {
+        $slash = strrpos($path->toString(), '/');
+        $parent = false === $slash ? null : RepoPath::fromString(substr($path->toString(), 0, $slash));
+
+        try {
+            $siblings = $this->lsTree($gitDir, $commit, $parent);
+        } catch (GitFailed $failure) {
+            // GitRunner sets LC_ALL=C, so the messages of a missing parent and of a file or submodule parent are stable.
+            $isMissingParent = null !== $parent && (str_ends_with($failure->getMessage(), ": fatal: Not a valid object name {$commit}:{$parent}")
+                || str_ends_with($failure->getMessage(), ': fatal: not a tree object'));
+
+            return $isMissingParent ? null : throw $failure;
+        }
+
+        return array_find($siblings, static fn (TreeEntry $entry): bool => $entry->path === $path->toString());
+    }
+
+    /**
+     * Starts a process of its own, so the stream does not hold the shared batch process of the clone.
+     *
+     * @return StreamedBlob|null Null when the object is missing or not a blob
+     *
+     * @throws GitFailed
+     */
+    public function openBlob(string $gitDir, BlobSha $blob): ?StreamedBlob
+    {
+        return StreamedBlob::open($this->git, $gitDir, $blob);
     }
 
     /**
@@ -146,6 +182,19 @@ final class GitReader implements ResetInterface
 
             throw $failure;
         }
+    }
+
+    /**
+     * @param list<string> $options
+     *
+     * @return list<TreeEntry>
+     */
+    private function listTree(string $gitDir, CommitSha $commit, ?RepoPath $directory, array $options): array
+    {
+        $treeish = null === $directory ? $commit->toString() : "{$commit}:{$directory}";
+        $pathPrefix = null === $directory ? '' : "{$directory}/";
+
+        return $this->treeEntries($this->git->run($gitDir, ['ls-tree', ...$options, '--long', '-z', '--end-of-options', $treeish]), $pathPrefix);
     }
 
     /**

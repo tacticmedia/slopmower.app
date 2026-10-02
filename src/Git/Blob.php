@@ -9,7 +9,7 @@ use App\Domain\Git\BlobSha;
 final readonly class Blob
 {
     /** Git's own binary check looks at the same number of bytes. */
-    private const int BINARY_CHECK_BYTES = 8000;
+    public const int BINARY_CHECK_BYTES = 8000;
 
     public function __construct(public BlobSha $sha, public string $bytes)
     {

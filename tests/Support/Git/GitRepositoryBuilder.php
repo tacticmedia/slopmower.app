@@ -12,6 +12,9 @@ use Symfony\Component\Process\Process;
  */
 final class GitRepositoryBuilder
 {
+    /** The commits of {@see branchCommitsWithAmbiguousPrefix()} share this SHA prefix. */
+    public const string AMBIGUOUS_PREFIX = '0806e1e';
+
     private const array ENVIRONMENT = [
         'GIT_CONFIG_NOSYSTEM' => '1',
         'GIT_CONFIG_GLOBAL' => '/dev/null',
@@ -67,6 +70,23 @@ final class GitRepositoryBuilder
         return $this;
     }
 
+    /**
+     * The branches `first` and `second`, each with one commit on the empty tree. Fixed dates make the SHAs start with
+     * {@see AMBIGUOUS_PREFIX}.
+     */
+    public function branchCommitsWithAmbiguousPrefix(): void
+    {
+        $emptyTree = trim($this->gitWithInput('', 'hash-object', '-t', 'tree', '-w', '--stdin'));
+
+        foreach (['first' => 'Commit 27811', 'second' => 'Commit 29253'] as $branch => $message) {
+            $commit = trim($this->gitWithInput(
+                "tree {$emptyTree}\nauthor Test <test@example.invalid> 1700000000 +0000\ncommitter Test <test@example.invalid> 1700000000 +0000\n\n{$message}\n",
+                'hash-object', '-t', 'commit', '-w', '--stdin',
+            ));
+            $this->git('branch', $branch, $commit);
+        }
+    }
+
     public function revParse(string $revision): string
     {
         return trim($this->git('rev-parse', '--verify', '--end-of-options', $revision));
@@ -74,6 +94,11 @@ final class GitRepositoryBuilder
 
     public function git(string ...$arguments): string
     {
-        return new Process(['git', ...$arguments], $this->path, self::ENVIRONMENT)->mustRun()->getOutput();
+        return $this->gitWithInput(null, ...$arguments);
+    }
+
+    private function gitWithInput(?string $input, string ...$arguments): string
+    {
+        return new Process(['git', ...$arguments], $this->path, self::ENVIRONMENT, $input)->mustRun()->getOutput();
     }
 }

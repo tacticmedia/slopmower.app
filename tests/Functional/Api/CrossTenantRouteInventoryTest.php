@@ -107,25 +107,27 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
     }
 
     /**
-     * The other tenant connected the local source "billing" and has an API token. The signed-in tenant has its own
-     * repository "alpha".
+     * The other tenant connected the local source "billing", has a review of it, and has an API token. The signed-in
+     * tenant has its own repository "alpha".
      *
      * @return array{KernelBrowser, array<string, string>} The client, and the IDs of the other tenant by placeholder name
      */
     private function twoTenants(): array
     {
         $this->useTemporaryLocalSources();
-        $this->newSource('billing');
+        $source = $this->newSource('billing');
         $client = static::createClient();
         $other = TenantFixtures::of(self::getContainer())->withLogin('other')->create();
-        $otherRepository = self::storeRepository($other->getTenantId(), 'billing');
+        $otherReview = self::storeReview($other, 'billing');
         [$otherToken] = self::storeToken($other);
         self::storeRepository(self::signIn($client)->getTenantId(), 'alpha');
 
         return [$client, [
             'tenantId' => $other->getTenantId()->toString(),
             'userId' => $other->getId()->toString(),
-            'repositoryId' => $otherRepository->getId()->toString(),
+            'repositoryId' => $otherReview->getRepository()->getId()->toString(),
+            'reviewId' => $otherReview->getId()->toString(),
+            'blobSha' => $source->revParse('main:README.md'),
             'tokenId' => $otherToken->getId()->toString(),
         ]];
     }

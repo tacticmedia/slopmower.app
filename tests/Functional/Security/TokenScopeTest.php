@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Security;
 
-use App\Entity\Repository;
 use App\Entity\Review;
 use App\Tenancy\TenantContext;
 use App\Tests\Support\Api\ApiFixtures;
@@ -39,10 +38,6 @@ final class TokenScopeTest extends WebTestCase
         self::assertSame([$alpha->getId()->toString()], array_column($page['items'], 'id'));
     }
 
-    /**
-     * No route reads a review before M12, so the review part looks it up the way a path ID resolves: find() under the
-     * tenant and the repository scope that the token handler sets.
-     */
     #[TestDox('A scoped token gets 404 for another repository and its reviews')]
     public function testOtherRepositoryAndItsReviewsAreNotFound(): void
     {
@@ -58,13 +53,8 @@ final class TokenScopeTest extends WebTestCase
 
         self::assertApiError(self::bearerRequest($client, $secret, 'GET', "/api/v1/repositories/{$billingId}"), 404, 'not_found');
         self::assertApiError(self::bearerRequest($client, $secret, 'POST', "/api/v1/repositories/{$billingId}/fetch"), 404, 'not_found');
-
-        self::entityManager()->clear();
-        $tenantContext = self::getContainer()->get(TenantContext::class);
-        $tenantContext->set($user->getTenantId());
-        $tenantContext->restrictToRepository($alpha->getId());
-        self::assertNull(self::entityManager()->find(Review::class, $reviewId));
-        self::assertNotNull(self::entityManager()->find(Repository::class, Ulid::fromString($alpha->getId()->toString())));
+        self::assertApiError(self::bearerRequest($client, $secret, 'GET', "/api/v1/reviews/{$scenario->review()->id}"), 404, 'not_found');
+        self::assertApiResponse(self::bearerRequest($client, $secret, 'GET', "/api/v1/repositories/{$alpha->getId()}"), 200, 'repository.schema.json');
     }
 
     #[TestDox('/api/v1/me shows the scope of the token')]

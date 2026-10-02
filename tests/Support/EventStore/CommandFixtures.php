@@ -43,7 +43,7 @@ trait CommandFixtures
     {
         $reviewId = ReviewId::generate();
         $command = new StartReview($title, RefName::fromString('main'), CommitSha::fromString(self::REVIEW_COMMIT));
-        self::reviewCommands()->start($reviewId, $repositoryId, $command, RequestScenario::user());
+        self::reviewCommands()->recordStarted($reviewId, $repositoryId, $command, RequestScenario::user());
 
         return $reviewId;
     }

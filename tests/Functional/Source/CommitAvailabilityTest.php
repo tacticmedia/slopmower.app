@@ -20,7 +20,6 @@ use App\Tests\Support\Persistence\ReviewDataFixtures;
 use App\Tests\Support\Source\LocalSources;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Filesystem\Filesystem;
 
 final class CommitAvailabilityTest extends KernelTestCase
 {
@@ -31,9 +30,6 @@ final class CommitAvailabilityTest extends KernelTestCase
     use ResetDatabase;
     use ReviewDataFixtures;
     use TemporaryDirectories;
-
-    /** The commit objects "Commit 27811" and "Commit 29253" on the empty tree, see {@see craftCommit()}, share this prefix. */
-    private const string AMBIGUOUS_PREFIX = '0806e1e';
 
     private GitRepositoryBuilder $source;
 
@@ -103,11 +99,10 @@ final class CommitAvailabilityTest extends KernelTestCase
     #[TestDox('A prefix of two commits gives invalid_input without a fetch')]
     public function testAmbiguousPrefixIsInvalidInput(): void
     {
-        $this->source->git('branch', 'first', $this->craftCommit(27811));
-        $this->source->git('branch', 'second', $this->craftCommit(29253));
+        $this->source->branchCommitsWithAmbiguousPrefix();
         $this->connectAndClone();
 
-        self::assertInvalidInput(['commit'], fn (): ?CommitSha => self::commitAvailability()->ensureAvailable($this->repositoryId, CommitShaPrefix::fromString(self::AMBIGUOUS_PREFIX)));
+        self::assertInvalidInput(['commit'], fn (): ?CommitSha => self::commitAvailability()->ensureAvailable($this->repositoryId, CommitShaPrefix::fromString(GitRepositoryBuilder::AMBIGUOUS_PREFIX)));
         self::assertCount(0, $this->fetches);
     }
 
@@ -122,21 +117,6 @@ final class CommitAvailabilityTest extends KernelTestCase
         self::getContainer()->get('event_dispatcher')->addListener(RepositoryFetched::class, function (RepositoryFetched $event): void {
             $this->fetches[] = $event;
         });
-    }
-
-    /**
-     * A commit with fixed dates, so its SHA is known in advance.
-     */
-    private function craftCommit(int $number): string
-    {
-        $directory = $this->temporaryDirectory();
-        $filesystem = new Filesystem();
-        $filesystem->dumpFile("{$directory}/empty", '');
-        $emptyTree = trim($this->source->git('hash-object', '-t', 'tree', '-w', "{$directory}/empty"));
-        $filesystem->dumpFile("{$directory}/commit", "tree {$emptyTree}\n"
-            ."author Test <test@example.invalid> 1700000000 +0000\ncommitter Test <test@example.invalid> 1700000000 +0000\n\nCommit {$number}\n");
-
-        return trim($this->source->git('hash-object', '-t', 'commit', '-w', "{$directory}/commit"));
     }
 
     private static function commitAvailability(): CommitAvailability

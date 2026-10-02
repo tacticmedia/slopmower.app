@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace App\Tests\Support\Api;
 
+use App\Domain\Actor\Actor;
 use App\Domain\ApiToken\ApiTokenSecret;
+use App\Domain\Git\CommitSha;
+use App\Domain\Git\RefName;
+use App\Domain\Identity\ReviewId;
 use App\Domain\Identity\TenantId;
 use App\Domain\Repository\RepositoryName;
 use App\Entity\ApiToken;
 use App\Entity\Repository;
+use App\Entity\Review;
 use App\Entity\User;
 use App\Tenancy\TenantFilter;
 use App\Tests\Support\Fixtures\TenantFixtures;
@@ -85,6 +90,24 @@ trait ApiFixtures
     private static function bearerRequest(KernelBrowser $client, #[\SensitiveParameter] string $secret, string $method, string $uri, ?array $body = null): Response
     {
         return self::apiRequest($client, $method, $uri, $body, ['HTTP_AUTHORIZATION' => "Bearer {$secret}"]);
+    }
+
+    /**
+     * An open review row of the user, without events, of a new local repository row without a clone. Clears the
+     * entity manager.
+     */
+    private static function storeReview(User $user, string $directory): Review
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $now = Clock::get()->now();
+        $repository = Repository::local($user->getTenantId(), RepositoryName::local($directory), $directory, $now);
+        $review = new Review(ReviewId::generate(), $repository, 'main @ 79f8595a4c1e', RefName::fromString('main'), CommitSha::fromString('79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091'), Actor::user($user->getId()), $now, 1);
+        $entityManager->persist($repository);
+        $entityManager->persist($review);
+        $entityManager->flush();
+        $entityManager->clear();
+
+        return $review;
     }
 
     /**
