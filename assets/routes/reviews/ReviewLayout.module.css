@@ -1,0 +1,47 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-16);
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-12);
+    padding-bottom: var(--base-size-16);
+    border-bottom: var(--borderWidth-thin) solid var(--borderColor-default);
+}
+
+.titleRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--base-size-16);
+}
+
+.titleText {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-4);
+}
+
+.repository {
+    font-size: var(--text-body-size-small);
+}
+
+.meta {
+    color: var(--fgColor-muted);
+}
+
+.agent {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--base-size-16) var(--base-size-24);
+}
+
+.note {
+    display: block;
+    margin-top: var(--base-size-4);
+    white-space: pre-wrap;
+}

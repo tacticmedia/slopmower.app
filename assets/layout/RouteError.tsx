@@ -25,11 +25,15 @@ function describeError(error: unknown): ErrorDescription {
     return { title: 'Something went wrong', detail: error instanceof Error ? error.message : 'An unexpected error occurred.', signedOut: false };
 }
 
-export function RouteError() {
+/**
+ * `embedded` renders inside the root layout, so the error of a screen keeps the header.
+ */
+export function RouteError({ embedded = false }: { embedded?: boolean }) {
     const { title, detail, signedOut } = describeError(useRouteError());
+    const Container = embedded ? 'section' : 'main';
 
     return (
-        <main className={styles.page} data-testid="route-error">
+        <Container className={embedded ? undefined : styles.page} data-testid="route-error">
             <Heading as="h1">{title}</Heading>
             <p>{detail}</p>
             {signedOut ? (
@@ -39,6 +43,6 @@ export function RouteError() {
                     Go to the start page
                 </Link>
             )}
-        </main>
+        </Container>
     );
 }

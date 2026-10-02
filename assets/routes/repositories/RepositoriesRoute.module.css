@@ -1,0 +1,9 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-24);
+}
+
+.note {
+    color: var(--fgColor-muted);
+}

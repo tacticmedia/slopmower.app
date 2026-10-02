@@ -5,6 +5,9 @@ import { LoadingPage } from './layout/LoadingPage';
 import { RootLayout } from './layout/RootLayout';
 import { RouteError } from './layout/RouteError';
 import { HomeRoute } from './routes/HomeRoute';
+import { RepositoriesRoute, repositoriesAction, repositoriesLoader } from './routes/repositories/RepositoriesRoute';
+import { RepositoryRoute, repositoryAction, repositoryLoader } from './routes/repositories/RepositoryRoute';
+import { ReviewLayout, reviewAction, reviewLoader } from './routes/reviews/ReviewLayout';
 import { SettingsRoute } from './routes/settings/SettingsRoute';
 import { settingsAction, settingsLoader } from './routes/settings/settingsData';
 
@@ -17,8 +20,16 @@ export const router = createBrowserRouter([
         errorElement: <RouteError />,
         hydrateFallbackElement: <LoadingPage />,
         children: [
-            { index: true, element: <HomeRoute /> },
-            { path: 'settings', loader: settingsLoader, action: settingsAction, element: <SettingsRoute /> },
+            {
+                errorElement: <RouteError embedded />,
+                children: [
+                    { index: true, element: <HomeRoute /> },
+                    { path: 'repositories', loader: repositoriesLoader, action: repositoriesAction, element: <RepositoriesRoute /> },
+                    { path: 'repositories/:repositoryId', loader: repositoryLoader, action: repositoryAction, element: <RepositoryRoute /> },
+                    { id: 'review', path: 'reviews/:reviewId', loader: reviewLoader, action: reviewAction, element: <ReviewLayout /> },
+                    { path: 'settings', loader: settingsLoader, action: settingsAction, element: <SettingsRoute /> },
+                ],
+            },
             {
                 path: 'sign-out',
                 action: async (): Promise<Response> => {

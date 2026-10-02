@@ -1,5 +1,5 @@
 import { Heading } from '@primer/react';
-import { CopyButton } from './CopyButton';
+import { CopyButton } from '../layout/CopyButton';
 import { mcpConfig } from './mcpConfig';
 import styles from './Settings.module.css';
 

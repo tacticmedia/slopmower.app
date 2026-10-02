@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import invalidInput from '../../docs/specs/fixtures/error.invalid-input.json';
 import meFixture from '../../docs/specs/fixtures/me.local-user.json';
-import { ApiError, apiGet, apiWrite } from './client';
+import { ApiError, apiGet, apiGetAllPages, apiWrite } from './client';
 
 type Fetch = (path: string, init: RequestInit) => Promise<Response>;
 type FetchCall = Parameters<Fetch>;
@@ -53,5 +53,16 @@ describe('ApiClientTest', () => {
         const token = new Headers(writeInit.headers).get('csrf-token') ?? '';
         expect(token).toMatch(/^[-_A-Za-z0-9]{24,}$/);
         expect(fakeDocument.cookie).toBe(`csrf-token_${token}=csrf-token; path=/; samesite=strict`);
+    });
+
+    it('Follows nextCursor and returns the items of every page', async () => {
+        fetchMock
+            .mockResolvedValueOnce(jsonResponse(200, { items: [1, 2], nextCursor: 'c+1' }))
+            .mockResolvedValueOnce(jsonResponse(200, { items: [3], nextCursor: null }));
+
+        const page = await apiGetAllPages<{ items: number[]; nextCursor: string | null }>('/api/v1/repositories?limit=500');
+
+        expect(page).toEqual({ items: [1, 2, 3], nextCursor: null });
+        expect(fetchMock.mock.calls.map(([path]) => path)).toEqual(['/api/v1/repositories?limit=500', '/api/v1/repositories?limit=500&cursor=c%2B1']);
     });
 });

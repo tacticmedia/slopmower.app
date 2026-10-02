@@ -108,7 +108,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M15 | [MCP server and read tools](M15-mcp-server-and-read-tools.md) | Not started | | |
 | M16 | [MCP write tools and headless slice](M16-mcp-write-tools-and-headless-slice.md) | Not started | | Headless slice |
 | M17 | [Front-end shell](M17-front-end-shell.md) | Done | 2026-10-02 | [Report](reports/M17.md) |
-| M18 | [Repositories and reviews screens](M18-repositories-and-reviews-screens.md) | In progress | 2026-10-02 | |
+| M18 | [Repositories and reviews screens](M18-repositories-and-reviews-screens.md) | Done | 2026-10-02 | [Report](reports/M18.md) |
 | M19 | [Settings: API tokens](M19-settings-api-tokens.md) | Done | 2026-10-02 | [Report](reports/M19.md) |
 | M20 | [Code view](M20-code-view.md) | Not started | | |
 | M21 | [Commenting UI](M21-commenting-ui.md) | Not started | | |

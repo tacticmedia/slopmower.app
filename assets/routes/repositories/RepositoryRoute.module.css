@@ -1,0 +1,43 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-24);
+}
+
+.header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--base-size-16);
+}
+
+.headerText {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-8);
+}
+
+.meta {
+    color: var(--fgColor-muted);
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-8);
+}
+
+.sectionTitle {
+    margin: 0 0 var(--base-size-12);
+    font-size: var(--text-title-size-medium);
+    font-weight: var(--base-text-weight-semibold);
+}
+
+.startForm {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-16);
+    max-width: 480px;
+}

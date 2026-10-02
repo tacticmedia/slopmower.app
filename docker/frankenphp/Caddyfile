@@ -33,8 +33,9 @@
 			watch /app/src/**/*.php
 			watch /app/config/**/*.{php,yaml}
 			watch /app/templates/**/*.twig
-			# Reprise keeps the parsed entrypoints in memory. The watched root is public/build.
-			watch /app/public/build/entrypoints.json
+			# Reprise keeps the parsed entrypoints in memory. The brace makes public the watched root, because vite build
+			# deletes and recreates public/build, and a watcher on a deleted root gives up.
+			watch /app/public/{build}/entrypoints.json
 		}
 	}
 }

@@ -1,6 +1,6 @@
 import { Banner, Heading } from '@primer/react';
 import type { ApiTokenWithSecret } from '../api/types/api-token';
-import { CopyButton } from './CopyButton';
+import { CopyButton } from '../layout/CopyButton';
 import { McpConfigSnippet } from './McpConfigSnippet';
 import { TOKEN_ENVIRONMENT_VARIABLE } from './mcpConfig';
 import styles from './Settings.module.css';

@@ -29,6 +29,22 @@ export function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> {
 }
 
 /**
+ * Follows `nextCursor` to the last page. Returns the first page with the items of every page.
+ */
+export async function apiGetAllPages<P extends { items: unknown[]; nextCursor: string | null }>(path: string, signal?: AbortSignal): Promise<P> {
+    const first = await apiGet<P>(path, signal);
+    const items = [...first.items];
+
+    for (let cursor = first.nextCursor; null !== cursor; ) {
+        const page = await apiGet<P>(`${path}${path.includes('?') ? '&' : '?'}cursor=${encodeURIComponent(cursor)}`, signal);
+        items.push(...page.items);
+        cursor = page.nextCursor;
+    }
+
+    return { ...first, items, nextCursor: null };
+}
+
+/**
  * Resolves to undefined for a response without a JSON body, such as 202 or 204.
  */
 export function apiWrite<T = undefined>(method: WriteMethod, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
