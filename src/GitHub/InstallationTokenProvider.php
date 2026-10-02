@@ -13,6 +13,8 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  */
 final class InstallationTokenProvider
 {
+    public const string API = 'https://api.github.com/';
+
     public const array API_HEADERS = [
         'Accept' => 'application/vnd.github+json',
         'X-GitHub-Api-Version' => '2026-03-10',
@@ -35,7 +37,7 @@ final class InstallationTokenProvider
         $status = 0;
 
         try {
-            $response = $this->githubClient->request('POST', "https://api.github.com/app/installations/{$installationId}/access_tokens", [
+            $response = $this->githubClient->request('POST', self::API."app/installations/{$installationId}/access_tokens", [
                 'auth_bearer' => $this->jwtFactory->create(),
                 'headers' => self::API_HEADERS,
                 'json' => ['repository_ids' => [$repositoryId], 'permissions' => ['contents' => 'read']],

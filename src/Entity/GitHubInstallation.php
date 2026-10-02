@@ -60,4 +60,12 @@ class GitHubInstallation implements TenantOwned
     {
         return null !== $this->suspendedAt;
     }
+
+    /**
+     * @param \DateTimeImmutable|null $suspendedAt Null for `unsuspend`
+     */
+    public function recordSuspension(?\DateTimeImmutable $suspendedAt): void
+    {
+        $this->suspendedAt = $suspendedAt;
+    }
 }

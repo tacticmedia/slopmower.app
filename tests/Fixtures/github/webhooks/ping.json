@@ -1,0 +1,20 @@
+{
+    "zen": "Keep it logically awesome.",
+    "hook_id": 30001,
+    "hook": {
+        "type": "App",
+        "id": 30001,
+        "name": "web",
+        "active": true,
+        "events": ["push", "repository"],
+        "config": {
+            "content_type": "json",
+            "insecure_ssl": "0",
+            "url": "https://hr.example/webhook/github"
+        },
+        "updated_at": "2026-09-28T07:00:00Z",
+        "created_at": "2026-09-28T07:00:00Z",
+        "app_id": 1,
+        "deliveries_url": "https://api.github.com/app/hook/deliveries"
+    }
+}

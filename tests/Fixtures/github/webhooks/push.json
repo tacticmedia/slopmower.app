@@ -1,0 +1,51 @@
+{
+    "ref": "refs/heads/main",
+    "before": "6113728f27ae82c7b1a177c8d03f9e96e0adf246",
+    "after": "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
+    "repository": {
+        "id": 812345,
+        "node_id": "R_kgDOAMZJuQ",
+        "name": "billing",
+        "full_name": "acme/billing",
+        "private": true,
+        "owner": {
+            "name": "acme",
+            "login": "acme",
+            "id": 9919,
+            "type": "Organization"
+        },
+        "html_url": "https://github.com/acme/billing",
+        "description": null,
+        "fork": false,
+        "created_at": 1758092400,
+        "updated_at": "2026-10-01T07:00:00Z",
+        "pushed_at": 1759302000,
+        "default_branch": "main",
+        "master_branch": "main",
+        "organization": "acme"
+    },
+    "pusher": {
+        "name": "octocat",
+        "email": "octocat@github.com"
+    },
+    "organization": {
+        "login": "acme",
+        "id": 9919
+    },
+    "sender": {
+        "login": "octocat",
+        "id": 1,
+        "type": "User"
+    },
+    "installation": {
+        "id": 5551,
+        "node_id": "MDIzOkludGVncmF0aW9uSW5zdGFsbGF0aW9uNTU1MQ=="
+    },
+    "created": false,
+    "deleted": false,
+    "forced": false,
+    "base_ref": null,
+    "compare": "https://github.com/acme/billing/compare/6113728f27ae...0d1a26e67d8f",
+    "commits": [],
+    "head_commit": null
+}

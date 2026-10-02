@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Support\Live;
 
+use App\Domain\Identity\TenantId;
+use App\Live\LiveTopics;
+use App\Tests\Support\Contract\SchemaValidator;
 use Symfony\Component\Mercure\Update;
 
 /**
@@ -20,6 +23,24 @@ trait PublishedUpdates
         $messages = self::getContainer()->get('mercure.hub.default.traceable')->getMessages();
 
         return array_column($messages, 'object');
+    }
+
+    /**
+     * The data of the updates on the repositories topic of the tenant, each private and valid against live-update.schema.json.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private static function repositoriesTopicUpdates(TenantId $tenantId): array
+    {
+        $topic = self::getContainer()->get(LiveTopics::class)->repositories($tenantId);
+        $updates = array_values(array_filter(self::publishedUpdates(), static fn (Update $update): bool => [$topic] === $update->getTopics()));
+
+        foreach ($updates as $update) {
+            self::assertTrue($update->isPrivate());
+            self::assertSame([], SchemaValidator::errors($update->getData(), 'live-update.schema.json'));
+        }
+
+        return array_map(self::updateData(...), $updates);
     }
 
     /**

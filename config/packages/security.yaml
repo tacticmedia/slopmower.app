@@ -16,6 +16,10 @@ security:
         docs:
             pattern: ^/docs(/|$)
             security: false
+        # The signature authenticates GitHub. Without a session, no tenant context stamps the consumer message.
+        webhook:
+            pattern: ^/webhook/
+            security: false
         # docs/specs/mcp.md section 1. Stateless, so a session cookie authenticates nothing here.
         mcp:
             pattern: ^/_mcp

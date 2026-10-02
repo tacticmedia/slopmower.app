@@ -9,7 +9,8 @@ use Symfony\Component\HttpClient\Response\MockResponse;
 /**
  * The mock_response_factory of github.client in the test environment. Serves the recorded responses in tests/Fixtures/github.
  * The user token selects the user and the installation listing. The installation token endpoint answers 201 only for a
- * signed App JWT and a token limited to one repository with `contents: read`, as the App asks for it.
+ * signed App JWT and a token limited to one repository with `contents: read`, as the App asks for it. A repository
+ * read answers only the installation token.
  */
 final class GitHubResponses
 {
@@ -43,6 +44,11 @@ final class GitHubResponses
         'user/installations/5552/repositories?per_page=100' => 'installation-5552-repositories',
     ];
 
+    /** `GET /repos/{owner}/{repo}`, which answers only the installation token. */
+    private const array REPOSITORY_FIXTURES = [
+        'repos/octocat/Hello-World' => 'repository-octocat-hello-world',
+    ];
+
     /** @var array<string, array<string, string>> Paths below the API by user token */
     private const array LISTING_FIXTURES_BY_ACCESS_TOKEN = [
         self::ACCESS_TOKEN => self::LISTING,
@@ -66,6 +72,9 @@ final class GitHubResponses
             'GET https://api.github.com/user/emails' === $request => 'user-emails-forbidden',
             str_starts_with($request, 'GET '.self::API.'user/installations') => self::LISTING_FIXTURES_BY_ACCESS_TOKEN[self::bearerToken($options)][substr($url, \strlen(self::API))] ?? null,
             1 === preg_match('~^POST https://api\.github\.com/app/installations/\d+/access_tokens$~', $request) => self::installationTokenFixture($options),
+            str_starts_with($request, 'GET '.self::API.'repos/') => self::INSTALLATION_TOKEN === self::bearerToken($options)
+                ? self::REPOSITORY_FIXTURES[substr($url, \strlen(self::API))] ?? null
+                : 'user-unauthorized',
             default => null,
         } ?? throw new \LogicException("No recorded GitHub response for {$method} {$url}.");
 

@@ -1,0 +1,8 @@
+# From make:webhook, no recipe writes this file. docs/specs/webhooks-and-live-updates.md section 1.
+framework:
+    webhook:
+        routing:
+            github:
+                service: App\Webhook\GitHubRequestParser
+                # string: turns an unset secret into '', which the parser refuses.
+                secret: '%env(string:default::GITHUB_APP_WEBHOOK_SECRET)%'

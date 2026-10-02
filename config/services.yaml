@@ -10,7 +10,7 @@ parameters:
     # Used by doctrine.dbal.dbname_suffix and the session DSN.
     app.database_suffix: ''
     # Message classes that the worker handles without a TenantStamp and without a tenant context.
-    app.tenantless_messages: []
+    app.tenantless_messages: ['Symfony\Component\RemoteEvent\Messenger\ConsumeRemoteEventMessage']
     # The MCP server instructions, docs/specs/mcp.md section 2.
     app.mcp_instructions: |-
         Holistic Review stores change requests that the user wrote while reviewing this repository at a pinned commit. Each request asks for one change and belongs to exactly one review; several reviews can be open at once.
@@ -59,7 +59,7 @@ when@test:
     parameters:
         # "TEST_TOKEN" is typically set by ParaTest
         app.database_suffix: '_test%env(default::TEST_TOKEN)%'
-        app.tenantless_messages: ['App\Tests\Support\Messenger\TenantlessProbe']
+        app.tenantless_messages: ['Symfony\Component\RemoteEvent\Messenger\ConsumeRemoteEventMessage', 'App\Tests\Support\Messenger\TenantlessProbe']
 
     services:
         App\Tests\Support\GitHub\GitHubResponses: ~

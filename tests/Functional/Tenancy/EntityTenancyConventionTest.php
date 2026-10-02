@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Tenancy;
 
 use App\Entity\Tenant;
+use App\Entity\WebhookDelivery;
 use App\Tenancy\TenantOwned;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -13,7 +14,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class EntityTenancyConventionTest extends KernelTestCase
 {
-    private const array EXCEPTIONS = [Tenant::class];
+    private const array EXCEPTIONS = [Tenant::class, WebhookDelivery::class];
 
     #[TestDox('Every entity except the listed exceptions implements TenantOwned and maps a non-null tenant_id')]
     public function testEveryEntityIsTenantScoped(): void

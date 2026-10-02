@@ -44,8 +44,6 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 #[AsEventListener(event: LoginSuccessEvent::class, dispatcher: 'security.event_dispatcher.main')]
 final class InstallationSync
 {
-    private const string API = 'https://api.github.com/';
-
     private const int PAGE_SIZE = 100;
 
     public function __construct(
@@ -222,7 +220,7 @@ final class InstallationSync
      */
     private function items(string $path, string $listKey, #[\SensitiveParameter] string $userToken): array
     {
-        $url = self::API.$path.'?per_page='.self::PAGE_SIZE;
+        $url = InstallationTokenProvider::API.$path.'?per_page='.self::PAGE_SIZE;
         $items = [];
 
         while (null !== $url) {
@@ -248,7 +246,7 @@ final class InstallationSync
     private static function nextPage(array $linkHeaders): ?string
     {
         foreach (new HttpHeaderParser()->parse($linkHeaders)->getLinksByRel('next') as $link) {
-            return str_starts_with($link->getHref(), self::API) ? $link->getHref() : throw new GitHubRequestFailed('GitHub linked a next page outside its API.');
+            return str_starts_with($link->getHref(), InstallationTokenProvider::API) ? $link->getHref() : throw new GitHubRequestFailed('GitHub linked a next page outside its API.');
         }
 
         return null;

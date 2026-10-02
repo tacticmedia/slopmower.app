@@ -115,8 +115,8 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M22 | [Verify UI and vertical slice](M22-verify-ui-and-vertical-slice.md) | Done | 2026-10-03 | Vertical slice, [Report](reports/M22.md) |
 | M23 | [Public docs and downloadable skill](M23-public-docs-and-downloadable-skill.md) | Done | 2026-10-03 | [Report](reports/M23.md) |
 | M24 | [Live updates via Mercure](M24-live-updates-via-mercure.md) | Done | 2026-10-03 | [Report](reports/M24.md) |
-| M25 | [Drafts, batch review, viewed files](M25-drafts-batch-review-viewed-files.md) | Not started | | |
-| M26 | [Symbol index](M26-symbol-index.md) | Not started | | |
+| M25 | [Drafts, batch review, viewed files](M25-drafts-batch-review-viewed-files.md) | In progress | 2026-10-03 | |
+| M26 | [Symbol index](M26-symbol-index.md) | In progress | 2026-10-03 | |
 | M27 | [Symbol anchors and keyboard access](M27-symbol-anchors-and-keyboard-access.md) | Not started | | |
 | M28 | [Re-anchoring core](M28-re-anchoring-core.md) | Done | 2026-10-02 | [Report](reports/M28.md) |
 | M29 | [Re-anchoring with git, locations, outdated](M29-re-anchoring-with-git-locations-outdated.md) | Not started | | |
@@ -124,7 +124,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M31 | [Data deletion and tenant purge](M31-data-deletion-and-tenant-purge.md) | Not started | | |
 | M32 | [GitHub sign-in](M32-github-sign-in.md) | Done | 2026-10-02 | [Report](reports/M32.md) |
 | M33 | [GitHub App repositories](M33-github-app-repositories.md) | Done | 2026-10-02 | [Report](reports/M33.md) |
-| M34 | [GitHub webhooks](M34-github-webhooks.md) | Not started | | |
+| M34 | [GitHub webhooks](M34-github-webhooks.md) | Done | 2026-10-03 | [Report](reports/M34.md) |
 | M35 | [Isolation audit and acceptance](M35-isolation-audit-and-acceptance.md) | Not started | | |
 
 ## Order
