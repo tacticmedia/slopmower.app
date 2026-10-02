@@ -26,6 +26,9 @@ use Symfony\Component\Uid\Ulid;
 #[ORM\UniqueConstraint(name: 'uniq_app_user_local_login', columns: ['login'], options: ['where' => "((sign_in_method)::text = 'local'::text)"])]
 class User implements TenantOwned, UserInterface
 {
+    /** A session caller. API tokens authenticate an {@see \App\Security\AgentUser} instead. */
+    public const string ROLE = 'ROLE_USER';
+
     #[ORM\Id]
     #[ORM\Column(type: UlidType::NAME)]
     private Ulid $id;
@@ -158,6 +161,6 @@ class User implements TenantOwned, UserInterface
 
     public function getRoles(): array
     {
-        return ['ROLE_USER'];
+        return [self::ROLE];
     }
 }

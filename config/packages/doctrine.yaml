@@ -27,6 +27,9 @@ doctrine:
             tenant:
                 class: App\Tenancy\TenantSqlFilter
                 enabled: true
+            repository_scope:
+                class: App\Tenancy\RepositoryScopeSqlFilter
+                enabled: false
 
 when@prod:
     doctrine:

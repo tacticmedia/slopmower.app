@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
-use App\Domain\Actor\ActorKind;
 use App\Entity\User;
+use App\Repository\ApiTokenRepository;
+use App\Repository\UserRepository;
+use App\Security\AgentUser;
+use App\Security\CurrentActor;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Uid\Ulid;
 
 final class MeController extends AbstractController
 {
@@ -20,10 +24,17 @@ final class MeController extends AbstractController
      */
     #[Route('/api/v1/me', name: 'api_me', methods: ['GET'])]
     public function __invoke(
-        #[CurrentUser] User $user,
+        #[CurrentUser] User|AgentUser $caller,
+        CurrentActor $currentActor,
+        UserRepository $users,
+        ApiTokenRepository $tokens,
         Request $request,
         #[Autowire(env: 'APP_LOCAL_REPOSITORIES_DIR')] string $localRepositoriesDir,
     ): JsonResponse {
+        $user = $caller instanceof AgentUser ? $users->find(Ulid::fromString($caller->userId->toString())) : $caller;
+        $token = $caller instanceof AgentUser ? $tokens->find(Ulid::fromString($caller->tokenId->toString())) : null;
+        \assert(null !== $user);
+        $actor = $currentActor->get();
         $userId = $user->getId()->toString();
 
         return $this->json([
@@ -36,13 +47,13 @@ final class MeController extends AbstractController
             ],
             'tenantId' => $user->getTenantId()->toString(),
             'caller' => [
-                'kind' => ActorKind::User->value,
+                'kind' => $actor->kind->value,
                 'userId' => $userId,
-                'agentName' => null,
-                'name' => $user->getLogin(),
-                'avatarUrl' => $user->getAvatarUrl(),
+                'agentName' => $actor->agentName,
+                'name' => $actor->agentName ?? $user->getLogin(),
+                'avatarUrl' => null === $actor->agentName ? $user->getAvatarUrl() : null,
             ],
-            'token' => null,
+            'token' => $token,
             'features' => [
                 'localRepositories' => '' !== $localRepositoriesDir,
                 'githubApp' => null,

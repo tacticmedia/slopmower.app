@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tenancy;
 
+use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\TenantId;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Filter\SQLFilter;
@@ -23,6 +24,17 @@ final class TenantContext implements ResetInterface
         $this->tenantId = $tenantId;
         // The ulid column type is a native uuid on PostgreSQL, and SQLFilter::getParameter() ignores the parameter type.
         $this->filter()->setParameter(TenantSqlFilter::PARAMETER, Ulid::fromString($tenantId->toString())->toRfc4122());
+    }
+
+    /**
+     * Until {@see self::reset()}. {@see self::set()} keeps the restriction, so a message that `sync://` handles inside
+     * the request stays in the scope.
+     */
+    public function restrictToRepository(RepositoryId $repositoryId): void
+    {
+        $this->entityManager->getFilters()
+            ->enable(RepositoryScopeSqlFilter::NAME)
+            ->setParameter(RepositoryScopeSqlFilter::PARAMETER, Ulid::fromString($repositoryId->toString())->toRfc4122());
     }
 
     public function get(): TenantId
@@ -49,6 +61,10 @@ final class TenantContext implements ResetInterface
         }
 
         $filters->enable(TenantSqlFilter::NAME);
+
+        if ($filters->isEnabled(RepositoryScopeSqlFilter::NAME)) {
+            $filters->disable(RepositoryScopeSqlFilter::NAME);
+        }
     }
 
     /**

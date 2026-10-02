@@ -51,7 +51,7 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
     }
 
     /**
-     * @param array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string} $case
+     * @param array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null} $case
      */
     #[TestDox("Each case with the other tenant's IDs gets 404 not_found")]
     #[DataProvider('casesWithIds')]
@@ -64,7 +64,7 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
     }
 
     /**
-     * @param array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string} $case
+     * @param array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null} $case
      */
     #[TestDox("List routes return none of the other tenant's items")]
     #[DataProvider('casesWithoutIds')]
@@ -74,6 +74,7 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
 
         $response = self::apiRequest($client, $case['method'], $case['path'], $case['body']);
 
+        self::assertNotNull($case['schema'], 'A list or create route answers with a body.');
         self::assertApiResponse($response, $case['status'], $case['schema']);
 
         foreach ($otherTenantIds as $id) {
@@ -82,7 +83,7 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
     }
 
     /**
-     * @return iterable<string, array{array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string}}>
+     * @return iterable<string, array{array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null}}>
      */
     public static function casesWithIds(): iterable
     {
@@ -94,7 +95,7 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
     }
 
     /**
-     * @return iterable<string, array{array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string}}>
+     * @return iterable<string, array{array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null}}>
      */
     public static function casesWithoutIds(): iterable
     {
@@ -106,7 +107,8 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
     }
 
     /**
-     * The other tenant connected the local source "billing". The signed-in tenant has its own repository "alpha".
+     * The other tenant connected the local source "billing" and has an API token. The signed-in tenant has its own
+     * repository "alpha".
      *
      * @return array{KernelBrowser, array<string, string>} The client, and the IDs of the other tenant by placeholder name
      */
@@ -117,12 +119,14 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
         $client = static::createClient();
         $other = TenantFixtures::of(self::getContainer())->withLogin('other')->create();
         $otherRepository = self::storeRepository($other->getTenantId(), 'billing');
+        [$otherToken] = self::storeToken($other);
         self::storeRepository(self::signIn($client)->getTenantId(), 'alpha');
 
         return [$client, [
             'tenantId' => $other->getTenantId()->toString(),
             'userId' => $other->getId()->toString(),
             'repositoryId' => $otherRepository->getId()->toString(),
+            'tokenId' => $otherToken->getId()->toString(),
         ]];
     }
 }

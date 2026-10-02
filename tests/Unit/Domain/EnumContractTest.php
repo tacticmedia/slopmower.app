@@ -7,6 +7,8 @@ namespace App\Tests\Unit\Domain;
 use App\Domain\Actor\ActorKind;
 use App\Domain\Anchor\AnchorKind;
 use App\Domain\Anchor\SymbolKind;
+use App\Domain\ApiToken\ApiTokenState;
+use App\Domain\ApiToken\TokenScope;
 use App\Domain\Error\RepositoryUnavailableReason;
 use App\Domain\Event\EventType;
 use App\Domain\Location\LocationStatus;
@@ -71,5 +73,7 @@ final class EnumContractTest extends KernelTestCase
         yield 'SyncState' => [SyncState::class, 'repository.schema.json', ['$defs', 'Sync', 'properties', 'state', 'enum']];
         yield 'SignInMethod' => [SignInMethod::class, 'me.schema.json', ['properties', 'user', 'properties', 'signInMethod', 'enum']];
         yield 'RepositoryUnavailableReason' => [RepositoryUnavailableReason::class, 'error.schema.json', ['$defs', 'RepositoryUnavailableDetails', 'properties', 'reason', 'enum']];
+        yield 'ApiTokenState' => [ApiTokenState::class, 'api-token.schema.json', ['properties', 'state', 'enum']];
+        yield 'TokenScope' => [TokenScope::class, 'api-token.schema.json', ['properties', 'scope', 'enum']];
     }
 }

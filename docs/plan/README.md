@@ -104,7 +104,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M11 | [REST foundation and repositories API](M11-rest-foundation-and-repositories-api.md) | Done | 2026-10-02 | [Report](reports/M11.md) |
 | M12 | [Reviews API](M12-reviews-api.md) | In progress | 2026-10-02 | |
 | M13 | [Requests API, user side](M13-requests-api-user-side.md) | Not started | | |
-| M14 | [API tokens](M14-api-tokens.md) | In progress | 2026-10-02 | |
+| M14 | [API tokens](M14-api-tokens.md) | Done | 2026-10-02 | [Report](reports/M14.md) |
 | M15 | [MCP server and read tools](M15-mcp-server-and-read-tools.md) | Not started | | |
 | M16 | [MCP write tools and headless slice](M16-mcp-write-tools-and-headless-slice.md) | Not started | | Headless slice |
 | M17 | [Front-end shell](M17-front-end-shell.md) | Done | 2026-10-02 | [Report](reports/M17.md) |

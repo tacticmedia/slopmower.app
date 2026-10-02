@@ -12,6 +12,14 @@ security:
             # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
+        # Before api: a bearer token wins over a session cookie. Stateless, so the session stays untouched.
+        api_bearer:
+            request_matcher: App\Security\BearerApiRequestMatcher
+            stateless: true
+            entry_point: App\Security\BearerAuthenticationFailure
+            access_token:
+                token_handler: App\Security\ApiTokenHandler
+                failure_handler: App\Security\BearerAuthenticationFailure
         api:
             pattern: ^/api/v1
             lazy: true

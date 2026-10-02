@@ -1,0 +1,86 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\Functional\Security;
+
+use App\Entity\Repository;
+use App\Entity\Review;
+use App\Tenancy\TenantContext;
+use App\Tests\Support\Api\ApiFixtures;
+use App\Tests\Support\Contract\JsonApiAssertions;
+use App\Tests\Support\Database\ResetDatabase;
+use App\Tests\Support\Domain\RequestScenario;
+use App\Tests\Support\Fixtures\TenantFixtures;
+use App\Tests\Support\Persistence\ReviewDataFixtures;
+use PHPUnit\Framework\Attributes\TestDox;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Uid\Ulid;
+
+final class TokenScopeTest extends WebTestCase
+{
+    use ApiFixtures;
+    use JsonApiAssertions;
+    use ResetDatabase;
+    use ReviewDataFixtures;
+
+    #[TestDox('A scoped token lists only its repository')]
+    public function testListsOnlyItsRepository(): void
+    {
+        $client = static::createClient();
+        $user = TenantFixtures::of(self::getContainer())->create();
+        $alpha = self::storeRepository($user->getTenantId(), 'alpha');
+        self::storeRepository($user->getTenantId(), 'beta');
+        [, $secret] = self::storeToken($user, $alpha);
+
+        $page = self::assertApiResponse(self::bearerRequest($client, $secret, 'GET', '/api/v1/repositories'), 200, 'lists.schema.json#/$defs/RepositoryPage');
+
+        self::assertIsArray($page['items']);
+        self::assertSame([$alpha->getId()->toString()], array_column($page['items'], 'id'));
+    }
+
+    /**
+     * No route reads a review before M12, so the review part looks it up the way a path ID resolves: find() under the
+     * tenant and the repository scope that the token handler sets.
+     */
+    #[TestDox('A scoped token gets 404 for another repository and its reviews')]
+    public function testOtherRepositoryAndItsReviewsAreNotFound(): void
+    {
+        $client = static::createClient();
+        $user = TenantFixtures::of(self::getContainer())->create();
+        self::getContainer()->get(TenantContext::class)->set($user->getTenantId());
+        $scenario = RequestScenario::inState('open');
+        self::persistScenario($user->getTenantId(), $scenario);
+        $alpha = self::storeRepository($user->getTenantId(), 'alpha');
+        [, $secret] = self::storeToken($user, $alpha);
+        $reviewId = Ulid::fromString($scenario->review()->id->toString());
+        $billingId = self::entityManager()->find(Review::class, $reviewId)?->getRepository()->getId()->toString() ?? self::fail('No review.');
+
+        self::assertApiError(self::bearerRequest($client, $secret, 'GET', "/api/v1/repositories/{$billingId}"), 404, 'not_found');
+        self::assertApiError(self::bearerRequest($client, $secret, 'POST', "/api/v1/repositories/{$billingId}/fetch"), 404, 'not_found');
+
+        self::entityManager()->clear();
+        $tenantContext = self::getContainer()->get(TenantContext::class);
+        $tenantContext->set($user->getTenantId());
+        $tenantContext->restrictToRepository($alpha->getId());
+        self::assertNull(self::entityManager()->find(Review::class, $reviewId));
+        self::assertNotNull(self::entityManager()->find(Repository::class, Ulid::fromString($alpha->getId()->toString())));
+    }
+
+    #[TestDox('/api/v1/me shows the scope of the token')]
+    public function testMeShowsTheScope(): void
+    {
+        $client = static::createClient();
+        $user = TenantFixtures::of(self::getContainer())->create();
+        $alpha = self::storeRepository($user->getTenantId(), 'alpha');
+        [, $secret] = self::storeToken($user, $alpha);
+
+        $me = self::assertApiResponse(self::bearerRequest($client, $secret, 'GET', '/api/v1/me'), 200, 'me.schema.json');
+
+        self::assertIsArray($me['token']);
+        self::assertSame(
+            ['repository', $alpha->getId()->toString(), 'alpha'],
+            [$me['token']['scope'], $me['token']['repositoryId'], $me['token']['repositoryName']],
+        );
+    }
+}
