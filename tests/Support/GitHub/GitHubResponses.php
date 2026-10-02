@@ -7,7 +7,7 @@ namespace App\Tests\Support\GitHub;
 use Symfony\Component\HttpClient\Response\MockResponse;
 
 /**
- * The framework.http_client.mock_response_factory of the test environment. Serves the recorded responses in tests/Fixtures/github.
+ * The mock_response_factory of github.client in the test environment. Serves the recorded responses in tests/Fixtures/github.
  * The user token selects the user and the installation listing. The installation token endpoint answers 201 only for a
  * signed App JWT and a token limited to one repository with `contents: read`, as the App asks for it.
  */

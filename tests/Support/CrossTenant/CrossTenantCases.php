@@ -20,6 +20,7 @@ final class CrossTenantCases
     {
         return [
             'api_me' => ['method' => 'GET', 'path' => '/api/v1/me', 'body' => null, 'status' => 200, 'schema' => 'me.schema.json'],
+            'api_mercure_authorize' => ['method' => 'POST', 'path' => '/api/v1/mercure/authorize', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/MercureAuthorization'],
             'api_repository_list' => ['method' => 'GET', 'path' => '/api/v1/repositories', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/RepositoryPage'],
             'api_repository_candidates' => ['method' => 'GET', 'path' => '/api/v1/repositories/candidates', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/CandidateList'],
             'api_repository_connect' => ['method' => 'POST', 'path' => '/api/v1/repositories', 'body' => ['source' => 'local', 'directory' => 'billing'], 'status' => 201, 'schema' => 'repository.schema.json'],

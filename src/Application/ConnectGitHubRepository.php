@@ -69,7 +69,7 @@ final class ConnectGitHubRepository
             $lock->release();
         }
 
-        $this->fetchRepository->queueClone($repository->getId());
+        $this->fetchRepository->queueClone($repository);
 
         return new ConnectedRepository($repository, true);
     }

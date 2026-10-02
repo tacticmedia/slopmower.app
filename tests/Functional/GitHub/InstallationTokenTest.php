@@ -100,7 +100,7 @@ final class InstallationTokenTest extends KernelTestCase
      */
     private static function gitHubRequestCount(): int
     {
-        $transport = self::getContainer()->get('http_client.transport');
+        $transport = self::getContainer()->get('github.client.mock_transport');
 
         return $transport->getRequestsCount();
     }

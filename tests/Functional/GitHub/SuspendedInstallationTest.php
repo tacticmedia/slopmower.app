@@ -34,7 +34,7 @@ final class SuspendedInstallationTest extends KernelTestCase
         self::storeInstallation($tenantId, suspendedAt: new \DateTimeImmutable('2026-10-01 08:00:00'));
         self::storeCandidate($tenantId);
         $repository = self::connectGitHub($tenantId);
-        $transport = self::getContainer()->get('http_client.transport');
+        $transport = self::getContainer()->get('github.client.mock_transport');
 
         self::runQueuedMessages();
 

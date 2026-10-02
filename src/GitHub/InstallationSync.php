@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\GitHub;
 
 use App\Application\ConnectGitHubRepository;
+use App\Application\Event\RepositoryChanged;
 use App\Application\FetchRepository;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Identity\TenantId;
@@ -32,6 +33,7 @@ use Symfony\Component\Security\Http\Event\LoginSuccessEvent;
 use Symfony\Component\Serializer\Exception\ExceptionInterface as SerializerException;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\WebLink\HttpHeaderParser;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface as HttpClientException;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
@@ -57,6 +59,7 @@ final class InstallationSync
         private readonly FetchRepository $fetchRepository,
         private readonly TenantContext $tenantContext,
         private readonly LockFactory $lockFactory,
+        private readonly EventDispatcherInterface $dispatcher,
         private readonly ClockInterface $clock,
         private readonly LoggerInterface $logger,
     ) {
@@ -95,7 +98,7 @@ final class InstallationSync
         $lock->acquire(true);
 
         try {
-            $lostAccess = $this->entityManager->wrapInTransaction(fn (): array => $this->record($installations, $candidates));
+            [$lostAccess, $renamed] = $this->entityManager->wrapInTransaction(fn (): array => $this->record($installations, $candidates));
         } finally {
             $lock->release();
         }
@@ -103,13 +106,17 @@ final class InstallationSync
         foreach ($lostAccess as $repository) {
             $this->fetchRepository->removeAccess($repository);
         }
+
+        foreach ($renamed as $repository) {
+            $this->dispatcher->dispatch(new RepositoryChanged($tenantId, $repository->getId()));
+        }
     }
 
     /**
      * @param list<GitHubInstallation> $installations
      * @param list<GitHubCandidate>    $candidates
      *
-     * @return list<Repository> The active repositories that the listing lacks
+     * @return array{list<Repository>, list<Repository>} The active repositories that the listing lacks, and the renamed ones
      */
     private function record(array $installations, array $candidates): array
     {
@@ -134,6 +141,7 @@ final class InstallationSync
         }
 
         $lostAccess = [];
+        $renamed = [];
 
         foreach ($connected as $repository) {
             $candidate = $candidatesById[(int) $repository->getGithubRepositoryId()] ?? null;
@@ -149,12 +157,18 @@ final class InstallationSync
             // A rename onto the name of another repository waits until that one is renamed or deleted.
             $name = $candidate->getFullName();
             $holder = $repositoryIdsByName[strtolower($name->toString())] ?? $repository->getId()->toString();
-            $repository->recordGitHubListing($holder === $repository->getId()->toString() ? $name : $repository->getName(), $candidate->getInstallationId(), $candidate->isPrivate());
+            $name = $holder === $repository->getId()->toString() ? $name : $repository->getName();
+
+            if ($name->toString() !== $repository->getName()->toString()) {
+                $renamed[] = $repository;
+            }
+
+            $repository->recordGitHubListing($name, $candidate->getInstallationId(), $candidate->isPrivate());
         }
 
         $this->entityManager->flush();
 
-        return $lostAccess;
+        return [$lostAccess, $renamed];
     }
 
     /**

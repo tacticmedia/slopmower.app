@@ -114,7 +114,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M21 | [Commenting UI](M21-commenting-ui.md) | Done | 2026-10-03 | [Report](reports/M21.md) |
 | M22 | [Verify UI and vertical slice](M22-verify-ui-and-vertical-slice.md) | Done | 2026-10-03 | Vertical slice, [Report](reports/M22.md) |
 | M23 | [Public docs and downloadable skill](M23-public-docs-and-downloadable-skill.md) | Done | 2026-10-03 | [Report](reports/M23.md) |
-| M24 | [Live updates via Mercure](M24-live-updates-via-mercure.md) | Not started | | |
+| M24 | [Live updates via Mercure](M24-live-updates-via-mercure.md) | Done | 2026-10-03 | [Report](reports/M24.md) |
 | M25 | [Drafts, batch review, viewed files](M25-drafts-batch-review-viewed-files.md) | Not started | | |
 | M26 | [Symbol index](M26-symbol-index.md) | Not started | | |
 | M27 | [Symbol anchors and keyboard access](M27-symbol-anchors-and-keyboard-access.md) | Not started | | |
@@ -259,7 +259,7 @@ Suite markers: **U** unit, **F** functional, **E** Panther E2E, **V** Vitest.
 - Vitest tests cover pure TypeScript only. They live in `*.test.ts` files next to the code.
 - Every test method has `#[TestDox]`: one short sentence about behaviour.
 - Never mock the container. No `getContainer()->set()`, no service replacement.
-  - GitHub HTTP goes through `framework.http_client.mock_response_factory` with recorded responses in `tests/Fixtures/github/`.
+  - GitHub HTTP goes through the `github.client` scoped client, mocked in `test` with responses in `tests/Fixtures/github/`. The global HTTP client is not mocked, so Mercure publishes are not caught.
   - Time goes through `ClockSensitiveTrait`.
 - Test every feature the way a caller uses it: HTTP for controllers, a service call for services, JSON-RPC for MCP, a browser for JavaScript behaviour.
 - Tests validate every REST response and every MCP `structuredContent` against the docs/specs schemas, through the `JsonApiAssertions` trait.

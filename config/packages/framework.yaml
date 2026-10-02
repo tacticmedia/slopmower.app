@@ -25,8 +25,11 @@ when@test:
         test: true
         session:
             storage_factory_id: session.storage.factory.mock_file
+        # Only GitHub is recorded. The Mercure hub publishes to the real e2e hub.
         http_client:
-            mock_response_factory: App\Tests\Support\GitHub\GitHubResponses
+            scoped_clients:
+                github.client:
+                    mock_response_factory: App\Tests\Support\GitHub\GitHubResponses
 
 # A browser session needs real session storage (D34).
 when@e2e:

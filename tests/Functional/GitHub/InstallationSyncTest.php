@@ -23,6 +23,7 @@ use App\Tests\Support\Fixtures\TenantFixtures;
 use App\Tests\Support\GitHub\GitHubResponses;
 use App\Tests\Support\GitHub\GitHubRows;
 use App\Tests\Support\GitHub\LocalGitHub;
+use App\Tests\Support\Live\PublishedUpdates;
 use App\Tests\Support\Messenger\QueuedMessages;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -45,6 +46,7 @@ final class InstallationSyncTest extends WebTestCase
     use GitHubRows;
     use JsonApiAssertions;
     use LocalGitHub;
+    use PublishedUpdates;
     use QueuedMessages;
     use ResetDatabase;
     use TemporaryDirectories;
@@ -138,6 +140,22 @@ final class InstallationSyncTest extends WebTestCase
 
         $renamed = self::getContainer()->get(RepositoryRepository::class)->findFresh($repository->getId());
         self::assertSame(['acme/billing', true], [$renamed?->getName()->toString(), $renamed?->isGithubPrivate()]);
+    }
+
+    #[TestDox('Sign-in publishes a repository update for a renamed repository only')]
+    public function testRenamePublishesARepositoryUpdate(): void
+    {
+        static::createClient();
+        $user = TenantFixtures::of(self::getContainer())->withLogin('octocat')->withGitHubUser(1)->create();
+        $renamed = Repository::gitHub($user->getTenantId(), RepositoryName::github('acme/old-billing'), 812345, 5551, true, Clock::get()->now());
+        self::storeRow($renamed);
+        self::storeRow(Repository::gitHub($user->getTenantId(), RepositoryName::github('acme/Shipping'), 812399, 5551, true, Clock::get()->now()));
+
+        self::sync($user, GitHubResponses::ACCESS_TOKEN);
+
+        $updates = self::publishedUpdates();
+        self::assertSame([['type' => 'repository', 'repositoryId' => $renamed->getId()->toString()]], array_map(self::updateData(...), $updates));
+        self::assertSame(["http://localhost/tenants/{$user->getTenantId()}/repositories"], $updates[0]->getTopics());
     }
 
     #[TestDox('A failed or partial listing removes nothing')]

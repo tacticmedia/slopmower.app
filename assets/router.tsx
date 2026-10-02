@@ -63,6 +63,7 @@ export const router = createBrowserRouter([
                         ],
                     },
                     {
+                        id: 'request',
                         path: 'requests/:requestId',
                         loader: requestLoader,
                         action: requestAction,

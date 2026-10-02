@@ -1,0 +1,9 @@
+mercure:
+    hubs:
+        default:
+            # D41: without a URL the bundle compiles FrankenPhpHub, which breaks console processes that share the cache.
+            url: '%env(MERCURE_URL)%'
+            public_url: '%env(MERCURE_PUBLIC_URL)%'
+            jwt:
+                secret: '%env(MERCURE_JWT_SECRET)%'
+                publish: '*'

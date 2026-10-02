@@ -92,14 +92,15 @@ final class FetchRepository
     public function request(RepositoryId $id, int $delayMilliseconds = 0): void
     {
         $this->refuseOpenTransaction();
-        $state = ($this->repositories->findFresh($id) ?? throw new NotFound())->getSyncState();
+        $repository = $this->repositories->findFresh($id) ?? throw new NotFound();
+        $state = $repository->getSyncState();
 
         if (SyncState::Unavailable === $state) {
             throw new RepositoryUnavailable($id, RepositoryUnavailableReason::Removed);
         }
 
         if (SyncState::Failed === $state && $this->repositories->restartClone($id)) {
-            $this->queueClone($id);
+            $this->queueClone($repository);
         }
 
         if (in_array($state, [SyncState::Idle, SyncState::Fetching], true) && $this->repositories->requestFetch($id)) {
@@ -110,15 +111,19 @@ final class FetchRepository
 
                 throw $failure;
             }
+
+            $this->dispatcher->dispatch(new RepositoryChanged($repository->getTenantId(), $id));
         }
     }
 
     /**
-     * For a repository in the state `cloning`. A failed dispatch sets `failed`, so {@see request()} queues it again.
+     * For a repository that the caller set to `cloning`. A failed dispatch sets `failed`, so {@see request()} queues it
+     * again.
      */
-    public function queueClone(RepositoryId $id): void
+    public function queueClone(Repository $repository): void
     {
         $this->refuseOpenTransaction();
+        $id = $repository->getId();
 
         try {
             $this->bus->dispatch(new CloneRepositoryJob($id));
@@ -126,6 +131,8 @@ final class FetchRepository
             $this->repositories->recordFailure($id, 'The clone job could not be queued.');
 
             throw $failure;
+        } finally {
+            $this->dispatcher->dispatch(new RepositoryChanged($repository->getTenantId(), $id));
         }
     }
 
@@ -149,16 +156,21 @@ final class FetchRepository
         try {
             $repository = $this->cloneReady($id);
             $this->repositories->startFetch($id);
+
+            if (SyncState::Idle === $repository->getSyncState()) {
+                $this->dispatcher->dispatch(new RepositoryChanged($repository->getTenantId(), $id));
+            }
+
             $fetched = $this->fetchLocked($repository, false, $deadlineUnixSeconds - $this->nowUnixSeconds());
         } finally {
             $lock->release();
         }
 
+        $this->synced($repository, $fetched);
+
         if (null === $fetched) {
             throw new RepositoryUnavailable($id, RepositoryUnavailableReason::FetchFailed);
         }
-
-        $this->dispatcher->dispatch($fetched);
     }
 
     /**
@@ -229,13 +241,14 @@ final class FetchRepository
 
         try {
             $repository = $this->repositories->findFresh($job->repositoryId);
-            $fetched = SyncState::Cloning === $repository?->getSyncState() ? $this->fetchLocked($repository, true, self::JOB_TIMEOUT_SECONDS) : null;
+            $cloning = SyncState::Cloning === $repository?->getSyncState() ? $repository : null;
+            $fetched = null === $cloning ? null : $this->fetchLocked($cloning, true, self::JOB_TIMEOUT_SECONDS);
         } finally {
             $lock->release();
         }
 
-        if (null !== $fetched) {
-            $this->dispatcher->dispatch($fetched);
+        if (null !== $cloning) {
+            $this->synced($cloning, $fetched);
         }
     }
 
@@ -251,13 +264,31 @@ final class FetchRepository
 
         try {
             $repository = $this->repositories->findFresh($job->repositoryId);
-            $fetched = null !== $repository && $this->repositories->startFetch($job->repositoryId) ? $this->fetchLocked($repository, false, self::JOB_TIMEOUT_SECONDS) : null;
+            $fetching = null !== $repository && $this->repositories->startFetch($job->repositoryId) ? $repository : null;
+            $fetched = null === $fetching ? null : $this->fetchLocked($fetching, false, self::JOB_TIMEOUT_SECONDS);
         } finally {
             $lock->release();
         }
 
-        if (null !== $fetched) {
-            $this->dispatcher->dispatch($fetched);
+        if (null !== $fetching) {
+            $this->synced($fetching, $fetched);
+        }
+    }
+
+    /**
+     * After the lock is released. The `repository` update follows the `events` updates of the {@see RepositoryFetched}
+     * listeners, docs/specs/webhooks-and-live-updates.md section 2.2.
+     *
+     * @param RepositoryFetched|null $fetched Null after a failure
+     */
+    private function synced(Repository $repository, ?RepositoryFetched $fetched): void
+    {
+        try {
+            if (null !== $fetched) {
+                $this->dispatcher->dispatch($fetched);
+            }
+        } finally {
+            $this->dispatcher->dispatch(new RepositoryChanged($repository->getTenantId(), $repository->getId()));
         }
     }
 

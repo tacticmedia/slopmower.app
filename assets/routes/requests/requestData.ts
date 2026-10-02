@@ -4,6 +4,8 @@ import { apiGet, apiGetAllPages, apiWrite } from '../../api/client';
 import { REQUEST_STATUSES, type RequestStatus } from '../../api/types/common';
 import type { RequestPage } from '../../api/types/lists';
 import type { Request as ReviewRequest } from '../../api/types/request';
+import type { RequestCommandResult } from '../../api/types/request-command-result';
+import { rememberEvents } from '../../live/eventPositions';
 import type { RequestCommandIntent, RequestIntent } from '../../requests/requestIntent';
 import { encodedRouteParam } from '../encodedRouteParam';
 
@@ -64,5 +66,5 @@ export async function requestAction({ request, params }: ActionFunctionArgs): Pr
     const requestPath = `/api/v1/requests/${encodedRouteParam(params, 'requestId')}`;
     const path = 'reply' === submitted.intent ? `${requestPath}/comments` : `${requestPath}/${COMMAND_PATHS[submitted.intent]}`;
 
-    return writeResult(() => apiWrite('POST', path, submitted.input, request.signal));
+    return writeResult(async () => rememberEvents((await apiWrite<RequestCommandResult>('POST', path, submitted.input, request.signal)).events));
 }

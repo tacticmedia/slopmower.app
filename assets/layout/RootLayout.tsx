@@ -1,14 +1,16 @@
 import { Avatar, Button, Header } from '@primer/react';
 import { NavLink, Outlet, useFetcher, useLoaderData } from 'react-router';
 import type { Me } from '../api/types/me';
+import { useLiveRevalidation } from '../live/useLiveRevalidation';
 import styles from './RootLayout.module.css';
 
 export function RootLayout() {
     const me = useLoaderData<Me>();
     const signOut = useFetcher();
+    const live = useLiveRevalidation();
 
     return (
-        <div className={styles.page}>
+        <div className={styles.page} data-live={live ? 'connected' : 'disconnected'}>
             <Header>
                 <Header.Item>
                     <Header.Link as={NavLink} to="/" className={styles.brand}>
