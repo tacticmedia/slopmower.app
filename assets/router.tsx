@@ -5,6 +5,8 @@ import { LoadingPage } from './layout/LoadingPage';
 import { RootLayout } from './layout/RootLayout';
 import { RouteError } from './layout/RouteError';
 import { HomeRoute } from './routes/HomeRoute';
+import { SettingsRoute } from './routes/settings/SettingsRoute';
+import { settingsAction, settingsLoader } from './routes/settings/settingsData';
 
 export const router = createBrowserRouter([
     {
@@ -16,6 +18,7 @@ export const router = createBrowserRouter([
         hydrateFallbackElement: <LoadingPage />,
         children: [
             { index: true, element: <HomeRoute /> },
+            { path: 'settings', loader: settingsLoader, action: settingsAction, element: <SettingsRoute /> },
             {
                 path: 'sign-out',
                 action: async (): Promise<Response> => {

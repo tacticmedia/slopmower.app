@@ -1,0 +1,51 @@
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-16);
+}
+
+.section {
+    margin-top: var(--base-size-16);
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--base-size-8);
+}
+
+.sectionTitle {
+    font-size: var(--text-title-size-small);
+}
+
+.note {
+    margin: var(--base-size-8) 0;
+    color: var(--fgColor-muted);
+}
+
+.secret,
+.code {
+    display: block;
+    padding: var(--base-size-8) var(--base-size-12);
+    border: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-radius: var(--borderRadius-medium);
+    background-color: var(--bgColor-muted);
+    font-family: var(--fontStack-monospace);
+    font-size: var(--text-body-size-small);
+}
+
+.secret {
+    margin-top: var(--base-size-8);
+    overflow-wrap: anywhere;
+    user-select: all;
+}
+
+.code {
+    margin: 0;
+    overflow-x: auto;
+}
+
+.noTokens {
+    grid-area: table;
+    margin: var(--base-size-8) 0 0;
+}
