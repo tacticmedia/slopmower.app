@@ -8,6 +8,7 @@ use App\Domain\Actor\ActorKind;
 use App\Domain\Anchor\AnchorKind;
 use App\Domain\Anchor\SymbolKind;
 use App\Domain\Error\RepositoryUnavailableReason;
+use App\Domain\Event\EventType;
 use App\Domain\Location\LocationStatus;
 use App\Domain\Location\OrphanReason;
 use App\Domain\Repository\RepositoryAccess;
@@ -65,6 +66,7 @@ final class EnumContractTest extends KernelTestCase
 
         yield 'SymbolKind' => [SymbolKind::class, 'common.schema.json', ['$defs', 'SymbolKind', 'anyOf', '0', 'enum']];
         yield 'Action' => [Action::class, 'common.schema.json', ['$defs', 'Action', 'anyOf', '0', 'enum']];
+        yield 'EventType' => [EventType::class, 'common.schema.json', ['$defs', 'EventType', 'anyOf', '0', 'enum']];
         yield 'SyncState' => [SyncState::class, 'repository.schema.json', ['$defs', 'Sync', 'properties', 'state', 'enum']];
         yield 'RepositoryUnavailableReason' => [RepositoryUnavailableReason::class, 'error.schema.json', ['$defs', 'RepositoryUnavailableDetails', 'properties', 'reason', 'enum']];
     }
