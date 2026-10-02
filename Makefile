@@ -56,8 +56,8 @@ ifneq ($(PACKAGE_JSON),)
 endif
 	$(PHP) bin/phpunit --testsuite e2e
 
-stan: ## PHPStan level 8
-	$(CONSOLE) cache:warmup --env=dev
+stan: ## PHPStan level 8 on the test container, so the dev worker keeps its cache
+	$(CONSOLE) cache:warmup --env=test
 	$(PHP) vendor/bin/phpstan analyse --memory-limit=1G
 
 cs: ## php-cs-fixer, dry run

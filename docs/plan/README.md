@@ -148,7 +148,7 @@ PHP, Composer, the console, and PHPUnit run in the `php` container. `make` wraps
 | `make db-test` | Database `app_test`: create it if it is missing, then migrate |
 | `make test` | `bin/phpunit --testsuite unit,functional`. Runs `npm run build:e2e` first when `public/build-e2e` is missing. |
 | `make e2e` | `npm run build:e2e` on the host when `package.json` exists, then `bin/phpunit --testsuite e2e` |
-| `make stan` | `cache:warmup --env=dev`, then `vendor/bin/phpstan analyse` at level 8 |
+| `make stan` | `cache:warmup --env=test`, then `vendor/bin/phpstan analyse` at level 8 on the test container, so the dev worker keeps its cache |
 | `make cs` | `vendor/bin/php-cs-fixer fix --dry-run --diff` |
 | `make cs-fix` | `vendor/bin/php-cs-fixer fix` |
 | `make lint` | `lint:container`, `lint:yaml config`, `lint:twig templates`, `doctrine:schema:validate --env=test` |
