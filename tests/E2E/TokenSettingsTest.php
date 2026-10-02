@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\E2E;
 
-use App\Tests\Support\Contract\SchemaValidator;
 use App\Tests\Support\Database\ResetDatabase;
+use App\Tests\Support\E2E\McpHttpClient;
 use App\Tests\Support\E2E\TokenSettings;
 use Doctrine\DBAL\Connection;
 use Facebook\WebDriver\WebDriverBy;
@@ -60,20 +60,16 @@ final class TokenSettingsTest extends PantherTestCase
         self::assertStringNotContainsString($secret, $client->getPageSource());
     }
 
-    #[TestDox('A bearer call to /api/v1/me with the new token answers as the agent with the token name')]
-    public function testNewTokenAuthenticates(): void
+    #[TestDox('MCP initialize works with the new token')]
+    public function testMcpInitializeWorksWithTheNewToken(): void
     {
         $client = $this->openSettingsAs('jan');
         $secret = $this->createToken($client, self::TOKEN_NAME);
 
-        $response = self::bearerGet($secret, '/api/v1/me');
+        $initialized = McpHttpClient::connect($secret)->initialize();
 
-        self::assertSame(200, $response->getStatusCode());
-        $content = $response->getContent();
-        self::assertSame([], SchemaValidator::errors($content, 'me.schema.json'));
-        /** @var array{caller: array{kind: string, agentName: string}} $me */
-        $me = json_decode($content, true, flags: \JSON_THROW_ON_ERROR);
-        self::assertSame(['agent', self::TOKEN_NAME], [$me['caller']['kind'], $me['caller']['agentName']]);
+        self::assertIsArray($initialized['serverInfo']);
+        self::assertSame('holistic-review', $initialized['serverInfo']['name']);
     }
 
     #[TestDox('After revoke, the same call gets 401')]
@@ -83,13 +79,13 @@ final class TokenSettingsTest extends PantherTestCase
         $secret = $this->createToken($client, self::TOKEN_NAME);
         $this->closeIssuedToken($client);
         self::assertSame('Active', $this->tokenCell($client, self::TOKEN_NAME, 'State'));
-        self::assertSame(200, self::bearerGet($secret, '/api/v1/me')->getStatusCode());
+        McpHttpClient::connect($secret)->initialize();
 
         $client->getWebDriver()->findElement(WebDriverBy::xpath('//tr[th[normalize-space()="'.self::TOKEN_NAME.'"]]//button[normalize-space()="Revoke"]'))->click();
         $client->waitForVisibility('div[role="alertdialog"]');
         $client->getWebDriver()->findElement(WebDriverBy::xpath('//div[@role="alertdialog"]//button[normalize-space()="Revoke"]'))->click();
 
         $client->waitForElementToContain('//tr[th[normalize-space()="'.self::TOKEN_NAME.'"]]', 'Revoked');
-        self::assertSame(401, self::bearerGet($secret, '/api/v1/me')->getStatusCode());
+        self::assertSame(401, McpHttpClient::connect($secret)->initializeResponse()->getStatusCode());
     }
 }

@@ -12,6 +12,14 @@ security:
             # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
+        # docs/specs/mcp.md section 1. Stateless, so a session cookie authenticates nothing here.
+        mcp:
+            pattern: ^/_mcp
+            stateless: true
+            entry_point: App\Security\BearerAuthenticationFailure
+            access_token:
+                token_handler: App\Security\ApiTokenHandler
+                failure_handler: App\Security\BearerAuthenticationFailure
         # Before api: a bearer token wins over a session cookie. Stateless, so the session stays untouched.
         api_bearer:
             request_matcher: App\Security\BearerApiRequestMatcher
@@ -50,6 +58,7 @@ security:
     access_control:
         # 401 on kernel.request, before a value resolver reads a path ID without a tenant context.
         - { path: ^/api/v1, roles: IS_AUTHENTICATED }
+        - { path: ^/_mcp, roles: ROLE_AGENT }
 
 when@test:
     security:

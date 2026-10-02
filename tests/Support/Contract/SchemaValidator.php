@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Support\Contract;
 
 use Opis\JsonSchema\Errors\ErrorFormatter;
+use Opis\JsonSchema\ValidationResult;
 use Opis\JsonSchema\Validator;
 
 /**
@@ -23,7 +24,24 @@ final class SchemaValidator
      */
     public static function errors(string $json, string $schema): array
     {
-        $result = self::validator()->validate(json_decode($json, flags: \JSON_THROW_ON_ERROR), self::ID_PREFIX.$schema);
+        return self::format(self::validator()->validate(json_decode($json, flags: \JSON_THROW_ON_ERROR), self::ID_PREFIX.$schema));
+    }
+
+    /**
+     * @param string $schemaJson A whole schema, for example the outputSchema of an MCP tool
+     *
+     * @return list<string> One line per error, empty for valid JSON
+     */
+    public static function errorsAgainst(string $json, string $schemaJson): array
+    {
+        return self::format(self::validator()->validate(json_decode($json, flags: \JSON_THROW_ON_ERROR), json_decode($schemaJson, flags: \JSON_THROW_ON_ERROR)));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function format(ValidationResult $result): array
+    {
         $error = $result->error();
 
         if (null === $error) {

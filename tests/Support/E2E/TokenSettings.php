@@ -6,12 +6,10 @@ namespace App\Tests\Support\E2E;
 
 use Facebook\WebDriver\WebDriverBy;
 use Facebook\WebDriver\WebDriverSelect;
-use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\Panther\Client;
-use Symfony\Contracts\HttpClient\ResponseInterface;
 
 /**
- * Drives the settings screen in a PantherTestCase and calls the e2e site with a token from the PHPUnit process.
+ * Drives the settings screen in a PantherTestCase.
  */
 trait TokenSettings
 {
@@ -77,13 +75,5 @@ trait TokenSettings
         self::assertIsInt($index, "No column {$column} in ".implode(', ', $headers));
 
         return $crawler->filterXPath($row)->children()->eq($index)->text();
-    }
-
-    private static function bearerGet(#[\SensitiveParameter] string $secret, string $path): ResponseInterface
-    {
-        $baseUri = $_SERVER['PANTHER_EXTERNAL_BASE_URI'];
-        \assert(\is_string($baseUri));
-
-        return HttpClient::create()->request('GET', $baseUri.$path, ['headers' => ['Authorization' => "Bearer {$secret}"]]);
     }
 }

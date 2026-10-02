@@ -1,0 +1,254 @@
+{
+    "tools": [
+        {
+            "name": "list_repositories",
+            "title": "List repositories",
+            "description": "List the repositories that this token can see: id, source (github or local), name, default branch, and number of open reviews. Use the name or id as `repository` in list_reviews.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "cursor": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "nextCursor of the previous page",
+                        "default": null,
+                        "minLength": 1
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Page size",
+                        "default": 100,
+                        "minimum": 1,
+                        "maximum": 500
+                    }
+                }
+            },
+            "annotations": {
+                "readOnlyHint": true,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            }
+        },
+        {
+            "name": "list_reviews",
+            "title": "List reviews",
+            "description": "List the reviews of one repository, newest first. Only open reviews unless includeClosed is true. Each review is pinned to one commit and holds its own requests; pass its id as `review` to get_updates and list_requests.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "repository": {
+                        "type": "string",
+                        "description": "Repository ID, GitHub owner/name, or local directory name",
+                        "minLength": 1,
+                        "maxLength": 255
+                    },
+                    "includeClosed": {
+                        "type": "boolean",
+                        "description": "Also list closed reviews",
+                        "default": false
+                    },
+                    "cursor": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "nextCursor of the previous page",
+                        "default": null,
+                        "minLength": 1
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Page size",
+                        "default": 50,
+                        "minimum": 1,
+                        "maximum": 100
+                    }
+                },
+                "required": [
+                    "repository"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": true,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            }
+        },
+        {
+            "name": "list_requests",
+            "title": "List requests",
+            "description": "List the change requests of one review, oldest first, with optional filters. Returns summaries; call get_request for the body, thread, anchor, and location.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "review": {
+                        "type": "string",
+                        "description": "Review ID from list_reviews",
+                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                    },
+                    "status": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Only requests with this status",
+                        "default": null,
+                        "enum": [
+                            "open",
+                            "in_progress",
+                            "ready_for_review",
+                            "verified",
+                            "reopened",
+                            "wont_do",
+                            null
+                        ]
+                    },
+                    "awaiting": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Only requests where it is this party's turn; \"agent\" means you",
+                        "default": null,
+                        "enum": [
+                            "agent",
+                            "user",
+                            "none",
+                            null
+                        ]
+                    },
+                    "path": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "Only requests whose file path starts with this prefix",
+                        "default": null,
+                        "minLength": 1,
+                        "maxLength": 4096
+                    },
+                    "outdated": {
+                        "type": [
+                            "null",
+                            "boolean"
+                        ],
+                        "description": "Only requests whose code changed (true) or did not change (false) on the default branch",
+                        "default": null
+                    },
+                    "cursor": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "nextCursor of the previous page",
+                        "default": null,
+                        "minLength": 1
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Page size",
+                        "default": 50,
+                        "minimum": 1,
+                        "maximum": 200
+                    }
+                },
+                "required": [
+                    "review"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": true,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            }
+        },
+        {
+            "name": "get_updates",
+            "title": "Get updates",
+            "description": "Return what changed in one review since `cursor`, grouped by request, leaving out your own actions. Without a cursor, return every request that waits for you with its unseen events. Always keep the returned cursor for the next call; if hasMore is true, call again at once. reviewState 'closed' means stop.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "review": {
+                        "type": "string",
+                        "description": "Review ID from list_reviews",
+                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                    },
+                    "cursor": {
+                        "type": [
+                            "null",
+                            "integer"
+                        ],
+                        "description": "The cursor from the previous call. Null returns everything that waits for you.",
+                        "default": null,
+                        "minimum": 0
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum events (with a cursor) or requests (without one)",
+                        "default": 100,
+                        "minimum": 1,
+                        "maximum": 500
+                    }
+                },
+                "required": [
+                    "review"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": true,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            }
+        },
+        {
+            "name": "get_request",
+            "title": "Get request",
+            "description": "Return one request in full: body, thread, anchor with a code snapshot at the review commit, linked commits, location, and the actions you may take now (allowedActions). `at` locates the anchor at another commit that the server's clone has (pushed, or committed in a local repository); by default the location is at the default-branch head. Your working tree can differ: find the code with anchor.snapshot, its before and after lines, and anchor.symbol.fqn.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Request ID",
+                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                    },
+                    "at": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "Commit SHA (7-64 hex digits) to locate the anchor at",
+                        "default": null,
+                        "pattern": "^[0-9a-f]{7,64}$"
+                    },
+                    "context": {
+                        "type": [
+                            "null",
+                            "integer"
+                        ],
+                        "description": "Lines of context around the located code to include as excerpt",
+                        "default": null,
+                        "minimum": 0,
+                        "maximum": 50
+                    }
+                },
+                "required": [
+                    "id"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": true,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            }
+        }
+    ]
+}

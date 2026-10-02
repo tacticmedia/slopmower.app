@@ -1,0 +1,14 @@
+# Written by hand: symfony/mcp-bundle 0.14.1 has no Flex recipe. docs/specs/mcp.md section 1.
+mcp:
+    servers:
+        holistic-review:
+            name: holistic-review
+            version: 1.0.0
+            description: Change requests from Holistic Review, for the coding agent that implements them.
+            instructions: '%app.mcp_instructions%'
+            transports: { stdio: false, http: true }
+            # The protection compares the host without the port.
+            http: { path: /_mcp, allowed_hosts: ['%env(APP_PUBLIC_HOST)%'] }
+            # D40. The default directory is under the cache directory, which cache:clear removes.
+            session: { store: file, directory: '%kernel.project_dir%/var/mcp-sessions' }
+            registry: { tools: ['App\Mcp\Tool\'] }

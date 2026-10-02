@@ -13,7 +13,7 @@ final class FileSizeLimitTest extends KernelTestCase
     private const int MAX_LINES = 800;
 
     /** Generated files, relative to the project root. */
-    private const array EXEMPT_FILES = [];
+    private const array EXEMPT_FILES = ['src/Mcp/BundledSchemas.php'];
 
     #[TestDox('No PHP, TypeScript, or CSS file in src, tests, or assets has more than 800 lines')]
     public function testNoSourceFileExceedsTheLineLimit(): void

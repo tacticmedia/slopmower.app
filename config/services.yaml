@@ -11,6 +11,18 @@ parameters:
     app.database_suffix: ''
     # Message classes that the worker handles without a TenantStamp and without a tenant context.
     app.tenantless_messages: []
+    # The MCP server instructions, docs/specs/mcp.md section 2.
+    app.mcp_instructions: |-
+        Holistic Review stores change requests that the user wrote while reviewing this repository at a pinned commit. Each request asks for one change and belongs to exactly one review; several reviews can be open at once.
+
+        1. Identify the repository: owner/name from `git remote get-url origin` for GitHub, or the name of the repository's root directory for a local repository. list_repositories shows what this token can see.
+        2. list_reviews(repository) returns the open reviews. Work on the one the user named; if several are open and none was named, ask.
+        3. get_updates(review) without a cursor returns what waits for you. Keep the returned cursor and pass it in the next call; if hasMore is true, call again at once.
+        4. For each request with awaiting "agent", reopened ones first: get_request, then reply_to_request (question: true when you need an answer, then move on), or claim_request before you edit code.
+        5. Commit per request, then link_commits with the full SHA and every request that the commit covers. GitHub repositories: push before mark_ready_for_review. Local repositories: committing is enough.
+        6. Finish with mark_ready_for_review (what changed, how you tested it), or mark_wont_do with evidence the user can check, or release_request if you stop.
+
+        Never verify, reopen, or create requests. Errors are isError results whose text is {"error":{"code","message","details"}}. On invalid_transition call get_request and read allowedActions. On review_closed stop working on that review.
 
 services:
     # default configuration for services in *this* file

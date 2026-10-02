@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace App\Tests\E2E;
 
 use App\Tests\Support\Api\ApiFixtures;
-use App\Tests\Support\Contract\SchemaValidator;
 use App\Tests\Support\Database\ResetDatabase;
+use App\Tests\Support\E2E\McpHttpClient;
 use App\Tests\Support\E2E\TokenSettings;
 use App\Tests\Support\Fixtures\TenantFixtures;
+use App\Tests\Support\Mcp\McpAssertions;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Component\Panther\Client;
 use Symfony\Component\Panther\PantherTestCase;
@@ -16,6 +17,7 @@ use Symfony\Component\Panther\PantherTestCase;
 final class ScopedTokenTest extends PantherTestCase
 {
     use ApiFixtures;
+    use McpAssertions;
     use ResetDatabase;
     use TokenSettings;
 
@@ -32,19 +34,16 @@ final class ScopedTokenTest extends PantherTestCase
         self::assertSame('beta', $this->tokenCell($client, self::TOKEN_NAME, 'Scope'));
     }
 
-    #[TestDox('A bearer call to /api/v1/repositories with that token returns only that repository')]
+    #[TestDox('list_repositories with that token returns only that repository')]
     public function testScopedTokenListsOnlyItsRepository(): void
     {
         $client = $this->openSettingsWithRepositories();
         $secret = $this->createToken($client, self::TOKEN_NAME, 'beta');
+        $mcp = McpHttpClient::connect($secret);
 
-        $response = self::bearerGet($secret, '/api/v1/repositories');
+        $page = self::assertToolResult($mcp, $mcp->callTool('list_repositories'), 'list_repositories');
 
-        self::assertSame(200, $response->getStatusCode());
-        $content = $response->getContent();
-        self::assertSame([], SchemaValidator::errors($content, 'lists.schema.json#/$defs/RepositoryPage'));
-        /** @var array{items: list<array{name: string}>} $page */
-        $page = json_decode($content, true, flags: \JSON_THROW_ON_ERROR);
+        self::assertIsArray($page['items']);
         self::assertSame(['beta'], array_column($page['items'], 'name'));
     }
 
