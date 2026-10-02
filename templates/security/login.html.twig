@@ -1,0 +1,22 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Sign in - Holistic Review{% endblock %}
+
+{% block body %}
+    <main>
+        <h1>Sign in to Holistic Review</h1>
+
+        {% if error %}
+            <p role="alert">{{ error.messageKey|trans(error.messageData, 'security') }}</p>
+        {% endif %}
+
+        {% if localLogin %}
+            <form method="post" action="{{ path('app_login_local') }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token(csrfTokenId) }}">
+                <button type="submit">Sign in as {{ localLogin }}</button>
+            </form>
+        {% else %}
+            <p>No sign-in method is configured.</p>
+        {% endif %}
+    </main>
+{% endblock %}

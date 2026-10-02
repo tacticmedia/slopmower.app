@@ -12,17 +12,19 @@ use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UlidType;
+use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Uid\Ulid;
 
 /**
  * GitHub logins can be renamed and taken again, so a GitHub user is identified by githubUserId.
  * The partial index predicate is in the form PostgreSQL returns, so the schema comparison finds no change.
+ * The security identifier is the user ID. The session stores a serialized copy, so it must not hold review data.
  */
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: 'app_user')]
 #[ORM\Index(name: 'idx_app_user_tenant', columns: ['tenant_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_app_user_local_login', columns: ['login'], options: ['where' => "((sign_in_method)::text = 'local'::text)"])]
-class User implements TenantOwned
+class User implements TenantOwned, UserInterface
 {
     #[ORM\Id]
     #[ORM\Column(type: UlidType::NAME)]
@@ -88,6 +90,11 @@ class User implements TenantOwned
         return new self($tenantId, SignInMethod::GitHub, $githubUserId, $login, $name, $avatarUrl, $signedInAt);
     }
 
+    public function recordSignIn(\DateTimeImmutable $signedInAt): void
+    {
+        $this->lastSignInAt = $signedInAt;
+    }
+
     public function getId(): UserId
     {
         return UserId::fromString($this->id->toBase32());
@@ -131,5 +138,18 @@ class User implements TenantOwned
     public function getLastSignInAt(): \DateTimeImmutable
     {
         return $this->lastSignInAt;
+    }
+
+    public function getUserIdentifier(): string
+    {
+        $id = $this->getId()->toString();
+        \assert('' !== $id);
+
+        return $id;
+    }
+
+    public function getRoles(): array
+    {
+        return ['ROLE_USER'];
     }
 }

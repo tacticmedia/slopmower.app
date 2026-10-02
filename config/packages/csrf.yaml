@@ -9,3 +9,5 @@ framework:
             - submit
             - authenticate
             - logout
+            - api
+        check_header: true

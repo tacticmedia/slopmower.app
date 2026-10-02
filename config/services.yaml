@@ -7,6 +7,8 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    # The dbname_suffix of config/packages/doctrine.yaml, for the session connection.
+    app.session_database_suffix: ''
 
 services:
     # default configuration for services in *this* file
@@ -21,3 +23,21 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    # Its own connection, opened at session start and closed at session save, so a worker never keeps a dead one.
+    # The advisory lock serializes the requests of one session, so no request writes back a session that logout deleted.
+    Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler:
+        arguments:
+            $pdoOrDsn: 'pgsql:host=%env(key:host:url:DATABASE_URL)%;port=%env(key:port:url:DATABASE_URL)%;dbname=%env(key:path:url:DATABASE_URL)%%app.session_database_suffix%'
+            $options:
+                db_username: '%env(key:user:url:DATABASE_URL)%'
+                db_password: '%env(key:pass:url:DATABASE_URL)%'
+                lock_mode: !php/const Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler::LOCK_ADVISORY
+
+when@test:
+    parameters:
+        app.session_database_suffix: '_test%env(default::TEST_TOKEN)%'
+
+when@e2e:
+    parameters:
+        app.session_database_suffix: '_test'

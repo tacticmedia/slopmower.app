@@ -7,11 +7,9 @@ namespace App\Tenancy;
 use App\Domain\Identity\TenantId;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Filter\SQLFilter;
-use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use Symfony\Component\Uid\Ulid;
 use Symfony\Contracts\Service\ResetInterface;
 
-#[Autoconfigure(public: true)]
 final class TenantContext implements ResetInterface
 {
     private ?TenantId $tenantId = null;

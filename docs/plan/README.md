@@ -96,11 +96,11 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M03 | [Domain events and payload codec](M03-domain-events-and-payload-codec.md) | Done | 2026-10-02 | [Report](reports/M03.md) |
 | M04 | [Request lifecycle](M04-request-lifecycle.md) | Done | 2026-10-02 | [Report](reports/M04.md) |
 | M05 | [Tenancy persistence and isolation](M05-tenancy-persistence-and-isolation.md) | Done | 2026-10-02 | [Report](reports/M05.md) |
-| M06 | [Review data schema](M06-review-data-schema.md) | Not started | | |
+| M06 | [Review data schema](M06-review-data-schema.md) | In progress | 2026-10-02 | |
 | M07 | [Event store and command service](M07-event-store-and-command-service.md) | Not started | | |
 | M08 | [Git plumbing](M08-git-plumbing.md) | Done | 2026-10-02 | [Report](reports/M08.md) |
 | M09 | [Local repository source](M09-local-repository-source.md) | Not started | | |
-| M10 | [Sign-in and security](M10-sign-in-and-security.md) | In progress | 2026-10-02 | |
+| M10 | [Sign-in and security](M10-sign-in-and-security.md) | Done | 2026-10-02 | [Report](reports/M10.md) |
 | M11 | [REST foundation and repositories API](M11-rest-foundation-and-repositories-api.md) | Not started | | |
 | M12 | [Reviews API](M12-reviews-api.md) | Not started | | |
 | M13 | [Requests API, user side](M13-requests-api-user-side.md) | Not started | | |
