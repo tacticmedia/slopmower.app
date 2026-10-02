@@ -18,6 +18,7 @@ use App\Entity\Repository;
 use App\Git\BareClone;
 use App\Git\GitFailed;
 use App\Git\GitReader;
+use App\Git\GitRunner;
 use App\Git\RepositoryLock;
 use App\Git\TenantDataPaths;
 use App\Message\CloneRepositoryJob;
@@ -27,6 +28,7 @@ use App\Source\LocalFetchCommand;
 use App\Source\LocalRepositoryDiscovery;
 use App\Source\SourceUnavailable;
 use Doctrine\DBAL\Connection;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Filesystem\Filesystem;
@@ -59,6 +61,7 @@ final class FetchRepository
         private readonly EventDispatcherInterface $dispatcher,
         private readonly Connection $connection,
         private readonly ClockInterface $clock,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -209,10 +212,13 @@ final class FetchRepository
     {
         $id = $repository->getId();
         $gitDir = $this->paths->clonePath($repository->getTenantId(), $id);
+        $serverPaths = [$gitDir];
         $filesystem = new Filesystem();
 
         try {
-            $command = $this->localFetchCommand($repository);
+            $sourcePath = $this->localSourcePath($repository);
+            $serverPaths[] = $sourcePath;
+            $command = LocalFetchCommand::forDirectory($sourcePath);
 
             if ($clone) {
                 // A failed earlier attempt may have left a partial clone.
@@ -222,8 +228,9 @@ final class FetchRepository
 
             $this->bareClone->fetch($gitDir, $command->url, timeoutSeconds: $timeoutSeconds, uploadPack: $command->uploadPack);
         } catch (GitFailed|SourceUnavailable|IOExceptionInterface $failure) {
+            $this->logger->warning('The sync of repository {repositoryId} failed.', ['repositoryId' => $id->toString(), 'exception' => $failure]);
             // Recorded first, so a failing removal cannot leave the row in `cloning`.
-            $this->repositories->recordFailure($id, $failure->getMessage());
+            $this->repositories->recordFailure($id, self::lastError($failure, $serverPaths));
 
             if ($clone) {
                 $filesystem->remove($gitDir);
@@ -248,9 +255,21 @@ final class FetchRepository
     }
 
     /**
+     * The first line of the message, without git arguments and server paths. The log holds the full message.
+     *
+     * @param list<string> $serverPaths
+     */
+    private static function lastError(GitFailed|SourceUnavailable|IOExceptionInterface $failure, array $serverPaths): string
+    {
+        $message = str_replace($serverPaths, GitRunner::REDACTED, $failure instanceof GitFailed ? $failure->summary : $failure->getMessage());
+
+        return trim(explode("\n", $message, 2)[0]);
+    }
+
+    /**
      * @throws SourceUnavailable
      */
-    private function localFetchCommand(Repository $repository): LocalFetchCommand
+    private function localSourcePath(Repository $repository): string
     {
         if (RepositorySource::Local !== $repository->getSource()) {
             throw new \LogicException('Only local sources can be fetched.');
@@ -260,7 +279,7 @@ final class FetchRepository
         $candidate = $this->discovery->find($directory)
             ?? throw new SourceUnavailable("The directory {$directory} is not a repository under the local repositories directory, or local repositories are off.");
 
-        return LocalFetchCommand::forDirectory($candidate->realPath);
+        return $candidate->realPath;
     }
 
     /**

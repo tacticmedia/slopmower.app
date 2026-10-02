@@ -24,14 +24,6 @@ enum EventType: string
     case BatchSubmitted = 'batch.submitted';
 
     /**
-     * For the stored `type` column. An unknown type is corrupt data, not input.
-     */
-    public static function fromString(string $value): self
-    {
-        return self::tryFrom($value) ?? throw CorruptPayload::field('type', 'Is not a known event type.');
-    }
-
-    /**
      * @return class-string<DomainEvent>
      */
     public function eventClass(): string

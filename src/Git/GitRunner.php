@@ -20,7 +20,7 @@ final class GitRunner
         'LC_ALL' => 'C',
     ];
 
-    private const string REDACTED = '[redacted]';
+    public const string REDACTED = '[redacted]';
 
     public function __construct(private readonly LoggerInterface $logger)
     {
@@ -86,9 +86,10 @@ final class GitRunner
      */
     private function failure(array $arguments, string $reason, array $secretConfiguration): GitFailed
     {
-        $message = str_replace(array_values($secretConfiguration), self::REDACTED, 'git '.implode(' ', $arguments).' '.$reason);
-        $this->logger->debug($message);
+        $redact = static fn (string $text): string => str_replace(array_values($secretConfiguration), self::REDACTED, $text);
+        $failure = new GitFailed($redact('git '.implode(' ', $arguments).' '.$reason), $redact("git {$arguments[0]} {$reason}"));
+        $this->logger->debug($failure->getMessage());
 
-        return new GitFailed($message);
+        return $failure;
     }
 }

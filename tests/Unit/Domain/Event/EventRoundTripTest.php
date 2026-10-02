@@ -56,7 +56,7 @@ final class EventRoundTripTest extends KernelTestCase
     #[DataProvider('events')]
     public function testRoundTrips(string $fixture, DomainEvent $event): void
     {
-        $type = EventType::fromString($event::type()->value);
+        $type = EventType::from($event::type()->value);
 
         self::assertInstanceOf($type->eventClass(), $event);
         self::assertEquals($event, $type->decode($event->toPayload()));

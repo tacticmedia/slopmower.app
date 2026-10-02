@@ -84,15 +84,35 @@ final class SyncStateReasonsTest extends KernelTestCase
     public function testGitFailureInSynchronousFetch(): void
     {
         self::runQueuedMessages();
-        $filesystem = new Filesystem();
-        $filesystem->remove("{$this->source->path}/.git");
-        $filesystem->mkdir("{$this->source->path}/.git");
+        $this->emptySourceGitDirectory();
 
         $this->assertUnavailable(RepositoryUnavailableReason::FetchFailed, fn () => self::fetchRepository()->fetchNow($this->repositoryId));
 
         $repository = self::freshRepository($this->repositoryId);
         self::assertSame(SyncState::Idle, $repository->getSyncState());
         self::assertStringContainsString('does not appear to be a git repository', (string) $repository->getLastError());
+    }
+
+    #[TestDox('lastError of a failed fetch has the git subcommand, exit code, and first stderr line, without server paths')]
+    public function testLastErrorHasNoServerPath(): void
+    {
+        self::runQueuedMessages();
+        $this->emptySourceGitDirectory();
+
+        self::fetchRepository()->request($this->repositoryId);
+        self::runQueuedMessages();
+
+        self::assertSame("git fetch exited with 128: fatal: '[redacted]' does not appear to be a git repository", self::freshRepository($this->repositoryId)->getLastError());
+    }
+
+    /**
+     * The directory stays a candidate, so the fetch reaches git.
+     */
+    private function emptySourceGitDirectory(): void
+    {
+        $filesystem = new Filesystem();
+        $filesystem->remove("{$this->source->path}/.git");
+        $filesystem->mkdir("{$this->source->path}/.git");
     }
 
     private function assertUnavailable(RepositoryUnavailableReason $expectedReason, callable $sync): void

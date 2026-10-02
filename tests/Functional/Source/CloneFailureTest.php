@@ -58,6 +58,6 @@ final class CloneFailureTest extends KernelTestCase
 
         $repository = self::freshRepository($repositoryId);
         self::assertSame(SyncState::Failed, $repository->getSyncState());
-        self::assertStringContainsString('Failed to create', (string) $repository->getLastError());
+        self::assertStringStartsWith('Failed to create "[redacted]": ', (string) $repository->getLastError());
     }
 }

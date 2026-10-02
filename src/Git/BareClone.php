@@ -53,7 +53,7 @@ final class BareClone
             $remainingSeconds = ($deadlineNanoseconds - hrtime(true)) / 1e9;
 
             if ($remainingSeconds <= 0) {
-                throw new GitFailed('git '.implode(' ', $arguments)." timed out after {$timeoutSeconds} s");
+                throw new GitFailed('git '.implode(' ', $arguments)." timed out after {$timeoutSeconds} s", "git {$arguments[0]} timed out after {$timeoutSeconds} s");
             }
 
             return $this->git->run($gitDir, array_values($arguments), $remainingSeconds, $secretConfiguration);

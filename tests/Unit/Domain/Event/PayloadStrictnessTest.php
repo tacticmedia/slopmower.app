@@ -19,12 +19,12 @@ final class PayloadStrictnessTest extends KernelTestCase
      * @param array<mixed> $payload
      * @param list<string> $expectedFields
      */
-    #[TestDox('A missing required field, a wrong type, an unknown enum value, and an unknown event type each throw an error that names the field')]
+    #[TestDox('A missing required field, a wrong type, and an unknown enum value each throw an error that names the field')]
     #[DataProvider('corruptPayloads')]
     public function testNamesTheCorruptField(string $type, array $payload, array $expectedFields): void
     {
         try {
-            EventType::fromString($type)->decode($payload);
+            EventType::from($type)->decode($payload);
         } catch (CorruptPayload $error) {
             self::assertSame($expectedFields, array_column($error->violations, 'field'));
 
@@ -50,7 +50,6 @@ final class PayloadStrictnessTest extends KernelTestCase
         yield 'an unknown enum value' => ['request.opened', array_replace_recursive($opened, ['anchor' => ['kind' => 'block']]), ['anchor.kind']];
         yield 'a value that an anchor rule rejects' => ['request.opened', array_replace_recursive($opened, ['anchor' => ['range' => ['endLine' => 37]]]), ['anchor.range.endLine']];
         yield 'a value that an event rule rejects' => ['request.wont_do', ['reason' => 'Too short.'], ['reason']];
-        yield 'an unknown event type' => ['request.deleted', [], ['type']];
     }
 
     #[TestDox('A missing nullable field reads as null, and an unknown field is ignored')]
