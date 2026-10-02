@@ -20,6 +20,10 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Entity'
                 prefix: 'App\Entity'
                 alias: App
+        filters:
+            tenant:
+                class: App\Tenancy\TenantSqlFilter
+                enabled: true
 
 when@test:
     doctrine:
