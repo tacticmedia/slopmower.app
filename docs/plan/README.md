@@ -100,7 +100,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M07 | [Event store and command service](M07-event-store-and-command-service.md) | Not started | | |
 | M08 | [Git plumbing](M08-git-plumbing.md) | In progress | 2026-10-02 | |
 | M09 | [Local repository source](M09-local-repository-source.md) | Not started | | |
-| M10 | [Sign-in and security](M10-sign-in-and-security.md) | Not started | | |
+| M10 | [Sign-in and security](M10-sign-in-and-security.md) | In progress | 2026-10-02 | |
 | M11 | [REST foundation and repositories API](M11-rest-foundation-and-repositories-api.md) | Not started | | |
 | M12 | [Reviews API](M12-reviews-api.md) | Not started | | |
 | M13 | [Requests API, user side](M13-requests-api-user-side.md) | Not started | | |
@@ -118,7 +118,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M25 | [Drafts, batch review, viewed files](M25-drafts-batch-review-viewed-files.md) | Not started | | |
 | M26 | [Symbol index](M26-symbol-index.md) | Not started | | |
 | M27 | [Symbol anchors and keyboard access](M27-symbol-anchors-and-keyboard-access.md) | Not started | | |
-| M28 | [Re-anchoring core](M28-re-anchoring-core.md) | In progress | 2026-10-02 | |
+| M28 | [Re-anchoring core](M28-re-anchoring-core.md) | Done | 2026-10-02 | [Report](reports/M28.md) |
 | M29 | [Re-anchoring with git, locations, outdated](M29-re-anchoring-with-git-locations-outdated.md) | Not started | | |
 | M30 | [Verify view diffs and outdated UI](M30-verify-view-diffs-and-outdated-ui.md) | Not started | | |
 | M31 | [Data deletion and tenant purge](M31-data-deletion-and-tenant-purge.md) | Not started | | |

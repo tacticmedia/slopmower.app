@@ -38,7 +38,7 @@ final class SnapshotCapture
         $truncated = $lineCount > ContentSnapshot::MAX_LINES;
 
         return ContentSnapshot::of(
-            $truncated ? [...array_slice($region, 0, self::KEPT_LINES_PER_END), ...array_slice($region, -self::KEPT_LINES_PER_END)] : $region,
+            self::keptLines($region),
             $truncated,
             $lineCount,
             self::withoutTrailingWhitespace(array_slice($fileLines, $beforeStart, $start - $beforeStart)),
@@ -50,6 +50,18 @@ final class SnapshotCapture
     public static function comparisonForm(string $line): string
     {
         return (string) preg_replace(self::WHITESPACE_RUN_PATTERN, ' ', trim($line, self::WHITESPACE));
+    }
+
+    /**
+     * @param list<string> $region
+     *
+     * @return list<string> All lines up to 200, else the first 100 and the last 100
+     */
+    public static function keptLines(array $region): array
+    {
+        return count($region) > ContentSnapshot::MAX_LINES
+            ? [...array_slice($region, 0, self::KEPT_LINES_PER_END), ...array_slice($region, -self::KEPT_LINES_PER_END)]
+            : $region;
     }
 
     /**
