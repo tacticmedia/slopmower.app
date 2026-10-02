@@ -28,12 +28,14 @@ type Props = {
     thread: ThreadView;
     /** The author of a reply that the server has not confirmed yet. */
     caller: Actor;
+    /** False where the page shows the status and the lines already. */
+    showHeader?: boolean;
 };
 
 /**
  * Decision D2. A reply shows at once and disappears again if Q4 fails.
  */
-export function ThreadBox({ thread, caller }: Props) {
+export function ThreadBox({ thread, caller, showHeader = true }: Props) {
     const fetcher = useFetcher<ActionResult>();
     const [replying, startReply] = useTransition();
     const [comments, addComment] = useOptimistic(thread.comments, (current: CommentView[], added: CommentView) => [...current, added]);
@@ -55,10 +57,12 @@ export function ThreadBox({ thread, caller }: Props) {
 
     return (
         <article className={styles.thread} data-testid="thread" data-request-id={requestId ?? undefined} aria-busy={null === requestId}>
-            <header className={styles.header}>
-                <StatusLabel status={thread.status} />
-                <span className={styles.lines}>{linesText(thread.range)}</span>
-            </header>
+            {showHeader && (
+                <header className={styles.header}>
+                    <StatusLabel status={thread.status} />
+                    <span className={styles.lines}>{linesText(thread.range)}</span>
+                </header>
+            )}
             <ol className={styles.comments}>
                 {comments.map((comment) => (
                     <ThreadComment key={comment.key} comment={comment} onQuote={thread.replyable ? () => replyBox.current?.quote(comment.body) : null} />

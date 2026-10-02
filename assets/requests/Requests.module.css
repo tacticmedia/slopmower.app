@@ -1,0 +1,107 @@
+.muted {
+    color: var(--fgColor-muted);
+}
+
+.location {
+    font-family: var(--fontStack-monospace);
+    font-size: var(--text-body-size-small);
+    overflow-wrap: anywhere;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-8);
+}
+
+.sectionTitle {
+    margin: 0;
+    font-size: var(--text-title-size-small);
+    font-weight: var(--base-text-weight-semibold);
+}
+
+.requestActions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-8);
+}
+
+.buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--base-size-8);
+}
+
+.dialogForm {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-12);
+}
+
+.commits {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-radius: var(--borderRadius-medium);
+}
+
+.commit {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-4);
+    padding: var(--base-size-8) var(--base-size-12);
+    font-size: var(--text-body-size-medium);
+}
+
+.commit + .commit {
+    border-top: var(--borderWidth-thin) solid var(--borderColor-muted);
+}
+
+.commitTitle {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-8);
+}
+
+.subject {
+    font-weight: var(--base-text-weight-semibold);
+    overflow-wrap: anywhere;
+}
+
+.snapshot {
+    overflow-x: auto;
+    border: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-radius: var(--borderRadius-medium);
+    background-color: var(--bgColor-default);
+}
+
+.snapshotTable {
+    margin: var(--base-size-4) 0;
+    border-collapse: collapse;
+    font-family: var(--fontStack-monospace);
+    font-size: var(--text-codeBlock-size);
+    line-height: var(--text-codeBlock-lineHeight);
+}
+
+.lineNumber {
+    min-width: 3rem;
+    padding: 0 var(--base-size-8);
+    color: var(--fgColor-muted);
+    text-align: right;
+    vertical-align: top;
+    user-select: none;
+}
+
+.lineText {
+    padding: 0 var(--base-size-12) 0 var(--base-size-8);
+    white-space: pre;
+    tab-size: 4;
+}
+
+.snapshotGap {
+    padding: var(--base-size-4) var(--base-size-12);
+    color: var(--fgColor-muted);
+    background-color: var(--bgColor-muted);
+}

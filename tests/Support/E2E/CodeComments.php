@@ -9,6 +9,7 @@ use App\Application\RequestCommands;
 use App\Application\ReviewCommands;
 use App\Domain\Actor\Actor;
 use App\Domain\Anchor\AnchorKind;
+use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Request\Command\Open;
 use App\Domain\Review\Command\CloseReview;
@@ -185,13 +186,16 @@ trait CodeComments
         self::getContainer()->get(ReviewCommands::class)->close($this->reviewId, new CloseReview(), Actor::user($this->commenter->getId()));
     }
 
-    private function seededRequest(int $startLine, int $endLine, string $body): void
+    private function seededRequest(int $startLine, int $endLine, string $body): RequestId
     {
         self::getContainer()->get(TenantContext::class)->set($this->commenter->getTenantId());
         $review = self::getContainer()->get(ReviewRepository::class)->findFresh($this->reviewId);
         self::assertNotNull($review);
         $kind = $startLine === $endLine ? AnchorKind::Line : AnchorKind::Range;
         $anchor = self::getContainer()->get(AnchorFactory::class)->capture($review, $kind, FixtureRepositories::SMALL_FILE, $startLine, $endLine, null);
-        self::getContainer()->get(RequestCommands::class)->open($this->reviewId, new Open($anchor, $body), Actor::user($this->commenter->getId()));
+        $requestId = self::getContainer()->get(RequestCommands::class)->open($this->reviewId, new Open($anchor, $body), Actor::user($this->commenter->getId()))[0]->requestId;
+        self::assertNotNull($requestId);
+
+        return $requestId;
     }
 }

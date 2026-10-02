@@ -4,12 +4,11 @@
     gap: var(--base-size-16);
 }
 
+/* The underline navigation at the bottom draws the separator line. */
 .header {
     display: flex;
     flex-direction: column;
     gap: var(--base-size-12);
-    padding-bottom: var(--base-size-16);
-    border-bottom: var(--borderWidth-thin) solid var(--borderColor-default);
 }
 
 .titleRow {

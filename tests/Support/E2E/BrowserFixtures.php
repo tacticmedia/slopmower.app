@@ -73,6 +73,18 @@ trait BrowserFixtures
     }
 
     /**
+     * A commit on main of the source, which the server clone gets with its next fetch.
+     *
+     * @param array<string, string> $files Content by path
+     *
+     * @return string The commit SHA
+     */
+    private static function commitInLocalSource(string $directory, array $files, string $message): string
+    {
+        return GitRepositoryBuilder::open(Path::join(self::environmentPath('APP_LOCAL_REPOSITORIES_DIR'), $directory))->commit($files, $message);
+    }
+
+    /**
      * Connects the source with R3's service and runs the clone job.
      */
     private static function connectedRepository(User $user, string $directory): Repository

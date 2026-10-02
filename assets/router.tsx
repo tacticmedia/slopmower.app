@@ -7,6 +7,7 @@ import { RouteError } from './layout/RouteError';
 import { HomeRoute } from './routes/HomeRoute';
 import { RepositoriesRoute, repositoriesAction, repositoriesLoader } from './routes/repositories/RepositoriesRoute';
 import { RepositoryRoute, repositoryAction, repositoryLoader } from './routes/repositories/RepositoryRoute';
+import { requestAction, requestListLoader, requestLoader } from './routes/requests/requestData';
 import { CodeLayout, codeLayoutLoader, NoFileSelected } from './routes/reviews/CodeLayout';
 import { fileAction, fileLoader } from './routes/reviews/fileData';
 import { ReviewLayout, reviewAction, reviewLoader } from './routes/reviews/ReviewLayout';
@@ -53,7 +54,19 @@ export const router = createBrowserRouter([
                                 ],
                             },
                             { path: 'tree', loader: treeLoader },
+                            {
+                                path: 'requests',
+                                loader: requestListLoader,
+                                lazy: { Component: () => import('./routes/requests/RequestList').then(({ RequestList }) => RequestList) },
+                                errorElement: <RouteError embedded />,
+                            },
                         ],
+                    },
+                    {
+                        path: 'requests/:requestId',
+                        loader: requestLoader,
+                        action: requestAction,
+                        lazy: { Component: () => import('./routes/requests/RequestDetail').then(({ RequestDetail }) => RequestDetail) },
                     },
                     { path: 'settings', loader: settingsLoader, action: settingsAction, element: <SettingsRoute /> },
                 ],

@@ -37,6 +37,14 @@ final class GitRepositoryBuilder
         return $repository;
     }
 
+    /**
+     * A repository that {@see init()} created earlier.
+     */
+    public static function open(string $path): self
+    {
+        return new self($path);
+    }
+
     public function url(): string
     {
         return 'file://'.$this->path;

@@ -112,7 +112,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M19 | [Settings: API tokens](M19-settings-api-tokens.md) | Done | 2026-10-02 | [Report](reports/M19.md) |
 | M20 | [Code view](M20-code-view.md) | Done | 2026-10-02 | [Report](reports/M20.md) |
 | M21 | [Commenting UI](M21-commenting-ui.md) | Done | 2026-10-03 | [Report](reports/M21.md) |
-| M22 | [Verify UI and vertical slice](M22-verify-ui-and-vertical-slice.md) | In progress | 2026-10-03 | Vertical slice |
+| M22 | [Verify UI and vertical slice](M22-verify-ui-and-vertical-slice.md) | Done | 2026-10-03 | Vertical slice, [Report](reports/M22.md) |
 | M23 | [Public docs and downloadable skill](M23-public-docs-and-downloadable-skill.md) | Done | 2026-10-03 | [Report](reports/M23.md) |
 | M24 | [Live updates via Mercure](M24-live-updates-via-mercure.md) | Not started | | |
 | M25 | [Drafts, batch review, viewed files](M25-drafts-batch-review-viewed-files.md) | Not started | | |

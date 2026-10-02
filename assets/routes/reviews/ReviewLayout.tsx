@@ -1,5 +1,6 @@
-import { Banner, Heading, Link, RelativeTime } from '@primer/react';
-import { type ActionFunctionArgs, type LoaderFunctionArgs, Outlet, Link as RouterLink, useLoaderData } from 'react-router';
+import { CodeIcon, CommentDiscussionIcon } from '@primer/octicons-react';
+import { Banner, Heading, Link, RelativeTime, UnderlineNav } from '@primer/react';
+import { type ActionFunctionArgs, type LoaderFunctionArgs, Outlet, Link as RouterLink, useLoaderData, useMatch } from 'react-router';
 import { type ActionResult, optionalText, writeResult } from '../../api/actionResult';
 import { apiGet, apiWrite } from '../../api/client';
 import type { CloseReviewInput } from '../../api/types/inputs';
@@ -38,6 +39,27 @@ function ClosedBanner({ review }: { review: Extract<Review, { state: 'closed' }>
     );
 }
 
+function ReviewNavigation({ review }: { review: Review }) {
+    const onRequests = null !== useMatch('/reviews/:reviewId/requests');
+
+    return (
+        <UnderlineNav aria-label="Review" variant="flush">
+            <UnderlineNav.Item as={RouterLink} to={`/reviews/${review.id}`} leadingVisual={<CodeIcon />} aria-current={onRequests ? undefined : 'page'}>
+                Code
+            </UnderlineNav.Item>
+            <UnderlineNav.Item
+                as={RouterLink}
+                to={`/reviews/${review.id}/requests`}
+                leadingVisual={<CommentDiscussionIcon />}
+                counter={review.counts.total}
+                aria-current={onRequests ? 'page' : undefined}
+            >
+                Requests
+            </UnderlineNav.Item>
+        </UnderlineNav>
+    );
+}
+
 export function ReviewLayout() {
     const review = useLoaderData<Review>();
 
@@ -61,6 +83,7 @@ export function ReviewLayout() {
                     <ReviewIdCopy reviewId={review.id} />
                     <AgentPromptSnippet reviewId={review.id} />
                 </div>
+                <ReviewNavigation review={review} />
             </header>
             {'closed' === review.state && <ClosedBanner review={review} />}
             <Outlet />
