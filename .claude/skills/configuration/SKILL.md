@@ -19,8 +19,9 @@ Four places, distinguished by what makes the value change.
 
 ## Environment variables
 
-Infrastructure only — hosts, credentials, DSNs. Defaults live in `.env`, which is
-committed. Real values live in `.env.local`, which is not. Read them with `%env(...)%`.
+Infrastructure only: hosts, ports, DSNs. Secrets go in the vault, see Secrets. Defaults live
+in `.env`, which is committed. Real values live in `.env.local`, which is not. Read them
+with `%env(...)%`.
 
 Application behaviour does not belong here.
 

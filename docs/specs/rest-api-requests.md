@@ -28,8 +28,8 @@ Rules:
   - `null` for `open`, `in_progress`, and `reopened`;
   - `fixed` for `ready_for_review`, and for `verified` reached from `ready_for_review`;
   - `wont_do` for `wont_do`, and for `verified` reached from `wont_do`.
-- Every write takes the tenant row lock and writes its events and projections in one transaction. After the commit, it publishes one live update. See [webhooks-and-live-updates.md](webhooks-and-live-updates.md#3-live-updates).
-- A write on a closed review gets 409 `review_closed`. See [V4](rest-api.md#v4-close-a-review).
+- Every command takes the tenant row lock and writes its events and projections in one transaction. After the commit, a command that wrote events publishes one live update. See [webhooks-and-live-updates.md](webhooks-and-live-updates.md#3-live-updates).
+- A command on a closed review gets 409 `review_closed`. See [V4](rest-api.md#v4-close-a-review).
 
 `allowedActions` for the caller. It is empty when the review is closed.
 
@@ -52,7 +52,7 @@ Rules:
 - **Request:** `GET /api/v1/reviews/{reviewId}/requests`
 - **Authentication:** S, B
 - **Success:** 200 [`RequestPage`](schemas/lists.schema.json). `total` counts all matches, independent of the cursor. Closed reviews can be listed.
-- **Errors:** 422 `invalid_input` for a cursor sent with other filters.
+- **Errors:** 422 `invalid_input` for a cursor sent with filters other than those of the page that returned it.
 
 | Query | Type | Default | Notes |
 |---|---|---|---|
@@ -91,7 +91,7 @@ Example response, [fixtures/lists.request-page.json](fixtures/lists.request-page
 
 | Query | Type | Default | Notes |
 |---|---|---|---|
-| `at` | `^[0-9a-f]{7,64}$` | none | Resolved with `git rev-parse --verify --end-of-options <at>^{commit}`. If the commit is missing, the server fetches once. `location.target` is then `requested`. |
+| `at` | `^[0-9a-f]{7,64}$` | none | Resolved with `git rev-parse --verify --end-of-options <at>^{commit}`. If the commit is missing, the server fetches once. With `at`, `location.target` is `requested`. |
 | `context` | integer 0-50 | none | When set, `excerpt` holds the located region at the target commit, with `context` lines on each side and at most 400 lines. `excerpt` is null when the location is `orphaned` or the file is not renderable. |
 
 - Without `at`, the server computes `location` at the default-branch head, with `target: default_branch`. `location` is null when the clone is gone.
@@ -192,7 +192,7 @@ All command responses except Q2 and Q7 are [`RequestCommandResult`](schemas/requ
 - **Body:** [`OpenRequestInput`](schemas/inputs.schema.json), `{anchor: AnchorInput, body}`.
 - **Success:** 201 [`Request`](schemas/request.schema.json) in full, with `Location: /api/v1/requests/{id}`. Example: [fixtures/request.opened-range.json](fixtures/request.opened-range.json).
 - **Errors:**
-  - 422 `invalid_input`: unknown path, range outside the file, FQN not found or ambiguous, kind and fields do not agree, or the file is not renderable for a line anchor;
+  - 422 `invalid_input`: unknown path, range outside the file, FQN not found or ambiguous, kind and fields do not agree, or the file is not renderable for a `line`, `range`, or `symbol` anchor;
   - 409 `review_closed`;
   - 409 `repository_unavailable`: the clone is gone.
 
@@ -342,7 +342,7 @@ Example error, [fixtures/error.invalid-input.json](fixtures/error.invalid-input.
 |---|---|---|---|
 | `cursor` | integer, 0 or more | none | The `cursor` of the previous response |
 | `limit` | integer 1-500 | 100 | Events in cursor mode, requests in null mode |
-| `includeOwn` | boolean | false | REST only. The UI sets it to true when it catches up after a live-update reconnect. |
+| `includeOwn` | boolean | false | REST only. The UI sets it to true when it catches up: after a live-update reconnect, and when the tab becomes visible again. |
 
 Algorithm. It runs in one read-only REPEATABLE READ transaction:
 
@@ -398,7 +398,8 @@ It also works on a closed review, so the user can delete drafts that are left.
 - **Errors:**
   - 404 `not_found`: the request is unknown;
   - 422 `invalid_input`: anchor errors, or the request belongs to another review;
-  - 409 `review_closed`.
+  - 409 `review_closed`;
+  - 409 `repository_unavailable`: the clone is gone, for a `new_request` draft.
 
 The server captures and validates the anchor at creation, as in [Q2](#q2-open-a-request). The review commit never changes, so the anchor stays valid until the submission.
 
@@ -501,7 +502,7 @@ Example response, [fixtures/api-token.with-secret.json](fixtures/api-token.with-
 - **Success:** 204, no body. A second revoke also returns 204.
 - **Errors:** common errors only.
 
-The endpoint sets `revokedAt`. The row stays, so its events keep their agent name.
+The endpoint sets `revokedAt`. The row stays, so T1 lists the revoked token.
 
 ## 7. Routes outside /api/v1
 
@@ -509,10 +510,10 @@ The endpoint sets `revokedAt`. The row stays, so its events keep their agent nam
 |---|---|---|---|
 | GET | `/`, `/repositories`, `/repositories/{id}`, `/reviews/{id}`, `/reviews/{id}/files/{path}`, `/reviews/{id}/requests`, `/requests/{id}`, `/settings` | Session, else a redirect to `/login` | Twig shell page for the React single-page application, with the Reprise entry tags. React Router 8.4.0 in Data Mode renders the screens. |
 | GET | `/login` | public | "Sign in with GitHub" when `GITHUB_APP_CLIENT_ID` is not empty. The local sign-in button when the local sign-in is on. With neither: "No sign-in method is configured." |
-| GET | `/connect/github` | public | HWIOAuthBundle redirect to GitHub, route `hwi_oauth_service_redirect` |
-| GET | `/login/check-github` | public | OAuth callback, which is also the callback URL of the GitHub App. Lists installations and repositories. Creates the tenant and the user at the first sign-in. |
+| GET | `/connect/github` | public. It exists only when `GITHUB_APP_CLIENT_ID` is not empty. | HWIOAuthBundle redirect to GitHub, route `hwi_oauth_service_redirect` |
+| GET | `/login/check-github` | public. It exists only when `GITHUB_APP_CLIENT_ID` is not empty. | OAuth callback, which is also the callback URL of the GitHub App. Lists installations and repositories. Creates the tenant and the user at the first sign-in. |
 | POST | `/login/local` | public. It exists only when `APP_ENV=dev` and `APP_LOCAL_SIGN_IN` is not empty. | Local sign-in as the user named by `APP_LOCAL_SIGN_IN=<login>`. Creates its tenant and user at first use. A local run needs no GitHub App. |
-| GET | `/_e2e/sign-in/{login}` | public. It exists only in the `e2e` environment. | Signs a Panther test browser in as `<login>` |
+| GET | `/_e2e/sign-in/{login}` | public. It exists only in the `e2e` environment. | Signs the browser of a full-stack E2E test in as `<login>` |
 | POST | `/logout` | session, CSRF | Sign out |
 | GET | `/github/installed` | session | Setup URL of the GitHub App. Redirects through `/connect/github?_target_path=/repositories` to list the installations again. |
 | GET | `/docs` | public | Documentation index, rendered from `docs/user/index.md` |

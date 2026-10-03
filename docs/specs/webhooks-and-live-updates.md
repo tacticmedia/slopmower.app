@@ -7,13 +7,13 @@ This file specifies the GitHub webhooks, the fetches that make commits available
 | Item | Value |
 |---|---|
 | URL | `POST https://<host>/webhook/github`: the route prefix `/webhook` of the `symfony/webhook` recipe in `config/routes/webhook.yaml`, type `github`. This is the webhook URL of the GitHub App. |
-| Wiring | `framework.webhook.routing.github: {service: App\Webhook\GitHubRequestParser, secret: '%env(GITHUB_APP_WEBHOOK_SECRET)%'}`. The consumer is `#[AsRemoteEventConsumer('github')]`. Route `Symfony\Component\RemoteEvent\Messenger\ConsumeRemoteEventMessage` to the `async` transport. |
+| Wiring | `framework.webhook.routing.github: {service: App\Webhook\GitHubRequestParser, secret: '%env(string:default::GITHUB_APP_WEBHOOK_SECRET)%'}`. An unset variable resolves to an empty secret. The consumer is `#[AsRemoteEventConsumer('github')]`. Route `Symfony\Component\RemoteEvent\Messenger\ConsumeRemoteEventMessage` to the `async` transport. |
 | Request matcher | Method POST, `Content-Type: application/json`, and the headers `X-GitHub-Event` and `X-GitHub-Delivery`. Any other request gets 406, the Symfony default. The matcher does not check `X-Hub-Signature-256`, so a missing signature gets the 403 of the signature check. |
 | Signature | `X-Hub-Signature-256` must be `sha256=` plus the lower-case hex of `hash_hmac('sha256', $request->getContent(), $secret)`. The parser compares with `hash_equals()` on the raw body, before JSON decoding. A missing or wrong signature throws `RejectWebhookException(403, 'Invalid signature.')`. An empty secret refuses every delivery with 403, because anyone can compute an HMAC with an empty key. The parser ignores the SHA-1 header `X-Hub-Signature`. |
 | Parsing | Unparsable JSON gets 406. After verification, every delivery returns a `RemoteEvent`: name `github.<X-GitHub-Event>`, id = `X-GitHub-Delivery`, payload = the decoded body. Events that the server does not handle get the name `github.ignored`. A parser that returns `null` makes Symfony answer 406, so the parser never returns `null` for a verified delivery. |
 | Response | 202 with an empty body, the `AbstractRequestParser` default, within the 10-second limit of GitHub. The work runs in the Messenger worker. |
-| Duplicates | The consumer inserts `X-GitHub-Delivery` into `webhook_delivery (id PRIMARY KEY, received_at)`. A duplicate, including a redelivery, is a no-op. Rows older than 7 days are purged. |
-| Tenancy | The consumer runs with the Doctrine tenant filter off. Only `TenantFilter::suspend()` turns the filter off, in four places: the sign-in and token lookup, this webhook router, the projection rebuild, and the tenant purge. See [architecture section 4](../architecture.md). The consumer finds the `Repository` or `GitHubInstallation` of every tenant by GitHub ID. Each job that it queues carries a `TenantStamp` of its tenant. `TenantContextMiddleware` sets the fail-closed tenant context before the handler runs. |
+| Duplicates | The consumer skips a delivery whose `X-GitHub-Delivery` is in `webhook_delivery (id PRIMARY KEY, received_at)`. It inserts the ID after it queues the jobs, so a failed run is retried. Every job is idempotent, so a duplicate, including a redelivery, changes nothing. Rows older than 7 days are purged. |
+| Tenancy | The consumer runs with the Doctrine tenant filter off. Only `TenantFilter::suspend()` turns the filter off, in four places: the sign-in and token lookup, this webhook router, the projection rebuild, and the tenant purge. See [architecture section 4](../architecture.md). The consumer finds the tenants by GitHub ID through `Repository`, `GitHubInstallation`, `GitHubCandidate`, and `User` rows. Each job that it queues carries a `TenantStamp` of its tenant. `TenantContextMiddleware` sets the fail-closed tenant context before the handler runs. |
 
 Events. Subscribe to `push` and `repository` in the App settings. GitHub sends the `installation` and `installation_repositories` events to every GitHub App without a subscription. Sign-in compares the installations anyway, because a delivery can fail.
 
@@ -22,12 +22,12 @@ Events. Subscribe to `push` and `repository` in the App settings. GitHub sends t
 | `ping` | none | No-op |
 | `push` | any, for branches and tags | For each tenant repository with `github.repositoryId = repository.id` and `access = active`, request a fetch through `FetchRepository::request()` in the tenant context of that repository, as R5 does. The queued `FetchRepositoryJob` carries a `TenantStamp`. The fetch then does the steps of [section 2.2](#22-after-every-successful-fetch). |
 | `installation` | `created` | If a user has `githubUserId = sender.id`, record the `GitHubInstallation` for that tenant and publish `candidates_changed`. Otherwise ignore it: the next sign-in records it. |
-| `installation` | `deleted` | For each tenant with this installation: mark all its repositories `access = removed`, delete their clones with the pin refs and their index at once, publish `repository` for each, delete the candidates of the installation, publish `candidates_changed`, and delete the installation row. Reviews stay, by decision D22. |
+| `installation` | `deleted` | For each tenant with this installation: delete the candidates of the installation and the installation row, then mark all its repositories `access = removed`, queue a job that deletes their clones with the pin refs and their index, publish `repository` for each, and publish `candidates_changed`. Reviews stay, by decision D22. |
 | `installation` | `suspend`, `unsuspend` | Set or clear `suspendedAt`. While suspended, fetches fail with `sync.lastError = "GitHub App installation suspended"`, and operations that need a fetch get `repository_unavailable` with reason `fetch_failed`. |
 | `installation` | `new_permissions_accepted` | No-op |
 | `installation_repositories` | `added` | For installations where `installation.account.type = User` and `installation.account.id` equals the `githubUserId` of a tenant user, add the repositories to the candidate list of that tenant and publish `candidates_changed`. The payload has no default branch or HTML URL, so the server reads each repository with `GET /repos/{owner}/{repo}` and an installation token. Organization installations refresh at the next sign-in, because user access cannot be checked without the user token. |
-| `installation_repositories` | `removed` | For each connected repository in `repositories_removed`: `access = removed`, delete the clone and the index, remove it from the candidates, publish `repository` and `candidates_changed` |
-| `repository` | `renamed`, `transferred` | Update `Repository.name` to `repository.full_name` and publish `repository`. The old name answers `not_found`. |
+| `installation_repositories` | `removed` | For each repository in `repositories_removed`: remove it from the candidates, then set `access = removed`, queue a job that deletes the clone and the index, and publish `repository` and `candidates_changed` |
+| `repository` | `renamed`, `transferred` | Update `Repository.name` to `repository.full_name` and publish `repository`. The old name answers `not_found`. If another repository of the tenant has the new name, compared case-insensitively, the name does not change. |
 | `repository` | `deleted` | As `installation_repositories.removed` |
 | `repository` | others, for example `privatized`, `publicized`, `edited` | Update `github.private` when it changed, otherwise no-op |
 | `github_app_authorization` | `revoked` | Logged. The server never stores the user token, so there is nothing to revoke. |
@@ -38,6 +38,8 @@ Events. Subscribe to `push` and `repository` in the App settings. GitHub sends t
 The refspecs, the pin refs, and the meaning of "available" are in [README.md section 7](README.md#7-repository-sources-names-and-commit-availability).
 
 ### 2.1 Triggers
+
+An MCP tool name also stands for its REST endpoint.
 
 | Trigger | GitHub source | Local source | Mode |
 |---|---|---|---|
@@ -90,7 +92,7 @@ Update types. [live-update.schema.json](schemas/live-update.schema.json) defines
 | `index` | `{type, reviewId}` | While the index job runs, at most once per second per review, plus the final state | [live-update.index.json](fixtures/live-update.index.json) |
 | `repository` | `{type, repositoryId}` | After each `sync.state` change, fetch, access change, and rename, and after [V13](rest-api.md#v13-delete-a-review) deletes a review of the repository | [live-update.repository.json](fixtures/live-update.repository.json) |
 | `repository_deleted` | `{type, repositoryId}` | At [R6](rest-api.md#r6-delete-repository-data) | [live-update.repository-deleted.json](fixtures/live-update.repository-deleted.json) |
-| `candidates_changed` | `{type}` | After the installation webhooks | [live-update.candidates-changed.json](fixtures/live-update.candidates-changed.json) |
+| `candidates_changed` | `{type}` | After `installation.created`, `installation.deleted`, `installation_repositories.added`, `installation_repositories.removed`, and `repository.deleted` | [live-update.candidates-changed.json](fixtures/live-update.candidates-changed.json) |
 
 Publishing rules:
 
@@ -101,9 +103,9 @@ Publishing rules:
 
 Client behaviour in the web UI:
 
-1. **Subscribe.** Call [A3](rest-api.md#a3-authorize-live-updates), then open one `new EventSource(url, {withCredentials: true})`. `url` is `hubUrl` with one `topic` parameter for the repositories topic and one for the topic of the open review, each encoded with `encodeURIComponent`. Call A3 again before `expiresAt`. One small `useEventSource` hook holds the connection.
+1. **Subscribe.** Call [A3](rest-api.md#a3-authorize-live-updates), then open one `new EventSource(url, {withCredentials: true})`. `url` is `hubUrl` with one `topic` parameter for the repositories topic and one for the topic of the open review, each encoded with `encodeURIComponent`. Call A3 again before `expiresAt`. The `useLiveRevalidation` hook holds the connection.
 2. **Track the position.** Keep `lastSeq` per review. It comes from `events` updates, from `events[].seq` of command results, from `Review.lastEventSeq`, and from the `cursor` of the updates endpoint. Ignore an `events` update whose `seq` is not above `lastSeq`.
-3. **Revalidate.** On an update, call `revalidate()` of `useRevalidator` from React Router 8.4.0 in Data Mode. It runs the loaders of the active routes again, and they read fresh data through REST. Only one revalidation runs at a time. Updates that arrive during a revalidation cause one more revalidation after it.
+3. **Revalidate.** On an update, call `revalidate()` of the data router that `createBrowserRouter` of React Router 8.4.0 creates. It runs the loaders of the active routes again, and they read fresh data through REST. Only one revalidation runs at a time. Updates that arrive during a revalidation cause one more revalidation after it.
    - `events`, `outdated`, and `index`: when `reviewId` is the open review.
    - `repository`, `repository_deleted`, and `candidates_changed`: always.
 4. **Catch up after a reconnect.** On every EventSource `open` after an error, and when the tab becomes visible again, call `GET /api/v1/reviews/{id}/updates?cursor=<lastSeq>&includeOwn=true` until `hasMore` is false. Set `lastSeq` to the last `cursor`, then revalidate once. The UI does not rely on `Last-Event-ID` replay. Hub history is not part of the contract.

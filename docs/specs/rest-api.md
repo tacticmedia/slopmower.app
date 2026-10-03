@@ -118,7 +118,7 @@ Right away, in the same request:
 
 - the server revokes all tokens;
 - it invalidates the session, and the response clears the cookie;
-- it marks the tenant as being deleted, so all its IDs get 404.
+- it marks the tenant as being deleted. After that, a sign-in, a session, or a token of the tenant gets 401, and every other caller gets 404 for its IDs.
 
 Then a Messenger job deletes all rows and files of the tenant, including the clones and their pin refs. The GitHub App stays installed until the user uninstalls it on GitHub.
 
@@ -184,7 +184,7 @@ The endpoint lists the repositories that the user can connect.
 | `includeConnected` | boolean | true | |
 
 - **GitHub candidates** come from the list per tenant that the server takes at the last sign-in. It calls `GET /user/installations` and `GET /user/installations/{id}/repositories` with the user token, which it never stores. The `installation_repositories.added` webhook updates the list for installations on the own account of the user. To refresh the list, the user signs in again through `/connect/github`. The setup URL `/github/installed` does that automatically.
-- **Local candidates** are scanned again on every call. The scan lists the direct children of `APP_LOCAL_REPOSITORIES_DIR`, skips names that start with `.`, and keeps directories that contain `.git` or are bare repositories.
+- **Local candidates** are scanned again on every call. The scan lists the direct children of `APP_LOCAL_REPOSITORIES_DIR`, skips symlinks and names that start with `.`, and keeps directories that hold a `.git` directory, or the `HEAD`, `objects`, and `refs` of a bare repository.
 - The list holds at most 1,000 items, sorted by source and then by name. `truncated` is true when more exist.
 
 Example response, [fixtures/lists.candidate-list.json](fixtures/lists.candidate-list.json):
@@ -213,6 +213,7 @@ Example response, [fixtures/lists.candidate-list.json](fixtures/lists.candidate-
 - **Errors:**
   - 404 `not_found`: the GitHub ID is not a candidate, or the directory is not a local candidate.
   - 422 `invalid_input`: `source: local` while local repositories are off.
+  - 422 `invalid_input`: another connected GitHub repository of the tenant has the same name, compared case-insensitively.
 
 A new repository starts with `sync.state = cloning`, and the server queues a clone job.
 
@@ -293,7 +294,7 @@ The verify view uses this endpoint for the old and the new side of a `FileDiff`.
 - **Errors:**
   - 409 `repository_unavailable`: `cloning`, `clone_failed`, `fetch_failed`, or `removed`;
   - 422 `commit_not_found`: the ref cannot be resolved after the fetch;
-  - 422 `invalid_input`: an ambiguous SHA prefix or a malformed ref.
+  - 422 `invalid_input`: an ambiguous SHA prefix, a malformed ref, or no `ref` while the repository has no default branch.
 
 Ref validation: the git ref-name rules of `git check-ref-format --allow-onelevel`, or a hex SHA of 7 to 64 characters. A leading `-` is refused.
 
@@ -388,14 +389,19 @@ After the close:
 - **Request:** `GET /api/v1/reviews/{reviewId}/tree`
 - **Authentication:** S, B
 - **Success:** 200 [`TreeListing`](schemas/lists.schema.json)
-- **Errors:** 409 `repository_unavailable`.
+- **Errors:**
+  - 404 `not_found`: no entry has the path `dir` at the review commit;
+  - 422 `invalid_input`: `dir` names a file, a symlink, or a submodule;
+  - 409 `repository_unavailable`.
 
 | Query | Type | Default | Notes |
 |---|---|---|---|
-| `dir` | RepoPath or `""` | `""`, the root | Must name a directory at the review commit. A file gets 422. |
+| `dir` | RepoPath or `""` | `""`, the root | Must name a directory at the review commit. A file, a symlink, or a submodule gets 422. |
 | `recursive` | boolean | false | false: the direct entries, directories first, then byte order of the name. true: every file, symlink, and submodule under `dir`, by path in byte order, without directory entries. |
 | `limit` | integer 1-5000 | 1000 | |
 | `cursor` | Cursor | none | |
+
+The listing leaves out entries whose path is not a valid RepoPath, for example a path that is not UTF-8 or that starts with `-`.
 
 The server reads `git ls-tree` at the pinned commit.
 
@@ -464,7 +470,7 @@ Rules:
 
 - Headers, caching, and streaming are the same as for [R7](#r7-get-a-blob).
 - A symlink returns its target path as text.
-- The endpoint serves any size. The 1 MB limit applies only to rendering.
+- The endpoint serves any size. The `tooLarge` limit of 1 MiB applies only to rendering.
 
 ```http
 GET /api/v1/reviews/01K6B3A1B2C3D4E5F6G7H8J9KM/raw?path=src%2FBilling%2FInvoiceTotals.php
@@ -486,7 +492,7 @@ Vary: Authorization, Cookie
 Rules:
 
 - The server parses PHP files, `*.php`. It reads the symbols from the `symbol` table by blob SHA. If the blob is not indexed yet, the server parses it synchronously and stores the result. So this endpoint never waits for the index job.
-- Other files return `language: null` and `items: []`.
+- Other files return `language: null` and `items: []`. A `*.php` file that is not renderable, see [V7](#v7-get-file-metadata), returns `language: "php"`, `parseError: false`, and `items: []`. The extension match ignores case.
 - A parse error returns `parseError: true` and `items: []`.
 - `range` includes the doc comment. See decision D7 in [architecture.md](../architecture.md).
 - Items are sorted by `range.startLine`, then by `fqn`.
@@ -535,11 +541,12 @@ Example response, [fixtures/lists.viewed-files.json](fixtures/lists.viewed-files
 
 - **Request:** `PUT /api/v1/reviews/{reviewId}/viewed-files`
 - **Authentication:** S
-- **Body:** [`ViewedFileInput`](schemas/inputs.schema.json), `{"path":"src/Billing/InvoiceTotals.php","viewed":true}`.
+- **Body:** [`ViewedFileInput`](schemas/inputs.schema.json), `{"path":"src/Billing/InvoiceTotals.php","viewed":true}`. `viewed: false` removes the mark of the path.
 - **Success:** 200 [`ViewedFiles`](schemas/lists.schema.json)
 - **Errors:**
   - 422 `invalid_input`: the path is not a file at the review commit;
-  - 409 `review_closed`.
+  - 409 `review_closed`;
+  - 409 `repository_unavailable`: the path check needs the clone.
 
 The call is idempotent per path.
 

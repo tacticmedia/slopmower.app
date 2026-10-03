@@ -10,7 +10,7 @@ maker-bundle-versions: ">=1.68"
 # Service decorator
 
 ```bash
-symfony console make:decorator translator App\\Translation\\LoggingTranslator
+symfony console make:decorator translator Translation\\LoggingTranslator
 ```
 
 Both values are arguments: the id of the service to decorate, then the class to create.

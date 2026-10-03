@@ -35,7 +35,7 @@ Settings shows the use and the limit of each item.
 | `sync_fetch` | `token_bucket` | Repository ID | `limit: 10`, `rate: {interval: '1 minute', amount: 10}`, for the synchronous fetch triggers |
 | `review_start` | `sliding_window` | Tenant ID | `limit: 30`, `interval: '1 hour'` |
 
-- The limiter state must be shared by the `php` and `worker` containers. It uses a PostgreSQL-backed cache pool and the advisory-lock `LockFactory`.
+- The limiter state must be shared by every `php` process and container. It uses a PostgreSQL-backed cache pool and the advisory-lock `LockFactory`.
 - REST: a refused call gets HTTP 429 with a `Retry-After` header in seconds, `X-RateLimit-Limit`, and `X-RateLimit-Remaining`. The values come from `getRetryAfter()`, `getLimit()`, and `getRemainingTokens()` of the `RateLimit` object.
 - MCP: the tool runner checks the limiters for each `tools/call` and returns an `isError` result with `rate_limited`, so that the agent can wait and retry. The listener on `^/_mcp` keeps a higher limit that answers HTTP 429, as a last line of defence.
 - The GitHub webhook endpoint is not rate limited. Its signature check protects it.

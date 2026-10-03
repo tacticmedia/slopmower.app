@@ -24,7 +24,7 @@ use Symfony\Component\Uid\Ulid;
  * The partial index lets a second GitHub connect find the existing row. Its predicate is in the form PostgreSQL
  * returns, so the schema comparison finds no change.
  *
- * The sync columns change only through the conditional updates of {@see RepositoryRepository}, which bypass the
+ * The sync columns change only through the DQL updates of {@see RepositoryRepository}, which bypass the
  * identity map. Read them with {@see RepositoryRepository::findFresh()}.
  */
 #[ORM\Entity(repositoryClass: RepositoryRepository::class)]

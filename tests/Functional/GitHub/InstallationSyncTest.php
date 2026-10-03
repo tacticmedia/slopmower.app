@@ -83,7 +83,7 @@ final class InstallationSyncTest extends WebTestCase
         );
     }
 
-    #[TestDox('A connected repository that is no longer listed becomes removed, and its clone and index are deleted')]
+    #[TestDox('A connected repository that is no longer listed becomes removed, and its clone is deleted')]
     public function testUnlistedRepositoryIsRemoved(): void
     {
         $this->useLocalGitHub();
@@ -102,7 +102,6 @@ final class InstallationSyncTest extends WebTestCase
         self::assertSame([DeleteCloneJob::class], array_map(static fn (Envelope $envelope): string => $envelope->getMessage()::class, [...self::asyncTransport()->get()]));
         self::runQueuedMessages();
         self::assertDirectoryDoesNotExist($clonePath);
-        // No index exists before M26.
         self::assertSame([812399, 1296269], self::getContainer()->get(Connection::class)->fetchFirstColumn('SELECT github_repository_id FROM github_candidate ORDER BY github_repository_id'));
         $client->loginUser($user, 'web');
         $response = self::assertApiResponse(self::apiRequest($client, 'GET', '/api/v1/repositories/'.$repository->getId()), 200, 'repository.schema.json');

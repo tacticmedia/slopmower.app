@@ -26,8 +26,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 
 /**
- * docs/specs/mcp.md section 6. The agent claimed and answered a range request; a file request is open. REST and MCP
- * use the same token.
+ * docs/specs/mcp.md section 6. The agent claimed a range request and asked a question, which the user answered; a file
+ * request is open. REST and MCP use the same token.
  */
 final class McpRestParityTest extends WebTestCase
 {

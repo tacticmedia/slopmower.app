@@ -9,7 +9,6 @@ namespace App\Domain\ApiToken;
  */
 final readonly class ApiTokenSecret
 {
-    /** `D`: `$` does not match before a trailing newline. */
     public const string PATTERN = '/^hr_[A-Za-z0-9_-]{43}$/D';
 
     private const string MARKER = 'hr_';

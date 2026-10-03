@@ -13,7 +13,7 @@ import { type ApiCall, apiError, json, type MockApi, type MockResponse, noConten
 export class FakeRepositories {
     repositories: Repository[] = [];
     candidates: RepositoryCandidate[] = [];
-    /** The GitHub fields of R2. */
+    /** The fields of R2 besides `items`. */
     candidateFields: Partial<CandidateList> = {};
     readonly reviews: FakeReview[] = [];
     /** Runs when R5 fetches the repository, as the server recomputes the locations. */

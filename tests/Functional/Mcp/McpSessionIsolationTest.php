@@ -18,6 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Lock\LockInterface;
 use Symfony\Component\Lock\Store\StoreFactory;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * A session belongs to the token that opened it and serves one request at a time. A lock held in its own database
@@ -77,6 +78,20 @@ final class McpSessionIsolationTest extends WebTestCase
 
         self::assertSame(Response::HTTP_SERVICE_UNAVAILABLE, $response->getStatusCode());
         self::assertEqualsWithDelta(300, $clock->sleeps(), 1);
+        $runningRequest->release();
+    }
+
+    #[TestDox('The base58 form of a session ID waits for the lock of its session')]
+    public function testBase58SessionIdTakesTheLockOfItsSession(): void
+    {
+        [$mcp, $client, $secret] = $this->initializedSession();
+        $runningRequest = self::lockInAnotherSession((string) $mcp->sessionId());
+        Clock::set(new SleepHookClock(static function (): void {
+        }));
+
+        $response = self::sessionRequest($client, $secret, Uuid::fromString((string) $mcp->sessionId())->toBase58(), 'POST');
+
+        self::assertSame(Response::HTTP_SERVICE_UNAVAILABLE, $response->getStatusCode());
         $runningRequest->release();
     }
 

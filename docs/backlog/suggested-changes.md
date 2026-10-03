@@ -22,7 +22,7 @@ Status: backlog. The proof of concept has no suggested changes.
 1. A body with a `suggestion` block renders as a diff in the thread. Other fenced blocks render as code.
 2. `get_request` returns the parsed suggestions, validated against the updated schema.
 3. A suggestion on a `file` anchor is refused with `invalid_input`.
-4. A Panther test inserts a suggestion with the button and sees the diff after submit.
+4. A UI test inserts a suggestion with the button and sees the diff after submit.
 
 ## Dependencies
 

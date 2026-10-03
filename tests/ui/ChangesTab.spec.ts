@@ -20,7 +20,7 @@ test.describe('ChangesTab', () => {
         const [readme, movedReadme, changelog] = ['# Code view\n', '# Code view\n\nTax moved.\n', 'Round the tax.\n'];
         const [extracted, rounded] = [smallFile('$this->tax($net, $taxBasisPoints)'), smallFile('$this->roundedTax($net, $taxBasisPoints)')];
         const blobs = new Map([readme, movedReadme, changelog, SMALL_FILE_TEXT, extracted, rounded].map((content) => [sha1(content), content]));
-        // Q9 lists the files in path order, so the UI has to move the anchored file up.
+        // The fake lists the files in path order, so the test proves that the UI moves the anchored file up.
         const changedFiles: [string, CommitDiffFile[]][] = [
             [extract.commitSha, [modifiedFile('README.md', readme, movedReadme, false), modifiedFile(SMALL_FILE, SMALL_FILE_TEXT, extracted, true)]],
             [round.commitSha, [addedFile('CHANGELOG.md', changelog), modifiedFile(SMALL_FILE, extracted, rounded, true)]],

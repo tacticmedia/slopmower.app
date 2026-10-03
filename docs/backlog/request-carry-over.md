@@ -30,7 +30,7 @@ Status: backlog. In the proof of concept each review is pinned to one commit and
 2. A carried request has a valid anchor at the new review commit, and its `carriedFrom` points to the source request.
 3. Requests that are not carried appear in the result with a reason.
 4. The source review and its requests do not change.
-5. A Panther test starts a review with carry-over and sees the carried threads at their new lines.
+5. A full-stack E2E test starts a review with carry-over and sees the carried threads at their new lines.
 
 ## Dependencies
 

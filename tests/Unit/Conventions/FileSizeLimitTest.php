@@ -15,7 +15,7 @@ final class FileSizeLimitTest extends KernelTestCase
     /** Generated files, relative to the project root. */
     private const array EXEMPT_FILES = ['src/Mcp/BundledSchemas.php'];
 
-    #[TestDox('No PHP, TypeScript, or CSS file in src, tests, or assets has more than 800 lines')]
+    #[TestDox('No hand-written PHP, TypeScript, or CSS file in src, tests, or assets has more than 800 lines')]
     public function testNoSourceFileExceedsTheLineLimit(): void
     {
         $projectDir = dirname(__DIR__, 3);

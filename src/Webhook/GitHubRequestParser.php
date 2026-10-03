@@ -16,7 +16,7 @@ use Symfony\Component\Webhook\Exception\RejectWebhookException;
 
 /**
  * docs/specs/webhooks-and-live-updates.md section 1. A request that does not match, and a body that is not a JSON
- * object, get 406 from {@see AbstractRequestParser}.
+ * object or array, get 406 from {@see AbstractRequestParser}.
  */
 final class GitHubRequestParser extends AbstractRequestParser
 {

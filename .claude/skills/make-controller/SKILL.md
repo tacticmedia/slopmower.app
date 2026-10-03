@@ -14,8 +14,9 @@ symfony console make:controller ProductController --no-template   # API, no Twig
 symfony console make:controller HealthController --invokable      # single action
 ```
 
-The maker takes the class name as an argument and asks nothing further. Install it first if
-it is missing: `symfony composer require --dev symfony/maker-bundle`.
+The maker takes the class name as an argument. An interactive run then asks whether to
+generate PHPUnit tests. Pass `--with-tests` or `--no-interaction` to skip the question.
+Install it first if it is missing: `symfony composer require --dev symfony/maker-bundle`.
 
 ## What to keep
 
@@ -23,8 +24,9 @@ Extend `AbstractController` — always. It provides `render()`, `redirectToRoute
 `isGranted()` and the form helpers, and a controller is thin enough that the coupling costs
 nothing.
 
-Route metadata goes in attributes, never YAML: `#[Route]` on the class as a prefix and on
-each action, with snake_case route names prefixed by the entity (`product_index`,
+Route metadata goes in attributes, never YAML. The maker writes one method-level
+`#[Route('/product', name: 'app_product')]`. Add `#[Route]` on the class as a prefix, and
+give each action a snake_case route name prefixed by the entity (`product_index`,
 `product_show`).
 
 ## What the framework already does for you

@@ -22,7 +22,7 @@ Status: backlog. In the proof of concept a closed review stays closed, by decisi
 1. After a reopen, every write that `review_closed` refused before succeeds.
 2. A reopen of an open review answers 422 `invalid_input`. A bearer token gets 403 `forbidden`.
 3. `review.reopened` appears in the `reviewEvents` of `get_updates` and validates against the event schema.
-4. A Panther test closes and reopens a review in the UI and comments afterwards.
+4. A UI test closes and reopens a review and comments afterwards.
 5. The cross-tenant suite covers the new endpoint.
 
 ## Dependencies

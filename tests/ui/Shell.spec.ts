@@ -49,7 +49,7 @@ test.describe('Shell', () => {
         expect(await windowMarker(page)).toBe('kept');
     });
 
-    test('Sign out ends the session, and /api/v1/me then answers 401', async ({ page, api }) => {
+    test('Sign out posts the CSRF token to /logout and lands on /login', async ({ page, api }) => {
         api.on('POST', '/logout', () => redirect('/login'));
         await openShell(page);
 

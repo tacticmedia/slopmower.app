@@ -15,10 +15,10 @@ symfony console make:user User \
     --with-password
 ```
 
-Every question the maker asks has an option, so passing all three makes it run without
-prompting. Drop `--is-entity` for a user that does not live in the database, and
-`--with-password` when another system checks credentials — a single sign-on server, for
-instance.
+Every question has an option. Pass all three with `--no-interaction`, because an
+interactive run asks the three questions even when you give the options. Drop `--is-entity`
+for a user that does not live in the database, and `--with-password` when another system
+checks credentials, for instance a single sign-on server.
 
 Install the maker first if it is missing:
 `symfony composer require --dev symfony/maker-bundle`.
@@ -37,7 +37,8 @@ to be unique in the database; the maker adds the constraint, and removing it bre
 lookup rather than merely allowing duplicates.
 
 Roles are a `json` column holding strings. `getRoles()` always returns `ROLE_USER` in
-addition to whatever is stored — leave that in, the security layer assumes it.
+addition to whatever is stored. Leave that in, because access rules that check `ROLE_USER`
+depend on every user having it.
 
 Never hash a password by hand. `UserPasswordHasherInterface` reads the algorithm from
 `security.yaml`, so it stays correct when that configuration changes.

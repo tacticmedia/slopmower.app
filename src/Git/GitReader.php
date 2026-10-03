@@ -30,7 +30,7 @@ final class GitReader implements ResetInterface
 
     /**
      * @throws CommitNotFound
-     * @throws InvalidInput   For a short SHA that matches more than one commit
+     * @throws InvalidInput   For a short SHA that matches more than one commit or tag
      */
     public function resolveCommit(string $gitDir, RefName $ref): CommitSha
     {
@@ -41,7 +41,7 @@ final class GitReader implements ResetInterface
      * @param string $field Of the InvalidInput
      *
      * @throws CommitNotFound
-     * @throws InvalidInput   For a prefix that matches more than one commit
+     * @throws InvalidInput   For a prefix that matches more than one commit or tag
      */
     public function resolvePrefix(string $gitDir, CommitShaPrefix $prefix, string $field = 'commit'): CommitSha
     {
@@ -342,7 +342,7 @@ final class GitReader implements ResetInterface
     }
 
     /**
-     * The `^{commit}` peel makes git count only commits as candidates of a short SHA.
+     * The `^{commit}` peel makes git count only commits, and tags that point to commits, as candidates of a short SHA.
      */
     private function resolve(string $gitDir, string $revision, string $field): CommitSha
     {

@@ -77,7 +77,7 @@ final class Locator
     /**
      * The located lines with $contextLines on each side. A location without a range, of a file anchor, shows the file.
      *
-     * @return CodeExcerpt|null Null for an orphaned location, and for a file that is not renderable or not UTF-8
+     * @return CodeExcerpt|null Null for an orphaned location, an empty file, and a file that is not renderable or not UTF-8
      *
      * @throws GitFailed
      */

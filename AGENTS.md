@@ -80,7 +80,7 @@ Three specifics worth spelling out, because they are easy to get wrong:
   terminal by default, which hangs a non-interactive shell. If a maker still
   needs interactive input, hand-write the code instead.
 - If Doctrine ORM is installed, schema changes go through migrations
-  (`bin/console make:migration`, then `doctrine:migrations:migrate`), never
+  (`make migration`, then `make console c="doctrine:migrations:migrate"`), never
   `doctrine:schema:update` or hand-written SQL.
 - `.env` is committed and holds defaults only. Real secrets belong in `.env.local`
   (git-ignored) or the secrets vault (`bin/console secrets:set`), read via
@@ -89,7 +89,8 @@ Three specifics worth spelling out, because they are easy to get wrong:
 ## Testing
 
 Functional/HTTP tests extend `WebTestCase`; service-level tests extend
-`KernelTestCase`. Run `make test` and `make e2e`. A feature isn't done until it
+`KernelTestCase`. Run `make check`, or one suite: `make test`, `make front`,
+`make ui`, `make e2e`. A feature isn't done until it
 has a test that exercises it the way a caller would, an HTTP request for a
 controller or a service call for a service, not just "it didn't throw."
 
@@ -101,7 +102,8 @@ superset). Run `make cs-fix`.
 ## Discover, don't guess
 
 Framework APIs change between versions and your training data may be stale. Look
-things up in the project instead of relying on memory:
+things up in the project instead of relying on memory. Run each `bin/console`
+command below through `make console c="..."`:
 
 - `bin/console about`: versions, environment, paths.
 - `bin/console debug:router`, `debug:container`, `debug:autowiring <name>`,

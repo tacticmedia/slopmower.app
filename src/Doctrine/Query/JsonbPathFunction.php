@@ -12,8 +12,8 @@ use Doctrine\ORM\Query\SqlWalker;
 use Doctrine\ORM\Query\TokenType;
 
 /**
- * `NAME(document, 'key', ...)`: the value at the key path, SQL NULL when a key is absent or a value on the way is not
- * an object.
+ * `NAME(document, 'key', ...)`: the value at the key path, SQL NULL when the path does not exist. A numeric key also
+ * selects an array element.
  */
 abstract class JsonbPathFunction extends FunctionNode
 {

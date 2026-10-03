@@ -98,7 +98,7 @@ test.describe('TokenSettings', () => {
         expect(await page.content()).not.toContain(secret);
     });
 
-    test('MCP initialize works with the new token', async ({ page, api }) => {
+    test('The dialog shows the issued secret and the MCP URL', async ({ page, api }) => {
         const tokens = await openSettings(page, api);
 
         const secret = await createToken(page, TOKEN_NAME);
@@ -108,7 +108,7 @@ test.describe('TokenSettings', () => {
         await expect(page.getByRole('dialog')).toContainText(api.me.links.mcpUrl);
     });
 
-    test('After revoke, the same call gets 401', async ({ page, api }) => {
+    test('Revoke sends T3 and shows the token as Revoked', async ({ page, api }) => {
         const tokens = await openSettings(page, api);
         await createToken(page, TOKEN_NAME);
         await closeIssuedToken(page);

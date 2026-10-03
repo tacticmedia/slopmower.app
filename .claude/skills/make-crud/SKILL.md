@@ -19,7 +19,7 @@ Install it first if it is missing: `symfony composer require --dev symfony/maker
 
 ## Before running it
 
-`make:crud` generates a lot — a controller with five actions, a form type, five templates. On
+`make:crud` generates a lot: a controller with five actions, a form type, six templates. On
 an entity that only needs a list and a detail page, most of that is dead code someone has to
 read later. Generate it when the entity really is edited through a full admin-style interface,
 and write the one or two actions by hand when it is not.
@@ -27,8 +27,9 @@ and write the one or two actions by hand when it is not.
 ## What to keep
 
 The generated controller extends `AbstractController` and routes through attributes, with
-route names prefixed by the entity. Actions take the entity as a type-hinted argument and let
-the value resolver load it, which is why a missing record 404s without any code.
+route names in the form `app_<controller>_<action>`, for example `app_blog_post_index`.
+Actions take the entity as a type-hinted argument and let the value resolver load it, which
+is why a missing record 404s without any code.
 
 Create and edit each render and process the form in a single action. That is the convention,
 not an accident of the generator.

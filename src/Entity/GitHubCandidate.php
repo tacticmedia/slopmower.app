@@ -14,7 +14,7 @@ use Symfony\Bridge\Doctrine\Types\UlidType;
 use Symfony\Component\Uid\Ulid;
 
 /**
- * A repository that the user could connect at the last sign-in (R2).
+ * A repository that the user can connect: listed at the last sign-in, then changed by the installation webhooks (R2).
  */
 #[ORM\Entity(repositoryClass: GitHubCandidateRepository::class)]
 #[ORM\Table(name: 'github_candidate')]
@@ -34,7 +34,7 @@ class GitHubCandidate implements TenantOwned
     #[ORM\Column(type: Types::BIGINT)]
     private int $installationId;
 
-    /** The account that installed the App. */
+    /** The account that the App is installed on. */
     #[ORM\Column]
     private string $accountLogin;
 

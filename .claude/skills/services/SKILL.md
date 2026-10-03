@@ -39,8 +39,9 @@ public function __construct(
 
 - A scalar comes in via `#[Autowire('%parameter%')]` or `#[Autowire(env: 'NAME')]`. Where
   the value itself belongs is the `configuration` skill's question.
-- Several implementations of one interface: `#[AutowireIterator]` or `#[AutowireLocator]`
-  on the consumer, `#[AsTaggedItem]` on the implementations.
+- Several implementations of one interface: `#[AutoconfigureTag('app.exporter')]` on the
+  interface, `#[AutowireIterator('app.exporter')]` or `#[AutowireLocator]` on the consumer,
+  and `#[AsTaggedItem]` on an implementation only to set its index or priority.
 - One implementation should win the type-hint: `#[AsAlias]` on it.
 
 Constructor injection is the default; reach for anything else only with a reason the code

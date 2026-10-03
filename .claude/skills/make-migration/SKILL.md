@@ -13,8 +13,9 @@ symfony console make:migration
 symfony console doctrine:migrations:migrate
 ```
 
-`make:migration` takes no arguments and asks nothing — it diffs the mapping against the
-database and writes the migration. Requires
+`make:migration` takes no arguments. It diffs the mapping against the database and writes
+the migration. It asks for confirmation only when the database has unexecuted or
+unregistered migrations, and `--no-interaction` skips the question. Requires
 `doctrine/doctrine-migrations-bundle`.
 
 ## The rule
@@ -25,9 +26,10 @@ on another environment, and rolled back.
 
 ## Reading what was generated
 
-Open the file before running it. The diff is derived from the mapping, so a renamed property
-appears as a dropped column plus a new one — which loses data. Rewrite those cases by hand
-inside the generated `up()` method.
+Open the file before running it. The diff is derived from the mapping. A renamed property
+becomes a column rename only when the column definition is unchanged and only one column
+matches. Otherwise it appears as a dropped column plus a new one, which loses data. Rewrite
+those cases by hand inside the generated `up()` method.
 
 `--formatted` makes the SQL readable when you intend to edit it.
 

@@ -32,7 +32,8 @@ final class InstallationTokenTest extends KernelTestCase
     #[TestDox('The request limits the token to one repository and contents read')]
     public function testRequestLimitsTheToken(): void
     {
-        // The recorded GitHub answers 201 only to a signed App JWT that asks for one repository and contents read.
+        // The recorded GitHub answers 201 only to a bearer token in JWT form that asks for one repository and contents
+        // read.
         $token = self::getContainer()->get(InstallationTokenProvider::class)->forRepository(5551, 812345);
 
         self::assertSame(GitHubResponses::INSTALLATION_TOKEN, $token);

@@ -24,7 +24,7 @@ use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
- * Decision D22. No symbol index exists yet, so the clone is the code data.
+ * Decision D22.
  */
 final class AccessRemovedWebhookTest extends WebTestCase
 {
@@ -39,7 +39,7 @@ final class AccessRemovedWebhookTest extends WebTestCase
     use ResetDatabase;
     use TemporaryDirectories;
 
-    #[TestDox('installation deleted marks the repositories removed, deletes clones and index, and keeps the reviews')]
+    #[TestDox('installation deleted marks the repositories removed, deletes the clones, and keeps the reviews')]
     public function testInstallationDeletedRemovesAccess(): void
     {
         $this->useLocalGitHub();

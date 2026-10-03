@@ -2,7 +2,6 @@
 framework:
     secret: '%env(APP_SECRET)%'
 
-    # Note that the session will be started ONLY if you read or write from it.
     session:
         handler_id: Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler
 
@@ -16,9 +15,6 @@ framework:
             github.client:
                 scope: '^https://(api\.)?github\.com/'
                 timeout: 10
-
-    #esi: true
-    #fragments: true
 
 when@test:
     framework:

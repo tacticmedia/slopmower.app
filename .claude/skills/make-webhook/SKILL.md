@@ -26,9 +26,10 @@ the parser; what the application does about the event lives in the consumer.
 
 ## What is yours
 
-- **The request matcher.** Interactively the maker asks which matchers apply (method,
-  path, host, IPs, JSON); non-interactively it asks nothing, so the generated
-  `getRequestMatcher()` starts wide. Tighten it to what the sender actually does.
+- **The request matcher.** The maker asks which matchers apply (method, path, host, IPs,
+  JSON) only when you omit the name. If you pass the name, it asks nothing, and the
+  generated `getRequestMatcher()` starts as an empty `ChainRequestMatcher`, which matches
+  every request. Tighten it to what the sender actually does.
 - **Verification.** Check the service's signature header in the parser and throw
   `RejectWebhookException` on mismatch. A webhook endpoint without verification accepts
   events from anyone who finds the URL.

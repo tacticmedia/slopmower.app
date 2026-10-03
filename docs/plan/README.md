@@ -1,6 +1,6 @@
 # Implementation plan: Holistic Review proof of concept
 
-This plan splits the proof of concept into 36 milestones, M00 to M35. One Claude session implements one milestone, writes a report, and stops. Jan reviews and commits.
+This plan splits the proof of concept into 38 milestones: M00 to M35, plus M34b and M34c. One Claude session implements one milestone, writes a report, and stops. Jan reviews and commits.
 
 - The headless slice is complete at M16. The full review flow then works through REST and MCP, without a browser.
 - The vertical slice is complete at M22. The same flow then works in the browser.
@@ -139,6 +139,7 @@ PHP, Composer, the console, and PHPUnit run in the `php` container. `make` wraps
 
 | Command | Does |
 |---|---|
+| `make help` | Lists the targets. The default target. |
 | `make up` | `docker compose up -d --wait --build`: services `php`, `worker`, `database` |
 | `make down` | `docker compose down`, without `--volumes` |
 | `make sh` | Shell in the `php` container |
@@ -147,9 +148,9 @@ PHP, Composer, the console, and PHPUnit run in the `php` container. `make` wraps
 | `make composer c="<arguments>"` | `composer <arguments>` |
 | `make migration` | `bin/console make:migration --no-interaction` |
 | `make db-reset` | Dev database: drop, create, migrate. Ask Jan first. |
-| `make db-test` | Database `app_test`: create it if it is missing, then migrate |
+| `make db-test` | Databases `app_test` and `app_e2e`: create each one if it is missing, then migrate it |
 | `make test` | `bin/phpunit --testsuite unit,functional`. Runs `npm run build:e2e` first when `public/build-e2e` is missing. |
-| `make e2e` | `npm run build:e2e` on the host when `package.json` exists, then `bin/phpunit --testsuite e2e` |
+| `make e2e` | `npm run build:e2e` on the host when `package.json` exists, then in the `php` container: `npm install --save-exact playwright@$PLAYWRIGHT_VERSION` for the playwright-php server, `vendor/bin/playwright-install chromium` (returns at once when the browser is present), and `bin/phpunit --testsuite e2e` |
 | `make stan` | `cache:warmup --env=test`, then `vendor/bin/phpstan analyse` at level 8 on the test container, so the dev worker keeps its cache |
 | `make cs` | `vendor/bin/php-cs-fixer fix --dry-run --diff` |
 | `make cs-fix` | `vendor/bin/php-cs-fixer fix` |
@@ -166,7 +167,7 @@ For verbose PHPUnit output, use `--debug`. Never use `-v` or `--verbose`. Exampl
 |---|---|
 | App | `http://localhost:8000`: `dev` environment, FrankenPHP worker mode, Mercure hub at `/.well-known/mercure` |
 | E2E site | `http://localhost:8081`: `e2e` environment, classic mode, reachable only inside the `php` container |
-| PostgreSQL | `127.0.0.1:5432`, databases `app` for `dev` and `app_test` for `test` and `e2e` |
+| PostgreSQL | `127.0.0.1:5432`, databases `app` for `dev`, `app_test` for `test`, and `app_e2e` for `e2e` |
 | Vite dev server | `npm run dev` on the host. The `dev` shell pages need it running, or a build from `npm run build`. |
 | MCP endpoint | `http://localhost:8000/_mcp` |
 | Public documentation | `http://localhost:8000/docs`, raw skill at `http://localhost:8000/docs/skill/SKILL.md` |
@@ -182,10 +183,12 @@ For verbose PHPUnit output, use `--debug`. Never use `-v` or `--verbose`. Exampl
 | `DEFAULT_URI` | `.env` | Base of the Mercure topics, from M24 on. Not the base of the links in `/api/v1/me`, which come from the request. |
 | `APP_PUBLIC_HOST` | `.env` | Host that the MCP transport accepts, from M15 on |
 | `LOCK_DSN` | `.env`, with the host `database` | Store of `symfony/lock`: PostgreSQL advisory locks, from M08 on |
-| `MERCURE_URL`, `MERCURE_PUBLIC_URL`, `MERCURE_JWT_SECRET` | `.env` files. Also `MERCURE_URL` in the compose `worker` service, and `MERCURE_JWT_SECRET` in the compose `php` service, because Caddy reads only the container environment. | Hub URL for the publisher, hub URL for the browser, JWT secret |
+| `MERCURE_URL`, `MERCURE_PUBLIC_URL`, `MERCURE_JWT_SECRET` | `.env` files. Also `MERCURE_URL` in the compose `worker` service, because the hub runs in the `php` container, and `MERCURE_JWT_SECRET` in the compose `php` service, because Caddy reads only the container environment. | Hub URL for the publisher, hub URL for the browser, JWT secret |
 | `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_SLUG` | Empty in `.env`, real values in `.env.local`, fake values in `.env.test` | GitHub App identity, from M32 on. Empty means that no GitHub App is configured. |
 | `GITHUB_GIT_BASE_URL` | `.env`, default `https://github.com` | Base URL for GitHub clone and fetch, from M33 on. Tests point it at a local bare repository. The token extraheader stays bound to `https://github.com`, so another base URL never receives the token. |
-| `GITHUB_APP_CLIENT_SECRET`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET` | Secrets vault or `.env.local`, fake values in `.env.test` | GitHub App credentials: the client secret from M32 on, the private key from M33 on, the webhook secret from M34 on. Read with `%env(default::<NAME>)%`, not with a default in `.env`, because a `.env` value wins over the vault. |
+| `GITHUB_APP_CLIENT_SECRET`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET` | Secrets vault or `.env.local`, fake values in `.env.test` | GitHub App credentials: the client secret from M32 on, the private key from M33 on, the webhook secret from M34 on. Read with `%env(default::<NAME>)%`, not with a default in `.env`, because a non-empty `.env` value wins over the vault. |
+| `PLAYWRIGHT_BROWSERS_PATH` | `Dockerfile` | `/ms-playwright`, on the `playwright_browsers` volume. `vendor/bin/playwright-install` installs Chromium there. |
+| `PLAYWRIGHT_VERSION` | `Dockerfile` | `1.63.0`: the `playwright` npm version of the system libraries in the image and of the playwright-php server |
 
 A local run with local repositories and local sign-in needs no GitHub App:
 
@@ -227,7 +230,7 @@ make up
   - Every tenant entity implements `TenantOwned`.
   - The Doctrine SQL filter is on by default and fails closed without a tenant context.
   - Only these paths turn it off, and only through `TenantFilter::suspend()`: the sign-in and token lookups, the webhook consumer, the projection rebuild, and the purge.
-  - Raw SQL lives only in `final` classes named `*Sql`, and every statement names its tenant column: `tenant_id`, or `id` on the `tenant` table. `RawSqlTenantAuditTest` enforces this from M07 on.
+  - Raw SQL lives only in `final` classes named `*Sql`, and every statement on a tenant table names its tenant column: `tenant_id`, or `id` on the `tenant` table. `RawSqlTenantAuditTest` enforces this from M07 on.
   - File paths come only from typed IDs.
   - Mercure topics include the tenant ID.
 - Git:
@@ -242,8 +245,8 @@ make up
 - Comments are terse. Name units in identifiers, for example `$fileSizeBytes`.
 - Front end:
   - Strict TypeScript.
-  - React Router 8.4.0 in Data Mode: `createBrowserRouter`, route `loader`s read, route `action`s and `useFetcher` write, `useRevalidator` refreshes after a Mercure message.
-  - Local component state for the UI: `useState` and `useReducer` for selection and drafts in progress, `useOptimistic` for thread replies. No Redux, no global store, no query-cache library.
+  - React Router 8.4.0 in Data Mode: `createBrowserRouter`, route `loader`s read, route `action`s and `useFetcher` write, `router.revalidate()` in `assets/live/useLiveRevalidation.ts` refreshes after a Mercure message.
+  - Local component state for the UI: `useState` for selection and drafts in progress, `useOptimistic` for new threads, drafts, and replies. No Redux, no global store, no query-cache library.
   - Primer for components. CSS modules for our layout CSS.
   - `@pierre/diffs` only inside `assets/code/CodeFile.tsx` and `assets/code/CommitDiff.tsx`.
   - API types in `assets/api/types/`, written from docs/specs and checked against `docs/specs/fixtures/`.
@@ -256,9 +259,10 @@ Suite markers: **U** unit, **F** functional, **E** full-stack E2E, **V** Vitest,
 - Unit tests live in `tests/Unit`. They extend `KernelTestCase` and never boot the kernel.
 - Functional tests live in `tests/Functional`. They extend `KernelTestCase` or `WebTestCase`. They run against real PostgreSQL in `app_test` and real git in temporary directories under `var/test/`. They use the `ResetDatabase` and `TemporaryDirectories` traits.
   - The `test` environment routes `async` to `in-memory://`. A test asserts the queued messages, then runs them through the `QueuedMessages` trait. The trait sends each envelope through the bus with a `ReceivedStamp`, so the middleware runs as in the worker.
-- E2E tests live in `tests/E2E`. They extend `PantherTestCase` and run against `http://localhost:8081` through `PANTHER_EXTERNAL_BASE_URI`.
-  - Fixtures are created through services in the PHPUnit process, in the same `app_test` database.
-  - The code view uses open shadow roots. Use the `ShadowDom` helpers.
+- E2E tests live in `tests/E2E`. They extend `FullStackTestCase` in `tests/Support/E2E`: a `KernelTestCase` with the `PlaywrightTestCaseTrait` of `playwright-php/playwright`. PHPUnit drives Playwright's Chromium in the `php` container against `http://localhost:8081`, `FullStackTestCase::BASE_URI`. One browser serves the run, and each test gets a new browser context.
+  - Fixtures are created through services in the PHPUnit process, in `app_e2e`. `E2eDatabaseExtension` selects it for the classes in `App\Tests\E2E`.
+  - Navigate with `visit()` and `signInAs()`. Assert with `$this->expect()`, which polls from PHP for 5 s. `withTimeout()` changes the limit.
+  - CSS and text locators pierce the open shadow roots of the code view. XPath does not.
   - Wait for conditions. Never sleep.
 - Vitest tests cover pure TypeScript only. They live in `*.test.ts` files next to the code.
 - UI tests live in `tests/ui/*.spec.ts`. Playwright Test runs them against the SPA that `tests/ui/vite.config.ts` builds, with no PHP, database, or git. Each spec has one `test.describe`, and each title is one short sentence about behaviour.
@@ -288,7 +292,7 @@ Every milestone:
    - `lint:container`, `lint:yaml`, `lint:twig`;
    - `doctrine:schema:validate`;
    - the unit and functional suites;
-   - `tsc` in strict mode, Vitest, and the UI suite, from M17 on;
+   - `tsc` in strict mode, Vitest, and the UI suite;
    - the E2E suite.
 3. Schema changes have generated migrations, applied to the dev and test databases.
 4. Responses validate against docs/specs, and every new route and tool has a cross-tenant case.
@@ -321,7 +325,7 @@ The final message of the session:
 
 ## Verified versions
 
-Checked on 2026-09-29.
+Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03.
 
 | Package | Version | Source |
 |---|---|---|
@@ -331,6 +335,7 @@ Checked on 2026-09-29.
 | FrankenPHP | 1.12.7, Docker tag `dunglas/frankenphp:1.12.7-php8.5-trixie`, worker mode through Symfony Runtime's `FrankenPhpWorkerRunner` | https://github.com/php/frankenphp/releases/tag/v1.12.7 |
 | dunglas/symfony-docker | Template, guide "Using Symfony Docker with an existing project" | https://github.com/dunglas/symfony-docker |
 | Node.js | 24 LTS, 24.21.0 | https://nodejs.org/dist/index.json |
+| Node.js in the `php` image | 24.21.0 from `node:24-trixie-slim`, npm 11.19.0 | `node --version` in the `php` container |
 | `doctrine/orm`, `doctrine/doctrine-migrations-bundle`, `symfony/messenger` with the Doctrine transport | 3.7.2, 4.0.1, 8.1, installed | `composer show` |
 | `symfony/process`, `symfony/uid` | 8.1.7, 8.1.5 | https://repo.packagist.org/p2/symfony/process.json |
 | `mcp/sdk`, `symfony/mcp-bundle` | 0.8.1, 0.14.1, exact pins | https://repo.packagist.org/p2/mcp/sdk.json |
@@ -345,7 +350,7 @@ Checked on 2026-09-29.
 | `league/commonmark` | 2.10.3 | https://repo.packagist.org/p2/league/commonmark.json |
 | `opis/json-schema` | 2.6.0, draft 2020-12 | https://repo.packagist.org/p2/opis/json-schema.json |
 | `phpunit/phpunit`, `phpstan/phpstan` | 13.3.5, 2.2.16 | https://repo.packagist.org/p2/phpunit/phpunit.json |
-| `symfony/panther`, `php-webdriver/webdriver`, `dbrekelmans/bdi` | 2.4.0, 1.16.0, 1.4.1 | https://repo.packagist.org/p2/symfony/panther.json |
+| `playwright-php/playwright` | 1.5.0, exact pin. Its Node server uses npm `playwright` 1.63.0. | https://repo.packagist.org/p2/playwright-php/playwright.json |
 | `friendsofphp/php-cs-fixer` | 3.95.27 | https://repo.packagist.org/p2/friendsofphp/php-cs-fixer.json |
 | `react`, `react-dom`, `@types/react`, `@types/react-dom` | 19.3.0 | https://www.npmjs.com/package/react |
 | `react-router` | 8.4.0, Data Mode. Peers `react` and `react-dom` `>=19.2.7`. | https://www.npmjs.com/package/react-router |
@@ -357,14 +362,9 @@ Checked on 2026-09-29.
 
 ## Known gotchas
 
-### Package removal, M00
-
-- **Messenger routing.** `config/packages/messenger.yaml` routes `SendEmailMessage`, `ChatMessage`, and `SmsMessage`. Remove those lines before `composer remove symfony/mailer symfony/notifier`, or the post-remove `cache:clear` fails.
-- **AssetMapper leftovers.** Removing `symfony/asset-mapper` leaves the untracked `assets/vendor/`. Delete it, together with the importmap leftovers.
-
 ### Recipes and bundles
 
-- **HWIOAuthBundle.** Its recipe is a contrib recipe, and `allow-contrib` is `false`. Switch it on first. Version 2.5.0 requires `symfony/form`, so keep Form. It has no PKCE. Its `csrf` option defaults to `false`: set it to `true`.
+- **HWIOAuthBundle.** Its recipe is a contrib recipe. Version 2.5.0 requires `symfony/form`, so keep Form. It has no PKCE. Its `csrf` option defaults to `false`: set it to `true`.
 - **symfony/mcp-bundle 0.14.1.** It has no Flex recipe. Only `config/bundles.php` gets `Symfony\AI\McpBundle\McpBundle`. Write `config/packages/mcp.yaml` and `config/routes/mcp.yaml` by hand. The HTTP transport needs `nyholm/psr7`. The `nyholm/psr7` and `php-http/discovery` recipes both alias the PSR-17 interfaces: keep one set.
 - **MCP bundle options.** `http.allowed_hosts` defaults to localhost only, as DNS rebinding protection. The HTTP path is `servers.<name>.http.path`. The session store is one of `file`, `memory`, `cache`, or `framework`. The `cache` store needs a PSR-16 service. The default directory of the `file` store is under `%kernel.cache_dir%`, which `cache:clear` removes, so set `directory` explicitly.
 - **mcp/sdk 0.8.1 behaviour:**
@@ -372,14 +372,13 @@ Checked on 2026-09-29.
   - any exception other than `ToolCallException` becomes -32603 and loses its message;
   - a `ToolCallException` becomes an `isError` result with the message as text and no `structuredContent`;
   - object and DTO parameters are not supported;
-  - a nullable parameter generates a type list with `null` first;
-  - a `list<string>` docblock produces no `items`: array parameters need `#[Schema(items: ...)]`;
+  - a nullable scalar parameter generates a type list with `null` first, a nullable enum or array parameter with `null` last;
+  - a `list<string>` docblock produces `items: {}`, which accepts any element: array parameters need `#[Schema(items: ...)]`;
   - `outputSchema` comes only from `#[McpTool]`, so it must be a constant expression;
   - `structuredContent` must be a JSON object in the 2025-11-25 protocol era;
   - anything written to stdout corrupts the stdio transport.
-- **Mercure recipe.** It adds a `dunglas/mercure` service to compose. It is not needed, because FrankenPHP has the hub built in. Remove it if it appears.
 - **Mercure hub URL.** Always set `hubs.default.url`. When it is unset and the container is built inside FrankenPHP, the bundle compiles `FrankenPhpHub`, which calls `mercure_publish()`. See `$builtinHub = !isset($hub['url'])` in `MercureExtension.php`. CLI processes that share `var/cache` then break.
-- **Reprise recipe.** It re-creates `assets/app.js` and edits `templates/base.html.twig`.
+- **Reprise recipe.** It re-creates `assets/app.js` and `assets/styles/app.css`, and edits `templates/base.html.twig`.
 - **symfony/webhook.** The recipe route prefix is `/webhook`, so the GitHub endpoint is `/webhook/github`. A request parser that returns `null` makes Symfony answer 406. Return a `RemoteEvent` for every verified delivery.
 
 ### Docker and PostgreSQL
@@ -397,7 +396,6 @@ Checked on 2026-09-29.
 ### PHPStan level 8
 
 - PHPStan reports `Kernel::getAllowedEnvs()` as unused. This is a false positive: `KernelTrait` calls it through `MicroKernelTrait`. Ignore it by the identifier `method.unused`.
-- `tests/bootstrap.php` has a `method_exists()` check that is always true. Fix the code. Do not ignore the error.
 - phpstan-doctrine needs `objectManagerLoader`: `tests/object-manager.php`.
 
 ### Mocked UI suite
@@ -411,10 +409,16 @@ Checked on 2026-09-29.
 
 - **Sessions.** The `test` environment uses `mock_file` sessions. A real browser must use the `e2e` environment.
 - **Build output.** The Vite dev server writes entrypoints for `public/build`. The E2E suite uses its own build in `public/build-e2e`.
-- **Panther in Docker:**
-  - set `PANTHER_NO_SANDBOX=1`, `PANTHER_CHROME_ARGUMENTS=--disable-dev-shm-usage`, and `PANTHER_CHROME_BINARY=/usr/bin/chromium`;
-  - the code view renders in open shadow roots: use `getShadowRoot()`;
-  - Primer overlays fade in over 0.2 s: wait for visibility.
+- **Full-stack suite, playwright-php 1.5.0:**
+  - `getByRole()` without `exact: true` matches a case-insensitive substring of the name. Pass `'exact' => true`.
+  - `allTextContents()` and `allInnerTexts()` fail with "Unknown action", because the Node server has no such action. Use `evaluateAll()`.
+  - `filter(['has' => $locator])` puts the selector string of `$locator` into a CSS `:has()`. A CSS locator works. A role, text, or chained locator fails with a selector parse error.
+  - `expect()->toHaveText()` checks a substring. `toHaveExactText()` compares `textContent` exactly.
+  - Each `expect()` poll reads the element. An element that does not exist blocks one poll for the 30 s action timeout, so the 5 s limit of `expect()` holds only for an element that exists. Wait for the element first.
+  - An assertion that fails throws `AssertionException`, a `RuntimeException` whose message holds neither the actual nor the expected value. PHPUnit counts it as an error.
+  - The trait saves a screenshot of a failed test to `test-failures/` in the working directory, which is git-ignored.
+  - The server launches Chromium with `--no-sandbox`, `--disable-dev-shm-usage`, and `--disable-web-security`. It has no download support.
+  - The playwright-php server declares `playwright ^1.62.0` without a lockfile. `make e2e` pins it to `PLAYWRIGHT_VERSION` of the image with `npm install --save-exact`, so the browser build matches the system libraries and the UI suite. Change the version only in the Dockerfile, together with `@playwright/test` in `package.json`.
 
 ### Application code
 

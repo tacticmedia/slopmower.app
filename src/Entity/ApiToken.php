@@ -16,7 +16,7 @@ use Symfony\Bridge\Doctrine\Types\UlidType;
 use Symfony\Component\Uid\Ulid;
 
 /**
- * Stores the SHA-256 hex digest of the secret, never the secret. A revoked row stays, so its events keep the agent name.
+ * Stores the SHA-256 hex digest of the secret, never the secret. A revoked row stays, so the token list (T1) shows it.
  */
 #[ORM\Entity(repositoryClass: ApiTokenRepository::class)]
 #[ORM\Index(name: 'idx_api_token_tenant', columns: ['tenant_id'])]

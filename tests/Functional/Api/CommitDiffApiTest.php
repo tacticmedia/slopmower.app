@@ -282,7 +282,8 @@ final class CommitDiffApiTest extends WebTestCase
     }
 
     /**
-     * Thirty lines `    $total += N;`, with {@see ANCHORED_LINES} as lines 10 to 12 when $withAnchoredLines.
+     * Thirty lines `    $total += N;` with lines 10 to 12 replaced by {@see ANCHORED_LINES} when $withAnchoredLines, else
+     * removed.
      */
     private static function invoiceTotals(bool $withAnchoredLines): string
     {

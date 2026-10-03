@@ -26,9 +26,9 @@ is available.
 | `php bin/phpunit`       | `symfony php bin/phpunit` |
 
 The prefix matters because the Symfony CLI picks the PHP version configured for the
-project, loads the `.env` files, terminates TLS locally, and exports the environment
-variables of Docker services such as the database or mailer. Without it those values are
-simply absent, and the failure looks like a configuration bug.
+project, terminates TLS locally, and exports the environment variables of Docker services
+such as the database or mailer. Without it the Docker service variables are absent, the
+application uses the defaults from `.env`, and the failure looks like a configuration bug.
 
 ## Server
 
@@ -39,6 +39,8 @@ symfony server:log     # tail the logs
 ```
 
 ## Worth knowing
+
+These apply only when `compose.yaml` has no `php` service. Otherwise they check the host PHP.
 
 ```bash
 symfony check:requirements    # PHP version and extensions

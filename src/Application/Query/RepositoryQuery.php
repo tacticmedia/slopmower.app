@@ -91,7 +91,8 @@ final class RepositoryQuery
     }
 
     /**
-     * R2. GitHub candidates come from the list of the last sign-in, local candidates from a new scan on every call.
+     * R2. GitHub candidates come from the stored list that each sign-in replaces and the installation webhooks update,
+     * local candidates from a new scan on every call.
      * The filters apply before the 1,000-item limit, which GitHub candidates fill first.
      */
     public function candidates(?RepositorySource $source, ?string $q, bool $includeConnected, ?string $githubConfigureUrl): CandidateList

@@ -67,7 +67,7 @@ These two principles control all decisions.
 
 ### FR6 Anchors
 
-- Anchor types: line, line range, symbol, and file. A symbol is a class, interface, trait, enum, function, method, property, or constant.
+- Anchor types: line, line range, symbol, and file. A symbol is a class, interface, trait, enum, enum case, function, method, property, or constant.
 - Symbols are extracted for PHP with `nikic/php-parser`. The design allows more languages later.
 - Symbol selection feels like GitHub range selection. An action on a method selects the full method range, and the comment shows below the last line.
 - Each anchor stores enough data to find its code again after changes: path, line range, symbol FQN where applicable, content snapshot, and the SHA.
@@ -84,11 +84,11 @@ These two principles control all decisions.
   | `ready_for_review` | The agent is finished |
   | `verified` | The user accepted the result |
   | `reopened` | The user rejected the result |
-  | `wont_do` | The user, or an agent with a reason, declined the request |
+  | `wont_do` | The user or an agent declined the request, with a reason of 20 or more characters |
 
 - Each state change is an event with actor, timestamp, and optional text. Replies are events too.
 - The allowed transitions per actor are in [architecture.md](architecture.md), section 6. The states map to GitHub concepts where possible, for example `verified` is "Resolve conversation".
-- An agent that marks a request `wont_do` gives evidence in 20 or more characters. The user then verifies or reopens it.
+- An agent that marks a request `wont_do` gives evidence that the user can check. The user then verifies or reopens it.
 
 ### FR8 The agent conversation
 
@@ -119,9 +119,10 @@ These two principles control all decisions.
 - Every comment kind can be created with the keyboard only:
   - "Comment on lines" in the file header takes a start line and an end line, selects the range, and opens the draft box below the last line;
   - the "Symbols" menu selects the range of a symbol;
-  - the "Comment on file" button opens a file comment.
+  - the "Comment on file" button opens a file comment;
+  - on the last line of a selection, the code viewer's "+" receives focus with Tab and opens the draft box with Enter or Space.
 - The draft box receives focus.
-- A Panther test proves a keyboard-only comment. The front-end milestone checks whether the code viewer's "+" button is focusable and records the result.
+- A UI test proves a keyboard-only comment.
 
 ### FR12 Agent interface
 
@@ -177,7 +178,7 @@ These rules come from the user's brief. They apply to every session, in every mi
 6. Use the newest language features that the installed PHP version supports.
 7. Search online for the current latest version of each library before you use it.
 8. All PHP code must pass PHPStan level 8.
-9. Test all code: unit tests for simple concepts, functional tests for code that needs the database or the service container, Panther E2E tests for front-end behaviour that uses JavaScript.
+9. Test all code: unit tests for simple concepts, functional tests for code that needs the database or the service container, Vitest tests for pure TypeScript, Playwright UI tests for front-end behaviour that uses JavaScript, and full-stack E2E tests for flows across the browser, PHP, and the database.
 10. Never mock the dependency injection container.
 11. Base test cases on `Symfony\Bundle\FrameworkBundle\Test\KernelTestCase` and its subclasses.
 12. Add a TestDox description to each test case. Make it as short as possible without loss of information.

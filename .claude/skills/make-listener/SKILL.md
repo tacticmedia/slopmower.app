@@ -13,9 +13,10 @@ symfony console make:listener ExceptionListener kernel.exception
 symfony console make:listener RequestSubscriber kernel.request
 ```
 
-The suffix decides what is generated: a name ending in `Listener` produces a listener, one
-ending in `Subscriber` a subscriber. Both the name and the event are arguments, so nothing is
-asked. Install the maker first if it is missing:
+In an interactive run the suffix decides what is generated: a name ending in `Listener`
+produces a listener, one ending in `Subscriber` a subscriber. A run with `--no-interaction`
+always generates a listener and appends `Listener` to a name without it. Both the name and
+the event are arguments, so nothing is asked. Install the maker first if it is missing:
 `symfony composer require --dev symfony/maker-bundle`.
 
 ## Listener or subscriber

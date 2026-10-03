@@ -28,7 +28,7 @@ export type ThreadView = {
 };
 
 /**
- * Entries without a body, such as a claim, are left out: the status label shows their effect.
+ * Entries without a body, such as a claim, are left out.
  */
 export function threadView(request: ReviewRequest): ThreadView {
     const comments: CommentView[] = [];

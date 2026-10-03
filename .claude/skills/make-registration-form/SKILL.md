@@ -30,8 +30,9 @@ A user class must exist first (`make:user`). Install the maker if it is missing:
 ## What you get
 
 A registration controller, the form type with the plain-password field mapped to
-nothing, and the template. With `--verify-email` the maker installs
-`symfonycasts/verify-email-bundle` and adds the signed-confirmation route and email;
+nothing, and the template. With `--verify-email` the maker prints
+`composer require symfonycasts/verify-email-bundle`, plus `symfony/mailer` when it is
+missing, for you to run. It also adds the signed-confirmation route and email;
 that path needs a configured mailer and the two `--from-email-*` values.
 
 ## What to check

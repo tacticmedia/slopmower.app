@@ -37,7 +37,7 @@ This directory is the v1 contract of Holistic Review: the REST API, the MCP serv
 |---|---|
 | `body`, required `note` | 1 to 65,536 characters, at least one non-whitespace character |
 | optional `note`, `summary`, close `note` | 0 to 65,536 characters, or null |
-| `reason` of won't do | 20 to 65,536 characters after trimming |
+| `reason` of won't do | at least 20 characters after trimming, at most 65,536 characters |
 | review `title` | 1 to 200 characters |
 | `ref` | 1 to 255 characters |
 | token `name` | 1 to 64 characters, pattern in [api-token.schema.json](schemas/api-token.schema.json) |
@@ -46,16 +46,16 @@ This directory is the v1 contract of Holistic Review: the REST API, the MCP serv
 
 | Mode | Credential | Actor | CSRF | Used by |
 |---|---|---|---|---|
-| Session (`S`) | Session cookie from the GitHub sign-in at `/login/check-github` through HWIOAuthBundle, or from the local sign-in when `APP_ENV=dev` | `user` | Required for POST, PUT, PATCH, DELETE | Web UI |
+| Session (`S`) | Session cookie from the GitHub sign-in at `/login/check-github` through HWIOAuthBundle, or from the local sign-in when `APP_ENV=dev` and `APP_LOCAL_SIGN_IN` holds a login | `user` | Required for POST, PUT, PATCH, DELETE | Web UI |
 | Bearer (`B`) | `Authorization: Bearer hr_<43 base64url characters>` | `agent`: `userId` is the token owner, `agentName` is the token name | Not checked | Agents without MCP |
 
 - **Firewalls.** The stateless firewall `api_bearer` comes first. A request matcher selects it for `^/api/v1` requests with an `Authorization: Bearer` header. It uses an `access_token` authenticator whose token handler looks up the SHA-256 hex digest of the full token string. The firewalls `api`, for the other `^/api/v1` requests, and `main` both set `context: web`, so `api` shares the security token of `main`. `api` sets `lazy: true`. The MCP endpoint has its own stateless firewall. See [mcp.md](mcp.md#1-endpoint-and-authentication).
 - **Precedence and sessions.** When a request has both an `Authorization` header and a session cookie, the bearer token wins, because `api_bearer` matches first. A bearer request never starts a session: the response has no `Set-Cookie`.
 - **Token checks.** A token that does not match `^hr_[A-Za-z0-9_-]{43}$` gets 401 without a database lookup. Unknown, revoked, and expired tokens get 401. A token is expired when `expiresAt <= now`. `lastUsedAt` is updated at most once per 60 seconds.
 - **401 headers.** Every 401 carries `WWW-Authenticate: Bearer realm="holistic-review"`. When the request sent a token, the header adds `, error="invalid_token"`.
-- **CSRF.** Session writes must pass `SameOriginCsrfTokenManager` with the stateless token ID `api`. The request needs `Sec-Fetch-Site: same-origin`, or an `Origin` or `Referer` header that matches the host. A failure gets 403 `forbidden`.
+- **CSRF.** Session writes must pass `SameOriginCsrfTokenManager` with the stateless token ID `api`. The request needs `Sec-Fetch-Site: same-origin`, an `Origin` or `Referer` header that matches the host, or a double-submit token of at least 24 characters in the `csrf-token` header. An origin header that does not match fails also with the token. A failure gets 403 `forbidden`.
 - **Tenant context.** Each request sets a fail-closed tenant context from the session user or from the token. A Doctrine SQL filter limits every ORM query to that tenant. Without a tenant context, no tenant data is read.
-- **Visibility.** A caller sees only its own tenant. A token scoped to one repository sees only that repository and its reviews, requests, drafts, and blobs. Any ID outside that visibility gets **404 `not_found`**, in the path, the query, or the body. Unknown repository names and GitHub repository IDs that are not candidates also get 404.
+- **Visibility.** A caller sees only its own tenant. A token scoped to one repository sees only that repository and its reviews, requests, drafts, and blobs. Any ID outside that visibility gets **404 `not_found`**, in the path, the query, or the body. An unknown name in the MCP `repository` argument, and a connect input that is not a candidate, also get 404. `GET /api/v1/repositories?name=` returns an empty page instead.
 - **Actor kinds.** The "Authentication" column of the [endpoint index](rest-api.md#2-endpoint-index) lists the modes that may call each endpoint. A token call to an `S`-only endpoint, or a session call to a `B`-only endpoint, gets 403 `forbidden`.
 
 ## 4. Errors
@@ -125,7 +125,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
   3. Any other value is a local directory name, compared exactly.
 - **Uniqueness.** Names are unique per tenant: GitHub names always contain `/`, local names never do. A second connect of the same source identity returns the existing repository.
 - **Local directories.** The server resolves the directory with `realpath()`. Its parent must equal `realpath(APP_LOCAL_REPOSITORIES_DIR)`, so symlinks cannot escape the mount. For a local source, the `git upload-pack` command that reads the source runs with `-c safe.directory=<realpath>` and `-c safe.directory=<realpath>/.git`. The server never writes to the source directory.
-- **Server clone.** Every repository has one bare clone at `<data>/tenants/<tenantId>/repositories/<repositoryId>.git`. Two tenants that connect the same source get two clones.
+- **Server clone.** Every repository has one bare clone at `$APP_TENANT_DATA_DIR/<tenantId>/repositories/<repositoryId>.git`. Two tenants that connect the same source get two clones.
 - **Fetch.** A fetch from the source takes `+refs/heads/*:refs/heads/*` and `+refs/tags/*:refs/tags/*` with `--prune`, never `--mirror`. A second `git fetch` then gets the pending linked SHAs by ID into `refs/holistic-review/commits/<sha>`. One unknown SHA fails a whole `git fetch`, so when the second fetch fails, the server fetches one SHA per command and ignores the failures.
 - **Pin refs.** At review start the server writes `refs/holistic-review/reviews/<reviewId>` to the review commit. When a linked commit is present in the clone, the server writes `refs/holistic-review/commits/<sha>`. The fetch refspecs never touch the `refs/holistic-review/` namespace, so force-pushes, pruning, and `git gc` cannot remove reviewed or linked commits. Deleting a review, unlinking the last link of a commit, or deleting the repository data deletes the matching pin refs.
 - **Available.** A commit is *available* when `git cat-file -e <sha>^{commit}` succeeds in the clone. For a local source, a local commit becomes available at the next fetch, without a push. For a GitHub source, the commit must be pushed.
@@ -161,7 +161,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 5. **The server must:**
    - emit every schema property;
    - never add `additionalProperties: false` to response schemas;
-   - validate every response in tests: REST responses against the files in [schemas/](schemas/), and MCP `structuredContent` against the `outputSchema` of each tool, both with `opis/json-schema` 2.6.0.
+   - validate the responses in tests: REST responses against the files in [schemas/](schemas/), and MCP `structuredContent` against the `outputSchema` of each tool, both with `opis/json-schema` 2.6.0.
 6. **Deprecation:**
    - The `/docs` changelog announces it.
    - Deprecated REST endpoints send `Deprecation: @<unix time>` as in RFC 9745, `Sunset: <HTTP-date>` as in RFC 8594, and `Link: <https://<host>/docs/<page>>; rel="deprecation"`.
@@ -173,10 +173,10 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 
 ## 9. Contract tests
 
-- Every REST response in the functional tests is validated against its schema with `opis/json-schema` 2.6.0.
+- Functional tests validate REST responses with `JsonApiAssertions::assertApiResponse()`, which uses `opis/json-schema` 2.6.0.
 - Every MCP `structuredContent` is validated against the `outputSchema` of its tool.
 - Every fixture in [section 11](#11-fixtures) is validated against the schema that the table names. The TypeScript types of the web UI are checked against the same fixture files.
-- A contract test runs each use case through REST and MCP and compares the payloads. See [mcp.md](mcp.md#6-mcp-and-rest).
+- `McpRestParityTest` compares the MCP and REST payloads of `get_request`, `list_requests`, and every write tool. See [mcp.md](mcp.md#6-mcp-and-rest).
 
 ## 10. Schemas
 
@@ -189,7 +189,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 
 | File | `$id` | Content |
 |---|---|---|
-| [common.schema.json](schemas/common.schema.json) | `https://holistic-review.invalid/schemas/v1/common.schema.json` | `$defs` only: IDs, SHAs, paths, times, cursors, and every enum |
+| [common.schema.json](schemas/common.schema.json) | `https://holistic-review.invalid/schemas/v1/common.schema.json` | `$defs` only: IDs, SHAs, paths, times, cursors, and the shared enums |
 | [error.schema.json](schemas/error.schema.json) | `https://holistic-review.invalid/schemas/v1/error.schema.json` | Error body and the `details` shape per code |
 | [actor.schema.json](schemas/actor.schema.json) | `https://holistic-review.invalid/schemas/v1/actor.schema.json` | Actor: user, agent, or system |
 | [anchor.schema.json](schemas/anchor.schema.json) | `https://holistic-review.invalid/schemas/v1/anchor.schema.json` | Anchor, plus `LineRange`, `SymbolRef`, `ContentSnapshot`, `AnchorSummary`, `AnchorInput` |

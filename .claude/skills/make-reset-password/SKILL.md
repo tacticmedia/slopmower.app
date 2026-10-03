@@ -26,7 +26,8 @@ A user class must exist first (`make:user`). Install the maker if it is missing:
 
 ## What you get
 
-The flow comes from `symfonycasts/reset-password-bundle`, which the maker installs: a
+The flow comes from `symfonycasts/reset-password-bundle`. Install it and `symfony/mailer`
+first, because the maker does not run without them. You get a
 controller with the request, check-email and reset actions, two form types, the Twig
 templates, the reset email, and a `ResetPasswordRequest` entity holding the hashed
 tokens. That entity changes the schema, so a migration follows (`make:migration`).

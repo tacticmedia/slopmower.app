@@ -14,8 +14,8 @@ use Symfony\Bridge\Doctrine\Types\UlidType;
 use Symfony\Component\Uid\Ulid;
 
 /**
- * An installation of the GitHub App that the user could access at the last sign-in. A repository keeps the installation
- * ID without a foreign key, so deleting the installation row leaves it valid.
+ * An installation of the GitHub App that the user can access: listed at the last sign-in, then changed by the
+ * installation webhooks.
  */
 #[ORM\Entity(repositoryClass: GitHubInstallationRepository::class)]
 #[ORM\Table(name: 'github_installation')]

@@ -35,15 +35,15 @@ final class SessionLockedMcpController
 
     public function handle(Request $request): Response
     {
-        $sessionId = $request->headers->get(StreamableHttpTransport::SESSION_HEADER);
+        $sessionId = self::sessionId($request);
 
         // The SDK answers a missing or malformed session ID itself.
-        if (null === $sessionId || !Uuid::isValid($sessionId)) {
+        if (null === $sessionId) {
             return $this->inner->handle($request);
         }
 
         // No TTL: PostgreSQL advisory locks do not expire and end with the database session.
-        $lock = $this->lockFactory->createLock('mcp-session-'.Uuid::fromString($sessionId)->toRfc4122(), ttl: null);
+        $lock = $this->lockFactory->createLock('mcp-session-'.$sessionId->toRfc4122(), ttl: null);
         $deadlineUnixSeconds = $this->nowUnixSeconds() + self::LOCK_TIMEOUT_SECONDS;
 
         // Polls, because Symfony Lock has no acquire timeout and the PostgreSQL store blocks without limit.
@@ -59,6 +59,24 @@ final class SessionLockedMcpController
             return $this->inner->handle($request);
         } finally {
             $lock->release();
+        }
+    }
+
+    /**
+     * Parses as {@see StreamableHttpTransport} does, so every form of an ID that the SDK accepts takes the lock.
+     */
+    private static function sessionId(Request $request): ?Uuid
+    {
+        $header = $request->headers->get(StreamableHttpTransport::SESSION_HEADER);
+
+        if (null === $header || '' === $header) {
+            return null;
+        }
+
+        try {
+            return Uuid::fromString($header);
+        } catch (\InvalidArgumentException) {
+            return null;
         }
     }
 

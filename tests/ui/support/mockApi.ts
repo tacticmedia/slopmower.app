@@ -46,7 +46,7 @@ export function redirect(location: string): MockResponse {
 }
 
 /**
- * The REST API of docs/specs and `POST /logout`, answered in the page's process by the routes of one test. Every write
+ * The REST API of docs/specs and `POST /logout`, answered in the test process by the routes of one test. Every write
  * must carry the double-submit CSRF proof. A request without a route, a write without the proof, and a body that does
  * not validate are problems: the page gets a 500, and the test fails at the end.
  */

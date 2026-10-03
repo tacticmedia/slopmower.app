@@ -14,10 +14,11 @@ symfony console make:security:form-login --controller-name=SecurityController --
 ```
 
 That is usually enough: the maker reads `security.yaml` and fills in the firewall, the
-user class and the username field itself when they are unambiguous. When a guess is
-ambiguous it aborts naming the option to pass (`--firewall-name`, `--user-class`,
-`--username-field`) rather than prompting. `--logout` is deliberate: the prompt defaults
-to yes, the option is opt-in, so a script states what it wants.
+user class and the username field itself when they are unambiguous. An interactive run
+asks when a guess is ambiguous. A non-interactive run aborts with the name of `--user-class`
+or `--username-field`. Pass `--firewall-name` when `security.yaml` has more than one
+firewall. `--logout` is deliberate: the prompt defaults to yes, the option is opt-in, so a
+script states what it wants.
 
 A user class and provider must exist first; that is `make:user`, the step before this
 one. Install the maker if it is missing:

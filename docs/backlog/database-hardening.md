@@ -16,7 +16,7 @@ Status: backlog. Not part of the proof of concept. The proof of concept uses one
 |---|---|---|---|---|
 | `holistic_owner` | `LOGIN NOSUPERUSER NOBYPASSRLS` | The database, every table, sequence, and function | All | Doctrine Migrations, through the `migrations` connection |
 | `holistic_app` | `LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE` | Nothing | `SELECT, INSERT, UPDATE, DELETE` on every table except `review_event` and `doctrine_migration_versions`. Only `SELECT, INSERT` on `review_event`. `USAGE, SELECT` on sequences. `EXECUTE` on the lookup functions. | HTTP requests and the Messenger worker |
-| `holistic_maintenance` | `LOGIN NOSUPERUSER NOBYPASSRLS` | Nothing | The grants of `holistic_app`, plus `DELETE` on `review_event` | The deletion jobs, the purge, and the projection rebuild |
+| `holistic_maintenance` | `LOGIN NOSUPERUSER NOBYPASSRLS` | Nothing | The grants of `holistic_app`, plus `DELETE` on `review_event` | Review deletion (V13), repository deletion (R6), the tenant purge job, and the projection rebuild |
 
 The Docker `POSTGRES_USER` is a superuser. It is used only by the init script that creates these roles. The application never connects with it.
 
@@ -49,21 +49,22 @@ CREATE POLICY tenant_isolation ON review_event
 ```
 
 - `current_setting('app.tenant_id', true)` returns null when the setting does not exist. `NULLIF` maps an empty value to null. A comparison with null is not true, so no row is visible and an insert fails the `WITH CHECK`. The database fails closed.
-- The ULID columns are PostgreSQL `uuid` columns, as Doctrine's `ulid` type stores them. Check the column type in the generated migration and change the cast when it differs.
+- The ULID columns are PostgreSQL `uuid` columns, as Doctrine's `ulid` type stores them.
 - `FORCE ROW LEVEL SECURITY` is not set. The lookup functions run as the owner and must see every row. The application never connects as the owner. A boot check and a test enforce this.
 - `make:migration` does not generate policies. Each migration that creates a tenant table adds the `ENABLE` and `CREATE POLICY` statements by hand. A catalog test fails when a table with `tenant_id` has no policy.
 - Tables without tenant data have no policy: `sessions`, `messenger_messages`, `webhook_delivery`, and `doctrine_migration_versions`.
 
 ### Tenantless lookups
 
-The proof of concept suspends the SQL filter in four places. Under row-level security, the runtime role cannot see other tenants' rows at all, so these places use `SECURITY DEFINER` functions owned by `holistic_owner`. Each function returns only IDs. The application then sets the tenant context and loads the entities normally.
+The proof of concept suspends the SQL filter in the places of the table below, and in the projection rebuild and the purge. Under row-level security, the runtime role cannot see other tenants' rows at all, so these places use `SECURITY DEFINER` functions owned by `holistic_owner`. Each function returns only IDs. The application then sets the tenant context and loads the entities normally.
 
 | Place | Function | Returns |
 |---|---|---|
 | GitHub sign-in | `app_find_user_by_github_id(bigint)` | `user_id`, `tenant_id` |
 | Local sign-in | `app_find_user_by_local_login(text)` | `user_id`, `tenant_id` |
 | Token lookup | `app_find_api_token(text)` with the SHA-256 hex digest | `token_id`, `tenant_id` |
-| Webhook router | `app_find_repositories_by_github_id(bigint)`, `app_find_installations_by_github_id(bigint)` | `tenant_id` and the row ID, one row per tenant |
+| Session user reload and token owner check | `app_find_signed_in_user(uuid)` | `user_id`, `tenant_id` |
+| Webhook router | One function per routing query of `GitHubWebhookConsumer`, for example `app_find_repositories_by_github_id(bigint)` | `tenant_id` and the row ID, one row per tenant |
 
 ```sql
 CREATE FUNCTION app_find_api_token(p_token_hash text)
@@ -74,7 +75,7 @@ REVOKE ALL ON FUNCTION app_find_api_token(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION app_find_api_token(text) TO holistic_app;
 ```
 
-The first sign-in generates the new tenant ID, sets the tenant context to it, and then inserts the `tenant` and `user` rows, so the `WITH CHECK` passes. The projection rebuild and the purge run as `holistic_maintenance` and set the tenant context for each tenant in turn. They find the tenant IDs through `app_list_tenant_ids()`, which only `holistic_maintenance` may execute.
+The first sign-in generates the new tenant ID, sets the tenant context to it, and then inserts the `tenant` and `app_user` rows, so the `WITH CHECK` passes. The projection rebuild and the purge run as `holistic_maintenance` and set the tenant context for each tenant in turn. They find the tenant IDs through `app_list_tenant_ids()`, which only `holistic_maintenance` may execute.
 
 ### Connections
 
@@ -82,9 +83,7 @@ The first sign-in generates the new tenant ID, sets the tenant context to it, an
 |---|---|---|
 | `DATABASE_URL` | `holistic_owner` | `migrations`, selected by `doctrine_migrations.connection: migrations` |
 | `DATABASE_RUNTIME_URL` | `holistic_app` | `default`, used by the ORM |
-| `DATABASE_MAINTENANCE_URL` | `holistic_maintenance` | `maintenance`, used by the deletion jobs, the purge, and the rebuild |
-
-`DATABASE_URL` holds the owner URL and the runtime URL has its own variable, as the last lesson below says.
+| `DATABASE_MAINTENANCE_URL` | `holistic_maintenance` | `maintenance`, used by review and repository deletion, the purge job, and the rebuild |
 
 ### Tenant context in the database: `SET LOCAL app.tenant_id`
 
@@ -98,7 +97,6 @@ The first sign-in generates the new tenant ID, sets the tenant context to it, an
 - An init script under `/docker-entrypoint-initdb.d/` created the non-owner runtime role. The PostgreSQL image runs these scripts only when the data directory is empty, so a changed script needs a new data volume.
 - The Docker `POSTGRES_USER` is a superuser, and superusers bypass row-level security. A test that connects as that user proves nothing about the policies.
 - The application then needs two connections: the owner for migrations, and the runtime role for the application.
-- With the Symfony CLI, the owner URL fits `DATABASE_URL`, and the runtime URL needs its own variable.
 
 ## Acceptance criteria
 

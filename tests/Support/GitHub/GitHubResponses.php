@@ -9,8 +9,8 @@ use Symfony\Component\HttpClient\Response\MockResponse;
 /**
  * The mock_response_factory of github.client in the test environment. Serves the recorded responses in tests/Fixtures/github.
  * The user token selects the user and the installation listing. The installation token endpoint answers 201 only for a
- * signed App JWT and a token limited to one repository with `contents: read`, as the App asks for it. A repository
- * read answers only the installation token.
+ * bearer token in JWT form and a token limited to one repository with `contents: read`, as the App asks for it. A
+ * repository read answers only the installation token.
  */
 final class GitHubResponses
 {

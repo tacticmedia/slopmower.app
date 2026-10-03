@@ -17,9 +17,9 @@ use Symfony\Component\Uid\Ulid;
  * Two index jobs at one commit, or V9 and a job, write the same rows. A unique key violation in the ORM closes the
  * entity manager, so the writes skip conflicting rows instead.
  *
- * Each write locks the repository row FOR KEY SHARE, the weakest lock that {@see \App\Repository\DeletionSql} waits for,
- * so the sync state updates of the row do not wait. A write for a deleted repository, or one whose access was removed,
- * writes nothing.
+ * Each insert locks the repository row FOR KEY SHARE, the weakest lock that {@see \App\Repository\DeletionSql} waits
+ * for, so the sync state updates of the row do not wait. A write for a deleted repository, or one whose access was
+ * removed, writes nothing.
  */
 final class IndexSql
 {

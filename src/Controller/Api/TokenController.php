@@ -48,7 +48,7 @@ final class TokenController extends AbstractController
     }
 
     /**
-     * The row stays, so its events keep the agent name.
+     * The row stays, so T1 lists the revoked token.
      */
     #[Route('/{tokenId}', name: 'revoke', methods: ['DELETE'])]
     public function revoke(#[MapEntity(id: 'tokenId')] ApiToken $token, EntityManagerInterface $entityManager, ClockInterface $clock): Response

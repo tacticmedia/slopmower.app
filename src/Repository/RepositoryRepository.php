@@ -90,7 +90,7 @@ final class RepositoryRepository extends ServiceEntityRepository
     }
 
     /**
-     * Sets the flag and `fetching`, unless a fetch job is queued already.
+     * Sets the flag and `fetching` when the state is `idle` or `fetching` and no fetch job is queued yet.
      *
      * @return bool Whether a job must be queued
      */

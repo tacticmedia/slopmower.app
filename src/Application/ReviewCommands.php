@@ -71,7 +71,7 @@ final class ReviewCommands
      * review.started, and queues the index job. A failed record deletes the pin.
      *
      * @param RefName|null $ref   Null for the default branch
-     * @param string|null  $title Null for "<ref> @ <12 SHA characters>"
+     * @param string|null  $title Null for the default title of {@see self::defaultTitle()}
      *
      * @throws NotFound
      * @throws RepositoryUnavailable

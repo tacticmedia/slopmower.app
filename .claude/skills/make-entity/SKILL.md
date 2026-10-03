@@ -18,12 +18,15 @@ symfony console make:entity BlogPost \
     --relation=author:ManyToOne:User
 ```
 
-Fields are `name[:type[:length]][?]`, relations are `name:type:target[?]`, and a trailing `?`
-makes either nullable. Both options repeat, once per field. Leaving the type off falls back to
-the same guess the interactive mode makes, so `--field=publishedAt` becomes a
+Fields are `name[:type[:options]][?][,modifier]`: `string` takes a length, `decimal` a
+precision and a scale, `enum` a backed enum class. Relations are `name:type:target[?]`, and a
+trailing `?` makes either nullable. Both options repeat, once per field. Leaving the type off
+falls back to the same guess the interactive mode makes, so `--field=publishedAt` becomes a
 `datetime_immutable` and `--field=isActive` a boolean.
 
-Enums still need the interactive mode. Install the maker first if it is missing:
+An enum field is `--field=status:enum:Status`: the short name of a backed enum in `src/`, or
+its full class name. Append `,multiple` for several values. Install the maker first if it is
+missing:
 `symfony composer require --dev symfony/maker-bundle`.
 
 ## What to keep

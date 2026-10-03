@@ -45,7 +45,6 @@ final class GitHubAppJwtFactory
             throw new GitHubRequestFailed('The GitHub App client ID or private key is not configured.');
         }
 
-        // GitHub reads whole seconds.
         $issuedAt = new \DateTimeImmutable('@'.($this->clock->now()->getTimestamp() - self::BACKDATE_SECONDS));
 
         try {

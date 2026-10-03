@@ -71,7 +71,7 @@ final class IndexReviewHandler
     }
 
     /**
-     * Inserts every listed path, also when rows of the commit exist, so a job after a crashed job completes the list.
+     * Inserts every listed path. Rows of the commit that another review or an earlier run stored stay.
      * Publishes the progress at most once per {@see PUBLISH_INTERVAL_SECONDS}.
      */
     private function index(Review $review, float $publishedAtUnixSeconds): void

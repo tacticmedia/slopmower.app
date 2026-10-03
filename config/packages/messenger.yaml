@@ -10,7 +10,6 @@ framework:
                     max_retries: 3
                     multiplier: 2
             failed: 'doctrine://default?queue_name=failed'
-            # sync: 'sync://'
 
         default_bus: messenger.bus.default
 
@@ -20,8 +19,6 @@ framework:
                     - App\Messenger\TenantContextMiddleware
 
         routing:
-            # Route your messages to the transports
-            # 'App\Message\YourMessage': async
             # The GitHub webhook consumer. The response is 202 before the work runs.
             'Symfony\Component\RemoteEvent\Messenger\ConsumeRemoteEventMessage': async
 
