@@ -1,22 +1,12 @@
 import { type FileContents, type FileDiffOptions, parseDiffFromFile } from '@pierre/diffs';
 import { FileDiff, WorkerPoolContextProvider } from '@pierre/diffs/react';
-import type { WorkerInitializationRenderOptions, WorkerPoolOptions } from '@pierre/diffs/worker';
-import diffsWorkerUrl from '@pierre/diffs/worker/worker.js?worker&url';
 import { Label, Spinner } from '@primer/react';
 import { memo, useMemo } from 'react';
 import type { CommitDiffFile, CommitDiffFileStatus } from '../api/types/commit-diff';
 import { type DiffSides, useDiffSides } from '../routes/requests/changesData';
 import styles from './CommitDiff.module.css';
 import { diffPlaceholder } from './diffPlaceholder';
-
-const THEME = { light: 'github-light', dark: 'github-dark' } as const;
-
-const POOL_OPTIONS: WorkerPoolOptions = {
-    workerFactory: () => new Worker(diffsWorkerUrl, { type: 'module' }),
-    poolSize: 2,
-};
-
-const HIGHLIGHTER_OPTIONS: WorkerInitializationRenderOptions = { theme: THEME };
+import { HIGHLIGHTER_OPTIONS, POOL_OPTIONS, THEME } from './workerPool';
 
 const DIFF_OPTIONS = {
     theme: THEME,

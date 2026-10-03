@@ -2,7 +2,7 @@
 
 This guide is a map of the Holistic Review code. It tells you what each part does, where it is, how a call moves through it, and which parts are larger than the job. The [architecture](architecture.md) and the [specifications](specs/README.md) stay the sources of truth. This guide points to them.
 
-Size: `src/` has 406 PHP files and about 26,000 lines. One generated file, `src/Mcp/BundledSchemas.php`, has 2,472 of these lines. `assets/` has 127 TypeScript files and about 6,500 lines without tests. `tests/` has about 23,000 lines of PHP and 2,800 lines of Playwright UI tests.
+Size: `src/` has 406 PHP files and about 26,000 lines. One generated file, `src/Mcp/BundledSchemas.php`, has 2,472 of these lines. `assets/` has 128 TypeScript files and about 6,500 lines without tests. `tests/` has about 23,000 lines of PHP and 2,800 lines of Playwright UI tests.
 
 ## 1. Start here
 
@@ -208,7 +208,7 @@ App\Anchoring          git and cache side: Locator, LocationCacheSql, QueueLocat
 | `assets/app.tsx`, `router.tsx`, `layout/` | 7 | Entry, the one data router, `RootLayout` with the live hook (D29) |
 | `assets/api/` | 29 | `fetch` client with the CSRF header, `ApiError`, TypeScript types written from the schemas |
 | `assets/routes/` | 27 | Screens. Loaders read and actions write. Most actions branch on an `intent` field. |
-| `assets/code/` | 7 | `CodeFile` and `CommitDiff`, the only wrappers around the pinned `@pierre/diffs` (D1) |
+| `assets/code/` | 8 | `CodeFile` and `CommitDiff`, the only wrappers around the pinned `@pierre/diffs` (D1), and their shared `workerPool` options |
 | `assets/comments/` | 11 | Threads, drafts, comment box, `useOptimistic` updates |
 | `assets/live/` | 2 | `LiveSubscription`, the one Mercure subscription, and `EventPositions` |
 | `assets/requests/`, `review/`, `settings/` | 44 | Presentational components and pure helpers |
@@ -346,7 +346,7 @@ Run `make db-test` once and after each migration. `make check` runs all gates. O
 | Symbol index | `App\Index`: 7 files, 531 lines | Forced by architecture sections 4 and 7.1. Small candidate. | `SymbolExtractor` has one implementation, but section 7.1 lists it as a port. The `indexed_file` table is required by section 4, and only `IndexSql::storedSymbolCounts()` reads it. `IndexedFileRepository` has no caller. |
 | GitHub integration | `GitHub`, `Webhook`: 15 files, about 1,350 lines | Forced by `specs/rest-api.md` R2 and `specs/webhooks-and-live-updates.md` section 1. Candidate in part. | The rename-collision rule is in `InstallationSync::record()` and `RepositoryHandler::record()`. The `payload()` helper is in `InstallationSync` and `GitHubWebhookConsumer`. The tenant lock block is in four classes. `InstallationSync` writes entities and calls `FetchRepository` from an integration namespace. |
 | `CommitDiffController` | 124 lines | Candidate | It calls `GitReader`, `Locator`, and repositories directly and sorts files itself. Other reads put this in `Application\Query`. `RequestChanges.tsx` sorts the same list again. |
-| Front end | `assets/`: about 6,500 lines | Forced by D1, D29, architecture sections 8 and 12. Small candidates. | `fileThreads()` in `fileData.ts` reads all Q1 pages, then makes one Q3 call per request of the file. `REQUEST_PAGE_LIMIT` is defined twice. `CodeFile.tsx` and `CommitDiff.tsx` repeat `THEME`, `POOL_OPTIONS`, and `HIGHLIGHTER_OPTIONS`. `allRepositories()` in `settingsData.ts` repeats `apiGetAllPages()`. |
+| Front end | `assets/`: about 6,500 lines | Forced by D1, D29, architecture sections 8 and 12. Small candidates. | Done in S12. Remains: a file view costs `fileThreads()` in `fileData.ts` one Q1 call per 200 requests under the path prefix, plus one Q3 call per request on the file, because only Q3 returns a thread; `RequestChanges.tsx` sorts the files again, because Q9 does not define their order. |
 
 ## 8. Where the rest is documented
 

@@ -9,7 +9,7 @@ import { rememberEvents } from '../../live/eventPositions';
 import type { RequestCommandIntent, RequestIntent } from '../../requests/requestIntent';
 import { encodedRouteParam } from '../encodedRouteParam';
 
-const REQUEST_PAGE_LIMIT = 200;
+export const REQUEST_PAGE_LIMIT = 200;
 
 const COMMAND_PATHS: Record<RequestCommandIntent['intent'], string> = {
     verify: 'verify',

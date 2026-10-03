@@ -10,8 +10,7 @@ import { type ThreadView, threadView } from '../../comments/threadView';
 import { rememberEvents } from '../../live/eventPositions';
 import type { ViewedIntent } from '../../review/ViewedCheckbox';
 import { encodedRouteParam } from '../encodedRouteParam';
-
-const REQUEST_PAGE_LIMIT = 200;
+import { REQUEST_PAGE_LIMIT } from '../requests/requestData';
 
 export type FileView = {
     content: FileContent;

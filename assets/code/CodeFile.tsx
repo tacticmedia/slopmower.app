@@ -1,12 +1,11 @@
 import { cleanLastNewline, type CodeViewItem, type CodeViewLineSelection, type FileContents, type LineAnnotation, type SelectedLineRange } from '@pierre/diffs';
 import { CodeView, type CodeViewHandle, type CodeViewReactOptions, WorkerPoolContextProvider } from '@pierre/diffs/react';
-import type { WorkerInitializationRenderOptions, WorkerPoolOptions } from '@pierre/diffs/worker';
-import diffsWorkerUrl from '@pierre/diffs/worker/worker.js?worker&url';
 import { BaseStyles } from '@primer/react';
 import { memo, type ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
 import type { CodeAnnotation } from './annotations';
 import { type LineRange, lineRange } from './lineHash';
 import type { GestureRange } from './rangeSelection';
+import { HIGHLIGHTER_OPTIONS, POOL_OPTIONS, THEME } from './workerPool';
 
 export type CodeFileProps = {
     path: string;
@@ -25,16 +24,6 @@ export type CodeFileProps = {
     onComment: ((range: GestureRange) => void) | null;
     className?: string;
 };
-
-const THEME = { light: 'github-light', dark: 'github-dark' } as const;
-
-const POOL_OPTIONS: WorkerPoolOptions = {
-    workerFactory: () => new Worker(diffsWorkerUrl, { type: 'module' }),
-    poolSize: 2,
-};
-
-// No `langs`: each grammar loads with the first file that needs it.
-const HIGHLIGHTER_OPTIONS: WorkerInitializationRenderOptions = { theme: THEME };
 
 /**
  * The pool owns the theme while it works. This one applies when the view falls back to the main thread.

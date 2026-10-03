@@ -1,9 +1,8 @@
 import type { Actor } from '../api/types/actor';
 import type { DateTime } from '../api/types/common';
+import { dateTimeFormat } from '../settings/TokenTable';
 import { claimAge } from './claimAge';
 import styles from './Requests.module.css';
-
-const dateTimeFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 
 /**
  * The claiming agent and the claim age, decision D6. The age is computed at render time.

@@ -1,10 +1,9 @@
 import { VisuallyHidden } from '@primer/react';
 import { type Column, DataTable } from '@primer/react/experimental';
 import type { Repository } from '../api/types/repository';
+import { SOURCE_NAMES } from '../routes/repositories/ConnectedRepositories';
 import { DeleteRepositoryDialog } from './DeleteRepositoryDialog';
 import styles from './Settings.module.css';
-
-const SOURCE_NAMES: Record<Repository['source'], string> = { github: 'GitHub', local: 'Local' };
 
 type Props = {
     repositories: Repository[];

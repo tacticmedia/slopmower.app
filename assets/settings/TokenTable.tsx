@@ -13,7 +13,7 @@ const STATE_LABELS: Record<ApiTokenState, { text: string; variant: LabelColorOpt
     revoked: { text: 'Revoked', variant: 'secondary' },
 };
 
-const dateTimeFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+export const dateTimeFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 
 type Props = {
     tokens: ApiToken[];

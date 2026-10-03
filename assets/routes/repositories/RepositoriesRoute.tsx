@@ -16,13 +16,14 @@ type RepositoriesData = {
     candidates: CandidateList;
 };
 
-export async function repositoriesLoader({ request }: LoaderFunctionArgs): Promise<RepositoriesData> {
-    const [page, candidates] = await Promise.all([
-        apiGetAllPages<RepositoryPage>('/api/v1/repositories?limit=500', request.signal),
-        apiGet<CandidateList>('/api/v1/repositories/candidates', request.signal),
-    ]);
+export async function allRepositories(signal: AbortSignal): Promise<Repository[]> {
+    return (await apiGetAllPages<RepositoryPage>('/api/v1/repositories?limit=500', signal)).items;
+}
 
-    return { repositories: page.items, candidates };
+export async function repositoriesLoader({ request }: LoaderFunctionArgs): Promise<RepositoriesData> {
+    const [repositories, candidates] = await Promise.all([allRepositories(request.signal), apiGet<CandidateList>('/api/v1/repositories/candidates', request.signal)]);
+
+    return { repositories, candidates };
 }
 
 export async function repositoriesAction({ request }: ActionFunctionArgs): Promise<ActionResult> {

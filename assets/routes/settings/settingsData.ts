@@ -5,10 +5,9 @@ import type { ApiToken, ApiTokenWithSecret } from '../../api/types/api-token';
 import type { Ulid } from '../../api/types/common';
 import type { InvalidInputDetails } from '../../api/types/error';
 import type { CreateTokenInput } from '../../api/types/inputs';
-import type { RepositoryPage, TokenList } from '../../api/types/lists';
+import type { TokenList } from '../../api/types/lists';
 import type { Repository } from '../../api/types/repository';
-
-const REPOSITORY_PAGE_LIMIT = 500;
+import { allRepositories } from '../repositories/RepositoriesRoute';
 
 export type SettingsData = {
     tokens: ApiToken[];
@@ -75,21 +74,4 @@ async function createToken(input: Required<CreateTokenInput>, signal: AbortSigna
 
         throw error;
     }
-}
-
-async function allRepositories(signal: AbortSignal): Promise<Repository[]> {
-    const repositories: Repository[] = [];
-    let cursor: string | null = null;
-
-    do {
-        const query = new URLSearchParams({ limit: String(REPOSITORY_PAGE_LIMIT) });
-        if (null !== cursor) {
-            query.set('cursor', cursor);
-        }
-        const page: RepositoryPage = await apiGet<RepositoryPage>(`/api/v1/repositories?${query.toString()}`, signal);
-        repositories.push(...page.items);
-        cursor = page.nextCursor;
-    } while (null !== cursor);
-
-    return repositories;
 }

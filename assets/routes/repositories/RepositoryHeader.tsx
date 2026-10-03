@@ -4,6 +4,7 @@ import { useFetcher } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
 import type { Repository } from '../../api/types/repository';
 import { ActionErrorMessage } from '../../layout/ActionErrorMessage';
+import { SOURCE_NAMES } from './ConnectedRepositories';
 import styles from './RepositoryRoute.module.css';
 import { SyncStatus } from './SyncStatus';
 
@@ -15,7 +16,7 @@ export function RepositoryHeader({ repository }: { repository: Repository }) {
             <div className={styles.headerText}>
                 <Heading as="h1">{repository.name}</Heading>
                 <span className={styles.meta}>
-                    {'github' === repository.source ? 'GitHub' : 'Local'} repository, default branch{' '}
+                    {SOURCE_NAMES[repository.source]} repository, default branch{' '}
                     <code>{repository.defaultBranch ?? 'unknown'}</code>
                 </span>
                 <SyncStatus sync={repository.sync} />

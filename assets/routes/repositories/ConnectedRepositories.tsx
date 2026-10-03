@@ -4,7 +4,7 @@ import { Link as RouterLink } from 'react-router';
 import type { Repository } from '../../api/types/repository';
 import { SyncStatus } from './SyncStatus';
 
-const SOURCE_NAMES: Record<Repository['source'], string> = { github: 'GitHub', local: 'Local' };
+export const SOURCE_NAMES: Record<Repository['source'], string> = { github: 'GitHub', local: 'Local' };
 
 const COLUMNS: Column<Repository>[] = [
     {
