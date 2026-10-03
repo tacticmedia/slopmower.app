@@ -3,6 +3,7 @@
 Holistic Review lets you review a full codebase at one commit, not only a diff. You read the code in a view that works like a GitHub pull request review, and you comment on lines, line ranges, symbols, or files. Each comment is a change request. Your coding agent, for example Claude Code, reads the requests over MCP, asks questions, makes the changes, and links its commits. You then verify or reopen each request.
 
 This page tells you how to run Holistic Review on your computer and how to run the checks. The user documentation is in [docs/user/](docs/user/index.md). The developer documentation starts at [docs/plan/README.md](docs/plan/README.md).
+The [developer guide](docs/developer-guide.md) maps the code: domain areas, namespaces, traced flows, and where to start.
 
 ## Quick start
 
