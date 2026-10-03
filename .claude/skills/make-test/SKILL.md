@@ -27,9 +27,11 @@ The choice is about how much of the framework the test needs, and each step up c
 | `KernelTestCase` | anything that needs a service from the container |
 | `WebTestCase` | an HTTP request and its response, without JavaScript |
 | `ApiTestCase` | API-oriented scenarios, with API Platform |
-| `PantherTestCase` | a real browser and a real server, for JavaScript |
+| `KernelTestCase` with `Playwright\Testing\PlaywrightTestCaseTrait` (`playwright-php/playwright`) | a real browser and a real server, for a flow across the browser, PHP, and the database |
 
 `KernelTestCase` boots the kernel only when a test calls `bootKernel()` or `getContainer()`.
+
+Test JavaScript behaviour of the front end with Playwright Test (TypeScript) against a mocked API, not with a PHP test. Keep the full-stack Playwright tests for what a mock cannot prove: sessions, CSRF, live updates, and flows that span the server.
 
 ## What a test is for
 
