@@ -4,6 +4,24 @@ Holistic Review lets you review a full codebase at one commit, not only a diff. 
 
 This page tells you how to run Holistic Review on your computer and how to run the checks. The user documentation is in [docs/user/](docs/user/index.md). The developer documentation starts at [docs/plan/README.md](docs/plan/README.md).
 
+## Quick start
+
+```sh
+export LOCAL_REPOSITORIES_HOST_DIR="$HOME/dev" APP_LOCAL_SIGN_IN=jan
+make up
+npm ci && npm run build
+```
+
+Then open **http://localhost:8000** and click **Sign in as jan**. The repositories under `LOCAL_REPOSITORIES_HOST_DIR` are listed on the Repositories page. The sections below explain each step.
+
+| What | URL |
+|---|---|
+| The app | http://localhost:8000 |
+| MCP server for your agent | http://localhost:8000/_mcp |
+| User documentation | http://localhost:8000/docs |
+
+A port other than 8000: see [Port overrides](#port-overrides-and-saved-variables).
+
 ## What to install
 
 - Docker Desktop with Docker Compose v2 or later: the `docker compose` command.
