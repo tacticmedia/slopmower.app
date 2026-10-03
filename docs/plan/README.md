@@ -139,6 +139,8 @@ All 38 milestones are "Done". The Date column holds the date of the milestone co
 | M34c | [Full-stack suite on Playwright](M34c-full-stack-suite-on-playwright.md) | Done | 2026-10-03 | [Report](reports/M34c.md) |
 | M35 | [Isolation audit and acceptance](M35-isolation-audit-and-acceptance.md) | Done | 2026-10-03 | [Report](reports/M35.md) |
 
+Next: the [simplification plan](simplification.md), S00 to S14, has its own status table.
+
 ## Order
 
 Jan assigns the milestones. Without an assignment, sessions run them in number order. A milestone can start when the milestones in its "Depends on" section are done. The "Depends on" section of each milestone file names the earlier work that it builds on. The orchestrator started independent milestones in parallel worktrees, so the commit order on `main` differs from the number order.
