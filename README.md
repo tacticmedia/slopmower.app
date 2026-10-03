@@ -26,7 +26,7 @@ A port other than 8000: see [Port overrides](#port-overrides-and-saved-variables
 
 - Docker Desktop with Docker Compose v2 or later: the `docker compose` command.
 - `git` and `make`.
-- Node.js 24 with npm. npm and the Vite dev server run on the host. PHP, Composer, and PostgreSQL run in containers.
+- Node.js 24 with npm. npm builds the front-end assets on the host (`npm run build`, or `npm run dev` for hot reload). Everything else runs in containers: FrankenPHP serves the app, the API, MCP, and the built-in Mercure hub in worker mode; a second container runs the Messenger worker; PostgreSQL holds the data.
 - Optional: Claude Code or another agent that can use an HTTP MCP server.
 
 ## Start Holistic Review
