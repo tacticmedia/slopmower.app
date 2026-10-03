@@ -72,6 +72,50 @@ final class McpRestParityTest extends WebTestCase
         $this->mcp = new McpTestClient($this->client, $this->secret);
     }
 
+    #[TestDox('list_repositories equals the REST body of R1')]
+    public function testListRepositoriesEqualsR1(): void
+    {
+        $rest = self::assertApiResponse(self::bearerRequest($this->client, $this->secret, 'GET', '/api/v1/repositories'), 200, 'lists.schema.json#/$defs/RepositoryPage');
+
+        $mcp = self::assertToolResult($this->mcp, $this->mcp->callTool('list_repositories'), 'list_repositories');
+
+        self::assertSame($rest, $mcp);
+        self::assertIsArray($mcp['items']);
+        self::assertCount(1, $mcp['items']);
+    }
+
+    #[TestDox('list_reviews equals the REST body of V2 with state=open, for the repository that R1 finds by name')]
+    public function testListReviewsEqualsR1ThenV2(): void
+    {
+        $repositories = self::assertApiResponse(self::bearerRequest($this->client, $this->secret, 'GET', '/api/v1/repositories?name=billing'), 200, 'lists.schema.json#/$defs/RepositoryPage');
+        self::assertIsArray($repositories['items']);
+        $repositoryId = (string) $repositories['items'][0]['id'];
+        $rest = self::assertApiResponse(self::bearerRequest($this->client, $this->secret, 'GET', "/api/v1/repositories/{$repositoryId}/reviews?state=open"), 200, 'lists.schema.json#/$defs/ReviewPage');
+
+        $mcp = self::assertToolResult($this->mcp, $this->mcp->callTool('list_reviews', ['repository' => 'billing']), 'list_reviews');
+
+        self::assertSame($rest, $mcp);
+        self::assertIsArray($mcp['items']);
+        self::assertSame([$this->reviewId], array_column($mcp['items'], 'id'));
+    }
+
+    /**
+     * Cursor mode from 0 leaves out the claim and the question of the agent, so it also checks includeOwn=false.
+     */
+    #[TestDox('get_updates equals the REST body of V10, without a cursor and from cursor 0')]
+    public function testGetUpdatesEqualsV10(): void
+    {
+        foreach (['' => [], '?cursor=0' => ['cursor' => 0]] as $query => $cursor) {
+            $rest = self::assertApiResponse(self::bearerRequest($this->client, $this->secret, 'GET', "/api/v1/reviews/{$this->reviewId}/updates{$query}"), 200, 'updates-page.schema.json');
+
+            $mcp = self::assertToolResult($this->mcp, $this->mcp->callTool('get_updates', ['review' => $this->reviewId, ...$cursor]), 'get_updates');
+
+            self::assertSame($rest, $mcp, "updates{$query}");
+            self::assertIsArray($mcp['requests']);
+            self::assertCount(2, $mcp['requests'], "updates{$query}");
+        }
+    }
+
     #[TestDox('get_request equals the REST body of Q3')]
     public function testGetRequestEqualsQ3(): void
     {

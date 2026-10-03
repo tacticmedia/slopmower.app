@@ -500,7 +500,7 @@ public function markWontDo(#[Schema(pattern: McpToolRunner::ULID)] string $id, #
 | `mark_ready_for_review` | `POST /api/v1/requests/{id}/ready` |
 | `mark_wont_do` | `POST /api/v1/requests/{id}/wont-do` |
 
-`McpRestParityTest` compares the MCP and REST payloads of `get_request`, `list_requests`, and every write tool.
+`McpRestParityTest` compares the MCP and REST payloads of every tool: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, and every write tool.
 
 ## 7. Wire examples
 

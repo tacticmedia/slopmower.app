@@ -176,7 +176,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 - Functional tests validate REST responses with `JsonApiAssertions::assertApiResponse()`, which uses `opis/json-schema` 2.6.0.
 - Every MCP `structuredContent` is validated against the `outputSchema` of its tool.
 - Every fixture in [section 11](#11-fixtures) is validated against the schema that the table names. The TypeScript types of the web UI are checked against the same fixture files.
-- `McpRestParityTest` compares the MCP and REST payloads of `get_request`, `list_requests`, and every write tool. See [mcp.md](mcp.md#6-mcp-and-rest).
+- `McpRestParityTest` compares the MCP and REST payloads of every tool: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, and every write tool. See [mcp.md](mcp.md#6-mcp-and-rest).
 
 ## 10. Schemas
 
