@@ -89,6 +89,8 @@ final class GitHubWebhookConsumer implements ConsumerInterface
                 $this->route($event->getName(), $event->getPayload()),
                 fn (array $tenantJob): bool => $this->tenants->isActive($tenantJob[0]),
             )));
+        } catch (SerializerException $invalid) {
+            throw self::malformed('an object of an unexpected shape', $invalid);
         } finally {
             // The SQL filter does not cover identity-map hits.
             $this->entityManager->clear();
@@ -125,7 +127,7 @@ final class GitHubWebhookConsumer implements ConsumerInterface
      */
     private function push(array $payload): array
     {
-        $githubRepositoryId = $this->payload($payload['repository'] ?? null, RepositoryPayload::class)->id;
+        $githubRepositoryId = $this->denormalizer->denormalize($payload['repository'] ?? null, RepositoryPayload::class)->id;
         $repositories = $this->repositories->findBy(['githubRepositoryId' => $githubRepositoryId, 'access' => RepositoryAccess::Active]);
 
         return self::jobs(self::tenantIds(...$repositories), new GitHubPushJob($githubRepositoryId));
@@ -180,7 +182,7 @@ final class GitHubWebhookConsumer implements ConsumerInterface
             return [];
         }
 
-        $installation = $this->payload($payload['installation'], InstallationPayload::class);
+        $installation = $this->denormalizer->denormalize($payload['installation'], InstallationPayload::class);
 
         return [[$user->getTenantId(), new GitHubInstallationCreatedJob($installation->id, $installation->account->login, $accountType, $installation->suspendedAt)]];
     }
@@ -213,7 +215,7 @@ final class GitHubWebhookConsumer implements ConsumerInterface
             return [];
         }
 
-        $installation = $this->payload($payload['installation'], InstallationPayload::class);
+        $installation = $this->denormalizer->denormalize($payload['installation'], InstallationPayload::class);
 
         return [[$user->getTenantId(), new GitHubRepositoriesAddedJob($installation->id, $installation->account->login, $repositories)]];
     }
@@ -246,7 +248,7 @@ final class GitHubWebhookConsumer implements ConsumerInterface
      */
     private function repository(mixed $action, array $payload): array
     {
-        $repository = $this->payload($payload['repository'] ?? null, RepositoryPayload::class);
+        $repository = $this->denormalizer->denormalize($payload['repository'] ?? null, RepositoryPayload::class);
 
         if ('deleted' === $action) {
             return $this->repositoriesRemoved([$repository->id]);
@@ -353,24 +355,6 @@ final class GitHubWebhookConsumer implements ConsumerInterface
         } catch (InvalidInput $invalid) {
             throw self::malformed('an invalid repository name', $invalid);
         }
-    }
-
-    /**
-     * @template T of object
-     *
-     * @param class-string<T> $type
-     *
-     * @return T
-     */
-    private function payload(mixed $object, string $type): object
-    {
-        try {
-            $payload = \is_array($object) ? $this->denormalizer->denormalize($object, $type) : null;
-        } catch (SerializerException $invalid) {
-            throw self::malformed('an object of an unexpected shape', $invalid);
-        }
-
-        return $payload instanceof $type ? $payload : throw self::malformed('an object of an unexpected shape');
     }
 
     /**

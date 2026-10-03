@@ -29,7 +29,7 @@ final class ConnectGitHubRepository
     }
 
     /**
-     * The tenant lock of the GitHub repository names. The sign-in sync renames repositories under it.
+     * The tenant lock of the GitHub repository names, installations, and candidates.
      */
     public static function lockKey(TenantId $tenantId): string
     {

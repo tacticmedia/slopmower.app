@@ -36,8 +36,8 @@ Record a baseline before S01 and after every step: PHP and TS file count, lines 
 | S08 | One serialization path | Not started | | |
 | S09 | MCP tools as thin delegations | Not started | | |
 | S10 | One pattern for reads | Not started | | |
-| S11 | GitHub duplicates | Not started | | |
-| S12 | Front-end duplicates | Done 2026-10-03, [report](reports/S12.md) | | src 406 PHP / 25954 lines, 406 types; tests 272 PHP / 23118 lines; assets 128 TS / 6484 lines |
+| S11 | GitHub duplicates | Done 2026-10-03, [report](reports/S11.md) | | src 406 PHP / 25918 lines, 406 types; tests 272 PHP / 23153 lines; assets 128 TS / 6484 lines |
+| S12 | Front-end duplicates | Done 2026-10-03, [report](reports/S12.md) | d58d900 | src 406 PHP / 25954 lines, 406 types; tests 272 PHP / 23118 lines; assets 128 TS / 6484 lines; check 2m29s |
 | S13 | Namespace cycles | Not started | | |
 | S14 | Final: docs, decisions, metrics | Not started | | |
 

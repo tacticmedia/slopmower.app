@@ -16,8 +16,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
- * The `repository` events other than `deleted`. A rename onto the name that another repository of the tenant holds, in
- * any case, waits, as at sign-in. The name lock is the one of the GitHub connect.
+ * The `repository` events other than `deleted`.
  */
 #[AsMessageHandler]
 final class RepositoryHandler
@@ -60,8 +59,7 @@ final class RepositoryHandler
         }
 
         $previousName = $repository->getName();
-        $holder = $job->renamed ? $this->repositories->findGitHubByName($job->fullName) : null;
-        $name = $job->renamed && (null === $holder || $holder->getId()->equals($repository->getId())) ? $job->fullName : $previousName;
+        $name = $job->renamed ? $this->repositories->nameAfterRename($repository, $job->fullName) : $previousName;
         $installationId = $repository->getGithubInstallationId() ?? throw new \LogicException('A GitHub repository has an installation ID.');
         $repository->recordGitHubListing($name, $installationId, $job->private);
 

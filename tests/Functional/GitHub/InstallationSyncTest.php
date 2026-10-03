@@ -127,18 +127,28 @@ final class InstallationSyncTest extends WebTestCase
         self::assertSame('removed', self::tenantRows($user->getTenantId())['repository'][0]['access'] ?? null, 'The same GitHub repository loses its access in the signed-in tenant.');
     }
 
-    #[TestDox('Sign-in updates the name and the visibility of a connected repository')]
-    public function testSignInUpdatesConnectedRepository(): void
+    #[TestDox('Sign-in updates the name, also a change of case only, and the visibility of a connected repository')]
+    #[DataProvider('storedNames')]
+    public function testSignInUpdatesConnectedRepository(string $storedName): void
     {
         static::createClient();
         $user = TenantFixtures::of(self::getContainer())->withLogin('octocat')->withGitHubUser(1)->create();
-        $repository = Repository::gitHub($user->getTenantId(), RepositoryName::github('acme/old-billing'), 812345, 5551, false, Clock::get()->now());
+        $repository = Repository::gitHub($user->getTenantId(), RepositoryName::github($storedName), 812345, 5551, false, Clock::get()->now());
         self::storeRow($repository);
 
         self::sync($user, GitHubResponses::ACCESS_TOKEN);
 
         $renamed = self::getContainer()->get(RepositoryRepository::class)->findFresh($repository->getId());
         self::assertSame(['acme/billing', true], [$renamed?->getName()->toString(), $renamed?->isGithubPrivate()]);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function storedNames(): iterable
+    {
+        yield 'renamed' => ['acme/old-billing'];
+        yield 'case only' => ['ACME/Billing'];
     }
 
     #[TestDox('Sign-in publishes a repository update for a renamed repository only')]
@@ -157,7 +167,28 @@ final class InstallationSyncTest extends WebTestCase
         self::assertSame(["http://localhost/tenants/{$user->getTenantId()}/repositories"], $updates[0]->getTopics());
     }
 
-    #[TestDox('A failed or partial listing removes nothing')]
+    #[TestDox('A rename onto a name that another connected repository holds in any case waits for the next sign-in, also when that one is renamed in the same listing')]
+    public function testRenameOntoATakenNameWaits(): void
+    {
+        static::createClient();
+        $user = TenantFixtures::of(self::getContainer())->withLogin('octocat')->withGitHubUser(1)->create();
+        $waiting = Repository::gitHub($user->getTenantId(), RepositoryName::github('acme/old-billing'), 812345, 5551, true, Clock::get()->now());
+        $holder = Repository::gitHub($user->getTenantId(), RepositoryName::github('Acme/Billing'), 812399, 5551, true, Clock::get()->now());
+        self::storeRow($waiting);
+        self::storeRow($holder);
+        $names = static fn (): array => array_map(
+            static fn (Repository $repository): ?string => self::getContainer()->get(RepositoryRepository::class)->findFresh($repository->getId())?->getName()->toString(),
+            [$waiting, $holder],
+        );
+
+        self::sync($user, GitHubResponses::ACCESS_TOKEN);
+        self::assertSame(['acme/old-billing', 'acme/Shipping'], $names());
+
+        self::sync($user, GitHubResponses::ACCESS_TOKEN);
+        self::assertSame(['acme/billing', 'acme/Shipping'], $names());
+    }
+
+    #[TestDox('A failed, partial, or malformed listing removes nothing')]
     #[DataProvider('failedListings')]
     public function testFailedListingRemovesNothing(string $accessToken): void
     {
@@ -181,6 +212,7 @@ final class InstallationSyncTest extends WebTestCase
     {
         yield 'failed' => [GitHubResponses::FAILED_LISTING_ACCESS_TOKEN];
         yield 'partial' => [GitHubResponses::PARTIAL_LISTING_ACCESS_TOKEN];
+        yield 'malformed' => [GitHubResponses::MALFORMED_LISTING_ACCESS_TOKEN];
     }
 
     #[TestDox('R2 lists the GitHub candidates with githubListedAt')]

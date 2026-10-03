@@ -25,6 +25,8 @@ final class GitHubResponses
     public const string PARTIAL_LISTING_ACCESS_TOKEN = 'ghu_partialListingToken';
     /** The installation listing fails. */
     public const string FAILED_LISTING_ACCESS_TOKEN = 'ghu_failedListingToken';
+    /** The installation listing of ACCESS_TOKEN, whose acme repository has no default branch. */
+    public const string MALFORMED_LISTING_ACCESS_TOKEN = 'ghu_malformedListingToken';
 
     /** The token in installation-token.json. */
     public const string INSTALLATION_TOKEN = 'ghs_16C7e42F292c6912E7710c838347Ae178B4a';
@@ -58,6 +60,7 @@ final class GitHubResponses
             'user/installations/5551/repositories?per_page=100&page=2' => 'server-error',
         ] + self::LISTING,
         self::FAILED_LISTING_ACCESS_TOKEN => ['user/installations?per_page=100' => 'server-error'],
+        self::MALFORMED_LISTING_ACCESS_TOKEN => ['user/installations/5551/repositories?per_page=100' => 'installation-5551-repositories-malformed'] + self::LISTING,
     ];
 
     /**

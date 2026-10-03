@@ -84,7 +84,7 @@ final class InstallationSync
 
         try {
             [$installations, $candidates] = $this->list($tenantId, $userToken);
-        } catch (GitHubRequestFailed|HttpClientException $failure) {
+        } catch (GitHubRequestFailed|HttpClientException|SerializerException $failure) {
             $this->logger->warning('The GitHub installations of user {userId} could not be listed.', ['userId' => $user->getId()->toString(), 'exception' => $failure]);
 
             return;
@@ -131,17 +131,10 @@ final class InstallationSync
             $candidatesById[$candidate->getGithubRepositoryId()] = $candidate;
         }
 
-        $connected = $this->repositories->findBy(['source' => RepositorySource::Github]);
-        $repositoryIdsByName = [];
-
-        foreach ($connected as $repository) {
-            $repositoryIdsByName[strtolower($repository->getName()->toString())] = $repository->getId()->toString();
-        }
-
         $lostAccess = [];
         $renamed = [];
 
-        foreach ($connected as $repository) {
+        foreach ($this->repositories->findBy(['source' => RepositorySource::Github]) as $repository) {
             $candidate = $candidatesById[(int) $repository->getGithubRepositoryId()] ?? null;
 
             if (null === $candidate) {
@@ -152,10 +145,7 @@ final class InstallationSync
                 continue;
             }
 
-            // A rename onto the name of another repository waits until that one is renamed or deleted.
-            $name = $candidate->getFullName();
-            $holder = $repositoryIdsByName[strtolower($name->toString())] ?? $repository->getId()->toString();
-            $name = $holder === $repository->getId()->toString() ? $name : $repository->getName();
+            $name = $this->repositories->nameAfterRename($repository, $candidate->getFullName());
 
             if ($name->toString() !== $repository->getName()->toString()) {
                 $renamed[] = $repository;
@@ -174,6 +164,7 @@ final class InstallationSync
      *
      * @throws GitHubRequestFailed
      * @throws HttpClientException
+     * @throws SerializerException
      */
     private function list(TenantId $tenantId, #[\SensitiveParameter] string $userToken): array
     {
@@ -191,11 +182,11 @@ final class InstallationSync
                 continue;
             }
 
-            $installation = $this->payload($item, InstallationPayload::class);
+            $installation = $this->denormalizer->denormalize($item, InstallationPayload::class);
             $installations[] = new GitHubInstallation($tenantId, $installation->id, $installation->account->login, $targetType, $installation->suspendedAt);
 
             foreach ($this->items("user/installations/{$installation->id}/repositories", 'repositories', $userToken) as $repositoryItem) {
-                $repository = $this->payload($repositoryItem, RepositoryPayload::class);
+                $repository = $this->denormalizer->denormalize($repositoryItem, RepositoryPayload::class);
 
                 try {
                     $name = RepositoryName::github($repository->fullName);
@@ -250,25 +241,5 @@ final class InstallationSync
         }
 
         return null;
-    }
-
-    /**
-     * @template T of object
-     *
-     * @param class-string<T> $type
-     *
-     * @return T
-     *
-     * @throws GitHubRequestFailed
-     */
-    private function payload(mixed $item, string $type): object
-    {
-        try {
-            $payload = \is_array($item) ? $this->denormalizer->denormalize($item, $type) : null;
-        } catch (SerializerException $invalid) {
-            throw new GitHubRequestFailed('GitHub listed an object of an unexpected shape.', 0, $invalid);
-        }
-
-        return $payload instanceof $type ? $payload : throw new GitHubRequestFailed('GitHub listed an object of an unexpected shape.');
     }
 }
