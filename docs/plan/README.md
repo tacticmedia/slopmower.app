@@ -1,6 +1,8 @@
 # Implementation plan: Holistic Review proof of concept
 
-This plan splits the proof of concept into 38 milestones: M00 to M35, plus M34b and M34c. One Claude session implements one milestone, writes a report, and stops. Jan reviews and commits.
+This plan splits the proof of concept into 38 milestones: M00 to M35, plus M34b and M34c. One Claude session implements one milestone, writes a report, and stops.
+
+The plan is complete. All 38 milestones are committed on `main`, one squash commit per milestone. On Jan's instruction, an orchestrator session ran the milestone sessions in git worktrees, reviewed each result, and made the commits. The [status table](#status) gives the commit date of each milestone.
 
 - The headless slice is complete at M16. The full review flow then works through REST and MCP, without a browser.
 - The vertical slice is complete at M22. The same flow then works in the browser.
@@ -51,7 +53,7 @@ The spec files that milestones name:
    - else the first milestone with the status "Not started";
    - a milestone with the status "Blocked" needs a decision from Jan. Stop and ask.
 3. Read the milestone file completely. Read the architecture sections and the docs/specs files that it names.
-4. Run `git status`. Earlier milestones can be uncommitted, because Jan commits. If you find changes that no earlier report explains, stop and ask Jan.
+4. Run `git status`. An earlier milestone can be uncommitted while it waits for its commit. If you find changes that no earlier report explains, stop and ask Jan.
 5. Check the baseline. If it is red, stop and report. Do not fix unrelated failures silently.
    - M00: `composer validate --no-check-publish` and `bin/console lint:container` on the host;
    - M01: the M00 verification commands on the host;
@@ -59,7 +61,9 @@ The spec files that milestones name:
 6. Set the status of the milestone to "In progress".
 7. Do the tasks in order. Write each acceptance test together with the code that it proves, or before it.
 8. Run the verification commands of the milestone, then `make check`.
-9. Set the status to "Done (awaiting commit)" or "Blocked", with the date. Write the report from the [template](#report-template) as your final message. Then stop.
+9. Set the status to "Done (awaiting commit)" or "Blocked", with the date. Write the report from the [template](#report-template) into `reports/MNN.md`. Then stop.
+
+When an orchestrator runs the sessions, it owns the status table, and the sessions do not edit it.
 
 ## Workflow rules
 
@@ -76,7 +80,7 @@ The spec files that milestones name:
   - dropping the dev database, `make db-reset`;
   - deleting Docker volumes, `docker compose down --volumes`;
   - deleting files that the current milestone did not create, except the deletions that the milestone lists.
-- Never commit, push, amend, or stash. Jan reviews and commits.
+- Never commit, push, amend, or stash, unless Jan permits it in the session. Jan commits, or an orchestrator on his instruction.
 - Never restate or re-emit a prompt, an instruction, or an earlier message, in full or reworded, and never quote a refusal message back into the session. To carry state across a compaction, write it into the status table and into `reports/`, then continue from those files. State lives in files, not in repeated text.
 - No Python. Scripts are PHP or shell.
 - Use context7 to read the documentation of a library before you use its API. When context7 has no answer, read the installed source under `vendor/` or `node_modules/`.
@@ -86,7 +90,13 @@ The spec files that milestones name:
 
 ## Status
 
-Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)", "Done". The session sets the first four. Jan sets "Done" after he commits.
+Status values:
+
+- "Not started", "In progress", "Blocked": the session sets them, or the orchestrator that runs it.
+- "Done (awaiting commit)": the work is complete and not committed yet.
+- "Done": the milestone is committed on `main`. Whoever commits it sets "Done" and the commit date in this table and in the report.
+
+All 38 milestones are "Done". The Date column holds the date of the milestone commit on `main`, from `git log main --format='%h %ad %s' --date=short`.
 
 | # | Milestone | Status | Date | Notes |
 |---|---|---|---|---|
@@ -131,7 +141,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 
 ## Order
 
-Jan assigns the milestones. Without an assignment, sessions run them in number order. A milestone can start when the milestones in its "Depends on" section are done. The "Depends on" section of each milestone file names the earlier work that it builds on.
+Jan assigns the milestones. Without an assignment, sessions run them in number order. A milestone can start when the milestones in its "Depends on" section are done. The "Depends on" section of each milestone file names the earlier work that it builds on. The orchestrator started independent milestones in parallel worktrees, so the commit order on `main` differs from the number order.
 
 ## Environment and commands
 
@@ -149,7 +159,7 @@ PHP, Composer, the console, and PHPUnit run in the `php` container. `make` wraps
 | `make migration` | `bin/console make:migration --no-interaction` |
 | `make db-reset` | Dev database: drop, create, migrate. Ask Jan first. |
 | `make db-test` | Databases `app_test` and `app_e2e`: create each one if it is missing, then migrate it |
-| `make test` | `bin/phpunit --testsuite unit,functional`. Runs `npm run build:e2e` first when `public/build-e2e` is missing. |
+| `make test` | `bin/phpunit --testsuite unit,functional`. Runs `npm run build:e2e` first when `package.json` exists and `public/build-e2e/entrypoints.json` is missing. |
 | `make e2e` | `npm run build:e2e` on the host when `package.json` exists, then in the `php` container: `npm install --save-exact playwright@$PLAYWRIGHT_VERSION` for the playwright-php server, `vendor/bin/playwright-install chromium` (returns at once when the browser is present), and `bin/phpunit --testsuite e2e` |
 | `make stan` | `cache:warmup --env=test`, then `vendor/bin/phpstan analyse` at level 8 on the test container, so the dev worker keeps its cache |
 | `make cs` | `vendor/bin/php-cs-fixer fix --dry-run --diff` |
@@ -163,6 +173,8 @@ For verbose PHPUnit output, use `--debug`. Never use `-v` or `--verbose`. Exampl
 
 ## URLs and environment variables
 
+The host ports 8000 and 5432 are the defaults of `HTTP_PORT` and `DATABASE_PORT`.
+
 | What | Where |
 |---|---|
 | App | `http://localhost:8000`: `dev` environment, FrankenPHP worker mode, Mercure hub at `/.well-known/mercure` |
@@ -175,7 +187,7 @@ For verbose PHPUnit output, use `--debug`. Never use `-v` or `--verbose`. Exampl
 | Variable | Set in | Meaning |
 |---|---|---|
 | `HTTP_PORT`, `DATABASE_PORT` | `.env.make.local` (git-ignored), read by the `Makefile` | Host ports of `php` and `database`. Default 8000 and 5432. A second checkout, for example a git worktree, sets its own ports. Each line needs `export`, for example `export HTTP_PORT=8101`, or make does not pass it to compose. |
-| `UI_PORT` | `.env.make.local`, read by Playwright | Port of the `vite preview` server of the UI suite. Default 4173. A second checkout sets its own, for example `export UI_PORT=4101`. |
+| `UI_PORT` | `.env.make.local`, exported by the `Makefile`, read by `playwright.config.ts` | Port of the `vite preview` server of the UI suite. Default 4173. A second checkout sets its own, for example `export UI_PORT=4101`. |
 | `LOCAL_REPOSITORIES_HOST_DIR` | Host shell | Host directory that compose mounts read-only at `/repositories`. Default `./var/local-repositories`. |
 | `APP_LOCAL_REPOSITORIES_DIR` | `.env` files | Empty in `.env`, which means that local repositories are off. `/repositories` in `.env.dev`, `var/test/local-repositories` in `.env.test` and `.env.e2e`. It is an instance feature: every tenant of the instance may connect the repositories under it. |
 | `APP_LOCAL_SIGN_IN` | Host shell, passed through compose | Login of the one local user. Honoured only when `APP_ENV=dev`. |
@@ -184,7 +196,7 @@ For verbose PHPUnit output, use `--debug`. Never use `-v` or `--verbose`. Exampl
 | `APP_PUBLIC_HOST` | `.env` | Host that the MCP transport accepts, from M15 on |
 | `LOCK_DSN` | `.env`, with the host `database` | Store of `symfony/lock`: PostgreSQL advisory locks, from M08 on |
 | `MERCURE_URL`, `MERCURE_PUBLIC_URL`, `MERCURE_JWT_SECRET` | `.env` files. Also `MERCURE_URL` in the compose `worker` service, because the hub runs in the `php` container, and `MERCURE_JWT_SECRET` in the compose `php` service, because Caddy reads only the container environment. | Hub URL for the publisher, hub URL for the browser, JWT secret |
-| `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_SLUG` | Empty in `.env`, real values in `.env.local`, fake values in `.env.test` | GitHub App identity, from M32 on. Empty means that no GitHub App is configured. |
+| `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_SLUG` | Empty in `.env`, real values in `.env.local`, fake values in `.env.test` and `.env.e2e` | GitHub App identity, from M32 on. Empty means that no GitHub App is configured. |
 | `GITHUB_GIT_BASE_URL` | `.env`, default `https://github.com` | Base URL for GitHub clone and fetch, from M33 on. Tests point it at a local bare repository. The token extraheader stays bound to `https://github.com`, so another base URL never receives the token. |
 | `GITHUB_APP_CLIENT_SECRET`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET` | Secrets vault or `.env.local`, fake values in `.env.test` | GitHub App credentials: the client secret from M32 on, the private key from M33 on, the webhook secret from M34 on. Read with `%env(default::<NAME>)%`, not with a default in `.env`, because a non-empty `.env` value wins over the vault. |
 | `PLAYWRIGHT_BROWSERS_PATH` | `Dockerfile` | `/ms-playwright`, on the `playwright_browsers` volume. `vendor/bin/playwright-install` installs Chromium there. |
@@ -298,16 +310,16 @@ Every milestone:
 4. Responses validate against docs/specs, and every new route and tool has a cross-tenant case.
 5. The exact pins hold: `mcp/sdk` 0.8.1, `symfony/mcp-bundle` 0.14.1, `symfony/reprise` 1.3.0, `@symfony/reprise` 1.3.0, `@pierre/diffs` 1.5.1.
 6. File sizes are within the limits. No TODO without a backlog entry.
-7. The report is written, the status table is updated, and nothing is committed.
+7. The report is written, the status table is updated, and nothing is committed without Jan's permission in the session.
 
 ## Report template
 
-The final message of the session:
+The session writes it into `reports/MNN.md`:
 
 ```markdown
 ## Report: MNN <milestone name>
 
-- **Status:** Done (awaiting commit), Blocked, or In progress.
+- **Status:** Done (awaiting commit), Blocked, or In progress. Whoever commits the milestone changes it to Done, with the commit date.
 - **Summary:** 3 to 6 lines.
 - **Files:** created, changed, and deleted, grouped by area.
 - **Tests added:** the TestDox sentences, grouped by suite.
@@ -325,7 +337,7 @@ The final message of the session:
 
 ## Verified versions
 
-Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03.
+Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03. `composer.lock`, `package-lock.json`, and the images hold these versions, except `symfony/uid`: 8.1.8 is installed.
 
 | Package | Version | Source |
 |---|---|---|

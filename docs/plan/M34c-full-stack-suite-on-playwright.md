@@ -15,13 +15,13 @@ M34b.
 - Dockerfile, dev stage:
   - remove the apt packages `chromium` and `chromium-driver`, and the `PANTHER_*` environment variables;
   - add Node.js 24 from the `node:24-trixie-slim` image (copy only `node` and npm, not all of `/usr/local`, where PHP lives);
-  - `PLAYWRIGHT_BROWSERS_PATH=/ms-playwright` on a named volume, and the system libraries through `npx playwright install-deps chromium` at the Playwright version that `playwright-php/playwright` resolves.
-- `composer require --dev playwright-php/playwright:1.5.0`. Do not install `playwright-php/playwright-symfony`: it routes the browser into the in-process kernel, and these tests need the running site, the Mercure hub, and the worker. Install the matching browser with `vendor/bin/playwright-install chromium` after `composer install` (entrypoint or Makefile).
-- `composer remove symfony/panther` and its webdriver dependency. Remove the Panther PHPUnit extension.
-- A base for full-stack tests in `tests/Support/E2E/`: a `KernelTestCase` subclass with `Playwright\Testing\PlaywrightTestCaseTrait`, aimed at `http://localhost:8081`, on `app_e2e` through the existing E2E database extension. Fixtures keep coming from services in the PHPUnit process.
-- Convert the kept classes: SignIn, VerticalSlice, LiveUpdate, DeleteAccountFlow, ScopedToken, BrowserSmoke. Delete every Panther helper that nothing uses after the conversion.
-- Update the convention test that lists the allowed base classes.
-- `docs/architecture.md` section 10 and decision rows that name Panther: describe the two suites.
+  - `PLAYWRIGHT_BROWSERS_PATH=/ms-playwright` on the named volume `playwright_browsers`, and the system libraries through `npx playwright install-deps chromium` at `PLAYWRIGHT_VERSION` (1.63.0), the `playwright` npm version that the `playwright-php/playwright` server uses. `make e2e` pins the server to it.
+- `composer require --dev playwright-php/playwright:1.5.0`. Do not install `playwright-php/playwright-symfony`: it routes the browser into the in-process kernel, and these tests need the running site, the Mercure hub, and the worker. `make e2e` installs the matching browser with `vendor/bin/playwright-install chromium`.
+- `composer remove symfony/panther` and its webdriver dependency `php-webdriver/webdriver`. Remove the Panther PHPUnit extension and the `PANTHER_*` variables of `.env.test` and `.env.e2e`.
+- A base for full-stack tests, `tests/Support/E2E/FullStackTestCase.php`: a `KernelTestCase` subclass with `Playwright\Testing\PlaywrightTestCaseTrait`, aimed at `http://localhost:8081`, on `app_e2e` through the existing `E2eDatabaseExtension`. Fixtures keep coming from services in the PHPUnit process.
+- Convert the kept classes: SignIn, VerticalSlice, LiveUpdate, DeleteAccountFlow, ScopedToken, BrowserSmoke. Delete every Panther helper that nothing uses after the conversion, for example `tests/Support/E2E/ShadowDom.php`.
+- Update the convention test that lists the allowed base classes: `tests/Unit/Conventions/TestClassesExtendKernelTestCaseTest.php`.
+- `docs/architecture.md` section 10 and the decision rows that name Panther, D31 and D34: describe the two suites.
 
 ## Out of scope
 
