@@ -33,9 +33,9 @@
 			watch /app/src/**/*.php
 			watch /app/config/**/*.{php,yaml}
 			watch /app/templates/**/*.twig
-			# Reprise keeps the parsed entrypoints in memory. The brace makes public the watched root, which exists before
-			# the first vite build creates public/build.
-			watch /app/public/{build}/entrypoints.json
+			# Reprise keeps the parsed entrypoints in memory. Keep the file out of public/build: the bind mount drops the
+			# create event of a directory that gets files at once, so the watcher never watches a new public/build.
+			watch /app/public/entrypoints.json
 		}
 	}
 }

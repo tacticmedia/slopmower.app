@@ -127,10 +127,9 @@ The file uses make syntax: write `$(HOME)`, not `$HOME`, and no quotes. With ano
 | Problem | Cause and fix |
 |---|---|
 | `make up` fails with a port error for 8000 or 5432 | Another program or another stack uses the port. Set `HTTP_PORT` or `DATABASE_PORT` in `.env.make.local`, then run `make up` again. |
-| A page answers 500: "Could not find the entrypoints file `/app/public/build/entrypoints.json`. Did the assets get built?" | The web interface is not built. Run `npm ci` and `npm run build`, or keep `npm run dev` running. |
-| A page is blank after you stopped `npm run dev` | `public/build/entrypoints.json` still points to the dev server. Run `npm run build`, then restart the FrankenPHP workers as the next row shows. |
-| A page loads the old scripts after `npm run build` or `npm run dev` | The FrankenPHP worker keeps the parsed `entrypoints.json` in memory and can miss a new one. Restart the FrankenPHP workers: `docker compose exec php curl -fsS -X POST http://localhost:2019/frankenphp/workers/restart` |
-| Clones, fetches, or the symbol index use old PHP code | The Messenger worker does not restart by itself. Run `make worker-restart` after a PHP change that a background job uses. The FrankenPHP worker that serves the web requests restarts by itself when a file under `src/`, `config/`, or `templates/` changes. |
+| A page answers 500: "Could not find the entrypoints file `/app/public/entrypoints.json`. Did the assets get built?" | The web interface is not built. Run `npm ci` and `npm run build`, or keep `npm run dev` running. |
+| A page is blank after you stopped `npm run dev` | `public/entrypoints.json` still points to the dev server. Run `npm run build`. |
+| Clones, fetches, or the symbol index use old PHP code | The Messenger worker does not restart by itself. Run `make worker-restart` after a PHP change that a background job uses. The FrankenPHP worker that serves the web requests restarts by itself when a file under `src/`, `config/`, or `templates/` changes, and when `npm run build` or `npm run dev` writes `public/entrypoints.json`. |
 | **Local directories** says "The local repositories directory contains no git repository." | `LOCAL_REPOSITORIES_HOST_DIR` was not set at the last `make up`, so Docker mounted `./var/local-repositories`. Or the directory has no git repository as a direct child. Set the variable and run `make up` again. |
 | The sign-in page says "No sign-in method is configured." | `APP_LOCAL_SIGN_IN` was not set at the last `make up`. Set it and run `make up` again. |
 

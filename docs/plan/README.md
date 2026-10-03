@@ -420,7 +420,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 ### Test environments and front-end builds
 
 - **Sessions.** The `test` environment uses `mock_file` sessions. A real browser must use the `e2e` environment.
-- **Build output.** The Vite dev server writes entrypoints for `public/build`. The E2E suite uses its own build in `public/build-e2e`.
+- **Build output.** `npm run build` writes the bundles to `public/build`, and it and the Vite dev server write `public/entrypoints.json`, which the dev worker watches. The E2E suite uses its own build in `public/build-e2e`.
 - **Full-stack suite, playwright-php 1.5.0:**
   - `getByRole()` without `exact: true` matches a case-insensitive substring of the name. Pass `'exact' => true`.
   - `allTextContents()` and `allInnerTexts()` fail with "Unknown action", because the Node server has no such action. Use `evaluateAll()`.

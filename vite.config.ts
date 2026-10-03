@@ -10,7 +10,8 @@ export default defineConfig(({ mode }) => ({
     envDir: false,
     plugins: [
         react(),
-        Symfony('e2e' === mode ? { outputPath: 'public/build-e2e', publicPath: '/build-e2e/' } : {}),
+        // public/entrypoints.json is the file that the dev worker watches in docker/frankenphp/Caddyfile.
+        Symfony('e2e' === mode ? { outputPath: 'public/build-e2e', publicPath: '/build-e2e/' } : { metadataPath: 'public' }),
     ],
     // ES workers split chunks: the @pierre/diffs worker then loads the Shiki WASM engine only on demand.
     worker: {
