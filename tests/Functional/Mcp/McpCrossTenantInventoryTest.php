@@ -14,24 +14,15 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
+/**
+ * Runs the cases of McpCrossTenantCases. {@see \App\Tests\Functional\Audit\CrossTenantCoverageTest} checks that every
+ * tool has one.
+ */
 final class McpCrossTenantInventoryTest extends WebTestCase
 {
     use ApiFixtures;
     use McpAssertions;
     use ResetDatabase;
-
-    #[TestDox('Fails when a tool has no cross-tenant case')]
-    public function testEveryToolHasACase(): void
-    {
-        [$mcp] = $this->twoTenants();
-
-        $tools = array_column(McpTestClient::result($mcp->request('tools/list'))['tools'], 'name');
-        $cases = array_keys(McpCrossTenantCases::all());
-        sort($tools);
-        sort($cases);
-
-        self::assertSame($tools, $cases, 'Every MCP tool has exactly one entry in McpCrossTenantCases.');
-    }
 
     /**
      * @param array<string, string|bool|list<string>> $arguments

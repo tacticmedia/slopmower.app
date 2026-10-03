@@ -127,7 +127,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M34 | [GitHub webhooks](M34-github-webhooks.md) | Done | 2026-10-03 | [Report](reports/M34.md) |
 | M34b | [Mocked UI suite](M34b-mocked-ui-suite.md) | Done | 2026-10-03 | [Report](reports/M34b.md) |
 | M34c | [Full-stack suite on Playwright](M34c-full-stack-suite-on-playwright.md) | Done | 2026-10-03 | [Report](reports/M34c.md) |
-| M35 | [Isolation audit and acceptance](M35-isolation-audit-and-acceptance.md) | Not started | | |
+| M35 | [Isolation audit and acceptance](M35-isolation-audit-and-acceptance.md) | Done | 2026-10-03 | [Report](reports/M35.md) |
 
 ## Order
 

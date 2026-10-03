@@ -772,3 +772,35 @@ Static checks: PHPStan level 8 on `src/` and `tests/`, php-cs-fixer with `@Symfo
 | Young Reprise 1.x line | 1.0.0 on 2026-08-26, then six releases in one month | Pin. Only the shell template and `vite.config.ts` use it. |
 | playwright-php is a young community library | 1.x, its own Node server, API gaps found in M34c | Exact pin. Six full-stack classes only. The UI suite uses Microsoft's Playwright Test. |
 | Symfony 8.1 end of life in 01/2027 | Symfony releases | Upgrade to 8.2 or 8.4 in time |
+
+## 13. Recorded deviations
+
+The implementation differs from the sections above in these points. The milestone reports in [docs/plan/reports/](plan/reports/) give the details.
+
+| Section | Implementation | Reason |
+|---|---|---|
+| 3, Entities | `Tenant` also has `deletionRequestedAt`, the account deletion mark. `Repository` also has `githubPrivate` and `fetchRequested`, the flag of the single-flight fetch in section 4. | Account deletion (M31), R4 output (M33), fetch triggers (M09) |
+| 3, Entities | More tables: `github_candidate` holds the installation repositories of the last sign-in. `location_cache_entry` is the location cache of section 5.2, with the key `tenant_id`, `opened_event_id`, `target_sha` and no eviction. `webhook_delivery` holds the delivery IDs and is not tenant-owned. The user table is `app_user`. | M33, M29, M34. `user` is a reserved word in PostgreSQL (M05). |
+| 3, Entities | `Review` is a projection too: `ReviewProjector` folds the review events into the `review` row. `review.started` has no repository, so the start transaction inserts the row. The rebuild recomputes the existing `review` rows and inserts none. | M07 |
+| 3, Entities | `ChangeRequest.outdated` is a cached flag, not event data. `RecomputeLocationsHandler` sets it, and the projection rebuild keeps it. | It derives from the location at the default-branch head, which no event records (M29) |
+| 3, 4 | The unique keys of `viewed_file` and `indexed_file` use the SHA-256 of the path. `symbol` also stores `name`, `parentFqn`, and `declarationStartLine`. | A B-tree entry holds about 2.7 kB, a `RepoPath` up to 4096 characters (M25, M26). V9 output (M26). |
+| 4, Tenant isolation | A second Doctrine SQL filter, `RepositoryScopeSqlFilter`, applies the scope of a token. It fails closed for an entity without a rule. Raw SQL in `*Sql` classes does not see it and reads only IDs that a filtered lookup resolved. | M14 |
+| 4, Tenant isolation | The projection rebuild deletes `comment` and `commit_link` rows with DQL that names `tenant_id`. The ORM flush updates rows by primary key, after a read under the filter. | The raw SQL rule covers `*Sql` classes (M07) |
+| 4, Repository sources | A local candidate and its `.git` must not be symbolic links. Discovery reads the `HEAD` file and runs no git. | Path safety, and no process per candidate (M09) |
+| 4, Repository sources | `commit.found` is written for closed reviews too. | It is a system event for every pending link of the repository (M16) |
+| 4, Sign-in | The `github` resource owner of HWIOAuthBundle is not a shared service. The installation listing at sign-in is a `LoginSuccessEvent` listener. A failed or partial listing changes no row. | The resource owner keeps the OAuth `state` in its properties, which leaked between worker requests (M32). M33. |
+| 4, Sessions | `PdoSessionHandler` has its own PDO connection per request, with an advisory lock per session ID. | No dead connection in a worker, no session write after logout (M10) |
+| 4, Firewalls | The `docs` firewall (`^/docs(/\|$)`) and the `webhook` firewall (`^/webhook/`) have `security: false`. | A docs page needs no user, and a token read would make the session listener replace the cache headers of the skill (M23). The signature authenticates GitHub, and no session tenant context may stamp the consume message (M34). |
+| 4, Deletion; D22 | Access removal marks the repository `removed`, then the `DeleteCloneJob` Messenger job deletes the clone, the index, and the location cache. Repository deletion deletes the tokens scoped to the repository. Deletions lock their parent rows `FOR UPDATE`. Index and location-cache writes lock them `FOR KEY SHARE` and skip a row that is gone. | A retryable job outside the request (M33, M31). Deletion races (M31). |
+| 5.4 | An exact normalized match at the anchor's path and lines gives `exact`, not `shifted` as the pseudo-code writes. The same holds for the untouched range and for a symbol found with an equal hash. | Section 5.3 defines `exact` as same path, same lines, same normalized content, and F11 expects `exact` or `shifted` (M29) |
+| 5.4 | `mapPath` runs `git diff --name-status -M -z` only when the anchor path is no longer a blob at the target. | Git pairs a rename only for a path that is gone, so the result is equal, and the common case needs one `ls-tree` (M29) |
+| 5.4 | The `--unified=0` diff compares the anchor blob with the target blob, without pathspecs, with `--no-textconv`. | A pathspec would also match the files of a directory with the old file name (M29) |
+| 5.4 | `searchOtherFiles` runs `git grep --files-with-matches -z -I -F` with the longest snapshot line, trimmed and cut to 1,000 bytes, and checks the first 20 other files in path order. One match gives `shifted`, several give `orphaned` `ambiguous`. | Each candidate is verified over the whole file. An argument above 128 KiB does not start git (M29). |
+| 5.4 | `bestWindow` stops after 1,000 full LCS runs, nearest window first. A far, edited move in a repetitive file then gives `orphaned`. | About 1 s per search for a 200-line snapshot (M28) |
+| 5.5 | A target file that is not renderable (symbolic link, submodule, binary, above 1 MiB) gives `orphaned` `content_not_found` for line, range, and symbol anchors. A file anchor gives `changed`. | Section 5.4 does not define the case (M29) |
+| 7.3; D40 | An MCP session belongs to the token that opened it: the store key is a UUID v5 of the token ID and the session ID. One request per session runs at a time, under a `symfony/lock` lock, 30 s at most, then 503. | MCP security best practice. The SDK 0.8.1 file store rewrites the session without a lock (M15). |
+| 7.5 | `installation.created` records only the installation. The candidates arrive with the next sign-in listing. `installation_repositories.added` reads each repository with `GET /repos/{full_name}` before it adds the candidate. | docs/specs names no candidates for `installation.created` (M34) |
+| 7.5 | The subscriber cookie is `Secure` when the request is HTTPS. | The bundle uses the scheme of the hub URL, the specs use the request (M24) |
+| 8, Review; D15 | The UI creates only new-request drafts. Reply drafts exist only through the API. A draft is deleted without a confirmation. | M25 |
+| 8, Request detail | "Resolve conversation" verifies at once, without a note. The "Changes" tab is `/requests/{id}?tab=changes`. | One click, as on GitHub (M22). docs/specs lists `/requests/{id}` as the only shell path (M30). |
+| 8, Settings | The `.mcp.json` snippet shows only in the one-time display after a token is created. | M19 |

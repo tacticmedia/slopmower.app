@@ -11,7 +11,7 @@ You can comment on a line, a range of lines, a symbol, or a file. Each comment o
 | Target | What to do |
 |---|---|
 | One line | Move the pointer over the line number and click the blue **+**. The comment box opens below the line. |
-| A range of lines | Drag from the **+** or over the line numbers. Or click the first line number and shift-click the last one. The comment box opens below the last line. |
+| A range of lines | Drag from the **+**. Or select the lines first: drag over the line numbers, or click the first line number and shift-click the last one. Then click the **+** on the last selected line. The comment box opens below the last line. |
 | A symbol | Open **Symbols** in the file header and choose a class, method, function, or other symbol. Or select exactly the lines of a symbol. The comment then belongs to the symbol, and it follows the symbol when the code moves. |
 | A file | Click **Comment on file** in the file header. |
 
@@ -19,7 +19,7 @@ You can comment on a line, a range of lines, a symbol, or a file. Each comment o
 
 | Target | What to do |
 |---|---|
-| Lines | Use **Comment on lines** in the file header. Type the start line and the end line, then confirm. For one line, type the same number twice. |
+| Lines | Use **Comment on lines** in the file header. Type the start line and the end line, then click **Comment**. For one line, type the same number twice. |
 | A symbol | Open **Symbols** in the file header, move to a symbol with the arrow keys, and press Enter. |
 | A file | Move to **Comment on file** with Tab and press Enter. |
 
@@ -30,7 +30,7 @@ Symbols are available for PHP files. A symbol range includes the doc comment abo
 ## Send comments one by one or as a batch
 
 - **Add single comment** sends the comment at once. The agent sees it the next time it checks for updates.
-- **Start a review** keeps the comment as a draft. Only you can see drafts. Add more comments, then click **Finish your review**. Type an optional summary and click **Submit review**. The agent sees all comments of the batch together.
+- **Start a review** keeps the comment as a draft. Only you can see drafts. Add more comments with **Add review comment**, then click **Finish your review**. Type an optional summary and click **Submit review**. The agent sees all comments of the batch together.
 
 You can edit or delete a draft before you submit it.
 
@@ -68,7 +68,7 @@ A linked commit does not finish a request. The agent marks the request **Ready f
 
 On a request that is ready for review:
 
-- **Resolve conversation** verifies the request. You can add a note.
+- **Resolve conversation** verifies the request at once.
 - **Reopen** sends the request back to the agent. Type a note that says what is still wrong.
 
 On any open, reopened, or in-progress request:

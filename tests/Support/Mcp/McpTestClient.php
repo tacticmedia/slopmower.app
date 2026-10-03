@@ -137,6 +137,19 @@ final class McpTestClient
     }
 
     /**
+     * The tools of tools/list, array-decoded. Initializes a session first when there is none.
+     *
+     * @return list<array{name: string, inputSchema: array{properties: array<string, array<string, mixed>>, required?: list<string>}, ...}>
+     */
+    public function tools(): array
+    {
+        /** @var list<array{name: string, inputSchema: array{properties: array<string, array<string, mixed>>, required?: list<string>}, ...}> $tools */
+        $tools = self::result($this->request('tools/list'))['tools'];
+
+        return $tools;
+    }
+
+    /**
      * Object-decoded, so an empty JSON object stays one when it is encoded again.
      */
     public function tool(string $name): \stdClass

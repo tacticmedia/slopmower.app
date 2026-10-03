@@ -42,7 +42,7 @@ Add this file as `.mcp.json` in the root of your repository. Replace `<host>` wi
 }
 ```
 
-The file contains no secret. Claude Code reads the token from `HOLISTIC_REVIEW_TOKEN`. **Settings** shows the same snippet with your address.
+The file contains no secret. Claude Code reads the token from `HOLISTIC_REVIEW_TOKEN`. When you create a token, **Settings** shows the same snippet with your address.
 
 Other agents: add an HTTP MCP server with the same URL and the same `Authorization` header in the configuration of the agent.
 
@@ -61,7 +61,7 @@ Other agents that read Agent Skills from another directory need the file in that
 ## 5. Give your agent a review
 
 1. Open the review in Holistic Review.
-2. In the review header, click the copy button next to the prompt. The prompt contains the review ID, for example:
+2. In the review header, click **Copy prompt** next to the agent prompt. The prompt contains the review ID, for example:
 
    ```text
    Work on Holistic Review 01K6B3A1B2C3D4E5F6G7H8J9KM

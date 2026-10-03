@@ -146,7 +146,7 @@ A tool error is a result with `isError: true`. Its text is JSON:
 |---|---|---|
 | `unauthorized` | The token is missing, wrong, revoked, or expired. It arrives as HTTP 401 from the server, not as a tool result. | Tell the user to check `HOLISTIC_REVIEW_TOKEN` and the token in Settings. Stop. |
 | `forbidden` | The caller may not do this. The MCP tools do not return it. | Tell the user |
-| `not_found` | No such repository, review, request, or linked commit for this token. A token for one repository sees only that repository. | Check the ID or name, then list again. If it is still missing, tell the user. |
+| `not_found` | No such repository, review, or request for this token. A token for one repository sees only that repository. | Check the ID or name, then list again. If it is still missing, tell the user. |
 | `invalid_input` | The input failed a check, for example a blank body, a reason under 20 characters after trimming, requests from several reviews, a commit that is not linked, or an ambiguous SHA prefix | Read `details.violations`, fix the input, and call again |
 | `invalid_transition` | The status or the claim holder does not allow the action | Call `get_request`, read `allowedActions` and `details.claimedBy`, then take the next request |
 | `review_closed` | The user closed the review | Stop working on this review. Tell the user. Do not retry. |

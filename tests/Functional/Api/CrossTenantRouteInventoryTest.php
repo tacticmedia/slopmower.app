@@ -17,8 +17,11 @@ use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\RouterInterface;
 
+/**
+ * Runs the cases of CrossTenantCases. {@see \App\Tests\Functional\Audit\CrossTenantCoverageTest} checks that every
+ * route has one.
+ */
 final class CrossTenantRouteInventoryTest extends WebTestCase
 {
     use ApiFixtures;
@@ -27,29 +30,6 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
     use LocalSources;
     use ResetDatabase;
     use TemporaryDirectories;
-
-    #[TestDox('Fails when an /api/v1 route has no cross-tenant case')]
-    public function testEveryRouteHasACase(): void
-    {
-        $routes = [];
-
-        foreach (self::getContainer()->get(RouterInterface::class)->getRouteCollection() as $name => $route) {
-            if (str_starts_with($route->getPath(), '/api/v1')) {
-                $routes[$name] = ['methods' => $route->getMethods(), 'path' => $route->getPath()];
-            }
-        }
-
-        $cases = CrossTenantCases::all();
-        ksort($routes);
-        ksort($cases);
-
-        self::assertSame(array_keys($routes), array_keys($cases), 'Every /api/v1 route has exactly one case in CrossTenantCases.');
-
-        foreach ($cases as $name => $case) {
-            self::assertSame([$case['method']], $routes[$name]['methods'], "The method of the case {$name}.");
-            self::assertSame($routes[$name]['path'], $case['path'], "The path of the case {$name}.");
-        }
-    }
 
     /**
      * @param array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null, bearer?: true, query?: array<string, string>} $case

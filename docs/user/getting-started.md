@@ -26,14 +26,13 @@ To add or remove repositories later, click **Configure on GitHub** again. When y
 1. Open **Repositories**. The list shows the repositories that the App can read.
 2. Click **Connect** next to a repository.
 
-Holistic Review makes its own copy of the repository. The status shows the progress. When the status is ready, you can start a review.
+Holistic Review makes its own copy of the repository. The status under **Connected repositories** shows the progress. When the status is **Ready**, you can start a review.
 
 ## 4. Start a review
 
-1. Open the repository.
-2. Click **Start review**.
-3. Keep the default branch, or type another branch, tag, or commit SHA. You can also give the review a title.
-4. Click **Start**.
+1. Open the repository: click its name under **Connected repositories**.
+2. Under **Start a review**, keep the default branch in **Ref**, or type another branch, tag, or commit SHA. You can also give the review a **Title**.
+3. Click **Start review**.
 
 Holistic Review pins the review to the commit that the ref points to when the review starts. The file tree opens. The progress bar shows the index progress.
 
