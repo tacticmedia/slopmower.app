@@ -40,7 +40,7 @@
 	}
 }
 
-# e2e environment, classic mode, for Panther inside this container
+# e2e environment, classic mode, for the full-stack tests inside this container
 :8081 {
 	import redact_mercure_authorization
 

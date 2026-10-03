@@ -33,7 +33,7 @@ when@prod:
         # Cache the entrypoints.json (rebuild Symfony's cache when entrypoints.json changes)
         cache: true
 
-# The functional and Panther tests read the build of `npm run build:e2e`.
+# The functional and full-stack tests read the build of `npm run build:e2e`.
 when@test: &build_e2e
     reprise:
         output_path: '%kernel.project_dir%/public/build-e2e'

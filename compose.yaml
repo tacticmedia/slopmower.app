@@ -11,6 +11,7 @@ x-php: &php
     - ${LOCAL_REPOSITORIES_HOST_DIR:-./var/local-repositories}:/repositories:ro
     - caddy_data:/data
     - caddy_config:/config
+    - playwright_browsers:/ms-playwright
 
 services:
   php:
@@ -64,4 +65,5 @@ volumes:
   caddy_config:
   caddy_data:
   database_data:
+  playwright_browsers:
   tenant_data:

@@ -10,8 +10,6 @@ use App\Tenancy\TenantContext;
 use App\Tests\Support\Mcp\McpAssertions;
 use App\Tests\Support\Mcp\McpTestClient;
 use Doctrine\ORM\EntityManagerInterface;
-use Facebook\WebDriver\WebDriverBy;
-use Symfony\Component\Panther\Client;
 use Symfony\Component\Uid\Ulid;
 
 /**
@@ -50,20 +48,19 @@ trait RequestScreens
         return self::assertToolResult($agent, $agent->callTool($tool, $arguments), $tool);
     }
 
-    private static function openRequest(Client $client, string $requestId): void
+    private function openRequest(string $requestId): void
     {
-        $client->request('GET', "/requests/{$requestId}");
-        $client->waitFor(self::DETAIL."[data-request-id=\"{$requestId}\"] [data-testid=\"thread-comment\"]");
+        $this->visit("/requests/{$requestId}");
+        $this->expect($this->page->locator(self::DETAIL."[data-request-id=\"{$requestId}\"] [data-testid=\"thread-comment\"]")->first())->toBeVisible();
     }
 
-    private static function waitForStatus(Client $client, string $status): void
+    private function waitForStatus(string $status): void
     {
-        $client->waitForElementToContain(self::DETAIL_STATUS, $status);
-        self::assertSelectorTextSame(self::DETAIL_STATUS, $status);
+        $this->expect($this->page->locator(self::DETAIL_STATUS))->toHaveExactText($status);
     }
 
-    private static function clickRequestButton(Client $client, string $label): void
+    private function clickRequestButton(string $label): void
     {
-        $client->getWebDriver()->findElement(WebDriverBy::xpath("//*[@data-testid=\"request-actions\"]//button[normalize-space()=\"{$label}\"]"))->click();
+        $this->page->locator('[data-testid="request-actions"]')->getByRole('button', ['name' => $label, 'exact' => true])->click();
     }
 }

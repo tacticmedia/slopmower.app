@@ -52,10 +52,12 @@ ifneq ($(PACKAGE_JSON),)
 endif
 	$(PHP) bin/phpunit --testsuite unit,functional
 
-e2e: ## Panther suite against the e2e site on port 8081
+e2e: ## Full-stack suite: Playwright in the php container against the e2e site on port 8081
 ifneq ($(PACKAGE_JSON),)
 	npm run build:e2e
 endif
+	$(PHP) sh -c 'npm --prefix vendor/playwright-php/playwright/bin install --save-exact --no-audit --no-fund "playwright@$$PLAYWRIGHT_VERSION"'
+	$(PHP) vendor/bin/playwright-install chromium
 	$(PHP) bin/phpunit --testsuite e2e
 
 stan: ## PHPStan level 8 on the test container, so the dev worker keeps its cache

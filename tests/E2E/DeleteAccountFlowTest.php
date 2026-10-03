@@ -6,40 +6,35 @@ namespace App\Tests\E2E;
 
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\E2E\BrowserFixtures;
+use App\Tests\Support\E2E\FullStackTestCase;
 use Doctrine\DBAL\Connection;
-use Facebook\WebDriver\WebDriverBy;
-use Facebook\WebDriver\WebDriverExpectedCondition;
 use PHPUnit\Framework\Attributes\TestDox;
-use Symfony\Component\Panther\PantherTestCase;
 
 /**
  * The e2e site runs the purge job during A2, through `sync://`.
  */
-final class DeleteAccountFlowTest extends PantherTestCase
+final class DeleteAccountFlowTest extends FullStackTestCase
 {
     use BrowserFixtures;
     use ResetDatabase;
-
-    private const string OPEN_DELETE_DIALOG = '//main//button[normalize-space()="Delete account"]';
 
     #[TestDox('Typing the login and confirming signs the user out')]
     public function testTypingTheLoginSignsTheUserOut(): void
     {
         $user = $this->user();
         self::connectedRepository($user, $this->localSource());
-        $client = self::browserSignedInAs($user);
-        $client->request('GET', '/settings');
-        $client->waitFor(self::OPEN_DELETE_DIALOG);
+        $this->signInAs($user->getLogin());
+        $this->visit('/settings');
 
-        $client->getWebDriver()->findElement(WebDriverBy::xpath(self::OPEN_DELETE_DIALOG))->click();
-        $client->waitForVisibility('[role="dialog"] input');
-        $client->getWebDriver()->findElement(WebDriverBy::cssSelector('[role="dialog"] input'))->sendKeys('jan');
-        $client->getWebDriver()->findElement(WebDriverBy::cssSelector('[role="dialog"] button[type="submit"]'))->click();
+        $this->page->locator('main')->getByRole('button', ['name' => 'Delete account', 'exact' => true])->click();
+        $dialog = $this->page->getByRole('dialog');
+        $dialog->locator('input')->fill('jan');
+        $dialog->locator('button[type="submit"]')->click();
 
-        $client->wait()->until(WebDriverExpectedCondition::urlMatches('#/login$#'));
-        $client->waitForElementToContain('h1', 'Sign in to Holistic Review');
-        $client->request('GET', '/settings');
-        $client->wait()->until(WebDriverExpectedCondition::urlMatches('#/login$#'));
+        $this->page->waitForURL(self::BASE_URI.'/login');
+        $this->expect($this->page->locator('h1'))->toContainText('Sign in to Holistic Review');
+        $this->visit('/settings');
+        $this->page->waitForURL(self::BASE_URI.'/login');
         self::assertSame(
             ['app_user' => 0, 'signed_in_sessions' => 0],
             self::getContainer()->get(Connection::class)->fetchAssociative(

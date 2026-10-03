@@ -19,12 +19,11 @@ use App\Tests\Support\Messenger\QueuedMessages;
 use PHPUnit\Framework\Attributes\After;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
-use Symfony\Component\Panther\Client;
 
 /**
- * Users, local sources, repositories, and reviews for PantherTestCase tests that use ResetDatabase. The PHPUnit
- * process writes the database and the directories that the e2e site reads: the `.env.test` and `.env.e2e` values of
- * APP_LOCAL_REPOSITORIES_DIR and APP_TENANT_DATA_DIR are equal.
+ * Users, local sources, repositories, and reviews for {@see FullStackTestCase} tests that use ResetDatabase. The
+ * PHPUnit process writes the database and the directories that the e2e site reads: the `.env.test` and `.env.e2e`
+ * values of APP_LOCAL_REPOSITORIES_DIR and APP_TENANT_DATA_DIR are equal.
  */
 trait BrowserFixtures
 {
@@ -42,14 +41,6 @@ trait BrowserFixtures
         $this->pathsToRemove[] = Path::join(self::environmentPath('APP_TENANT_DATA_DIR'), $user->getTenantId()->toString());
 
         return $user;
-    }
-
-    private static function browserSignedInAs(User $user): Client
-    {
-        $client = static::createPantherClient();
-        $client->request('GET', '/_e2e/sign-in/'.$user->getLogin());
-
-        return $client;
     }
 
     /**

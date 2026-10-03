@@ -4,27 +4,19 @@ declare(strict_types=1);
 
 namespace App\Tests\Support\E2E;
 
-use Facebook\WebDriver\WebDriverBy;
-use Facebook\WebDriver\WebDriverSelect;
-use Symfony\Component\Panther\Client;
-
 /**
- * Drives the settings screen in a PantherTestCase.
+ * Drives the settings screen in a {@see FullStackTestCase}.
  */
 trait TokenSettings
 {
-    private const string DIALOG = '//div[@role="dialog"]';
-
     private const string SECRET = '[data-testid="token-secret"]';
+    private const string TOKENS_TABLE = 'table[aria-labelledby="api-tokens"]';
 
-    private function openSettingsAs(string $login): Client
+    private function openSettingsAs(string $login): void
     {
-        $client = static::createPantherClient();
-        $client->request('GET', '/_e2e/sign-in/'.$login);
-        $client->request('GET', '/settings');
-        $client->waitFor('#api-tokens');
-
-        return $client;
+        $this->signInAs($login);
+        $this->visit('/settings');
+        $this->expect($this->page->locator('#api-tokens'))->toBeVisible();
     }
 
     /**
@@ -34,46 +26,46 @@ trait TokenSettings
      *
      * @return string The secret that the dialog shows
      */
-    private function createToken(Client $client, string $name, ?string $repositoryName = null, ?string $expiresOn = null): string
+    private function createToken(string $name, ?string $repositoryName = null, ?string $expiresOn = null): string
     {
-        $this->fillCreateDialog($client, $name, $repositoryName, $expiresOn);
-        $client->getWebDriver()->findElement(WebDriverBy::xpath(self::DIALOG.'//button[normalize-space()="Create"]'))->click();
-
-        return $client->waitForVisibility(self::SECRET)->filter(self::SECRET)->text();
-    }
-
-    private function fillCreateDialog(Client $client, string $name, ?string $repositoryName = null, ?string $expiresOn = null): void
-    {
-        $client->getWebDriver()->findElement(WebDriverBy::xpath('//button[normalize-space()="Create token"]'))->click();
-        $client->waitForVisibility('input[name="name"]');
-        $client->getWebDriver()->findElement(WebDriverBy::cssSelector('input[name="name"]'))->sendKeys($name);
+        $this->page->getByRole('button', ['name' => 'Create token', 'exact' => true])->click();
+        $dialog = $this->page->getByRole('dialog');
+        $dialog->locator('input[name="name"]')->fill($name);
 
         if (null !== $repositoryName) {
-            new WebDriverSelect($client->getWebDriver()->findElement(WebDriverBy::cssSelector('select[name="repositoryId"]')))->selectByVisibleText($repositoryName);
+            $dialog->locator('select[name="repositoryId"]')->selectOption(['label' => $repositoryName]);
         }
 
         if (null !== $expiresOn) {
-            $client->executeScript('document.querySelector(\'input[name="expiresOn"]\').value = arguments[0];', [$expiresOn]);
+            $dialog->locator('input[name="expiresOn"]')->fill($expiresOn);
         }
+
+        $dialog->getByRole('button', ['name' => 'Create', 'exact' => true])->click();
+        $secret = $this->page->locator(self::SECRET);
+        $this->expect($secret)->toBeVisible();
+
+        return (string) $secret->textContent();
     }
 
-    private function closeIssuedToken(Client $client): void
+    private function closeIssuedToken(): void
     {
-        $client->getWebDriver()->findElement(WebDriverBy::xpath(self::DIALOG.'//button[normalize-space()="Done"]'))->click();
-        $client->waitForInvisibility(self::SECRET);
+        $this->page->getByRole('dialog')->getByRole('button', ['name' => 'Done', 'exact' => true])->click();
+        $this->expect($this->page->locator(self::SECRET))->toHaveCount(0);
     }
 
     /**
      * Waits until the token row exists, then reads the cell under the column header.
      */
-    private function tokenCell(Client $client, string $tokenName, string $column): string
+    private function tokenCell(string $tokenName, string $column): string
     {
-        $row = '//table[@aria-labelledby="api-tokens"]/tbody/tr[th[normalize-space()="'.$tokenName.'"]]';
-        $crawler = $client->waitFor($row);
-        $headers = $crawler->filterXPath('//table[@aria-labelledby="api-tokens"]/thead/tr/th')->each(static fn ($header): string => $header->text());
+        $row = $this->page->locator('xpath=//table[@aria-labelledby="api-tokens"]/tbody/tr[th[normalize-space()="'.$tokenName.'"]]');
+        $this->expect($row)->toHaveCount(1);
+        // playwright-php 1.5.0 sends allTextContents() to its server, which has no such action.
+        $headers = $this->page->locator(self::TOKENS_TABLE.' thead th')->evaluateAll('(headers) => headers.map((header) => header.textContent)');
+        self::assertIsArray($headers);
         $index = array_search($column, $headers, true);
         self::assertIsInt($index, "No column {$column} in ".implode(', ', $headers));
 
-        return $crawler->filterXPath($row)->children()->eq($index)->text();
+        return (string) $row->locator('th, td')->nth($index)->textContent();
     }
 }

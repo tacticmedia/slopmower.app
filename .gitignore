@@ -24,3 +24,4 @@
 /public/build/
 ###< symfony/reprise ###
 /public/build-e2e/
+/test-failures/

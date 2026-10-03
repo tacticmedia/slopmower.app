@@ -4,21 +4,18 @@ declare(strict_types=1);
 
 namespace App\Tests\E2E;
 
+use App\Tests\Support\E2E\FullStackTestCase;
 use PHPUnit\Framework\Attributes\TestDox;
-use Symfony\Component\Panther\PantherTestCase;
 
-final class BrowserSmokeTest extends PantherTestCase
+final class BrowserSmokeTest extends FullStackTestCase
 {
     #[TestDox('The browser on port 8081 sees the text ok in the js marker')]
     public function testBrowserRunsInlineScript(): void
     {
-        $client = static::createPantherClient();
+        $this->visit('/healthz');
 
-        $client->request('GET', '/healthz');
-
-        $client->waitForElementToContain('#js', 'ok');
-        self::assertSame('http://localhost:8081/healthz', $client->getCurrentURL());
-        self::assertSame('e2e', $client->getCrawler()->filter('body')->attr('data-environment'));
-        self::assertSelectorTextSame('#js', 'ok');
+        $this->expect($this->page->locator('#js'))->toHaveExactText('ok');
+        self::assertSame(self::BASE_URI.'/healthz', $this->page->url());
+        $this->expect($this->page->locator('body'))->toHaveAttribute('data-environment', 'e2e');
     }
 }

@@ -15,13 +15,7 @@ use App\Entity\User;
 use App\Repository\ReviewRepository;
 use App\Tenancy\TenantContext;
 use App\Tests\Support\Git\FixtureRepositories;
-use Facebook\WebDriver\Exception\StaleElementReferenceException;
-use Facebook\WebDriver\Interactions\WebDriverActions;
-use Facebook\WebDriver\Remote\RemoteWebElement;
-use Facebook\WebDriver\WebDriverBy;
-use Facebook\WebDriver\WebDriverElement;
-use Facebook\WebDriver\WebDriverHasInputDevices;
-use Symfony\Component\Panther\Client;
+use Playwright\Locator\LocatorInterface;
 
 /**
  * A review of {@see FixtureRepositories::codeView()}, the comment gestures, and the seeded requests.
@@ -30,6 +24,8 @@ trait CodeComments
 {
     use BrowserFixtures;
 
+    /** The host of the open shadow root that `@pierre/diffs` renders into. CSS locators pierce it. */
+    private const string CODE_HOST = 'diffs-container';
     /** The new-comment box. A reply box is labelled "Reply". */
     private const string COMPOSER = 'textarea[aria-label^="Comment on"]';
     private const string SAVED_THREAD = '[data-testid="thread"][data-request-id]';
@@ -43,101 +39,73 @@ trait CodeComments
         $this->reviewId = self::startedReview($this->commenter, self::connectedRepository($this->commenter, $this->localSource(FixtureRepositories::codeView())), 'Comments');
     }
 
-    private function openFile(Client $client, string $path, string $hash = ''): void
+    private function openFile(string $path): void
     {
-        $client->request('GET', "/reviews/{$this->reviewId}/files/{$path}{$hash}");
-        $client->waitForElementToContain('[data-testid="file-header"]', $path);
+        $this->visit("/reviews/{$this->reviewId}/files/{$path}");
+        $this->expect($this->page->locator('[data-testid="file-header"]'))->toContainText($path);
     }
 
     /**
-     * The worker replaces each row when its highlighting arrives, which makes element handles stale.
+     * The worker replaces each row when its highlighting arrives, which ends a hover on the old row.
      */
-    private static function waitForHighlighting(Client $client, int $line): void
+    private function waitForHighlighting(int $line): void
     {
-        ShadowDom::waitUntil($client, "[data-line=\"{$line}\"] span[style]", static fn (): bool => true);
+        $this->expect($this->page->locator(self::CODE_HOST." [data-line=\"{$line}\"] span[style]")->first())->toBeAttached();
     }
 
-    /**
-     * Runs the pointer gesture with fresh shadow-root elements until no element went stale.
-     *
-     * @param callable(WebDriverActions, callable(string): WebDriverElement): void $gesture
-     */
-    private static function pointerGesture(Client $client, callable $gesture): void
+    private function lineNumber(int $line): LocatorInterface
     {
-        $client->wait()->until(static function () use ($client, $gesture): bool {
-            $host = $client->getWebDriver()->findElement(WebDriverBy::cssSelector(ShadowDom::CODE_HOST));
-            \assert($host instanceof RemoteWebElement);
-            $find = static fn (string $selector): WebDriverElement => $host->getShadowRoot()->findElement(WebDriverBy::cssSelector($selector));
-
-            try {
-                $gesture(self::actions($client), $find);
-
-                return true;
-            } catch (StaleElementReferenceException) {
-                return false;
-            }
-        }, 'The pointer gesture kept hitting replaced rows.');
-    }
-
-    private static function actions(Client $client): WebDriverActions
-    {
-        $driver = $client->getWebDriver();
-        \assert($driver instanceof WebDriverHasInputDevices);
-
-        return new WebDriverActions($driver);
-    }
-
-    private static function lineNumber(int $line): string
-    {
-        return "[data-column-number=\"{$line}\"]";
+        return $this->page->locator(self::CODE_HOST." [data-column-number=\"{$line}\"]");
     }
 
     /**
      * Hovers the line number, then presses the "+" that the hover shows and releases it over `$releaseLine`.
      */
-    private static function dragFromPlus(Client $client, int $pressLine, int $releaseLine): void
+    private function dragFromPlus(int $pressLine, int $releaseLine): void
     {
-        self::pointerGesture($client, static function (WebDriverActions $actions, callable $find) use ($client, $pressLine, $releaseLine): void {
-            $actions->moveToElement($find(self::lineNumber($pressLine)))->perform();
-            $client->wait()->until(static fn (): bool => 1 === ShadowDom::count($client, '[data-utility-button]'));
-            $actions = self::actions($client);
-            $actions->clickAndHold($find('[data-utility-button]'))->moveToElement($find(self::lineNumber($releaseLine)))->release()->perform();
-        });
+        $this->lineNumber($pressLine)->hover();
+        $plus = $this->page->locator(self::CODE_HOST.' [data-utility-button]');
+        $this->expect($plus)->toHaveCount(1);
+        $plus->hover();
+        // The view ignores the pointer for 120 ms after each scroll, and the hover can scroll.
+        $this->page->waitForFunction(<<<'JS'
+            (host) => {
+                const root = document.querySelector(host)?.shadowRoot;
+                const plus = root?.querySelector('[data-utility-button]');
+                if (!plus) {
+                    return false;
+                }
+                const { x, y, width, height } = plus.getBoundingClientRect();
+                const hit = root.elementFromPoint(x + width / 2, y + height / 2);
+
+                return null !== hit && plus.contains(hit);
+            }
+            JS, self::CODE_HOST);
+        $this->page->mouse()->down();
+        $this->lineNumber($releaseLine)->hover();
+        $this->page->mouse()->up();
     }
 
     /**
      * The comment box that opened below `$line` and has the focus.
      */
-    private static function focusedCommentBoxBelow(Client $client, int $line): WebDriverElement
+    private function focusedCommentBoxBelow(int $line): LocatorInterface
     {
-        $textarea = "[slot=\"annotation-{$line}\"] ".self::COMPOSER;
-        $client->waitForVisibility($textarea);
-        $client->wait()->until(static fn (): bool => true === $client->executeScript('return document.activeElement === document.querySelector(arguments[0]);', [$textarea]));
+        $textarea = $this->page->locator("[slot=\"annotation-{$line}\"] ".self::COMPOSER);
+        $this->expect($textarea)->toBeVisible();
+        $this->expect($textarea)->toBeFocused();
 
-        return $client->getWebDriver()->findElement(WebDriverBy::cssSelector($textarea));
+        return $textarea;
     }
 
     /**
-     * Types into the focused comment box and clicks "Add single comment", then waits for the saved thread.
+     * Types into the comment box and clicks "Add single comment", then waits for the saved thread.
      */
-    private static function addSingleComment(Client $client, WebDriverElement $textarea, string $body, string $container): void
+    private function addSingleComment(LocatorInterface $textarea, string $body, string $container): void
     {
-        $textarea->sendKeys($body);
-        $client->getWebDriver()->findElement(WebDriverBy::xpath('//form[@data-testid="comment-box"]//button[normalize-space(.)="Add single comment"]'))->click();
-        self::waitForSavedThread($client, $container, $body);
-    }
-
-    private static function waitForSavedThread(Client $client, string $container, string $text): void
-    {
-        $client->wait()->until(static function () use ($client, $container, $text): bool {
-            foreach ($client->getWebDriver()->findElements(WebDriverBy::cssSelector("{$container} ".self::SAVED_THREAD)) as $thread) {
-                if (str_contains($thread->getText(), $text)) {
-                    return true;
-                }
-            }
-
-            return false;
-        }, "No saved thread in {$container} shows \"{$text}\".");
+        $textarea->fill($body);
+        $this->page->locator('form[data-testid="comment-box"]')->getByRole('button', ['name' => 'Add single comment', 'exact' => true])->click();
+        $this->expect($this->page->locator("{$container} ".self::SAVED_THREAD)->filter(['hasText' => $body]))->toHaveCount(1);
     }
 
     private function seededRequest(int $startLine, int $endLine, string $body): RequestId

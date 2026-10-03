@@ -49,7 +49,6 @@
     </source>
 
     <extensions>
-        <bootstrap class="Symfony\Component\Panther\ServerExtension" />
         <bootstrap class="App\Tests\Support\E2E\E2eDatabaseExtension" />
     </extensions>
 </phpunit>

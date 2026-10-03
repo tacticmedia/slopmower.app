@@ -4,6 +4,8 @@
 
 FROM dunglas/frankenphp:1.12.7-php8.5-trixie AS frankenphp_upstream
 
+FROM node:24-trixie-slim AS node_upstream
+
 FROM frankenphp_upstream AS frankenphp_base
 
 SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
@@ -42,19 +44,22 @@ FROM frankenphp_base AS frankenphp_dev
 
 ENV XDEBUG_MODE=off
 
-ENV PANTHER_NO_SANDBOX=1
-ENV PANTHER_CHROME_ARGUMENTS=--disable-dev-shm-usage
-ENV PANTHER_CHROME_BINARY=/usr/bin/chromium
+# The playwright npm version of the system libraries below. `make e2e` pins the playwright-php server to it.
+ENV PLAYWRIGHT_VERSION=1.63.0
 
-# hadolint ignore=DL3008
+# On the playwright_browsers volume. vendor/bin/playwright-install fills it.
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+COPY --link --from=node_upstream /usr/local/bin/node /usr/local/bin/node
+COPY --link --from=node_upstream /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/npm
+
 RUN <<-EOF
 	mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
 	install-php-extensions xdebug
-	apt-get update
-	apt-get install -y --no-install-recommends \
-		chromium \
-		chromium-driver
-	rm -rf /var/lib/apt/lists/*
+	ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm
+	ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+	npx --yes "playwright@${PLAYWRIGHT_VERSION}" install-deps chromium
+	rm -rf /var/lib/apt/lists/* /root/.npm
 EOF
 
 COPY --link docker/frankenphp/conf.d/20-app.dev.ini $PHP_INI_DIR/app.conf.d/
