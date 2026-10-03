@@ -17,7 +17,6 @@ use App\Tests\Support\Git\FixtureRepositories;
 use App\Tests\Support\Git\GitRepositoryBuilder;
 use App\Tests\Support\Messenger\QueuedMessages;
 use PHPUnit\Framework\Attributes\After;
-use PHPUnit\Framework\Attributes\Before;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Panther\Client;
@@ -30,8 +29,6 @@ use Symfony\Component\Panther\Client;
 trait BrowserFixtures
 {
     use QueuedMessages;
-
-    private const string OVERRIDE_MARKER = '# Written by BrowserFixtures::disableLocalRepositories()';
 
     /** @var list<string> */
     private array $pathsToRemove = [];
@@ -103,44 +100,11 @@ trait BrowserFixtures
         return self::getContainer()->get(ReviewCommands::class)->start($repository->getId(), RefName::fromString('main'), $title, Actor::user($user->getId()));
     }
 
-    /**
-     * Turns local repositories off on the e2e site, which loads the .env files on every request.
-     */
-    private function disableLocalRepositories(): void
-    {
-        $this->pathsToRemove[] = self::environmentOverridePath();
-        new Filesystem()->dumpFile(self::environmentOverridePath(), self::OVERRIDE_MARKER."\nAPP_LOCAL_REPOSITORIES_DIR=\n");
-    }
-
-    /**
-     * A killed run leaves its override behind, and every later test would see local repositories off.
-     */
-    #[Before]
-    protected function removeLeftoverEnvironmentOverride(): void
-    {
-        $path = self::environmentOverridePath();
-
-        if (!is_file($path)) {
-            return;
-        }
-
-        if (!str_contains((string) file_get_contents($path), self::OVERRIDE_MARKER)) {
-            self::fail("{$path} changes the e2e site, and BrowserFixtures did not write it. Remove it, then run the E2E suite again.");
-        }
-
-        new Filesystem()->remove($path);
-    }
-
     #[After]
     protected function removeBrowserFixturePaths(): void
     {
         new Filesystem()->remove($this->pathsToRemove);
         $this->pathsToRemove = [];
-    }
-
-    private static function environmentOverridePath(): string
-    {
-        return dirname(__DIR__, 3).'/.env.e2e.local';
     }
 
     private static function environmentPath(string $name): string

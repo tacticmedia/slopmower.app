@@ -1,4 +1,4 @@
-# Per-checkout ports, for example `export HTTP_PORT=8101` and `export DATABASE_PORT=5501` in a worktree.
+# Per-checkout ports, for example `export HTTP_PORT=8101`, `export DATABASE_PORT=5501`, and `export UI_PORT=4101` in a worktree.
 -include .env.make.local
 
 DOCKER_COMPOSE = docker compose
@@ -7,7 +7,7 @@ CONSOLE        = $(PHP) bin/console
 PACKAGE_JSON   = $(wildcard package.json)
 
 .DEFAULT_GOAL = help
-.PHONY: help up down sh worker-restart console composer migration db-reset db-test test e2e stan cs cs-fix lint front check
+.PHONY: help up down sh worker-restart console composer migration db-reset db-test test e2e stan cs cs-fix lint front ui check
 
 help: ## List the targets
 	@grep -hE '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "%-16s %s\n", $$1, $$2}'
@@ -79,4 +79,10 @@ ifneq ($(PACKAGE_JSON),)
 	npm run typecheck && npm test
 endif
 
-check: cs stan lint test front e2e ## Every quality gate
+ui: ## Playwright suite against the mocked API on the host, port UI_PORT
+ifneq ($(PACKAGE_JSON),)
+	npx playwright install chromium
+	npm run test:ui
+endif
+
+check: cs stan lint test front ui e2e ## Every quality gate

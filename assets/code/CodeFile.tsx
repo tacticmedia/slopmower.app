@@ -1,4 +1,4 @@
-import { cleanLastNewline, type CodeViewItem, type CodeViewLineSelection, type LineAnnotation, type SelectedLineRange } from '@pierre/diffs';
+import { cleanLastNewline, type CodeViewItem, type CodeViewLineSelection, type FileContents, type LineAnnotation, type SelectedLineRange } from '@pierre/diffs';
 import { CodeView, type CodeViewHandle, type CodeViewReactOptions, WorkerPoolContextProvider } from '@pierre/diffs/react';
 import type { WorkerInitializationRenderOptions, WorkerPoolOptions } from '@pierre/diffs/worker';
 import diffsWorkerUrl from '@pierre/diffs/worker/worker.js?worker&url';
@@ -90,18 +90,13 @@ const FileView = memo(function FileView({
         return null === element ? undefined : keyboardGutterUtility(element, () => latestSelection.current, (range) => commentHandler.current?.(range));
     }, []);
 
+    // The language follows the name, so equal bytes at another path need their own highlighting.
+    const file = useMemo<FileContents>(() => ({ name: path, contents: cleanLastNewline(contents), cacheKey: `${blobSha}:${path}` }), [path, blobSha, contents]);
+    // An annotation change keeps the file object: while the first highlight is pending, the view compares file objects
+    // by identity, and a new object of the same cacheKey leaves it blank for good.
     const items = useMemo<CodeViewItem<undefined>[]>(
-        () => [
-            {
-                id: path,
-                type: 'file',
-                // The language follows the name, so equal bytes at another path need their own highlighting.
-                file: { name: path, contents: cleanLastNewline(contents), cacheKey: `${blobSha}:${path}` },
-                annotations: [...annotations],
-                version: ++itemVersion.current,
-            },
-        ],
-        [path, blobSha, contents, annotations],
+        () => [{ id: path, type: 'file', file, annotations: [...annotations], version: ++itemVersion.current }],
+        [path, file, annotations],
     );
     const selectedLines = useMemo<CodeViewLineSelection | null>(() => (null === selection ? null : { id: path, range: selection }), [path, selection]);
     const options = useMemo<CodeViewReactOptions<undefined, undefined>>(

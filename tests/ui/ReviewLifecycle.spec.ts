@@ -1,0 +1,93 @@
+import type { Page } from '@playwright/test';
+import { newId } from './support/builders';
+import { FakeRepositories } from './support/fakeRepositories';
+import { apiError } from './support/mockApi';
+import { expect, test } from './support/test';
+
+const REVIEW_LIST = '[data-testid="review-list"]';
+const START_FORM = '[data-testid="start-review-form"]';
+
+function reviewTitles(page: Page) {
+    return page.locator(`${REVIEW_LIST} tbody th`);
+}
+
+function closeButton(page: Page) {
+    return page.locator('header').getByRole('button', { name: 'Close review' });
+}
+
+test.describe('ReviewLifecycle', () => {
+    test('The review page shows the review ID and the prompt snippet', async ({ page, api }) => {
+        const repository = new FakeRepositories(api).addLocal('e2e-lifecycle');
+        await page.goto(`/repositories/${repository.id}`);
+        await expect(page.locator(`${START_FORM} input[name="ref"]`)).toHaveValue('main');
+
+        await page.locator(`${START_FORM} button[type="submit"]`).click();
+
+        await expect(page).toHaveURL(/\/reviews\/[0-9A-HJKMNP-TV-Z]{26}$/);
+        const reviewId = new URL(page.url()).pathname.split('/').at(-1) ?? '';
+        await expect(page.locator('[data-testid="review-id"]')).toHaveText(reviewId);
+        await expect(page.locator('[data-testid="agent-prompt"]')).toHaveText(`Work on Holistic Review ${reviewId}`);
+        expect(api.bodies('POST', '/api/v1/repositories/:repositoryId/reviews')).toEqual([{ ref: 'main', title: null }]);
+    });
+
+    test('The copy button shows Copied', async ({ page, api }) => {
+        const repositories = new FakeRepositories(api);
+        const review = repositories.addReview(repositories.addLocal('e2e-lifecycle'), { review: { title: 'Copy review' } });
+        // A Playwright context denies clipboard writes by default.
+        await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+        await page.goto(`/reviews/${review.id}`);
+        const copyButton = page.locator('[data-testid="review-id"] + * button');
+
+        await copyButton.click();
+
+        await expect(copyButton).toContainText('Copied');
+        expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(review.id);
+    });
+
+    test('Two open reviews of one repository are listed', async ({ page, api }) => {
+        const repositories = new FakeRepositories(api);
+        const repository = repositories.addLocal('e2e-lifecycle');
+        repositories.addReview(repository, { review: { title: 'First review' } });
+        repositories.addReview(repository, { review: { title: 'Second review' } });
+
+        await page.goto(`/repositories/${repository.id}`);
+
+        await expect(reviewTitles(page)).toHaveCount(2);
+        expect((await reviewTitles(page).allTextContents()).toSorted()).toEqual(['First review', 'Second review']);
+    });
+
+    test('After close, the review is hidden, shows with Show closed, and is read-only', async ({ page, api }) => {
+        const repositories = new FakeRepositories(api);
+        const repository = repositories.addLocal('e2e-lifecycle');
+        const review = repositories.addReview(repository, { review: { title: 'Closing review' } });
+        await page.goto(`/reviews/${review.id}`);
+
+        await closeButton(page).click();
+        await page.locator('[role="dialog"] textarea[name="note"]').fill('Shipped in 2.4');
+        await page.locator('[role="dialog"] button[type="submit"]').click();
+
+        await expect(page.locator('[data-testid="review-closed"]')).toContainText('Shipped in 2.4');
+        await expect(closeButton(page)).toHaveCount(0);
+        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/close')).toEqual([{ note: 'Shipped in 2.4' }]);
+
+        await page.locator(`header a[href="/repositories/${repository.id}"]`).click();
+        await expect(page.locator(REVIEW_LIST)).toContainText('This repository has no open reviews.');
+        await page.locator(`${REVIEW_LIST} input[type="checkbox"]`).click();
+
+        await expect(page.locator(`${REVIEW_LIST} table`)).toContainText('Closing review');
+        await expect(reviewTitles(page)).toHaveText(['Closing review']);
+        await expect(page.locator(`${REVIEW_LIST} table`)).toContainText('Closed');
+    });
+
+    test('An unknown review ID shows the route error, and the header stays', async ({ page, api }) => {
+        const unknown = newId();
+        for (const path of ['', '/drafts', '/viewed-files', '/tree']) {
+            api.on('GET', `/api/v1/reviews/:reviewId${path}`, () => apiError(404, 'not_found', `No review ${unknown} exists.`));
+        }
+
+        await page.goto(`/reviews/${unknown}`);
+
+        await expect(page.locator('main [data-testid="route-error"]')).toBeVisible();
+        await expect(page.locator('header [data-testid="current-user"]')).toHaveText('jan');
+    });
+});

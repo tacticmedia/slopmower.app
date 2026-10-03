@@ -24,7 +24,6 @@ trait RequestScreens
 
     private const string DETAIL = '[data-testid="request-detail"]';
     private const string DETAIL_STATUS = self::DETAIL.' header [data-testid="status-label"]';
-    private const string NOTE_DIALOG = '//div[@role="dialog"]';
 
     /**
      * An agent of the commenter with a token issued by T2's service.
@@ -66,16 +65,5 @@ trait RequestScreens
     private static function clickRequestButton(Client $client, string $label): void
     {
         $client->getWebDriver()->findElement(WebDriverBy::xpath("//*[@data-testid=\"request-actions\"]//button[normalize-space()=\"{$label}\"]"))->click();
-    }
-
-    /**
-     * Types the note into the open dialog and clicks its submit button.
-     */
-    private static function submitNoteDialog(Client $client, string $note, string $submitLabel): void
-    {
-        $textarea = self::NOTE_DIALOG.'//textarea';
-        $client->waitForVisibility($textarea);
-        $client->getWebDriver()->findElement(WebDriverBy::xpath($textarea))->sendKeys($note);
-        $client->getWebDriver()->findElement(WebDriverBy::xpath(self::NOTE_DIALOG."//button[normalize-space()=\"{$submitLabel}\"]"))->click();
     }
 }
