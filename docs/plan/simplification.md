@@ -25,7 +25,7 @@ Record a baseline before S01 and after every step: PHP and TS file count, lines 
 
 | # | Step | Status | Commit | Files / lines after |
 |---|---|---|---|---|
-| S00 | Baseline metrics | Not started | | |
+| S00 | Baseline metrics | Done 2026-10-03 | | src 406 PHP / 25954 lines, 406 types; tests 272 PHP / 23118 lines; assets 127 TS / 6511 lines; check 2m45s |
 | S01 | Dead code | Not started | | |
 | S02 | Inline single-consumer services | Not started | | |
 | S03 | One cursor helper, one UUID helper | Not started | | |
@@ -96,6 +96,41 @@ The guide lists 13 namespace cycles. Break each one that a move or an inversion 
 ### S14 Final
 
 Refresh `docs/developer-guide.md` (namespace map, flows, ledger with "done" marks), retire or update the architecture decision rows, run the `jk-docs-review` skill on the changed docs, and write the before-and-after metrics into this file.
+
+## Metrics
+
+Baseline (S00) on `main` at 4b5e79e: `make check` green in 2m45s with 1195 PHPUnit tests, 40 Vitest, 58 UI, and 8 E2E. File and line counts are of tracked files. Lines per namespace include the generated `src/Mcp/BundledSchemas.php` (2,472 lines).
+
+| Namespace | PHP files | Lines |
+|---|---|---|
+| `App` | 1 | 29 |
+| `App\Anchoring` | 4 | 479 |
+| `App\Application` | 52 | 3914 |
+| `App\Command` | 4 | 357 |
+| `App\Controller` | 52 | 2265 |
+| `App\Docs` | 2 | 119 |
+| `App\Doctrine` | 9 | 360 |
+| `App\Domain` | 113 | 4322 |
+| `App\Entity` | 18 | 2265 |
+| `App\EventStore` | 4 | 348 |
+| `App\Git` | 15 | 1215 |
+| `App\GitHub` | 9 | 529 |
+| `App\Http` | 6 | 341 |
+| `App\Index` | 7 | 531 |
+| `App\Live` | 4 | 135 |
+| `App\Mcp` | 16 | 3384 |
+| `App\Message` | 13 | 286 |
+| `App\MessageHandler` | 2 | 243 |
+| `App\Messenger` | 2 | 89 |
+| `App\Projection` | 3 | 238 |
+| `App\Repository` | 19 | 1283 |
+| `App\Security` | 15 | 670 |
+| `App\Serializer` | 17 | 1151 |
+| `App\Source` | 6 | 291 |
+| `App\Tenancy` | 7 | 290 |
+| `App\Webhook` | 6 | 820 |
+| UI tests `tests/ui` | 41 TS | 2801 |
+| Front-end unit tests `assets/**/*.test.ts` | 19 TS | 1006 |
 
 ## Done
 
