@@ -126,7 +126,7 @@ Status values: "Not started", "In progress", "Blocked", "Done (awaiting commit)"
 | M33 | [GitHub App repositories](M33-github-app-repositories.md) | Done | 2026-10-02 | [Report](reports/M33.md) |
 | M34 | [GitHub webhooks](M34-github-webhooks.md) | Done | 2026-10-03 | [Report](reports/M34.md) |
 | M34b | [Mocked UI suite](M34b-mocked-ui-suite.md) | Done | 2026-10-03 | [Report](reports/M34b.md) |
-| M34c | [Full-stack suite on Playwright](M34c-full-stack-suite-on-playwright.md) | Not started | | |
+| M34c | [Full-stack suite on Playwright](M34c-full-stack-suite-on-playwright.md) | In progress | 2026-10-03 | |
 | M35 | [Isolation audit and acceptance](M35-isolation-audit-and-acceptance.md) | Not started | | |
 
 ## Order
@@ -155,7 +155,8 @@ PHP, Composer, the console, and PHPUnit run in the `php` container. `make` wraps
 | `make cs-fix` | `vendor/bin/php-cs-fixer fix` |
 | `make lint` | `lint:container`, `lint:yaml config`, `lint:twig templates`, `doctrine:schema:validate --env=test` |
 | `make front` | `npm run typecheck && npm test` on the host when `package.json` exists |
-| `make check` | `cs`, `stan`, `lint`, `test`, `front`, `e2e` |
+| `make ui` | On the host when `package.json` exists: `npx playwright install chromium` (returns at once when the browser is present), then `npm run test:ui`: Playwright against the mocked API, on `UI_PORT` |
+| `make check` | `cs`, `stan`, `lint`, `test`, `front`, `ui`, `e2e` |
 
 For verbose PHPUnit output, use `--debug`. Never use `-v` or `--verbose`. Example: `docker compose exec php bin/phpunit --debug --filter StartReviewTest`.
 
@@ -173,6 +174,7 @@ For verbose PHPUnit output, use `--debug`. Never use `-v` or `--verbose`. Exampl
 | Variable | Set in | Meaning |
 |---|---|---|
 | `HTTP_PORT`, `DATABASE_PORT` | `.env.make.local` (git-ignored), read by the `Makefile` | Host ports of `php` and `database`. Default 8000 and 5432. A second checkout, for example a git worktree, sets its own ports. Each line needs `export`, for example `export HTTP_PORT=8101`, or make does not pass it to compose. |
+| `UI_PORT` | `.env.make.local`, read by Playwright | Port of the `vite preview` server of the UI suite. Default 4173. A second checkout sets its own, for example `export UI_PORT=4101`. |
 | `LOCAL_REPOSITORIES_HOST_DIR` | Host shell | Host directory that compose mounts read-only at `/repositories`. Default `./var/local-repositories`. |
 | `APP_LOCAL_REPOSITORIES_DIR` | `.env` files | Empty in `.env`, which means that local repositories are off. `/repositories` in `.env.dev`, `var/test/local-repositories` in `.env.test` and `.env.e2e`. It is an instance feature: every tenant of the instance may connect the repositories under it. |
 | `APP_LOCAL_SIGN_IN` | Host shell, passed through compose | Login of the one local user. Honoured only when `APP_ENV=dev`. |
@@ -249,7 +251,7 @@ make up
 
 ## Test conventions
 
-Suite markers: **U** unit, **F** functional, **E** Panther E2E, **V** Vitest.
+Suite markers: **U** unit, **F** functional, **E** full-stack E2E, **V** Vitest, **UI** Playwright against the mocked API.
 
 - Unit tests live in `tests/Unit`. They extend `KernelTestCase` and never boot the kernel.
 - Functional tests live in `tests/Functional`. They extend `KernelTestCase` or `WebTestCase`. They run against real PostgreSQL in `app_test` and real git in temporary directories under `var/test/`. They use the `ResetDatabase` and `TemporaryDirectories` traits.
@@ -259,11 +261,18 @@ Suite markers: **U** unit, **F** functional, **E** Panther E2E, **V** Vitest.
   - The code view uses open shadow roots. Use the `ShadowDom` helpers.
   - Wait for conditions. Never sleep.
 - Vitest tests cover pure TypeScript only. They live in `*.test.ts` files next to the code.
+- UI tests live in `tests/ui/*.spec.ts`. Playwright Test runs them against the SPA that `tests/ui/vite.config.ts` builds, with no PHP, database, or git. Each spec has one `test.describe`, and each title is one short sentence about behaviour.
+  - Import `test` and `expect` from `tests/ui/support/test.ts`. Its `api` fixture answers `/api/v1/**` and `POST /logout` through one `page.route` dispatcher. Register routes, or the fakes `FakeReview`, `FakeRepositories`, and `FakeTokens`, before `page.goto()`. The fakes follow the docs/specs rules: statuses, refusals, and the `awaiting` rules of architecture section 6.
+  - Bodies come from `tests/ui/support/builders.ts`, which starts from `docs/specs/fixtures/` and uses the types of `assets/api/types/`. `json()` validates each body against `docs/specs/schemas/`.
+  - A request without a route, a write without the double-submit CSRF proof, a body that does not validate, or an uncaught page error fails the test.
+  - Assert a server-side effect through the request that the page sent: `api.bodies()` or `api.callsTo()`.
+  - Live updates: wait for `[data-live="connected"]`, then call `live.push()`. It delivers the update to the fake `EventSource` on its docs/specs topic.
+  - CSS and text locators pierce the open shadow roots of the code view. XPath does not. Use the gesture helpers of `tests/ui/support/codeView.ts`.
 - Every test method has `#[TestDox]`: one short sentence about behaviour.
 - Never mock the container. No `getContainer()->set()`, no service replacement.
   - GitHub HTTP goes through the `github.client` scoped client, mocked in `test` with responses in `tests/Fixtures/github/`. The global HTTP client is not mocked, so Mercure publishes are not caught.
   - Time goes through `ClockSensitiveTrait`.
-- Test every feature the way a caller uses it: HTTP for controllers, a service call for services, JSON-RPC for MCP, a browser for JavaScript behaviour.
+- Test every feature the way a caller uses it: HTTP for controllers, a service call for services, JSON-RPC for MCP, a Playwright UI test for JavaScript behaviour, and an E2E test for a flow across the browser, PHP, and the database.
 - Tests validate every REST response and every MCP `structuredContent` against the docs/specs schemas, through the `JsonApiAssertions` trait.
 - Every new `/api/v1` route and every new MCP tool gets a cross-tenant case. The inventory tests fail otherwise.
 - Do not test behaviour that the framework guarantees. Test our code and how it uses the framework.
@@ -279,7 +288,7 @@ Every milestone:
    - `lint:container`, `lint:yaml`, `lint:twig`;
    - `doctrine:schema:validate`;
    - the unit and functional suites;
-   - `tsc` in strict mode and Vitest, from M17 on;
+   - `tsc` in strict mode, Vitest, and the UI suite, from M17 on;
    - the E2E suite.
 3. Schema changes have generated migrations, applied to the dev and test databases.
 4. Responses validate against docs/specs, and every new route and tool has a cross-tenant case.
@@ -344,6 +353,7 @@ Checked on 2026-09-29.
 | `@pierre/diffs` | 1.5.1, exact pin, Apache-2.0 | https://www.npmjs.com/package/@pierre/diffs |
 | `@primer/react`, `@primer/primitives`, `@primer/octicons-react`, `@primer/css` | 38.40.0, 11.10.0, 19.38.0, 22.3.2 | https://www.npmjs.com/package/@primer/react |
 | `react-markdown`, `remark-gfm`, `vitest` | 10.1.0, 4.0.1, 5.0.2 | https://www.npmjs.com/package/react-markdown |
+| `@playwright/test`, `ajv`, `ajv-formats`, `@types/node` | 1.63.0, 8.20.0, 3.0.1, 24.19.1 | https://www.npmjs.com/package/@playwright/test |
 
 ## Known gotchas
 
@@ -389,6 +399,13 @@ Checked on 2026-09-29.
 - PHPStan reports `Kernel::getAllowedEnvs()` as unused. This is a false positive: `KernelTrait` calls it through `MicroKernelTrait`. Ignore it by the identifier `method.unused`.
 - `tests/bootstrap.php` has a `method_exists()` check that is always true. Fix the code. Do not ignore the error.
 - phpstan-doctrine needs `objectManagerLoader`: `tests/object-manager.php`.
+
+### Mocked UI suite
+
+- The code view turns off pointer events on its rows during a scroll and for 120 ms after it. A press right after a scroll lands on the container: `dragFromPlus()` waits until the "+" receives the pointer.
+- A Playwright context denies clipboard writes. A test of a copy button grants `clipboard-read` and `clipboard-write`.
+- `page.route` cannot stream a response, so `EventSource` is replaced by `addInitScript`.
+- `context.route` also intercepts the imports of the `@pierre/diffs` worker. `page.route` is enough for `/api/v1`.
 
 ### Test environments and front-end builds
 
