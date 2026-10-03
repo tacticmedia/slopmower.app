@@ -1,0 +1,137 @@
+# Holistic Review
+
+Holistic Review lets you review a full codebase at one commit, not only a diff. You read the code in a view that works like a GitHub pull request review, and you comment on lines, line ranges, symbols, or files. Each comment is a change request. Your coding agent, for example Claude Code, reads the requests over MCP, asks questions, makes the changes, and links its commits. You then verify or reopen each request.
+
+This page tells you how to run Holistic Review on your computer and how to run the checks. The user documentation is in [docs/user/](docs/user/index.md). The developer documentation starts at [docs/plan/README.md](docs/plan/README.md).
+
+## What to install
+
+- Docker Desktop with Docker Compose v2 or later: the `docker compose` command.
+- `git` and `make`.
+- Node.js 24 with npm. npm and the Vite dev server run on the host. PHP, Composer, and PostgreSQL run in containers.
+- Optional: Claude Code or another agent that can use an HTTP MCP server.
+
+## Start Holistic Review
+
+1. Clone the repository and open a terminal in it:
+
+   ```sh
+   git clone <repository URL> holistic-review
+   cd holistic-review
+   ```
+
+2. Set the directory that holds your git repositories, as an absolute path, and the name of your local user:
+
+   ```sh
+   export LOCAL_REPOSITORIES_HOST_DIR="$HOME/dev"
+   export APP_LOCAL_SIGN_IN=jan
+   ```
+
+   Compose reads both variables at each `make up`. To keep them, put them into `.env.make.local`. See [Port overrides and saved variables](#port-overrides-and-saved-variables).
+
+3. Start the containers `php`, `worker`, and `database`:
+
+   ```sh
+   make up
+   ```
+
+   The first run builds the image and installs the Composer packages, so it takes longer. The `php` container migrates the database when it starts.
+
+4. Build the web interface:
+
+   ```sh
+   npm ci
+   npm run build
+   ```
+
+   For hot reload, keep `npm run dev` running instead of `npm run build`.
+
+5. Open http://localhost:8000 and click **Sign in as jan**. The button shows the name from `APP_LOCAL_SIGN_IN`. The first sign-in creates your local account.
+
+To stop Holistic Review, run `make down`. The database and the clones stay in Docker volumes.
+
+[Run it locally](docs/user/local-run.md) has the details: how Holistic Review reads the repository directory, when it fetches new commits, and the limits of local sign-in.
+
+## Review a local repository
+
+1. Open **Repositories**. The **Local directories** table lists the git repositories directly under `LOCAL_REPOSITORIES_HOST_DIR`.
+2. Click **Connect** next to a repository.
+3. When the status under **Connected repositories** is **Ready**, click the repository name.
+4. Under **Start a review**, keep the default branch in **Ref**, or type a branch, tag, or commit SHA. Click **Start review**. The file tree opens.
+
+[Reviewing](docs/user/reviewing.md) tells you how to comment, verify, reopen, and close.
+
+## Connect your agent
+
+Follow [Connect your agent](docs/user/connect-your-agent.md): create a token in **Settings**, put it into `HOLISTIC_REVIEW_TOKEN`, add `.mcp.json` to the repository that you review, and install the skill. For a local run, use these URLs:
+
+- MCP server: `http://localhost:8000/_mcp`
+- Skill: `http://localhost:8000/docs/skill/SKILL.md`
+
+Then click **Copy prompt** in the review header and paste the prompt into the agent.
+
+## Run the checks
+
+The stack must be running. Before the first run, and after each new migration, create and migrate the test databases `app_test` and `app_e2e`:
+
+```sh
+make db-test
+```
+
+Run every gate:
+
+```sh
+make check
+```
+
+`make check` runs these targets in order. You can run each one alone:
+
+| Target | Runs |
+|---|---|
+| `make cs` | php-cs-fixer, dry run. `make cs-fix` applies the fixes. |
+| `make stan` | PHPStan level 8 |
+| `make lint` | `lint:container`, `lint:yaml config`, `lint:twig templates`, `doctrine:schema:validate` |
+| `make test` | PHPUnit unit and functional suites. Builds `public/build-e2e` first when it is missing. |
+| `make front` | `tsc` and Vitest, on the host |
+| `make ui` | Playwright UI suite against a mocked API, on the host, port `UI_PORT`, default 4173 |
+| `make e2e` | Full-stack suite: Playwright in the `php` container against the e2e site on port 8081 inside the container |
+
+One test: `docker compose exec php bin/phpunit --filter StartReviewTest`. Add `--debug` for more output. `make help` lists all targets.
+
+No CI runs these gates yet. See [Quality-assurance pipeline](docs/backlog/qa-pipeline.md).
+
+## Port overrides and saved variables
+
+The `Makefile` reads the git-ignored file `.env.make.local`. Each line needs `export`, or make does not pass the variable to Docker Compose. Example:
+
+```make
+export HTTP_PORT=8001
+export DATABASE_PORT=5433
+export UI_PORT=4174
+export LOCAL_REPOSITORIES_HOST_DIR=$(HOME)/dev
+export APP_LOCAL_SIGN_IN=jan
+```
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `HTTP_PORT` | 8000 | Host port of the app, the MCP server, and the Mercure hub |
+| `DATABASE_PORT` | 5432 | Host port of PostgreSQL |
+| `UI_PORT` | 4173 | Port of the preview server of `make ui` |
+| `LOCAL_REPOSITORIES_HOST_DIR` | `./var/local-repositories` | Host directory that Docker mounts read-only at `/repositories` |
+| `APP_LOCAL_SIGN_IN` | empty | Login of the local user. Empty means no local sign-in. |
+
+The file uses make syntax: write `$(HOME)`, not `$HOME`, and no quotes. With another `HTTP_PORT`, use that port in the URLs above and in `.mcp.json`. Start and stop the stack only with `make up` and `make down`. A plain `docker compose up` does not read `.env.make.local`.
+
+## Common problems
+
+| Problem | Cause and fix |
+|---|---|
+| `make up` fails with a port error for 8000 or 5432 | Another program or another stack uses the port. Set `HTTP_PORT` or `DATABASE_PORT` in `.env.make.local`, then run `make up` again. |
+| A page answers 500: "Could not find the entrypoints file `/app/public/build/entrypoints.json`. Did the assets get built?" | The web interface is not built. Run `npm ci` and `npm run build`, or keep `npm run dev` running. |
+| A page is blank after you stopped `npm run dev` | `public/build/entrypoints.json` still points to the dev server. Run `npm run build`, then restart the FrankenPHP workers as the next row shows. |
+| A page loads the old scripts after `npm run build` or `npm run dev` | The FrankenPHP worker keeps the parsed `entrypoints.json` in memory and can miss a new one. Restart the FrankenPHP workers: `docker compose exec php curl -fsS -X POST http://localhost:2019/frankenphp/workers/restart` |
+| Clones, fetches, or the symbol index use old PHP code | The Messenger worker does not restart by itself. Run `make worker-restart` after a PHP change that a background job uses. The FrankenPHP worker that serves the web requests restarts by itself when a file under `src/`, `config/`, or `templates/` changes. |
+| **Local directories** says "The local repositories directory contains no git repository." | `LOCAL_REPOSITORIES_HOST_DIR` was not set at the last `make up`, so Docker mounted `./var/local-repositories`. Or the directory has no git repository as a direct child. Set the variable and run `make up` again. |
+| The sign-in page says "No sign-in method is configured." | `APP_LOCAL_SIGN_IN` was not set at the last `make up`. Set it and run `make up` again. |
+
+For more, read `var/log/dev.log` and the web profiler at http://localhost:8000/_profiler.
