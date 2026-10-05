@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Unit\Domain\Anchoring;
+namespace App\Tests\Unit\Domain\Matching;
 
 use App\Domain\Anchor\ContentSnapshot;
 use App\Domain\Anchor\LineRange;
 use App\Domain\Anchor\SnapshotCapture;
-use App\Domain\Anchoring\BestWindow;
-use App\Domain\Anchoring\FuzzyMatch;
+use App\Domain\Matching\BestWindow;
+use App\Domain\Matching\FuzzyMatch;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 

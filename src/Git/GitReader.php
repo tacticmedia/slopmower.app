@@ -299,7 +299,7 @@ final class GitReader implements ResetInterface
     }
 
     /**
-     * The `--unified=0` diff of two blobs, one file section that {@see \App\Domain\Anchoring\UnifiedZeroDiffParser}
+     * The `--unified=0` diff of two blobs, one file section that {@see \App\Domain\Matching\UnifiedZeroDiffParser}
      * reads. Pathspecs would also match the files of a directory that took the name of the file.
      *
      * @throws GitFailed

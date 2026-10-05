@@ -30,8 +30,8 @@ Record a baseline before S01 and after every step: PHP and TS file count, lines 
 | S02 | Inline single-consumer services | Done 2026-10-05, [report](reports/S02.md) | 12a3b3f | src 399 PHP / 25553 lines, 399 types; tests 269 PHP / 22963 lines; assets 128 TS / 6484 lines; check 2m29s |
 | S03 | One cursor helper, one UUID helper | Done 2026-10-05, [report](reports/S03.md) | bb23600 | src 399 PHP / 25438 lines, 399 types; tests 269 PHP / 22957 lines; assets 128 TS / 6484 lines; check 2m26s |
 | S04 | One DBAL type per typed ID | Not started | | |
-| S05 | Split `FetchRepository`, handlers in one place | Done 2026-10-05, [report](reports/S05.md) | | src 399 PHP / 25399 lines, 399 types; tests 268 PHP / 22945 lines; assets 128 TS / 6484 lines |
-| S06 | One `Anchoring` namespace | Not started | | |
+| S05 | Split `FetchRepository`, handlers in one place | Done 2026-10-05, [report](reports/S05.md) | 9a68a77 | src 399 PHP / 25399 lines, 399 types; tests 268 PHP / 22945 lines; assets 128 TS / 6484 lines; check 2m26s |
+| S06 | One `Anchoring` namespace | Done 2026-10-05, [report](reports/S06.md) | | src 399 PHP / 25399 lines, 399 types; tests 268 PHP / 22945 lines; assets 128 TS / 6484 lines |
 | S07 | Collapse layers around commands | Not started | | |
 | S08 | One serialization path | Not started | | |
 | S09 | MCP tools as thin delegations | Not started | | |

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Unit\Domain\Anchoring;
+namespace App\Tests\Unit\Domain\Matching;
 
 use App\Domain\Anchor\LineRange;
-use App\Domain\Anchoring\Hunk;
-use App\Domain\Anchoring\MappedRange;
-use App\Domain\Anchoring\RangeMapper;
+use App\Domain\Matching\Hunk;
+use App\Domain\Matching\MappedRange;
+use App\Domain\Matching\RangeMapper;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 

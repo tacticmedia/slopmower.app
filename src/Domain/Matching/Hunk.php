@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Domain\Anchoring;
+namespace App\Domain\Matching;
 
 /**
  * A `git diff --unified=0` hunk. A side with a count of 0 starts at the line before the change.

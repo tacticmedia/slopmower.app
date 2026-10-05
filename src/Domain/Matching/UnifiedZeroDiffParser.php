@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Domain\Anchoring;
+namespace App\Domain\Matching;
 
 final class UnifiedZeroDiffParser
 {
