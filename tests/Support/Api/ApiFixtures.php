@@ -58,7 +58,7 @@ trait ApiFixtures
     }
 
     /**
-     * An API token of the user, created without the issuer, so a test can store any expiry. Clears the entity manager.
+     * An API token of the user, created without T2, so a test can store any expiry. Clears the entity manager.
      *
      * @return array{ApiToken, string} The token and its secret
      */

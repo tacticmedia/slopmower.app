@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace App\Tests\Support\Source;
 
-use App\Application\ConnectLocalRepository;
 use App\Application\FetchRepository;
 use App\Domain\Identity\RepositoryId;
+use App\Domain\Repository\RepositoryName;
 use App\Entity\Repository;
 use App\Git\GitRunner;
 use App\Git\TenantDataPaths;
 use App\Repository\RepositoryRepository;
+use App\Tenancy\TenantContext;
 use App\Tests\Support\Git\GitRepositoryBuilder;
+use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\NullLogger;
+use Symfony\Component\Clock\Clock;
 
 /**
  * Local sources and server clones in temporary directories, for KernelTestCase tests that use EnvironmentVariables and
@@ -43,9 +46,19 @@ trait LocalSources
         return $source;
     }
 
+    /**
+     * A `cloning` repository row of the current tenant with its clone job queued, as R3 leaves it.
+     */
     private static function connect(string $directory = 'billing'): Repository
     {
-        return self::getContainer()->get(ConnectLocalRepository::class)->connect($directory)->repository;
+        $container = self::getContainer();
+        $repository = Repository::local($container->get(TenantContext::class)->get(), RepositoryName::local($directory), $directory, Clock::get()->now());
+        $entityManager = $container->get(EntityManagerInterface::class);
+        $entityManager->persist($repository);
+        $entityManager->flush();
+        self::fetchRepository()->queueClone($repository);
+
+        return $repository;
     }
 
     private static function fetchRepository(): FetchRepository

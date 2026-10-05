@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Application\Query;
 
 use App\Anchoring\Locator;
-use App\Application\CommitAvailability;
 use App\Application\FetchRepository;
 use App\Domain\Actor\Actor;
 use App\Domain\Error\CommitNotFound;
@@ -29,6 +28,7 @@ use App\Entity\ChangeRequest;
 use App\Entity\Comment;
 use App\Entity\CommitLink;
 use App\Entity\Review;
+use App\Git\GitReader;
 use App\Http\Cursor;
 use App\Projection\RequestStateMapper;
 use Doctrine\DBAL\ArrayParameterType;
@@ -59,8 +59,8 @@ final class RequestQuery
         private readonly EntityManagerInterface $entityManager,
         private readonly ThreadQuery $threads,
         private readonly Locator $locator,
-        private readonly CommitAvailability $commits,
         private readonly FetchRepository $fetchRepository,
+        private readonly GitReader $reader,
     ) {
     }
 
@@ -225,7 +225,16 @@ final class RequestQuery
         $repositoryId = $request->getReview()->getRepository()->getId();
 
         if (null !== $at) {
-            return [LocationTarget::Requested, $this->commits->ensureAvailable($repositoryId, $at, 'at') ?? throw new CommitNotFound($at->toString())];
+            $gitDir = $this->fetchRepository->readyClonePath($repositoryId);
+
+            try {
+                return [LocationTarget::Requested, $this->reader->resolvePrefix($gitDir, $at, 'at')];
+            } catch (CommitNotFound) {
+                // D24: a commit missing from the server clone gets one synchronous fetch.
+                $this->fetchRepository->fetchNow($repositoryId);
+
+                return [LocationTarget::Requested, $this->reader->resolvePrefix($gitDir, $at, 'at')];
+            }
         }
 
         try {

@@ -23,7 +23,7 @@ final class TenantIsolatedClonePathTest extends KernelTestCase
     use ReviewDataFixtures;
     use TemporaryDirectories;
 
-    #[TestDox('Two tenants that connect one directory get two clones')]
+    #[TestDox('Repositories of two tenants on one directory clone to two tenant paths')]
     public function testTwoTenantsGetTwoClones(): void
     {
         $this->useTemporaryLocalSources();
@@ -32,7 +32,6 @@ final class TenantIsolatedClonePathTest extends KernelTestCase
         $first = $this->connectAndCloneAs('ann');
         $second = $this->connectAndCloneAs('bob');
 
-        self::assertFalse($first->getId()->equals($second->getId()));
         self::assertNotSame(self::clonePath($first), self::clonePath($second));
         self::assertSame("{$head}\n", self::cloneGit($first, 'rev-parse', 'refs/heads/main'));
         self::assertSame("{$head}\n", self::cloneGit($second, 'rev-parse', 'refs/heads/main'));

@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
+use App\Application\ConnectedRepository;
 use App\Application\ConnectGitHubRepository;
-use App\Application\ConnectLocalRepository;
 use App\Application\FetchRepository;
 use App\Application\Query\RepositoryQuery;
 use App\Controller\Api\Input\ConfirmQuery;
 use App\Controller\Api\Input\ConnectRepositoryInput;
 use App\Controller\Api\Input\RepositoryListQuery;
 use App\Domain\Error\InvalidInput;
+use App\Domain\Error\NotFound;
+use App\Domain\Repository\RepositoryName;
 use App\Domain\Repository\RepositorySource;
 use App\Entity\Repository;
 use App\Entity\User;
@@ -20,13 +22,19 @@ use App\Live\LivePublisher;
 use App\Live\LiveTopics;
 use App\Message\DeleteCloneJob;
 use App\Repository\DeletionSql;
+use App\Repository\RepositoryRepository;
 use App\Security\CurrentActor;
+use App\Source\LocalRepositoryDiscovery;
+use App\Tenancy\TenantContext;
+use Doctrine\ORM\EntityManagerInterface;
+use Psr\Clock\ClockInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -37,8 +45,16 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[Route('/api/v1/repositories', name: 'api_repository_')]
 final class RepositoryController extends AbstractController
 {
-    public function __construct(private readonly RepositoryQuery $repositories)
-    {
+    public function __construct(
+        private readonly RepositoryQuery $repositories,
+        private readonly RepositoryRepository $repositoryRows,
+        private readonly LocalRepositoryDiscovery $discovery,
+        private readonly FetchRepository $fetchRepository,
+        private readonly EntityManagerInterface $entityManager,
+        private readonly TenantContext $tenantContext,
+        private readonly LockFactory $lockFactory,
+        private readonly ClockInterface $clock,
+    ) {
     }
 
     #[Route('', name: 'list', methods: ['GET'])]
@@ -53,12 +69,11 @@ final class RepositoryController extends AbstractController
     #[IsGranted(User::ROLE, message: CurrentActor::SESSION_ONLY)]
     public function connect(
         #[MapRequestPayload(acceptFormat: 'json')] ConnectRepositoryInput $input,
-        ConnectLocalRepository $connectLocalRepository,
         ConnectGitHubRepository $connectGitHubRepository,
     ): JsonResponse {
         $connected = RepositorySource::Github === $input->source
             ? $connectGitHubRepository->connect($input->githubRepositoryId ?? throw new \LogicException('The input validation requires the ID.'))
-            : $connectLocalRepository->connect($input->directory ?? throw new \LogicException('The input validation requires the directory.'));
+            : $this->connectLocal($input->directory ?? throw new \LogicException('The input validation requires the directory.'));
         $id = $connected->repository->getId();
         $view = $this->repositories->get($id);
 
@@ -102,10 +117,48 @@ final class RepositoryController extends AbstractController
     }
 
     #[Route('/{repositoryId}/fetch', name: 'fetch', methods: ['POST'])]
-    public function fetch(#[MapEntity(id: 'repositoryId')] Repository $repository, FetchRepository $fetchRepository): JsonResponse
+    public function fetch(#[MapEntity(id: 'repositoryId')] Repository $repository): JsonResponse
     {
-        $fetchRepository->request($repository->getId());
+        $this->fetchRepository->request($repository->getId());
 
         return $this->json($this->repositories->get($repository->getId()), Response::HTTP_ACCEPTED);
+    }
+
+    /**
+     * A new repository is `cloning`, and its clone job is queued after the row commits.
+     *
+     * @throws InvalidInput Local repositories are off, or the name is not a direct child name
+     * @throws NotFound     The directory is not a local candidate
+     */
+    private function connectLocal(string $directory): ConnectedRepository
+    {
+        if (!$this->discovery->isEnabled()) {
+            throw InvalidInput::field('source', 'Local repositories are off on this instance.');
+        }
+
+        $name = RepositoryName::local($directory, 'directory');
+        $this->discovery->find($directory) ?? throw new NotFound('The directory is not a local repository candidate.');
+        $tenantId = $this->tenantContext->get();
+        // A second concurrent connect waits, then finds the row, instead of failing on the unique index.
+        $lock = $this->lockFactory->createLock("connect-local:{$tenantId}:{$directory}", ttl: null);
+        $lock->acquire(true);
+
+        try {
+            $existing = $this->repositoryRows->findLocal($directory);
+
+            if (null !== $existing) {
+                return new ConnectedRepository($existing, false);
+            }
+
+            $repository = Repository::local($tenantId, $name, $directory, $this->clock->now());
+            $this->entityManager->persist($repository);
+            $this->entityManager->flush();
+        } finally {
+            $lock->release();
+        }
+
+        $this->fetchRepository->queueClone($repository);
+
+        return new ConnectedRepository($repository, true);
     }
 }

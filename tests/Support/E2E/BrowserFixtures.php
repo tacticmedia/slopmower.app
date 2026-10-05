@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Support\E2E;
 
-use App\Application\ConnectLocalRepository;
+use App\Application\FetchRepository;
 use App\Application\ReviewCommands;
 use App\Domain\Actor\Actor;
 use App\Domain\Git\RefName;
 use App\Domain\Identity\ReviewId;
+use App\Domain\Repository\RepositoryName;
 use App\Entity\Repository;
 use App\Entity\User;
 use App\Tenancy\TenantContext;
@@ -16,7 +17,9 @@ use App\Tests\Support\Fixtures\TenantFixtures;
 use App\Tests\Support\Git\FixtureRepositories;
 use App\Tests\Support\Git\GitRepositoryBuilder;
 use App\Tests\Support\Messenger\QueuedMessages;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\After;
+use Symfony\Component\Clock\Clock;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 
@@ -73,12 +76,17 @@ trait BrowserFixtures
     }
 
     /**
-     * Connects the source with R3's service and runs the clone job.
+     * A repository row of the source, as R3 writes it, after its clone job ran.
      */
     private static function connectedRepository(User $user, string $directory): Repository
     {
-        self::getContainer()->get(TenantContext::class)->set($user->getTenantId());
-        $repository = self::getContainer()->get(ConnectLocalRepository::class)->connect($directory)->repository;
+        $container = self::getContainer();
+        $container->get(TenantContext::class)->set($user->getTenantId());
+        $repository = Repository::local($user->getTenantId(), RepositoryName::local($directory), $directory, Clock::get()->now());
+        $entityManager = $container->get(EntityManagerInterface::class);
+        $entityManager->persist($repository);
+        $entityManager->flush();
+        $container->get(FetchRepository::class)->queueClone($repository);
         self::runQueuedMessages();
 
         return $repository;

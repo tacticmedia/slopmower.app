@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Tests\Support\E2E;
 
-use App\Application\ApiTokenIssuer;
+use App\Domain\ApiToken\ApiTokenSecret;
+use App\Entity\ApiToken;
 use App\Entity\User;
 use App\Tenancy\TenantContext;
 use App\Tests\Support\Mcp\McpAssertions;
 use App\Tests\Support\Mcp\McpTestClient;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Clock\Clock;
 use Symfony\Component\Uid\Ulid;
 
 /**
@@ -24,16 +26,20 @@ trait RequestScreens
     private const string DETAIL_STATUS = self::DETAIL.' header [data-testid="status-label"]';
 
     /**
-     * An agent of the commenter with a token issued by T2's service.
+     * An agent of the commenter with a token that never expires.
      */
     private function agent(string $name = 'claude-code laptop'): McpTestClient
     {
         $container = self::getContainer();
         $container->get(TenantContext::class)->set($this->commenter->getTenantId());
-        $owner = $container->get(EntityManagerInterface::class)->find(User::class, Ulid::fromString($this->commenter->getId()->toString()));
+        $entityManager = $container->get(EntityManagerInterface::class);
+        $owner = $entityManager->find(User::class, Ulid::fromString($this->commenter->getId()->toString()));
         self::assertInstanceOf(User::class, $owner);
+        $secret = ApiTokenSecret::generate();
+        $entityManager->persist(new ApiToken($owner, $name, null, $secret, Clock::get()->now(), null));
+        $entityManager->flush();
 
-        return McpHttpClient::connect($container->get(ApiTokenIssuer::class)->issue($owner, $name, null, null)->secret->value);
+        return McpHttpClient::connect($secret->value);
     }
 
     /**

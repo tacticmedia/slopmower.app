@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Anchoring;
 
+use App\Application\Event\RepositoryFetched;
+use App\Domain\Git\CommitSha;
 use App\Domain\Identity\RepositoryId;
 use App\Entity\User;
 use App\Tenancy\TenantContext;
@@ -97,14 +99,53 @@ final class GetRequestAtTest extends WebTestCase
         self::assertSame(1, $fetches());
     }
 
-    #[TestDox('An ambiguous prefix gives invalid_input on at')]
+    #[TestDox('A commit missing from the clone gets one fetch, which dispatches RepositoryFetched with both heads')]
+    public function testMissingCommitGetsOneFetch(): void
+    {
+        $previousHead = $this->source->revParse('main');
+        $later = $this->source->commit(['later.txt' => "Later\n"]);
+        $this->client->disableReboot();
+        $fetches = [];
+        self::getContainer()->get('event_dispatcher')->addListener(RepositoryFetched::class, static function (RepositoryFetched $event) use (&$fetches): void {
+            $fetches[] = $event;
+        });
+
+        $location = $this->readWithQuery($this->requestId, "at={$later}")['location'];
+
+        self::assertIsArray($location);
+        self::assertSame($later, $location['targetSha']);
+        self::assertEquals(
+            [new RepositoryFetched($this->user->getTenantId(), RepositoryId::fromString($this->repositoryId), CommitSha::fromString($previousHead), CommitSha::fromString($later))],
+            $fetches,
+        );
+    }
+
+    #[TestDox('A prefix of a commit in the clone resolves to the full SHA without a fetch')]
+    public function testPrefixInTheCloneResolvesWithoutFetch(): void
+    {
+        $head = $this->source->revParse('main');
+        $fetches = self::countFetches($this->client);
+
+        $location = $this->readWithQuery($this->requestId, 'at='.substr($head, 0, 7))['location'];
+
+        self::assertIsArray($location);
+        self::assertSame($head, $location['targetSha']);
+        self::assertSame(0, $fetches());
+    }
+
+    #[TestDox('An ambiguous prefix gives invalid_input on at, with no fetch once the clone has both commits')]
     public function testAmbiguousPrefixGivesInvalidInput(): void
     {
         $this->source->branchCommitsWithAmbiguousPrefix();
+        $fetches = self::countFetches($this->client);
+        $uri = "/api/v1/requests/{$this->requestId}?at=".GitRepositoryBuilder::AMBIGUOUS_PREFIX;
 
-        $error = self::assertApiError(self::apiRequest($this->client, 'GET', "/api/v1/requests/{$this->requestId}?at=".GitRepositoryBuilder::AMBIGUOUS_PREFIX), 422, 'invalid_input');
+        $afterFetch = self::assertApiError(self::apiRequest($this->client, 'GET', $uri), 422, 'invalid_input');
+        $inClone = self::assertApiError(self::apiRequest($this->client, 'GET', $uri), 422, 'invalid_input');
 
-        self::assertSame(['at'], array_column((array) ($error['details']['violations'] ?? []), 'field'));
+        self::assertSame(['at'], array_column((array) ($afterFetch['details']['violations'] ?? []), 'field'));
+        self::assertSame(['at'], array_column((array) ($inClone['details']['violations'] ?? []), 'field'));
+        self::assertSame(1, $fetches());
     }
 
     #[TestDox('context returns an excerpt of at most 400 lines')]

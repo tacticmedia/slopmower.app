@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Source;
 
-use App\Application\ConnectLocalRepository;
 use App\Domain\Git\CommitSha;
 use App\Domain\Repository\SyncState;
-use App\Message\CloneRepositoryJob;
 use App\Repository\RepositoryRepository;
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Environment\EnvironmentVariables;
@@ -18,7 +16,6 @@ use App\Tests\Support\Source\LocalSources;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Filesystem\Filesystem;
-use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Event\SendMessageToTransportsEvent;
 
 final class ConnectLocalRepositoryTest extends KernelTestCase
@@ -39,18 +36,12 @@ final class ConnectLocalRepositoryTest extends KernelTestCase
         $this->useTemporaryLocalSources();
     }
 
-    #[TestDox('Creates the row and the clone at the ID path')]
-    public function testCreatesTheRowAndTheClone(): void
+    #[TestDox('The clone job writes a bare clone at the ID path')]
+    public function testClonesAtTheIdPath(): void
     {
         $this->newSource();
         $tenantId = self::enterNewTenant();
-
-        $connected = self::getContainer()->get(ConnectLocalRepository::class)->connect('billing');
-
-        $repositoryId = $connected->repository->getId();
-        self::assertTrue($connected->created);
-        self::assertSame(SyncState::Cloning, self::freshRepository($repositoryId)->getSyncState());
-        self::assertSame([CloneRepositoryJob::class], array_map(static fn (Envelope $envelope): string => $envelope->getMessage()::class, self::asyncTransport()->getSent()));
+        $repositoryId = self::connect()->getId();
 
         self::runQueuedMessages();
 
@@ -87,21 +78,6 @@ final class ConnectLocalRepositoryTest extends KernelTestCase
         $repository = self::freshRepository($repositoryId);
         self::assertSame('develop', $repository->getDefaultBranch());
         self::assertEquals(CommitSha::fromString($developHead), $repository->getDefaultBranchHead());
-    }
-
-    #[TestDox('A second connect returns the existing repository')]
-    public function testSecondConnectReturnsTheExistingRepository(): void
-    {
-        $this->newSource();
-        self::enterNewTenant();
-        $connect = self::getContainer()->get(ConnectLocalRepository::class);
-
-        $first = $connect->connect('billing');
-        $second = $connect->connect('billing');
-
-        self::assertFalse($second->created);
-        self::assertTrue($first->repository->getId()->equals($second->repository->getId()));
-        self::assertCount(1, self::asyncTransport()->getSent());
     }
 
     #[TestDox('A source owned by another user clones and fetches through safe.directory')]

@@ -149,6 +149,7 @@ final class TreeAndFileTest extends WebTestCase
         self::assertSame(['c/y.txt'], array_column($secondPage['items'], 'path'));
         self::assertSame(['c', true, null], [$secondPage['dir'], $secondPage['recursive'], $secondPage['nextCursor']]);
         self::assertApiError(self::apiRequest($this->client, 'GET', "{$tree}?dir=b.txt"), 422, 'invalid_input');
+        self::assertApiError(self::apiRequest($this->client, 'GET', "{$tree}?dir=missing"), 404, 'not_found');
     }
 
     private function cloneGit(string $repositoryId, string ...$arguments): void

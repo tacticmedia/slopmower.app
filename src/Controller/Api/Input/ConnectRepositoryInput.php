@@ -8,7 +8,8 @@ use App\Domain\Repository\RepositorySource;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * inputs.schema.json#/$defs/ConnectRepositoryInput. The directory rules are those of the connect service.
+ * inputs.schema.json#/$defs/ConnectRepositoryInput. The directory rules are in
+ * {@see \App\Controller\Api\RepositoryController::connectLocal()}.
  */
 final readonly class ConnectRepositoryInput
 {

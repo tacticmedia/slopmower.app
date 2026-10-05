@@ -7,7 +7,8 @@ namespace App\Controller\Api\Input;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * inputs.schema.json#/$defs/CreateTokenInput. The expiry window needs the clock, so the issuer checks it.
+ * inputs.schema.json#/$defs/CreateTokenInput. The expiry window needs the clock, so
+ * {@see \App\Controller\Api\TokenController::create()} checks it.
  */
 final readonly class CreateTokenInput
 {

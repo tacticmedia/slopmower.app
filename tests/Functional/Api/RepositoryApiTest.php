@@ -97,7 +97,7 @@ final class RepositoryApiTest extends WebTestCase
         self::assertSame([CloneRepositoryJob::class], self::sentMessageClasses());
     }
 
-    #[TestDox('Connecting it again returns 200 with the same repository')]
+    #[TestDox('Connecting it again returns 200 with the same repository and queues no second clone')]
     public function testConnectAgainReturnsExisting(): void
     {
         $this->newSource('billing');
@@ -107,6 +107,7 @@ final class RepositoryApiTest extends WebTestCase
 
         self::assertSame($first['id'], self::assertApiResponse($response, 200, 'repository.schema.json')['id']);
         self::assertFalse($response->headers->has('Location'));
+        self::assertSame([], self::sentMessageClasses());
     }
 
     #[TestDox('Lists repositories and finds one by name')]

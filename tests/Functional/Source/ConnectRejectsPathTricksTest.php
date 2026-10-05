@@ -4,31 +4,33 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Source;
 
-use App\Domain\Error\NotFound;
 use App\Domain\Identity\TenantId;
-use App\Entity\Repository;
+use App\Tests\Support\Api\ApiFixtures;
+use App\Tests\Support\Contract\JsonApiAssertions;
 use App\Tests\Support\Database\ResetDatabase;
-use App\Tests\Support\Domain\InvalidInputAssertions;
 use App\Tests\Support\Environment\EnvironmentVariables;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
 use App\Tests\Support\Messenger\QueuedMessages;
-use App\Tests\Support\Persistence\ReviewDataFixtures;
 use App\Tests\Support\Source\LocalSources;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\TestDox;
-use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Uid\Ulid;
 
-final class ConnectRejectsPathTricksTest extends KernelTestCase
+final class ConnectRejectsPathTricksTest extends WebTestCase
 {
+    use ApiFixtures;
     use EnvironmentVariables;
-    use InvalidInputAssertions;
+    use JsonApiAssertions;
     use LocalSources;
     use QueuedMessages;
     use ResetDatabase;
-    use ReviewDataFixtures;
     use TemporaryDirectories;
+
+    private KernelBrowser $client;
 
     private TenantId $tenantId;
 
@@ -36,17 +38,19 @@ final class ConnectRejectsPathTricksTest extends KernelTestCase
     {
         $this->useTemporaryLocalSources();
         $this->newSource();
-        $this->tenantId = self::enterNewTenant();
+        $this->client = static::createClient();
+        $this->tenantId = self::signIn($this->client)->getTenantId();
     }
 
     #[TestDox('../x, a/b, and absolute paths give invalid_input and write nothing to disk')]
     public function testPathTricksAreInvalidInput(): void
     {
         foreach (['../billing', '..', 'billing/.git', '/etc', "{$this->localRepositoriesDirectory}/billing"] as $directory) {
-            self::assertInvalidInput(['directory'], static fn (): Repository => self::connect($directory));
-        }
+            $error = self::assertApiError($this->connectLocal($directory), 422, 'invalid_input');
 
-        $this->assertNothingWritten();
+            self::assertSame(['directory'], array_column($error['details']['violations'] ?? [], 'field'), $directory);
+            $this->assertNothingWritten();
+        }
     }
 
     #[TestDox('A valid name that is not listed gives not_found and writes nothing to disk')]
@@ -56,14 +60,14 @@ final class ConnectRejectsPathTricksTest extends KernelTestCase
 
         // BILLING resolves on a case-insensitive mount, such as the bind mount of a macOS host.
         foreach (['missing', 'plain', 'BILLING'] as $directory) {
-            try {
-                self::connect($directory);
-                self::fail("{$directory} was accepted.");
-            } catch (NotFound) {
-            }
+            self::assertApiError($this->connectLocal($directory), 404, 'not_found');
+            $this->assertNothingWritten();
         }
+    }
 
-        $this->assertNothingWritten();
+    private function connectLocal(string $directory): Response
+    {
+        return self::apiRequest($this->client, 'POST', '/api/v1/repositories', ['source' => 'local', 'directory' => $directory]);
     }
 
     private function assertNothingWritten(): void
