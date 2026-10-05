@@ -5,17 +5,16 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Api;
 
 use App\Application\Event\RepositoryFetched;
-use App\Application\EventLogQuery;
 use App\Domain\Actor\Actor;
 use App\Domain\Event\EventType;
 use App\Domain\Identity\ReviewId;
 use App\Entity\User;
-use App\Tenancy\TenantContext;
 use App\Tests\Support\Api\ApiFixtures;
 use App\Tests\Support\Api\ReviewApiFixtures;
 use App\Tests\Support\Contract\JsonApiAssertions;
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Environment\EnvironmentVariables;
+use App\Tests\Support\EventStore\EventLog;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
 use App\Tests\Support\Git\GitRepositoryBuilder;
 use App\Tests\Support\Messenger\QueuedMessages;
@@ -28,6 +27,7 @@ final class StartReviewTest extends WebTestCase
 {
     use ApiFixtures;
     use EnvironmentVariables;
+    use EventLog;
     use JsonApiAssertions;
     use LocalSources;
     use QueuedMessages;
@@ -90,8 +90,7 @@ final class StartReviewTest extends WebTestCase
 
         $review = self::startReviewThroughApi($this->client, $repositoryId, []);
 
-        self::getContainer()->get(TenantContext::class)->set($this->user->getTenantId());
-        [$started] = self::getContainer()->get(EventLogQuery::class)->after(ReviewId::fromString((string) $review['id']), 0);
+        [$started] = self::eventLog($this->user->getTenantId(), ReviewId::fromString((string) $review['id']));
         self::assertSame(EventType::ReviewStarted, $started->type);
         self::assertEquals(Actor::user($this->user->getId()), $started->actor);
         self::assertSame(['title' => 'main @ '.substr($head, 0, 12), 'ref' => 'main', 'commitSha' => $head], $started->event->toPayload());

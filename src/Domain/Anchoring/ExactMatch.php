@@ -25,9 +25,4 @@ final readonly class ExactMatch
     {
         return new self(null);
     }
-
-    public function isAmbiguous(): bool
-    {
-        return null === $this->range;
-    }
 }

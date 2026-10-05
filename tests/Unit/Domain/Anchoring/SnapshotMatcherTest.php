@@ -32,10 +32,7 @@ final class SnapshotMatcherTest extends KernelTestCase
     #[TestDox('F9: two matches at equal distance are ambiguous')]
     public function testEqualDistanceIsAmbiguous(): void
     {
-        $match = SnapshotMatcher::nearestMatch(self::FILE_WITH_THE_REGION_TWICE, self::regionSnapshot(), 7);
-
-        self::assertNotNull($match);
-        self::assertTrue($match->isAmbiguous());
+        self::assertEquals(ExactMatch::ambiguous(), SnapshotMatcher::nearestMatch(self::FILE_WITH_THE_REGION_TWICE, self::regionSnapshot(), 7));
     }
 
     #[TestDox('F10: a trivial snapshot is never searched')]

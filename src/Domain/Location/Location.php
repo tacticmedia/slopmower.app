@@ -48,14 +48,4 @@ final readonly class Location
     {
         return new self($targetSha, LocationStatus::Orphaned, null, null, 0.0, $reason);
     }
-
-    public function equals(self $other): bool
-    {
-        return $this->targetSha->equals($other->targetSha)
-            && $this->status === $other->status
-            && (null === $this->path ? null === $other->path : null !== $other->path && $this->path->equals($other->path))
-            && (null === $this->range ? null === $other->range : null !== $other->range && $this->range->equals($other->range))
-            && $this->confidence === $other->confidence
-            && $this->reason === $other->reason;
-    }
 }

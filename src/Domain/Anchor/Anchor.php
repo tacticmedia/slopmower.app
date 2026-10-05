@@ -73,15 +73,4 @@ final readonly class Anchor
             default => [],
         };
     }
-
-    public function equals(self $other): bool
-    {
-        return $this->kind === $other->kind
-            && $this->path->equals($other->path)
-            && $this->commitSha->equals($other->commitSha)
-            && $this->blobSha->equals($other->blobSha)
-            && (null === $this->range ? null === $other->range : null !== $other->range && $this->range->equals($other->range))
-            && (null === $this->symbol ? null === $other->symbol : null !== $other->symbol && $this->symbol->equals($other->symbol))
-            && (null === $this->snapshot ? null === $other->snapshot : null !== $other->snapshot && $this->snapshot->equals($other->snapshot));
-    }
 }

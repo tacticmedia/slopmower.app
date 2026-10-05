@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Domain\Draft;
+namespace App\Entity;
 
 enum DraftKind: string
 {

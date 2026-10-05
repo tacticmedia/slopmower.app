@@ -6,13 +6,14 @@ namespace App\Tests\Functional\Slice;
 
 use App\Domain\Actor\Actor;
 use App\Domain\Event\RecordedEvent;
-use App\Tests\Support\Api\AgentApiFixtures;
+use App\Domain\Identity\ReviewId;
 use App\Tests\Support\Api\ApiFixtures;
 use App\Tests\Support\Api\RequestApiFixtures;
 use App\Tests\Support\Api\ReviewApiFixtures;
 use App\Tests\Support\Contract\JsonApiAssertions;
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Environment\EnvironmentVariables;
+use App\Tests\Support\EventStore\EventLog;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
 use App\Tests\Support\Mcp\McpAssertions;
 use App\Tests\Support\Mcp\McpTestClient;
@@ -26,9 +27,9 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class HeadlessSliceTest extends WebTestCase
 {
-    use AgentApiFixtures;
     use ApiFixtures;
     use EnvironmentVariables;
+    use EventLog;
     use JsonApiAssertions;
     use LocalSources;
     use McpAssertions;
@@ -71,7 +72,7 @@ final class HeadlessSliceTest extends WebTestCase
         $verified = self::requestCommand($client, $requestId, 'verify', ['note' => 'Looks right.']);
         self::assertSame(['verified', 'none', 'fixed'], [$verified['request']['status'], $verified['request']['awaiting'], $verified['request']['resolution']]);
 
-        $log = self::eventLog($user, $reviewId);
+        $log = self::eventLog($user->getTenantId(), ReviewId::fromString($reviewId));
         $agent = Actor::agent($user->getId(), self::AGENT_NAME);
         $userUpdates = self::assertApiResponse(self::apiRequest($client, 'GET', "/api/v1/reviews/{$reviewId}/updates?cursor=0&includeOwn=true"), 200, 'updates-page.schema.json');
         $agentUpdates = self::assertToolResult($mcp, $mcp->callTool('get_updates', ['review' => $reviewId, 'cursor' => 0]), 'get_updates');

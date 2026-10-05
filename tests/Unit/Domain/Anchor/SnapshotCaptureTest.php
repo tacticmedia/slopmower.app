@@ -68,14 +68,14 @@ final class SnapshotCaptureTest extends KernelTestCase
         $snapshot = SnapshotCapture::capture($content, $range);
 
         self::assertSame($expected['normalizedHash'], $snapshot->normalizedHash);
-        self::assertTrue($snapshot->equals(ContentSnapshot::of(
+        self::assertEquals(ContentSnapshot::of(
             $expected['lines'],
             $expected['truncated'],
             $expected['lineCount'],
             $expected['before'],
             $expected['after'],
             $expected['normalizedHash'],
-        )));
+        ), $snapshot);
     }
 
     /**

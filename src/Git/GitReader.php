@@ -254,17 +254,18 @@ final class GitReader implements ResetInterface
     /**
      * @throws GitFailed
      */
-    public function blobAt(string $gitDir, CommitSha $commit, RepoPath $path): ?Blob
-    {
-        return $this->readFromBatch($gitDir, "{$commit}:{$path}");
-    }
-
-    /**
-     * @throws GitFailed
-     */
     public function readBlob(string $gitDir, BlobSha $blob): ?Blob
     {
-        return $this->readFromBatch($gitDir, $blob->toString());
+        $batch = $this->batches[$gitDir] ??= CatFileBatch::start($this->git, $gitDir);
+
+        try {
+            return $batch->blob($blob);
+        } catch (GitFailed $failure) {
+            $batch->stop();
+            unset($this->batches[$gitDir]);
+
+            throw $failure;
+        }
     }
 
     /**
@@ -351,20 +352,6 @@ final class GitReader implements ResetInterface
         } catch (GitFailed $failure) {
             // GitRunner sets LC_ALL=C, so the message is stable.
             throw str_contains($failure->getMessage(), "short object ID {$revision} is ambiguous") ? InvalidInput::field($field, "{$revision} matches more than one commit.") : new CommitNotFound($revision);
-        }
-    }
-
-    private function readFromBatch(string $gitDir, string $objectName): ?Blob
-    {
-        $batch = $this->batches[$gitDir] ??= CatFileBatch::start($this->git, $gitDir);
-
-        try {
-            return $batch->blob($objectName);
-        } catch (GitFailed $failure) {
-            $batch->stop();
-            unset($this->batches[$gitDir]);
-
-            throw $failure;
         }
     }
 

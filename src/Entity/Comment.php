@@ -64,43 +64,13 @@ class Comment implements TenantOwned
         $this->createdAt = $createdAt;
     }
 
-    public function getId(): CommentId
-    {
-        return CommentId::fromString($this->id->toBase32());
-    }
-
     public function getTenantId(): TenantId
     {
         return TenantId::fromString($this->tenantId->toBase32());
     }
 
-    public function getRequest(): ChangeRequest
-    {
-        return $this->request;
-    }
-
     public function getAuthor(): Actor
     {
         return $this->author->toActor() ?? throw new \UnexpectedValueException('A comment has an author.');
-    }
-
-    public function getBody(): string
-    {
-        return $this->body;
-    }
-
-    public function isQuestion(): bool
-    {
-        return $this->question;
-    }
-
-    public function getBatchId(): ?BatchId
-    {
-        return null === $this->batchId ? null : BatchId::fromString($this->batchId->toBase32());
-    }
-
-    public function getCreatedAt(): \DateTimeImmutable
-    {
-        return $this->createdAt;
     }
 }

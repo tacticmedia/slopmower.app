@@ -19,9 +19,4 @@ final readonly class MappedRange
         public bool $untouched,
     ) {
     }
-
-    public function keepsSomeLines(): bool
-    {
-        return null !== $this->range;
-    }
 }

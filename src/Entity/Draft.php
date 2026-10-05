@@ -6,7 +6,6 @@ namespace App\Entity;
 
 use App\Doctrine\Type\AnchorType;
 use App\Domain\Anchor\Anchor;
-use App\Domain\Draft\DraftKind;
 use App\Domain\Identity\DraftId;
 use App\Domain\Identity\TenantId;
 use App\Repository\DraftRepository;

@@ -45,7 +45,7 @@ final class ReducerTest extends KernelTestCase
         $state = $scenario->state();
         self::assertTrue($id->equals($state->id));
         self::assertTrue($scenario->review()->id->equals($state->reviewId));
-        self::assertTrue($scenario->anchor()->equals($state->anchor));
+        self::assertEquals($scenario->anchor(), $state->anchor);
         self::assertSame('Use `Money` instead of `float` for totals.', $state->body);
         self::assertEquals($user, $state->author);
         self::assertSame('07:02', $state->createdAt->format('H:i'));

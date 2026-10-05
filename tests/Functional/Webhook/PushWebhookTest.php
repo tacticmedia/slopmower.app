@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Webhook;
 
-use App\Application\EventLogQuery;
 use App\Domain\Actor\ActorKind;
 use App\Domain\Event\EventType;
 use App\Domain\Event\RecordedEvent;
@@ -21,6 +20,7 @@ use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Domain\RequestScenario;
 use App\Tests\Support\Environment\EnvironmentVariables;
 use App\Tests\Support\EventStore\CommandFixtures;
+use App\Tests\Support\EventStore\EventLog;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
 use App\Tests\Support\GitHub\ClonedGitHubRepositories;
 use App\Tests\Support\GitHub\GitHubRows;
@@ -36,6 +36,7 @@ final class PushWebhookTest extends WebTestCase
     use ClonedGitHubRepositories;
     use CommandFixtures;
     use EnvironmentVariables;
+    use EventLog;
     use GitHubRows;
     use GitHubWebhooks;
     use LocalGitHub;
@@ -92,9 +93,8 @@ final class PushWebhookTest extends WebTestCase
         self::deliverFixture($client, 'push');
         self::runQueuedMessages();
 
-        self::getContainer()->get(TenantContext::class)->set($repository->getTenantId());
         $found = array_values(array_filter(
-            self::getContainer()->get(EventLogQuery::class)->after($reviewId, 0, 500),
+            self::eventLog($repository->getTenantId(), $reviewId),
             static fn (RecordedEvent $event): bool => EventType::CommitFound === $event->type,
         ));
         self::assertCount(1, $found);

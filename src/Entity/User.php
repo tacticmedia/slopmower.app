@@ -6,7 +6,6 @@ namespace App\Entity;
 
 use App\Domain\Identity\TenantId;
 use App\Domain\Identity\UserId;
-use App\Domain\User\SignInMethod;
 use App\Repository\UserRepository;
 use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
@@ -139,16 +138,6 @@ class User implements TenantOwned, UserInterface
     public function getAvatarUrl(): ?string
     {
         return $this->avatarUrl;
-    }
-
-    public function getCreatedAt(): \DateTimeImmutable
-    {
-        return $this->createdAt;
-    }
-
-    public function getLastSignInAt(): \DateTimeImmutable
-    {
-        return $this->lastSignInAt;
     }
 
     public function getUserIdentifier(): string

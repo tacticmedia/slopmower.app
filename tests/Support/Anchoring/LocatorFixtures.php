@@ -10,6 +10,7 @@ use App\Domain\Anchor\AnchorKind;
 use App\Domain\Anchor\LineRange;
 use App\Domain\Anchor\SnapshotCapture;
 use App\Domain\Anchor\SymbolRef;
+use App\Domain\Git\BlobSha;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\RepoPath;
 use App\Domain\Identity\EventId;
@@ -132,7 +133,10 @@ trait LocatorFixtures
 
     private function blob(CommitSha $commit, string $path): Blob
     {
-        $blob = self::getContainer()->get(GitReader::class)->blobAt(self::clonePath($this->repository), $commit, RepoPath::fromString($path));
+        $reader = self::getContainer()->get(GitReader::class);
+        $clonePath = self::clonePath($this->repository);
+        $entry = $reader->entryAt($clonePath, $commit, RepoPath::fromString($path));
+        $blob = null === $entry ? null : $reader->readBlob($clonePath, BlobSha::fromString($entry->objectId));
 
         return $blob ?? self::fail("{$path} has no blob at {$commit}.");
     }

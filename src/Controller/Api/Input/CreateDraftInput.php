@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Api\Input;
 
-use App\Domain\Draft\DraftKind;
+use App\Entity\DraftKind;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**

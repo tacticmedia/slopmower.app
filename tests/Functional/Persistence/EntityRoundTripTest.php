@@ -121,7 +121,7 @@ final class EntityRoundTripTest extends KernelTestCase
 
         $reloaded = self::entityManager()->find(ChangeRequest::class, self::entityManager()->getClassMetadata(ChangeRequest::class)->getIdentifierValues($request));
 
-        self::assertTrue($anchor->equals($reloaded?->getAnchor() ?? self::fail('The request did not reload.')));
+        self::assertEquals($anchor, $reloaded?->getAnchor() ?? self::fail('The request did not reload.'));
     }
 
     /**

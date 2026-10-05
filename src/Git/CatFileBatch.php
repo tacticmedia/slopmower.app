@@ -10,7 +10,7 @@ use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 
 /**
- * One running `git cat-file --batch -Z` process. -Z delimits names and records with NUL, so a path may contain LF.
+ * One running `git cat-file --batch -Z` process. -Z delimits names and records with NUL.
  */
 final class CatFileBatch
 {
@@ -30,15 +30,13 @@ final class CatFileBatch
     }
 
     /**
-     * @param string $objectName A blob SHA or `<commit>:<path>`
-     *
      * @return Blob|null Null when the object is missing or not a blob
      *
      * @throws GitFailed
      */
-    public function blob(string $objectName): ?Blob
+    public function blob(BlobSha $sha): ?Blob
     {
-        $this->input->write($objectName."\0");
+        $this->input->write($sha->toString()."\0");
         $header = $this->read(fn (): int|false => strpos($this->buffer, "\0"));
 
         if (1 !== preg_match('/^([0-9a-f]{40}|[0-9a-f]{64}) ([a-z]+) (\d+)$/D', $header, $match)) {

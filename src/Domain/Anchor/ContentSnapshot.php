@@ -66,14 +66,4 @@ final readonly class ContentSnapshot
 
         return new self($lines, $truncated, $lineCount, $before, $after, $normalizedHash);
     }
-
-    public function equals(self $other): bool
-    {
-        return $this->lines === $other->lines
-            && $this->truncated === $other->truncated
-            && $this->lineCount === $other->lineCount
-            && $this->before === $other->before
-            && $this->after === $other->after
-            && $this->normalizedHash === $other->normalizedHash;
-    }
 }

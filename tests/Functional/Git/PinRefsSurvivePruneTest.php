@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Git;
 
 use App\Domain\Git\CommitSha;
-use App\Domain\Git\RepoPath;
 use App\Domain\Identity\ReviewId;
 use App\Git\BareClone;
 use App\Git\GitReader;
@@ -78,7 +77,7 @@ final class PinRefsSurvivePruneTest extends KernelTestCase
         $reader = new GitReader($this->git);
 
         self::assertTrue($reader->hasCommit($this->clone, CommitSha::fromString($this->linked)));
-        self::assertSame("Feature\n", $reader->blobAt($this->clone, CommitSha::fromString($this->reviewed), RepoPath::fromString('feature.txt'))?->bytes);
+        self::assertSame("Feature\n", $this->git->run($this->clone, ['cat-file', 'blob', "{$this->reviewed}:feature.txt"]));
         self::assertFalse($reader->hasCommit($this->clone, CommitSha::fromString($this->unpinned)), 'gc did not prune the unpinned commit');
     }
 }

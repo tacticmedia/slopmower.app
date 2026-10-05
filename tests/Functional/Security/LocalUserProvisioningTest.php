@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Security;
 
-use App\Domain\User\SignInMethod;
+use App\Entity\SignInMethod;
 use App\Security\LocalUserProvisioner;
 use App\Tests\Support\Database\ResetDatabase;
 use Doctrine\DBAL\Connection;

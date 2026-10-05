@@ -35,9 +35,4 @@ final readonly class SymbolRef
 
         return new self($language, $kind, $fqn);
     }
-
-    public function equals(self $other): bool
-    {
-        return $this->language === $other->language && $this->kind === $other->kind && $this->fqn === $other->fqn;
-    }
 }

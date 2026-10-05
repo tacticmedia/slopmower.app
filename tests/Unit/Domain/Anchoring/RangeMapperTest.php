@@ -36,23 +36,15 @@ final class RangeMapperTest extends KernelTestCase
         $startLineInsideAGrownHunk = [new Hunk(9, 2, 9, 3)];
         $singleLineRewritten = [new Hunk(7, 1, 7, 1)];
 
-        $split = RangeMapper::mapRange(LineRange::of(10, 14), $middleLineSplit);
-        $grown = RangeMapper::mapRange(LineRange::of(10, 14), $startLineInsideAGrownHunk);
-        $rewritten = RangeMapper::mapRange(LineRange::of(7, 7), $singleLineRewritten);
-
-        self::assertEquals(new MappedRange(10, LineRange::of(10, 15), false), $split);
-        self::assertEquals(new MappedRange(9, LineRange::of(9, 15), false), $grown);
-        self::assertEquals(new MappedRange(7, LineRange::of(7, 7), false), $rewritten);
-        self::assertTrue($split->keepsSomeLines() && $grown->keepsSomeLines() && $rewritten->keepsSomeLines());
+        self::assertEquals(new MappedRange(10, LineRange::of(10, 15), false), RangeMapper::mapRange(LineRange::of(10, 14), $middleLineSplit));
+        self::assertEquals(new MappedRange(9, LineRange::of(9, 15), false), RangeMapper::mapRange(LineRange::of(10, 14), $startLineInsideAGrownHunk));
+        self::assertEquals(new MappedRange(7, LineRange::of(7, 7), false), RangeMapper::mapRange(LineRange::of(7, 7), $singleLineRewritten));
     }
 
     #[TestDox('A deleted region keeps no lines and starts at the line after the deletion')]
     public function testDeletedRegionKeepsNoLines(): void
     {
-        $mapped = RangeMapper::mapRange(LineRange::of(10, 12), [new Hunk(1, 0, 1, 4), new Hunk(9, 5, 12, 0)]);
-
-        self::assertEquals(new MappedRange(13, null, false), $mapped);
-        self::assertFalse($mapped->keepsSomeLines());
+        self::assertEquals(new MappedRange(13, null, false), RangeMapper::mapRange(LineRange::of(10, 12), [new Hunk(1, 0, 1, 4), new Hunk(9, 5, 12, 0)]));
     }
 
     #[TestDox('An insertion between two lines of the region touches it, an insertion after its last line does not')]

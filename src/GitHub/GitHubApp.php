@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\GitHub;
 
-use App\Domain\User\SignInMethod;
+use App\Entity\SignInMethod;
 use App\Entity\User;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 

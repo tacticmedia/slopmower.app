@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Domain\Identity\UserId;
-use App\Domain\User\SignInMethod;
+use App\Entity\SignInMethod;
 use App\Entity\Tenant;
 use App\Entity\User;
 use App\Security\TenantBeingDeleted;

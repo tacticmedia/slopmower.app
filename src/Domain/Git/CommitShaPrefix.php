@@ -21,11 +21,6 @@ final readonly class CommitShaPrefix implements \Stringable
         return new self($value);
     }
 
-    public function equals(self $other): bool
-    {
-        return $this->value === $other->value;
-    }
-
     public function toString(): string
     {
         return $this->value;

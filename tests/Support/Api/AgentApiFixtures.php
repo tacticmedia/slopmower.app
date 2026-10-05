@@ -5,12 +5,6 @@ declare(strict_types=1);
 namespace App\Tests\Support\Api;
 
 use App\Application\Event\RepositoryFetched;
-use App\Application\EventLogQuery;
-use App\Domain\Event\RecordedEvent;
-use App\Domain\Identity\ReviewId;
-use App\Entity\User;
-use App\Tenancy\TenantContext;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 
 /**
@@ -34,19 +28,6 @@ trait AgentApiFixtures
         string $schema = 'request-command-result.schema.json',
     ): array {
         return self::assertApiResponse(self::bearerRequest($client, $secret, $method, $uri, $body), $status, $schema);
-    }
-
-    /**
-     * @return list<RecordedEvent> In seq order
-     */
-    private static function eventLog(User $user, string $reviewId): array
-    {
-        $container = self::getContainer();
-        $container->get(TenantContext::class)->set($user->getTenantId());
-        $events = $container->get(EventLogQuery::class)->after(ReviewId::fromString($reviewId), 0, 500);
-        $container->get(EntityManagerInterface::class)->clear();
-
-        return $events;
     }
 
     /**

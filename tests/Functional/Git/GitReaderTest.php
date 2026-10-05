@@ -75,14 +75,11 @@ final class GitReaderTest extends KernelTestCase
     #[TestDox('Returns blob bytes equal to the source file')]
     public function testReturnsBlobBytes(): void
     {
-        $entries = $this->reader->lsTreeRecursive($this->clone, $this->commit);
-
         foreach (['README.md', "line\nbreak.txt", 'src/App.php'] as $path) {
             self::assertSame(self::FILES[$path], $this->blobAt($path)->bytes);
-            self::assertSame(self::FILES[$path], $this->reader->readBlob($this->clone, BlobSha::fromString(self::entry($entries, $path)->objectId))?->bytes);
         }
 
-        self::assertNull($this->reader->blobAt($this->clone, $this->commit, RepoPath::fromString('missing.txt')));
+        self::assertNull($this->reader->readBlob($this->clone, BlobSha::fromString(str_repeat('0', 40))));
     }
 
     #[TestDox('Detects a binary file')]
@@ -123,7 +120,8 @@ final class GitReaderTest extends KernelTestCase
 
     private function blobAt(string $path): Blob
     {
-        $blob = $this->reader->blobAt($this->clone, $this->commit, RepoPath::fromString($path));
+        $entry = array_find($this->reader->lsTreeRecursive($this->clone, $this->commit), static fn (TreeEntry $entry): bool => $entry->path === $path) ?? self::fail("No entry {$path}");
+        $blob = $this->reader->readBlob($this->clone, BlobSha::fromString($entry->objectId));
         self::assertNotNull($blob, $path);
 
         return $blob;
@@ -137,13 +135,5 @@ final class GitReaderTest extends KernelTestCase
     private static function paths(array $entries): array
     {
         return array_map(static fn (TreeEntry $entry): string => $entry->path, $entries);
-    }
-
-    /**
-     * @param list<TreeEntry> $entries
-     */
-    private static function entry(array $entries, string $path): TreeEntry
-    {
-        return array_find($entries, static fn (TreeEntry $entry): bool => $entry->path === $path) ?? self::fail("No entry {$path}");
     }
 }

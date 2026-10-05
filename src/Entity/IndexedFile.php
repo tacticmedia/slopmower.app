@@ -12,7 +12,6 @@ use App\Domain\Git\CommitSha;
 use App\Domain\Git\RepoPath;
 use App\Domain\Identity\TenantId;
 use App\Index\IndexSql;
-use App\Repository\IndexedFileRepository;
 use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -23,7 +22,7 @@ use Symfony\Component\Uid\Ulid;
  * One path of a commit, shared by the reviews of that commit. {@see IndexSql} writes the rows.
  * The key holds the SHA-256 of the path, because a btree entry of a long path exceeds the PostgreSQL limit.
  */
-#[ORM\Entity(repositoryClass: IndexedFileRepository::class, readOnly: true)]
+#[ORM\Entity(readOnly: true)]
 class IndexedFile implements TenantOwned
 {
     #[ORM\Id]

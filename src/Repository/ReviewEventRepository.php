@@ -31,20 +31,6 @@ final class ReviewEventRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return list<ReviewEvent> In seq order
-     */
-    public function findAfter(ReviewId $reviewId, int $cursor, int $limit): array
-    {
-        return $this->ofReview($reviewId)
-            ->andWhere('event.seq > :cursor')
-            ->orderBy('event.seq')
-            ->setMaxResults($limit)
-            ->setParameter('cursor', $cursor)
-            ->getQuery()
-            ->getResult();
-    }
-
-    /**
      * The thread entries of a request: every event that names it, except batch.submitted.
      *
      * @return list<ReviewEvent> In seq order

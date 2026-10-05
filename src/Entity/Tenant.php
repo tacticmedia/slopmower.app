@@ -40,16 +40,6 @@ class Tenant
         return TenantId::fromString($this->id->toBase32());
     }
 
-    public function getCreatedAt(): \DateTimeImmutable
-    {
-        return $this->createdAt;
-    }
-
-    public function getEventSeq(): int
-    {
-        return $this->eventSeq;
-    }
-
     /**
      * Keeps the first request time.
      */

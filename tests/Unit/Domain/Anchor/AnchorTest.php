@@ -29,7 +29,6 @@ final class AnchorTest extends KernelTestCase
         $anchor = self::anchor($kind, $range, $symbol, $snapshot);
 
         self::assertSame($kind, $anchor->kind);
-        self::assertTrue($anchor->equals(self::anchor($kind, $range, $symbol, $snapshot)));
     }
 
     /**
