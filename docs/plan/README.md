@@ -232,7 +232,7 @@ make up
   | `src/Serializer/Normalizer` | The JSON normalizers that REST and MCP share |
   | `src/Mcp` | `Tool/`, `McpToolRunner`, generated `BundledSchemas` |
   | `src/Live`, `src/Index`, `src/Anchoring`, `src/Docs` | Mercure, symbol index, re-anchoring, public documentation |
-  | `src/Message`, `src/MessageHandler`, `src/Messenger` | Messenger messages, handlers, middleware |
+  | `src/Message`, `src/MessageHandler`, `src/Messenger` | Messenger messages, every Messenger handler, middleware |
   | `src/Command`, `src/GitHub`, `src/Webhook` | Operator commands, GitHub API, GitHub webhooks |
 
 - Symfony, as AGENTS.md says:
@@ -253,7 +253,7 @@ make up
   - Git runs only through `GitRunner`, with `symfony/process` argument arrays.
   - Refs and SHAs are validated, and `--end-of-options` goes before them.
   - Secrets go only into the environment.
-  - One `RepositoryLock` per repository, through `LockFactory`. Fetch, clone, and clone deletion hold it. Pin writes and reads do not.
+  - One `RepositoryLock` per repository, through `LockFactory`. Fetch, clone, and clone deletion wait for it with `RepositoryLock::acquire()`. Pin writes and reads do not take it.
 - Dispatch Messenger messages only outside a database transaction. In `e2e`, `sync://` runs the handler during the dispatch, and `CommandExecutor` refuses to run inside a transaction.
 - Time comes from `Psr\Clock\ClockInterface`.
 - No `echo`, `print`, `var_dump`, `print_r`, `dump`, or `dd` in `src/`.

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Application\ConnectedRepository;
-use App\Application\ConnectGitHubRepository;
 use App\Application\FetchRepository;
 use App\Application\Query\RepositoryQuery;
 use App\Controller\Api\Input\ConfirmQuery;
@@ -18,10 +17,12 @@ use App\Domain\Repository\RepositorySource;
 use App\Entity\Repository;
 use App\Entity\User;
 use App\EventStore\CommandExecutor;
+use App\GitHub\InstallationSync;
 use App\Live\LivePublisher;
 use App\Live\LiveTopics;
 use App\Message\DeleteCloneJob;
 use App\Repository\DeletionSql;
+use App\Repository\GitHubCandidateRepository;
 use App\Repository\RepositoryRepository;
 use App\Security\CurrentActor;
 use App\Source\LocalRepositoryDiscovery;
@@ -48,6 +49,7 @@ final class RepositoryController extends AbstractController
     public function __construct(
         private readonly RepositoryQuery $repositories,
         private readonly RepositoryRepository $repositoryRows,
+        private readonly GitHubCandidateRepository $candidates,
         private readonly LocalRepositoryDiscovery $discovery,
         private readonly FetchRepository $fetchRepository,
         private readonly EntityManagerInterface $entityManager,
@@ -67,12 +69,10 @@ final class RepositoryController extends AbstractController
 
     #[Route('', name: 'connect', methods: ['POST'])]
     #[IsGranted(User::ROLE, message: CurrentActor::SESSION_ONLY)]
-    public function connect(
-        #[MapRequestPayload(acceptFormat: 'json')] ConnectRepositoryInput $input,
-        ConnectGitHubRepository $connectGitHubRepository,
-    ): JsonResponse {
+    public function connect(#[MapRequestPayload(acceptFormat: 'json')] ConnectRepositoryInput $input): JsonResponse
+    {
         $connected = RepositorySource::Github === $input->source
-            ? $connectGitHubRepository->connect($input->githubRepositoryId ?? throw new \LogicException('The input validation requires the ID.'))
+            ? $this->connectGitHub($input->githubRepositoryId ?? throw new \LogicException('The input validation requires the ID.'))
             : $this->connectLocal($input->directory ?? throw new \LogicException('The input validation requires the directory.'));
         $id = $connected->repository->getId();
         $view = $this->repositories->get($id);
@@ -122,6 +122,44 @@ final class RepositoryController extends AbstractController
         $this->fetchRepository->request($repository->getId());
 
         return $this->json($this->repositories->get($repository->getId()), Response::HTTP_ACCEPTED);
+    }
+
+    /**
+     * A new repository is `cloning`, and its clone job is queued after the row commits.
+     *
+     * @throws NotFound     The ID is not a candidate of the tenant
+     * @throws InvalidInput Another repository of the tenant has the name, in any case
+     */
+    private function connectGitHub(int $githubRepositoryId): ConnectedRepository
+    {
+        $tenantId = $this->tenantContext->get();
+        $lock = $this->lockFactory->createLock(InstallationSync::lockKey($tenantId), ttl: null);
+        $lock->acquire(true);
+
+        try {
+            $candidate = $this->candidates->findByGitHubId($githubRepositoryId) ?? throw new NotFound('The GitHub repository is not a candidate.');
+            $existing = $this->repositoryRows->findGitHub($githubRepositoryId);
+
+            if (null !== $existing) {
+                return new ConnectedRepository($existing, false);
+            }
+
+            $name = $candidate->getFullName();
+
+            if (null !== $this->repositoryRows->findGitHubByName($name)) {
+                throw InvalidInput::field('githubRepositoryId', "Another connected repository has the name {$name}.");
+            }
+
+            $repository = Repository::gitHub($tenantId, $name, $githubRepositoryId, $candidate->getInstallationId(), $candidate->isPrivate(), $this->clock->now());
+            $this->entityManager->persist($repository);
+            $this->entityManager->flush();
+        } finally {
+            $lock->release();
+        }
+
+        $this->fetchRepository->queueClone($repository);
+
+        return new ConnectedRepository($repository, true);
     }
 
     /**

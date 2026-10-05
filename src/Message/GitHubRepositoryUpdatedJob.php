@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace App\Message;
 
 use App\Domain\Repository\RepositoryName;
-use App\Webhook\Handler\RepositoryHandler;
 use Symfony\Component\Messenger\Attribute\AsMessage;
 
 /**
- * A `repository` event other than `deleted`. Handled by {@see RepositoryHandler}, under the tenant of its TenantStamp.
+ * A `repository` event other than `deleted`.
  */
 #[AsMessage('async')]
 final readonly class GitHubRepositoryUpdatedJob

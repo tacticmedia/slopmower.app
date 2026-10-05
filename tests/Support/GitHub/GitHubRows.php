@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Tests\Support\GitHub;
 
-use App\Application\ConnectGitHubRepository;
+use App\Application\FetchRepository;
 use App\Domain\Identity\TenantId;
 use App\Domain\Repository\RepositoryName;
 use App\Entity\GitHubCandidate;
 use App\Entity\GitHubInstallation;
 use App\Entity\Repository;
 use App\GitHub\GitHubAccountType;
+use App\Repository\GitHubCandidateRepository;
 use App\Tenancy\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Clock\Clock;
@@ -47,13 +48,20 @@ trait GitHubRows
     }
 
     /**
-     * Connects the candidate with R3's service. The clone job stays queued.
+     * A `cloning` repository row of the candidate with its clone job queued, as R3 leaves it.
      */
     private static function connectGitHub(TenantId $tenantId, int $githubRepositoryId = 812345): Repository
     {
-        self::getContainer()->get(TenantContext::class)->set($tenantId);
+        $container = self::getContainer();
+        $container->get(TenantContext::class)->set($tenantId);
+        $candidate = $container->get(GitHubCandidateRepository::class)->findByGitHubId($githubRepositoryId) ?? self::fail("The GitHub repository {$githubRepositoryId} is not a candidate.");
+        $repository = Repository::gitHub($tenantId, $candidate->getFullName(), $githubRepositoryId, $candidate->getInstallationId(), $candidate->isPrivate(), Clock::get()->now());
+        $entityManager = $container->get(EntityManagerInterface::class);
+        $entityManager->persist($repository);
+        $entityManager->flush();
+        $container->get(FetchRepository::class)->queueClone($repository);
 
-        return self::getContainer()->get(ConnectGitHubRepository::class)->connect($githubRepositoryId)->repository;
+        return $repository;
     }
 
     private static function storeRow(object $row): void

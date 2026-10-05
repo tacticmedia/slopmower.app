@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\GitHub;
 
-use App\Application\ConnectGitHubRepository;
 use App\Application\Event\RepositoryChanged;
 use App\Application\FetchRepository;
 use App\Domain\Error\InvalidInput;
@@ -63,6 +62,14 @@ final class InstallationSync
     ) {
     }
 
+    /**
+     * The tenant lock of the GitHub repository names, installations, and candidates.
+     */
+    public static function lockKey(TenantId $tenantId): string
+    {
+        return "github-repositories:{$tenantId}";
+    }
+
     public function __invoke(LoginSuccessEvent $event): void
     {
         $badge = $event->getPassport()->getBadge(OAuthTokenBadge::class);
@@ -92,7 +99,7 @@ final class InstallationSync
 
         // The firewall authenticates before TenantContextListener runs.
         $this->tenantContext->set($tenantId);
-        $lock = $this->lockFactory->createLock(ConnectGitHubRepository::lockKey($tenantId), ttl: null);
+        $lock = $this->lockFactory->createLock(self::lockKey($tenantId), ttl: null);
         $lock->acquire(true);
 
         try {

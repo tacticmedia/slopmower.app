@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Webhook\Handler;
+namespace App\MessageHandler;
 
 use App\Application\FetchRepository;
 use App\Domain\Error\NotFound;
@@ -16,7 +16,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * `push`: a fetch as R5 requests it. The steps of docs/specs/webhooks-and-live-updates.md section 2.2 follow the fetch.
  */
 #[AsMessageHandler]
-final class PushHandler
+final class GitHubPushHandler
 {
     public function __construct(
         private readonly RepositoryRepository $repositories,

@@ -23,6 +23,7 @@ use App\Tests\Support\Source\LocalSources;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Clock;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Lock\LockFactory;
@@ -153,7 +154,7 @@ final class FetchSingleFlightTest extends KernelTestCase
 
     private static function lockInAnotherSession(RepositoryId $repositoryId): LockInterface
     {
-        $lock = new RepositoryLock(new LockFactory(StoreFactory::createStore((string) $_SERVER['LOCK_DSN'])))->create($repositoryId);
+        $lock = new RepositoryLock(new LockFactory(StoreFactory::createStore((string) $_SERVER['LOCK_DSN'])), new NativeClock())->create($repositoryId);
         self::assertTrue($lock->acquire());
 
         return $lock;

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Webhook\Handler;
+namespace App\MessageHandler;
 
-use App\Application\ConnectGitHubRepository;
 use App\Application\Event\RepositoryChanged;
 use App\Entity\Repository;
+use App\GitHub\InstallationSync;
 use App\Message\GitHubRepositoryUpdatedJob;
 use App\Repository\RepositoryRepository;
 use App\Tenancy\TenantContext;
@@ -19,7 +19,7 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
  * The `repository` events other than `deleted`.
  */
 #[AsMessageHandler]
-final class RepositoryHandler
+final class GitHubRepositoryHandler
 {
     public function __construct(
         private readonly RepositoryRepository $repositories,
@@ -33,7 +33,7 @@ final class RepositoryHandler
     public function __invoke(GitHubRepositoryUpdatedJob $job): void
     {
         $tenantId = $this->tenantContext->get();
-        $lock = $this->lockFactory->createLock(ConnectGitHubRepository::lockKey($tenantId), ttl: null);
+        $lock = $this->lockFactory->createLock(InstallationSync::lockKey($tenantId), ttl: null);
         $lock->acquire(true);
 
         try {

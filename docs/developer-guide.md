@@ -2,7 +2,7 @@
 
 This guide is a map of the Holistic Review code. It tells you what each part does, where it is, how a call moves through it, and which parts are larger than the job. The [architecture](architecture.md) and the [specifications](specs/README.md) stay the sources of truth. This guide points to them.
 
-Size: `src/` has 399 PHP files and about 25,500 lines. One generated file, `src/Mcp/BundledSchemas.php`, has 2,472 of these lines. `assets/` has 128 TypeScript files and about 6,500 lines without tests. `tests/` has about 23,000 lines of PHP and 2,800 lines of Playwright UI tests.
+Size: `src/` has 399 PHP files and about 25,400 lines. One generated file, `src/Mcp/BundledSchemas.php`, has 2,472 of these lines. `assets/` has 128 TypeScript files and about 6,500 lines without tests. `tests/` has about 23,000 lines of PHP and 2,800 lines of Playwright UI tests.
 
 ## 1. Start here
 
@@ -15,7 +15,7 @@ Holistic Review lets you review a full codebase at one commit, in a view like a 
 | Piece | What runs there | Entry code |
 |---|---|---|
 | `php` container | FrankenPHP in worker mode. It serves the HTML shell, the REST API `/api/v1`, the MCP endpoint `/_mcp`, the user docs `/docs`, the GitHub webhook `/webhook/github`, and the built-in Mercure hub. It also serves the `e2e` site on port 8081 in classic mode (D34). | `src/Controller/`, `src/Mcp/`, `src/Webhook/` |
-| `worker` container | `messenger:consume async`, same image and volumes. It clones and fetches, builds the symbol index, computes locations again, applies webhook jobs, and purges tenants. | `#[AsMessageHandler]` methods, `src/Message/` |
+| `worker` container | `messenger:consume async`, same image and volumes. It clones and fetches, builds the symbol index, computes locations again, applies webhook jobs, and purges tenants. | `src/MessageHandler/`, `src/Message/` |
 | `database` container | PostgreSQL 18. It holds all rows, the Messenger queue `doctrine://`, the sessions, and the advisory locks of `symfony/lock` (D39). | `src/Entity/`, `migrations/` |
 | Host | Node.js 24 and Vite build `assets/` for the shell page. `npm run dev` gives hot reload. | `assets/`, `vite.config.ts` |
 | Tenant data | One bare git clone per tenant and repository at `$APP_TENANT_DATA_DIR/<tenantId>/repositories/<repositoryId>.git`. | `src/Git/TenantDataPaths.php` |
@@ -45,7 +45,7 @@ First read architecture sections 3 and 6. `src/Domain` implements them almost li
 | 7 | `src/Application/RequestCommands.php` | How each request command gets to the decider |
 | 8 | `src/Mcp/Tool/ClaimRequestTool.php`, `src/Controller/Api/AgentRequestController.php` | One command through MCP and through REST |
 | 9 | `src/Tenancy/TenantContext.php`, `TenantSqlFilter.php`, `TenantFilter.php` | Tenant isolation |
-| 10 | `src/Application/FetchRepository.php` | The server clone. Each clone, fetch, and access removal goes through it. |
+| 10 | `src/Application/FetchRepository.php`, `ServerClone.php` | The server clone. `FetchRepository` queues each clone and fetch, fetches within 60 s, and removes access. `ServerClone` fetches from the source. |
 | 11 | `src/Anchoring/Locator.php`, method `compute()` | Re-anchoring. Read it next to architecture section 5.4. |
 | 12 | `assets/router.tsx`, `assets/live/useLiveRevalidation.ts` | The front end: routes with loaders and actions, and the one live subscription |
 
@@ -55,7 +55,7 @@ Skip these on a first pass: `src/Mcp/BundledSchemas.php`, `assets/api/types/`, `
 
 ### 2.1 Domain areas
 
-**Repositories and the server clone.** A tenant connects a repository from a GitHub App installation or from a local directory under `APP_LOCAL_REPOSITORIES_DIR` (D24). The server keeps its own bare clone of each repository and reads code only from that clone. `SyncState` is the clone state: `cloning`, `idle`, `fetching`, `failed`, or `unavailable`. Pin refs under `refs/holistic-review/` keep reviewed and linked commits through force-pushes and `git gc` (D26). Code: `Application\FetchRepository`, `App\Git`, `App\Source`, `App\GitHub`, `Repository\RepositoryRepository`.
+**Repositories and the server clone.** A tenant connects a repository from a GitHub App installation or from a local directory under `APP_LOCAL_REPOSITORIES_DIR` (D24). The server keeps its own bare clone of each repository and reads code only from that clone. `SyncState` is the clone state: `cloning`, `idle`, `fetching`, `failed`, or `unavailable`. Pin refs under `refs/holistic-review/` keep reviewed and linked commits through force-pushes and `git gc` (D26). Code: `Application\FetchRepository`, `Application\ServerClone`, `MessageHandler\RepositorySyncHandler`, `App\Git`, `App\Source`, `App\GitHub`, `Repository\RepositoryRepository`.
 
 **Reviews.** A review is one feedback round on one repository at one pinned commit. The start resolves the ref to a full SHA, and that SHA never changes. A review stays open until a user closes it. A closed review is read-only (D27). Two open reviews of one repository are fully separate. Code: `Domain\Review`, `Application\ReviewCommands`, `Entity\Review`.
 
@@ -71,7 +71,7 @@ Skip these on a first pass: `src/Mcp/BundledSchemas.php`, `assets/api/types/`, `
 
 **Live updates.** After a commit, the server publishes a private Mercure update that holds IDs only (D42). The browser keeps one `EventSource` and revalidates its React Router loaders. The agent gets no push. It polls `get_updates` (D21). Code: `App\Live`, `assets/live/`.
 
-**Deletion.** A user deletes a review, the data of one repository, or the account. Review and repository rows go in the HTTP request under the tenant row lock. Clones and account data go in Messenger jobs. When GitHub removes access, the server deletes the clone and the index and keeps the reviews (D22). Code: `Repository\DeletionSql`, `Application\PurgeTenant`, `FetchRepository::removeAccess()`.
+**Deletion.** A user deletes a review, the data of one repository, or the account. Review and repository rows go in the HTTP request under the tenant row lock. Clones and account data go in Messenger jobs. When GitHub removes access, the server deletes the clone and the index and keeps the reviews (D22). Code: `Repository\DeletionSql`, `MessageHandler\DeletionHandler`, `FetchRepository::removeAccess()`.
 
 ### 2.2 Request lifecycle at a glance
 
@@ -171,7 +171,7 @@ App\Anchoring          git and cache side: Locator, LocationCacheSql, QueueLocat
 | `App\Domain\Location` | 4 | Result types of re-anchoring | `Location`, `LocationStatus`, `OrphanReason` | Domain only |
 | `App\Domain\Error` | 10 | Exceptions that map to the API error codes | `DomainError`, `ErrorCode`, `InvalidInput`, `InvalidTransition` | Domain only |
 | `App\Domain\Actor`, `Identity`, `Git`, `Repository`, `ApiToken` | 27 | Value types: actor, ULID IDs, SHAs, paths, refs, repository names, token secret, small enums | `Actor`, `Identifier`, `CommitSha`, `RepoPath`, `RefName`, `ApiTokenSecret` | `Symfony\Component\Uid` in `Identity` |
-| `App\Application` | 13 | Use cases that REST, MCP, webhooks, and jobs share. Git and Messenger side effects outside the event transaction. | `RequestCommands`, `ReviewCommands`, `FetchRepository`, `AnchorFactory`, `LinkCommits`, `MarkReadyForReview` | Domain, EventStore, Projection, Entity, Repository, Git, Source, GitHub, Index |
+| `App\Application` | 12 | Use cases that REST, MCP, webhooks, and jobs share. Git and Messenger side effects outside the event transaction. | `RequestCommands`, `ReviewCommands`, `FetchRepository`, `ServerClone`, `AnchorFactory`, `LinkCommits`, `MarkReadyForReview` | Domain, EventStore, Projection, Entity, Repository, Git, Source, GitHub, Index |
 | `App\Application\Query` | 32 | Read side: 6 query services and 26 response DTOs and filter types | `RequestQuery`, `UpdatesQuery`, `ThreadQuery`, `ReviewQuery`, `FileQuery` | Domain, Entity, Repository, Anchoring, Git, `Http\Cursor` |
 | `App\Application\Event` | 2 | Events after a repository fetch or change | `RepositoryFetched`, `RepositoryChanged` | Domain |
 | `App\EventStore` | 4 | Append-only log and the single event write path | `CommandExecutor`, `EventStoreSql`, `EventsCommitted`, `ReadSnapshotSql` | Domain, Projection, Entity, Tenancy |
@@ -182,13 +182,13 @@ App\Anchoring          git and cache side: Locator, LocationCacheSql, QueueLocat
 | `App\Tenancy` | 7 | Fail-closed tenant context and the two SQL filters | `TenantContext`, `TenantSqlFilter`, `TenantFilter`, `RepositoryScopeSqlFilter` | Entity |
 | `App\Security` | 15 | Session sign-in, bearer tokens, principal to `Actor` | `ApiTokenHandler`, `AgentUser`, `CurrentActor`, `TenantUserProvider` | Entity, Repository, Tenancy |
 | `App\Git` | 15 | The only code that runs git. Server clone reads and writes. | `GitRunner`, `GitReader`, `BareClone`, `PinRefs`, `RepositoryLock` | Domain |
-| `App\Source` | 6 | Local discovery and one fetch command per source | `LocalRepositoryDiscovery`, `LocalFetchCommand`, `GitHubFetchCommand` | Domain |
+| `App\Source` | 5 | Local discovery and the fetch command of each source | `LocalRepositoryDiscovery`, `FetchCommand` | Domain |
 | `App\GitHub` | 9 | GitHub App: JWT, installation tokens, the listing at sign-in | `InstallationSync`, `InstallationTokenProvider`, `GitHubApp` | Application, Entity, Repository |
-| `App\Webhook` | 6 | GitHub webhooks: parse, verify, fan out one job per tenant, apply | `GitHubRequestParser`, `GitHubWebhookConsumer`, `PushHandler`, `InstallationHandler` | GitHub, Message, Application, Live |
+| `App\Webhook` | 3 | GitHub webhooks: parse, verify, fan out one job per tenant | `GitHubRequestParser`, `GitHubWebhookConsumer`, `WebhookDeliverySql` | GitHub, Message, Messenger, Repository |
 | `App\Index` | 7 | PHP symbol extraction and storage per blob | `BlobSymbols`, `PhpSymbolExtractor`, `IndexSql` | Git, Entity |
 | `App\Anchoring` | 4 | Git and cache side of re-anchoring | `Locator`, `LocationCacheSql`, `QueueLocationRecompute` | Domain, Git, Index, Repository |
 | `App\Message` | 13 | Messenger messages, all on the `async` transport. The GitHub jobs also carry webhook payload fields. | `FetchRepositoryJob`, `IndexReview`, `RecomputeLocations` | Domain |
-| `App\MessageHandler` | 2 | Jobs that write data that is not event data | `IndexReviewHandler`, `RecomputeLocationsHandler` | Application, Anchoring, Index, Live |
+| `App\MessageHandler` | 7 | Every Messenger handler: clone and fetch, deletion, index, locations, GitHub webhook jobs | `RepositorySyncHandler`, `DeletionHandler`, `IndexReviewHandler`, `RecomputeLocationsHandler`, `GitHubInstallationHandler` | Application, Git, GitHub, Anchoring, Index, Live |
 | `App\Messenger` | 2 | Carries the tenant across the Messenger boundary | `TenantContextMiddleware`, `TenantStamp` | Tenancy |
 | `App\Live` | 4 | Mercure publish, IDs only | `LivePublisher`, `LiveTopics`, `PublishCommittedEvents` | EventStore, Application\Event |
 | `App\Controller` | 6 | Shell routes, sign-in pages, `/docs`, `/healthz`, `/github/installed`, e2e sign-in | `ShellController`, `DocsController`, `SecurityController` | Docs, Security |
@@ -199,7 +199,7 @@ App\Anchoring          git and cache side: Locator, LocationCacheSql, QueueLocat
 | `App\Mcp` | 4 | MCP runner, two session decorators, generated output schemas | `McpToolRunner`, `SessionLockedMcpController`, `TokenBoundSessionStore` | Serializer, Security |
 | `App\Mcp\Tool` | 12 | The 12 MCP tools of `specs/mcp.md` section 4 | `GetUpdatesTool`, `GetRequestTool`, `ClaimRequestTool` | Application, Query |
 | `App\Docs` | 2 | Serves `docs/user` and the schemas through a lookup in a directory listing (D28) | `DocsCatalog`, `DocsLinkRewriter` | Finder, CommonMark |
-| `App\Command` | 4 | `app:projections:rebuild`, `app:index:rebuild`, `app:tenant:purge`, `app:schema:bundle` | `RebuildProjectionsCommand`, `BundleSchemasCommand` | EventStore, Application, Index |
+| `App\Command` | 4 | `app:projections:rebuild`, `app:index:rebuild`, `app:tenant:purge`, `app:schema:bundle` | `RebuildProjectionsCommand`, `BundleSchemasCommand` | EventStore, MessageHandler, Index |
 
 ### 3.2 Front end
 
@@ -216,7 +216,7 @@ App\Anchoring          git and cache side: Locator, LocationCacheSql, QueueLocat
 ### 3.3 Dependency picture
 
 ```text
-Adapters      Controller\Api   Mcp\Tool   Webhook\Handler   Command   MessageHandler
+Adapters      Controller\Api   Mcp\Tool   Webhook           Command   MessageHandler
                     |              |             |              |            |
                     +--------------+------+------+--------------+------------+
                                           |
@@ -245,7 +245,7 @@ Change the specs first when a contract changes. The plan forbids a wire format t
 | A new REST endpoint | An action in `Controller\Api`, an input DTO in `Controller\Api\Input`, a service in `Application` or `Application\Query` when another adapter shares the logic, a normalizer, a cross-tenant case. `CrossTenantCoverageTest` fails without the case. |
 | A new MCP tool | A class in `Mcp\Tool` that calls `McpToolRunner::run()`, a cross-tenant case, and for a new output schema a run of `app:schema:bundle` |
 | A new tenant table | An entity that implements `TenantOwned`, a rule in `RepositoryScopeSqlFilter`, the delete lists in `DeletionSql`, a migration. `EntityTenancyConventionTest` checks the tenant column. |
-| A new background job | A message in `App\Message` with `#[AsMessage('async')]` and a handler. Run `make worker-restart` in dev, because the Messenger worker does not reload code. |
+| A new background job | A message in `App\Message` with `#[AsMessage('async')]` and a handler in `App\MessageHandler`. Run `make worker-restart` in dev, because the Messenger worker does not reload code. |
 
 ## 4. Traced flows
 
@@ -256,7 +256,7 @@ Change the specs first when a contract changes. The plan forbids a wire format t
 3. `#[MapEntity]` loads the `Repository` through the tenant filter, so an ID of another tenant gives 404. `ApiCsrfListener` checks the double-submit token. `#[IsGranted(User::ROLE)]` refuses an agent.
 4. `ReviewController::start()` calls `RefName::fromString()`, then `ReviewCommands::start()` with `CurrentActor::get()`, which gives `Actor::user()`.
 5. `FetchRepository::readyClonePath()` throws `RepositoryUnavailable` for a clone in `cloning`, `failed`, or `unavailable`.
-6. When the ref is not a full SHA in the clone, `FetchRepository::fetchNow()` fetches under the `fetch:<repositoryId>` lock within 60 s. This fetch also dispatches `RepositoryFetched`, so steps 6 to 11 of flow 4.3 follow.
+6. When the ref is not a full SHA in the clone, `FetchRepository::fetchNow()` waits for the `fetch:<repositoryId>` lock in `RepositoryLock::acquire()` and calls `ServerClone::fetch()`, both within 60 s. This fetch also dispatches `RepositoryFetched`, so steps 6 to 11 of flow 4.3 follow.
 7. A null ref becomes the default branch. `GitReader::resolveCommit()` gives the `CommitSha`. `PinRefs::pinReview()` writes the review pin before the transaction (D26).
 8. `ReviewCommands::recordStarted()` calls `CommandExecutor::execute()`. `EventStoreSql::lockTenant()` runs `SELECT event_seq FROM tenant ... FOR UPDATE`. The decide closure reads `RepositoryRepository::findFresh()`, refuses removed access, and calls `ReviewDecider::decide()`, which returns `review.started`.
 9. `EventStoreSql::append()` inserts the event. The `inTransaction` closure persists the new `Review`, because the repository is not event data. `ReviewProjector::project()` folds `ReviewReducer::apply()` into the row. The transaction commits.
@@ -283,12 +283,12 @@ An agent cannot open a request. A user opens one through `RequestController::ope
 
 ### 4.3 A fetch moves the default branch
 
-1. A trigger calls `FetchRepository::request()`: the Refresh button through `RepositoryController::fetch()` (R5), or a GitHub push through `GitHubRequestParser`, `GitHubWebhookConsumer::consume()`, a `GitHubPushJob` with a `TenantStamp`, and `PushHandler::__invoke()`.
+1. A trigger calls `FetchRepository::request()`: the Refresh button through `RepositoryController::fetch()` (R5), or a GitHub push through `GitHubRequestParser`, `GitHubWebhookConsumer::consume()`, a `GitHubPushJob` with a `TenantStamp`, and `GitHubPushHandler::__invoke()`.
 2. `FetchRepository::request()` calls `RepositoryRepository::requestFetch()`, a conditional UPDATE. Only the winner dispatches `FetchRepositoryJob`, then `RepositoryChanged`. `PublishRepositoryChanges` publishes a `repository` update.
-3. In the worker, `FetchRepository::handleFetch()` calls `clearFetchRequest()`, takes the lock from `RepositoryLock::create()`, calls `startFetch()`, then `fetchLocked()`.
-4. `fetchLocked()` builds `GitHubFetchCommand` or `LocalFetchCommand::forDirectory()` and calls `BareClone::fetch()` with the SHAs of pending links. It reads `GitReader::headBranch()` and `resolveCommit()`, and calls `RepositoryRepository::recordSuccess()` with the new head.
-5. `fetchLocked()` returns `RepositoryFetched` with the previous head, from the entity read before the fetch, and the new head. The lock is released.
-6. `synced()` dispatches `RepositoryFetched`, then `RepositoryChanged`.
+3. In the worker, `RepositorySyncHandler::handleFetch()` calls `clearFetchRequest()`, waits for the lock in `RepositoryLock::acquire()`, calls `startFetch()`, then `ServerClone::fetch()`.
+4. `ServerClone::fetch()` builds `FetchCommand::gitHub()` or `FetchCommand::localDirectory()` and calls `BareClone::fetch()` with the SHAs of pending links. It reads `GitReader::headBranch()` and `resolveCommit()`, and calls `RepositoryRepository::recordSuccess()` with the new head.
+5. `ServerClone::fetch()` returns `RepositoryFetched` with the previous head, from the entity read before the fetch, and the new head. The lock is released.
+6. `ServerClone::synced()` dispatches `RepositoryFetched`, then `RepositoryChanged`.
 7. `ResolvePendingCommitLinks::onRepositoryFetched()` pins each found commit with `PinRefs::pinCommit()` and writes `commit.found` per review through `CommandExecutor::execute()` with `Actor::system()`.
 8. `QueueLocationRecompute::onRepositoryFetched()` returns when the two heads are equal. Otherwise it dispatches `RecomputeLocations` for each open review.
 9. `RecomputeLocationsHandler::__invoke()` gets the head from `FetchRepository::cloneReady()->getDefaultBranchHead()`. For each request it calls `Locator::locate()` with the `request.opened` event ID from `ReviewEventRepository::findOpenedEventIds()`.
@@ -302,7 +302,7 @@ An agent cannot open a request. A user opens one through `RequestController::ope
 |---|---|---|
 | Tenancy | `TenantSqlFilter` adds `tenant_id = :tenant` to each ORM query on a tenant table and throws `MissingTenantContext` without a context. `RepositoryScopeSqlFilter` applies a token scope and throws for an entity without a rule. `TenantContext::reset()` runs after each worker request. | `tests/Functional/Tenancy/`, `Audit/CrossTenantCoverageTest.php`, `Api/CrossTenantRouteInventoryTest.php` |
 | Context sources | Session: `TenantUserProvider` and `TenantContextListener`. Bearer: `ApiTokenHandler`. Messenger: `TenantContextMiddleware` reads `TenantStamp` and clears the entity manager. It refuses a message without a stamp, unless its class is in `app.tenantless_messages`. Console: a tenant argument or option. | `TenantContextResetTest`, `Messenger/MessengerTenantContextTest.php` |
-| `TenantFilter::suspend()` | 9 calls in 8 files, in the four places of architecture section 4. Sign-in and token lookup: `TenantUserProvider`, `GitHubUserProvider`, `LocalUserProvisioner`, `ApiTokenHandler` (2 calls). Webhook router: `GitHubWebhookConsumer`. Projection rebuild: `RebuildProjectionsCommand`. Purge: `PurgeTenant`. Also `E2eSignInController`, in `e2e` only. | `TenantFilterSuspendTest` proves that the filter comes back. No test limits the call sites. |
+| `TenantFilter::suspend()` | 9 calls in 8 files, in the four places of architecture section 4. Sign-in and token lookup: `TenantUserProvider`, `GitHubUserProvider`, `LocalUserProvisioner`, `ApiTokenHandler` (2 calls). Webhook router: `GitHubWebhookConsumer`. Projection rebuild: `RebuildProjectionsCommand`. Purge: `DeletionHandler`. Also `E2eSignInController`, in `e2e` only. | `TenantFilterSuspendTest` proves that the filter comes back. No test limits the call sites. |
 | Raw SQL only in `*Sql` classes | `EventStoreSql`, `ReadSnapshotSql`, `DeletionSql`, `ViewedFileSql`, `IndexSql`, `LocationCacheSql`, `WebhookDeliverySql`. Each statement on a tenant table names its tenant column. The SQL filters do not see raw SQL. | `Audit/RawSqlTenantAuditTest.php` |
 | Git only through `GitRunner` | `GitRunner` is the only class that creates a `Process`. `CatFileBatch` uses `GitRunner::start()`, and each `StreamedBlob` reads through a `CatFileBatch` of its own. Arguments are arrays with a fixed environment. Tokens reach git only through `GIT_CONFIG_*` variables and are redacted from errors (D38). Paths come from IDs through `TenantDataPaths`. | `Unit/Conventions/NoProcessOutsideGitTest.php`, which allows a `Process` only in `src/Git` |
 | Locks | Event writes: the tenant row `FOR UPDATE`. `symfony/lock` keys on PostgreSQL advisory locks, all with no TTL: `fetch:<repositoryId>`, `github-repositories:<tenantId>`, `drafts:<reviewId>:<userId>`, `mcp-session-<id>`, `connect-local:<tenantId>:<directory>`, `api-token-issue:<userId>`. Deletes lock parent rows `FOR UPDATE`. Index and cache writes lock them `FOR KEY SHARE`. | `GaplessSequenceTest`, `Deletion/` tests |
@@ -315,7 +315,7 @@ An agent cannot open a request. A user opens one through `RequestController::ope
 
 | Suite | Location | Tool and base | What it proves | Run |
 |---|---|---|---|---|
-| Unit | `tests/Unit/`, 62 classes | PHPUnit, `KernelTestCase` without boot | Value objects, the transition matrix, `awaiting` rules, event codecs, pure anchoring algorithms. `Conventions/` holds the meta-tests, for example domain purity, 800-line limit, no container mocks, TestDox on every test (D44). | `docker compose exec php bin/phpunit --testsuite unit` |
+| Unit | `tests/Unit/`, 61 classes | PHPUnit, `KernelTestCase` without boot | Value objects, the transition matrix, `awaiting` rules, event codecs, pure anchoring algorithms. `Conventions/` holds the meta-tests, for example domain purity, 800-line limit, no container mocks, TestDox on every test (D44). | `docker compose exec php bin/phpunit --testsuite unit` |
 | Functional | `tests/Functional/`, 149 classes | `KernelTestCase` and `WebTestCase` on `app_test`, real git repositories in temporary directories, `MockHttpClient` for GitHub | Event store and projections, re-anchoring cases F1 to F14, tenant isolation, REST and MCP contracts against the schemas, webhooks, deletion, the headless slice | `make test` runs unit and functional |
 | Front-end unit | `assets/**/*.test.ts`, 19 files | Vitest | Pure TypeScript: live subscription, helpers, enum arrays and fixtures against the schemas | `make front` |
 | UI | `tests/ui/*.spec.ts`, 29 specs | Playwright Test on the host, against the SPA built by `tests/ui/vite.config.ts` | Screen flows with no PHP, database, or git. `tests/ui/support/mockApi.ts` answers `/api/v1`, and each mocked body validates against the schemas. A fake `EventSource` sends live updates. | `make ui` |
@@ -333,13 +333,13 @@ Run `make db-test` once and after each migration. `make check` runs all gates. O
 | `src/Mcp/BundledSchemas.php` | 2,472 lines | Forced by `specs/mcp.md` section 3 | `#[McpTool(outputSchema:)]` takes only constant expressions. `app:schema:bundle` generates the file, and `BundledSchemasUpToDateTest` checks it. |
 | MCP tools next to REST actions | `Mcp\Tool`: 12 classes, about 680 lines | Forced by architecture section 7.1 and D20 | Each tool closure equals one REST action line. One class per tool is a choice. Check the SDK discovery before you merge classes. |
 | Normalizers and view DTOs | 17 normalizers with 1,151 lines, 26 DTO and enum files in `Application\Query` with 722 lines | Forced by D37 and architecture section 7.2. Candidate in part. | Two serialization paths: DTOs such as `RequestCommandResult`, `UpdatesPage`, `RepositoryPage`, and `IndexStatus` have no normalizer and go through the framework `ObjectNormalizer`. Many DTOs wrap an entity and add a few fields. Simpler: one rule for all responses. |
-| `Application\FetchRepository` | 462 lines, 17 constructor parameters, 3 message handlers | Candidate. The lock and sync rules are forced by D24 and D39. | It mixes sync, clone deletion, access removal, GitHub token requests, and local discovery. Simpler: move the handlers to `App\MessageHandler`, and give `GitHubFetchCommand` and `LocalFetchCommand` one interface so that `App\Source` picks the command. |
+| `Application\FetchRepository` | 462 lines, 17 constructor parameters, 3 message handlers | Candidate. The lock and sync rules are forced by D24 and D39. | Done in S05. `FetchRepository` has 203 lines and 9 constructor parameters: it queues clones and fetches, fetches within 60 s, removes access, and checks that a clone is ready. `ServerClone` fetches from the source, with the GitHub token request and the local discovery. `RepositorySyncHandler` runs the clone and fetch jobs, `DeletionHandler` the clone deletion and the tenant purge, and `RepositoryLock::acquire()` waits for the lock for all of them. Both sources build one `Source\FetchCommand`. An interface with a picker in `App\Source` is not smaller, because only `ServerClone` picks. Remains: `ServerClone` has 12 constructor parameters, which the two sources need. |
 | Re-anchoring | 4 namespaces, about 1,380 lines | Forced by architecture sections 5.4 and 5.5 and plan M28. Candidate for names. | `Locator` is the only production caller of `Domain\Anchoring`. The split lets the algorithms run in unit tests without git. Two namespaces are called `Anchoring`. Simpler: rename `App\Domain\Anchoring`, for example to `App\Domain\Matching`. |
 | Tenancy | `Tenancy`, 7 `*Sql` classes, `findFresh()` methods | Forced by D3, D17, architecture section 4, plan M14 | Each part closes a gap that the ORM filter leaves: DBAL queries, identity-map hits, scoped tokens. |
-| Git layer | `App\Git`: 15 files, 1,166 lines | Forced by architecture section 4, D26, D38, D39. Small candidates. | Done in S03. `CatFileBatch` holds the one header parse, read loop, and 60 s timeout, and `StreamedBlob` reads through a `CatFileBatch` of its own. `GitReader::blobAt()`: done in S01. |
+| Git layer | `App\Git`: 15 files, 1,193 lines | Forced by architecture section 4, D26, D38, D39. Small candidates. | Done in S03. `CatFileBatch` holds the one header parse, read loop, and 60 s timeout, and `StreamedBlob` reads through a `CatFileBatch` of its own. `GitReader::blobAt()`: done in S01. |
 | Single-consumer services | `ApiTokenIssuer`, `ConnectLocalRepository`, `CommitAvailability`, `TreeQuery`, `EventLogQuery` | Candidate | Done in S02. The first four live in their only consumers: `TokenController::create()`, `RepositoryController::connectLocal()`, `RequestQuery::target()`, and `CodeController::listTree()`. `EventLogQuery`: done in S01, the tests read events through `tests/Support/EventStore/EventLog.php`. |
 | Wrapper use cases | `Application\LinkCommits`, `UnlinkCommit`, `MarkReadyForReview` | Forced by D26 and the `CommandExecutor` transaction rule. Candidate for names. | Git work stays outside the event transaction, so each wraps one `RequestCommands` method. The class names repeat `Domain\Request\Command` names, so imports need aliases such as `LinkCommitsCommand`. |
-| Message handlers in three places | 4 methods in `Application`, 2 classes in `MessageHandler`, 7 methods in `Webhook\Handler` | Candidate | Each message docblock names its handler, because no rule tells you where it is. Simpler: one place for all handlers. |
+| Message handlers in three places | 4 methods in `Application`, 2 classes in `MessageHandler`, 7 methods in `Webhook\Handler` | Candidate | Done in S05. Every handler is in `App\MessageHandler`, and no message docblock names its handler. |
 | Repeated helpers | 4 cursor paginations, 5 `uuid()` helpers | Candidate | Done in S03. `Cursor::decode()` checks the sort key types and `Cursor::next()` makes `nextCursor` for `RequestQuery`, `ReviewQuery`, `RepositoryQuery`, and `CodeController`. Raw SQL, the SQL filter parameters, and list parameters convert a typed ID with `Identifier::toRfc4122()`. Each list keeps its own `ORDER BY` and keyset condition. |
 | Typed ID conversions in entities | 17 entities, 41 `Ulid::fromString()` calls in `Entity` and `Repository` | Candidate. Typed IDs on `ulid` columns are a choice of plan M06. | Each getter converts a stored `Ulid` to a typed ID. Simpler: one DBAL type per ID class. |
 | Small Domain items | `Domain\Draft`, `Domain\User`, `ActorCodec`, DBAL types | Candidate, low cost | Done in S01, with the entity getters that nothing calls, and the `equals()` methods and `Domain\Anchoring` helpers that no production code calls. `CommitShaType` and `BlobShaType` stay two classes: each returns its own value class, and DBAL registers a type by class without arguments. Seven string value objects repeat `toString()`, and three of them `equals()`. |

@@ -28,9 +28,9 @@ Record a baseline before S01 and after every step: PHP and TS file count, lines 
 | S00 | Baseline metrics | Done 2026-10-03 | ca09c4b | src 406 PHP / 25954 lines, 406 types; tests 272 PHP / 23118 lines; assets 127 TS / 6511 lines; check 2m45s |
 | S01 | Dead code | Done 2026-10-05, [report](reports/S01.md) | 1f6b805 | src 403 PHP / 25684 lines, 403 types; tests 271 PHP / 23076 lines; assets 128 TS / 6484 lines; check 2m26s |
 | S02 | Inline single-consumer services | Done 2026-10-05, [report](reports/S02.md) | 12a3b3f | src 399 PHP / 25553 lines, 399 types; tests 269 PHP / 22963 lines; assets 128 TS / 6484 lines; check 2m29s |
-| S03 | One cursor helper, one UUID helper | Done 2026-10-05, [report](reports/S03.md) | | src 399 PHP / 25438 lines, 399 types; tests 269 PHP / 22957 lines; assets 128 TS / 6484 lines |
+| S03 | One cursor helper, one UUID helper | Done 2026-10-05, [report](reports/S03.md) | bb23600 | src 399 PHP / 25438 lines, 399 types; tests 269 PHP / 22957 lines; assets 128 TS / 6484 lines; check 2m26s |
 | S04 | One DBAL type per typed ID | Not started | | |
-| S05 | Split `FetchRepository`, handlers in one place | Not started | | |
+| S05 | Split `FetchRepository`, handlers in one place | Done 2026-10-05, [report](reports/S05.md) | | src 399 PHP / 25399 lines, 399 types; tests 268 PHP / 22945 lines; assets 128 TS / 6484 lines |
 | S06 | One `Anchoring` namespace | Not started | | |
 | S07 | Collapse layers around commands | Not started | | |
 | S08 | One serialization path | Not started | | |

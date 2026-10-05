@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
-namespace App\Webhook\Handler;
+namespace App\MessageHandler;
 
-use App\Application\ConnectGitHubRepository;
 use App\Application\FetchRepository;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Identity\TenantId;
@@ -13,6 +12,7 @@ use App\Entity\GitHubCandidate;
 use App\Entity\GitHubInstallation;
 use App\Entity\Repository;
 use App\GitHub\GitHubRequestFailed;
+use App\GitHub\InstallationSync;
 use App\GitHub\InstallationTokenProvider;
 use App\GitHub\Payload\RepositoryPayload;
 use App\Live\LivePublisher;
@@ -41,7 +41,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * The `installation` and `installation_repositories` events of docs/specs/webhooks-and-live-updates.md section 1. The
  * installation and candidate rows change under the lock that the sign-in sync and the GitHub connect hold too.
  */
-final class InstallationHandler
+final class GitHubInstallationHandler
 {
     public function __construct(
         #[Target('github.client')]
@@ -208,7 +208,7 @@ final class InstallationHandler
      */
     private function locked(TenantId $tenantId, \Closure $work): void
     {
-        $lock = $this->lockFactory->createLock(ConnectGitHubRepository::lockKey($tenantId), ttl: null);
+        $lock = $this->lockFactory->createLock(InstallationSync::lockKey($tenantId), ttl: null);
         $lock->acquire(true);
 
         try {

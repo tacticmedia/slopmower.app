@@ -500,7 +500,7 @@ Web UI and REST API      MCP over HTTP      Webhook consumer      Messenger hand
                                         |
              Domain: value objects, events, reducer, state machine, anchor matching
                                         |
-             Ports: Doctrine repositories, the `github.client` HTTP client, GitHubFetchCommand and LocalFetchCommand, GitReader, SymbolExtractor, LivePublisher
+             Ports: Doctrine repositories, the `github.client` HTTP client, FetchCommand, GitReader, SymbolExtractor, LivePublisher
 ```
 
 - Adapters map input, call application services, and normalize the result. A `kernel.request` listener and a Messenger middleware set the tenant context. MCP and REST return the same JSON.

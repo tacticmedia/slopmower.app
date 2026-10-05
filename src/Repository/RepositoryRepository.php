@@ -72,7 +72,7 @@ final class RepositoryRepository extends ServiceEntityRepository
 
     /**
      * A rename onto a name that another GitHub repository of the tenant holds, in any case, waits until that one is
-     * renamed or deleted. Callers hold the lock of {@see \App\Application\ConnectGitHubRepository::lockKey()}.
+     * renamed or deleted. Callers hold the lock of {@see \App\GitHub\InstallationSync::lockKey()}.
      */
     public function nameAfterRename(Repository $repository, RepositoryName $newName): RepositoryName
     {
