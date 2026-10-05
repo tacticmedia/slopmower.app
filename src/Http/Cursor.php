@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http;
 
 use App\Domain\Error\InvalidInput;
+use Symfony\Component\Uid\Ulid;
 
 /**
  * The opaque cursor of docs/specs/README.md section 5: base64url JSON of the last sort key and a hash of the filters.
@@ -16,6 +17,10 @@ final class Cursor
 
     /** Enough to tell filters apart. The cursor is not a secret. */
     private const int FILTER_HASH_CHARACTERS = 16;
+
+    /** Years 1 to 9999, which TIMESTAMP(0) and the DBAL date format hold. */
+    private const int EARLIEST_UNIX_SECONDS = -62135596800;
+    private const int LATEST_UNIX_SECONDS = 253402300799;
 
     /**
      * @param list<string|int>                $sortKey
@@ -29,13 +34,29 @@ final class Cursor
     }
 
     /**
-     * @param array<string, string|bool|null> $filters
+     * @template T
      *
-     * @return list<mixed> The sort key, which the caller checks
+     * @param list<T>                         $rows    The rows of the page, then at least one more if a next page exists
+     * @param array<string, string|bool|null> $filters
+     * @param \Closure(T): list<string|int>   $sortKey
+     *
+     * @return string|null Null on the last page
+     */
+    public static function next(array $rows, int $limit, array $filters, \Closure $sortKey): ?string
+    {
+        return count($rows) > $limit ? self::encode($sortKey($rows[$limit - 1]), $filters) : null;
+    }
+
+    /**
+     * @param array<string, string|bool|null> $filters
+     * @param 'int'|'string'|'ulid'|'time'    ...$types One per sort key value. A ulid becomes a Ulid, a time in Unix
+     *                                                  seconds a \DateTimeImmutable.
+     *
+     * @return list<mixed> The sort key
      *
      * @throws InvalidInput A malformed cursor, or a cursor of other filters
      */
-    public static function decode(string $cursor, array $filters): array
+    public static function decode(string $cursor, array $filters, string ...$types): array
     {
         $json = base64_decode(strtr($cursor, '-_', '+/'), true);
         $decoded = false === $json ? null : json_decode($json, true);
@@ -48,7 +69,16 @@ final class Cursor
             throw InvalidInput::field(self::FIELD, 'The cursor belongs to other filters.');
         }
 
-        return $decoded['k'];
+        if (count($decoded['k']) !== count($types)) {
+            throw self::malformed();
+        }
+
+        return array_map(static fn (mixed $value, string $type): mixed => match (true) {
+            'int' === $type && \is_int($value), 'string' === $type && \is_string($value) => $value,
+            'ulid' === $type && \is_string($value) && Ulid::isValid($value) => Ulid::fromString($value),
+            'time' === $type && \is_int($value) && $value >= self::EARLIEST_UNIX_SECONDS && $value <= self::LATEST_UNIX_SECONDS => new \DateTimeImmutable("@{$value}"),
+            default => throw self::malformed(),
+        }, $decoded['k'], $types);
     }
 
     public static function malformed(): InvalidInput

@@ -10,7 +10,8 @@ use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 
 /**
- * One running `git cat-file --batch -Z` process. -Z delimits names and records with NUL.
+ * One running `git cat-file --batch` process. {@see GitReader} keeps one per clone, and each {@see StreamedBlob} has
+ * its own.
  */
 final class CatFileBatch
 {
@@ -26,7 +27,7 @@ final class CatFileBatch
     {
         $input = new InputStream();
 
-        return new self($git->start($gitDir, ['cat-file', '--batch', '-Z'], $input), $input);
+        return new self($git->start($gitDir, ['cat-file', '--batch'], $input), $input);
     }
 
     /**
@@ -36,21 +37,66 @@ final class CatFileBatch
      */
     public function blob(BlobSha $sha): ?Blob
     {
-        $this->input->write($sha->toString()."\0");
-        $header = $this->read(fn (): int|false => strpos($this->buffer, "\0"));
+        [$type, $sizeBytes] = $this->open($sha) ?? [null, null];
 
-        if (1 !== preg_match('/^([0-9a-f]{40}|[0-9a-f]{64}) ([a-z]+) (\d+)$/D', $header, $match)) {
-            if (str_ends_with($header, ' missing')) {
-                return null;
-            }
-
-            throw new GitFailed("git cat-file --batch returned an unexpected header: {$header}");
+        if (null === $sizeBytes) {
+            return null;
         }
 
-        $sizeBytes = (int) $match[3];
-        $bytes = $this->read(fn (): int|false => strlen($this->buffer) > $sizeBytes ? $sizeBytes : false);
+        // Also the bytes of another object type, so the next request reads its own header.
+        $bytes = $this->take($sizeBytes, 1);
 
-        return ObjectType::Blob === ObjectType::tryFrom($match[2]) ? new Blob(BlobSha::fromString($match[1]), $bytes) : null;
+        return ObjectType::Blob === $type ? new Blob($sha, $bytes) : null;
+    }
+
+    /**
+     * Requests an object and reads its header. The object bytes follow, then LF.
+     *
+     * @return array{ObjectType|null, int}|null The type and the size in bytes. Null when the object is missing.
+     *
+     * @throws GitFailed
+     */
+    public function open(BlobSha $sha): ?array
+    {
+        $this->input->write("{$sha}\n");
+
+        while (false === $end = strpos($this->buffer, "\n")) {
+            $this->fill(strlen($this->buffer) + 1);
+        }
+
+        $header = $this->take($end, 1);
+
+        if (1 !== preg_match('/^[0-9a-f]{40,64} ([a-z]+) (\d+)$/D', $header, $match)) {
+            return str_ends_with($header, ' missing') ? null : throw new GitFailed("git cat-file --batch returned an unexpected header: {$header}");
+        }
+
+        return [ObjectType::tryFrom($match[1]), (int) $match[2]];
+    }
+
+    /**
+     * @throws GitFailed
+     */
+    public function peek(int $bytes): string
+    {
+        $this->fill($bytes);
+
+        return substr($this->buffer, 0, $bytes);
+    }
+
+    /**
+     * @return \Generator<string> The next $bytes as they arrive
+     *
+     * @throws GitFailed
+     */
+    public function chunks(int $bytes): \Generator
+    {
+        while ($bytes > 0) {
+            $this->fill(1);
+            $chunk = $this->take(min($bytes, strlen($this->buffer)));
+            $bytes -= strlen($chunk);
+
+            yield $chunk;
+        }
     }
 
     public function stop(): void
@@ -60,39 +106,44 @@ final class CatFileBatch
     }
 
     /**
-     * Waits until $length() returns the length of the next record, then takes the record and its NUL.
+     * @throws GitFailed
+     */
+    private function take(int $bytes, int $delimiterBytes = 0): string
+    {
+        $this->fill($bytes + $delimiterBytes);
+        $taken = substr($this->buffer, 0, $bytes);
+        $this->buffer = substr($this->buffer, $bytes + $delimiterBytes);
+
+        return $taken;
+    }
+
+    /**
+     * Reads until the buffer holds at least $bytes. Each call gets its own timeout.
      *
      * The Process iterator yields from the Process output buffer, so it also yields what other Process calls read.
      *
-     * @param \Closure(): (int|false) $length
+     * @throws GitFailed
      */
-    private function read(\Closure $length): string
+    private function fill(int $bytes): void
     {
-        $recordLength = $length();
-
-        if (false === $recordLength) {
-            $this->process->setTimeout(microtime(true) - $this->process->getStartTime() + self::READ_TIMEOUT_SECONDS);
-
-            try {
-                foreach ($this->process->getIterator(Process::ITER_SKIP_ERR) as $output) {
-                    $this->buffer .= $output;
-
-                    if (false !== $recordLength = $length()) {
-                        break;
-                    }
-                }
-            } catch (ProcessTimedOutException) {
-                throw new GitFailed('git cat-file --batch timed out after '.self::READ_TIMEOUT_SECONDS.' s');
-            }
-
-            if (false === $recordLength) {
-                throw new GitFailed('git cat-file --batch stopped: '.trim($this->process->getErrorOutput()));
-            }
+        if (strlen($this->buffer) >= $bytes) {
+            return;
         }
 
-        $record = substr($this->buffer, 0, $recordLength);
-        $this->buffer = substr($this->buffer, $recordLength + 1);
+        $this->process->setTimeout(microtime(true) - $this->process->getStartTime() + self::READ_TIMEOUT_SECONDS);
 
-        return $record;
+        try {
+            foreach ($this->process->getIterator(Process::ITER_SKIP_ERR) as $output) {
+                $this->buffer .= $output;
+
+                if (strlen($this->buffer) >= $bytes) {
+                    return;
+                }
+            }
+        } catch (ProcessTimedOutException) {
+            throw new GitFailed('git cat-file --batch timed out after '.self::READ_TIMEOUT_SECONDS.' s');
+        }
+
+        throw new GitFailed('git cat-file --batch stopped: '.trim($this->process->getErrorOutput()));
     }
 }

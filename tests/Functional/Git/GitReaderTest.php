@@ -72,9 +72,12 @@ final class GitReaderTest extends KernelTestCase
         self::assertSame([...array_slice(self::paths($root), 0, 5), 'src/App.php'], self::paths($this->reader->lsTreeRecursive($this->clone, $this->commit)));
     }
 
-    #[TestDox('Returns blob bytes equal to the source file')]
+    #[TestDox('Returns blob bytes equal to the source file, and null for a tree or a missing object')]
     public function testReturnsBlobBytes(): void
     {
+        // The reads after the tree prove that the shared process skipped the tree bytes.
+        self::assertNull($this->reader->readBlob($this->clone, BlobSha::fromString($this->reader->lsTree($this->clone, $this->commit)[5]->objectId)));
+
         foreach (['README.md', "line\nbreak.txt", 'src/App.php'] as $path) {
             self::assertSame(self::FILES[$path], $this->blobAt($path)->bytes);
         }

@@ -40,6 +40,14 @@ abstract readonly class Identifier implements \Stringable
         return $this->ulid->toBase32();
     }
 
+    /**
+     * The ulid column type is a native uuid on PostgreSQL, so raw SQL, SQL filter, and DQL list parameters take this form.
+     */
+    public function toRfc4122(): string
+    {
+        return $this->ulid->toRfc4122();
+    }
+
     public function __toString(): string
     {
         return $this->toString();

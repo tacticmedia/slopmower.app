@@ -69,7 +69,7 @@ final class ReviewQuery
         }
 
         if (null !== $cursor) {
-            [$beforeCreatedAt, $beforeId] = self::sortKey(Cursor::decode($cursor, $filters));
+            [$beforeCreatedAt, $beforeId] = Cursor::decode($cursor, $filters, 'time', 'ulid');
             $builder
                 ->andWhere('review.createdAt < :beforeCreatedAt OR (review.createdAt = :beforeCreatedAt AND review.id < :beforeId)')
                 ->setParameter('beforeCreatedAt', $beforeCreatedAt, Types::DATETIME_IMMUTABLE)
@@ -78,13 +78,9 @@ final class ReviewQuery
 
         /** @var list<Review> $rows */
         $rows = $builder->getQuery()->setHint(Query::HINT_REFRESH, true)->getResult();
-        $page = array_slice($rows, 0, $limit);
-        $last = end($page);
-        $nextCursor = count($rows) > $limit && false !== $last
-            ? Cursor::encode([$last->getCreatedAt()->getTimestamp(), $last->getId()->toString()], $filters)
-            : null;
+        $nextCursor = Cursor::next($rows, $limit, $filters, static fn (Review $review): array => [$review->getCreatedAt()->getTimestamp(), $review->getId()->toString()]);
 
-        return new ReviewPage($repository, $this->views($page), $nextCursor);
+        return new ReviewPage($repository, $this->views(array_slice($rows, 0, $limit)), $nextCursor);
     }
 
     private function select(): QueryBuilder
@@ -119,7 +115,7 @@ final class ReviewQuery
             ->from(ChangeRequest::class, 'request')
             ->where('request.review IN (:reviews)')
             ->groupBy('request.review', 'request.status', 'request.awaiting')
-            ->setParameter('reviews', array_map(static fn (Review $review): string => Ulid::fromString($review->getId()->toString())->toRfc4122(), $reviews), ArrayParameterType::STRING)
+            ->setParameter('reviews', array_map(static fn (Review $review): string => $review->getId()->toRfc4122(), $reviews), ArrayParameterType::STRING)
             ->getQuery()
             ->getArrayResult();
 
@@ -136,21 +132,5 @@ final class ReviewQuery
             array_replace($byAwaiting, $counts[$review->getId()->toString()]['awaiting'] ?? []),
             $counts[$review->getId()->toString()]['outdated'] ?? 0,
         ), $reviews);
-    }
-
-    /**
-     * @param list<mixed> $sortKey
-     *
-     * @return array{\DateTimeImmutable, Ulid}
-     *
-     * @throws InvalidInput
-     */
-    private static function sortKey(array $sortKey): array
-    {
-        if (2 !== count($sortKey) || !\is_int($sortKey[0]) || !\is_string($sortKey[1]) || !Ulid::isValid($sortKey[1])) {
-            throw Cursor::malformed();
-        }
-
-        return [new \DateTimeImmutable("@{$sortKey[0]}"), Ulid::fromString($sortKey[1])];
     }
 }

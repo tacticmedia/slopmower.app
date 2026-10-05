@@ -6,7 +6,6 @@ namespace App\EventStore;
 
 use App\Domain\Identity\TenantId;
 use Doctrine\DBAL\Connection;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * A read-only REPEATABLE READ transaction. Every event with a seq up to the event_seq read in it is committed and
@@ -40,7 +39,7 @@ final class ReadSnapshotSql
 
         try {
             $this->connection->executeStatement(self::BEGIN_SNAPSHOT);
-            $eventSeq = $this->connection->fetchOne(self::EVENT_SEQ, ['tenantId' => Ulid::fromString($tenantId->toString())->toRfc4122()]);
+            $eventSeq = $this->connection->fetchOne(self::EVENT_SEQ, ['tenantId' => $tenantId->toRfc4122()]);
             $result = $read(false === $eventSeq ? throw new \LogicException("The tenant {$tenantId} has no row.") : (int) $eventSeq);
             $this->connection->commit();
 

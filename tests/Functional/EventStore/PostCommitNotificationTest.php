@@ -14,7 +14,6 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Uid\Ulid;
 
 final class PostCommitNotificationTest extends KernelTestCase
 {
@@ -60,7 +59,7 @@ final class PostCommitNotificationTest extends KernelTestCase
     private static function readFromSecondConnection(TenantId $tenantId): array
     {
         $second = DriverManager::getConnection(self::getContainer()->get(Connection::class)->getParams());
-        $tenant = [Ulid::fromString($tenantId->toString())->toRfc4122()];
+        $tenant = [$tenantId->toRfc4122()];
 
         try {
             return [

@@ -8,7 +8,6 @@ use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Identity\TenantId;
 use Doctrine\DBAL\Connection;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * V13, R6, the tenant purge, and {@see \App\Message\DeleteCloneJob}. Each deletion first locks its parent rows FOR
@@ -93,12 +92,12 @@ final class DeletionSql
 
     public function deleteReview(TenantId $tenantId, ReviewId $reviewId): void
     {
-        $this->run(self::REVIEW_LOCKS, self::REVIEW, ['tenantId' => self::uuid($tenantId), 'reviewId' => self::uuid($reviewId)]);
+        $this->run(self::REVIEW_LOCKS, self::REVIEW, ['tenantId' => $tenantId->toRfc4122(), 'reviewId' => $reviewId->toRfc4122()]);
     }
 
     public function deleteRepository(TenantId $tenantId, RepositoryId $repositoryId): void
     {
-        $this->run(self::REPOSITORY_LOCKS, self::REPOSITORY, ['tenantId' => self::uuid($tenantId), 'repositoryId' => self::uuid($repositoryId)]);
+        $this->run(self::REPOSITORY_LOCKS, self::REPOSITORY, ['tenantId' => $tenantId->toRfc4122(), 'repositoryId' => $repositoryId->toRfc4122()]);
     }
 
     /**
@@ -106,7 +105,7 @@ final class DeletionSql
      */
     public function deleteRepositoryIndex(TenantId $tenantId, RepositoryId $repositoryId): void
     {
-        $this->run(self::REPOSITORY_INDEX_LOCKS, self::REPOSITORY_INDEX, ['tenantId' => self::uuid($tenantId), 'repositoryId' => self::uuid($repositoryId)]);
+        $this->run(self::REPOSITORY_INDEX_LOCKS, self::REPOSITORY_INDEX, ['tenantId' => $tenantId->toRfc4122(), 'repositoryId' => $repositoryId->toRfc4122()]);
     }
 
     /**
@@ -114,7 +113,7 @@ final class DeletionSql
      */
     public function deleteTenant(TenantId $tenantId): void
     {
-        $this->run(self::TENANT_LOCKS, self::TENANT, ['tenantId' => self::uuid($tenantId)]);
+        $this->run(self::TENANT_LOCKS, self::TENANT, ['tenantId' => $tenantId->toRfc4122()]);
     }
 
     /**
@@ -135,13 +134,5 @@ final class DeletionSql
                 $this->connection->executeStatement($delete, $parameters);
             }
         });
-    }
-
-    /**
-     * The ulid column type is a native uuid on PostgreSQL.
-     */
-    private static function uuid(\Stringable $id): string
-    {
-        return Ulid::fromString((string) $id)->toRfc4122();
     }
 }

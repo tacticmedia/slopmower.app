@@ -109,7 +109,7 @@ final class TokenManagementTest extends WebTestCase
         self::assertSame([204, '', 204, ''], [$first->getStatusCode(), $first->getContent(), $second->getStatusCode(), $second->getContent()]);
         self::assertSame('2026-10-02 08:00:00', self::getContainer()->get(Connection::class)->fetchOne(
             'SELECT revoked_at FROM api_token WHERE id = ?',
-            [Ulid::fromString($token->getId()->toString())->toRfc4122()],
+            [$token->getId()->toRfc4122()],
         ));
         self::assertApiError(self::bearerRequest($client, $secret, 'GET', '/api/v1/me'), 401, 'unauthorized');
     }

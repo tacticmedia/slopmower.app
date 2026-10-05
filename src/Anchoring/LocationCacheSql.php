@@ -10,7 +10,6 @@ use App\Domain\Identity\TenantId;
 use App\Domain\Location\Location;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * Two computations of one key store the same location. A unique key violation in the ORM closes the entity manager,
@@ -40,7 +39,7 @@ final class LocationCacheSql
 
     public function insert(TenantId $tenantId, RepositoryId $repositoryId, EventId $openedEventId, Location $location): void
     {
-        $key = ['tenantId' => self::uuid($tenantId), 'repositoryId' => self::uuid($repositoryId), 'openedEventId' => self::uuid($openedEventId)];
+        $key = ['tenantId' => $tenantId->toRfc4122(), 'repositoryId' => $repositoryId->toRfc4122(), 'openedEventId' => $openedEventId->toRfc4122()];
 
         $this->connection->transactional(function () use ($key, $location): void {
             $repository = array_intersect_key($key, ['tenantId' => true, 'repositoryId' => true]);
@@ -59,13 +58,5 @@ final class LocationCacheSql
                 'reason' => $location->reason?->value,
             ], ['startLine' => Types::INTEGER, 'endLine' => Types::INTEGER, 'confidence' => Types::FLOAT]);
         });
-    }
-
-    /**
-     * The ulid column type is a native uuid on PostgreSQL.
-     */
-    private static function uuid(\Stringable $id): string
-    {
-        return Ulid::fromString((string) $id)->toRfc4122();
     }
 }

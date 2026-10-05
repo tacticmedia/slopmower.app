@@ -11,7 +11,6 @@ use App\Domain\Identity\TenantId;
 use App\Git\TreeEntry;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * Two index jobs at one commit, or V9 and a job, write the same rows. A unique key violation in the ORM closes the
@@ -58,7 +57,7 @@ final class IndexSql
 
             foreach (array_chunk($entries, self::ROWS_PER_STATEMENT) as $chunk) {
                 $rows = array_map(static fn (TreeEntry $entry): array => [
-                    self::uuid($tenantId), self::uuid($repositoryId), $commit->toString(), hash('sha256', $entry->path), $entry->path, $entry->objectId, $entry->mode, $entry->sizeBytes,
+                    $tenantId->toRfc4122(), $repositoryId->toRfc4122(), $commit->toString(), hash('sha256', $entry->path), $entry->path, $entry->objectId, $entry->mode, $entry->sizeBytes,
                 ], $chunk);
                 $this->insertRows(self::INSERT_FILES, $rows);
             }
@@ -78,8 +77,8 @@ final class IndexSql
             }
 
             $inserted = $this->connection->executeStatement(self::INSERT_BLOB, [
-                'tenantId' => self::uuid($tenantId),
-                'repositoryId' => self::uuid($repositoryId),
+                'tenantId' => $tenantId->toRfc4122(),
+                'repositoryId' => $repositoryId->toRfc4122(),
                 'blobSha' => $blob->toString(),
                 'parseError' => $table->parseError,
             ], ['parseError' => Types::BOOLEAN]);
@@ -90,7 +89,7 @@ final class IndexSql
 
             foreach (array_chunk($table->symbols, self::ROWS_PER_STATEMENT) as $chunk) {
                 $rows = array_map(static fn (ExtractedSymbol $symbol): array => [
-                    self::uuid($tenantId), self::uuid($repositoryId), $blob->toString(), $symbol->kind->value, $symbol->fqn, $symbol->name, $symbol->parentFqn,
+                    $tenantId->toRfc4122(), $repositoryId->toRfc4122(), $blob->toString(), $symbol->kind->value, $symbol->fqn, $symbol->name, $symbol->parentFqn,
                     $symbol->range->startLine, $symbol->range->endLine, $symbol->declarationStartLine, $symbol->docStartLine,
                 ], $chunk);
                 $this->insertRows(self::INSERT_SYMBOLS, $rows);
@@ -106,7 +105,7 @@ final class IndexSql
     public function storedSymbolCounts(TenantId $tenantId, RepositoryId $repositoryId, CommitSha $commit): array
     {
         $counts = [];
-        $rows = $this->connection->fetchAllNumeric(self::SYMBOL_COUNTS, ['tenantId' => self::uuid($tenantId), 'repositoryId' => self::uuid($repositoryId), 'commitSha' => $commit->toString()]);
+        $rows = $this->connection->fetchAllNumeric(self::SYMBOL_COUNTS, ['tenantId' => $tenantId->toRfc4122(), 'repositoryId' => $repositoryId->toRfc4122(), 'commitSha' => $commit->toString()]);
 
         foreach ($rows as [$blobSha, $symbolCount]) {
             $counts[(string) $blobSha] = (int) $symbolCount;
@@ -120,7 +119,7 @@ final class IndexSql
      */
     public function deleteParsedBlobs(TenantId $tenantId, RepositoryId $repositoryId): void
     {
-        $parameters = ['tenantId' => self::uuid($tenantId), 'repositoryId' => self::uuid($repositoryId)];
+        $parameters = ['tenantId' => $tenantId->toRfc4122(), 'repositoryId' => $repositoryId->toRfc4122()];
 
         $this->connection->transactional(function () use ($parameters): void {
             $this->connection->executeStatement(self::DELETE_SYMBOLS, $parameters);
@@ -133,7 +132,7 @@ final class IndexSql
      */
     private function lockRepository(TenantId $tenantId, RepositoryId $repositoryId): bool
     {
-        return false !== $this->connection->fetchOne(self::LOCK_REPOSITORY, ['tenantId' => self::uuid($tenantId), 'repositoryId' => self::uuid($repositoryId)]);
+        return false !== $this->connection->fetchOne(self::LOCK_REPOSITORY, ['tenantId' => $tenantId->toRfc4122(), 'repositoryId' => $repositoryId->toRfc4122()]);
     }
 
     /**
@@ -144,13 +143,5 @@ final class IndexSql
         $placeholders = '('.implode(', ', array_fill(0, count($rows[0]), '?')).')';
 
         $this->connection->executeStatement($insertInto.implode(', ', array_fill(0, count($rows), $placeholders)).self::ON_CONFLICT, array_merge(...$rows));
-    }
-
-    /**
-     * The ulid column type is a native uuid on PostgreSQL.
-     */
-    private static function uuid(\Stringable $id): string
-    {
-        return Ulid::fromString((string) $id)->toRfc4122();
     }
 }

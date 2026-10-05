@@ -25,7 +25,6 @@ use Symfony\Component\BrowserKit\Cookie;
 use Symfony\Component\HttpFoundation\Cookie as HttpCookie;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Envelope;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * A2, up to the queued purge. The user "jan" has a review of the cloned source "billing", with a request, and two
@@ -123,7 +122,7 @@ final class DeleteAccountTest extends WebTestCase
         $this->client->getCookieJar()->set(new Cookie($otherSession->getName(), $otherSession->getValue()));
 
         self::assertApiError(self::apiRequest($this->client, 'GET', '/api/v1/me'), 401, 'unauthorized');
-        self::assertSame(Ulid::fromString($this->user->getTenantId()->toString())->toRfc4122(), self::connection()->fetchOne('SELECT tenant_id FROM app_user'), 'The purge has not run.');
+        self::assertSame($this->user->getTenantId()->toRfc4122(), self::connection()->fetchOne('SELECT tenant_id FROM app_user'), 'The purge has not run.');
     }
 
     #[TestDox('A local sign-in of the user is refused, and no tenant is created')]

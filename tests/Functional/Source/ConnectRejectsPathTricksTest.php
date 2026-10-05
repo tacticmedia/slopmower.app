@@ -18,7 +18,6 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Uid\Ulid;
 
 final class ConnectRejectsPathTricksTest extends WebTestCase
 {
@@ -74,7 +73,7 @@ final class ConnectRejectsPathTricksTest extends WebTestCase
     {
         $repositoryRows = self::getContainer()->get(Connection::class)->fetchOne(
             'SELECT count(*) FROM repository WHERE tenant_id = ?',
-            [Ulid::fromString($this->tenantId->toString())->toRfc4122()],
+            [$this->tenantId->toRfc4122()],
         );
 
         self::assertSame(0, $repositoryRows);

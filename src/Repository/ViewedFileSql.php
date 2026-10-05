@@ -44,9 +44,9 @@ final class ViewedFileSql
     private static function key(TenantId $tenantId, UserId $userId, ReviewId $reviewId, RepoPath $path): array
     {
         return [
-            'tenantId' => Ulid::fromString($tenantId->toString())->toRfc4122(),
-            'userId' => Ulid::fromString($userId->toString())->toRfc4122(),
-            'reviewId' => Ulid::fromString($reviewId->toString())->toRfc4122(),
+            'tenantId' => $tenantId->toRfc4122(),
+            'userId' => $userId->toRfc4122(),
+            'reviewId' => $reviewId->toRfc4122(),
             'pathHash' => ViewedFile::hash($path),
         ];
     }

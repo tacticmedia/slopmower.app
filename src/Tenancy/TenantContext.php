@@ -8,7 +8,6 @@ use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\TenantId;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Filter\SQLFilter;
-use Symfony\Component\Uid\Ulid;
 use Symfony\Contracts\Service\ResetInterface;
 
 final class TenantContext implements ResetInterface
@@ -22,8 +21,8 @@ final class TenantContext implements ResetInterface
     public function set(TenantId $tenantId): void
     {
         $this->tenantId = $tenantId;
-        // The ulid column type is a native uuid on PostgreSQL, and SQLFilter::getParameter() ignores the parameter type.
-        $this->filter()->setParameter(TenantSqlFilter::PARAMETER, Ulid::fromString($tenantId->toString())->toRfc4122());
+        // SQLFilter::getParameter() ignores the parameter type.
+        $this->filter()->setParameter(TenantSqlFilter::PARAMETER, $tenantId->toRfc4122());
     }
 
     /**
@@ -34,7 +33,7 @@ final class TenantContext implements ResetInterface
     {
         $this->entityManager->getFilters()
             ->enable(RepositoryScopeSqlFilter::NAME)
-            ->setParameter(RepositoryScopeSqlFilter::PARAMETER, Ulid::fromString($repositoryId->toString())->toRfc4122());
+            ->setParameter(RepositoryScopeSqlFilter::PARAMETER, $repositoryId->toRfc4122());
     }
 
     public function get(): TenantId

@@ -51,10 +51,6 @@ final class RequestQuery
 
     private const string LIKE_ESCAPE = '!';
 
-    /** Years 1 to 9999, which TIMESTAMP(0) and the DBAL date format hold. */
-    private const int EARLIEST_CURSOR_UNIX_SECONDS = -62135596800;
-    private const int LATEST_CURSOR_UNIX_SECONDS = 253402300799;
-
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly ThreadQuery $threads,
@@ -70,7 +66,7 @@ final class RequestQuery
     public function list(Review $review, RequestFilter $filter, int $limit, ?string $cursor): RequestPage
     {
         $cursorFilters = $filter->cursorFilters();
-        $after = null === $cursor ? null : $this->afterKey($review, $filter->sort, Cursor::decode($cursor, $cursorFilters));
+        $after = null === $cursor ? null : $this->afterKey($review, $filter->sort, $cursor, $cursorFilters);
         $builder = $this->entityManager->createQueryBuilder()
             ->from(ChangeRequest::class, 'request')
             ->where('request.review = :review')
@@ -82,11 +78,9 @@ final class RequestQuery
 
         /** @var list<ChangeRequest> $rows */
         $rows = $builder->setMaxResults($limit + 1)->getQuery()->setHint(Query::HINT_REFRESH, true)->getResult();
-        $page = array_slice($rows, 0, $limit);
-        $last = end($page);
-        $nextCursor = count($rows) > $limit && false !== $last ? Cursor::encode(self::sortKey($last, $filter->sort), $cursorFilters) : null;
+        $nextCursor = Cursor::next($rows, $limit, $cursorFilters, static fn (ChangeRequest $request): array => self::sortKey($request, $filter->sort));
 
-        return new RequestPage($review->getId(), $review->getState(), $total, $this->summaries($page), $nextCursor);
+        return new RequestPage($review->getId(), $review->getState(), $total, $this->summaries(array_slice($rows, 0, $limit)), $nextCursor);
     }
 
     /**
@@ -350,30 +344,22 @@ final class RequestQuery
      * A path cursor holds only the request ID, because a path can be longer than a cursor. The path and the start line
      * of that request never change.
      *
-     * @param list<mixed> $key
+     * @param array<string, string|bool|null> $filters
      *
      * @return list<mixed> The full sort key with a Ulid last, and a time for the updated sort
      *
      * @throws InvalidInput
      */
-    private function afterKey(Review $review, RequestSort $sort, array $key): array
+    private function afterKey(Review $review, RequestSort $sort, string $cursor, array $filters): array
     {
-        $id = array_last($key);
-        $isValid = \is_string($id) && Ulid::isValid($id) && match ($sort) {
-            RequestSort::Created, RequestSort::Path => 1 === count($key),
-            RequestSort::Updated => 2 === count($key) && \is_int($key[0]) && $key[0] >= self::EARLIEST_CURSOR_UNIX_SECONDS && $key[0] <= self::LATEST_CURSOR_UNIX_SECONDS,
-        };
-
-        if (!$isValid) {
-            throw Cursor::malformed();
-        }
-
         if (RequestSort::Updated === $sort) {
-            return [new \DateTimeImmutable("@{$key[0]}"), Ulid::fromString($id)];
+            return Cursor::decode($cursor, $filters, 'time', 'ulid');
         }
+
+        $key = Cursor::decode($cursor, $filters, 'ulid');
 
         if (RequestSort::Created === $sort) {
-            return [Ulid::fromString($id)];
+            return $key;
         }
 
         $last = $this->entityManager->createQueryBuilder()
@@ -381,13 +367,13 @@ final class RequestQuery
             ->from(ChangeRequest::class, 'request')
             ->where('request.id = :id')
             ->andWhere('request.review = :review')
-            ->setParameter('id', Ulid::fromString($id), UlidType::NAME)
+            ->setParameter('id', $key[0], UlidType::NAME)
             ->setParameter('review', self::ulid($review->getId()), UlidType::NAME)
             ->getQuery()
             ->getOneOrNullResult();
         $anchor = $last instanceof ChangeRequest ? $last->getAnchor() : throw Cursor::malformed();
 
-        return [$anchor->path->toString(), $anchor->range->startLine ?? 0, Ulid::fromString($id)];
+        return [$anchor->path->toString(), $anchor->range->startLine ?? 0, $key[0]];
     }
 
     /**
@@ -408,7 +394,7 @@ final class RequestQuery
             ->where('link.request IN (:requests)')
             ->orderBy('link.linkedAt')
             ->addOrderBy('link.commitSha')
-            ->setParameter('requests', array_map(static fn (ChangeRequest $request): string => self::uuid($request->getId()), $requests), ArrayParameterType::STRING)
+            ->setParameter('requests', array_map(static fn (ChangeRequest $request): string => $request->getId()->toRfc4122(), $requests), ArrayParameterType::STRING)
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
             ->getResult();
@@ -438,7 +424,7 @@ final class RequestQuery
             ->from(Comment::class, 'comment')
             ->where('comment.request IN (:requests)')
             ->groupBy('comment.request')
-            ->setParameter('requests', array_map(static fn (ChangeRequest $request): string => self::uuid($request->getId()), $requests), ArrayParameterType::STRING)
+            ->setParameter('requests', array_map(static fn (ChangeRequest $request): string => $request->getId()->toRfc4122(), $requests), ArrayParameterType::STRING)
             ->getQuery()
             ->getArrayResult();
         $counts = [];
@@ -487,13 +473,5 @@ final class RequestQuery
     private static function ulid(Identifier $id): Ulid
     {
         return Ulid::fromString($id->toString());
-    }
-
-    /**
-     * The ulid column type is a native uuid on PostgreSQL, so a list parameter holds RFC 4122 strings.
-     */
-    private static function uuid(Identifier $id): string
-    {
-        return self::ulid($id)->toRfc4122();
     }
 }

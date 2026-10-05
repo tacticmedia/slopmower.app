@@ -28,7 +28,6 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Uid\Ulid;
 
 final class InstallationWebhookTest extends WebTestCase
 {
@@ -57,7 +56,7 @@ final class InstallationWebhookTest extends WebTestCase
             [['installation_id' => 5554, 'account_login' => 'octocat', 'account_type' => 'User', 'suspended_at' => null]],
             self::getContainer()->get(Connection::class)->fetchAllAssociative(
                 'SELECT installation_id, account_login, account_type, suspended_at FROM github_installation WHERE tenant_id = ?',
-                [Ulid::fromString($sender->toString())->toRfc4122()],
+                [$sender->toRfc4122()],
             ),
         );
         self::assertSame(0, self::countTenantRows('github_installation', $other));

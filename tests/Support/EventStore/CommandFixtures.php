@@ -20,7 +20,6 @@ use App\EventStore\CommandExecutor;
 use App\Tests\Support\Domain\RequestScenario;
 use App\Tests\Support\Persistence\ReviewDataFixtures;
 use Doctrine\DBAL\Connection;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * Writes through the application commands, for KernelTestCase tests that use ResetDatabase.
@@ -79,7 +78,7 @@ trait CommandFixtures
     private static function storedRows(TenantId $tenantId): array
     {
         $connection = self::getContainer()->get(Connection::class);
-        $tenant = [Ulid::fromString($tenantId->toString())->toRfc4122()];
+        $tenant = [$tenantId->toRfc4122()];
 
         return [
             'tenant' => $connection->fetchAllAssociative('SELECT * FROM tenant WHERE id = ?', $tenant),

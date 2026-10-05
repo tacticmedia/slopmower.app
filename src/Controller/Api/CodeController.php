@@ -57,7 +57,7 @@ final class CodeController extends AbstractController
     ): JsonResponse {
         $dir = '' === $query->dir ? null : RepoPath::fromString($query->dir, 'dir');
         $filters = ['dir' => $dir?->toString() ?? '', 'recursive' => $query->recursive];
-        $after = null === $query->cursor ? null : self::sortKey(Cursor::decode($query->cursor, $filters));
+        $after = null === $query->cursor ? null : Cursor::decode($query->cursor, $filters, 'int', 'string');
         $gitDir = $this->fetchRepository->readyClonePath($review->getRepository()->getId());
         $commit = $review->getCommitSha();
 
@@ -80,11 +80,9 @@ final class CodeController extends AbstractController
             $entries = array_values(array_filter($entries, static fn (TreeEntry $entry): bool => self::compare(self::keyOf($entry), $after) > 0));
         }
 
-        $page = array_slice($entries, 0, $query->limit);
-        $last = end($page);
-        $nextCursor = count($entries) > $query->limit && false !== $last ? Cursor::encode(self::keyOf($last), $filters) : null;
+        $nextCursor = Cursor::next($entries, $query->limit, $filters, self::keyOf(...));
 
-        return $this->json(new TreeListing($review->getId(), $commit, $dir?->toString() ?? '', $query->recursive, $page, $nextCursor));
+        return $this->json(new TreeListing($review->getId(), $commit, $dir?->toString() ?? '', $query->recursive, array_slice($entries, 0, $query->limit), $nextCursor));
     }
 
     #[Route('/file', name: 'file', methods: ['GET'])]
@@ -138,26 +136,10 @@ final class CodeController extends AbstractController
 
     /**
      * @param array{int, string} $a
-     * @param array{int, string} $b
+     * @param list<mixed>        $b A sort key that {@see Cursor::decode()} checked
      */
     private static function compare(array $a, array $b): int
     {
         return $a[0] <=> $b[0] ?: strcmp($a[1], $b[1]);
-    }
-
-    /**
-     * @param list<mixed> $sortKey
-     *
-     * @return array{int, string}
-     *
-     * @throws InvalidInput
-     */
-    private static function sortKey(array $sortKey): array
-    {
-        if (2 !== count($sortKey) || !\is_int($sortKey[0]) || !\is_string($sortKey[1])) {
-            throw Cursor::malformed();
-        }
-
-        return [$sortKey[0], $sortKey[1]];
     }
 }

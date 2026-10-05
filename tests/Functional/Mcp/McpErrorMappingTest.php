@@ -67,7 +67,7 @@ final class McpErrorMappingTest extends WebTestCase
         $request = self::storeRequest(self::storeReview($user, 'billing'));
         self::getContainer()->get(Connection::class)->executeStatement(
             'UPDATE change_request SET anchor = \'{"kind": "file"}\' WHERE tenant_id = :tenantId AND id = :id',
-            ['tenantId' => Ulid::fromString($user->getTenantId()->toString())->toRfc4122(), 'id' => Ulid::fromString($request->getId()->toString())->toRfc4122()],
+            ['tenantId' => $user->getTenantId()->toRfc4122(), 'id' => $request->getId()->toRfc4122()],
         );
         $mcp->initialize();
         $client->enableProfiler();

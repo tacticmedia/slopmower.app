@@ -72,7 +72,7 @@ final class RepositoryQuery
         }
 
         if (null !== $cursor) {
-            [$afterName, $afterId] = self::sortKey(Cursor::decode($cursor, $filters));
+            [$afterName, $afterId] = Cursor::decode($cursor, $filters, 'string', 'ulid');
             $builder
                 ->andWhere('LOWER(repository.name) > :afterName OR (LOWER(repository.name) = :afterName AND repository.id > :afterId)')
                 ->setParameter('afterName', $afterName)
@@ -81,13 +81,9 @@ final class RepositoryQuery
 
         /** @var list<array{0: Repository, sortName: string, openReviewCount: int}> $rows */
         $rows = $builder->getQuery()->setHint(Query::HINT_REFRESH, true)->getResult();
-        $page = array_slice($rows, 0, $limit);
-        $last = end($page);
-        $nextCursor = count($rows) > $limit && false !== $last
-            ? Cursor::encode([$last['sortName'], $last[0]->getId()->toString()], $filters)
-            : null;
+        $nextCursor = Cursor::next($rows, $limit, $filters, static fn (array $row): array => [$row['sortName'], $row[0]->getId()->toString()]);
 
-        return new RepositoryPage(array_map(self::view(...), $page), $nextCursor);
+        return new RepositoryPage(array_map(self::view(...), array_slice($rows, 0, $limit)), $nextCursor);
     }
 
     /**
@@ -156,22 +152,6 @@ final class RepositoryQuery
                 ->setParameter('nameSource', RepositorySource::Local)
                 ->setParameter('name', $name),
         };
-    }
-
-    /**
-     * @param list<mixed> $sortKey
-     *
-     * @return array{string, Ulid}
-     *
-     * @throws InvalidInput
-     */
-    private static function sortKey(array $sortKey): array
-    {
-        if (2 !== count($sortKey) || !\is_string($sortKey[0]) || !\is_string($sortKey[1]) || !Ulid::isValid($sortKey[1])) {
-            throw Cursor::malformed();
-        }
-
-        return [$sortKey[0], Ulid::fromString($sortKey[1])];
     }
 
     /**

@@ -32,7 +32,6 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Messenger\Envelope;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * The first test signs in through the OAuth callback. The others call the sync with the user tokens that select the
@@ -261,7 +260,7 @@ final class InstallationSyncTest extends WebTestCase
     private static function tenantRows(TenantId $tenantId): array
     {
         $connection = self::getContainer()->get(Connection::class);
-        $tenant = Ulid::fromString($tenantId->toString())->toRfc4122();
+        $tenant = $tenantId->toRfc4122();
 
         return [
             'github_installation' => $connection->fetchAllAssociative('SELECT * FROM github_installation WHERE tenant_id = ? ORDER BY installation_id', [$tenant]),

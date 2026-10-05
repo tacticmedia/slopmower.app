@@ -11,7 +11,6 @@ use App\Tests\Support\Mcp\McpTestClient;
 use App\Tests\Support\Specs\SpecsFiles;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\Uid\Ulid;
 use Symfony\Component\Uid\Uuid;
 
 final class McpHandshakeTest extends WebTestCase
@@ -46,7 +45,7 @@ final class McpHandshakeTest extends WebTestCase
 
         $mcp->initialize();
 
-        $storedId = Uuid::v5(new Uuid(Ulid::fromString($token->getId()->toString())->toRfc4122()), (string) $mcp->sessionId());
+        $storedId = Uuid::v5(new Uuid($token->getId()->toRfc4122()), (string) $mcp->sessionId());
         self::assertFileExists(self::getContainer()->getParameter('kernel.project_dir')."/var/mcp-sessions/{$storedId}");
     }
 }

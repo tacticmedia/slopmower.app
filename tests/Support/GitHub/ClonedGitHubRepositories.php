@@ -10,7 +10,6 @@ use App\Repository\RepositoryRepository;
 use App\Tenancy\TenantFilter;
 use App\Tests\Support\Fixtures\TenantFixtures;
 use Doctrine\DBAL\Connection;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * Tenants with a cloned GitHub repository, and their stored rows read across tenants. For tests that use GitHubRows,
@@ -46,12 +45,12 @@ trait ClonedGitHubRepositories
     {
         return array_map(intval(...), self::getContainer()->get(Connection::class)->fetchFirstColumn(
             'SELECT github_repository_id FROM github_candidate WHERE tenant_id = ? ORDER BY github_repository_id',
-            [Ulid::fromString($tenantId->toString())->toRfc4122()],
+            [$tenantId->toRfc4122()],
         ));
     }
 
     private static function countTenantRows(string $table, TenantId $tenantId): int
     {
-        return (int) self::getContainer()->get(Connection::class)->fetchOne("SELECT count(*) FROM {$table} WHERE tenant_id = ?", [Ulid::fromString($tenantId->toString())->toRfc4122()]);
+        return (int) self::getContainer()->get(Connection::class)->fetchOne("SELECT count(*) FROM {$table} WHERE tenant_id = ?", [$tenantId->toRfc4122()]);
     }
 }

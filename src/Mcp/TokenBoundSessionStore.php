@@ -9,7 +9,6 @@ use Mcp\Server\Session\SessionStoreInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
 use Symfony\Component\DependencyInjection\Attribute\AutowireDecorated;
-use Symfony\Component\Uid\Ulid;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -58,6 +57,6 @@ final class TokenBoundSessionStore implements SessionStoreInterface
             throw new \LogicException('An MCP session needs the API token of the request.');
         }
 
-        return Uuid::v5(new Uuid(Ulid::fromString($agent->tokenId->toString())->toRfc4122()), $sessionId->toRfc4122());
+        return Uuid::v5(new Uuid($agent->tokenId->toRfc4122()), $sessionId->toRfc4122());
     }
 }

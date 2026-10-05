@@ -10,7 +10,6 @@ use App\Domain\Identity\RequestId;
 use App\Domain\Identity\TenantId;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * Inserts with SQL, so an empty payload stays "{}".
@@ -33,7 +32,7 @@ final class EventStoreSql
      */
     public function lockTenant(TenantId $tenantId): int
     {
-        $eventSeq = $this->connection->fetchOne(self::LOCK_TENANT, ['tenantId' => self::uuid($tenantId)]);
+        $eventSeq = $this->connection->fetchOne(self::LOCK_TENANT, ['tenantId' => $tenantId->toRfc4122()]);
 
         return false === $eventSeq ? throw new \LogicException("The tenant {$tenantId} has no row.") : (int) $eventSeq;
     }
@@ -47,15 +46,15 @@ final class EventStoreSql
             $actor = $event->actor;
 
             $this->connection->executeStatement(self::INSERT_EVENT, [
-                'id' => self::uuid($event->id),
-                'tenantId' => self::uuid($event->tenantId),
+                'id' => $event->id->toRfc4122(),
+                'tenantId' => $event->tenantId->toRfc4122(),
                 'seq' => $event->seq,
-                'reviewId' => self::uuid($event->reviewId),
-                'requestId' => null === $event->requestId ? null : self::uuid($event->requestId),
+                'reviewId' => $event->reviewId->toRfc4122(),
+                'requestId' => $event->requestId?->toRfc4122(),
                 'requestIds' => json_encode(array_map(static fn (RequestId $id): string => $id->toString(), $event->requestIds()), \JSON_THROW_ON_ERROR),
                 'type' => $event->type->value,
                 'actorKind' => $actor->kind->value,
-                'actorUserId' => null === $actor->userId ? null : self::uuid($actor->userId),
+                'actorUserId' => $actor->userId?->toRfc4122(),
                 'actorAgentName' => $actor->agentName,
                 'occurredAt' => $event->occurredAt,
                 'payload' => PayloadJson::encode($event->event->toPayload()),
@@ -65,15 +64,7 @@ final class EventStoreSql
         $last = array_last($events);
 
         if (null !== $last) {
-            $this->connection->executeStatement(self::UPDATE_EVENT_SEQ, ['eventSeq' => $last->seq, 'tenantId' => self::uuid($last->tenantId)]);
+            $this->connection->executeStatement(self::UPDATE_EVENT_SEQ, ['eventSeq' => $last->seq, 'tenantId' => $last->tenantId->toRfc4122()]);
         }
-    }
-
-    /**
-     * The ulid column type is a native uuid on PostgreSQL.
-     */
-    private static function uuid(\Stringable $id): string
-    {
-        return Ulid::fromString((string) $id)->toRfc4122();
     }
 }

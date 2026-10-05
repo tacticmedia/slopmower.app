@@ -239,12 +239,14 @@ make up
   - Install packages with `composer require` and let the Flex recipe write the configuration. Write configuration by hand only where no recipe exists, with a one-line header comment that says so.
   - Use attributes: `#[Route]`, `#[IsGranted]`, `#[MapRequestPayload]`, `#[MapQueryString]`, `#[AsCommand]`, `#[AsMessageHandler]`, `#[AsEventListener]`, `#[Autowire]`, `#[When]`. A route that exists only in one environment also sets `env:` on `#[Route]`.
   - Rely on autowiring. No YAML service definition unless it is unavoidable.
+- Paginated lists use `Http\Cursor`: `decode()` checks the sort key types, and `next()` makes `nextCursor`.
 - Controllers are thin: map the input, call one service, return the normalized JSON. Logic with no other consumer stays in the controller, in the action or a private method. Path IDs resolve to visible entities in argument value resolvers, so the error check order of docs/specs holds. See M11. Errors are `DomainError` subclasses. `ApiExceptionListener` maps them for REST, and `McpToolRunner` maps them for MCP.
 - Tenancy:
   - Every tenant entity implements `TenantOwned`.
   - The Doctrine SQL filter is on by default and fails closed without a tenant context.
   - Only these paths turn it off, and only through `TenantFilter::suspend()`: the sign-in and token lookups, the webhook consumer, the projection rebuild, and the purge.
   - Raw SQL lives only in `final` classes named `*Sql`, and every statement on a tenant table names its tenant column: `tenant_id`, or `id` on the `tenant` table. `RawSqlTenantAuditTest` enforces this from M07 on.
+  - Raw SQL, the SQL filter parameters, and DQL list parameters take a typed ID as `Identifier::toRfc4122()`, because the `ulid` column type is a native `uuid` on PostgreSQL.
   - File paths come only from typed IDs.
   - Mercure topics include the tenant ID.
 - Git:

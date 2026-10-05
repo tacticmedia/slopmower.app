@@ -6,7 +6,6 @@ namespace App\Tests\Support\Deletion;
 
 use App\Domain\Identity\TenantId;
 use Doctrine\DBAL\Connection;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * Row counts of a tenant, for KernelTestCase tests.
@@ -25,7 +24,7 @@ trait TenantRows
         $counts = [];
 
         foreach ($tables as $table) {
-            $counts[(string) $table] = (int) $connection->fetchOne("SELECT count(*) FROM {$table} WHERE tenant_id = ?", [Ulid::fromString($tenantId->toString())->toRfc4122()]);
+            $counts[(string) $table] = (int) $connection->fetchOne("SELECT count(*) FROM {$table} WHERE tenant_id = ?", [$tenantId->toRfc4122()]);
         }
 
         return $counts;
