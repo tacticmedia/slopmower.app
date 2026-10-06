@@ -36,7 +36,7 @@ final class MeController extends AbstractController
         $token = $caller instanceof AgentUser ? $tokens->find($caller->tokenId) : null;
         \assert(null !== $user);
         $actor = $currentActor->get();
-        $userId = $user->getId()->toString();
+        $userId = $user->getId();
 
         return $this->json([
             'user' => [
@@ -44,11 +44,11 @@ final class MeController extends AbstractController
                 'login' => $user->getLogin(),
                 'name' => $user->getName(),
                 'avatarUrl' => $user->getAvatarUrl(),
-                'signInMethod' => $user->getSignInMethod()->value,
+                'signInMethod' => $user->getSignInMethod(),
             ],
-            'tenantId' => $user->getTenantId()->toString(),
+            'tenantId' => $user->getTenantId(),
             'caller' => [
-                'kind' => $actor->kind->value,
+                'kind' => $actor->kind,
                 'userId' => $userId,
                 'agentName' => $actor->agentName,
                 'name' => $actor->agentName ?? $user->getLogin(),

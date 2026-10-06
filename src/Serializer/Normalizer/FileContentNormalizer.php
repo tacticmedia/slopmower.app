@@ -80,8 +80,8 @@ final class FileContentNormalizer implements NormalizerInterface, NormalizerAwar
         $normalized = $this->normalizer->normalize([
             'reviewId' => $data->reviewId,
             'commitSha' => $data->commitSha,
-            'path' => $data->path->toString(),
-            'blobSha' => $data->blobSha->toString(),
+            'path' => $data->path,
+            'blobSha' => $data->blobSha,
             'mode' => $data->mode,
             'type' => $data->symlink ? 'symlink' : 'file',
             'sizeBytes' => $data->sizeBytes,

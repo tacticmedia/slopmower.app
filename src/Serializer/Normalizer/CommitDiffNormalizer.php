@@ -65,9 +65,9 @@ final class CommitDiffNormalizer implements NormalizerInterface, NormalizerAware
         $change = $file->change;
 
         return [
-            'status' => $change->status->value,
-            'path' => $file->path->toString(),
-            'oldPath' => $file->oldPath?->toString(),
+            'status' => $change->status,
+            'path' => $file->path,
+            'oldPath' => $file->oldPath,
             'oldBlobSha' => $change->oldObjectId,
             'newBlobSha' => $change->newObjectId,
             'oldMode' => $change->oldMode,

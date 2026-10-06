@@ -22,7 +22,7 @@ final class ViewedFileRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return list<string> Sorted
+     * @return list<RepoPath> Sorted
      */
     public function paths(UserId $userId, ReviewId $reviewId): array
     {
@@ -37,6 +37,6 @@ final class ViewedFileRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
 
-        return array_map(static fn (array $row): string => $row['path']->toString(), $rows);
+        return array_column($rows, 'path');
     }
 }

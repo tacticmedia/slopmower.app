@@ -4,23 +4,29 @@ declare(strict_types=1);
 
 namespace App\Serializer\Normalizer;
 
+use App\Domain\Git\BlobSha;
 use App\Domain\Git\CommitSha;
+use App\Domain\Git\RefName;
+use App\Domain\Git\RepoPath;
 use App\Domain\Identity\Identifier;
+use App\Domain\Repository\RepositoryName;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
 /**
- * IDs as upper-case ULIDs, SHAs in lower case.
+ * IDs as upper-case ULIDs, SHAs in lower case, paths, refs, and names as they are.
  */
 final class ValueObjectNormalizer implements NormalizerInterface
 {
+    private const array TYPES = [Identifier::class, CommitSha::class, BlobSha::class, RepoPath::class, RefName::class, RepositoryName::class];
+
     /**
      * @param array<string, mixed> $context
      */
     public function normalize(mixed $data, ?string $format = null, array $context = []): string
     {
-        \assert($data instanceof Identifier || $data instanceof CommitSha);
+        \assert($data instanceof \Stringable);
 
-        return $data->toString();
+        return (string) $data;
     }
 
     /**
@@ -28,11 +34,11 @@ final class ValueObjectNormalizer implements NormalizerInterface
      */
     public function supportsNormalization(mixed $data, ?string $format = null, array $context = []): bool
     {
-        return $data instanceof Identifier || $data instanceof CommitSha;
+        return array_any(self::TYPES, static fn (string $type): bool => $data instanceof $type);
     }
 
     public function getSupportedTypes(?string $format): array
     {
-        return [Identifier::class => true, CommitSha::class => true];
+        return array_fill_keys(self::TYPES, true);
     }
 }

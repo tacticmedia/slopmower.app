@@ -83,7 +83,7 @@ final class CommitDiffController extends AbstractController
         return $this->json(new CommitDiffView(
             $request->getId(),
             $commit,
-            null === $location ? null : new LocationView(LocationTarget::LinkedCommit, $location),
+            null === $location ? null : LocationView::of(LocationTarget::LinkedCommit, $location),
             $files,
             // Also true when a path that a RepoPath rejects is left out.
             count($changes) > count($files),

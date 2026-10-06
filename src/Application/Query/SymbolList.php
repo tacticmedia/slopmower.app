@@ -20,8 +20,8 @@ final readonly class SymbolList
      */
     private function __construct(
         public ReviewId $reviewId,
-        public string $path,
-        public string $blobSha,
+        public RepoPath $path,
+        public BlobSha $blobSha,
         public ?string $language,
         public bool $parseError,
         public array $items,
@@ -30,6 +30,6 @@ final readonly class SymbolList
 
     public static function of(ReviewId $reviewId, RepoPath $path, BlobSha $blobSha, SymbolTable $table): self
     {
-        return new self($reviewId, $path->toString(), $blobSha->toString(), $table->language, $table->parseError, $table->symbols);
+        return new self($reviewId, $path, $blobSha, $table->language, $table->parseError, $table->symbols);
     }
 }

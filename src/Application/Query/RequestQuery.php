@@ -108,9 +108,14 @@ final class RequestQuery
         // request.opened, whose ID is the cache key of the location.
         $opened = $thread[0]->event ?? null;
         $repository = $request->getReview()->getRepository();
-        $location = null !== $target && $opened?->event instanceof RequestOpenedEvent
-            ? new LocationView($target[0], $this->locator->locate($repository, $opened->id, $request->getAnchor(), $target[1]))
-            : null;
+        $location = null;
+        $excerpt = null;
+
+        if (null !== $target && $opened?->event instanceof RequestOpenedEvent) {
+            $located = $this->locator->locate($repository, $opened->id, $request->getAnchor(), $target[1]);
+            $location = LocationView::of($target[0], $located);
+            $excerpt = null === $contextLines ? null : $this->locator->excerpt($repository, $located, $contextLines);
+        }
 
         return new RequestView(
             $summary,
@@ -118,7 +123,7 @@ final class RequestQuery
             $this->commitViews($request, $links),
             AllowedActions::for($summary->state, $request->getReview()->toSnapshot(), $caller),
             $location,
-            null === $location || null === $contextLines ? null : $this->locator->excerpt($repository, $location->location, $contextLines),
+            $excerpt,
         );
     }
 

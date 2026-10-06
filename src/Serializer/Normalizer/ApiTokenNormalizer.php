@@ -41,7 +41,7 @@ final class ApiTokenNormalizer implements NormalizerInterface, NormalizerAwareIn
             'name' => $data->getName(),
             'scope' => $data->getScope()->kind(),
             'repositoryId' => $repository?->getId(),
-            'repositoryName' => $repository?->getName()->toString(),
+            'repositoryName' => $repository?->getName(),
             'prefix' => $data->getPrefix(),
             'state' => $data->state($this->clock->now()),
             'createdAt' => $data->getCreatedAt(),

@@ -30,9 +30,9 @@ final class ReviewNormalizer implements NormalizerInterface, NormalizerAwareInte
         $normalized = $this->normalizer->normalize([
             'id' => $review->getId(),
             'repositoryId' => $review->getRepository()->getId(),
-            'repositoryName' => $review->getRepository()->getName()->toString(),
+            'repositoryName' => $review->getRepository()->getName(),
             'title' => $review->getTitle(),
-            'ref' => $review->getRef()->toString(),
+            'ref' => $review->getRef(),
             'commitSha' => $review->getCommitSha(),
             'state' => $review->getState(),
             'startedBy' => $review->getStartedBy(),

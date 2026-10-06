@@ -33,7 +33,7 @@ final class CandidateListNormalizer implements NormalizerInterface, NormalizerAw
             'items' => [
                 ...array_map(static fn (GitHubCandidate $candidate): array => [
                     'source' => RepositorySource::Github,
-                    'name' => $candidate->getFullName()->toString(),
+                    'name' => $candidate->getFullName(),
                     'connectedRepositoryId' => $data->githubConnectedRepositoryIds[$candidate->getGithubRepositoryId()] ?? null,
                     'github' => [
                         'repositoryId' => $candidate->getGithubRepositoryId(),

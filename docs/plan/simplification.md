@@ -32,8 +32,8 @@ Record a baseline before S01 and after every step: PHP and TS file count, lines 
 | S04 | One DBAL type per typed ID | Done 2026-10-06, [report](reports/S04.md) | b9a9b28 | src 398 PHP / 25322 lines, 398 types; tests 268 PHP / 22967 lines; assets 128 TS / 6484 lines; check 2m21s |
 | S05 | Split `FetchRepository`, handlers in one place | Done 2026-10-05, [report](reports/S05.md) | 9a68a77 | src 399 PHP / 25399 lines, 399 types; tests 268 PHP / 22945 lines; assets 128 TS / 6484 lines; check 2m26s |
 | S06 | One `Anchoring` namespace | Done 2026-10-05, [report](reports/S06.md) | bc77a19 | src 399 PHP / 25399 lines, 399 types; tests 268 PHP / 22945 lines; assets 128 TS / 6484 lines; check 2m14s |
-| S07 | Collapse layers around commands | Done 2026-10-06, [report](reports/S07.md) | | src 394 PHP / 25169 lines, 394 types; tests 268 PHP / 22966 lines; assets 128 TS / 6484 lines |
-| S08 | One serialization path | Not started | | |
+| S07 | Collapse layers around commands | Done 2026-10-06, [report](reports/S07.md) | 58bcc57 | src 394 PHP / 25169 lines, 394 types; tests 268 PHP / 22966 lines; assets 128 TS / 6484 lines; check 2m13s |
+| S08 | One serialization path | Done 2026-10-06, [report](reports/S08.md) | | src 393 PHP / 25130 lines, 393 types; tests 268 PHP / 22966 lines; assets 128 TS / 6484 lines |
 | S09 | MCP tools as thin delegations | Not started | | |
 | S10 | One pattern for reads | Not started | | |
 | S11 | GitHub duplicates | Done 2026-10-03, [report](reports/S11.md) | a437ff1 | src 406 PHP / 25918 lines, 406 types; tests 272 PHP / 23153 lines; assets 128 TS / 6484 lines; check 2m37s |
