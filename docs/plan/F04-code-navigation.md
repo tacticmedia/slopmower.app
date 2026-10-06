@@ -28,7 +28,7 @@ From a name in the code view, the reviewer jumps to its declaration at the revie
 - **Front end** (Jan, 2026-10-07):
   - Cmd plus click on a token jumps (Ctrl plus click outside macOS). A plain click keeps the text selection.
   - The keyboard path is a "Go to declaration" field in the file header. It takes a short name or an FQN, resolves it in the context of the open file, and jumps like a click.
-  - One target navigates to `path#Lstart-Lend`, or scrolls when the target is in the same file. Several targets open a small menu. No target shows "No declaration in this commit", for example for a vendor class that is not committed.
+  - One target navigates to `path#L<declarationStartLine>` and selects only the declaration line, as an IDE does, so that a large class is not highlighted whole (decision 2026-10-07). In the same file it scrolls there. Several targets open a small menu. No target shows "No declaration in this commit", for example for a vendor class that is not committed.
   - Navigation pushes a history entry, so Back returns.
 
 ## Depends on
