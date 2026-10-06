@@ -21,6 +21,10 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F03 | [Line wrapping](F03-line-wrapping.md) | Done 2026-10-07, [report](reports/F03.md) | 850f9bf | src 380 PHP / 24850 lines, 380 types; tests 269 PHP / 23064 lines; assets 132 TS / 6729 lines; check 2m9s |
 | F04 | [Code navigation](F04-code-navigation.md) | Done 2026-10-07, [report](reports/F04.md) | 26c6def | src 385 PHP / 25332 lines, 385 types; tests 271 PHP / 23304 lines; assets 136 TS / 7036 lines; check 2m30s |
 | F05 | [Symfony AI Mate for coding agents](F05-symfony-ai-mate.md) | Done 2026-10-07, [report](reports/F05.md) | 86d1a6b | src 380 PHP / 24850 lines, 380 types; tests 269 PHP / 23064 lines; assets 132 TS / 6767 lines; check 2m24s |
+| F06 | [Back-end bugs](F06-back-end-bugs.md) | Not started | | |
+| F07 | [Front-end bugs and UX fixes](F07-front-end-bugs-and-ux-fixes.md) | Not started | | |
+| F08 | [Code-quality leftovers](F08-code-quality-leftovers.md) | Not started, after F06 | | |
+| F09 | [Dev environment and docs issues](F09-dev-environment-and-docs-issues.md) | Not started | | |
 
 ## Candidates
 
@@ -28,5 +32,26 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 
 - **Quick open.** Find a file or a symbol of the review commit by name and open it, from the file tree data (V6) and the symbol index. Split from F04.
 - **One scroll area in the normal file view.** Outside focus mode, the window, the file tree, and the code view each scroll. Split from F02.
-- **Say why "Symbols" is disabled.** The button is greyed out for a PHP file that declares nothing, for example `public/index.php`, and gives no reason. A tooltip such as "No symbols in this file" would say why.
 - **Project-specific Mate tools.** For example a tool that reads the event log of a review. Split from F05.
+
+## Next, after the fixes
+
+Hard rule: bugs and issues before features. These are scheduled after F06 to F09, in this order. Each gets its scope file before any code.
+
+1. **Carry over open requests** ([backlog item](../backlog/request-carry-over.md)).
+2. **Quick open** (candidate above).
+
+## For Jan
+
+Decisions or actions that only Jan can take. Each comes from a report or a review, and each was checked on 2026-10-07.
+
+- **Contract:**
+  - Q9 defines no file order, so both the server and the client sort the files. Adding the order to Q9 lets the client sort go.
+  - A batch thread read (for example `thread` on Q1 with an exact path) would make the file view one call instead of one Q3 per request.
+- **Placement:** `Application\IssuedApiToken`, the T2 response, is the only response class outside `Application\Query`. It is a write result. Move it, or keep it.
+- **Licensing:** a distributed build carries the Apache-2.0 obligations of `@pierre/diffs`: the licence, the NOTICE, and the `@pierre/theme` NOTICE. The repository has no notice file.
+- **Upstream reports:**
+  - `@pierre/diffs` 1.5.1 blank-view bug: `finalizeRender()` compares files by identity, but `cacheKey` elsewhere. Version 1.5.2 exists; its fix is not checked, and the version is pinned.
+  - playwright-php 1.5.0: there is no `allTextContents()`, and `filter(['has'])` takes CSS only.
+  - Symfony: a `_failure_path` that starts with "http" but is not a URL becomes a route name, and the GitHub callback answers 500.
+- **GitHub App:** when a real App exists, record real API responses and webhook deliveries for the fixtures. Confirm the by-ID fetch of pending SHAs and the listing of a suspended installation. Set `GITHUB_APP_WEBHOOK_SECRET` in the vault, and the webhook content type to JSON.
