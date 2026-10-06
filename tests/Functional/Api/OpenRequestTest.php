@@ -70,6 +70,15 @@ final class OpenRequestTest extends WebTestCase
         }
     }
 
+    #[TestDox('Opens a general request without a code location')]
+    public function testOpensGeneralRequestWithoutCodeLocation(): void
+    {
+        $response = self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/requests", ['anchor' => null, 'body' => 'Add a full-screen focus mode.']);
+
+        $opened = self::assertApiResponse($response, 201, 'request.schema.json');
+        self::assertSame(['anchor' => null, 'outdated' => null, 'location' => null, 'excerpt' => null], array_intersect_key($opened, array_flip(['anchor', 'outdated', 'location', 'excerpt'])));
+    }
+
     #[TestDox('The snapshot and the blob SHA match git')]
     public function testSnapshotAndBlobShaMatchGit(): void
     {

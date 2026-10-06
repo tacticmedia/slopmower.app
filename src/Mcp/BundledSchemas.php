@@ -716,7 +716,13 @@ final class BundledSchemas
                         ],
                     ],
                     'closed' => ['type' => 'boolean', 'description' => 'verified, or wont_do set by the user.'],
-                    'anchor' => ['$ref' => '#/$defs/AnchorSummary'],
+                    'anchor' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/AnchorSummary'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Null for a general request, which belongs to the whole review.',
+                    ],
                     'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'First non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
                     'author' => ['$ref' => '#/$defs/Actor'],
                     'claimedBy' => [
@@ -736,7 +742,7 @@ final class BundledSchemas
                     'pendingCommitCount' => ['type' => 'integer', 'minimum' => 0],
                     'outdated' => [
                         'type' => ['boolean', 'null'],
-                        'description' => 'Location at the default-branch head is changed or orphaned. Null until computed or when the clone is gone.',
+                        'description' => 'Location at the default-branch head is changed or orphaned. Null until computed, when the clone is gone, and for a general request.',
                     ],
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
@@ -759,6 +765,19 @@ final class BundledSchemas
                             'properties' => [
                                 'claimedBy' => ['type' => 'null'],
                                 'claimedAt' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'required' => ['anchor'],
+                            'properties' => [
+                                'anchor' => ['type' => 'null'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'outdated' => ['type' => 'null'],
                             ],
                         ],
                     ],
@@ -1089,7 +1108,13 @@ final class BundledSchemas
                         ],
                     ],
                     'closed' => ['type' => 'boolean', 'description' => 'verified, or wont_do set by the user.'],
-                    'anchor' => ['$ref' => '#/$defs/AnchorSummary'],
+                    'anchor' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/AnchorSummary'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Null for a general request, which belongs to the whole review.',
+                    ],
                     'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'First non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
                     'author' => ['$ref' => '#/$defs/Actor'],
                     'claimedBy' => [
@@ -1109,7 +1134,7 @@ final class BundledSchemas
                     'pendingCommitCount' => ['type' => 'integer', 'minimum' => 0],
                     'outdated' => [
                         'type' => ['boolean', 'null'],
-                        'description' => 'Location at the default-branch head is changed or orphaned. Null until computed or when the clone is gone.',
+                        'description' => 'Location at the default-branch head is changed or orphaned. Null until computed, when the clone is gone, and for a general request.',
                     ],
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
@@ -1132,6 +1157,19 @@ final class BundledSchemas
                             'properties' => [
                                 'claimedBy' => ['type' => 'null'],
                                 'claimedAt' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'required' => ['anchor'],
+                            'properties' => [
+                                'anchor' => ['type' => 'null'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'outdated' => ['type' => 'null'],
                             ],
                         ],
                     ],
@@ -1199,7 +1237,13 @@ final class BundledSchemas
                 ],
             ],
             'closed' => ['type' => 'boolean'],
-            'anchor' => ['$ref' => '#/$defs/Anchor'],
+            'anchor' => [
+                'anyOf' => [
+                    ['$ref' => '#/$defs/Anchor'],
+                    ['type' => 'null'],
+                ],
+                'description' => 'Null for a general request, which belongs to the whole review.',
+            ],
             'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
             'author' => ['$ref' => '#/$defs/Actor'],
             'claimedBy' => [
@@ -1274,6 +1318,21 @@ final class BundledSchemas
                     'properties' => [
                         'claimedBy' => ['type' => 'null'],
                         'claimedAt' => ['type' => 'null'],
+                    ],
+                ],
+            ],
+            [
+                'if' => [
+                    'required' => ['anchor'],
+                    'properties' => [
+                        'anchor' => ['type' => 'null'],
+                    ],
+                ],
+                'then' => [
+                    'properties' => [
+                        'location' => ['type' => 'null'],
+                        'excerpt' => ['type' => 'null'],
+                        'outdated' => ['type' => 'null'],
                     ],
                 ],
             ],
@@ -2027,7 +2086,13 @@ final class BundledSchemas
                         ],
                     ],
                     'closed' => ['type' => 'boolean', 'description' => 'verified, or wont_do set by the user.'],
-                    'anchor' => ['$ref' => '#/$defs/AnchorSummary'],
+                    'anchor' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/AnchorSummary'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Null for a general request, which belongs to the whole review.',
+                    ],
                     'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'First non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
                     'author' => ['$ref' => '#/$defs/Actor'],
                     'claimedBy' => [
@@ -2047,7 +2112,7 @@ final class BundledSchemas
                     'pendingCommitCount' => ['type' => 'integer', 'minimum' => 0],
                     'outdated' => [
                         'type' => ['boolean', 'null'],
-                        'description' => 'Location at the default-branch head is changed or orphaned. Null until computed or when the clone is gone.',
+                        'description' => 'Location at the default-branch head is changed or orphaned. Null until computed, when the clone is gone, and for a general request.',
                     ],
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
@@ -2070,6 +2135,19 @@ final class BundledSchemas
                             'properties' => [
                                 'claimedBy' => ['type' => 'null'],
                                 'claimedAt' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'required' => ['anchor'],
+                            'properties' => [
+                                'anchor' => ['type' => 'null'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'outdated' => ['type' => 'null'],
                             ],
                         ],
                     ],
@@ -2397,7 +2475,13 @@ final class BundledSchemas
                         ],
                     ],
                     'closed' => ['type' => 'boolean', 'description' => 'verified, or wont_do set by the user.'],
-                    'anchor' => ['$ref' => '#/$defs/AnchorSummary'],
+                    'anchor' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/AnchorSummary'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Null for a general request, which belongs to the whole review.',
+                    ],
                     'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'First non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
                     'author' => ['$ref' => '#/$defs/Actor'],
                     'claimedBy' => [
@@ -2417,7 +2501,7 @@ final class BundledSchemas
                     'pendingCommitCount' => ['type' => 'integer', 'minimum' => 0],
                     'outdated' => [
                         'type' => ['boolean', 'null'],
-                        'description' => 'Location at the default-branch head is changed or orphaned. Null until computed or when the clone is gone.',
+                        'description' => 'Location at the default-branch head is changed or orphaned. Null until computed, when the clone is gone, and for a general request.',
                     ],
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
@@ -2440,6 +2524,19 @@ final class BundledSchemas
                             'properties' => [
                                 'claimedBy' => ['type' => 'null'],
                                 'claimedAt' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'required' => ['anchor'],
+                            'properties' => [
+                                'anchor' => ['type' => 'null'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'outdated' => ['type' => 'null'],
                             ],
                         ],
                     ],

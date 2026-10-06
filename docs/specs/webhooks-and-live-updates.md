@@ -63,7 +63,7 @@ An MCP tool name also stands for its REST endpoint.
    - set it to `available`;
    - make sure that the pin ref `refs/holistic-review/commits/<sha>` exists;
    - write one `commit.found` event per review, in its own transaction. The actor is `system`, and the stored payload is `{commitSha, requestIds, subject, committedAt}` for the requests linked in that review.
-3. If `defaultBranchHead` changed, queue `RecomputeLocations(reviewId)` for each open review. The job recomputes the default-branch location of each request. When at least one `outdated` flag changed, it publishes `outdated` with the IDs of those requests. `outdated` means that the location at the default-branch head is `changed` or `orphaned`.
+3. If `defaultBranchHead` changed, queue `RecomputeLocations(reviewId)` for each open review. The job recomputes the default-branch location of each request with an anchor. When at least one `outdated` flag changed, it publishes `outdated` with the IDs of those requests. `outdated` means that the location at the default-branch head is `changed` or `orphaned`.
 4. Publish `repository`, and one `events` update per review that got `commit.found`.
 
 ## 3. Live updates

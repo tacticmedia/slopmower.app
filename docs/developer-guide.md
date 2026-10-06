@@ -25,7 +25,7 @@ Worker mode keeps services in memory between requests. Services keep no state be
 ### 1.3 Three core concepts
 
 1. **One event log, read through projections.** Each change to review data is an event row in `review_event`. `App\EventStore\CommandExecutor::execute()` is the only write path for these events. It locks the tenant row and runs the decide closure of the caller, which calls a pure decider from `src/Domain` for every event type except `commit.found` and `batch.submitted`. `ResolvePendingCommitLinks` builds `commit.found`, and `RequestCommands::submitDrafts()` builds `batch.submitted`. It appends the events with a gapless per-tenant `seq`, updates the projection tables in the same transaction, commits, and then dispatches `EventsCommitted` when it wrote events. Most reads use the projection tables `review`, `change_request`, `comment`, and `commit_link`. Thread, update, and commit diff reads also read `review_event`. See D3 and architecture section 4.
-2. **A change request is anchored to code at one commit.** A review pins one commit. A request stores an `Anchor` that the server captured at that commit: path, blob, a line range, the symbol FQN for a symbol anchor, and a snapshot of the lines. A file anchor has no range and no snapshot. When the code changes, the server computes a `Location` at another commit. This is re-anchoring. A location is cached, never an event. The `outdated` flag of a request comes from the location at the default-branch head. See architecture section 5.
+2. **A change request is anchored to code at one commit.** A review pins one commit. A request stores an `Anchor` that the server captured at that commit: path, blob, a line range, the symbol FQN for a symbol anchor, and a snapshot of the lines. A file anchor has no range and no snapshot. A general request has no anchor: it belongs to the whole review and is never located (D45). When the code changes, the server computes a `Location` at another commit. This is re-anchoring. A location is cached, never an event. The `outdated` flag of a request comes from the location at the default-branch head. See architecture section 5.
 3. **Tenant isolation fails closed.** Code that reads tenant data runs with a tenant context. The context comes from the signed-in user, the API token, the tenant stamp of a Messenger message, or a console argument or option. A Doctrine SQL filter adds `tenant_id = :tenantId`, or `id` on `tenant`, to each ORM query on a tenant table and throws when no context is set. Raw SQL exists only in `*Sql` classes, and each statement on a tenant table names its tenant column. Tests enforce both rules. See D3, D17 and architecture section 4.
 
 REST and MCP are adapters over one application layer, and they return the same JSON (architecture section 7.1). A read or logic that only one REST action needs stays in its controller.
@@ -95,7 +95,7 @@ The term has two meanings:
 
 | Job | When | Input | Output | Code |
 |---|---|---|---|---|
-| Capture | A user opens a request or saves a draft | Kind, path, lines or symbol FQN | `Anchor`, with a `ContentSnapshot` except for a file anchor, stored in `draft.anchor`, or in `request.opened` and `change_request.anchor` | `Application\AnchorFactory::capture()`, `Domain\Anchor\SnapshotCapture::capture()` |
+| Capture | A user opens a request or saves a draft with an anchor. A general request skips it. | Kind, path, lines or symbol FQN | `Anchor`, with a `ContentSnapshot` except for a file anchor, stored in `draft.anchor`, or in `request.opened` and `change_request.anchor` | `Application\AnchorFactory::capture()`, `Domain\Anchor\SnapshotCapture::capture()` |
 | Re-anchoring | A caller needs the anchor at another commit: the default-branch head, an `at` commit, or a linked commit | `Anchor` and a target SHA | `Location` with status `exact`, `shifted`, `changed`, or `orphaned` | `App\Anchoring\Locator::locate()` |
 
 The code sits in `Application\AnchorFactory`, which starts a capture, and in four namespaces:
@@ -136,8 +136,9 @@ App\Anchoring          git and cache side: Locator, LocationCacheSql, CodeExcerp
 | Projection | A read table that changes in the transaction of its events. `app:projections:rebuild` rebuilds it. | `Projection\RequestProjector`, `ReviewProjector` |
 | Not event data | Data that a rebuild keeps: `outdated`, the index columns of `review`, drafts, viewed files | Docblocks of `Entity\Review`, `ChangeRequest`, `Draft` |
 | Fresh read | A query with `Query::HINT_REFRESH`, so a stale identity-map entity does not win | `*Repository::findFresh()` |
-| Anchor | Where a request points at the review commit | `Domain\Anchor\Anchor` |
+| Anchor | Where a request points at the review commit. Null for a general request. | `Domain\Anchor\Anchor` |
 | Anchor kind | `line`, `range`, `symbol`, or `file`. A symbol range includes the doc comment (D7). A file anchor has no range and no snapshot. | `Domain\Anchor\AnchorKind` |
+| General request | A request with a null anchor that belongs to the whole review. No location, no excerpt, `outdated` null. No file view shows it, and a `path` filter never matches it (D45). | `Domain\Request\Command\Open`, `RequestQuery` |
 | Content snapshot | The anchored lines, all up to 200, else the first 100 and the last 100. Also up to 3 context lines on each side and `normalizedHash`. | `Domain\Anchor\ContentSnapshot` |
 | Comparison form | A line trimmed, with inner whitespace runs collapsed to one space. All content comparisons use it. | `SnapshotCapture::comparisonForm()` |
 | Distinctive snapshot | 8 or more non-whitespace characters. Only these get a content search. | `Domain\Matching\SnapshotMatcher::isDistinctive()` |
@@ -276,7 +277,7 @@ Change the specs first when a contract changes. The plan forbids a wire format t
 
 ### 4.2 An agent replies over MCP, and the browser updates live
 
-An agent cannot open a request. A user opens one through `RequestController::open()`, `AnchorFactory::capture()`, and `RequestCommands::open()`. The agent side is the reply:
+An agent cannot open a request. A user opens one through `RequestController::open()`, `AnchorFactory::capture()` for a request with an anchor, and `RequestCommands::open()`. The agent side is the reply:
 
 1. The agent sends `tools/call reply_to_request` to `POST /_mcp` with `Authorization: Bearer hr_...`.
 2. The `mcp` firewall calls `ApiTokenHandler::getUserBadgeFrom()`. It finds the token by its SHA-256 inside `TenantFilter::suspend()`, requires `ApiTokenState::Active` and a live owner, calls `TenantContext::set()`, and calls `restrictToRepository()` for a scoped token. It returns a `UserBadge` that loads an `AgentUser`. `access_control` requires `ROLE_AGENT`.
@@ -300,7 +301,7 @@ An agent cannot open a request. A user opens one through `RequestController::ope
 6. `ServerClone::synced()` dispatches `RepositoryFetched`, then `RepositoryChanged`.
 7. `QueueLocationRecompute::onRepositoryFetched()` runs first, at priority 1. It returns when the two heads are equal. Otherwise it dispatches `RecomputeLocations` for each open review. It runs before step 2 of `specs/webhooks-and-live-updates.md` section 2.2, because a retried fetch finds an unchanged head, so a failing step 2 would drop the recompute.
 8. `ResolvePendingCommitLinks::onRepositoryFetched()` pins each found commit with `PinRefs::pinCommit()` and writes `commit.found` per review through `CommandExecutor::execute()` with `Actor::system()`.
-9. `RecomputeLocationsHandler::__invoke()` gets the head from `FetchRepository::cloneReady()->getDefaultBranchHead()`. For each request it calls `Locator::locate()` with the `request.opened` event ID from `ReviewEventRepository::findOpenedEventIds()`.
+9. `RecomputeLocationsHandler::__invoke()` gets the head from `FetchRepository::cloneReady()->getDefaultBranchHead()`. For each request with an anchor it calls `Locator::locate()` with the `request.opened` event ID from `ReviewEventRepository::findOpenedEventIds()`.
 10. `Locator::locate()` reads `LocationCacheEntryRepository::findOneByKey()`. A new head is a new key, so it calls `compute()` and stores the result with `LocationCacheSql::insert()`.
 11. The handler sets `outdated` to true for the status `changed` or `orphaned`, else to false, with `ChangeRequest::recordOutdated()`. A failure keeps the old flag. No head gives null. When a flag changed, it flushes, then publishes `outdated` with the IDs of the changed requests only.
 12. The browser gets `outdated` for the open review and revalidates. `OutdatedLabel` changes. `RequestQuery::get()` reads the location at the new head, from the cache that step 10 filled.

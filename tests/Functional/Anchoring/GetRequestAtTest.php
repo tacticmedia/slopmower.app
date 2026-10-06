@@ -148,6 +148,18 @@ final class GetRequestAtTest extends WebTestCase
         self::assertSame(1, $fetches());
     }
 
+    #[TestDox('A general request checks at and context for syntax only: no location, no excerpt, no fetch')]
+    public function testGeneralRequestChecksAtAndContextForSyntaxOnly(): void
+    {
+        $generalId = (string) self::openRequest($this->client, $this->reviewId, null)['id'];
+        $fetches = self::countFetches($this->client);
+
+        $read = $this->readWithQuery($generalId, 'at='.str_repeat('d', 40).'&context=2');
+
+        self::assertSame([null, null], [$read['location'], $read['excerpt']]);
+        self::assertSame(0, $fetches());
+    }
+
     #[TestDox('context returns an excerpt of at most 400 lines')]
     public function testContextReturnsExcerptOfAtMost400Lines(): void
     {

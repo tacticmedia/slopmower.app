@@ -35,7 +35,15 @@
       "description": "verified, or wont_do set by the user."
     },
     "anchor": {
-      "$ref": "anchor.schema.json#/$defs/AnchorSummary"
+      "anyOf": [
+        {
+          "$ref": "anchor.schema.json#/$defs/AnchorSummary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Null for a general request, which belongs to the whole review."
     },
     "summary": {
       "type": "string",
@@ -80,7 +88,7 @@
     },
     "outdated": {
       "type": ["boolean", "null"],
-      "description": "Location at the default-branch head is changed or orphaned. Null until computed or when the clone is gone."
+      "description": "Location at the default-branch head is changed or orphaned. Null until computed, when the clone is gone, and for a general request."
     },
     "createdAt": {
       "$ref": "common.schema.json#/$defs/DateTime"
@@ -118,6 +126,23 @@
             "type": "null"
           },
           "claimedAt": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["anchor"],
+        "properties": {
+          "anchor": {
+            "type": "null"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "outdated": {
             "type": "null"
           }
         }

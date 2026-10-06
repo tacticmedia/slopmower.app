@@ -72,6 +72,7 @@ These two principles control all decisions.
 - Symbol selection feels like GitHub range selection. An action on a method selects the full method range, and the comment shows below the last line.
 - Each anchor stores enough data to find its code again after changes: path, line range, symbol FQN where applicable, content snapshot, and the SHA.
 - When re-anchoring fails, the request is flagged `orphaned`. A request is never dropped. The UI shows an outdated request as GitHub shows an outdated comment.
+- A general request has no anchor. It belongs to the whole review, for example "add a full-screen focus mode". It has the same lifecycle as a request with an anchor, and no file view shows it.
 
 ### FR7 Request lifecycle
 
@@ -109,8 +110,8 @@ These two principles control all decisions.
 
 - A web UI that follows Principle B.
 - Screens: repositories from both sources, the file tree at the pinned SHA, the file view with inline threads, the list of requests with filters for status, "Waiting for you", path, and outdated, the request detail with the conversation and the linked commits, and settings.
-- Actions: comment on a line, range, symbol, or file; reply; verify with "Resolve conversation"; reopen with a note; close as won't do; unassign a stale claim.
-- A pending review: drafts that the user submits as one batch. The agent sees nothing before the submission.
+- Actions: comment on a line, range, symbol, or file; open a general request with "New request" on the list of requests; reply; verify with "Resolve conversation"; reopen with a note; close as won't do; unassign a stale claim.
+- A pending review: drafts that the user submits as one batch. The agent sees nothing before the submission. The list of requests also lists the pending drafts.
 - Per-file "Viewed" marks that stay for the whole review.
 - Live updates: an agent reply shows in the open view without a reload.
 

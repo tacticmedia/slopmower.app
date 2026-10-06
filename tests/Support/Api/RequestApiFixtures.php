@@ -51,11 +51,11 @@ trait RequestApiFixtures
     }
 
     /**
-     * @param array<string, mixed> $anchor
+     * @param array<string, mixed>|null $anchor Null for a general request
      *
      * @return array<string, mixed> The Request
      */
-    private static function openRequest(KernelBrowser $client, string $reviewId, array $anchor = ['kind' => 'file', 'path' => 'README.md'], string $body = 'Use `Money` instead of `float` for totals.'): array
+    private static function openRequest(KernelBrowser $client, string $reviewId, ?array $anchor = ['kind' => 'file', 'path' => 'README.md'], string $body = 'Use `Money` instead of `float` for totals.'): array
     {
         return self::assertApiResponse(self::apiRequest($client, 'POST', "/api/v1/reviews/{$reviewId}/requests", ['anchor' => $anchor, 'body' => $body]), 201, 'request.schema.json');
     }

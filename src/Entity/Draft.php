@@ -73,9 +73,9 @@ class Draft implements TenantOwned
     }
 
     /**
-     * @param Anchor $anchor Captured at the review commit
+     * @param Anchor|null $anchor Captured at the review commit. Null for a general request.
      */
-    public static function newRequest(User $user, Review $review, Anchor $anchor, string $body, \DateTimeImmutable $now): self
+    public static function newRequest(User $user, Review $review, ?Anchor $anchor, string $body, \DateTimeImmutable $now): self
     {
         return new self($user, $review, $anchor, null, $body, $now);
     }
@@ -117,7 +117,7 @@ class Draft implements TenantOwned
     }
 
     /**
-     * @return Anchor|null Null for a reply
+     * @return Anchor|null Null for a reply and for a general request
      */
     public function getAnchor(): ?Anchor
     {

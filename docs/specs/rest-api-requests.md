@@ -31,6 +31,8 @@ Rules:
 - Every command takes the tenant row lock and writes its events and projections in one transaction. After the commit, a command that wrote events publishes one live update. See [webhooks-and-live-updates.md](webhooks-and-live-updates.md#3-live-updates).
 - A command on a closed review gets 409 `review_closed`. See [V4](rest-api.md#v4-close-a-review).
 
+General requests: a request with `anchor: null` belongs to the whole review and names no file, line, or symbol. It has no capture, so `location` and `excerpt` are null, `outdated` stays null, and `touchesAnchor` is false. No file view shows it. Its lifecycle and `allowedActions` are the same as for a request with an anchor, and a `new_request` draft can be general.
+
 `allowedActions` for the caller. It is empty when the review is closed.
 
 | Action | Agent caller | User caller |
@@ -58,9 +60,9 @@ Rules:
 |---|---|---|---|
 | `status` | list of RequestStatus | all | |
 | `awaiting` | list of Awaiting | all | "Waiting for you" is `awaiting=user` |
-| `path` | string of at most 4096 characters, no NUL, no leading `/` | none | Prefix of `anchor.path` at the review commit |
+| `path` | string of at most 4096 characters, no NUL, no leading `/` | none | Prefix of `anchor.path` at the review commit. Never matches a general request. |
 | `outdated` | boolean | none | Filters on `RequestSummary.outdated`. Null values never match. |
-| `sort` | `created`\|`updated`\|`path` | `created` | `created`: `id` ascending. `updated`: `updatedAt` descending, then `id`. `path`: `anchor.path`, then `anchor.range.startLine` with file anchors first, then `id`. |
+| `sort` | `created`\|`updated`\|`path` | `created` | `created`: `id` ascending. `updated`: `updatedAt` descending, then `id`. `path`: general requests first, then `anchor.path`, then `anchor.range.startLine` with file anchors first, then `id`. |
 | `limit` | integer 1-200 | 50 | |
 | `cursor` | Cursor | none | |
 
@@ -95,6 +97,7 @@ Example response, [fixtures/lists.request-page.json](fixtures/lists.request-page
 | `context` | integer 0-50 | none | When set, `excerpt` holds the located region at the target commit, with `context` lines on each side and at most 400 lines. `excerpt` is null when the location is `orphaned` or the file is not renderable. |
 
 - Without `at`, the server computes `location` at the default-branch head, with `target: default_branch`. `location` is null when the clone is gone.
+- A general request has `location` and `excerpt` null. The server checks only the syntax of `at` and `context`, so it never resolves `at` and never sends `commit_not_found` or `repository_unavailable` for it. Example: [fixtures/request.general.json](fixtures/request.general.json).
 - `thread` holds, in `seq` order:
   - the events of the request;
   - `commit.linked` events whose `requestIds` contain it;
@@ -158,6 +161,7 @@ The endpoint returns the diff data of one linked commit for the verify view.
 - It compares the commit with its first parent: `git diff-tree -r -M --numstat` plus the raw output. It lists at most 300 files. `truncated` is true when more files changed.
 - `location` is the request located at this commit, with `target: linked_commit`.
 - `touchesAnchor` is true when `path` equals `location.path`. When `location` is null or orphaned, it is true when `path` or `oldPath` equals the anchor path.
+- For a general request, `location` is null and `touchesAnchor` is false.
 - The UI loads each side through [R7](rest-api.md#r7-get-a-blob) with `oldBlobSha` and `newBlobSha`, and renders `@pierre/diffs` `FileDiff`.
 
 Example response, [fixtures/commit-diff.modified.json](fixtures/commit-diff.modified.json):
@@ -189,14 +193,14 @@ All command responses except Q2 and Q7 are [`RequestCommandResult`](schemas/requ
 
 - **Request:** `POST /api/v1/reviews/{reviewId}/requests`
 - **Authentication:** S
-- **Body:** [`OpenRequestInput`](schemas/inputs.schema.json), `{anchor: AnchorInput, body}`.
-- **Success:** 201 [`Request`](schemas/request.schema.json) in full, with `Location: /api/v1/requests/{id}`. Example: [fixtures/request.opened-range.json](fixtures/request.opened-range.json).
+- **Body:** [`OpenRequestInput`](schemas/inputs.schema.json), `{anchor?: AnchorInput|null, body}`.
+- **Success:** 201 [`Request`](schemas/request.schema.json) in full, with `Location: /api/v1/requests/{id}`. Examples: [fixtures/request.opened-range.json](fixtures/request.opened-range.json), [fixtures/request.general.json](fixtures/request.general.json).
 - **Errors:**
   - 422 `invalid_input`: unknown path, range outside the file, FQN not found or ambiguous, kind and fields do not agree, or the file is not renderable for a `line`, `range`, or `symbol` anchor;
   - 409 `review_closed`;
-  - 409 `repository_unavailable`: the clone is gone.
+  - 409 `repository_unavailable`: the clone is gone, for a request with an anchor.
 
-The endpoint opens a request at once, as a "single comment". Anchor capture: the server reads the blob at the review commit and captures the snapshot, as [architecture.md](../architecture.md) section 5.1 describes.
+The endpoint opens a request at once, as a "single comment". Anchor capture: the server reads the blob at the review commit and captures the snapshot, as [architecture.md](../architecture.md) section 5.1 describes. An absent or null `anchor` opens a general request: there is no capture, so no anchor error and no `repository_unavailable`.
 
 - A `symbol` anchor looks up `symbol.fqn` in the symbol table of the file. It must match exactly one symbol. The range of that symbol, including the doc comment, becomes `anchor.range`.
 - `line` requires `startLine == endLine`.
@@ -208,6 +212,12 @@ Example body, [fixtures/inputs.open-request.json](fixtures/inputs.open-request.j
 
 ```json
 {"anchor":{"kind":"range","path":"src/Billing/InvoiceTotals.php","range":{"startLine":52,"endLine":58}},"body":"Extract the tax rounding into `TaxRounding`."}
+```
+
+Example body of a general request, [fixtures/inputs.open-general-request.json](fixtures/inputs.open-general-request.json):
+
+```json
+{"anchor":null,"body":"Add a full-screen focus mode.\n\nIt hides the file tree and the request list, so the code uses the whole window."}
 ```
 
 ### Q4 Comment on a request
@@ -393,15 +403,15 @@ It also works on a closed review, so the user can delete drafts that are left.
 
 - **Request:** `POST /api/v1/reviews/{reviewId}/drafts`
 - **Authentication:** S
-- **Body:** [`CreateDraftInput`](schemas/inputs.schema.json), either `{"kind":"new_request","anchor":AnchorInput,"body":"..."}` or `{"kind":"reply","requestId":"...","body":"..."}`. Examples: [fixtures/inputs.create-draft-new-request.json](fixtures/inputs.create-draft-new-request.json), [fixtures/inputs.create-draft-reply.json](fixtures/inputs.create-draft-reply.json).
-- **Success:** 201 [`Draft`](schemas/draft.schema.json) with `Location: /api/v1/drafts/{id}`. Examples: [fixtures/draft.new-request.json](fixtures/draft.new-request.json), [fixtures/draft.reply.json](fixtures/draft.reply.json).
+- **Body:** [`CreateDraftInput`](schemas/inputs.schema.json), one of `{"kind":"new_request","anchor":AnchorInput,"body":"..."}`, the general form `{"kind":"new_request","anchor":null,"body":"..."}`, or `{"kind":"reply","requestId":"...","body":"..."}`. Examples: [fixtures/inputs.create-draft-new-request.json](fixtures/inputs.create-draft-new-request.json), [fixtures/inputs.create-draft-general-request.json](fixtures/inputs.create-draft-general-request.json), [fixtures/inputs.create-draft-reply.json](fixtures/inputs.create-draft-reply.json).
+- **Success:** 201 [`Draft`](schemas/draft.schema.json) with `Location: /api/v1/drafts/{id}`. Examples: [fixtures/draft.new-request.json](fixtures/draft.new-request.json), [fixtures/draft.new-general-request.json](fixtures/draft.new-general-request.json), [fixtures/draft.reply.json](fixtures/draft.reply.json).
 - **Errors:**
   - 404 `not_found`: the request is unknown;
   - 422 `invalid_input`: anchor errors, or the request belongs to another review;
   - 409 `review_closed`;
-  - 409 `repository_unavailable`: the clone is gone, for a `new_request` draft.
+  - 409 `repository_unavailable`: the clone is gone, for a `new_request` draft with an anchor.
 
-The server captures and validates the anchor at creation, as in [Q2](#q2-open-a-request). The review commit never changes, so the anchor stays valid until the submission.
+The server captures and validates the anchor at creation, as in [Q2](#q2-open-a-request). The review commit never changes, so the anchor stays valid until the submission. A `new_request` draft with an absent or null `anchor` is general and has no capture.
 
 ### D3 Update a draft
 
@@ -431,7 +441,7 @@ The anchor cannot change. To move a draft, delete it and create a new one.
 One transaction:
 
 1. takes all drafts of the caller in the review, sorted by `createdAt`, and creates a `batchId`;
-2. for each draft, writes `request.opened` or `request.commented` with that `batchId`;
+2. for each draft, writes `request.opened` or `request.commented` with that `batchId`. A general draft opens a general request;
 3. writes `batch.submitted` with `summary`, `requestIds`, and `commentIds`;
 4. deletes the drafts.
 

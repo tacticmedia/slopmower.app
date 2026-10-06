@@ -1,19 +1,52 @@
 import { Button, Checkbox, FormControl, Link, RelativeTime, SegmentedControl, TextInput } from '@primer/react';
 import { type Column, DataTable, Table } from '@primer/react/experimental';
-import type { FormEvent } from 'react';
-import { Link as RouterLink, useLoaderData, useSearchParams } from 'react-router';
+import { type FormEvent, useMemo } from 'react';
+import { Link as RouterLink, useLoaderData, useRouteLoaderData, useSearchParams } from 'react-router';
 import { REQUEST_STATUSES, type RequestStatus } from '../../api/types/common';
+import type { Draft } from '../../api/types/draft';
 import type { RequestPage } from '../../api/types/lists';
+import type { Me } from '../../api/types/me';
 import type { RequestSummary } from '../../api/types/request-summary';
+import type { DraftView } from '../../comments/draftView';
+import { ThreadList } from '../../comments/ThreadList';
+import type { ThreadView } from '../../comments/threadView';
+import { AnchorLink } from '../../requests/AnchorLink';
 import { anchorHref, anchorLocation } from '../../requests/anchorLocation';
-import { ClaimedBy } from '../../requests/ClaimedBy';
-import { OutdatedLabel } from '../../requests/OutdatedLabel';
 import shared from '../../requests/Requests.module.css';
+import { ClaimedBy } from '../../requests/ClaimedBy';
+import { NewRequestBox } from '../../requests/NewRequestBox';
+import { OutdatedLabel } from '../../requests/OutdatedLabel';
 import { StatusLabel } from '../../requests/StatusLabel';
 import { STATUS_TEXT } from '../../requests/statusText';
 import { TurnLabel } from '../../requests/TurnLabel';
+import type { ReviewData } from '../reviews/reviewData';
 import { requestFilters } from './requestData';
 import styles from './RequestList.module.css';
+
+const NO_THREADS: readonly ThreadView[] = [];
+
+/**
+ * Every pending draft of the caller. A reply names its request by the summary when the page lists it.
+ */
+function pendingDraftViews(reviewId: string, drafts: readonly Draft[], items: readonly RequestSummary[]): DraftView[] {
+    return drafts.map((draft) => {
+        const view = { key: draft.id, draftId: draft.id, body: draft.body };
+
+        if ('reply' === draft.kind) {
+            const summary = items.find(({ id }) => id === draft.requestId)?.summary;
+
+            return { ...view, range: null, label: undefined === summary ? 'Reply to a request' : `Reply to ${summary}`, href: `/requests/${encodeURIComponent(draft.requestId)}` };
+        }
+
+        if (null === draft.anchor) {
+            return { ...view, range: null, label: 'General', href: null };
+        }
+
+        const { range } = draft.anchor;
+
+        return { ...view, range: null === range ? null : { start: range.startLine, end: range.endLine }, label: anchorLocation(draft.anchor), href: anchorHref(reviewId, draft.anchor) };
+    });
+}
 
 const STATUS_SEGMENTS: readonly { status: RequestStatus | null; label: string }[] = [
     { status: null, label: 'All' },
@@ -47,11 +80,7 @@ function columns(reviewId: string): Column<RequestSummary>[] {
         {
             id: 'location',
             header: 'Location',
-            renderCell: (request) => (
-                <Link as={RouterLink} to={anchorHref(reviewId, request.anchor)} className={shared.location}>
-                    {anchorLocation(request.anchor)}
-                </Link>
-            ),
+            renderCell: (request) => <AnchorLink reviewId={reviewId} anchor={request.anchor} />,
         },
         {
             id: 'claimedBy',
@@ -64,6 +93,10 @@ function columns(reviewId: string): Column<RequestSummary>[] {
 
 export function RequestList() {
     const { reviewId, total, items } = useLoaderData<RequestPage>();
+    const me = useRouteLoaderData<Me>('root');
+    const reviewData = useRouteLoaderData<ReviewData>('review');
+    const drafts = reviewData?.drafts;
+    const pendingDrafts = useMemo(() => pendingDraftViews(reviewId, drafts ?? [], items), [reviewId, drafts, items]);
     const [searchParams, setSearchParams] = useSearchParams();
     const filters = requestFilters(searchParams);
     const setFilter = (name: 'status' | 'awaiting' | 'path' | 'outdated', value: string | null): void => {
@@ -83,6 +116,12 @@ export function RequestList() {
         const path = String(new FormData(event.currentTarget).get('path') ?? '').trim();
         setFilter('path', '' === path ? null : path);
     };
+
+    if (undefined === me || undefined === reviewData) {
+        throw new Error('The request list renders below the review route.');
+    }
+
+    const commentable = 'open' === reviewData.review.state;
 
     return (
         <section className={styles.page}>
@@ -113,7 +152,16 @@ export function RequestList() {
                         Filter
                     </Button>
                 </form>
+                {commentable && <NewRequestBox drafts={reviewData.drafts} />}
             </div>
+            {pendingDrafts.length > 0 && (
+                <section className={shared.section} aria-labelledby="pending-drafts" data-testid="pending-drafts">
+                    <h2 id="pending-drafts" className={shared.sectionTitle}>
+                        Pending drafts
+                    </h2>
+                    <ThreadList threads={NO_THREADS} caller={me.caller} drafts={pendingDrafts} draftsEditable={commentable} />
+                </section>
+            )}
             <Table.Container data-testid="request-list">
                 <Table.Title as="h2" id="requests">
                     Requests

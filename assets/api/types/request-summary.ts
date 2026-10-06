@@ -15,14 +15,15 @@ export type RequestSummary = {
     resolution: Resolution | null;
     /** verified, or wont_do set by the user. */
     closed: boolean;
-    anchor: AnchorSummary;
+    /** Null for a general request. */
+    anchor: AnchorSummary | null;
     /** First non-blank line of the body, at most 200 characters. */
     summary: string;
     author: Actor;
     commentCount: number;
     commitCount: number;
     pendingCommitCount: number;
-    /** Null until computed or when the clone is gone. */
+    /** Null until computed, when the clone is gone, and for a general request. */
     outdated: boolean | null;
     createdAt: DateTime;
     updatedAt: DateTime;

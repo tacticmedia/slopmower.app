@@ -170,6 +170,8 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 7. **SKILL.md** carries `metadata: {api: "v1"}` in its frontmatter and names only v1 tools. Its source is `docs/user/skill/SKILL.md`, and `GET /docs/skill/SKILL.md` serves it raw. The PHPUnit skill test fails when the skill names a tool that does not exist.
 8. **Stored events** are never rewritten. New payload fields are additive, and readers use a default for a missing field. The API `Event` is a derived representation, not the stored payload.
 9. **MCP protocol revisions**, 2025-11-25 with the handshake and 2026-07-28 stateless, are independent of the API version. Every output schema keeps an object root, which the handshake era requires.
+10. **Amendments before the first release.** Until the first release, v1 is amended in place, without a v2, because its only clients are the web UI and the bundled skill. The amendments:
+    - General requests, decision D45 of [architecture.md](../architecture.md) section 11: `anchor` is nullable in `Request`, `RequestSummary`, and `Draft`, and optional in `OpenRequestInput` and `CreateDraftInput`.
 
 ## 9. Contract tests
 
@@ -192,13 +194,13 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [common.schema.json](schemas/common.schema.json) | `https://holistic-review.invalid/schemas/v1/common.schema.json` | `$defs` only: IDs, SHAs, paths, times, cursors, and the shared enums |
 | [error.schema.json](schemas/error.schema.json) | `https://holistic-review.invalid/schemas/v1/error.schema.json` | Error body and the `details` shape per code |
 | [actor.schema.json](schemas/actor.schema.json) | `https://holistic-review.invalid/schemas/v1/actor.schema.json` | Actor: user, agent, or system |
-| [anchor.schema.json](schemas/anchor.schema.json) | `https://holistic-review.invalid/schemas/v1/anchor.schema.json` | Anchor, plus `LineRange`, `SymbolRef`, `ContentSnapshot`, `AnchorSummary`, `AnchorInput` |
+| [anchor.schema.json](schemas/anchor.schema.json) | `https://holistic-review.invalid/schemas/v1/anchor.schema.json` | Anchor of a request with a code location, plus `LineRange`, `SymbolRef`, `ContentSnapshot`, `AnchorSummary`, `AnchorInput`. A general request has no anchor. |
 | [location.schema.json](schemas/location.schema.json) | `https://holistic-review.invalid/schemas/v1/location.schema.json` | Location of an anchor at another commit |
 | [repository.schema.json](schemas/repository.schema.json) | `https://holistic-review.invalid/schemas/v1/repository.schema.json` | Repository, plus `LocalDirectory` and `Sync` |
 | [repository-candidate.schema.json](schemas/repository-candidate.schema.json) | `https://holistic-review.invalid/schemas/v1/repository-candidate.schema.json` | A repository that the user can connect |
 | [review.schema.json](schemas/review.schema.json) | `https://holistic-review.invalid/schemas/v1/review.schema.json` | Review, plus `IndexStatus` and `RequestCounts` |
-| [request-summary.schema.json](schemas/request-summary.schema.json) | `https://holistic-review.invalid/schemas/v1/request-summary.schema.json` | RequestSummary for lists and command results |
-| [request.schema.json](schemas/request.schema.json) | `https://holistic-review.invalid/schemas/v1/request.schema.json` | Request in full, plus `CodeExcerpt` |
+| [request-summary.schema.json](schemas/request-summary.schema.json) | `https://holistic-review.invalid/schemas/v1/request-summary.schema.json` | RequestSummary for lists and command results. `anchor` is null for a general request. |
+| [request.schema.json](schemas/request.schema.json) | `https://holistic-review.invalid/schemas/v1/request.schema.json` | Request in full, plus `CodeExcerpt`. A general request has `anchor`, `location`, `excerpt`, and `outdated` null. |
 | [thread-entry.schema.json](schemas/thread-entry.schema.json) | `https://holistic-review.invalid/schemas/v1/thread-entry.schema.json` | One entry of a request thread |
 | [event.schema.json](schemas/event.schema.json) | `https://holistic-review.invalid/schemas/v1/event.schema.json` | One event of the review event log |
 | [commit-link.schema.json](schemas/commit-link.schema.json) | `https://holistic-review.invalid/schemas/v1/commit-link.schema.json` | A commit linked to a request |
@@ -228,6 +230,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [api-token.with-secret.json](fixtures/api-token.with-secret.json) | `api-token.schema.json#/$defs/ApiTokenWithSecret` | T2 |
 | [batch-submission.submitted.json](fixtures/batch-submission.submitted.json) | `batch-submission.schema.json` | D5 |
 | [commit-diff.modified.json](fixtures/commit-diff.modified.json) | `commit-diff.schema.json` | Q9 |
+| [draft.new-general-request.json](fixtures/draft.new-general-request.json) | `draft.schema.json` | D2 |
 | [draft.new-request.json](fixtures/draft.new-request.json) | `draft.schema.json` | D2, D3 |
 | [draft.reply.json](fixtures/draft.reply.json) | `draft.schema.json` | D2, D3 |
 | [error.commit-not-found.json](fixtures/error.commit-not-found.json) | `error.schema.json` | V1, Q3, `get_request` |
@@ -246,10 +249,12 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.comment.json](fixtures/inputs.comment.json) | `inputs.schema.json#/$defs/CommentInput` | Q4 |
 | [inputs.connect-github.json](fixtures/inputs.connect-github.json) | `inputs.schema.json#/$defs/ConnectRepositoryInput` | R3 |
 | [inputs.connect-local.json](fixtures/inputs.connect-local.json) | `inputs.schema.json#/$defs/ConnectRepositoryInput` | R3 |
+| [inputs.create-draft-general-request.json](fixtures/inputs.create-draft-general-request.json) | `inputs.schema.json#/$defs/CreateDraftInput` | D2 |
 | [inputs.create-draft-new-request.json](fixtures/inputs.create-draft-new-request.json) | `inputs.schema.json#/$defs/CreateDraftInput` | D2 |
 | [inputs.create-draft-reply.json](fixtures/inputs.create-draft-reply.json) | `inputs.schema.json#/$defs/CreateDraftInput` | D2 |
 | [inputs.create-token.json](fixtures/inputs.create-token.json) | `inputs.schema.json#/$defs/CreateTokenInput` | T2 |
 | [inputs.link-commits.json](fixtures/inputs.link-commits.json) | `inputs.schema.json#/$defs/LinkCommitsInput` | Q7 |
+| [inputs.open-general-request.json](fixtures/inputs.open-general-request.json) | `inputs.schema.json#/$defs/OpenRequestInput` | Q2 |
 | [inputs.open-request.json](fixtures/inputs.open-request.json) | `inputs.schema.json#/$defs/OpenRequestInput` | Q2 |
 | [inputs.ready.json](fixtures/inputs.ready.json) | `inputs.schema.json#/$defs/RequiredNoteInput` | Q10, Q13 |
 | [inputs.release.json](fixtures/inputs.release.json) | `inputs.schema.json#/$defs/OptionalNoteInput` | Q6, Q12 |
@@ -285,6 +290,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [request-command-result.question.json](fixtures/request-command-result.question.json) | `request-command-result.schema.json` | Q4, `reply_to_request` |
 | [request-command-result.ready.json](fixtures/request-command-result.ready.json) | `request-command-result.schema.json` | Q10, `mark_ready_for_review` |
 | [request-command-result.release.json](fixtures/request-command-result.release.json) | `request-command-result.schema.json` | Q6, `release_request` |
+| [request.general.json](fixtures/request.general.json) | `request.schema.json` | Q2, Q3, `get_request` |
 | [request.in-progress.json](fixtures/request.in-progress.json) | `request.schema.json` | Q3 with `at`, `get_request` |
 | [request.opened-range.json](fixtures/request.opened-range.json) | `request.schema.json` | Q2 |
 | [request.with-excerpt.json](fixtures/request.with-excerpt.json) | `request.schema.json` | Q3 with `context`, `get_request` |

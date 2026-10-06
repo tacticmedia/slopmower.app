@@ -27,12 +27,18 @@ The comment box receives the focus. Type your comment. Comments use GitHub-flavo
 
 Symbols are available for PHP files. A symbol range includes the doc comment above the symbol.
 
+## Open a general request
+
+A general request belongs to the whole review and names no file, line, or symbol, for example "Add a full-screen focus mode". Open **Requests** and click **New request**. Type the request and click **Add single comment**, or **Start a review** to keep it as a draft.
+
+The list shows **General** in place of a location. No file view shows a general request, and the path filter never matches it.
+
 ## Send comments one by one or as a batch
 
 - **Add single comment** sends the comment at once. The agent sees it the next time it checks for updates.
 - **Start a review** keeps the comment as a draft. Only you can see drafts. Add more comments with **Add review comment**, then click **Finish your review**. Type an optional summary and click **Submit review**. The agent sees all comments of the batch together.
 
-You can edit or delete a draft before you submit it.
+You can edit or delete a draft before you submit it. **Pending drafts** on the **Requests** tab lists all your drafts: new requests and replies. Each draft links to its lines or to the request that it replies to.
 
 ## Follow the requests
 

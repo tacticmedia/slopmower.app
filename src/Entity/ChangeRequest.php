@@ -37,8 +37,8 @@ class ChangeRequest implements TenantOwned
     #[ORM\JoinColumn(nullable: false)]
     private Review $review;
 
-    #[ORM\Column(type: AnchorType::NAME)]
-    private Anchor $anchor;
+    #[ORM\Column(type: AnchorType::NAME, nullable: true)]
+    private ?Anchor $anchor;
 
     #[ORM\Column(type: Types::TEXT)]
     private string $body;
@@ -92,7 +92,7 @@ class ChangeRequest implements TenantOwned
     /**
      * Sets the fields that request.opened fixes. {@see self::project()} sets the others.
      */
-    public function __construct(RequestId $id, Review $review, Anchor $anchor, string $body, Actor $author, \DateTimeImmutable $createdAt)
+    public function __construct(RequestId $id, Review $review, ?Anchor $anchor, string $body, Actor $author, \DateTimeImmutable $createdAt)
     {
         $this->id = $id;
         $this->tenantId = $review->getTenantId();
@@ -105,7 +105,7 @@ class ChangeRequest implements TenantOwned
     /**
      * The projection rebuild recomputes an existing row in place.
      */
-    public function opened(Anchor $anchor, string $body, Actor $author, \DateTimeImmutable $createdAt): void
+    public function opened(?Anchor $anchor, string $body, Actor $author, \DateTimeImmutable $createdAt): void
     {
         $this->anchor = $anchor;
         $this->body = $body;
@@ -156,7 +156,10 @@ class ChangeRequest implements TenantOwned
         return $this->review;
     }
 
-    public function getAnchor(): Anchor
+    /**
+     * @return Anchor|null Null for a general request
+     */
+    public function getAnchor(): ?Anchor
     {
         return $this->anchor;
     }

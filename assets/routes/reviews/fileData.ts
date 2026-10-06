@@ -4,10 +4,9 @@ import { apiGet, apiGetAllPages, apiGetText, apiWrite } from '../../api/client';
 import type { FileContent } from '../../api/types/file-content';
 import type { RequestPage } from '../../api/types/lists';
 import type { Request as ReviewRequest } from '../../api/types/request';
-import type { RequestCommandResult } from '../../api/types/request-command-result';
+import { writeComment } from '../../comments/commentAction';
 import type { CommentIntent } from '../../comments/commentIntent';
 import { type ThreadView, threadView } from '../../comments/threadView';
-import { rememberEvents } from '../../live/eventPositions';
 import type { ViewedIntent } from '../../review/ViewedCheckbox';
 import { encodedRouteParam } from '../encodedRouteParam';
 import { REQUEST_PAGE_LIMIT } from '../requests/requestData';
@@ -32,25 +31,12 @@ export async function fileLoader({ request, params }: LoaderFunctionArgs): Promi
 
 export async function fileAction({ request, params }: ActionFunctionArgs): Promise<ActionResult> {
     const submitted = (await request.json()) as CommentIntent | ViewedIntent;
-    const review = `/api/v1/reviews/${encodedRouteParam(params, 'reviewId')}`;
+    const reviewId = encodedRouteParam(params, 'reviewId');
     const { signal } = request;
 
-    return writeResult(async () => {
-        switch (submitted.intent) {
-            case 'open':
-                return apiWrite('POST', `${review}/requests`, submitted.input, signal);
-            case 'reply':
-                return rememberEvents((await apiWrite<RequestCommandResult>('POST', `/api/v1/requests/${encodeURIComponent(submitted.requestId)}/comments`, submitted.input, signal)).events);
-            case 'draft':
-                return apiWrite('POST', `${review}/drafts`, submitted.input, signal);
-            case 'editDraft':
-                return apiWrite('PATCH', `/api/v1/drafts/${encodeURIComponent(submitted.draftId)}`, submitted.input, signal);
-            case 'deleteDraft':
-                return apiWrite('DELETE', `/api/v1/drafts/${encodeURIComponent(submitted.draftId)}`, undefined, signal);
-            case 'viewed':
-                return apiWrite('PUT', `${review}/viewed-files`, submitted.input, signal);
-        }
-    });
+    return writeResult(() =>
+        'viewed' === submitted.intent ? apiWrite('PUT', `/api/v1/reviews/${reviewId}/viewed-files`, submitted.input, signal) : writeComment(reviewId, submitted, signal),
+    );
 }
 
 /**
@@ -60,7 +46,7 @@ async function fileThreads(reviewId: string, path: string, signal: AbortSignal):
     const query = new URLSearchParams({ path, sort: 'path', limit: String(REQUEST_PAGE_LIMIT) });
     const page = await apiGetAllPages<RequestPage>(`/api/v1/reviews/${reviewId}/requests?${query.toString()}`, signal);
     const requests = await Promise.all(
-        page.items.filter((summary) => summary.anchor.path === path).map((summary) => apiGet<ReviewRequest>(`/api/v1/requests/${encodeURIComponent(summary.id)}`, signal)),
+        page.items.filter((summary) => summary.anchor?.path === path).map((summary) => apiGet<ReviewRequest>(`/api/v1/requests/${encodeURIComponent(summary.id)}`, signal)),
     );
 
     return requests.map(threadView);

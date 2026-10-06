@@ -16,6 +16,7 @@ const CommitDiff = lazy(() => import('../../code/CommitDiff').then(({ CommitDiff
  */
 export function RequestChanges({ request }: { request: ReviewRequest }) {
     const { id, repositoryId, commits } = request;
+    const located = null !== request.anchor;
 
     if (0 === commits.length) {
         return <p className={shared.muted}>No commit is linked yet.</p>;
@@ -24,13 +25,13 @@ export function RequestChanges({ request }: { request: ReviewRequest }) {
     return (
         <div className={styles.commits}>
             {commits.map((commit) => (
-                <CommitChanges key={commit.commitSha} requestId={id} repositoryId={repositoryId} commit={commit} />
+                <CommitChanges key={commit.commitSha} requestId={id} repositoryId={repositoryId} commit={commit} located={located} />
             ))}
         </div>
     );
 }
 
-function CommitChanges({ requestId, repositoryId, commit }: { requestId: string; repositoryId: string; commit: CommitLink }) {
+function CommitChanges({ requestId, repositoryId, commit, located }: { requestId: string; repositoryId: string; commit: CommitLink; located: boolean }) {
     const titleId = `commit-${commit.commitSha}`;
 
     return (
@@ -40,7 +41,7 @@ function CommitChanges({ requestId, repositoryId, commit }: { requestId: string;
                 {'available' === commit.state ? <span className={shared.subject}>{commit.subject}</span> : <Label variant="attention">Pending</Label>}
             </h2>
             {'available' === commit.state ? (
-                <AvailableCommit requestId={requestId} repositoryId={repositoryId} commitSha={commit.commitSha} />
+                <AvailableCommit requestId={requestId} repositoryId={repositoryId} commitSha={commit.commitSha} located={located} />
             ) : (
                 <p className={styles.note}>The server clone does not have this commit yet.</p>
             )}
@@ -48,7 +49,7 @@ function CommitChanges({ requestId, repositoryId, commit }: { requestId: string;
     );
 }
 
-function AvailableCommit({ requestId, repositoryId, commitSha }: { requestId: string; repositoryId: string; commitSha: string }) {
+function AvailableCommit({ requestId, repositoryId, commitSha, located }: { requestId: string; repositoryId: string; commitSha: string; located: boolean }) {
     const diff = useCommitDiff(requestId, commitSha);
     const files = useMemo(
         () => (undefined === diff || 'error' in diff ? [] : diff.files.toSorted((first, second) => Number(second.touchesAnchor) - Number(first.touchesAnchor))),
@@ -76,7 +77,7 @@ function AvailableCommit({ requestId, repositoryId, commitSha }: { requestId: st
             <p className={styles.note}>
                 {diff.authorName} committed <RelativeTime datetime={diff.committedAt} />
             </p>
-            <LocationInfo location={diff.location} />
+            {located && <LocationInfo location={diff.location} />}
             {diff.truncated && <p className={styles.note}>Only the first {diff.files.length} changed files are shown.</p>}
             {0 === files.length ? (
                 <p className={styles.note}>No file changed.</p>

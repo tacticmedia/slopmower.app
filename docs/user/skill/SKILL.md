@@ -88,6 +88,11 @@ and read their whole thread, because the user rejected an earlier result.
      7 to 64 hex digits.
    - If the code is gone and the request no longer applies, mark it `wont_do`
      with evidence.
+   - A general request has `anchor`, `location`, and `excerpt` null. It belongs
+     to the whole review. Find what to change from `body`, `thread`, and the
+     codebase. If the scope is not clear, ask with `question: true`. Call
+     `list_requests` without a `path` filter to see all work, because a `path`
+     filter never matches a general request.
 2. If the request is not clear, call `reply_to_request` with
    `question: true`, then take the next request. Do not guess. The user's answer
    comes back through `get_updates`.

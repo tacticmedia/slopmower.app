@@ -157,11 +157,15 @@ final class DraftController extends AbstractController
     }
 
     /**
-     * As in Q2: the snapshot comes from git at the review commit.
+     * As in Q2: the snapshot comes from git at the review commit. A general request has no anchor.
      */
-    private static function capture(AnchorFactory $anchors, Review $review, ?AnchorInput $input): Anchor
+    private static function capture(AnchorFactory $anchors, Review $review, ?AnchorInput $input): ?Anchor
     {
-        \assert(null !== $input && null !== $input->kind && null !== $input->path);
+        if (null === $input) {
+            return null;
+        }
+
+        \assert(null !== $input->kind && null !== $input->path);
 
         return $anchors->capture($review, $input->kind, $input->path, $input->range?->startLine, $input->range?->endLine, $input->symbol?->fqn);
     }

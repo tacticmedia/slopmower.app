@@ -85,6 +85,8 @@ final class EventRoundTripTest extends KernelTestCase
             'Do not commit the lock file changes.',
             null,
         )];
+
+        yield 'request.opened without an anchor' => ['request.opened-general', new RequestOpenedEvent(null, 'Add a full-screen focus mode.', null)];
     }
 
     private static function example(EventType $type): DomainEvent

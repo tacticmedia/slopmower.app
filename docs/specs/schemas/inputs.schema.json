@@ -89,10 +89,18 @@
     },
     "OpenRequestInput": {
       "type": "object",
-      "required": ["anchor", "body"],
+      "required": ["body"],
       "properties": {
         "anchor": {
-          "$ref": "anchor.schema.json#/$defs/AnchorInput"
+          "anyOf": [
+            {
+              "$ref": "anchor.schema.json#/$defs/AnchorInput"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Absent or null opens a general request."
         },
         "body": {
           "$ref": "common.schema.json#/$defs/Markdown"
@@ -180,7 +188,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "new_request: absent or null makes a general request. reply: absent or null."
         },
         "requestId": {
           "anyOf": [
@@ -206,11 +215,7 @@
             }
           },
           "then": {
-            "required": ["anchor"],
             "properties": {
-              "anchor": {
-                "type": "object"
-              },
               "requestId": {
                 "type": "null"
               }

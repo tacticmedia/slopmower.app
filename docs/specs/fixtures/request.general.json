@@ -1,0 +1,55 @@
+{
+  "id": "01K6B3P2A9QRSTVWXYZ0123458",
+  "reviewId": "01K6B3A1B2C3D4E5F6G7H8J9KM",
+  "repositoryId": "01K6B2Z0R3P0S1T2V3W4X5Y6Z7",
+  "status": "open",
+  "awaiting": "agent",
+  "resolution": null,
+  "closed": false,
+  "anchor": null,
+  "summary": "Add a full-screen focus mode.",
+  "author": {
+    "kind": "user",
+    "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+    "agentName": null,
+    "name": "janklan",
+    "avatarUrl": "https://avatars.githubusercontent.com/u/1?v=4"
+  },
+  "claimedBy": null,
+  "claimedAt": null,
+  "commentCount": 0,
+  "commitCount": 0,
+  "pendingCommitCount": 0,
+  "outdated": null,
+  "createdAt": "2026-09-29T07:50:00Z",
+  "updatedAt": "2026-09-29T07:50:00Z",
+  "lastEventSeq": 1850,
+  "body": "Add a full-screen focus mode.\n\nIt hides the file tree and the request list, so the code uses the whole window.",
+  "reviewState": "open",
+  "reviewCommitSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091",
+  "location": null,
+  "excerpt": null,
+  "thread": [
+    {
+      "seq": 1850,
+      "eventId": "01K6C2EVT00000000000001850",
+      "type": "request.opened",
+      "actor": {
+        "kind": "user",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "agentName": null,
+        "name": "janklan",
+        "avatarUrl": "https://avatars.githubusercontent.com/u/1?v=4"
+      },
+      "occurredAt": "2026-09-29T07:50:00Z",
+      "body": "Add a full-screen focus mode.\n\nIt hides the file tree and the request list, so the code uses the whole window.",
+      "commentId": null,
+      "question": false,
+      "batchId": null,
+      "commitSha": null,
+      "statusAfter": "open"
+    }
+  ],
+  "commits": [],
+  "allowedActions": ["reply", "mark_wont_do"]
+}

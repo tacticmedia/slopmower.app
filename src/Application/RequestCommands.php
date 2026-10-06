@@ -298,7 +298,7 @@ final class RequestCommands
     {
         $request = $draft->getRequest();
         $command = null === $request
-            ? new Open($draft->getAnchor() ?? throw new \LogicException('A new request draft has an anchor.'), $draft->getBody(), $batchId)
+            ? new Open($draft->getAnchor(), $draft->getBody(), $batchId)
             : new Reply($request->getId(), $draft->getBody(), batchId: $batchId);
 
         return RequestDecider::decide($command, array_map($this->state(...), $command->requestIds()), $review, $actor)[0]

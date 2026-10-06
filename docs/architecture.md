@@ -158,7 +158,7 @@ Every entity except `Tenant` and `WebhookDelivery` carries `tenantId`.
 | `GitHubCandidate` | `id`, `tenantId`, `githubRepositoryId: int`, `installationId: int`, `accountLogin: string` (the account that the App is installed on), `owner: string`, `name: string`, `private: bool`, `defaultBranch: string`, `htmlUrl: string`, `listedAt`. A repository that the user can connect (R2): the sign-in replaces the rows, and the installation webhooks change them. |
 | `Repository` | `id`, `tenantId`, `source: RepositorySource`, `name: RepositoryName`, `githubInstallationId: ?int`, `githubRepositoryId: ?int`, `githubPrivate: ?bool`, `localDirectory: ?string`, `defaultBranch: ?string`, `defaultBranchHead: ?CommitSha`, `syncState: SyncState`, `fetchRequested: bool` (a queued fetch job has not started), `lastFetchedAt: ?DateTimeImmutable`, `lastError: ?string`, `access: active\|removed`, `createdAt`. A `github` repository sets `githubInstallationId` and `githubRepositoryId`. The installation ID is a plain column, not a foreign key, so it survives the deletion of the `GitHubInstallation` row. A `local` repository sets `localDirectory`. |
 | `Review` | `id`, `tenantId`, `repository: Repository`, `title: string`, `ref: string`, `commitSha: CommitSha`, `startedBy: Actor`, `indexState: pending\|running\|ready\|failed`, `createdAt`, `closedAt: ?DateTimeImmutable`, `closedBy: ?Actor`, `closeNote: ?string`, `state: ReviewState`, `lastEventSeq: int`, `filesTotal: ?int`, `filesDone: int`, `symbolsTotal: int`, `indexStartedAt: ?DateTimeImmutable`, `indexFinishedAt: ?DateTimeImmutable`, `indexError: ?string` |
-| `ChangeRequest` | `id`, `tenantId`, `review: Review`, `anchor: Anchor`, `body: string` (Markdown), `author: Actor`, `createdAt`, `status: RequestStatus`, `statusBeforeClaim: ?RequestStatus`, `claimedBy: ?Actor`, `claimedAt: ?DateTimeImmutable`, `awaiting: Awaiting`, `resolution: ?Resolution`, `wontDoBy: ?ActorKind`, `lastUserCommentSeq: ?int`, `lastAgentEventSeq: ?int`, `lastAgentEventIsQuestion: bool`, `lastEventSeq: int`, `updatedAt`, `outdated: ?bool` (not event data: the location recompute sets it, and a projection rebuild keeps it) |
+| `ChangeRequest` | `id`, `tenantId`, `review: Review`, `anchor: ?Anchor`, null for a general request, `body: string` (Markdown), `author: Actor`, `createdAt`, `status: RequestStatus`, `statusBeforeClaim: ?RequestStatus`, `claimedBy: ?Actor`, `claimedAt: ?DateTimeImmutable`, `awaiting: Awaiting`, `resolution: ?Resolution`, `wontDoBy: ?ActorKind`, `lastUserCommentSeq: ?int`, `lastAgentEventSeq: ?int`, `lastAgentEventIsQuestion: bool`, `lastEventSeq: int`, `updatedAt`, `outdated: ?bool` (not event data: the location recompute sets it, and a projection rebuild keeps it) |
 | `Comment` | `id`, `tenantId`, `request: ChangeRequest`, `author: Actor`, `body: string`, `question: bool`, `batchId: ?BatchId`, `createdAt` |
 | `CommitLink` | `tenantId`, `request: ChangeRequest`, `commitSha: CommitSha`, `state: CommitLinkState`, `linkedBy: Actor`, `linkedAt`, `foundAt: ?DateTimeImmutable`, `subject: ?string`, `committedAt: ?DateTimeImmutable`, `note: ?string`. `subject` and `committedAt` are set when `state` is `available`. Unique per request and commit. |
 | `Draft` | `id`, `tenantId`, `review: Review`, `user: User`, `kind: new_request\|reply`, `anchor: ?Anchor`, `request: ?ChangeRequest`, `body: string`, `createdAt`, `updatedAt` |
@@ -188,7 +188,7 @@ Table `review_event`, append-only:
 |---|---|
 | `review.started` | `title`, `ref`, `commitSha` |
 | `review.closed` | `note: ?string` |
-| `request.opened` | `anchor: Anchor`, `body`, `batchId: ?BatchId` |
+| `request.opened` | `anchor: ?Anchor`, null for a general request, `body`, `batchId: ?BatchId` |
 | `request.commented` | `commentId`, `body`, `question: bool`, `batchId: ?BatchId` |
 | `request.claimed` | none |
 | `request.released` | `note: ?string` |
@@ -319,7 +319,7 @@ When a repository leaves the installation, or the installation is deleted, the s
 
 ### 5.1 Capture
 
-All anchors are captured at the review commit, which never changes.
+All anchors are captured at the review commit, which never changes. A general request has no anchor, so it is never captured and never located: its `location` and `outdated` stay null.
 
 | Kind | Stored data |
 |---|---|
@@ -593,7 +593,7 @@ Operator commands: rebuild projections, rebuild an index, purge a tenant. `app:s
 | Sign in | "Sign in with GitHub". With local sign-in in `dev`, "Sign in as <login>". | Twig |
 | Repositories | Candidates from both sources: the repositories of the user's installations with "Configure on GitHub", and the directories under `APP_LOCAL_REPOSITORIES_DIR`. A notice when local repositories are off. Without a GitHub App, the GitHub section is hidden. Connect, clone status, "Refresh" to fetch at once, the reviews of a repository with "Show closed", "Start review" with a ref. | Primer `DataTable`, `Label` |
 | Review | Header: title, ref, short SHA, the copyable review ID, the ready agent prompt "Work on Holistic Review <id>", "Close review", and "Delete review". A read-only banner when the review is closed. The index progress. File tree at the review commit. File header with "Comment on lines", "Symbols", "Comment on file", and "Viewed". Code with inline threads. "Finish your review (n)". | Primer `TreeView`, `ActionMenu`, `SelectPanel`, `Checkbox`, `Dialog`, `ProgressBar`; `@pierre/diffs` `CodeView` |
-| Requests | Filters: status, "Waiting for you" (`awaiting = user`), path, outdated | Primer `DataTable`, `SegmentedControl` |
+| Requests | Filters: status, "Waiting for you" (`awaiting = user`), path, outdated. "New request" opens a general request, at once or as a draft of the pending review. "Pending drafts" lists every draft of the user from D1, labelled "General", with its path and lines, or with the request that it replies to, and linked to those lines or that request. | Primer `DataTable`, `SegmentedControl` |
 | Request detail | The conversation with the agent, live. Linked commits with state and a `FileDiff` per commit. "Resolve conversation", "Reopen", "Close as won't do", "Unassign". Read-only when the review is closed. | Primer parts; `@pierre/diffs` `FileDiff` |
 | Settings | API tokens: create with name, scope, and optional expiry; the secret is shown once; revoke; last use; the `.mcp.json` snippet; links to `/docs` and to the skill install command. Delete repository data. Delete account. | Primer `DataTable`, `Dialog` |
 | Docs | The public pages at `/docs`, without sign-in | Twig |
@@ -748,6 +748,7 @@ Static checks: PHPStan level 8 on `src/` and `tests/`, php-cs-fixer with `@Symfo
 | D42 | Live update payloads | IDs only. Clients read the data again through REST. The browser revalidates its React Router loaders, so there is one data model. |
 | D43 | Dev transport | The dev app runs over HTTP at `http://localhost:8000`. Localhost is a secure context, so the clipboard API and EventSource work. TLS is operations. |
 | D44 | Convention tests | Meta-tests enforce the test rules, the file-size rule, and the purity of `src/Domain`, so the rules hold without review effort. Purity keeps the deciders, reducers, event codecs, and matching algorithms testable without the kernel. |
+| D45 | General requests | `anchor: null` marks a request that belongs to the whole review. `AnchorKind` does not change. v1 is amended in place, without a v2, because its only clients are the web UI and the bundled skill: [specs README](specs/README.md#8-versioning-and-compatibility) section 8, item 10. No rollback is possible once a general request exists: an older build cannot decode its `request.opened` event, and the migration's `down()` fails on the null anchor. |
 
 ## 12. Risks
 

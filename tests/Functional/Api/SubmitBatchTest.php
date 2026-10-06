@@ -83,6 +83,17 @@ final class SubmitBatchTest extends WebTestCase
         self::assertSame($cursor + 3, self::updateData($updates[0])['seq']);
     }
 
+    #[TestDox('A general draft opens a general request')]
+    public function testGeneralDraftOpensGeneralRequest(): void
+    {
+        self::createDraft($this->client, $this->reviewId, null, 'Wrap long lines.');
+
+        $submission = self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts/submit"), 201, 'batch-submission.schema.json');
+
+        self::assertCount(1, $submission['openedRequests']);
+        self::assertNull($submission['openedRequests'][0]['anchor']);
+    }
+
     #[TestDox('A draft created during a submission stays')]
     public function testDraftCreatedDuringSubmissionStays(): void
     {

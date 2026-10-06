@@ -6,6 +6,7 @@ namespace App\MessageHandler;
 
 use App\Anchoring\Locator;
 use App\Application\FetchRepository;
+use App\Domain\Anchor\Anchor;
 use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\EventId;
@@ -60,12 +61,14 @@ final class RecomputeLocationsHandler
 
         foreach ($this->requests->findFreshOfReview($review->getId()) as $request) {
             $openedEventId = $openedEventIds[$request->getId()->toString()] ?? null;
+            $anchor = $request->getAnchor();
 
-            if (null === $openedEventId) {
+            // A general request is never located, so its flag stays null.
+            if (null === $openedEventId || null === $anchor) {
                 continue;
             }
 
-            $outdated = null === $head ? null : $this->outdated($repository, $openedEventId, $request, $head);
+            $outdated = null === $head ? null : $this->outdated($repository, $openedEventId, $request, $anchor, $head);
 
             if ($outdated !== $request->getOutdated()) {
                 $request->recordOutdated($outdated);
@@ -101,10 +104,10 @@ final class RecomputeLocationsHandler
     /**
      * A failure keeps the flag, so one request that git cannot locate does not stop the others.
      */
-    private function outdated(Repository $repository, EventId $openedEventId, ChangeRequest $request, CommitSha $head): ?bool
+    private function outdated(Repository $repository, EventId $openedEventId, ChangeRequest $request, Anchor $anchor, CommitSha $head): ?bool
     {
         try {
-            return in_array($this->locator->locate($repository, $openedEventId, $request->getAnchor(), $head)->status, self::OUTDATED_STATUSES, true);
+            return in_array($this->locator->locate($repository, $openedEventId, $anchor, $head)->status, self::OUTDATED_STATUSES, true);
         } catch (\Throwable $failure) {
             $this->logger->error('The location of the request {requestId} failed.', ['requestId' => $request->getId()->toString(), 'exception' => $failure]);
 

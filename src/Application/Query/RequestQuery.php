@@ -43,9 +43,10 @@ use Symfony\Component\Uid\Ulid;
  */
 final class RequestQuery
 {
-    private const string ANCHOR_PATH = "JSONB_PATH_TEXT(request.anchor, 'path')";
+    /** One expression for the filter, the order, and the cursor. A general request gets `''`, which is never a valid path. */
+    private const string ANCHOR_PATH = "COALESCE(JSONB_PATH_TEXT(request.anchor, 'path'), '')";
 
-    /** File anchors have no range, so they sort first. */
+    /** File anchors and general requests have no range, so they sort first. */
     private const string ANCHOR_START_LINE = "COALESCE(JSONB_PATH_INTEGER(request.anchor, 'range', 'startLine'), 0)";
 
     private const string LIKE_ESCAPE = '!';
@@ -94,10 +95,12 @@ final class RequestQuery
     public function get(RequestId $id, Actor $caller, ?CommitShaPrefix $at = null, ?int $contextLines = null): RequestView
     {
         $request = $this->fresh($id);
-        $target = $this->target($request, $at);
+        $anchor = $request->getAnchor();
+        // A general request is never located, so `at` is not resolved.
+        $target = null === $anchor ? null : $this->target($request, $at);
 
         // The fetch for `at` can record commit.found.
-        if (null !== $at) {
+        if (null !== $target && null !== $at) {
             $request = $this->fresh($id);
         }
 
@@ -110,8 +113,8 @@ final class RequestQuery
         $location = null;
         $excerpt = null;
 
-        if (null !== $target && $opened?->event instanceof RequestOpenedEvent) {
-            $located = $this->locator->locate($repository, $opened->id, $request->getAnchor(), $target[1]);
+        if (null !== $anchor && null !== $target && $opened?->event instanceof RequestOpenedEvent) {
+            $located = $this->locator->locate($repository, $opened->id, $anchor, $target[1]);
             $location = LocationView::of($target[0], $located);
             $excerpt = null === $contextLines ? null : $this->locator->excerpt($repository, $located, $contextLines);
         }
@@ -347,7 +350,7 @@ final class RequestQuery
             ->getOneOrNullResult();
         $anchor = $last instanceof ChangeRequest ? $last->getAnchor() : throw Cursor::malformed();
 
-        return [$anchor->path->toString(), $anchor->range->startLine ?? 0, $key[0]];
+        return [$anchor?->path->toString() ?? '', $anchor?->range->startLine ?? 0, $key[0]];
     }
 
     /**

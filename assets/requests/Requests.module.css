@@ -2,6 +2,10 @@
     color: var(--fgColor-muted);
 }
 
+.newRequest {
+    flex: 1 1 100%;
+}
+
 .location {
     font-family: var(--fontStack-monospace);
     font-size: var(--text-body-size-small);

@@ -127,7 +127,7 @@
         },
         "touchesAnchor": {
           "type": "boolean",
-          "description": "path equals location.path. When location is null or orphaned: path or oldPath equals the anchor path."
+          "description": "path equals location.path. When location is null or orphaned: path or oldPath equals the anchor path. Always false for a general request."
         }
       }
     }

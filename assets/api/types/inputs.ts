@@ -18,7 +18,8 @@ export type CloseReviewInput = {
 };
 
 export type OpenRequestInput = {
-    anchor: AnchorInput;
+    /** Absent or null opens a general request. */
+    anchor?: AnchorInput | null;
     body: Markdown;
 };
 
@@ -48,7 +49,7 @@ export type LinkCommitsInput = {
 };
 
 export type CreateDraftInput =
-    | { kind: 'new_request'; anchor: AnchorInput; requestId?: null; body: Markdown }
+    | { kind: 'new_request'; anchor?: AnchorInput | null; requestId?: null; body: Markdown }
     | { kind: 'reply'; anchor?: null; requestId: Ulid; body: Markdown };
 
 export type UpdateDraftInput = {

@@ -22,7 +22,7 @@ final readonly class RequestState
     public function __construct(
         public RequestId $id,
         public ReviewId $reviewId,
-        public Anchor $anchor,
+        public ?Anchor $anchor,
         public string $body,
         public Actor $author,
         public \DateTimeImmutable $createdAt,

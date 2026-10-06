@@ -7,8 +7,8 @@ import type { Me } from '../../api/types/me';
 import type { Request as ReviewRequest } from '../../api/types/request';
 import { ThreadBox } from '../../comments/ThreadBox';
 import { threadView } from '../../comments/threadView';
+import { AnchorLink } from '../../requests/AnchorLink';
 import { AnchorSnapshot } from '../../requests/AnchorSnapshot';
-import { anchorHref, anchorLocation } from '../../requests/anchorLocation';
 import { ClaimedBy } from '../../requests/ClaimedBy';
 import { CommitList } from '../../requests/CommitList';
 import { LocationInfo } from '../../requests/LocationInfo';
@@ -47,14 +47,12 @@ export function RequestDetail() {
                     <StatusLabel status={request.status} />
                     <OutdatedLabel outdated={request.outdated} />
                     <TurnLabel awaiting={request.awaiting} />
-                    <Link as={RouterLink} to={anchorHref(request.reviewId, request.anchor)} className={shared.location}>
-                        {anchorLocation(request.anchor)}
-                    </Link>
+                    <AnchorLink reviewId={request.reviewId} anchor={request.anchor} />
                     <span className={shared.muted}>
                         Opened by {request.author.name} <RelativeTime datetime={request.createdAt} />
                     </span>
                 </div>
-                <LocationInfo location={request.location} />
+                {null !== request.anchor && <LocationInfo location={request.location} />}
                 {'in_progress' === request.status && (
                     <p className={styles.claim}>
                         Claimed by <ClaimedBy claimedBy={request.claimedBy} claimedAt={request.claimedAt} />
@@ -89,7 +87,7 @@ function Conversation({ request, caller }: { request: ReviewRequest; caller: Act
 
     return (
         <>
-            <AnchorSnapshot anchor={request.anchor} />
+            {null !== request.anchor && <AnchorSnapshot anchor={request.anchor} />}
             <section className={shared.section} aria-labelledby="conversation">
                 <h2 id="conversation" className={shared.sectionTitle}>
                     Conversation

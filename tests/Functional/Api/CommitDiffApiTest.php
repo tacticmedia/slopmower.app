@@ -62,6 +62,8 @@ final class CommitDiffApiTest extends WebTestCase
 
     private string $secret;
 
+    private string $reviewId;
+
     private string $requestId;
 
     protected function setUp(): void
@@ -76,8 +78,8 @@ final class CommitDiffApiTest extends WebTestCase
         $this->client = static::createClient();
         $this->user = self::signIn($this->client);
         $this->repositoryId = self::connectAndClone($this->client);
-        $reviewId = (string) self::startReviewThroughApi($this->client, $this->repositoryId)['id'];
-        $this->requestId = (string) self::openRequest($this->client, $reviewId, ['kind' => 'range', 'path' => self::INVOICE_TOTALS, 'range' => ['startLine' => 10, 'endLine' => 12]])['id'];
+        $this->reviewId = (string) self::startReviewThroughApi($this->client, $this->repositoryId)['id'];
+        $this->requestId = (string) self::openRequest($this->client, $this->reviewId, ['kind' => 'range', 'path' => self::INVOICE_TOTALS, 'range' => ['startLine' => 10, 'endLine' => 12]])['id'];
         [, $this->secret] = self::storeToken($this->user);
         self::agentRequest($this->client, $this->secret, 'POST', "/api/v1/requests/{$this->requestId}/claim");
     }
@@ -129,6 +131,21 @@ final class CommitDiffApiTest extends WebTestCase
         self::assertSame([[self::AUDIT, null, true], [self::INVOICE_TOTALS, null, false]], self::touches($movedDiff));
         self::assertSame(['orphaned', 'region_deleted'], [$renamedDiff['location']['status'], $renamedDiff['location']['reason']]);
         self::assertSame([[self::RENAMED, self::INVOICE_TOTALS, true], ['CHANGELOG.md', null, false]], self::touches($renamedDiff));
+    }
+
+    #[TestDox('A general request has no location, and no file touches its anchor')]
+    public function testGeneralRequestHasNoLocationAndNoFileTouchesItsAnchor(): void
+    {
+        $generalId = (string) self::openRequest($this->client, $this->reviewId, null)['id'];
+        self::agentRequest($this->client, $this->secret, 'POST', "/api/v1/requests/{$generalId}/claim");
+        $fix = $this->fixCommit();
+        self::agentRequest($this->client, $this->secret, 'POST', '/api/v1/commit-links', ['commitSha' => $fix, 'requestIds' => [$generalId]], schema: 'link-commits-result.schema.json');
+
+        $diff = self::assertApiResponse(self::apiRequest($this->client, 'GET', "/api/v1/requests/{$generalId}/commits/{$fix}"), 200, 'commit-diff.schema.json');
+
+        self::assertNull($diff['location']);
+        self::assertCount(5, $diff['files']);
+        self::assertSame([false], array_values(array_unique(array_column($diff['files'], 'touchesAnchor'))));
     }
 
     #[TestDox('More than 300 files set truncated and keep the file that touches the anchor')]

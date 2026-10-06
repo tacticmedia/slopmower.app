@@ -53,9 +53,15 @@ final class RequestController extends AbstractController
         RequestCommands $commands,
         #[MapRequestPayload(acceptFormat: 'json')] OpenRequestInput $input,
     ): JsonResponse {
+        \assert(null !== $input->body);
         $anchorInput = $input->anchor;
-        \assert(null !== $anchorInput && null !== $anchorInput->kind && null !== $anchorInput->path && null !== $input->body);
-        $anchor = $anchors->capture($review, $anchorInput->kind, $anchorInput->path, $anchorInput->range?->startLine, $anchorInput->range?->endLine, $anchorInput->symbol?->fqn);
+        $anchor = null;
+
+        if (null !== $anchorInput) {
+            \assert(null !== $anchorInput->kind && null !== $anchorInput->path);
+            $anchor = $anchors->capture($review, $anchorInput->kind, $anchorInput->path, $anchorInput->range?->startLine, $anchorInput->range?->endLine, $anchorInput->symbol?->fqn);
+        }
+
         $actor = $this->currentActor->get();
         [$opened] = $commands->open($review->getId(), new Open($anchor, $input->body), $actor);
         $requestId = $opened->requestId ?? throw new \LogicException('request.opened has a requestId.');

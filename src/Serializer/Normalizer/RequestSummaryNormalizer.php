@@ -41,7 +41,7 @@ final class RequestSummaryNormalizer implements NormalizerInterface, NormalizerA
             'awaiting' => $data->request->getAwaiting(),
             'resolution' => $state->resolution,
             'closed' => $state->closed(),
-            'anchor' => array_intersect_key(AnchorCodec::encode($state->anchor), self::ANCHOR_SUMMARY_FIELDS),
+            'anchor' => null === $state->anchor ? null : array_intersect_key(AnchorCodec::encode($state->anchor), self::ANCHOR_SUMMARY_FIELDS),
             'summary' => self::summary($state->body),
             'author' => $state->author,
             'claimedBy' => $state->claimedBy,

@@ -13,6 +13,6 @@ enum RequestSort: string
     case Created = 'created';
     /** `updatedAt` descending, then `id`. */
     case Updated = 'updated';
-    /** `anchor.path`, then `anchor.range.startLine` with file anchors first, then `id`. */
+    /** General requests first, then `anchor.path`, then `anchor.range.startLine` with file anchors first, then `id`. */
     case Path = 'path';
 }

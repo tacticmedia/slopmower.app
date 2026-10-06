@@ -166,7 +166,7 @@ List the change requests of one review, oldest first, with optional filters. Ret
  * @param string         $review   Review ID from list_reviews
  * @param ?RequestStatus $status   Only requests with this status
  * @param ?Awaiting      $awaiting Only requests where it is this party's turn; "agent" means you
- * @param ?string        $path     Only requests whose file path starts with this prefix
+ * @param ?string        $path     Only requests whose file path starts with this prefix; general requests never match
  * @param ?bool          $outdated Only requests whose code changed (true) or did not change (false) on the default branch
  * @param ?string        $cursor   nextCursor of the previous page
  * @param int            $limit    Page size
@@ -180,7 +180,7 @@ public function listRequests(#[Schema(pattern: self::ULID)] string $review, ?Req
  "review":{"type":"string","description":"Review ID from list_reviews","pattern":"^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"},
  "status":{"type":["string","null"],"description":"Only requests with this status","default":null,"enum":["open","in_progress","ready_for_review","verified","reopened","wont_do",null]},
  "awaiting":{"type":["string","null"],"description":"Only requests where it is this party's turn; \"agent\" means you","default":null,"enum":["agent","user","none",null]},
- "path":{"type":["null","string"],"description":"Only requests whose file path starts with this prefix","default":null,"minLength":1,"maxLength":4096},
+ "path":{"type":["null","string"],"description":"Only requests whose file path starts with this prefix; general requests never match","default":null,"minLength":1,"maxLength":4096},
  "outdated":{"type":["null","boolean"],"description":"Only requests whose code changed (true) or did not change (false) on the default branch","default":null},
  "cursor":{"type":["null","string"],"description":"nextCursor of the previous page","default":null,"minLength":1},
  "limit":{"type":"integer","description":"Page size","default":50,"minimum":1,"maximum":200}},
@@ -230,7 +230,7 @@ public function getUpdates(#[Schema(pattern: self::ULID)] string $review, #[Sche
 - **Description:**
 
 ```text
-Return one request in full: body, thread, anchor with a code snapshot at the review commit, linked commits, location, and the actions you may take now (allowedActions). `at` locates the anchor at another commit that the server's clone has (pushed, or committed in a local repository); by default the location is at the default-branch head. Your working tree can differ: find the code with anchor.snapshot, its before and after lines, and anchor.symbol.fqn.
+Return one request in full: body, thread, anchor with a code snapshot at the review commit, linked commits, location, and the actions you may take now (allowedActions). `at` locates the anchor at another commit that the server's clone has (pushed, or committed in a local repository); by default the location is at the default-branch head. Your working tree can differ: find the code with anchor.snapshot, its before and after lines, and anchor.symbol.fqn. A general request has anchor, location, and excerpt null. It belongs to the whole review, and its body and thread say what to change.
 ```
 
 ```php

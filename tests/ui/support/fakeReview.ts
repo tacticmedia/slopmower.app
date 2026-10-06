@@ -63,7 +63,7 @@ export class FakeReview {
     deleted = false;
     readonly #files = new Map<string, StoredFile>();
     readonly #symbols: Record<string, CodeSymbol[]>;
-    readonly #draftAnchors = new Map<string, AnchorInput>();
+    readonly #draftAnchors = new Map<string, AnchorInput | null>();
     readonly #tracking = new Map<string, Tracking>();
     #seq: number;
 
@@ -88,6 +88,11 @@ export class FakeReview {
 
     seedLines(path: string, startLine: number, endLine: number, body: string): Request {
         return this.#openRequest({ kind: startLine === endLine ? 'line' : 'range', path, range: { startLine, endLine } }, body);
+    }
+
+    /** A D2 draft, as if the user had written it earlier. */
+    seedDraft(input: CreateDraftInput): Draft {
+        return this.#createDraft(input);
     }
 
     close(note: string | null = null): void {
@@ -115,6 +120,9 @@ export class FakeReview {
     /** A location recompute after a default-branch commit changed the anchored lines. */
     markOutdated(id: string, targetSha: string): void {
         const current = this.find(id);
+        if (null === current.anchor) {
+            throw new Error(`The request ${id} is general and has no location.`);
+        }
         const { path, range } = current.anchor;
         this.requests[this.requests.indexOf(current)] = { ...current, outdated: true, location: { target: 'default_branch', targetSha, status: 'changed', path, range, confidence: 0.8, reason: null } };
     }
@@ -139,9 +147,9 @@ export class FakeReview {
         return { ...request, reviewState: this.review.state, allowedActions };
     }
 
-    #openRequest(input: AnchorInput, body: string, batchId: string | null = null): Request {
+    #openRequest(input: AnchorInput | null, body: string, batchId: string | null = null): Request {
         const seq = ++this.#seq;
-        const opened = openedRequest(this.review, this.#anchor(input), body, seq);
+        const opened = openedRequest(this.review, null === input ? null : this.#anchor(input), body, seq);
         const [entry] = opened.thread;
         const request = undefined === entry ? opened : { ...opened, thread: [{ ...entry, batchId }] };
         this.requests.push(request);
@@ -365,7 +373,7 @@ export class FakeReview {
         api.on('POST', `${base}/requests`, ours(({ body }) => {
             const { anchor, body: comment } = body as OpenRequestInput;
 
-            return this.#closedError() ?? json('request.schema.json', this.#present(this.#openRequest(anchor, comment)), 201);
+            return this.#closedError() ?? json('request.schema.json', this.#present(this.#openRequest(anchor ?? null, comment)), 201);
         }));
         api.on('POST', `${base}/drafts`, ours(({ body }) => this.#closedError() ?? json('draft.schema.json', this.#createDraft(body as CreateDraftInput), 201)));
         api.on('POST', `${base}/drafts/submit`, ours(({ body }) => this.#closedError() ?? this.#submitDrafts(body as SubmitDraftsInput)));
@@ -437,7 +445,7 @@ export class FakeReview {
         const [statuses, awaiting, path, outdated] = [list('status'), list('awaiting'), query.get('path'), query.get('outdated')];
         const items = this.requests
             .filter((request) => (null === statuses || statuses.includes(request.status)) && (null === awaiting || awaiting.includes(request.awaiting)))
-            .filter((request) => (null === path || request.anchor.path.startsWith(path)) && (null === outdated || request.outdated === ('true' === outdated)))
+            .filter((request) => (null === path || true === request.anchor?.path.startsWith(path)) && (null === outdated || request.outdated === ('true' === outdated)))
             .map(requestSummary);
 
         return json('lists.schema.json#/$defs/RequestPage', { reviewId: this.id, reviewState: this.review.state, total: items.length, items, nextCursor: null });
@@ -454,12 +462,16 @@ export class FakeReview {
     }
 
     #createDraft(input: CreateDraftInput): Draft {
-        if ('new_request' !== input.kind) {
-            throw new Error('The fake stores new-request drafts only.');
-        }
         const createdAt = now();
-        const draft: Draft = { id: newId(), reviewId: this.id, kind: 'new_request', anchor: this.#anchor(input.anchor), requestId: null, body: input.body, createdAt, updatedAt: createdAt };
-        this.#draftAnchors.set(draft.id, input.anchor);
+        const base = { id: newId(), reviewId: this.id, body: input.body, createdAt, updatedAt: createdAt };
+        let draft: Draft;
+        if ('reply' === input.kind) {
+            draft = { ...base, kind: 'reply', anchor: null, requestId: this.find(input.requestId).id };
+        } else {
+            const anchor = input.anchor ?? null;
+            draft = { ...base, kind: 'new_request', anchor: null === anchor ? null : this.#anchor(anchor), requestId: null };
+            this.#draftAnchors.set(draft.id, anchor);
+        }
         this.drafts.push(draft);
 
         return draft;
@@ -469,8 +481,11 @@ export class FakeReview {
         if (0 === this.drafts.length) {
             return apiError(422, 'invalid_input', 'There are no drafts to submit.', { violations: [{ field: '', message: 'There are no drafts to submit.' }] });
         }
+        if (this.drafts.some(({ kind }) => 'reply' === kind)) {
+            throw new Error('The fake submits new-request drafts only.');
+        }
         const batchId = newId();
-        const opened = this.drafts.map((draft) => this.#openRequest(this.#draftAnchors.get(draft.id) ?? { kind: 'file', path: draft.anchor?.path ?? '' }, draft.body, batchId));
+        const opened = this.drafts.map((draft) => this.#openRequest(this.#draftAnchors.get(draft.id) ?? null, draft.body, batchId));
         this.drafts = [];
 
         return json('batch-submission.schema.json', { batchId, reviewId: this.id, summary: input.summary ?? null, submittedAt: now(), seq: ++this.#seq, openedRequests: opened.map(requestSummary), replies: [] }, 201);

@@ -123,7 +123,7 @@ final class RequestDecider
             throw new \LogicException('Only a user opens a request.');
         }
 
-        if ($command instanceof Open && !$command->anchor->commitSha->equals($review->commitSha)) {
+        if ($command instanceof Open && null !== $command->anchor && !$command->anchor->commitSha->equals($review->commitSha)) {
             throw new \LogicException('The anchor is not at the review commit.');
         }
     }

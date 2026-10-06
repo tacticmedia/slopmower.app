@@ -1,6 +1,7 @@
 import { createBrowserRouter, type LoaderFunctionArgs, redirectDocument } from 'react-router';
 import { apiGet, signOut } from './api/client';
 import type { Me } from './api/types/me';
+import { commentAction } from './comments/commentAction';
 import { LoadingPage } from './layout/LoadingPage';
 import { RootLayout } from './layout/RootLayout';
 import { RouteError } from './layout/RouteError';
@@ -61,6 +62,7 @@ export const router = createBrowserRouter([
                             {
                                 path: 'requests',
                                 loader: requestListLoader,
+                                action: commentAction,
                                 lazy: { Component: () => import('./routes/requests/RequestList').then(({ RequestList }) => RequestList) },
                                 errorElement: <RouteError embedded />,
                             },

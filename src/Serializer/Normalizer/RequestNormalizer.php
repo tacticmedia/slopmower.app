@@ -41,7 +41,7 @@ final class RequestNormalizer implements NormalizerInterface, NormalizerAwareInt
         ], $format, $context);
         \assert(\is_array($summary) && \is_array($details));
 
-        return [...$summary, 'anchor' => AnchorCodec::encode($state->anchor), ...$details];
+        return [...$summary, 'anchor' => null === $state->anchor ? null : AnchorCodec::encode($state->anchor), ...$details];
     }
 
     /**

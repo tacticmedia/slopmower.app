@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import apiTokenWithSecret from '../../docs/specs/fixtures/api-token.with-secret.json';
 import batchSubmissionSubmitted from '../../docs/specs/fixtures/batch-submission.submitted.json';
 import commitDiffModified from '../../docs/specs/fixtures/commit-diff.modified.json';
+import draftNewGeneralRequest from '../../docs/specs/fixtures/draft.new-general-request.json';
 import draftNewRequest from '../../docs/specs/fixtures/draft.new-request.json';
 import draftReply from '../../docs/specs/fixtures/draft.reply.json';
 import errorCommitNotFound from '../../docs/specs/fixtures/error.commit-not-found.json';
@@ -20,10 +21,12 @@ import inputsCloseReview from '../../docs/specs/fixtures/inputs.close-review.jso
 import inputsComment from '../../docs/specs/fixtures/inputs.comment.json';
 import inputsConnectGithub from '../../docs/specs/fixtures/inputs.connect-github.json';
 import inputsConnectLocal from '../../docs/specs/fixtures/inputs.connect-local.json';
+import inputsCreateDraftGeneralRequest from '../../docs/specs/fixtures/inputs.create-draft-general-request.json';
 import inputsCreateDraftNewRequest from '../../docs/specs/fixtures/inputs.create-draft-new-request.json';
 import inputsCreateDraftReply from '../../docs/specs/fixtures/inputs.create-draft-reply.json';
 import inputsCreateToken from '../../docs/specs/fixtures/inputs.create-token.json';
 import inputsLinkCommits from '../../docs/specs/fixtures/inputs.link-commits.json';
+import inputsOpenGeneralRequest from '../../docs/specs/fixtures/inputs.open-general-request.json';
 import inputsOpenRequest from '../../docs/specs/fixtures/inputs.open-request.json';
 import inputsReady from '../../docs/specs/fixtures/inputs.ready.json';
 import inputsRelease from '../../docs/specs/fixtures/inputs.release.json';
@@ -59,6 +62,7 @@ import requestCommandResultClaim from '../../docs/specs/fixtures/request-command
 import requestCommandResultQuestion from '../../docs/specs/fixtures/request-command-result.question.json';
 import requestCommandResultReady from '../../docs/specs/fixtures/request-command-result.ready.json';
 import requestCommandResultRelease from '../../docs/specs/fixtures/request-command-result.release.json';
+import requestGeneral from '../../docs/specs/fixtures/request.general.json';
 import requestInProgress from '../../docs/specs/fixtures/request.in-progress.json';
 import requestOpenedRange from '../../docs/specs/fixtures/request.opened-range.json';
 import requestWithExcerpt from '../../docs/specs/fixtures/request.with-excerpt.json';
@@ -126,6 +130,7 @@ const checkedFixtures = {
     'api-token.with-secret.json': apiTokenWithSecret satisfies Widen<ApiTokenWithSecret>,
     'batch-submission.submitted.json': batchSubmissionSubmitted satisfies Widen<BatchSubmission>,
     'commit-diff.modified.json': commitDiffModified satisfies Widen<CommitDiff>,
+    'draft.new-general-request.json': draftNewGeneralRequest satisfies Widen<Draft>,
     'draft.new-request.json': draftNewRequest satisfies Widen<Draft>,
     'draft.reply.json': draftReply satisfies Widen<Draft>,
     'error.commit-not-found.json': errorCommitNotFound satisfies Widen<ErrorBody>,
@@ -144,10 +149,12 @@ const checkedFixtures = {
     'inputs.comment.json': inputsComment satisfies Widen<CommentInput>,
     'inputs.connect-github.json': inputsConnectGithub satisfies Widen<ConnectRepositoryInput>,
     'inputs.connect-local.json': inputsConnectLocal satisfies Widen<ConnectRepositoryInput>,
+    'inputs.create-draft-general-request.json': inputsCreateDraftGeneralRequest satisfies Widen<CreateDraftInput>,
     'inputs.create-draft-new-request.json': inputsCreateDraftNewRequest satisfies Widen<CreateDraftInput>,
     'inputs.create-draft-reply.json': inputsCreateDraftReply satisfies Widen<CreateDraftInput>,
     'inputs.create-token.json': inputsCreateToken satisfies Widen<CreateTokenInput>,
     'inputs.link-commits.json': inputsLinkCommits satisfies Widen<LinkCommitsInput>,
+    'inputs.open-general-request.json': inputsOpenGeneralRequest satisfies Widen<OpenRequestInput>,
     'inputs.open-request.json': inputsOpenRequest satisfies Widen<OpenRequestInput>,
     'inputs.ready.json': inputsReady satisfies Widen<RequiredNoteInput>,
     'inputs.release.json': inputsRelease satisfies Widen<OptionalNoteInput>,
@@ -183,6 +190,7 @@ const checkedFixtures = {
     'request-command-result.question.json': requestCommandResultQuestion satisfies Widen<RequestCommandResult>,
     'request-command-result.ready.json': requestCommandResultReady satisfies Widen<RequestCommandResult>,
     'request-command-result.release.json': requestCommandResultRelease satisfies Widen<RequestCommandResult>,
+    'request.general.json': requestGeneral satisfies Widen<Request>,
     'request.in-progress.json': requestInProgress satisfies Widen<Request>,
     'request.opened-range.json': requestOpenedRange satisfies Widen<Request>,
     'request.with-excerpt.json': requestWithExcerpt satisfies Widen<Request>,

@@ -11,7 +11,7 @@ import { bottomLine, type GestureRange } from '../../code/rangeSelection';
 import { matchingSymbol, symbolKindLabel } from '../../code/symbolMatch';
 import { CommentBox } from '../../comments/CommentBox';
 import { CommentOnLinesForm } from '../../comments/CommentOnLinesForm';
-import { type DraftView, fileDraftViews } from '../../comments/draftView';
+import { type DraftView, fileDraftViews, reviewLabel as reviewButtonLabel } from '../../comments/draftView';
 import { ThreadList } from '../../comments/ThreadList';
 import { type Composer, type SubmitMode, useFileComments } from '../../comments/useFileComments';
 import { FileHeader } from '../../review/FileHeader';
@@ -41,7 +41,7 @@ export function FileRoute() {
     const selection = useLineSelection(content.path, content.lineCount);
     const comments = useFileComments({ path: content.path, threads, drafts: fileDrafts, caller, clearSelection: selection.clear });
     const commentable = 'open' === review.state;
-    const reviewLabel = 0 === drafts.length ? 'Start a review' : 'Add review comment';
+    const reviewLabel = reviewButtonLabel(drafts);
     const symbols = useFileSymbols(review.id, content.path, commentable && null !== text);
     const fileThreads = useMemo(() => comments.threads.filter((thread) => null === thread.range), [comments.threads]);
     const filePendingDrafts = useMemo(() => comments.drafts.filter((draft) => null === draft.range), [comments.drafts]);

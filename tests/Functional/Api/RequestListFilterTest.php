@@ -28,7 +28,7 @@ use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 
 /**
  * r1 open line 10, r2 open range 9-10, r3 open file, all of InvoiceTotals.php. r4 in_progress file README.md, awaiting
- * the user. r5 wont_do range of TaxRounding.php. Updated last: r1, r4, r5, r3, r2.
+ * the user. r5 wont_do range of TaxRounding.php. r6 open general request. Updated last: r1, r4, r5, r6, r3, r2.
  */
 final class RequestListFilterTest extends WebTestCase
 {
@@ -64,6 +64,7 @@ final class RequestListFilterTest extends WebTestCase
             'r3' => ['kind' => 'file', 'path' => self::INVOICE_TOTALS],
             'r4' => ['kind' => 'file', 'path' => 'README.md'],
             'r5' => ['kind' => 'range', 'path' => 'src/Billing/TaxRounding.php', 'range' => ['startLine' => 1, 'endLine' => 2]],
+            'r6' => null,
         ];
 
         foreach ($anchors as $name => $anchor) {
@@ -99,10 +100,10 @@ final class RequestListFilterTest extends WebTestCase
         ]);
 
         self::assertSame([
-            ['r1', 'r2', 'r3'],
+            ['r1', 'r2', 'r3', 'r6'],
             ['r4', 'r5'],
             ['r4'],
-            ['r1', 'r2', 'r3', 'r5'],
+            ['r1', 'r2', 'r3', 'r5', 'r6'],
             ['r1', 'r2', 'r3', 'r5'],
             ['r5'],
             [],
@@ -115,25 +116,25 @@ final class RequestListFilterTest extends WebTestCase
     #[TestDox('Sorts by created, updated, and path')]
     public function testSortsByCreatedUpdatedAndPath(): void
     {
-        self::assertSame(['r1', 'r2', 'r3', 'r4', 'r5'], $this->listedNames('sort=created'));
-        self::assertSame(['r1', 'r4', 'r5', 'r3', 'r2'], $this->listedNames('sort=updated'));
-        self::assertSame(['r4', 'r3', 'r2', 'r1', 'r5'], $this->listedNames('sort=path'));
+        self::assertSame(['r1', 'r2', 'r3', 'r4', 'r5', 'r6'], $this->listedNames('sort=created'));
+        self::assertSame(['r1', 'r4', 'r5', 'r6', 'r3', 'r2'], $this->listedNames('sort=updated'));
+        self::assertSame(['r6', 'r4', 'r3', 'r2', 'r1', 'r5'], $this->listedNames('sort=path'));
     }
 
     #[TestDox('total counts all matches regardless of the cursor')]
     public function testTotalCountsAllMatchesRegardlessOfCursor(): void
     {
         $pages = [];
-        $query = 'sort=path&limit=2';
+        $query = 'sort=path&limit=1';
 
         do {
             $page = $this->page($query);
             $pages[] = [$page['total'], $this->names(array_column($page['items'], 'id'))];
-            $query = 'sort=path&limit=2&cursor='.$page['nextCursor'];
+            $query = 'sort=path&limit=1&cursor='.$page['nextCursor'];
         } while (null !== $page['nextCursor']);
 
-        self::assertSame([[5, ['r4', 'r3']], [5, ['r2', 'r1']], [5, ['r5']]], $pages);
-        self::assertSame(3, $this->page('status=open&limit=1')['total']);
+        self::assertSame([[6, ['r6']], [6, ['r4']], [6, ['r3']], [6, ['r2']], [6, ['r1']], [6, ['r5']]], $pages);
+        self::assertSame(4, $this->page('status=open&limit=1')['total']);
 
         $cursor = $this->page('sort=path&limit=2')['nextCursor'];
         self::assertApiError(self::apiRequest($this->client, 'GET', "/api/v1/reviews/{$this->reviewId}/requests?sort=updated&limit=2&cursor={$cursor}"), 422, 'invalid_input');

@@ -24,7 +24,8 @@ export type Request = {
     awaiting: Awaiting;
     resolution: Resolution | null;
     closed: boolean;
-    anchor: Anchor;
+    /** Null for a general request. */
+    anchor: Anchor | null;
     summary: string;
     author: Actor;
     commentCount: number;

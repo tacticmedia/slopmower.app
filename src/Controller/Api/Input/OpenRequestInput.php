@@ -11,8 +11,10 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 final readonly class OpenRequestInput
 {
+    /**
+     * @param AnchorInput|null $anchor Absent or null for a general request
+     */
     public function __construct(
-        #[Assert\NotNull]
         #[Assert\Valid]
         public ?AnchorInput $anchor = null,
         #[Assert\NotBlank(normalizer: 'trim')]

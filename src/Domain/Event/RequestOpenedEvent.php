@@ -12,7 +12,7 @@ use App\Domain\Identity\BatchId;
 final readonly class RequestOpenedEvent implements DomainEvent
 {
     public function __construct(
-        public Anchor $anchor,
+        public ?Anchor $anchor,
         public string $body,
         public ?BatchId $batchId,
     ) {
@@ -31,16 +31,17 @@ final readonly class RequestOpenedEvent implements DomainEvent
         return [
             'batchId' => $this->batchId?->toString(),
             'body' => $this->body,
-            'anchor' => AnchorCodec::encode($this->anchor),
+            'anchor' => null === $this->anchor ? null : AnchorCodec::encode($this->anchor),
         ];
     }
 
     public static function fromPayload(array $payload): self
     {
         $reader = PayloadReader::of($payload);
+        $anchor = $reader->nullableObject('anchor');
 
         return new self(
-            AnchorCodec::decode($reader->object('anchor')),
+            null === $anchor ? null : AnchorCodec::decode($anchor),
             $reader->string('body'),
             $reader->nullableId('batchId', BatchId::class),
         );

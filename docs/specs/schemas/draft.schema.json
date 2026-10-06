@@ -22,7 +22,8 @@
         {
           "type": "null"
         }
-      ]
+      ],
+      "description": "Null for a reply and for a general new_request."
     },
     "requestId": {
       "anyOf": [
@@ -55,9 +56,6 @@
       },
       "then": {
         "properties": {
-          "anchor": {
-            "$ref": "anchor.schema.json"
-          },
           "requestId": {
             "type": "null"
           }

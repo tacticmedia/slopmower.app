@@ -26,8 +26,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 
 /**
- * docs/specs/mcp.md section 6. The agent claimed a range request and asked a question, which the user answered; a file
- * request is open. REST and MCP use the same token.
+ * docs/specs/mcp.md section 6. The agent claimed a range request and asked a question, which the user answered; a
+ * general request is open. REST and MCP use the same token.
  */
 final class McpRestParityTest extends WebTestCase
 {
@@ -53,6 +53,8 @@ final class McpRestParityTest extends WebTestCase
 
     private string $claimedRequestId;
 
+    private string $generalRequestId;
+
     protected function setUp(): void
     {
         $this->useTemporaryLocalSources();
@@ -61,7 +63,7 @@ final class McpRestParityTest extends WebTestCase
         $user = self::signIn($this->client);
         $this->reviewId = self::startCodeReview($this->client);
         $this->claimedRequestId = (string) self::openRequest($this->client, $this->reviewId, ['kind' => 'range', 'path' => self::INVOICE_TOTALS, 'range' => ['startLine' => 3, 'endLine' => 5]])['id'];
-        self::openRequest($this->client, $this->reviewId);
+        $this->generalRequestId = (string) self::openRequest($this->client, $this->reviewId, null)['id'];
         $claimed = RequestId::fromString($this->claimedRequestId);
         self::asAgent($user, static function (RequestCommands $commands, Actor $agent) use ($claimed): void {
             $commands->claim(new Claim($claimed), $agent);
@@ -116,14 +118,18 @@ final class McpRestParityTest extends WebTestCase
         }
     }
 
-    #[TestDox('get_request equals the REST body of Q3')]
+    #[TestDox('get_request equals the REST body of Q3, also for a general request')]
     public function testGetRequestEqualsQ3(): void
     {
-        $rest = self::assertApiResponse(self::bearerRequest($this->client, $this->secret, 'GET', "/api/v1/requests/{$this->claimedRequestId}"), 200, 'request.schema.json');
+        foreach ([$this->claimedRequestId, $this->generalRequestId] as $requestId) {
+            $rest = self::assertApiResponse(self::bearerRequest($this->client, $this->secret, 'GET', "/api/v1/requests/{$requestId}"), 200, 'request.schema.json');
 
-        $mcp = self::assertToolResult($this->mcp, $this->mcp->callTool('get_request', ['id' => $this->claimedRequestId]), 'get_request');
+            $mcp = self::assertToolResult($this->mcp, $this->mcp->callTool('get_request', ['id' => $requestId]), 'get_request');
 
-        self::assertSame($rest, $mcp);
+            self::assertSame($rest, $mcp, $requestId);
+        }
+
+        self::assertNull($mcp['anchor']);
     }
 
     #[TestDox('list_requests equals the REST body of Q1')]

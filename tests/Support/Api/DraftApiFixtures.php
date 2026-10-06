@@ -15,11 +15,11 @@ use Symfony\Component\Clock\Clock;
 trait DraftApiFixtures
 {
     /**
-     * @param array<string, mixed> $anchor
+     * @param array<string, mixed>|null $anchor Null for a general request
      *
      * @return array<string, mixed> The Draft
      */
-    private static function createDraft(KernelBrowser $client, string $reviewId, array $anchor = ['kind' => 'file', 'path' => 'README.md'], string $body = 'Use `Money` instead of `float` for totals.'): array
+    private static function createDraft(KernelBrowser $client, string $reviewId, ?array $anchor = ['kind' => 'file', 'path' => 'README.md'], string $body = 'Use `Money` instead of `float` for totals.'): array
     {
         return self::assertApiResponse(self::apiRequest($client, 'POST', "/api/v1/reviews/{$reviewId}/drafts", ['kind' => 'new_request', 'anchor' => $anchor, 'body' => $body]), 201, 'draft.schema.json');
     }

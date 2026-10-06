@@ -1,14 +1,13 @@
 import { KebabHorizontalIcon } from '@primer/octicons-react';
-import { ActionList, ActionMenu, IconButton, Label } from '@primer/react';
+import { ActionList, ActionMenu, IconButton, Label, Link } from '@primer/react';
 import { InlineMessage } from '@primer/react/experimental';
 import { lazy, Suspense, useOptimistic, useState, useTransition } from 'react';
-import { useFetcher } from 'react-router';
+import { Link as RouterLink, useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
 import { CommentBox } from './CommentBox';
 import type { CommentIntent } from './commentIntent';
 import type { DraftView } from './draftView';
 import styles from './ThreadBox.module.css';
-import { linesText } from './threadView';
 
 // A separate chunk, so the Markdown libraries stay out of the bundles that import this box.
 const MarkdownBody = lazy(() => import('./MarkdownBody').then(({ MarkdownBody }) => ({ default: MarkdownBody })));
@@ -70,7 +69,13 @@ export function DraftBox({ draft, editable }: Props) {
                 <Label variant="attention" data-testid="pending-label">
                     Pending
                 </Label>
-                <span className={styles.lines}>{linesText(draft.range)}</span>
+                {null === draft.href ? (
+                    <span className={styles.lines}>{draft.label}</span>
+                ) : (
+                    <Link as={RouterLink} to={draft.href} className={styles.lines}>
+                        {draft.label}
+                    </Link>
+                )}
                 {null !== draftId && !editing && (
                     <ActionMenu>
                         <ActionMenu.Anchor>

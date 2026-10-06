@@ -23,6 +23,7 @@ final class ArchitectureExamplePayloadTest extends KernelTestCase
         $event = EventType::RequestOpened->decode($payload);
 
         self::assertInstanceOf(RequestOpenedEvent::class, $event);
+        self::assertNotNull($event->anchor);
         self::assertSame(AnchorKind::Symbol, $event->anchor->kind);
         self::assertSame('App\Billing\InvoiceTotals::total()', $event->anchor->symbol?->fqn);
         self::assertSame(12, $event->anchor->snapshot?->lineCount);

@@ -35,7 +35,15 @@
       "type": "boolean"
     },
     "anchor": {
-      "$ref": "anchor.schema.json"
+      "anyOf": [
+        {
+          "$ref": "anchor.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Null for a general request, which belongs to the whole review."
     },
     "summary": {
       "type": "string",
@@ -168,6 +176,29 @@
             "type": "null"
           },
           "claimedAt": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["anchor"],
+        "properties": {
+          "anchor": {
+            "type": "null"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "location": {
+            "type": "null"
+          },
+          "excerpt": {
+            "type": "null"
+          },
+          "outdated": {
             "type": "null"
           }
         }

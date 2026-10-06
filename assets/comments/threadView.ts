@@ -31,6 +31,7 @@ export type ThreadView = {
  * Entries without a body, such as a claim, are left out.
  */
 export function threadView(request: ReviewRequest): ThreadView {
+    const range = request.anchor?.range ?? null;
     const comments: CommentView[] = [];
 
     for (const entry of request.thread) {
@@ -44,7 +45,7 @@ export function threadView(request: ReviewRequest): ThreadView {
         requestId: request.id,
         status: request.status,
         outdated: request.outdated,
-        range: null === request.anchor.range ? null : { start: request.anchor.range.startLine, end: request.anchor.range.endLine },
+        range: null === range ? null : { start: range.startLine, end: range.endLine },
         comments,
         replyable: request.allowedActions.includes('reply'),
     };

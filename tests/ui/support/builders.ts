@@ -132,9 +132,9 @@ export function threadEntry(seq: number, type: ThreadEntryType, actor: ThreadEnt
     };
 }
 
-/** `request.opened-range.json` of another anchor and body, opened by the user. */
-export function request(review: Review, anchor: Anchor, body: string, seq: number): Request {
-    const base = fixture<Request>('request.opened-range.json');
+/** `request.opened-range.json` of another anchor and body, or `request.general.json` without an anchor, opened by the user. */
+export function request(review: Review, anchor: Anchor | null, body: string, seq: number): Request {
+    const base = fixture<Request>(null === anchor ? 'request.general.json' : 'request.opened-range.json');
     const createdAt = now();
 
     return {
@@ -151,7 +151,7 @@ export function request(review: Review, anchor: Anchor, body: string, seq: numbe
         lastEventSeq: seq,
         reviewState: review.state,
         reviewCommitSha: review.commitSha,
-        location: { target: 'default_branch', targetSha: review.commitSha, status: 'exact', path: anchor.path, range: anchor.range, confidence: 1, reason: null },
+        location: null === anchor ? null : { target: 'default_branch', targetSha: review.commitSha, status: 'exact', path: anchor.path, range: anchor.range, confidence: 1, reason: null },
         thread: [threadEntry(seq, 'request.opened', USER, body, 'open')],
         allowedActions: userActions('open'),
     };
@@ -192,7 +192,7 @@ export function requestSummary(request: Request): RequestSummary {
         awaiting: request.awaiting,
         resolution: request.resolution,
         closed: request.closed,
-        anchor: { kind: anchor.kind, path: anchor.path, range: anchor.range, symbol: anchor.symbol } as RequestSummary['anchor'],
+        anchor: null === anchor ? null : ({ kind: anchor.kind, path: anchor.path, range: anchor.range, symbol: anchor.symbol } as RequestSummary['anchor']),
         summary: request.summary,
         author: request.author,
         claimedBy: request.claimedBy,

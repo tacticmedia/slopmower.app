@@ -106,7 +106,7 @@ final class McpTools
     #[McpTool(
         name: 'get_request',
         title: 'Get request',
-        description: "Return one request in full: body, thread, anchor with a code snapshot at the review commit, linked commits, location, and the actions you may take now (allowedActions). `at` locates the anchor at another commit that the server's clone has (pushed, or committed in a local repository); by default the location is at the default-branch head. Your working tree can differ: find the code with anchor.snapshot, its before and after lines, and anchor.symbol.fqn.",
+        description: "Return one request in full: body, thread, anchor with a code snapshot at the review commit, linked commits, location, and the actions you may take now (allowedActions). `at` locates the anchor at another commit that the server's clone has (pushed, or committed in a local repository); by default the location is at the default-branch head. Your working tree can differ: find the code with anchor.snapshot, its before and after lines, and anchor.symbol.fqn. A general request has anchor, location, and excerpt null. It belongs to the whole review, and its body and thread say what to change.",
         annotations: new ToolAnnotations(readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false),
         outputSchema: BundledSchemas::REQUEST,
     )]
@@ -204,7 +204,7 @@ final class McpTools
      * @param string         $review   Review ID from list_reviews
      * @param ?RequestStatus $status   Only requests with this status
      * @param ?Awaiting      $awaiting Only requests where it is this party's turn; "agent" means you
-     * @param ?string        $path     Only requests whose file path starts with this prefix
+     * @param ?string        $path     Only requests whose file path starts with this prefix; general requests never match
      * @param ?bool          $outdated Only requests whose code changed (true) or did not change (false) on the default branch
      * @param ?string        $cursor   nextCursor of the previous page
      * @param int            $limit    Page size

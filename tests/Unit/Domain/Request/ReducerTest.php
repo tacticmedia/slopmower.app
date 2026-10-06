@@ -14,6 +14,7 @@ use App\Domain\Request\Command\Claim;
 use App\Domain\Request\Command\LinkCommits;
 use App\Domain\Request\Command\MarkReadyForReview;
 use App\Domain\Request\Command\MarkWontDo;
+use App\Domain\Request\Command\Open;
 use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
@@ -126,6 +127,17 @@ final class ReducerTest extends KernelTestCase
         self::assertSame($verified, $scenario->state(), 'review.closed');
         $closed = ['closedAt' => sprintf('07:%02d', $scenario->lastSeq()), 'closedBy' => 'user 01K6AZZ9Y8X7W6V5T4S3R2Q1P0', 'closeNote' => 'Shipped in 2.4'];
         self::assertSame([...$started, ...$closed], self::reviewFields($scenario->review()), 'review.closed');
+    }
+
+    #[TestDox('A general request opens without an anchor')]
+    public function testGeneralRequestOpensWithoutAnAnchor(): void
+    {
+        $scenario = new RequestScenario();
+
+        $scenario->run(new Open(null, 'Add a full-screen focus mode.'), RequestScenario::user());
+
+        self::assertNull($scenario->state()->anchor);
+        self::assertSame(RequestStatus::Open, $scenario->state()->status);
     }
 
     #[TestDox('commit.found moves a link from pending to available')]

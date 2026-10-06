@@ -16,9 +16,6 @@ final readonly class CreateDraftInput
         #[Assert\NotNull]
         public ?DraftKind $kind = null,
         #[Assert\When(expression: static function (self $input): bool {
-            return DraftKind::NewRequest === $input->kind;
-        }, constraints: [new Assert\NotNull()])]
-        #[Assert\When(expression: static function (self $input): bool {
             return DraftKind::Reply === $input->kind;
         }, constraints: [new Assert\IsNull()])]
         #[Assert\Valid]

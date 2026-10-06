@@ -66,10 +66,11 @@ final class CommitDiffController extends AbstractController
             throw new CommitsNotAvailable([$sha]);
         }
 
+        $anchor = $request->getAnchor();
         $openedEventId = $events->findOpenedEventIds($review->getId())[$request->getId()->toString()] ?? null;
-        $location = null === $openedEventId ? null : $locator->locate($repository, $openedEventId, $request->getAnchor(), $commit->sha);
+        $location = null === $openedEventId || null === $anchor ? null : $locator->locate($repository, $openedEventId, $anchor, $commit->sha);
         $changes = $this->reader->changedFiles($gitDir, $commit->parentSha, $commit->sha);
-        $files = array_slice($this->files($gitDir, $changes, $location?->path?->toString(), $request->getAnchor()->path->toString()), 0, self::MAX_FILES);
+        $files = array_slice($this->files($gitDir, $changes, $location?->path?->toString(), $anchor?->path->toString()), 0, self::MAX_FILES);
 
         return $this->json(new CommitDiffView(
             $request->getId(),
@@ -87,10 +88,11 @@ final class CommitDiffController extends AbstractController
      *
      * @param list<ChangedFile> $changes
      * @param string|null       $locatedPath Null for a null or orphaned location: then the anchor path decides
+     * @param string|null       $anchorPath  Null for a general request, which touches no file
      *
      * @return list<CommitDiffFileView>
      */
-    private function files(string $gitDir, array $changes, ?string $locatedPath, string $anchorPath): array
+    private function files(string $gitDir, array $changes, ?string $locatedPath, ?string $anchorPath): array
     {
         $objectIds = array_merge(...array_map(static fn (ChangedFile $change): array => array_filter([$change->oldObjectId, $change->newObjectId]), $changes));
         $sizesBytes = $this->reader->objectSizes($gitDir, array_values(array_unique($objectIds)));
@@ -105,7 +107,8 @@ final class CommitDiffController extends AbstractController
             }
 
             $largestSideBytes = max($sizesBytes[$change->oldObjectId ?? ''] ?? 0, $sizesBytes[$change->newObjectId ?? ''] ?? 0);
-            $touchesAnchor = null === $locatedPath ? \in_array($anchorPath, [$change->path, $change->oldPath], true) : $change->path === $locatedPath;
+            // Without the null check, a null anchor path would match every change that has no oldPath.
+            $touchesAnchor = null === $locatedPath ? null !== $anchorPath && \in_array($anchorPath, [$change->path, $change->oldPath], true) : $change->path === $locatedPath;
             $files[] = new CommitDiffFileView($change, $path, $oldPath, $largestSideBytes > TreeEntry::MAX_RENDERABLE_BYTES, $touchesAnchor);
         }
 
