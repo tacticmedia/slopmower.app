@@ -18,7 +18,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 |---|---|---|---|---|
 | F01 | [General requests](F01-general-requests.md) | Done 2026-10-07, [report](reports/F01.md) | b589f33 | src 380 PHP / 24850 lines, 380 types; tests 269 PHP / 23064 lines; assets 131 TS / 6668 lines; check 2m12s |
 | F02 | [Focus mode](F02-focus-mode.md) | In progress | | |
-| F03 | [Line wrapping](F03-line-wrapping.md) | In progress | | |
+| F03 | [Line wrapping](F03-line-wrapping.md) | Done 2026-10-07, [report](reports/F03.md) | | src 380 PHP / 24850 lines, 380 types; tests 269 PHP / 23064 lines; assets 132 TS / 6729 lines |
 | F04 | [Code navigation](F04-code-navigation.md) | Not started, open questions | | |
 
 ## Candidates

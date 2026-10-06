@@ -208,7 +208,7 @@ A row counts the PHP files of its namespace and of the sub-namespaces without a 
 
 | Folder | Files | Purpose |
 |---|---|---|
-| `assets/app.tsx`, `router.tsx`, `layout/` | 7 | Entry, the one data router, `RootLayout` with the live hook (D29) |
+| `assets/app.tsx`, `router.tsx`, `layout/` | 8 | Entry, the one data router, `RootLayout` with the live hook (D29), `usePreference` for per-browser UI preferences |
 | `assets/api/` | 29 | `fetch` client with the CSRF header, `ApiError`, TypeScript types written from the schemas |
 | `assets/routes/` | 27 | Screens. Loaders read and actions write. Most actions branch on an `intent` field. |
 | `assets/code/` | 8 | `CodeFile` and `CommitDiff`, the only wrappers around the pinned `@pierre/diffs` (D1), and their shared `workerPool` options |

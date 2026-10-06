@@ -105,6 +105,15 @@ export async function tabUntil(page: Page, focused: () => Promise<boolean>, targ
     throw new Error(`Tab did not reach ${target}.`);
 }
 
+export function wrapToggle(page: Page): Locator {
+    return page.locator('[data-testid="file-header"]').getByRole('button', { name: 'Wrap lines' });
+}
+
+export async function turnOnWrap(page: Page): Promise<void> {
+    await wrapToggle(page).click();
+    await expect(wrapToggle(page)).toHaveAttribute('aria-pressed', 'true');
+}
+
 /** The Symbols menu is disabled until V9 answers. */
 export async function waitForSymbols(page: Page): Promise<void> {
     await expect(page.locator('[data-testid="file-header"]').getByRole('button', { name: 'Symbols' })).toBeEnabled();

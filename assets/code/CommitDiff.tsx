@@ -4,15 +4,21 @@ import { Label, Spinner } from '@primer/react';
 import { memo, useMemo } from 'react';
 import type { CommitDiffFile, CommitDiffFileStatus } from '../api/types/commit-diff';
 import { type DiffSides, useDiffSides } from '../routes/requests/changesData';
+import type { Overflow } from './CodeFile';
 import styles from './CommitDiff.module.css';
 import { diffPlaceholder } from './diffPlaceholder';
 import { HIGHLIGHTER_OPTIONS, POOL_OPTIONS, THEME } from './workerPool';
 
-const DIFF_OPTIONS = {
+const BASE_DIFF_OPTIONS = {
     theme: THEME,
     diffStyle: 'unified',
     disableFileHeader: true,
 } as const satisfies FileDiffOptions<undefined, undefined>;
+
+const DIFF_OPTIONS: Record<Overflow, FileDiffOptions<undefined, undefined>> = {
+    scroll: { ...BASE_DIFF_OPTIONS, overflow: 'scroll' },
+    wrap: { ...BASE_DIFF_OPTIONS, overflow: 'wrap' },
+};
 
 const STATUS_TEXT: Record<CommitDiffFileStatus, string> = {
     added: 'Added',
@@ -26,17 +32,17 @@ const STATUS_TEXT: Record<CommitDiffFileStatus, string> = {
 /**
  * The only wrapper around `FileDiff`. Each file loads its sides through R7 when it renders.
  */
-export const CommitDiff = memo(function CommitDiff({ repositoryId, files }: { repositoryId: string; files: readonly CommitDiffFile[] }) {
+export const CommitDiff = memo(function CommitDiff({ repositoryId, files, overflow }: { repositoryId: string; files: readonly CommitDiffFile[]; overflow: Overflow }) {
     return (
         <WorkerPoolContextProvider poolOptions={POOL_OPTIONS} highlighterOptions={HIGHLIGHTER_OPTIONS}>
             {files.map((file) => (
-                <FileChange key={`${file.oldPath ?? ''}:${file.path}`} repositoryId={repositoryId} file={file} />
+                <FileChange key={`${file.oldPath ?? ''}:${file.path}`} repositoryId={repositoryId} file={file} overflow={overflow} />
             ))}
         </WorkerPoolContextProvider>
     );
 });
 
-function FileChange({ repositoryId, file }: { repositoryId: string; file: CommitDiffFile }) {
+function FileChange({ repositoryId, file, overflow }: { repositoryId: string; file: CommitDiffFile; overflow: Overflow }) {
     const placeholder = diffPlaceholder(file);
 
     return (
@@ -55,12 +61,12 @@ function FileChange({ repositoryId, file }: { repositoryId: string; file: Commit
                     </span>
                 )}
             </header>
-            {null === placeholder ? <LoadedDiff repositoryId={repositoryId} file={file} /> : <p className={styles.placeholder}>{placeholder}</p>}
+            {null === placeholder ? <LoadedDiff repositoryId={repositoryId} file={file} overflow={overflow} /> : <p className={styles.placeholder}>{placeholder}</p>}
         </section>
     );
 }
 
-function LoadedDiff({ repositoryId, file }: { repositoryId: string; file: CommitDiffFile }) {
+function LoadedDiff({ repositoryId, file, overflow }: { repositoryId: string; file: CommitDiffFile; overflow: Overflow }) {
     const sides = useDiffSides(repositoryId, file.oldBlobSha, file.newBlobSha);
 
     if (undefined === sides) {
@@ -79,10 +85,10 @@ function LoadedDiff({ repositoryId, file }: { repositoryId: string; file: Commit
         );
     }
 
-    return <SidesDiff file={file} sides={sides} />;
+    return <SidesDiff file={file} sides={sides} overflow={overflow} />;
 }
 
-const SidesDiff = memo(function SidesDiff({ file, sides }: { file: CommitDiffFile; sides: DiffSides }) {
+const SidesDiff = memo(function SidesDiff({ file, sides, overflow }: { file: CommitDiffFile; sides: DiffSides; overflow: Overflow }) {
     const fileDiff = useMemo(() => {
         const oldName = file.oldPath ?? file.path;
         // With the path, the highlight cache key, as in CodeFile.
@@ -92,5 +98,5 @@ const SidesDiff = memo(function SidesDiff({ file, sides }: { file: CommitDiffFil
         return parseDiffFromFile(oldFile, newFile);
     }, [file, sides]);
 
-    return <FileDiff fileDiff={fileDiff} options={DIFF_OPTIONS} />;
+    return <FileDiff fileDiff={fileDiff} options={DIFF_OPTIONS[overflow]} />;
 });

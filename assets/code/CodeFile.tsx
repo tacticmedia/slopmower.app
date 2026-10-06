@@ -7,6 +7,8 @@ import { type LineRange, lineRange } from './lineHash';
 import type { GestureRange } from './rangeSelection';
 import { HIGHLIGHTER_OPTIONS, POOL_OPTIONS, THEME } from './workerPool';
 
+export type Overflow = 'scroll' | 'wrap';
+
 export type CodeFileProps = {
     path: string;
     /** With `path`, the highlight cache key of the worker pool. */
@@ -22,6 +24,7 @@ export type CodeFileProps = {
     renderAnnotation(lineNumber: number): ReactNode;
     /** The range of a click, a drag, Enter, or Space on the gutter "+". Null hides the "+". */
     onComment: ((range: GestureRange) => void) | null;
+    overflow: Overflow;
     className?: string;
 };
 
@@ -55,6 +58,7 @@ const FileView = memo(function FileView({
     annotations,
     renderAnnotation,
     onComment,
+    overflow,
     className,
 }: CodeFileProps) {
     const view = useRef<CodeViewHandle<undefined, undefined>>(null);
@@ -91,11 +95,12 @@ const FileView = memo(function FileView({
     const options = useMemo<CodeViewReactOptions<undefined, undefined>>(
         () => ({
             ...BASE_VIEW_OPTIONS,
+            overflow,
             onLineSelected: (range: SelectedLineRange | null) => onSelectionCommit(toLineRange(range)),
             enableGutterUtility: commentable,
             onGutterUtilityClick: commentable ? ({ start, end }: SelectedLineRange) => commentHandler.current?.({ start, end }) : undefined,
         }),
-        [onSelectionCommit, commentable],
+        [onSelectionCommit, commentable, overflow],
     );
     const reportSelection = useCallback(
         (next: CodeViewLineSelection | null) => {

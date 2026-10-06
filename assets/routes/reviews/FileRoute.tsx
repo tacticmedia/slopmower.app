@@ -1,3 +1,4 @@
+import { CheckIcon } from '@primer/octicons-react';
 import { Button, Spinner } from '@primer/react';
 import { lazy, Suspense, useCallback, useMemo, useState } from 'react';
 import { useLoaderData, useRouteLoaderData } from 'react-router';
@@ -6,6 +7,7 @@ import type { FileContent } from '../../api/types/file-content';
 import type { Me } from '../../api/types/me';
 import type { Symbol as CodeSymbol } from '../../api/types/symbol';
 import { type CodeAnnotation, NO_ANNOTATIONS, stableAnnotations, threadsByLine } from '../../code/annotations';
+import type { Overflow } from '../../code/CodeFile';
 import { type LineRange, lineRange } from '../../code/lineHash';
 import { bottomLine, type GestureRange } from '../../code/rangeSelection';
 import { matchingSymbol, symbolKindLabel } from '../../code/symbolMatch';
@@ -14,6 +16,7 @@ import { CommentOnLinesForm } from '../../comments/CommentOnLinesForm';
 import { type DraftView, fileDraftViews, reviewLabel as reviewButtonLabel } from '../../comments/draftView';
 import { ThreadList } from '../../comments/ThreadList';
 import { type Composer, type SubmitMode, useFileComments } from '../../comments/useFileComments';
+import { usePreference } from '../../layout/usePreference';
 import { FileHeader } from '../../review/FileHeader';
 import { FilePlaceholder } from '../../review/FilePlaceholder';
 import { SymbolsMenu } from '../../review/SymbolsMenu';
@@ -46,6 +49,7 @@ export function FileRoute() {
     const fileThreads = useMemo(() => comments.threads.filter((thread) => null === thread.range), [comments.threads]);
     const filePendingDrafts = useMemo(() => comments.drafts.filter((draft) => null === draft.range), [comments.drafts]);
     const fileComposer = null !== comments.composer && null === comments.composer.range ? comments.composer : null;
+    const [wrap, setWrap] = usePreference('wrap');
     const { select } = selection;
     const { open } = comments;
     // An exact symbol range anchors to the symbol.
@@ -69,6 +73,11 @@ export function FileRoute() {
     return (
         <section className={styles.file} aria-label={content.path}>
             <FileHeader path={content.path}>
+                {null !== text && (
+                    <Button size="small" aria-pressed={wrap} leadingVisual={wrap ? CheckIcon : undefined} onClick={() => setWrap(!wrap)}>
+                        Wrap lines
+                    </Button>
+                )}
                 {commentable && null !== text && null !== content.lineCount && <CommentOnLinesForm lineCount={content.lineCount} onSubmit={commentOnLines} />}
                 {commentable && null !== text && <SymbolsMenu symbols={symbols} onChoose={commentOnSymbol} />}
                 {commentable && (
@@ -88,7 +97,16 @@ export function FileRoute() {
             {null === text ? (
                 <FilePlaceholder content={content} />
             ) : (
-                <Code content={content} text={text} selection={selection} comments={comments} caller={caller} onComment={commentable ? openLines : null} reviewLabel={reviewLabel} />
+                <Code
+                    content={content}
+                    text={text}
+                    selection={selection}
+                    comments={comments}
+                    caller={caller}
+                    onComment={commentable ? openLines : null}
+                    reviewLabel={reviewLabel}
+                    overflow={wrap ? 'wrap' : 'scroll'}
+                />
             )}
         </section>
     );
@@ -103,11 +121,12 @@ type CodeProps = {
     /** Null on a closed review. */
     onComment: ((range: LineRange) => void) | null;
     reviewLabel: string;
+    overflow: Overflow;
 };
 
 const draftLine = (draft: DraftView): number | null => (null === draft.range ? null : bottomLine(draft.range));
 
-function Code({ content, text, selection, comments, caller, onComment, reviewLabel }: CodeProps) {
+function Code({ content, text, selection, comments, caller, onComment, reviewLabel, overflow }: CodeProps) {
     const { composer, threads, drafts, submit, cancel } = comments;
     const commentable = null !== onComment;
     const composerLine = null !== composer && null !== composer.range ? bottomLine(composer.range) : null;
@@ -155,6 +174,7 @@ function Code({ content, text, selection, comments, caller, onComment, reviewLab
                     annotations={currentAnnotations}
                     renderAnnotation={renderAnnotation}
                     onComment={null === onComment ? null : comment}
+                    overflow={overflow}
                     className={styles.scroller}
                 />
             </Suspense>

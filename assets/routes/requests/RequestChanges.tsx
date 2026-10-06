@@ -2,6 +2,7 @@ import { Label, RelativeTime, Spinner } from '@primer/react';
 import { lazy, Suspense, useMemo } from 'react';
 import type { CommitLink } from '../../api/types/commit-link';
 import type { Request as ReviewRequest } from '../../api/types/request';
+import { usePreference } from '../../layout/usePreference';
 import { LocationInfo } from '../../requests/LocationInfo';
 import shared from '../../requests/Requests.module.css';
 import { shortSha } from '../../review/shortSha';
@@ -51,6 +52,7 @@ function CommitChanges({ requestId, repositoryId, commit, located }: { requestId
 
 function AvailableCommit({ requestId, repositoryId, commitSha, located }: { requestId: string; repositoryId: string; commitSha: string; located: boolean }) {
     const diff = useCommitDiff(requestId, commitSha);
+    const [wrap] = usePreference('wrap');
     const files = useMemo(
         () => (undefined === diff || 'error' in diff ? [] : diff.files.toSorted((first, second) => Number(second.touchesAnchor) - Number(first.touchesAnchor))),
         [diff],
@@ -89,7 +91,7 @@ function AvailableCommit({ requestId, repositoryId, commitSha, located }: { requ
                         </p>
                     }
                 >
-                    <CommitDiff repositoryId={repositoryId} files={files} />
+                    <CommitDiff repositoryId={repositoryId} files={files} overflow={wrap ? 'wrap' : 'scroll'} />
                 </Suspense>
             )}
         </>

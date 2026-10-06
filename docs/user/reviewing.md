@@ -85,6 +85,10 @@ When the agent declines a request, it must give a reason with evidence that you 
 
 If an agent claimed a request and stopped working on it, click **Unassign**. The request goes back to its status before the claim.
 
+## Wrap long lines
+
+**Wrap lines** in the file header wraps long lines in the code and in the changes of linked commits, and your browser remembers the choice.
+
 ## Viewed files
 
 Select **Viewed** in the file header when you are finished with a file. The file tree marks viewed files. The marks stay for the whole review, because the code of the review never changes.
