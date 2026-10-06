@@ -39,7 +39,7 @@ Record a baseline before S01 and after every step: PHP and TS file count, lines 
 | S11 | GitHub duplicates | Done 2026-10-03, [report](reports/S11.md) | a437ff1 | src 406 PHP / 25918 lines, 406 types; tests 272 PHP / 23153 lines; assets 128 TS / 6484 lines; check 2m37s |
 | S12 | Front-end duplicates | Done 2026-10-03, [report](reports/S12.md) | d58d900 | src 406 PHP / 25954 lines, 406 types; tests 272 PHP / 23118 lines; assets 128 TS / 6484 lines; check 2m29s |
 | S13 | Namespace cycles | Done 2026-10-06, [report](reports/S13.md) | 72d9216 | src 380 PHP / 24730 lines, 380 types; tests 268 PHP / 22966 lines; assets 128 TS / 6484 lines; check 2m15s |
-| S14 | Final: docs, decisions, metrics | Done 2026-10-06, [report](reports/S14.md) | | src 380 PHP / 24731 lines, 380 types; tests 269 PHP / 22991 lines; assets 128 TS / 6484 lines |
+| S14 | Final: docs, decisions, metrics | Done 2026-10-06, [report](reports/S14.md) | 3e32a2c | src 380 PHP / 24731 lines, 380 types; tests 269 PHP / 22991 lines; assets 128 TS / 6484 lines; check 2m12s |
 
 ### S01 Dead code (independent)
 
@@ -101,36 +101,51 @@ Refresh `docs/developer-guide.md` (namespace map, flows, ledger with "done" mark
 
 Baseline (S00) on `main` at 4b5e79e: `make check` green in 2m45s with 1195 PHPUnit tests, 40 Vitest, 58 UI, and 8 E2E. File and line counts are of tracked files. Lines per namespace include the generated `src/Mcp/BundledSchemas.php` (2,472 lines).
 
-| Namespace | PHP files | Lines |
+After (S14) on `main` at 3e32a2c: `make check` green in 2m12s with 1196 PHPUnit tests, 40 Vitest, 58 UI, and 8 E2E. `docs/specs/` schemas and fixtures are unchanged; `docs/specs/mcp.md` changed class and constant names only (S09).
+
+| Measure | Before | After |
 |---|---|---|
-| `App` | 1 | 29 |
-| `App\Anchoring` | 4 | 479 |
-| `App\Application` | 52 | 3914 |
-| `App\Command` | 4 | 357 |
-| `App\Controller` | 52 | 2265 |
-| `App\Docs` | 2 | 119 |
-| `App\Doctrine` | 9 | 360 |
-| `App\Domain` | 113 | 4322 |
-| `App\Entity` | 18 | 2265 |
-| `App\EventStore` | 4 | 348 |
-| `App\Git` | 15 | 1215 |
-| `App\GitHub` | 9 | 529 |
-| `App\Http` | 6 | 341 |
-| `App\Index` | 7 | 531 |
-| `App\Live` | 4 | 135 |
-| `App\Mcp` | 16 | 3384 |
-| `App\Message` | 13 | 286 |
-| `App\MessageHandler` | 2 | 243 |
-| `App\Messenger` | 2 | 89 |
-| `App\Projection` | 3 | 238 |
-| `App\Repository` | 19 | 1283 |
-| `App\Security` | 15 | 670 |
-| `App\Serializer` | 17 | 1151 |
-| `App\Source` | 6 | 291 |
-| `App\Tenancy` | 7 | 290 |
-| `App\Webhook` | 6 | 820 |
-| UI tests `tests/ui` | 41 TS | 2801 |
-| Front-end unit tests `assets/**/*.test.ts` | 19 TS | 1006 |
+| `src` PHP files | 406 | 380 |
+| `src` lines | 25,954 | 24,731 |
+| `src` lines without `BundledSchemas.php` | 23,482 | 22,259 |
+| `tests` PHP files and lines | 272 / 23,118 | 269 / 22,991 |
+| `assets` TS files and lines, without tests | 127 / 6,511 | 128 / 6,484 |
+| Namespace cycles (S13 measure) | 14 | 3 |
+| `Ulid::fromString()` calls in `src` | 84 | 2 |
+| MCP tool classes | 12 and `McpToolRunner` | 1, `McpTools` |
+| Places with Messenger handlers | 3 | 1, `App\MessageHandler` |
+| `make check` | 2m45s | 2m12s |
+
+| Namespace | Files before | Lines before | Files after | Lines after |
+|---|---|---|---|---|
+| `App` | 1 | 29 | 1 | 29 |
+| `App\Anchoring` | 4 | 479 | 3 | 414 |
+| `App\Application` | 52 | 3914 | 46 | 3442 |
+| `App\Command` | 4 | 357 | 4 | 356 |
+| `App\Controller` | 52 | 2265 | 51 | 2521 |
+| `App\Docs` | 2 | 119 | 2 | 119 |
+| `App\Doctrine` | 9 | 360 | 8 | 351 |
+| `App\Domain` | 113 | 4322 | 110 | 4208 |
+| `App\Entity` | 18 | 2265 | 22 | 2213 |
+| `App\EventStore` | 4 | 348 | 4 | 337 |
+| `App\Git` | 15 | 1215 | 15 | 1193 |
+| `App\GitHub` | 9 | 529 | 7 | 241 |
+| `App\Http` | 6 | 341 | 7 | 382 |
+| `App\Index` | 7 | 531 | 6 | 479 |
+| `App\Live` | 4 | 135 | 4 | 135 |
+| `App\Mcp` | 16 | 3384 | 4 | 3043 |
+| `App\Message` | 13 | 286 | 13 | 245 |
+| `App\MessageHandler` | 2 | 243 | 7 | 742 |
+| `App\Messenger` | 2 | 89 | 2 | 89 |
+| `App\Projection` | 3 | 238 | 3 | 237 |
+| `App\Repository` | 19 | 1283 | 19 | 1246 |
+| `App\Security` | 15 | 670 | 13 | 620 |
+| `App\Serializer` | 17 | 1151 | 16 | 1091 |
+| `App\Source` | 6 | 291 | 4 | 260 |
+| `App\Tenancy` | 7 | 290 | 6 | 277 |
+| `App\Webhook` | 6 | 820 | 3 | 461 |
+| UI tests `tests/ui` | 41 TS | 2801 | 41 TS | 2801 |
+| Front-end unit tests `assets/**/*.test.ts` | 19 TS | 1006 | 19 TS | 1006 |
 
 ## Done
 
