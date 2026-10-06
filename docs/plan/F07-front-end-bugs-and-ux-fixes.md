@@ -29,6 +29,12 @@ Fix the open front-end bugs and the small UX defects found in the reports and in
 11. **"Symbols" is disabled without a reason.** When the file has no symbols, the button is disabled with no reason. Add a tooltip, "No symbols in this file", or "Symbols could not be loaded" when V9 fails. This is the candidate "Say why Symbols is disabled", moved here because it is a defect.
 12. **No test for New request on a closed review.** Add a UI test that "New request" is hidden on a closed review.
 
+13. **Double submit, added after review (2026-10-07).**
+   - Primer `loading` only sets `aria-disabled`, so a second click or Enter submits a form again while its write runs.
+   - Guard every write form in `assets/` as `FinishReviewOverlay` does (`onSubmit` that prevents the submit while the fetcher is not idle).
+   - The known cases are Close review, Delete review, Start review (a duplicate review), Connect, and Refresh.
+   - One UI test proves one write per double click.
+
 ## Out of scope
 
 Contract changes. A batch thread read and the Q9 file order are listed under "For Jan" in `features.md`.
