@@ -9,7 +9,9 @@ use App\Domain\Actor\ActorKind;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Error\NotFound;
 use App\Domain\Event\RecordedEvent;
+use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
+use App\Domain\Identity\UserId;
 use App\Domain\Request\Awaiting;
 use App\Domain\Request\RequestStatus;
 use App\Entity\ChangeRequest;
@@ -22,8 +24,6 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * V10, docs/specs/rest-api-requests.md section 4, in one snapshot.
@@ -152,7 +152,7 @@ final class UpdatesQuery
             ->from(ChangeRequest::class, 'request')
             ->where('request.review = :review')
             ->andWhere('request.awaiting = :awaiting')
-            ->setParameter('review', Ulid::fromString($reviewId->toString()), UlidType::NAME)
+            ->setParameter('review', $reviewId, ReviewId::class)
             ->setParameter('awaiting', match ($caller->kind) {
                 ActorKind::User => Awaiting::User->value,
                 ActorKind::Agent => Awaiting::Agent->value,
@@ -162,7 +162,7 @@ final class UpdatesQuery
         if (ActorKind::Agent === $caller->kind && null !== $caller->userId) {
             $builder->andWhere('request.status <> :inProgress OR (request.claimedBy.userId = :callerUserId AND request.claimedBy.agentName = :callerAgentName)')
                 ->setParameter('inProgress', RequestStatus::InProgress->value)
-                ->setParameter('callerUserId', Ulid::fromString($caller->userId->toString()), UlidType::NAME)
+                ->setParameter('callerUserId', $caller->userId, UserId::class)
                 ->setParameter('callerAgentName', $caller->agentName);
         }
 
@@ -185,7 +185,7 @@ final class UpdatesQuery
             ->select('request')
             ->from(ChangeRequest::class, 'request')
             ->where('request.id IN (:ids)')
-            ->setParameter('ids', array_map(static fn (string $id): string => Ulid::fromString($id)->toRfc4122(), $ids), ArrayParameterType::STRING)
+            ->setParameter('ids', array_map(static fn (string $id): string => RequestId::fromString($id)->toRfc4122(), $ids), ArrayParameterType::STRING)
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
             ->getResult();

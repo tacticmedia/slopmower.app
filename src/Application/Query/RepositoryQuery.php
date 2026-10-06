@@ -42,7 +42,7 @@ final class RepositoryQuery
     {
         $row = $this->select()
             ->where('repository.id = :id')
-            ->setParameter('id', Ulid::fromString($id->toString()), UlidType::NAME)
+            ->setParameter('id', $id, RepositoryId::class)
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
             ->getOneOrNullResult();
@@ -142,7 +142,7 @@ final class RepositoryQuery
         match (true) {
             Ulid::isValid($name) => $builder
                 ->andWhere('repository.id = :nameId')
-                ->setParameter('nameId', Ulid::fromString($name), UlidType::NAME),
+                ->setParameter('nameId', $name, RepositoryId::class),
             str_contains($name, '/') => $builder
                 ->andWhere('repository.source = :nameSource AND LOWER(repository.name) = LOWER(:name)')
                 ->setParameter('nameSource', RepositorySource::Github)

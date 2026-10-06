@@ -11,8 +11,6 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * @extends ServiceEntityRepository<Draft>
@@ -60,7 +58,7 @@ final class DraftRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('draft')
             ->where('draft.user = :userId')
             ->andWhere('draft.review = :reviewId')
-            ->setParameter('userId', Ulid::fromString($userId->toString()), UlidType::NAME)
-            ->setParameter('reviewId', Ulid::fromString($reviewId->toString()), UlidType::NAME);
+            ->setParameter('userId', $userId, UserId::class)
+            ->setParameter('reviewId', $reviewId, ReviewId::class);
     }
 }

@@ -49,7 +49,7 @@ CREATE POLICY tenant_isolation ON review_event
 ```
 
 - `current_setting('app.tenant_id', true)` returns null when the setting does not exist. `NULLIF` maps an empty value to null. A comparison with null is not true, so no row is visible and an insert fails the `WITH CHECK`. The database fails closed.
-- The ULID columns are PostgreSQL `uuid` columns, as Doctrine's `ulid` type stores them.
+- The ID columns are PostgreSQL `uuid` columns.
 - `FORCE ROW LEVEL SECURITY` is not set. The lookup functions run as the owner and must see every row. The application never connects as the owner. A boot check and a test enforce this.
 - `make:migration` does not generate policies. Each migration that creates a tenant table adds the `ENABLE` and `CREATE POLICY` statements by hand. A catalog test fails when a table with `tenant_id` has no policy.
 - Tables without tenant data have no policy: `sessions`, `messenger_messages`, `webhook_delivery`, and `doctrine_migration_versions`.

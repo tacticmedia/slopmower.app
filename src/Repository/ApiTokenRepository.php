@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Domain\Identity\UserId;
 use App\Entity\ApiToken;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * @extends ServiceEntityRepository<ApiToken>
@@ -32,7 +31,7 @@ final class ApiTokenRepository extends ServiceEntityRepository
             ->where('token.user = :userId')
             ->andWhere('token.revokedAt IS NULL')
             ->andWhere('token.expiresAt IS NULL OR token.expiresAt > :now')
-            ->setParameter('userId', Ulid::fromString($user->getId()->toString()), UlidType::NAME)
+            ->setParameter('userId', $user->getId(), UserId::class)
             ->setParameter('now', $now, Types::DATETIME_IMMUTABLE)
             ->getQuery()
             ->getSingleScalarResult();

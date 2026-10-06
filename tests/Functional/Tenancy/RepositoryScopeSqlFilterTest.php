@@ -38,7 +38,6 @@ use App\Tests\Support\Domain\RequestScenario;
 use App\Tests\Support\Persistence\ReviewDataFixtures;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Uid\Ulid;
 
 final class RepositoryScopeSqlFilterTest extends KernelTestCase
 {
@@ -51,8 +50,8 @@ final class RepositoryScopeSqlFilterTest extends KernelTestCase
         $tenantId = self::enterNewTenant();
         $scenario = RequestScenario::inState('in_progress');
         $requestId = self::persistScenario($tenantId, $scenario);
-        $review = self::entityManager()->find(Review::class, Ulid::fromString($scenario->review()->id->toString())) ?? self::fail('No review.');
-        $request = self::entityManager()->find(ChangeRequest::class, Ulid::fromString($requestId->toString())) ?? self::fail('No request.');
+        $review = self::entityManager()->find(Review::class, $scenario->review()->id) ?? self::fail('No review.');
+        $request = self::entityManager()->find(ChangeRequest::class, $requestId) ?? self::fail('No request.');
         $time = new \DateTimeImmutable(self::TIME);
         $other = Repository::local($tenantId, RepositoryName::local('alpha'), 'alpha', $time);
         $gitHub = Repository::gitHub($tenantId, RepositoryName::github('acme/billing'), 812345, 5551, true, $time);

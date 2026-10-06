@@ -15,7 +15,6 @@ use App\Git\TreeEntry;
 use App\Repository\IndexedBlobRepository;
 use App\Repository\SymbolRepository;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * The one parse-on-demand path. Only a regular file that is renderable, not binary and at most 1 MiB, has symbols.
@@ -51,7 +50,7 @@ final class BlobSymbols
     public function of(Repository $repository, string $gitDir, TreeEntry $entry): SymbolTable
     {
         $extractor = $this->extractorFor(RepoPath::fromString($entry->path));
-        $criteria = ['repositoryId' => Ulid::fromString($repository->getId()->toString()), 'blobSha' => BlobSha::fromString($entry->objectId)];
+        $criteria = ['repositoryId' => $repository->getId(), 'blobSha' => BlobSha::fromString($entry->objectId)];
         $indexed = null !== $extractor && $entry->isRenderableFile() ? $this->indexedBlobs->findOneBy($criteria) : null;
 
         if (null === $extractor || !$indexed instanceof IndexedBlob) {

@@ -10,8 +10,6 @@ use App\Domain\Identity\UserId;
 use App\Entity\ViewedFile;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * @extends ServiceEntityRepository<ViewedFile>
@@ -34,8 +32,8 @@ final class ViewedFileRepository extends ServiceEntityRepository
             ->where('viewed.user = :userId')
             ->andWhere('viewed.review = :reviewId')
             ->orderBy('viewed.path', 'ASC')
-            ->setParameter('userId', Ulid::fromString($userId->toString()), UlidType::NAME)
-            ->setParameter('reviewId', Ulid::fromString($reviewId->toString()), UlidType::NAME)
+            ->setParameter('userId', $userId, UserId::class)
+            ->setParameter('reviewId', $reviewId, ReviewId::class)
             ->getQuery()
             ->getResult();
 

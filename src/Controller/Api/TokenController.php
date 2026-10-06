@@ -25,7 +25,6 @@ use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * T1 to T3 of docs/specs/rest-api-requests.md section 6.
@@ -69,7 +68,7 @@ final class TokenController extends AbstractController
 
         $repository = null === $repositoryId
             ? null
-            : $repositories->find(Ulid::fromString($repositoryId->toString())) ?? throw new NotFound('The repository does not exist.');
+            : $repositories->find($repositoryId) ?? throw new NotFound('The repository does not exist.');
 
         // The count and the insert form one step, so two parallel requests cannot pass the limit.
         $lock = $lockFactory->createLock("api-token-issue:{$user->getId()}", ttl: null);

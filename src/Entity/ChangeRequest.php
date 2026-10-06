@@ -20,8 +20,6 @@ use App\Repository\ChangeRequestRepository;
 use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * The projection of one request. {@see RequestStateMapper} maps it to and from the domain state.
@@ -30,11 +28,11 @@ use Symfony\Component\Uid\Ulid;
 class ChangeRequest implements TenantOwned
 {
     #[ORM\Id]
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $id;
+    #[ORM\Column(type: RequestId::class)]
+    private RequestId $id;
 
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $tenantId;
+    #[ORM\Column(type: TenantId::class)]
+    private TenantId $tenantId;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
@@ -97,8 +95,8 @@ class ChangeRequest implements TenantOwned
      */
     public function __construct(RequestId $id, Review $review, Anchor $anchor, string $body, Actor $author, \DateTimeImmutable $createdAt)
     {
-        $this->id = Ulid::fromString($id->toString());
-        $this->tenantId = Ulid::fromString($review->getTenantId()->toString());
+        $this->id = $id;
+        $this->tenantId = $review->getTenantId();
         $this->review = $review;
         $this->opened($anchor, $body, $author, $createdAt);
         $this->claimedBy = ActorEmbeddable::of(null);
@@ -146,12 +144,12 @@ class ChangeRequest implements TenantOwned
 
     public function getId(): RequestId
     {
-        return RequestId::fromString($this->id->toBase32());
+        return $this->id;
     }
 
     public function getTenantId(): TenantId
     {
-        return TenantId::fromString($this->tenantId->toBase32());
+        return $this->tenantId;
     }
 
     public function getReview(): Review

@@ -14,7 +14,6 @@ use App\Tests\Support\EventStore\CommandFixtures;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Uid\Ulid;
 
 final class FreshStateTest extends KernelTestCase
 {
@@ -25,11 +24,10 @@ final class FreshStateTest extends KernelTestCase
     public function testCommandDecidesOnTheStoredState(): void
     {
         $requestId = self::openRequest(self::startReview(self::newRepository(self::enterNewTenant())));
-        $id = Ulid::fromString($requestId->toString());
-        $stale = self::getContainer()->get(ChangeRequestRepository::class)->find($id) ?? self::fail('The request is missing.');
+        $stale = self::getContainer()->get(ChangeRequestRepository::class)->find($requestId) ?? self::fail('The request is missing.');
 
         // Another process verifies the request after this one loaded it.
-        self::getContainer()->get(Connection::class)->executeStatement("UPDATE change_request SET status = 'verified', resolution = 'fixed' WHERE id = ?", [$id->toRfc4122()]);
+        self::getContainer()->get(Connection::class)->executeStatement("UPDATE change_request SET status = 'verified', resolution = 'fixed' WHERE id = ?", [$requestId->toRfc4122()]);
         self::assertSame(RequestStatus::Open, $stale->getStatus());
 
         $this->expectException(InvalidTransition::class);

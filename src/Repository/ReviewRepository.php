@@ -11,8 +11,6 @@ use App\Entity\Review;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Query;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * @extends ServiceEntityRepository<Review>
@@ -31,7 +29,7 @@ final class ReviewRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('review')
             ->where('review.id = :id')
-            ->setParameter('id', Ulid::fromString($id->toString()), UlidType::NAME)
+            ->setParameter('id', $id, ReviewId::class)
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
             ->getOneOrNullResult();
@@ -46,7 +44,7 @@ final class ReviewRepository extends ServiceEntityRepository
     {
         $builder = $this->createQueryBuilder('review')
             ->where('review.repository = :repository')
-            ->setParameter('repository', Ulid::fromString($repositoryId->toString()), UlidType::NAME);
+            ->setParameter('repository', $repositoryId, RepositoryId::class);
 
         if (null !== $state) {
             $builder->andWhere('review.state = :state')->setParameter('state', $state->value);

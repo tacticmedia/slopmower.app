@@ -25,8 +25,8 @@ class GitHubCandidate implements TenantOwned
     #[ORM\Column(type: UlidType::NAME)]
     private Ulid $id;
 
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $tenantId;
+    #[ORM\Column(type: TenantId::class)]
+    private TenantId $tenantId;
 
     #[ORM\Column(type: Types::BIGINT)]
     private int $githubRepositoryId;
@@ -68,7 +68,7 @@ class GitHubCandidate implements TenantOwned
         \DateTimeImmutable $listedAt,
     ) {
         $this->id = new Ulid();
-        $this->tenantId = Ulid::fromString($tenantId->toString());
+        $this->tenantId = $tenantId;
         $this->githubRepositoryId = $githubRepositoryId;
         $this->installationId = $installationId;
         $this->accountLogin = $accountLogin;
@@ -81,7 +81,7 @@ class GitHubCandidate implements TenantOwned
 
     public function getTenantId(): TenantId
     {
-        return TenantId::fromString($this->tenantId->toBase32());
+        return $this->tenantId;
     }
 
     public function getGithubRepositoryId(): int

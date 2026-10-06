@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Doctrine\Embeddable\ActorEmbeddable;
-use App\Doctrine\Type\CommitShaType;
 use App\Domain\Actor\Actor;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Error\ReviewClosed;
@@ -20,8 +19,6 @@ use App\Repository\ReviewRepository;
 use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * The index fields are not event data, so a projection rebuild keeps them.
@@ -31,11 +28,11 @@ use Symfony\Component\Uid\Ulid;
 class Review implements TenantOwned
 {
     #[ORM\Id]
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $id;
+    #[ORM\Column(type: ReviewId::class)]
+    private ReviewId $id;
 
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $tenantId;
+    #[ORM\Column(type: TenantId::class)]
+    private TenantId $tenantId;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
@@ -47,7 +44,7 @@ class Review implements TenantOwned
     #[ORM\Column]
     private string $ref;
 
-    #[ORM\Column(type: CommitShaType::NAME)]
+    #[ORM\Column(type: CommitSha::class)]
     private CommitSha $commitSha;
 
     #[ORM\Column(enumType: ReviewState::class)]
@@ -105,8 +102,8 @@ class Review implements TenantOwned
         \DateTimeImmutable $createdAt,
         int $lastEventSeq,
     ) {
-        $this->id = Ulid::fromString($id->toString());
-        $this->tenantId = Ulid::fromString($repository->getTenantId()->toString());
+        $this->id = $id;
+        $this->tenantId = $repository->getTenantId();
         $this->repository = $repository;
         $this->title = $title;
         $this->ref = $ref->toString();
@@ -190,12 +187,12 @@ class Review implements TenantOwned
 
     public function getId(): ReviewId
     {
-        return ReviewId::fromString($this->id->toBase32());
+        return $this->id;
     }
 
     public function getTenantId(): TenantId
     {
-        return TenantId::fromString($this->tenantId->toBase32());
+        return $this->tenantId;
     }
 
     public function getRepository(): Repository

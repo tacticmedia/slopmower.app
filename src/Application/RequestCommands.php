@@ -38,7 +38,6 @@ use App\Repository\CommitLinkRepository;
 use App\Repository\DraftRepository;
 use App\Repository\ReviewRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * Each method returns the events that the command wrote. The ID of an opened request is in the requestId of its event.
@@ -201,7 +200,7 @@ final class RequestCommands
      */
     private function reviewOf(RequestId $requestId): ReviewId
     {
-        return ($this->requests->find(Ulid::fromString($requestId->toString())) ?? throw new NotFound())->getReview()->getId();
+        return ($this->requests->find($requestId) ?? throw new NotFound())->getReview()->getId();
     }
 
     private function state(RequestId $requestId): RequestState

@@ -30,6 +30,11 @@ abstract readonly class Identifier implements \Stringable
         return new static(new Ulid($value));
     }
 
+    public static function fromUlid(Ulid $ulid): static
+    {
+        return new static($ulid);
+    }
+
     public function equals(self $other): bool
     {
         return $other::class === static::class && $this->ulid->equals($other->ulid);
@@ -41,7 +46,7 @@ abstract readonly class Identifier implements \Stringable
     }
 
     /**
-     * The ulid column type is a native uuid on PostgreSQL, so raw SQL, SQL filter, and DQL list parameters take this form.
+     * An ID column is a native uuid on PostgreSQL, so raw SQL, SQL filter, and DQL list parameters take this form.
      */
     public function toRfc4122(): string
     {

@@ -20,7 +20,6 @@ use App\Tenancy\TenantContext;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
-use Symfony\Component\Uid\Ulid;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
@@ -98,7 +97,7 @@ final class CommandExecutor
             $this->entityManager->clear();
             $events = array_map(
                 static fn (ReviewEvent $event): RecordedEvent => $event->toRecordedEvent(),
-                $this->events->findBy(['tenantId' => Ulid::fromString($tenantId->toString())], ['seq' => 'ASC']),
+                $this->events->findBy(['tenantId' => $tenantId], ['seq' => 'ASC']),
             );
             $this->project($events);
 

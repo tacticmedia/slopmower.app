@@ -17,8 +17,6 @@ use App\Repository\ReviewEventRepository;
 use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * Append-only. The event store inserts rows with SQL, so the entity has no constructor.
@@ -30,20 +28,20 @@ use Symfony\Component\Uid\Ulid;
 class ReviewEvent implements TenantOwned
 {
     #[ORM\Id]
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $id;
+    #[ORM\Column(type: EventId::class)]
+    private EventId $id;
 
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $tenantId;
+    #[ORM\Column(type: TenantId::class)]
+    private TenantId $tenantId;
 
     #[ORM\Column(type: Types::BIGINT)]
     private int $seq;
 
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $reviewId;
+    #[ORM\Column(type: ReviewId::class)]
+    private ReviewId $reviewId;
 
-    #[ORM\Column(type: UlidType::NAME, nullable: true)]
-    private ?Ulid $requestId;
+    #[ORM\Column(type: RequestId::class, nullable: true)]
+    private ?RequestId $requestId;
 
     /** @var list<string> */
     #[ORM\Column(type: Types::JSONB)]
@@ -64,7 +62,7 @@ class ReviewEvent implements TenantOwned
 
     public function getTenantId(): TenantId
     {
-        return TenantId::fromString($this->tenantId->toBase32());
+        return $this->tenantId;
     }
 
     /**
@@ -83,11 +81,11 @@ class ReviewEvent implements TenantOwned
     public function toRecordedEvent(): RecordedEvent
     {
         return new RecordedEvent(
-            EventId::fromString($this->id->toBase32()),
+            $this->id,
             $this->getTenantId(),
             $this->seq,
-            ReviewId::fromString($this->reviewId->toBase32()),
-            null === $this->requestId ? null : RequestId::fromString($this->requestId->toBase32()),
+            $this->reviewId,
+            $this->requestId,
             $this->actor->toActor() ?? throw new \UnexpectedValueException('An event has an actor.'),
             $this->occurredAt,
             $this->type->decode($this->payload),

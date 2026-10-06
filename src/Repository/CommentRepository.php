@@ -8,8 +8,6 @@ use App\Domain\Identity\TenantId;
 use App\Entity\Comment;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * @extends ServiceEntityRepository<Comment>
@@ -29,7 +27,7 @@ final class CommentRepository extends ServiceEntityRepository
         $this->createQueryBuilder('comment')
             ->delete()
             ->where('comment.tenantId = :tenantId')
-            ->setParameter('tenantId', Ulid::fromString($tenantId->toString()), UlidType::NAME)
+            ->setParameter('tenantId', $tenantId, TenantId::class)
             ->getQuery()
             ->execute();
     }

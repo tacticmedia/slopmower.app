@@ -8,7 +8,6 @@ use App\Domain\Actor\Actor;
 use App\Domain\Actor\ActorKind;
 use App\Repository\UserRepository;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * actor.schema.json. The user of a user actor comes from the database for `name` and `avatarUrl`.
@@ -30,7 +29,7 @@ final class ActorNormalizer implements NormalizerInterface
     {
         \assert($data instanceof Actor);
         $user = ActorKind::User === $data->kind && null !== $data->userId
-            ? $this->users->find(Ulid::fromString($data->userId->toString())) ?? throw new \UnexpectedValueException("The user {$data->userId} of an actor does not exist.") : null;
+            ? $this->users->find($data->userId) ?? throw new \UnexpectedValueException("The user {$data->userId} of an actor does not exist.") : null;
 
         return [
             'kind' => $data->kind->value,

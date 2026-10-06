@@ -19,7 +19,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * V2 and V3, with the request counts of each review. Reads refresh the rows, so a read after a command sees it.
@@ -39,7 +38,7 @@ final class ReviewQuery
     {
         $review = $this->select()
             ->where('review.id = :id')
-            ->setParameter('id', Ulid::fromString($id->toString()), UlidType::NAME)
+            ->setParameter('id', $id, ReviewId::class)
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
             ->getOneOrNullResult();
@@ -59,7 +58,7 @@ final class ReviewQuery
         $filters = ['state' => $state->value];
         $builder = $this->select()
             ->where('review.repository = :repository')
-            ->setParameter('repository', Ulid::fromString($repositoryId->toString()), UlidType::NAME)
+            ->setParameter('repository', $repositoryId, RepositoryId::class)
             ->orderBy('review.createdAt', 'DESC')
             ->addOrderBy('review.id', 'DESC')
             ->setMaxResults($limit + 1);
@@ -119,8 +118,9 @@ final class ReviewQuery
             ->getQuery()
             ->getArrayResult();
 
+        // IDENTITY() gives the RFC 4122 form of the ID.
         foreach ($rows as $row) {
-            $reviewId = Ulid::fromString($row['reviewId'])->toBase32();
+            $reviewId = $row['reviewId'];
             $counts[$reviewId]['status'][$row['status']->value] = ($counts[$reviewId]['status'][$row['status']->value] ?? 0) + (int) $row['requests'];
             $counts[$reviewId]['awaiting'][$row['awaiting']->value] = ($counts[$reviewId]['awaiting'][$row['awaiting']->value] ?? 0) + (int) $row['requests'];
             $counts[$reviewId]['outdated'] = ($counts[$reviewId]['outdated'] ?? 0) + (int) $row['outdated'];
@@ -128,9 +128,9 @@ final class ReviewQuery
 
         return array_map(static fn (Review $review): ReviewView => new ReviewView(
             $review,
-            array_replace($byStatus, $counts[$review->getId()->toString()]['status'] ?? []),
-            array_replace($byAwaiting, $counts[$review->getId()->toString()]['awaiting'] ?? []),
-            $counts[$review->getId()->toString()]['outdated'] ?? 0,
+            array_replace($byStatus, $counts[$review->getId()->toRfc4122()]['status'] ?? []),
+            array_replace($byAwaiting, $counts[$review->getId()->toRfc4122()]['awaiting'] ?? []),
+            $counts[$review->getId()->toRfc4122()]['outdated'] ?? 0,
         ), $reviews);
     }
 }

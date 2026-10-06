@@ -18,7 +18,6 @@ use App\Tests\Support\Persistence\ReviewDataFixtures;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Uid\Ulid;
 
 final class UniqueConstraintsTest extends KernelTestCase
 {
@@ -30,7 +29,7 @@ final class UniqueConstraintsTest extends KernelTestCase
     {
         $tenantId = self::enterNewTenant();
         $requestId = self::persistScenario($tenantId, RequestScenario::inState('in_progress'));
-        $request = self::entityManager()->find(ChangeRequest::class, Ulid::fromString($requestId->toString())) ?? self::fail('The request did not reload.');
+        $request = self::entityManager()->find(ChangeRequest::class, $requestId) ?? self::fail('The request did not reload.');
 
         self::entityManager()->persist(new CommitLink($request, CommitSha::fromString(RequestScenario::LINKED_COMMIT), RequestScenario::otherAgent(), new \DateTimeImmutable(self::TIME), null));
 

@@ -108,8 +108,7 @@ final class ApiErrorModelTest extends WebTestCase
         $repository = self::storeRepository($user->getTenantId(), 'billing');
         self::getContainer()->get(Connection::class)->executeStatement(
             "UPDATE repository SET access = 'removed', sync_state = 'unavailable' WHERE id = ?",
-            [$repository->getId()->toString()],
-            ['ulid'],
+            [$repository->getId()->toRfc4122()],
         );
 
         $error = self::assertApiError(self::apiRequest($this->client, 'POST', "/api/v1/repositories/{$repository->getId()}/fetch"), 409, 'repository_unavailable');
@@ -160,7 +159,7 @@ final class ApiErrorModelTest extends WebTestCase
         $user = self::signIn($this->client);
         $repository = self::storeRepository($user->getTenantId(), 'billing');
         // A corrupt row: the name breaks the local name rules.
-        self::getContainer()->get(Connection::class)->executeStatement("UPDATE repository SET name = '../escape' WHERE id = ?", [$repository->getId()->toString()], ['ulid']);
+        self::getContainer()->get(Connection::class)->executeStatement("UPDATE repository SET name = '../escape' WHERE id = ?", [$repository->getId()->toRfc4122()]);
         $this->client->enableProfiler();
 
         $response = self::apiRequest($this->client, 'GET', "/api/v1/repositories/{$repository->getId()}");

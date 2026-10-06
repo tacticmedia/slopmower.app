@@ -28,7 +28,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * Signed-in clients and rows for WebTestCase tests that use ResetDatabase.
@@ -72,8 +71,8 @@ trait ApiFixtures
         $container = self::getContainer();
         $entityManager = $container->get(EntityManagerInterface::class);
         [$owner, $scope] = $container->get(TenantFilter::class)->suspend(static fn (): array => [
-            $entityManager->find(User::class, Ulid::fromString($user->getId()->toString())),
-            null === $repository ? null : $entityManager->find(Repository::class, Ulid::fromString($repository->getId()->toString())),
+            $entityManager->find(User::class, $user->getId()),
+            null === $repository ? null : $entityManager->find(Repository::class, $repository->getId()),
         ]);
         \assert($owner instanceof User);
         $now = Clock::get()->now();
@@ -123,7 +122,7 @@ trait ApiFixtures
     private static function storeRequest(Review $review): ChangeRequest
     {
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
-        $stored = self::getContainer()->get(TenantFilter::class)->suspend(static fn (): ?Review => $entityManager->find(Review::class, Ulid::fromString($review->getId()->toString())));
+        $stored = self::getContainer()->get(TenantFilter::class)->suspend(static fn (): ?Review => $entityManager->find(Review::class, $review->getId()));
         \assert($stored instanceof Review);
         $anchor = Anchor::of(AnchorKind::File, RepoPath::fromString('README.md'), $stored->getCommitSha(), BlobSha::fromString('e965047ad7c57865823c7d992b1d046ea66edf78'), null, null, null);
         $request = new ChangeRequest(RequestId::generate(), $stored, $anchor, 'Use `Money` instead of `float` for totals.', $stored->getStartedBy(), Clock::get()->now());
@@ -141,8 +140,8 @@ trait ApiFixtures
     {
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $draft = self::getContainer()->get(TenantFilter::class)->suspend(static function () use ($entityManager, $user, $request): Draft {
-            $owner = $entityManager->find(User::class, Ulid::fromString($user->getId()->toString()));
-            $stored = $entityManager->find(ChangeRequest::class, Ulid::fromString($request->getId()->toString()));
+            $owner = $entityManager->find(User::class, $user->getId());
+            $stored = $entityManager->find(ChangeRequest::class, $request->getId());
             \assert($owner instanceof User && $stored instanceof ChangeRequest);
             $draft = Draft::reply($owner, $stored, 'Keep the rounding mode configurable.', Clock::get()->now());
             $entityManager->persist($draft);

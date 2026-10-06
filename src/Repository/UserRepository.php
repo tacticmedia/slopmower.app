@@ -13,8 +13,6 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * The sign-in lookups run inside {@see \App\Tenancy\TenantFilter::suspend()}. A user without a tenant row counts as gone.
@@ -35,7 +33,7 @@ final class UserRepository extends ServiceEntityRepository
     {
         return $this->signInUser($this->signInQuery()
             ->where('appUser.id = :id')
-            ->setParameter('id', Ulid::fromString($id->toString()), UlidType::NAME));
+            ->setParameter('id', $id, UserId::class));
     }
 
     /**

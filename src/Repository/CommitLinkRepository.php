@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
-use App\Doctrine\Type\CommitShaType;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\RepositoryId;
+use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Identity\TenantId;
 use App\Domain\Request\CommitLinkState;
@@ -16,8 +16,6 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * @extends ServiceEntityRepository<CommitLink>
@@ -37,7 +35,7 @@ final class CommitLinkRepository extends ServiceEntityRepository
         $this->createQueryBuilder('link')
             ->delete()
             ->where('link.tenantId = :tenantId')
-            ->setParameter('tenantId', Ulid::fromString($tenantId->toString()), UlidType::NAME)
+            ->setParameter('tenantId', $tenantId, TenantId::class)
             ->getQuery()
             ->execute();
     }
@@ -51,7 +49,7 @@ final class CommitLinkRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('link')
             ->where('link.request = :request')
-            ->setParameter('request', Ulid::fromString($request->getId()->toString()), UlidType::NAME)
+            ->setParameter('request', $request->getId(), RequestId::class)
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
             ->getResult();
@@ -82,7 +80,7 @@ final class CommitLinkRepository extends ServiceEntityRepository
             ->select('DISTINCT link.commitSha')
             ->join('link.request', 'request')
             ->where('request.review = :review')
-            ->setParameter('review', Ulid::fromString($reviewId->toString()), UlidType::NAME)
+            ->setParameter('review', $reviewId, ReviewId::class)
             ->getQuery()
             ->getSingleColumnResult();
 
@@ -97,7 +95,7 @@ final class CommitLinkRepository extends ServiceEntityRepository
         return 0 < (int) $this->ofRepository($repositoryId)
             ->select('COUNT(link.commitSha)')
             ->andWhere('link.commitSha = :commitSha')
-            ->setParameter('commitSha', $commitSha, CommitShaType::NAME)
+            ->setParameter('commitSha', $commitSha, CommitSha::class)
             ->getQuery()
             ->getSingleScalarResult();
     }
@@ -108,6 +106,6 @@ final class CommitLinkRepository extends ServiceEntityRepository
             ->join('link.request', 'request')
             ->join('request.review', 'review')
             ->where('review.repository = :repository')
-            ->setParameter('repository', Ulid::fromString($repositoryId->toString()), UlidType::NAME);
+            ->setParameter('repository', $repositoryId, RepositoryId::class);
     }
 }

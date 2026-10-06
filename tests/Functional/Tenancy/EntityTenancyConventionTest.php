@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Tenancy;
 
+use App\Domain\Identity\TenantId;
 use App\Entity\Tenant;
 use App\Entity\WebhookDelivery;
 use App\Tenancy\TenantOwned;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\TestDox;
-use Symfony\Bridge\Doctrine\Types\UlidType;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class EntityTenancyConventionTest extends KernelTestCase
@@ -30,7 +30,7 @@ final class EntityTenancyConventionTest extends KernelTestCase
             self::assertTrue($metadata->getReflectionClass()->implementsInterface(TenantOwned::class), "{$metadata->getName()} does not implement TenantOwned.");
             self::assertTrue($metadata->hasField('tenantId'), "{$metadata->getName()} maps no tenantId field.");
             self::assertSame('tenant_id', $metadata->getColumnName('tenantId'), "{$metadata->getName()} maps tenantId to another column.");
-            self::assertSame(UlidType::NAME, $metadata->getTypeOfField('tenantId'), "{$metadata->getName()} maps tenantId with another type than ulid.");
+            self::assertSame(TenantId::class, $metadata->getTypeOfField('tenantId'), "{$metadata->getName()} maps tenantId with another type than TenantId.");
             self::assertFalse($metadata->isNullable('tenantId'), "{$metadata->getName()} maps a nullable tenant_id.");
             ++$checked;
         }

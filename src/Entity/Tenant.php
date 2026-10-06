@@ -8,15 +8,13 @@ use App\Domain\Identity\TenantId;
 use App\Repository\TenantRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 #[ORM\Entity(repositoryClass: TenantRepository::class)]
 class Tenant
 {
     #[ORM\Id]
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $id;
+    #[ORM\Column(type: TenantId::class)]
+    private TenantId $id;
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
@@ -31,13 +29,13 @@ class Tenant
 
     public function __construct(TenantId $id, \DateTimeImmutable $createdAt)
     {
-        $this->id = Ulid::fromString($id->toString());
+        $this->id = $id;
         $this->createdAt = $createdAt;
     }
 
     public function getId(): TenantId
     {
-        return TenantId::fromString($this->id->toBase32());
+        return $this->id;
     }
 
     /**

@@ -16,7 +16,6 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use Symfony\Component\Uid\Ulid;
 
 final class MeController extends AbstractController
 {
@@ -33,8 +32,8 @@ final class MeController extends AbstractController
         Request $request,
         #[Autowire(env: 'APP_LOCAL_REPOSITORIES_DIR')] string $localRepositoriesDir,
     ): JsonResponse {
-        $user = $caller instanceof AgentUser ? $users->find(Ulid::fromString($caller->userId->toString())) : $caller;
-        $token = $caller instanceof AgentUser ? $tokens->find(Ulid::fromString($caller->tokenId->toString())) : null;
+        $user = $caller instanceof AgentUser ? $users->find($caller->userId) : $caller;
+        $token = $caller instanceof AgentUser ? $tokens->find($caller->tokenId) : null;
         \assert(null !== $user);
         $actor = $currentActor->get();
         $userId = $user->getId()->toString();

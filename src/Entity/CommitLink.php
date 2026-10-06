@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Doctrine\Embeddable\ActorEmbeddable;
-use App\Doctrine\Type\CommitShaType;
 use App\Domain\Actor\Actor;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\TenantId;
@@ -14,8 +13,6 @@ use App\Repository\CommitLinkRepository;
 use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * The primary key makes a link unique per request and commit. The git data comes from the commit.linked or
@@ -30,11 +27,11 @@ class CommitLink implements TenantOwned
     private ChangeRequest $request;
 
     #[ORM\Id]
-    #[ORM\Column(type: CommitShaType::NAME)]
+    #[ORM\Column(type: CommitSha::class)]
     private CommitSha $commitSha;
 
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $tenantId;
+    #[ORM\Column(type: TenantId::class)]
+    private TenantId $tenantId;
 
     #[ORM\Column(enumType: CommitLinkState::class)]
     private CommitLinkState $state = CommitLinkState::Pending;
@@ -62,7 +59,7 @@ class CommitLink implements TenantOwned
      */
     public function __construct(ChangeRequest $request, CommitSha $commitSha, Actor $linkedBy, \DateTimeImmutable $linkedAt, ?string $note)
     {
-        $this->tenantId = Ulid::fromString($request->getTenantId()->toString());
+        $this->tenantId = $request->getTenantId();
         $this->request = $request;
         $this->commitSha = $commitSha;
         $this->linkedBy = ActorEmbeddable::of($linkedBy);
@@ -83,7 +80,7 @@ class CommitLink implements TenantOwned
 
     public function getTenantId(): TenantId
     {
-        return TenantId::fromString($this->tenantId->toBase32());
+        return $this->tenantId;
     }
 
     public function getRequest(): ChangeRequest

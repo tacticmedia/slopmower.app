@@ -13,7 +13,6 @@ use App\Tests\Support\Fixtures\TenantFixtures;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Uid\Ulid;
 
 final class TenantSqlFilterTest extends KernelTestCase
 {
@@ -40,7 +39,7 @@ final class TenantSqlFilterTest extends KernelTestCase
         self::getContainer()->get(TenantContext::class)->set($alice->getTenantId());
 
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
-        self::assertNull($entityManager->find(User::class, Ulid::fromString($bob->getId()->toString())));
-        self::assertNull($entityManager->find(Tenant::class, Ulid::fromString($bob->getTenantId()->toString())));
+        self::assertNull($entityManager->find(User::class, $bob->getId()));
+        self::assertNull($entityManager->find(Tenant::class, $bob->getTenantId()));
     }
 }

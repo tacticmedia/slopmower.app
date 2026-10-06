@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
-use App\Doctrine\Type\CommitShaType;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\RepositoryId;
 use App\Domain\Repository\RepositoryAccess;
@@ -17,8 +16,6 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * The sync state updates are atomic and conditional, because the php and worker processes change one row concurrently.
@@ -40,7 +37,7 @@ final class RepositoryRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('repository')
             ->where('repository.id = :id')
-            ->setParameter('id', Ulid::fromString($id->toString()), UlidType::NAME)
+            ->setParameter('id', $id, RepositoryId::class)
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
             ->getOneOrNullResult();
@@ -164,7 +161,7 @@ final class RepositoryRepository extends ServiceEntityRepository
             ->set('repository.defaultBranchHead', ':defaultBranchHead')
             ->setParameter('fetchedAt', $fetchedAt, Types::DATETIME_IMMUTABLE)
             ->setParameter('defaultBranch', $defaultBranch)
-            ->setParameter('defaultBranchHead', $defaultBranchHead, CommitShaType::NAME)
+            ->setParameter('defaultBranchHead', $defaultBranchHead, CommitSha::class)
             ->getQuery()
             ->execute();
     }
@@ -189,7 +186,7 @@ final class RepositoryRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('repository')
             ->update()
             ->where('repository.id = :id')
-            ->setParameter('id', Ulid::fromString($id->toString()), UlidType::NAME);
+            ->setParameter('id', $id, RepositoryId::class);
     }
 
     private function running(RepositoryId $id): QueryBuilder

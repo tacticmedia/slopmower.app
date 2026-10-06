@@ -18,10 +18,8 @@ use App\Tests\Support\Messenger\QueuedMessages;
 use App\Tests\Support\Persistence\ReviewDataFixtures;
 use App\Tests\Support\Source\LocalSources;
 use PHPUnit\Framework\Attributes\TestDox;
-use Symfony\Bridge\Doctrine\Types\UlidType;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Filesystem\Filesystem;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * The connected repository is `cloning`, and its clone job is queued.
@@ -137,7 +135,7 @@ final class SyncStateReasonsTest extends KernelTestCase
             ->createQuery('UPDATE '.Repository::class.' repository SET repository.syncState = :state, repository.access = :access WHERE repository.id = :id')
             ->setParameter('state', SyncState::Unavailable)
             ->setParameter('access', RepositoryAccess::Removed)
-            ->setParameter('id', Ulid::fromString($this->repositoryId->toString()), UlidType::NAME)
+            ->setParameter('id', $this->repositoryId, RepositoryId::class)
             ->execute();
     }
 }

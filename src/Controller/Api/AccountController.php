@@ -23,7 +23,6 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * A2 of docs/specs/rest-api.md section 3.
@@ -61,7 +60,7 @@ final class AccountController extends AbstractController
                 $token->revoke($now);
             }
 
-            ($tenants->find(Ulid::fromString($tenantId->toString())) ?? throw new \LogicException('The tenant of the user has no row.'))->requestDeletion($now);
+            ($tenants->find($tenantId) ?? throw new \LogicException('The tenant of the user has no row.'))->requestDeletion($now);
         });
 
         $security->logout(false);

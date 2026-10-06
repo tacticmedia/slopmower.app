@@ -34,7 +34,6 @@ use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * D1 to D5 of docs/specs/rest-api-requests.md section 5.
@@ -144,7 +143,7 @@ final class DraftController extends AbstractController
      */
     private function requestOfReview(Review $review, ChangeRequestRepository $requests, string $requestId): ChangeRequest
     {
-        $request = $requests->find(Ulid::fromString(RequestId::fromString($requestId, 'requestId')->toString())) ?? throw new NotFound('The request does not exist.');
+        $request = $requests->find(RequestId::fromString($requestId, 'requestId')) ?? throw new NotFound('The request does not exist.');
 
         return $request->getReview()->getId()->equals($review->getId())
             ? $request

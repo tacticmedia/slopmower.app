@@ -13,18 +13,16 @@ use App\Repository\CommentRepository;
 use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 #[ORM\Entity(repositoryClass: CommentRepository::class)]
 class Comment implements TenantOwned
 {
     #[ORM\Id]
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $id;
+    #[ORM\Column(type: CommentId::class)]
+    private CommentId $id;
 
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $tenantId;
+    #[ORM\Column(type: TenantId::class)]
+    private TenantId $tenantId;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
@@ -39,8 +37,8 @@ class Comment implements TenantOwned
     #[ORM\Column]
     private bool $question;
 
-    #[ORM\Column(type: UlidType::NAME, nullable: true)]
-    private ?Ulid $batchId;
+    #[ORM\Column(type: BatchId::class, nullable: true)]
+    private ?BatchId $batchId;
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
@@ -54,19 +52,19 @@ class Comment implements TenantOwned
         ?BatchId $batchId,
         \DateTimeImmutable $createdAt,
     ) {
-        $this->id = Ulid::fromString($id->toString());
-        $this->tenantId = Ulid::fromString($request->getTenantId()->toString());
+        $this->id = $id;
+        $this->tenantId = $request->getTenantId();
         $this->request = $request;
         $this->author = ActorEmbeddable::of($author);
         $this->body = $body;
         $this->question = $question;
-        $this->batchId = null === $batchId ? null : Ulid::fromString($batchId->toString());
+        $this->batchId = $batchId;
         $this->createdAt = $createdAt;
     }
 
     public function getTenantId(): TenantId
     {
-        return TenantId::fromString($this->tenantId->toBase32());
+        return $this->tenantId;
     }
 
     public function getAuthor(): Actor

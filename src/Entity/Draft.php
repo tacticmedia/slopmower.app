@@ -12,8 +12,6 @@ use App\Repository\DraftRepository;
 use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * A pending new request or reply of one user. Not event data, so a projection rebuild keeps it.
@@ -25,11 +23,11 @@ class Draft implements TenantOwned
     public const int MAX_PER_USER_AND_REVIEW = 500;
 
     #[ORM\Id]
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $id;
+    #[ORM\Column(type: DraftId::class)]
+    private DraftId $id;
 
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $tenantId;
+    #[ORM\Column(type: TenantId::class)]
+    private TenantId $tenantId;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
@@ -63,8 +61,8 @@ class Draft implements TenantOwned
             throw new \LogicException('The review belongs to another tenant.');
         }
 
-        $this->id = Ulid::fromString(DraftId::generate()->toString());
-        $this->tenantId = Ulid::fromString($review->getTenantId()->toString());
+        $this->id = DraftId::generate();
+        $this->tenantId = $review->getTenantId();
         $this->user = $user;
         $this->review = $review;
         $this->kind = null === $request ? DraftKind::NewRequest : DraftKind::Reply;
@@ -96,12 +94,12 @@ class Draft implements TenantOwned
 
     public function getId(): DraftId
     {
-        return DraftId::fromString($this->id->toBase32());
+        return $this->id;
     }
 
     public function getTenantId(): TenantId
     {
-        return TenantId::fromString($this->tenantId->toBase32());
+        return $this->tenantId;
     }
 
     public function getUser(): User

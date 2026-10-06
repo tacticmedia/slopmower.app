@@ -9,8 +9,6 @@ use App\Domain\Actor\ActorKind;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Identity\UserId;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * Doctrine has no nullable embeddable, so every column is nullable and a null actor is an embeddable with null fields.
@@ -21,8 +19,8 @@ final class ActorEmbeddable
     #[ORM\Column(nullable: true, enumType: ActorKind::class)]
     private ?ActorKind $kind;
 
-    #[ORM\Column(type: UlidType::NAME, nullable: true)]
-    private ?Ulid $userId;
+    #[ORM\Column(type: UserId::class, nullable: true)]
+    private ?UserId $userId;
 
     #[ORM\Column(length: 64, nullable: true)]
     private ?string $agentName;
@@ -30,7 +28,7 @@ final class ActorEmbeddable
     private function __construct(?Actor $actor)
     {
         $this->kind = $actor?->kind;
-        $this->userId = null === $actor?->userId ? null : Ulid::fromString($actor->userId->toString());
+        $this->userId = $actor?->userId;
         $this->agentName = $actor?->agentName;
     }
 
@@ -49,7 +47,7 @@ final class ActorEmbeddable
         }
 
         try {
-            return Actor::of($this->kind, null === $this->userId ? null : UserId::fromString($this->userId->toBase32()), $this->agentName);
+            return Actor::of($this->kind, $this->userId, $this->agentName);
         } catch (InvalidInput $error) {
             throw new \UnexpectedValueException("Corrupt actor columns. {$error->getMessage()}", 0, $error);
         }

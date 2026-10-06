@@ -10,8 +10,6 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\Query;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * @extends ServiceEntityRepository<Tenant>
@@ -41,7 +39,7 @@ final class TenantRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return Query<mixed, array{id: Ulid}>
+     * @return Query<mixed, array{id: mixed}>
      */
     private function activeQuery(TenantId $tenantId): Query
     {
@@ -49,7 +47,7 @@ final class TenantRepository extends ServiceEntityRepository
             ->select('tenant.id')
             ->where('tenant.id = :id')
             ->andWhere('tenant.deletionRequestedAt IS NULL')
-            ->setParameter('id', Ulid::fromString($tenantId->toString()), UlidType::NAME)
+            ->setParameter('id', $tenantId, TenantId::class)
             ->getQuery();
     }
 }

@@ -37,7 +37,6 @@ use App\Repository\ReviewRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Uid\Ulid;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 final class ReviewCommands
@@ -251,6 +250,6 @@ final class ReviewCommands
 
     private function repository(RepositoryId $repositoryId): Repository
     {
-        return $this->repositories->find(Ulid::fromString($repositoryId->toString())) ?? throw new NotFound();
+        return $this->repositories->find($repositoryId) ?? throw new NotFound();
     }
 }

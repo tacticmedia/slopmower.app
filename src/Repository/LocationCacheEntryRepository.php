@@ -9,7 +9,6 @@ use App\Domain\Identity\EventId;
 use App\Entity\LocationCacheEntry;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * @extends ServiceEntityRepository<LocationCacheEntry>
@@ -23,6 +22,6 @@ final class LocationCacheEntryRepository extends ServiceEntityRepository
 
     public function findOneByKey(EventId $openedEventId, CommitSha $targetSha): ?LocationCacheEntry
     {
-        return $this->findOneBy(['openedEventId' => Ulid::fromString($openedEventId->toString()), 'targetSha' => $targetSha]);
+        return $this->findOneBy(['openedEventId' => $openedEventId, 'targetSha' => $targetSha]);
     }
 }

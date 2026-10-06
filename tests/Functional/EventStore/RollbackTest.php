@@ -21,7 +21,6 @@ use App\Tests\Support\Domain\RequestScenario;
 use App\Tests\Support\EventStore\CommandFixtures;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Uid\Ulid;
 
 final class RollbackTest extends KernelTestCase
 {
@@ -106,7 +105,7 @@ final class RollbackTest extends KernelTestCase
 
     private static function request(RequestId $requestId): ChangeRequest
     {
-        return self::getContainer()->get(ChangeRequestRepository::class)->find(Ulid::fromString($requestId->toString())) ?? self::fail('The request is missing.');
+        return self::getContainer()->get(ChangeRequestRepository::class)->find($requestId) ?? self::fail('The request is missing.');
     }
 
     /**

@@ -17,7 +17,6 @@ use App\Tests\Support\Persistence\ReviewDataFixtures;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Uid\Ulid;
 
 final class RequestStateMapperTest extends KernelTestCase
 {
@@ -34,7 +33,7 @@ final class RequestStateMapperTest extends KernelTestCase
         $state = $built->state();
         $requestId = self::persistScenario($tenantId, $built);
 
-        $request = self::entityManager()->find(ChangeRequest::class, Ulid::fromString($requestId->toString())) ?? self::fail('The request did not reload.');
+        $request = self::entityManager()->find(ChangeRequest::class, $requestId) ?? self::fail('The request did not reload.');
         $links = self::getContainer()->get(CommitLinkRepository::class)->findBy(['request' => $request]);
 
         self::assertEquals($state, RequestStateMapper::toState($request, $links));

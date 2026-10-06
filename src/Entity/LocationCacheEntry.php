@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Anchoring\LocationCacheSql;
-use App\Doctrine\Type\CommitShaType;
 use App\Domain\Anchor\LineRange;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\RepoPath;
+use App\Domain\Identity\EventId;
+use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\TenantId;
 use App\Domain\Location\Location;
 use App\Domain\Location\LocationStatus;
@@ -17,8 +18,6 @@ use App\Repository\LocationCacheEntryRepository;
 use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * Architecture section 5.2: a location keyed by the `request.opened` event ID and the target SHA. Valid forever, because
@@ -29,19 +28,19 @@ use Symfony\Component\Uid\Ulid;
 class LocationCacheEntry implements TenantOwned
 {
     #[ORM\Id]
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $tenantId;
+    #[ORM\Column(type: TenantId::class)]
+    private TenantId $tenantId;
 
     #[ORM\Id]
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $openedEventId;
+    #[ORM\Column(type: EventId::class)]
+    private EventId $openedEventId;
 
     #[ORM\Id]
-    #[ORM\Column(type: CommitShaType::NAME)]
+    #[ORM\Column(type: CommitSha::class)]
     private CommitSha $targetSha;
 
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $repositoryId;
+    #[ORM\Column(type: RepositoryId::class)]
+    private RepositoryId $repositoryId;
 
     #[ORM\Column(enumType: LocationStatus::class)]
     private LocationStatus $status;
@@ -63,7 +62,7 @@ class LocationCacheEntry implements TenantOwned
 
     public function getTenantId(): TenantId
     {
-        return TenantId::fromString($this->tenantId->toBase32());
+        return $this->tenantId;
     }
 
     public function toLocation(): Location

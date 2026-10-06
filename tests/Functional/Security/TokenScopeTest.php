@@ -14,7 +14,6 @@ use App\Tests\Support\Fixtures\TenantFixtures;
 use App\Tests\Support\Persistence\ReviewDataFixtures;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\Uid\Ulid;
 
 final class TokenScopeTest extends WebTestCase
 {
@@ -48,8 +47,7 @@ final class TokenScopeTest extends WebTestCase
         self::persistScenario($user->getTenantId(), $scenario);
         $alpha = self::storeRepository($user->getTenantId(), 'alpha');
         [, $secret] = self::storeToken($user, $alpha);
-        $reviewId = Ulid::fromString($scenario->review()->id->toString());
-        $billingId = self::entityManager()->find(Review::class, $reviewId)?->getRepository()->getId()->toString() ?? self::fail('No review.');
+        $billingId = self::entityManager()->find(Review::class, $scenario->review()->id)?->getRepository()->getId()->toString() ?? self::fail('No review.');
 
         self::assertApiError(self::bearerRequest($client, $secret, 'GET', "/api/v1/repositories/{$billingId}"), 404, 'not_found');
         self::assertApiError(self::bearerRequest($client, $secret, 'POST', "/api/v1/repositories/{$billingId}/fetch"), 404, 'not_found');

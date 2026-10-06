@@ -12,7 +12,6 @@ use App\Tests\Support\Mcp\McpAssertions;
 use App\Tests\Support\Mcp\McpTestClient;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Clock\Clock;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * The request screens in the browser, and the agent's side over MCP, for tests that use {@see CodeComments}.
@@ -33,7 +32,7 @@ trait RequestScreens
         $container = self::getContainer();
         $container->get(TenantContext::class)->set($this->commenter->getTenantId());
         $entityManager = $container->get(EntityManagerInterface::class);
-        $owner = $entityManager->find(User::class, Ulid::fromString($this->commenter->getId()->toString()));
+        $owner = $entityManager->find(User::class, $this->commenter->getId());
         self::assertInstanceOf(User::class, $owner);
         $secret = ApiTokenSecret::generate();
         $entityManager->persist(new ApiToken($owner, $name, null, $secret, Clock::get()->now(), null));

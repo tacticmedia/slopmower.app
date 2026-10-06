@@ -4,15 +4,13 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use App\Doctrine\Type\BlobShaType;
 use App\Domain\Git\BlobSha;
+use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\TenantId;
 use App\Index\IndexSql;
 use App\Repository\IndexedBlobRepository;
 use App\Tenancy\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * Marks a parsed blob, also one without symbols, so it is parsed once. {@see IndexSql} writes the rows.
@@ -21,15 +19,15 @@ use Symfony\Component\Uid\Ulid;
 class IndexedBlob implements TenantOwned
 {
     #[ORM\Id]
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $tenantId;
+    #[ORM\Column(type: TenantId::class)]
+    private TenantId $tenantId;
 
     #[ORM\Id]
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $repositoryId;
+    #[ORM\Column(type: RepositoryId::class)]
+    private RepositoryId $repositoryId;
 
     #[ORM\Id]
-    #[ORM\Column(type: BlobShaType::NAME)]
+    #[ORM\Column(type: BlobSha::class)]
     private BlobSha $blobSha;
 
     #[ORM\Column]
@@ -37,7 +35,7 @@ class IndexedBlob implements TenantOwned
 
     public function getTenantId(): TenantId
     {
-        return TenantId::fromString($this->tenantId->toBase32());
+        return $this->tenantId;
     }
 
     public function hasParseError(): bool

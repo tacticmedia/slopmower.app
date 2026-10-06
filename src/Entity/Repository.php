@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use App\Doctrine\Type\CommitShaType;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\RepositoryId;
@@ -17,8 +16,6 @@ use App\Repository\RepositoryRepository;
 use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * The partial index lets a second GitHub connect find the existing row. Its predicate is in the form PostgreSQL
@@ -33,11 +30,11 @@ use Symfony\Component\Uid\Ulid;
 class Repository implements TenantOwned
 {
     #[ORM\Id]
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $id;
+    #[ORM\Column(type: RepositoryId::class)]
+    private RepositoryId $id;
 
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $tenantId;
+    #[ORM\Column(type: TenantId::class)]
+    private TenantId $tenantId;
 
     #[ORM\Column(enumType: RepositorySource::class)]
     private RepositorySource $source;
@@ -61,7 +58,7 @@ class Repository implements TenantOwned
     #[ORM\Column(nullable: true)]
     private ?string $defaultBranch = null;
 
-    #[ORM\Column(type: CommitShaType::NAME, nullable: true)]
+    #[ORM\Column(type: CommitSha::class, nullable: true)]
     private ?CommitSha $defaultBranchHead = null;
 
     #[ORM\Column(enumType: SyncState::class)]
@@ -85,8 +82,8 @@ class Repository implements TenantOwned
 
     private function __construct(TenantId $tenantId, RepositoryName $name, \DateTimeImmutable $createdAt)
     {
-        $this->id = Ulid::fromString(RepositoryId::generate()->toString());
-        $this->tenantId = Ulid::fromString($tenantId->toString());
+        $this->id = RepositoryId::generate();
+        $this->tenantId = $tenantId;
         $this->source = $name->source();
         $this->name = $name->toString();
         $this->localDirectory = null;
@@ -137,12 +134,12 @@ class Repository implements TenantOwned
 
     public function getId(): RepositoryId
     {
-        return RepositoryId::fromString($this->id->toBase32());
+        return $this->id;
     }
 
     public function getTenantId(): TenantId
     {
-        return TenantId::fromString($this->tenantId->toBase32());
+        return $this->tenantId;
     }
 
     public function getSource(): RepositorySource

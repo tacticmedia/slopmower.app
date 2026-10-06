@@ -4,6 +4,20 @@ doctrine:
 
         profiling_collect_backtrace: '%kernel.debug%'
         dbname_suffix: '%app.database_suffix%'
+        types:
+            App\Domain\Identity\ApiTokenId: App\Doctrine\Type\IdentifierType
+            App\Domain\Identity\BatchId: App\Doctrine\Type\IdentifierType
+            App\Domain\Identity\CommentId: App\Doctrine\Type\IdentifierType
+            App\Domain\Identity\DraftId: App\Doctrine\Type\IdentifierType
+            App\Domain\Identity\EventId: App\Doctrine\Type\IdentifierType
+            App\Domain\Identity\RepositoryId: App\Doctrine\Type\IdentifierType
+            App\Domain\Identity\RequestId: App\Doctrine\Type\IdentifierType
+            App\Domain\Identity\ReviewId: App\Doctrine\Type\IdentifierType
+            App\Domain\Identity\TenantId: App\Doctrine\Type\IdentifierType
+            App\Domain\Identity\UserId: App\Doctrine\Type\IdentifierType
+            App\Domain\Git\BlobSha: App\Doctrine\Type\StringValueType
+            App\Domain\Git\CommitSha: App\Doctrine\Type\StringValueType
+            App\Domain\Git\RepoPath: App\Doctrine\Type\StringValueType
     orm:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore

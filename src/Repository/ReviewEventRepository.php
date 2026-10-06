@@ -9,13 +9,12 @@ use App\Domain\Event\EventType;
 use App\Domain\Identity\EventId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
+use App\Domain\Identity\UserId;
 use App\Entity\ReviewEvent;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * @extends ServiceEntityRepository<ReviewEvent>
@@ -72,7 +71,7 @@ final class ReviewEventRepository extends ServiceEntityRepository
 
             if (null !== $excludedActor->userId) {
                 $sameActor[] = 'event.actor.userId = :excludedUserId';
-                $builder->setParameter('excludedUserId', Ulid::fromString($excludedActor->userId->toString()), UlidType::NAME);
+                $builder->setParameter('excludedUserId', $excludedActor->userId, UserId::class);
             }
 
             if (null !== $excludedActor->agentName) {
@@ -110,7 +109,7 @@ final class ReviewEventRepository extends ServiceEntityRepository
      */
     public function findOpenedEventIds(ReviewId $reviewId): array
     {
-        /** @var list<array{eventId: Ulid, requestId: Ulid}> $rows */
+        /** @var list<array{eventId: EventId, requestId: RequestId}> $rows */
         $rows = $this->ofReview($reviewId)
             ->select('event.id AS eventId', 'event.requestId AS requestId')
             ->andWhere('event.type = :opened')
@@ -120,7 +119,7 @@ final class ReviewEventRepository extends ServiceEntityRepository
         $eventIds = [];
 
         foreach ($rows as $row) {
-            $eventIds[$row['requestId']->toBase32()] = EventId::fromString($row['eventId']->toBase32());
+            $eventIds[$row['requestId']->toString()] = $row['eventId'];
         }
 
         return $eventIds;
@@ -130,6 +129,6 @@ final class ReviewEventRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('event')
             ->where('event.reviewId = :reviewId')
-            ->setParameter('reviewId', Ulid::fromString($reviewId->toString()), UlidType::NAME);
+            ->setParameter('reviewId', $reviewId, ReviewId::class);
     }
 }

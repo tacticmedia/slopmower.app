@@ -20,7 +20,6 @@ use App\Entity\Review;
 use App\Repository\ChangeRequestRepository;
 use App\Repository\CommitLinkRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * Keeps `change_request`, `comment`, and `commit_link` from the thread entries of each request. Review events and
@@ -78,7 +77,7 @@ final class RequestProjector
         $request = $this->requests->findFresh($state->id);
 
         if (null === $request) {
-            $review = $this->entityManager->getReference(Review::class, Ulid::fromString($state->reviewId->toString()))
+            $review = $this->entityManager->getReference(Review::class, $state->reviewId)
                 ?? throw new \LogicException("The review {$state->reviewId} has no row.");
             $this->entityManager->persist(RequestStateMapper::toEntity($review, $state));
 

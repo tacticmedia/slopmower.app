@@ -11,7 +11,6 @@ use App\Entity\ReviewEvent;
 use App\Repository\ReviewEventRepository;
 use App\Tenancy\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * The stored events of a review, for KernelTestCase tests.
@@ -29,7 +28,7 @@ trait EventLog
         $container->get(TenantContext::class)->set($tenantId);
         $events = array_map(
             static fn (ReviewEvent $event): RecordedEvent => $event->toRecordedEvent(),
-            $container->get(ReviewEventRepository::class)->findBy(['reviewId' => Ulid::fromString($reviewId->toString())], ['seq' => 'ASC']),
+            $container->get(ReviewEventRepository::class)->findBy(['reviewId' => $reviewId], ['seq' => 'ASC']),
         );
         $container->get(EntityManagerInterface::class)->clear();
 

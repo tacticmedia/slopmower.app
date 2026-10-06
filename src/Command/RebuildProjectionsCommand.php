@@ -15,7 +15,6 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Uid\Ulid;
 
 #[AsCommand(name: 'app:projections:rebuild', description: 'Rebuilds the projections from the event log, one tenant at a time')]
 final class RebuildProjectionsCommand
@@ -40,7 +39,7 @@ final class RebuildProjectionsCommand
 
         $tenants = $this->tenantFilter->suspend(fn (): array => null === $onlyTenantId
             ? $this->tenants->findBy([], ['id' => 'ASC'])
-            : array_filter([$this->tenants->find(Ulid::fromString($onlyTenantId->toString()))]));
+            : array_filter([$this->tenants->find($onlyTenantId)]));
 
         if (null !== $onlyTenantId && [] === $tenants) {
             $io->error("No tenant has the ID {$tenant}.");

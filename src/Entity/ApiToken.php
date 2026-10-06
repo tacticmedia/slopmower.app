@@ -12,8 +12,6 @@ use App\Repository\ApiTokenRepository;
 use App\Security\AccessScope;
 use App\Tenancy\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * Stores the SHA-256 hex digest of the secret, never the secret. A revoked row stays, so the token list (T1) shows it.
@@ -26,11 +24,11 @@ class ApiToken implements TenantOwned
     public const int LAST_USED_RESOLUTION_SECONDS = 60;
 
     #[ORM\Id]
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $id;
+    #[ORM\Column(type: ApiTokenId::class)]
+    private ApiTokenId $id;
 
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $tenantId;
+    #[ORM\Column(type: TenantId::class)]
+    private TenantId $tenantId;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
@@ -74,8 +72,8 @@ class ApiToken implements TenantOwned
             throw new \LogicException('The repository belongs to another tenant.');
         }
 
-        $this->id = Ulid::fromString(ApiTokenId::generate()->toString());
-        $this->tenantId = Ulid::fromString($user->getTenantId()->toString());
+        $this->id = ApiTokenId::generate();
+        $this->tenantId = $user->getTenantId();
         $this->user = $user;
         $this->name = $name;
         $this->tokenHash = $secret->hash();
@@ -118,12 +116,12 @@ class ApiToken implements TenantOwned
 
     public function getId(): ApiTokenId
     {
-        return ApiTokenId::fromString($this->id->toBase32());
+        return $this->id;
     }
 
     public function getTenantId(): TenantId
     {
-        return TenantId::fromString($this->tenantId->toBase32());
+        return $this->tenantId;
     }
 
     public function getUser(): User

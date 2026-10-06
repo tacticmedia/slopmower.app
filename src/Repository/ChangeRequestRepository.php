@@ -10,8 +10,6 @@ use App\Entity\ChangeRequest;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Query;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * @extends ServiceEntityRepository<ChangeRequest>
@@ -30,7 +28,7 @@ final class ChangeRequestRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('request')
             ->where('request.id = :id')
-            ->setParameter('id', Ulid::fromString($id->toString()), UlidType::NAME)
+            ->setParameter('id', $id, RequestId::class)
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
             ->getOneOrNullResult();
@@ -43,7 +41,7 @@ final class ChangeRequestRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('request')
             ->where('request.review = :review')
-            ->setParameter('review', Ulid::fromString($reviewId->toString()), UlidType::NAME)
+            ->setParameter('review', $reviewId, ReviewId::class)
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
             ->getResult();

@@ -21,7 +21,6 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Messenger\Stamp\ReceivedStamp;
 use Symfony\Component\Messenger\Stamp\StampInterface;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * The ReceivedStamp makes the bus handle an envelope as the worker and the sync:// transport do.
@@ -59,7 +58,7 @@ final class MessengerTenantContextTest extends KernelTestCase
         $requestTenantId = self::newTenant('ann');
         $messageTenantId = self::newTenant('bob');
         self::tenantContext()->set($requestTenantId);
-        $requestTenant = self::entityManager()->find(Tenant::class, Ulid::fromString($requestTenantId->toString())) ?? self::fail('No tenant.');
+        $requestTenant = self::entityManager()->find(Tenant::class, $requestTenantId) ?? self::fail('No tenant.');
 
         $result = self::receive(new TenantProbe(), new TenantStamp($messageTenantId));
 

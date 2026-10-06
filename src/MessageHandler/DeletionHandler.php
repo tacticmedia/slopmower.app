@@ -19,7 +19,6 @@ use App\Repository\TenantRepository;
 use App\Tenancy\TenantFilter;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * Deletes a clone with its index (R6, D22), or every row and file of a tenant (A2, `app:tenant:purge`).
@@ -59,10 +58,9 @@ final class DeletionHandler
      */
     public function purge(TenantId $tenantId): void
     {
-        $tenantUlid = Ulid::fromString($tenantId->toString());
         [$tenant, $repositoryIds] = $this->tenantFilter->suspend(fn (): array => [
-            $this->tenants->find($tenantUlid),
-            array_map(static fn (Repository $repository): RepositoryId => $repository->getId(), $this->repositories->findBy(['tenantId' => $tenantUlid])),
+            $this->tenants->find($tenantId),
+            array_map(static fn (Repository $repository): RepositoryId => $repository->getId(), $this->repositories->findBy(['tenantId' => $tenantId])),
         ]);
 
         if ($tenant instanceof Tenant) {

@@ -22,7 +22,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\PostLoadEventArgs;
 use Doctrine\ORM\Events;
 use PHPUnit\Framework\Attributes\TestDox;
-use Symfony\Bridge\Doctrine\Types\UlidType;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -113,8 +112,7 @@ final class SubmitBatchTest extends WebTestCase
                 $this->connection->executeStatement(
                     'INSERT INTO draft (id, tenant_id, kind, anchor, body, created_at, updated_at, user_id, review_id, request_id)'
                     ." SELECT gen_random_uuid(), tenant_id, kind, anchor, 'Written during the submission.', created_at, updated_at, user_id, review_id, request_id FROM draft WHERE id = :id",
-                    ['id' => $draft->getId()->toString()],
-                    ['id' => UlidType::NAME],
+                    ['id' => $draft->getId()->toRfc4122()],
                 );
             }
         };

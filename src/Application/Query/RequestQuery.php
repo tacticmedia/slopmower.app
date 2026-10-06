@@ -17,8 +17,8 @@ use App\Domain\Event\RequestCommentedEvent;
 use App\Domain\Event\RequestOpenedEvent;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\CommitShaPrefix;
-use App\Domain\Identity\Identifier;
 use App\Domain\Identity\RequestId;
+use App\Domain\Identity\ReviewId;
 use App\Domain\Location\LocationTarget;
 use App\Domain\Request\AllowedActions;
 use App\Domain\Request\Awaiting;
@@ -70,7 +70,7 @@ final class RequestQuery
         $builder = $this->entityManager->createQueryBuilder()
             ->from(ChangeRequest::class, 'request')
             ->where('request.review = :review')
-            ->setParameter('review', self::ulid($review->getId()), UlidType::NAME);
+            ->setParameter('review', $review->getId(), ReviewId::class);
         self::filter($builder, $filter);
         $total = (int) (clone $builder)->select('COUNT(request.id)')->getQuery()->getSingleScalarResult();
         $builder->select('request');
@@ -103,7 +103,7 @@ final class RequestQuery
         }
 
         $links = $this->linksByRequest([$request])[$id->toString()] ?? [];
-        $summary = $this->summary($request, $links, $this->commentCounts([$request])[$id->toString()] ?? 0);
+        $summary = $this->summary($request, $links, $this->commentCounts([$request])[$id->toRfc4122()] ?? 0);
         $thread = $this->threads->entries($request->getReview()->getId(), $id);
         // request.opened, whose ID is the cache key of the location.
         $opened = $thread[0]->event ?? null;
@@ -203,7 +203,7 @@ final class RequestQuery
         return array_map(fn (ChangeRequest $request): RequestSummaryView => $this->summary(
             $request,
             $links[$request->getId()->toString()] ?? [],
-            $commentCounts[$request->getId()->toString()] ?? 0,
+            $commentCounts[$request->getId()->toRfc4122()] ?? 0,
         ), $requests);
     }
 
@@ -259,7 +259,7 @@ final class RequestQuery
             ->join('request.review', 'review')
             ->join('review.repository', 'repository')
             ->where('request.id = :id')
-            ->setParameter('id', self::ulid($id), UlidType::NAME)
+            ->setParameter('id', $id, RequestId::class)
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
             ->getOneOrNullResult();
@@ -368,7 +368,7 @@ final class RequestQuery
             ->where('request.id = :id')
             ->andWhere('request.review = :review')
             ->setParameter('id', $key[0], UlidType::NAME)
-            ->setParameter('review', self::ulid($review->getId()), UlidType::NAME)
+            ->setParameter('review', $review->getId(), ReviewId::class)
             ->getQuery()
             ->getOneOrNullResult();
         $anchor = $last instanceof ChangeRequest ? $last->getAnchor() : throw Cursor::malformed();
@@ -410,7 +410,7 @@ final class RequestQuery
     /**
      * @param list<ChangeRequest> $requests
      *
-     * @return array<string, int> By request ID
+     * @return array<string, int> By request ID in RFC 4122 form
      */
     private function commentCounts(array $requests): array
     {
@@ -430,7 +430,7 @@ final class RequestQuery
         $counts = [];
 
         foreach ($rows as $row) {
-            $counts[Ulid::fromString($row['requestId'])->toBase32()] = (int) $row['comments'];
+            $counts[$row['requestId']] = (int) $row['comments'];
         }
 
         return $counts;
@@ -447,31 +447,26 @@ final class RequestQuery
             return [];
         }
 
-        /** @var list<array{requestId: string, commitSha: CommitSha}> $rows */
+        /** @var list<array{requestId: RequestId, commitSha: CommitSha}> $rows */
         $rows = $this->entityManager->createQueryBuilder()
-            ->select('IDENTITY(link.request) AS requestId', 'link.commitSha AS commitSha')
+            ->select('other.id AS requestId', 'link.commitSha AS commitSha')
             ->from(CommitLink::class, 'link')
             ->join('link.request', 'other')
             ->where('other.review = :review')
             ->andWhere('link.request <> :request')
             ->andWhere('link.commitSha IN (:commitShas)')
             ->orderBy('other.id')
-            ->setParameter('review', self::ulid($request->getReview()->getId()), UlidType::NAME)
-            ->setParameter('request', self::ulid($request->getId()), UlidType::NAME)
+            ->setParameter('review', $request->getReview()->getId(), ReviewId::class)
+            ->setParameter('request', $request->getId(), RequestId::class)
             ->setParameter('commitShas', array_map(static fn (CommitLink $link): string => $link->getCommitSha()->toString(), $links), ArrayParameterType::STRING)
             ->getQuery()
             ->getArrayResult();
         $others = [];
 
         foreach ($rows as $row) {
-            $others[$row['commitSha']->toString()][] = RequestId::fromString(Ulid::fromString($row['requestId'])->toBase32());
+            $others[$row['commitSha']->toString()][] = $row['requestId'];
         }
 
         return array_map(static fn (CommitLink $link): CommitLinkView => new CommitLinkView($link, $others[$link->getCommitSha()->toString()] ?? []), $links);
-    }
-
-    private static function ulid(Identifier $id): Ulid
-    {
-        return Ulid::fromString($id->toString());
     }
 }

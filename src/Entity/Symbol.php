@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use App\Doctrine\Type\BlobShaType;
 use App\Domain\Anchor\LineRange;
 use App\Domain\Anchor\SymbolKind;
 use App\Domain\Git\BlobSha;
+use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\TenantId;
 use App\Index\ExtractedSymbol;
 use App\Index\IndexSql;
@@ -15,8 +15,6 @@ use App\Repository\SymbolRepository;
 use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * One symbol of a parsed blob. {@see IndexSql} writes the rows.
@@ -32,13 +30,13 @@ class Symbol implements TenantOwned
     #[ORM\Column(type: Types::BIGINT)]
     private int $id;
 
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $tenantId;
+    #[ORM\Column(type: TenantId::class)]
+    private TenantId $tenantId;
 
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $repositoryId;
+    #[ORM\Column(type: RepositoryId::class)]
+    private RepositoryId $repositoryId;
 
-    #[ORM\Column(type: BlobShaType::NAME)]
+    #[ORM\Column(type: BlobSha::class)]
     private BlobSha $blobSha;
 
     #[ORM\Column(enumType: SymbolKind::class)]
@@ -67,7 +65,7 @@ class Symbol implements TenantOwned
 
     public function getTenantId(): TenantId
     {
-        return TenantId::fromString($this->tenantId->toBase32());
+        return $this->tenantId;
     }
 
     public function toExtracted(): ExtractedSymbol

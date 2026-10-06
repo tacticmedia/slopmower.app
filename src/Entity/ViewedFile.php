@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use App\Doctrine\Type\RepoPathType;
 use App\Domain\Git\RepoPath;
 use App\Domain\Identity\TenantId;
 use App\Repository\ViewedFileRepository;
@@ -26,8 +25,8 @@ class ViewedFile implements TenantOwned
     #[ORM\Column(type: UlidType::NAME)]
     private Ulid $id;
 
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $tenantId;
+    #[ORM\Column(type: TenantId::class)]
+    private TenantId $tenantId;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
@@ -37,7 +36,7 @@ class ViewedFile implements TenantOwned
     #[ORM\JoinColumn(nullable: false)]
     private Review $review;
 
-    #[ORM\Column(type: RepoPathType::NAME)]
+    #[ORM\Column(type: RepoPath::class)]
     private RepoPath $path;
 
     #[ORM\Column(length: 64)]
@@ -50,7 +49,7 @@ class ViewedFile implements TenantOwned
         }
 
         $this->id = new Ulid();
-        $this->tenantId = Ulid::fromString($review->getTenantId()->toString());
+        $this->tenantId = $review->getTenantId();
         $this->user = $user;
         $this->review = $review;
         $this->path = $path;
@@ -64,6 +63,6 @@ class ViewedFile implements TenantOwned
 
     public function getTenantId(): TenantId
     {
-        return TenantId::fromString($this->tenantId->toBase32());
+        return $this->tenantId;
     }
 }

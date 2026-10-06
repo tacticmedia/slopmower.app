@@ -246,7 +246,7 @@ make up
   - The Doctrine SQL filter is on by default and fails closed without a tenant context.
   - Only these paths turn it off, and only through `TenantFilter::suspend()`: the sign-in and token lookups, the webhook consumer, the projection rebuild, and the purge.
   - Raw SQL lives only in `final` classes named `*Sql`, and every statement on a tenant table names its tenant column: `tenant_id`, or `id` on the `tenant` table. `RawSqlTenantAuditTest` enforces this from M07 on.
-  - Raw SQL, the SQL filter parameters, and DQL list parameters take a typed ID as `Identifier::toRfc4122()`, because the `ulid` column type is a native `uuid` on PostgreSQL.
+  - An entity stores a typed ID in a column of the ID class type, `#[ORM\Column(type: TenantId::class)]`, and a DQL parameter binds it with that type: `setParameter('id', $id, RequestId::class)`. Raw SQL, the SQL filter parameters, and DQL list parameters take `Identifier::toRfc4122()`, because an ID column is a native `uuid` on PostgreSQL.
   - File paths come only from typed IDs.
   - Mercure topics include the tenant ID.
 - Git:

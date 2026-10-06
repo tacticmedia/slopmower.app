@@ -10,9 +10,7 @@ use App\Repository\UserRepository;
 use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UlidType;
 use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * GitHub logins can be renamed and taken again, so a GitHub user is identified by githubUserId.
@@ -29,11 +27,11 @@ class User implements TenantOwned, UserInterface
     public const string ROLE = 'ROLE_USER';
 
     #[ORM\Id]
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $id;
+    #[ORM\Column(type: UserId::class)]
+    private UserId $id;
 
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $tenantId;
+    #[ORM\Column(type: TenantId::class)]
+    private TenantId $tenantId;
 
     #[ORM\Column(enumType: SignInMethod::class)]
     private SignInMethod $signInMethod;
@@ -65,8 +63,8 @@ class User implements TenantOwned, UserInterface
         ?string $avatarUrl,
         \DateTimeImmutable $signedInAt,
     ) {
-        $this->id = Ulid::fromString(UserId::generate()->toString());
-        $this->tenantId = Ulid::fromString($tenantId->toString());
+        $this->id = UserId::generate();
+        $this->tenantId = $tenantId;
         $this->signInMethod = $signInMethod;
         $this->githubUserId = $githubUserId;
         $this->login = $login;
@@ -107,12 +105,12 @@ class User implements TenantOwned, UserInterface
 
     public function getId(): UserId
     {
-        return UserId::fromString($this->id->toBase32());
+        return $this->id;
     }
 
     public function getTenantId(): TenantId
     {
-        return TenantId::fromString($this->tenantId->toBase32());
+        return $this->tenantId;
     }
 
     public function getSignInMethod(): SignInMethod

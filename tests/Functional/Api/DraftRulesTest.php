@@ -8,6 +8,7 @@ use App\Domain\Anchor\Anchor;
 use App\Domain\Anchor\AnchorKind;
 use App\Domain\Git\BlobSha;
 use App\Domain\Git\RepoPath;
+use App\Domain\Identity\ReviewId;
 use App\Entity\Draft;
 use App\Entity\Review;
 use App\Entity\User;
@@ -149,8 +150,8 @@ final class DraftRulesTest extends WebTestCase
     {
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
         [$user, $review] = self::getContainer()->get(TenantFilter::class)->suspend(fn (): array => [
-            $entityManager->find(User::class, Ulid::fromString($this->user->getId()->toString())),
-            $entityManager->find(Review::class, Ulid::fromString($this->reviewId)),
+            $entityManager->find(User::class, $this->user->getId()),
+            $entityManager->find(Review::class, ReviewId::fromString($this->reviewId)),
         ]);
         \assert($user instanceof User && $review instanceof Review);
         $anchor = Anchor::of(AnchorKind::File, RepoPath::fromString('README.md'), $review->getCommitSha(), BlobSha::fromString('e965047ad7c57865823c7d992b1d046ea66edf78'), null, null, null);
