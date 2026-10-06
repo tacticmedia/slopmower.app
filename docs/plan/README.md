@@ -230,7 +230,7 @@ make up
   | `src/Controller` | `Api/`, `E2e/`, and the controllers outside `/api/v1` |
   | `src/Http` | The REST exception listener, the CSRF listener, the cursor codec |
   | `src/Serializer/Normalizer` | The value normalizers, and one normalizer per schema whose response class cannot be schema-shaped. REST and MCP share them. |
-  | `src/Mcp` | `Tool/`, `McpToolRunner`, generated `BundledSchemas` |
+  | `src/Mcp` | `McpTools` with every tool, the session decorators, generated `BundledSchemas` |
   | `src/Live`, `src/Index`, `src/Anchoring`, `src/Docs` | Mercure, symbol index, re-anchoring, public documentation |
   | `src/Message`, `src/MessageHandler`, `src/Messenger` | Messenger messages, every Messenger handler, middleware |
   | `src/Command`, `src/GitHub`, `src/Webhook` | Operator commands, GitHub API, GitHub webhooks |
@@ -240,7 +240,7 @@ make up
   - Use attributes: `#[Route]`, `#[IsGranted]`, `#[MapRequestPayload]`, `#[MapQueryString]`, `#[AsCommand]`, `#[AsMessageHandler]`, `#[AsEventListener]`, `#[Autowire]`, `#[When]`. A route that exists only in one environment also sets `env:` on `#[Route]`.
   - Rely on autowiring. No YAML service definition unless it is unavoidable.
 - Paginated lists use `Http\Cursor`: `decode()` checks the sort key types, and `next()` makes `nextCursor`.
-- Controllers are thin: map the input, call one service, return the normalized JSON. Logic with no other consumer stays in the controller, in the action or a private method. Path IDs resolve to visible entities in argument value resolvers, so the error check order of docs/specs holds. See M11. Errors are `DomainError` subclasses. `ApiExceptionListener` maps them for REST, and `McpToolRunner` maps them for MCP.
+- Controllers are thin: map the input, call one service, return the normalized JSON. Logic with no other consumer stays in the controller, in the action or a private method. Path IDs resolve to visible entities in argument value resolvers, so the error check order of docs/specs holds. See M11. Errors are `DomainError` subclasses. `ApiExceptionListener` maps them for REST, and `McpTools::run()` maps them for MCP.
 - Responses go through the Serializer that REST and MCP share:
   - A response class is schema-shaped: its public properties are the fields of its schema, in schema order, and `ObjectNormalizer` writes it. An array literal in an action follows the same rule.
   - A class that cannot be, because it wraps an entity, a recorded event, or an `App\Git` object, merges another schema, or computes a field, has one normalizer named after its schema, and that normalizer also maps its nested parts. The normalizers are in `src/Serializer/Normalizer`.

@@ -33,8 +33,8 @@ Record a baseline before S01 and after every step: PHP and TS file count, lines 
 | S05 | Split `FetchRepository`, handlers in one place | Done 2026-10-05, [report](reports/S05.md) | 9a68a77 | src 399 PHP / 25399 lines, 399 types; tests 268 PHP / 22945 lines; assets 128 TS / 6484 lines; check 2m26s |
 | S06 | One `Anchoring` namespace | Done 2026-10-05, [report](reports/S06.md) | bc77a19 | src 399 PHP / 25399 lines, 399 types; tests 268 PHP / 22945 lines; assets 128 TS / 6484 lines; check 2m14s |
 | S07 | Collapse layers around commands | Done 2026-10-06, [report](reports/S07.md) | 58bcc57 | src 394 PHP / 25169 lines, 394 types; tests 268 PHP / 22966 lines; assets 128 TS / 6484 lines; check 2m13s |
-| S08 | One serialization path | Done 2026-10-06, [report](reports/S08.md) | | src 393 PHP / 25130 lines, 393 types; tests 268 PHP / 22966 lines; assets 128 TS / 6484 lines |
-| S09 | MCP tools as thin delegations | Not started | | |
+| S08 | One serialization path | Done 2026-10-06, [report](reports/S08.md) | f24de27 | src 393 PHP / 25130 lines, 393 types; tests 268 PHP / 22966 lines; assets 128 TS / 6484 lines; check 2m16s |
+| S09 | MCP tools as thin delegations | Done 2026-10-06, [report](reports/S09.md) | | src 381 PHP / 24785 lines, 381 types; tests 268 PHP / 22966 lines; assets 128 TS / 6484 lines |
 | S10 | One pattern for reads | Not started | | |
 | S11 | GitHub duplicates | Done 2026-10-03, [report](reports/S11.md) | a437ff1 | src 406 PHP / 25918 lines, 406 types; tests 272 PHP / 23153 lines; assets 128 TS / 6484 lines; check 2m37s |
 | S12 | Front-end duplicates | Done 2026-10-03, [report](reports/S12.md) | d58d900 | src 406 PHP / 25954 lines, 406 types; tests 272 PHP / 23118 lines; assets 128 TS / 6484 lines; check 2m29s |

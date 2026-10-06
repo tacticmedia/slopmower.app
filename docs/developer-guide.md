@@ -2,7 +2,7 @@
 
 This guide is a map of the Holistic Review code. It tells you what each part does, where it is, how a call moves through it, and which parts are larger than the job. The [architecture](architecture.md) and the [specifications](specs/README.md) stay the sources of truth. This guide points to them.
 
-Size: `src/` has 393 PHP files and about 25,100 lines. One generated file, `src/Mcp/BundledSchemas.php`, has 2,472 of these lines. `assets/` has 128 TypeScript files and about 6,500 lines without tests. `tests/` has about 23,000 lines of PHP and 2,800 lines of Playwright UI tests.
+Size: `src/` has 381 PHP files and about 24,800 lines. One generated file, `src/Mcp/BundledSchemas.php`, has 2,472 of these lines. `assets/` has 128 TypeScript files and about 6,500 lines without tests. `tests/` has about 23,000 lines of PHP and 2,800 lines of Playwright UI tests.
 
 ## 1. Start here
 
@@ -43,7 +43,7 @@ First read architecture sections 3 and 6. `src/Domain` implements them almost li
 | 5 | `src/EventStore/CommandExecutor.php` | The only write path for events, 172 lines |
 | 6 | `src/Projection/RequestProjector.php` | How events become `change_request`, `comment`, and `commit_link` rows |
 | 7 | `src/Application/RequestCommands.php` | How each request command gets to the decider |
-| 8 | `src/Mcp/Tool/ClaimRequestTool.php`, `src/Controller/Api/AgentRequestController.php` | One command through MCP and through REST |
+| 8 | `src/Mcp/McpTools.php`, method `claimRequest()`, and `src/Controller/Api/AgentRequestController.php` | One command through MCP and through REST |
 | 9 | `src/Tenancy/TenantContext.php`, `TenantSqlFilter.php`, `TenantFilter.php` | Tenant isolation |
 | 10 | `src/Application/FetchRepository.php`, `ServerClone.php` | The server clone. `FetchRepository` queues each clone and fetch, fetches within 60 s, and removes access. `ServerClone` fetches from the source. |
 | 11 | `src/Anchoring/Locator.php`, method `compute()` | Re-anchoring. Read it next to architecture section 5.4. |
@@ -197,8 +197,7 @@ App\Anchoring          git and cache side: Locator, LocationCacheSql, QueueLocat
 | `App\Controller\Api\Input` | 27 | Request DTOs for `#[MapRequestPayload]` and `#[MapQueryString]` | `AnchorInput`, `RequestListQuery`, `LinkCommitsInput` | Domain, Query |
 | `App\Http` | 6 | The `/api/v1` pipeline: error body, CSRF, body size, headers, cursor | `ApiExceptionListener`, `ApiCsrfListener`, `Cursor` | Domain |
 | `App\Serializer\Normalizer` | 16 | The value normalizers, and one normalizer per schema whose response class cannot be schema-shaped, shared by REST and MCP (D37) | `RequestNormalizer`, `RequestSummaryNormalizer`, `EventNormalizer` | Query, Domain |
-| `App\Mcp` | 4 | MCP runner, two session decorators, generated output schemas | `McpToolRunner`, `SessionLockedMcpController`, `TokenBoundSessionStore` | Serializer, Security |
-| `App\Mcp\Tool` | 12 | The 12 MCP tools of `specs/mcp.md` section 4 | `GetUpdatesTool`, `GetRequestTool`, `ClaimRequestTool` | Application, Query |
+| `App\Mcp` | 4 | The 12 MCP tools of `specs/mcp.md` section 4 as methods of one class, two session decorators, generated output schemas | `McpTools`, `SessionLockedMcpController`, `TokenBoundSessionStore` | Application, Query, Serializer, Security |
 | `App\Docs` | 2 | Serves `docs/user` and the schemas through a lookup in a directory listing (D28) | `DocsCatalog`, `DocsLinkRewriter` | Finder, CommonMark |
 | `App\Command` | 4 | `app:projections:rebuild`, `app:index:rebuild`, `app:tenant:purge`, `app:schema:bundle` | `RebuildProjectionsCommand`, `BundleSchemasCommand` | EventStore, MessageHandler, Index |
 
@@ -217,7 +216,7 @@ App\Anchoring          git and cache side: Locator, LocationCacheSql, QueueLocat
 ### 3.3 Dependency picture
 
 ```text
-Adapters      Controller\Api   Mcp\Tool   Webhook           Command   MessageHandler
+Adapters      Controller\Api   McpTools   Webhook           Command   MessageHandler
                     |              |             |              |            |
                     +--------------+------+------+--------------+------------+
                                           |
@@ -233,7 +232,7 @@ Cross-cutting:  Tenancy, Security, Http, Messenger, Serializer\Normalizer
 
 - `src/Domain` imports only `App\Domain`, `Symfony\Component\Uid`, and PHP core. `tests/Unit/Conventions/DomainPurityTest.php` enforces it (D44). It has no services and no I/O, and the deciders, reducers, and algorithms are static functions.
 - Event data goes only through `CommandExecutor`. Data that is not event data has other writers, for example `IndexReviewHandler`, `RecomputeLocationsHandler`, the conditional updates of `RepositoryRepository`, drafts, viewed files, and tokens.
-- No test enforces namespace dependencies outside `src/Domain`. These 13 namespace cycles exist in code: `Entity` with `Repository`, `Tenancy`, `Security`, `GitHub`, and `Index`; `Repository` and `Security`; `Application` with `GitHub` and `Anchoring`; `Controller` and `Http`; `Domain\Error` with `Domain\Request`, `Domain\Identity`, and `Domain\Actor`; and `Domain\Request` and `Domain\Event`. `Mcp\Tool\ListRequestsTool` imports `Controller\Api\Input\RequestListQuery`.
+- No test enforces namespace dependencies outside `src/Domain`. These 13 namespace cycles exist in code: `Entity` with `Repository`, `Tenancy`, `Security`, `GitHub`, and `Index`; `Repository` and `Security`; `Application` with `GitHub` and `Anchoring`; `Controller` and `Http`; `Domain\Error` with `Domain\Request`, `Domain\Identity`, and `Domain\Actor`; and `Domain\Request` and `Domain\Event`. `Mcp\McpTools` imports `Controller\Api\Input\RequestListQuery`.
 
 ### 3.4 Where a change goes
 
@@ -244,7 +243,7 @@ Change the specs first when a contract changes. The plan forbids a wire format t
 | A new field on a request | `RequestState`, `RequestReducer`, `ChangeRequest`, `RequestStateMapper`, a migration, `RequestSummaryView` or `RequestView`, its normalizer, the schema, the TypeScript type |
 | A new request command | A DTO in `Domain\Request\Command`, an `Action` case, `AllowedActions`, `RequestDecider`, an event class with `toPayload()` and `fromPayload()`, an `EventType` case, `RequestReducer`, `RequestCommands`, one REST action, one MCP tool |
 | A new REST endpoint | An action in `Controller\Api`, an input DTO in `Controller\Api\Input`, a service in `Application` or `Application\Query` when another adapter shares the logic, a schema-shaped response class or a normalizer (section 5), a cross-tenant case. `CrossTenantCoverageTest` fails without the case. |
-| A new MCP tool | A class in `Mcp\Tool` that calls `McpToolRunner::run()`, a cross-tenant case, and for a new output schema a run of `app:schema:bundle` |
+| A new MCP tool | A `#[McpTool]` method in `Mcp\McpTools` that calls `run()`, or `requestCommand()` for a request command, sorted by tool name with the other methods, because the method order is the `tools/list` order, a cross-tenant case, and for a new output schema a run of `app:schema:bundle` |
 | A new tenant table | An entity that implements `TenantOwned`, a rule in `RepositoryScopeSqlFilter`, the delete lists in `DeletionSql`, a migration. `EntityTenancyConventionTest` checks the tenant column. |
 | A new ID class | A subclass of `Identifier` and its line in the `types` of `config/packages/doctrine.yaml` |
 | A new background job | A message in `App\Message` with `#[AsMessage('async')]` and a handler in `App\MessageHandler`. Run `make worker-restart` in dev, because the Messenger worker does not reload code. |
@@ -274,8 +273,8 @@ An agent cannot open a request. A user opens one through `RequestController::ope
 1. The agent sends `tools/call reply_to_request` to `POST /_mcp` with `Authorization: Bearer hr_...`.
 2. The `mcp` firewall calls `ApiTokenHandler::getUserBadgeFrom()`. It finds the token by its SHA-256 inside `TenantFilter::suspend()`, requires `ApiTokenState::Active` and a live owner, calls `TenantContext::set()`, and calls `restrictToRepository()` for a scoped token. It returns an `AgentUser`. `access_control` requires `ROLE_AGENT`.
 3. `SessionLockedMcpController::handle()` holds the lock `mcp-session-<id>`, so one request per MCP session runs at a time. `TokenBoundSessionStore` binds the session to the token.
-4. The SDK checks the arguments against `#[Schema]` and calls `ReplyToRequestTool::replyToRequest()`. `McpToolRunner::run()` runs the closure. `CurrentActor::get()` gives `Actor::agent(userId, agentName)`.
-5. `RequestCommands::reply()` calls `reviewOf()`. The SQL filters apply to this lookup, so a request of another tenant or outside the token scope gives `NotFound`. Then `run()` calls `CommandExecutor::execute()`.
+4. The SDK checks the arguments against `#[Schema]` and calls `McpTools::replyToRequest()`. `requestCommand()` runs the command through `McpTools::run()`, which maps each failure. `CurrentActor::get()` gives `Actor::agent(userId, agentName)`.
+5. `RequestCommands::reply()` calls `reviewOf()`. The SQL filters apply to this lookup, so a request of another tenant or outside the token scope gives `NotFound`. Then `RequestCommands::run()` calls `CommandExecutor::execute()`.
 6. Under the tenant row lock, the decide closure reads `ReviewRepository::findFresh()`, builds the state with `RequestStateMapper::toState()` from `ChangeRequestRepository::findFresh()` and `CommitLinkRepository::findFreshOf()`, and calls `RequestDecider::decide()`. The checks run in the order `invalid_input`, `review_closed`, `invalid_transition`, `commits_not_available`. The result is `request.commented`.
 7. `CommandExecutor` numbers the event with the next `seq` and calls `EventStoreSql::append()`. `RequestProjector::project()` folds `RequestReducer::apply()`, writes the state with `RequestStateMapper::update()`, including `awaiting` from `AwaitingPolicy::evaluate()`, and persists a `Comment`. `ReviewProjector::project()` moves `Review.lastEventSeq`. The transaction commits.
 8. `EventsCommitted` goes to `PublishCommittedEvents::__invoke()`, which publishes `{type: events, reviewId, seq, requestIds}` on the review topic with the ID `urn:holistic-review:<tenantId>:<seq>`. `QueueLocationRecompute::onEventsCommitted()` does nothing, because no `request.opened` is in the batch.
@@ -333,7 +332,7 @@ Run `make db-test` once and after each migration. `make check` runs all gates. O
 |---|---|---|---|
 | Event log, deciders, reducers, projectors | `Domain\Request`, `Domain\Event` with sub-namespaces, `EventStore`, `Projection`: about 2,800 lines | Forced by D3, D37, architecture section 6, and the domain purity rule of D44 | 14 event classes for 14 types, explicit codecs, and a transition test with 192 cases. The cost: one request exists as events, `RequestState`, `ChangeRequest`, and a view DTO. A new request field touches `RequestState`, `RequestReducer`, `ChangeRequest`, and `RequestStateMapper`. |
 | `src/Mcp/BundledSchemas.php` | 2,472 lines | Forced by `specs/mcp.md` section 3 | `#[McpTool(outputSchema:)]` takes only constant expressions. `app:schema:bundle` generates the file, and `BundledSchemasUpToDateTest` checks it. |
-| MCP tools next to REST actions | `Mcp\Tool`: 12 classes, about 680 lines | Forced by architecture section 7.1 and D20 | Each tool closure equals one REST action line. One class per tool is a choice. Check the SDK discovery before you merge classes. |
+| MCP tools next to REST actions | `Mcp\Tool`: 12 classes, about 680 lines | Forced by architecture section 7.1 and D20 | Done in S09. `Mcp\McpTools` holds the 12 tools, one `#[McpTool]` method each, and the error mapping, in 422 lines. Each tool delegates to one query or one `RequestCommands` method, the request commands through `requestCommand()`. The bundle registers every `#[McpTool]` method of a service, and the method order is the `tools/list` order. Remains: `get_updates`, `list_requests`, and `list_reviews` also resolve the review or repository first, so `not_found` comes first, as in REST. |
 | Normalizers and view DTOs | 17 normalizers with 1,151 lines, 26 DTO and enum files in `Application\Query` with 722 lines | Forced by D37 and architecture section 7.2. Candidate in part. | Done in S08. The rule is in section 5: a response class is schema-shaped and goes through `ObjectNormalizer`, for example `RequestCommandResult`, `UpdatesPage`, `IndexStatus`, `LocationView`, and `CodeExcerpt`. A class that wraps an entity, a recorded event, or an `App\Git` object, merges another schema, or computes a field has one normalizer named after its schema. 16 normalizers have 1,091 lines. Remains: the view classes that wrap an entity and add a few fields, because a schema-shaped copy repeats every field, and `RequestView` and `ThreadEntry`, which merge other schemas. |
 | `Application\FetchRepository` | 462 lines, 17 constructor parameters, 3 message handlers | Candidate. The lock and sync rules are forced by D24 and D39. | Done in S05. `FetchRepository` has 203 lines and 9 constructor parameters: it queues clones and fetches, fetches within 60 s, removes access, and checks that a clone is ready. `ServerClone` fetches from the source, with the GitHub token request and the local discovery. `RepositorySyncHandler` runs the clone and fetch jobs, `DeletionHandler` the clone deletion and the tenant purge, and `RepositoryLock::acquire()` waits for the lock for all of them. Both sources build one `Source\FetchCommand`. An interface with a picker in `App\Source` is not smaller, because only `ServerClone` picks. Remains: `ServerClone` has 12 constructor parameters, which the two sources need. |
 | Re-anchoring | 4 namespaces, about 1,380 lines | Forced by architecture sections 5.4 and 5.5 and plan M28. Candidate for names. | Done in S06. The pure algorithms are in `App\Domain\Matching`, and `App\Anchoring` holds the git and cache side. `Locator` is the only production caller of `Domain\Matching`, and the split lets the algorithms run in unit tests without git. The value types `ExactMatch`, `FuzzyMatch`, and `MappedRange` stay, because a fold gives an array shape or a second similarity run, and `Hunk` holds the boundary rules of `RangeMapper`. |

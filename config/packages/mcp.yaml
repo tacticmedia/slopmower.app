@@ -11,4 +11,4 @@ mcp:
             http: { path: /_mcp, allowed_hosts: ['%env(APP_PUBLIC_HOST)%'] }
             # D40. The default directory is under the cache directory, which cache:clear removes.
             session: { store: file, directory: '%kernel.project_dir%/var/mcp-sessions' }
-            registry: { tools: ['App\Mcp\Tool\'] }
+            registry: { tools: ['App\Mcp\McpTools'] }

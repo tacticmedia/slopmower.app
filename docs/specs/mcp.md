@@ -33,7 +33,7 @@ mcp:
       transports: { stdio: false, http: true }
       http: { path: /_mcp, allowed_hosts: ['%env(APP_PUBLIC_HOST)%'] }
       session: { store: file, directory: '%kernel.project_dir%/var/mcp-sessions' }
-      registry: { tools: ['App\Mcp\Tool\'] }
+      registry: { tools: ['App\Mcp\McpTools'] }
 ```
 
 `http.allowed_hosts` defaults to localhost only, so a public server must list its host.
@@ -62,7 +62,7 @@ Never verify, reopen, or create requests. Errors are isError results whose text 
 - **Domain errors.** The adapter catches `DomainError` and throws `ToolCallException(json_encode(['error' => ['code' => ..., 'message' => ..., 'details' => ...]]))`. The SDK turns that into `{"isError": true, "content": [{"type": "text", "text": "<Error JSON>"}]}`, with **no `structuredContent`**. So clients that validate `structuredContent` against the `outputSchema` do not reject the error.
 - **Other exceptions.** The adapter catches every other `Throwable`, logs it, and throws `ToolCallException` with code `internal_error`. The agent therefore never gets a bare -32603.
 - **Protocol-level errors.** The SDK answers these before the tool runs. An unknown tool gives JSON-RPC error -32602 without `data`. Arguments that violate `inputSchema` give -32602 with `data.validation_errors`. Any `inputSchema` keyword can fail, for example `pattern`, `minLength`, `maximum`, `enum`, `type`, or a missing required field. Semantic checks give `isError` with `invalid_input`, for example a body of whitespace only, or a reason shorter than 20 characters after trimming.
-- **Constants** of `App\Mcp\McpToolRunner` used in `#[Schema]`:
+- **Constants** of `App\Mcp\McpTools` used in `#[Schema]`:
   - `ULID = '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'`
   - `FULL_SHA = '^([0-9a-f]{40}|[0-9a-f]{64})$'`
   - `SHA_PREFIX = '^[0-9a-f]{7,64}$'`
@@ -172,7 +172,7 @@ List the change requests of one review, oldest first, with optional filters. Ret
  * @param int            $limit    Page size
  */
 #[McpTool(name: 'list_requests', title: 'List requests', annotations: new ToolAnnotations(readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false), outputSchema: BundledSchemas::REQUEST_PAGE)]
-public function listRequests(#[Schema(pattern: McpToolRunner::ULID)] string $review, ?RequestStatus $status = null, ?Awaiting $awaiting = null, #[Schema(minLength: 1, maxLength: 4096)] ?string $path = null, ?bool $outdated = null, #[Schema(minLength: 1)] ?string $cursor = null, #[Schema(minimum: 1, maximum: 200)] int $limit = 50): array
+public function listRequests(#[Schema(pattern: self::ULID)] string $review, ?RequestStatus $status = null, ?Awaiting $awaiting = null, #[Schema(minLength: 1, maxLength: 4096)] ?string $path = null, ?bool $outdated = null, #[Schema(minLength: 1)] ?string $cursor = null, #[Schema(minimum: 1, maximum: 200)] int $limit = 50): array
 ```
 
 ```json
@@ -208,7 +208,7 @@ Return what changed in one review since `cursor`, grouped by request, leaving ou
  * @param int    $limit  Maximum events (with a cursor) or requests (without one)
  */
 #[McpTool(name: 'get_updates', title: 'Get updates', annotations: new ToolAnnotations(readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false), outputSchema: BundledSchemas::UPDATES_PAGE)]
-public function getUpdates(#[Schema(pattern: McpToolRunner::ULID)] string $review, #[Schema(minimum: 0)] ?int $cursor = null, #[Schema(minimum: 1, maximum: 500)] int $limit = 100): array
+public function getUpdates(#[Schema(pattern: self::ULID)] string $review, #[Schema(minimum: 0)] ?int $cursor = null, #[Schema(minimum: 1, maximum: 500)] int $limit = 100): array
 ```
 
 ```json
@@ -240,7 +240,7 @@ Return one request in full: body, thread, anchor with a code snapshot at the rev
  * @param ?int    $context Lines of context around the located code to include as excerpt
  */
 #[McpTool(name: 'get_request', title: 'Get request', annotations: new ToolAnnotations(readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false), outputSchema: BundledSchemas::REQUEST)]
-public function getRequest(#[Schema(pattern: McpToolRunner::ULID)] string $id, #[Schema(pattern: McpToolRunner::SHA_PREFIX)] ?string $at = null, #[Schema(minimum: 0, maximum: 50)] ?int $context = null): array
+public function getRequest(#[Schema(pattern: self::ULID)] string $id, #[Schema(pattern: self::SHA_PREFIX)] ?string $at = null, #[Schema(minimum: 0, maximum: 50)] ?int $context = null): array
 ```
 
 ```json
@@ -268,7 +268,7 @@ Claim an open or reopened request before you edit code for it. Status becomes in
 ```php
 /** @param string $id Request ID */
 #[McpTool(name: 'claim_request', title: 'Claim request', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false), outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT)]
-public function claimRequest(#[Schema(pattern: McpToolRunner::ULID)] string $id): array
+public function claimRequest(#[Schema(pattern: self::ULID)] string $id): array
 ```
 
 ```json
@@ -295,7 +295,7 @@ Give back a request that you claimed but will not finish. Its status returns to 
  * @param ?string $note Why you stop, for the user
  */
 #[McpTool(name: 'release_request', title: 'Release request', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false), outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT)]
-public function releaseRequest(#[Schema(pattern: McpToolRunner::ULID)] string $id, #[Schema(maxLength: 65536)] ?string $note = null): array
+public function releaseRequest(#[Schema(pattern: self::ULID)] string $id, #[Schema(maxLength: 65536)] ?string $note = null): array
 ```
 
 ```json
@@ -326,7 +326,7 @@ Add a comment to a request's thread, in any status. Set question to true when yo
  * @param bool   $question True when you need an answer from the user
  */
 #[McpTool(name: 'reply_to_request', title: 'Reply to request', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false), outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT)]
-public function replyToRequest(#[Schema(pattern: McpToolRunner::ULID)] string $id, #[Schema(minLength: 1, maxLength: 65536)] string $body, bool $question = false): array
+public function replyToRequest(#[Schema(pattern: self::ULID)] string $id, #[Schema(minLength: 1, maxLength: 65536)] string $body, bool $question = false): array
 ```
 
 ```json
@@ -359,8 +359,8 @@ Record that a commit implements one or more requests that you hold (status in_pr
  */
 #[McpTool(name: 'link_commits', title: 'Link commits', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false), outputSchema: BundledSchemas::LINK_COMMITS_RESULT)]
 public function linkCommits(
-    #[Schema(pattern: McpToolRunner::FULL_SHA)] string $commitSha,
-    #[Schema(items: ['type' => 'string', 'pattern' => McpToolRunner::ULID], minItems: 1, maxItems: 50, uniqueItems: true)] array $requestIds,
+    #[Schema(pattern: self::FULL_SHA)] string $commitSha,
+    #[Schema(items: ['type' => 'string', 'pattern' => self::ULID], minItems: 1, maxItems: 50, uniqueItems: true)] array $requestIds,
     #[Schema(maxLength: 65536)] ?string $note = null,
 ): array
 ```
@@ -393,7 +393,7 @@ Remove a commit link that you made by mistake from a request that you hold.
  * @param string $requestId Request ID
  */
 #[McpTool(name: 'unlink_commit', title: 'Unlink commit', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false), outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT)]
-public function unlinkCommit(#[Schema(pattern: McpToolRunner::FULL_SHA)] string $commitSha, #[Schema(pattern: McpToolRunner::ULID)] string $requestId): array
+public function unlinkCommit(#[Schema(pattern: self::FULL_SHA)] string $commitSha, #[Schema(pattern: self::ULID)] string $requestId): array
 ```
 
 ```json
@@ -423,7 +423,7 @@ Tell the user that a request you hold is done. The note says what you changed an
  * @param string $note What you changed and how you tested it
  */
 #[McpTool(name: 'mark_ready_for_review', title: 'Mark ready for review', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false), outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT)]
-public function markReadyForReview(#[Schema(pattern: McpToolRunner::ULID)] string $id, #[Schema(minLength: 1, maxLength: 65536)] string $note): array
+public function markReadyForReview(#[Schema(pattern: self::ULID)] string $id, #[Schema(minLength: 1, maxLength: 65536)] string $note): array
 ```
 
 ```json
@@ -453,7 +453,7 @@ Decline an open or reopened request, or one that you hold. Give evidence that th
  * @param string $reason Checkable justification, at least 20 characters
  */
 #[McpTool(name: 'mark_wont_do', title: "Mark won't do", annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false), outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT)]
-public function markWontDo(#[Schema(pattern: McpToolRunner::ULID)] string $id, #[Schema(minLength: 20, maxLength: 65536)] string $reason): array
+public function markWontDo(#[Schema(pattern: self::ULID)] string $id, #[Schema(minLength: 20, maxLength: 65536)] string $reason): array
 ```
 
 ```json
