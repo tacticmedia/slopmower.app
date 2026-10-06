@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Application;
+namespace App\Application\Query;
 
+use App\Application\FetchRepository;
 use App\Domain\Error\NotFound;
 use App\Domain\Git\BlobSha;
 use App\Git\GitFailed;

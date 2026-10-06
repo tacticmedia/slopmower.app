@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Application\AnchorFactory;
+use App\Application\Query\BatchSubmission;
 use App\Application\Query\RequestQuery;
 use App\Application\RequestCommands;
 use App\Controller\Api\Input\AnchorInput;
@@ -14,6 +15,9 @@ use App\Controller\Api\Input\UpdateDraftInput;
 use App\Domain\Anchor\Anchor;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Error\NotFound;
+use App\Domain\Event\BatchSubmittedEvent;
+use App\Domain\Event\RequestCommentedEvent;
+use App\Domain\Event\RequestOpenedEvent;
 use App\Domain\Identity\RequestId;
 use App\Entity\ChangeRequest;
 use App\Entity\Draft;
@@ -121,10 +125,35 @@ final class DraftController extends AbstractController
     public function submit(
         #[MapEntity(id: 'reviewId')] Review $review,
         RequestCommands $commands,
-        RequestQuery $requests,
+        RequestQuery $requestQuery,
+        ChangeRequestRepository $requests,
         #[MapRequestPayload(acceptFormat: 'json')] SubmitDraftsInput $input = new SubmitDraftsInput(),
     ): JsonResponse {
-        return $this->json($requests->batchSubmission($commands->submitDrafts($review->getId(), $input->summary, $this->currentActor->get())), Response::HTTP_CREATED);
+        $events = $commands->submitDrafts($review->getId(), $input->summary, $this->currentActor->get());
+        $submitted = array_last($events);
+        $batch = $submitted?->event;
+
+        if (!$batch instanceof BatchSubmittedEvent) {
+            throw new \LogicException('A draft submission ends with batch.submitted.');
+        }
+
+        $opened = [];
+        $replies = [];
+
+        foreach ($events as $event) {
+            $requestId = $event->requestId;
+
+            if ($event->event instanceof RequestOpenedEvent && null !== $requestId) {
+                $opened[] = $requests->findFresh($requestId) ?? throw new NotFound();
+            } elseif ($event->event instanceof RequestCommentedEvent && null !== $requestId) {
+                $replies[] = ['requestId' => $requestId, 'commentId' => $event->event->commentId];
+            }
+        }
+
+        return $this->json(
+            new BatchSubmission($batch->batchId, $submitted->reviewId, $batch->summary, $submitted->occurredAt, $submitted->seq, $requestQuery->summaries($opened), $replies),
+            Response::HTTP_CREATED,
+        );
     }
 
     /**

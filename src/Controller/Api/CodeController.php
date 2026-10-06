@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
-use App\Application\BlobStream;
 use App\Application\FetchRepository;
+use App\Application\Query\BlobStream;
 use App\Application\Query\FileQuery;
 use App\Application\Query\TreeListing;
 use App\Controller\Api\Input\FilePathQuery;

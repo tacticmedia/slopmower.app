@@ -20,7 +20,6 @@ use App\Domain\Request\CommitLinkState;
 use App\Entity\ChangeRequest;
 use App\Git\ChangedFile;
 use App\Git\GitReader;
-use App\Git\TenantDataPaths;
 use App\Git\TreeEntry;
 use App\Repository\CommitLinkRepository;
 use App\Repository\ReviewEventRepository;
@@ -46,7 +45,6 @@ final class CommitDiffController extends AbstractController
         string $commitSha,
         CommitLinkRepository $links,
         FetchRepository $fetchRepository,
-        TenantDataPaths $paths,
         ReviewEventRepository $events,
         Locator $locator,
     ): JsonResponse {
@@ -58,8 +56,8 @@ final class CommitDiffController extends AbstractController
         }
 
         $review = $request->getReview();
-        $repository = $fetchRepository->cloneReady($review->getRepository()->getId());
-        $gitDir = $paths->clonePath($repository->getTenantId(), $repository->getId());
+        $repository = $review->getRepository();
+        $gitDir = $fetchRepository->readyClonePath($repository->getId());
 
         try {
             $commit = $this->reader->commitDetails($gitDir, $sha);
@@ -70,15 +68,8 @@ final class CommitDiffController extends AbstractController
 
         $openedEventId = $events->findOpenedEventIds($review->getId())[$request->getId()->toString()] ?? null;
         $location = null === $openedEventId ? null : $locator->locate($repository, $openedEventId, $request->getAnchor(), $commit->sha);
-        // Null for a null or orphaned location: then the anchor path decides.
-        $locatedPath = $location?->path?->toString();
-        $anchorPath = $request->getAnchor()->path->toString();
         $changes = $this->reader->changedFiles($gitDir, $commit->parentSha, $commit->sha);
-        $files = array_slice($this->files(
-            $gitDir,
-            $changes,
-            static fn (ChangedFile $change): bool => null === $locatedPath ? \in_array($anchorPath, [$change->path, $change->oldPath], true) : $change->path === $locatedPath,
-        ), 0, self::MAX_FILES);
+        $files = array_slice($this->files($gitDir, $changes, $location?->path?->toString(), $request->getAnchor()->path->toString()), 0, self::MAX_FILES);
 
         return $this->json(new CommitDiffView(
             $request->getId(),
@@ -94,12 +85,12 @@ final class CommitDiffController extends AbstractController
      * Files that touch the anchor come first, so the cut at {@see MAX_FILES} keeps them. A path that a RepoPath
      * rejects is left out, because the schema cannot carry it.
      *
-     * @param list<ChangedFile>           $changes
-     * @param \Closure(ChangedFile): bool $touchesAnchor
+     * @param list<ChangedFile> $changes
+     * @param string|null       $locatedPath Null for a null or orphaned location: then the anchor path decides
      *
      * @return list<CommitDiffFileView>
      */
-    private function files(string $gitDir, array $changes, \Closure $touchesAnchor): array
+    private function files(string $gitDir, array $changes, ?string $locatedPath, string $anchorPath): array
     {
         $objectIds = array_merge(...array_map(static fn (ChangedFile $change): array => array_filter([$change->oldObjectId, $change->newObjectId]), $changes));
         $sizesBytes = $this->reader->objectSizes($gitDir, array_values(array_unique($objectIds)));
@@ -114,7 +105,8 @@ final class CommitDiffController extends AbstractController
             }
 
             $largestSideBytes = max($sizesBytes[$change->oldObjectId ?? ''] ?? 0, $sizesBytes[$change->newObjectId ?? ''] ?? 0);
-            $files[] = new CommitDiffFileView($change, $path, $oldPath, $largestSideBytes > TreeEntry::MAX_RENDERABLE_BYTES, $touchesAnchor($change));
+            $touchesAnchor = null === $locatedPath ? \in_array($anchorPath, [$change->path, $change->oldPath], true) : $change->path === $locatedPath;
+            $files[] = new CommitDiffFileView($change, $path, $oldPath, $largestSideBytes > TreeEntry::MAX_RENDERABLE_BYTES, $touchesAnchor);
         }
 
         usort($files, static fn (CommitDiffFileView $first, CommitDiffFileView $second): int => $second->touchesAnchor <=> $first->touchesAnchor);

@@ -241,6 +241,10 @@ make up
   - Rely on autowiring. No YAML service definition unless it is unavoidable.
 - Paginated lists use `Http\Cursor`: `decode()` checks the sort key types, and `next()` makes `nextCursor`.
 - Controllers are thin: map the input, call one service, return the normalized JSON. Logic with no other consumer stays in the controller, in the action or a private method. Path IDs resolve to visible entities in argument value resolvers, so the error check order of docs/specs holds. See M11. Errors are `DomainError` subclasses. `ApiExceptionListener` maps them for REST, and `McpTools::run()` maps them for MCP.
+- Reads:
+  - A read that several callers share, REST and MCP (D37) or a controller and a use case, is one method of an `Application\Query` service. A method that builds the same view as such a read stays next to it, for example `ReviewQuery::get()`.
+  - A read with one caller stays in its controller, for example Q9 in `CommitDiffController`.
+  - The response class of a read is in `Application\Query`, also for a read that stays in its controller.
 - Responses go through the Serializer that REST and MCP share:
   - A response class is schema-shaped: its public properties are the fields of its schema, in schema order, and `ObjectNormalizer` writes it. An array literal in an action follows the same rule.
   - A class that cannot be, because it wraps an entity, a recorded event, or an `App\Git` object, merges another schema, or computes a field, has one normalizer named after its schema, and that normalizer also maps its nested parts. The normalizers are in `src/Serializer/Normalizer`.
