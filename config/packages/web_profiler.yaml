@@ -1,6 +1,7 @@
 when@dev:
     web_profiler:
         toolbar: true
+        excluded_ajax_paths: '^/\.well-known/mercure'
 
     framework:
         profiler: true
