@@ -10,6 +10,7 @@ A user opens a change request that belongs to the whole review and names no file
 
 - `anchor: null` marks a general request. `AnchorKind` stays unchanged.
 - v1 is amended in place, not `/api/v2`: the proof of concept is unreleased, and its only clients are the web UI and the bundled skill. Specs README section 8 item 10 and architecture row D45 record it. D45 also states that rollback is impossible once a general request exists.
+- Scope addition (Jan, 2026-10-07): the Requests tab lists all pending drafts of the user, not only general ones, so the reviewer sees every comment given so far without finishing the review. The data is already loaded (D1 in the review loader); only the UI is missing.
 
 ## Rules
 
@@ -64,7 +65,10 @@ M13, M25, M30. No milestone of the simplification plan blocks it.
 
 - `comments/commentAction.ts` holds the comment intents. `fileAction` keeps `viewed` and delegates the rest. The `requests` route uses `commentAction`.
 - `requests/NewRequestBox.tsx`: a "New request" button on the Requests tab of an open review. It opens the existing `CommentBox` with "Add single comment" and "Start a review" or "Add review comment", and posts Q2 or D2 with `anchor: null`. `reviewLabel(drafts)` moves to `draftView.ts`.
-- Pending general drafts show on the Requests tab with the label "General". `DraftView` has a `label`.
+- A "Pending drafts" section on the Requests tab lists every pending draft of the user: new requests and replies, general and anchored. It reads the D1 data of the review loader.
+  - Each draft has a label: "General", its path and lines, or the request it replies to. Its link goes to `path#Lstart-Lend` or to that request.
+  - While the review is open, a draft can be edited and deleted there.
+  - `DraftView` has a `label`.
 - `docs/user/reviewing.md`: a new section "Open a general request".
 
 ## Out of scope
@@ -81,6 +85,7 @@ M13, M25, M30. No milestone of the simplification plan blocks it.
 - **F** `RequestListFilterTest`: a `path` filter excludes the general request, and `sort=path` lists it first.
 - **MCP** `McpRestParityTest`: `get_request` on a general request equals Q3 and validates against its output schema.
 - **UI** `GeneralRequest.spec.ts`: "New request" opens a general request shown as "General", and a general draft joins the batch.
+- **UI** `PendingDrafts.spec.ts`: before the review is finished, the Requests tab lists a line draft, a reply draft, and a general draft with their labels. A draft's link opens its file at the drafted lines.
 - Cross-tenant: no new route or tool, so the existing `api_request_open` case covers isolation.
 
 ## Verification
