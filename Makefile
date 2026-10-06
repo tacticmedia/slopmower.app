@@ -7,7 +7,7 @@ CONSOLE        = $(PHP) bin/console
 PACKAGE_JSON   = $(wildcard package.json)
 
 .DEFAULT_GOAL = help
-.PHONY: help up down sh worker-restart console composer migration db-reset db-test test e2e stan cs cs-fix lint front ui check
+.PHONY: help up down sh worker-restart console composer mate migration db-reset db-test test e2e stan cs cs-fix lint front ui check
 
 help: ## List the targets
 	@grep -hE '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "%-16s %s\n", $$1, $$2}'
@@ -29,6 +29,9 @@ console: ## bin/console, arguments in c="..."
 
 composer: ## composer, arguments in c="..."
 	$(PHP) composer $(c)
+
+mate: ## ai-mate, arguments in c="..."
+	$(PHP) vendor/bin/mate $(c)
 
 migration: ## Generate a migration from the mapping
 	$(CONSOLE) make:migration --no-interaction
