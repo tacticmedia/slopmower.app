@@ -42,8 +42,8 @@ return [
                 'mode' => 'managed',
                 'state' => 'managed',
                 'source' => 'vendor/symfony/ai-monolog-mate-extension/skills/symfony-log-investigation',
-                'source_hash' => 'sha256:061adaf34bc73cabd4be47b56e4834b584d5b4848ca09a964d20651b471cd590',
-                'hash' => 'sha256:83967b3e29d7f51a55b144db7e6af4f0716fee68379b6d69c62e1669c04aa8a2',
+                'source_hash' => 'sha256:42c6c989f8b7a3b655b57175cdf7cfdefc646d8aca51dd96dfbcbb654f5ef195',
+                'hash' => 'sha256:3e58dbae491d13e0569851f070e0253b43485c20be086e22fadfcca6fa1534a9',
                 'targets' => [
                     '.agents/skills/mate-symfony-log-investigation',
                     '.claude/skills/mate-symfony-log-investigation',
@@ -54,6 +54,18 @@ return [
     'symfony/ai-symfony-mate-extension' => [
         'enabled' => true,
         'skills' => [
+            'symfony-dotenv-diagnostics' => [
+                'enabled' => true,
+                'mode' => 'managed',
+                'state' => 'managed',
+                'source' => 'vendor/symfony/ai-symfony-mate-extension/skills/symfony-dotenv-diagnostics',
+                'source_hash' => 'sha256:527b1145e7386d15260509f88da26cb3158e17ae140f14c672ed299da1878ab0',
+                'hash' => 'sha256:f4a3a9983496173dcdb8e27ed402a73e0f03d763060cbb668db1b993016d1f62',
+                'targets' => [
+                    '.agents/skills/mate-symfony-dotenv-diagnostics',
+                    '.claude/skills/mate-symfony-dotenv-diagnostics',
+                ],
+            ],
             'symfony-profiler-debugging' => [
                 'enabled' => true,
                 'mode' => 'managed',
@@ -83,8 +95,8 @@ return [
                 'mode' => 'managed',
                 'state' => 'managed',
                 'source' => 'vendor/symfony/ai-symfony-mate-extension/skills/symfony-service-inspection',
-                'source_hash' => 'sha256:de76644032930c9128c13967212e8517eb6d1e42d42985be4a3b6d43b71133b6',
-                'hash' => 'sha256:8616e7c88e3414ee3730285f6a0236b0e0c8c7a91608dd285af84af92c443a29',
+                'source_hash' => 'sha256:6fa685f2b72129b96754ca1aff0e533f1c04fb5ff3a9ceddafab9059142bc0c8',
+                'hash' => 'sha256:d4f0247d8c0355d714a1b6c8a738b2200bc802cf3c1f402a73b6866f164f14c1',
                 'targets' => [
                     '.agents/skills/mate-symfony-service-inspection',
                     '.claude/skills/mate-symfony-service-inspection',

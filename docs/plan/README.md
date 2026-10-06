@@ -376,7 +376,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 | `league/commonmark` | 2.10.3 | https://repo.packagist.org/p2/league/commonmark.json |
 | `opis/json-schema` | 2.6.0, draft 2020-12 | https://repo.packagist.org/p2/opis/json-schema.json |
 | `phpunit/phpunit`, `phpstan/phpstan` | 13.4.1, 2.3.0 | https://repo.packagist.org/p2/phpunit/phpunit.json |
-| `symfony/ai-mate`, `symfony/ai-monolog-mate-extension`, `symfony/ai-symfony-mate-extension` | 0.13.0, dev only. 0.14.0 exists. | https://repo.packagist.org/p2/symfony/ai-mate.json |
+| `symfony/ai-mate`, `symfony/ai-monolog-mate-extension`, `symfony/ai-symfony-mate-extension` | 0.14.0, dev only | https://repo.packagist.org/p2/symfony/ai-mate.json |
 | `playwright-php/playwright` | 1.5.0, exact pin. Its Node server uses npm `playwright` 1.63.0. | https://repo.packagist.org/p2/playwright-php/playwright.json |
 | `friendsofphp/php-cs-fixer` | 3.95.27 | https://repo.packagist.org/p2/friendsofphp/php-cs-fixer.json |
 | `react`, `react-dom`, `@types/react`, `@types/react-dom` | 19.3.0 | https://www.npmjs.com/package/react |
