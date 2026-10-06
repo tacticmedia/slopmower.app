@@ -92,11 +92,10 @@ The first sign-in generates the new tenant ID, sets the tenant context to it, an
 - The write transaction of architecture section 4 runs inside this transaction. Its tenant row lock is held until the outer commit. The post-commit publish of live updates moves to the outer commit.
 - Queries outside such a transaction see no tenant rows. In FrankenPHP worker mode the connection stays open between requests, but `SET LOCAL` cannot leak into the next request.
 
-### Lessons from the first setup attempt
+### PostgreSQL image facts
 
-- An init script under `/docker-entrypoint-initdb.d/` created the non-owner runtime role. The PostgreSQL image runs these scripts only when the data directory is empty, so a changed script needs a new data volume.
-- The Docker `POSTGRES_USER` is a superuser, and superusers bypass row-level security. A test that connects as that user proves nothing about the policies.
-- The application then needs two connections: the owner for migrations, and the runtime role for the application.
+- The PostgreSQL image runs the scripts under `/docker-entrypoint-initdb.d/` only when the data directory is empty, so a changed script needs a new data volume.
+- Superusers bypass row-level security. A test that connects as `POSTGRES_USER` proves nothing about the policies.
 
 ## Acceptance criteria
 

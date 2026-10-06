@@ -26,9 +26,11 @@ final class QueueLocationRecompute
     }
 
     /**
-     * Step 3 of docs/specs/webhooks-and-live-updates.md section 2.2.
+     * Step 3 of docs/specs/webhooks-and-live-updates.md section 2.2. It runs before step 2,
+     * {@see ResolvePendingCommitLinks::onRepositoryFetched()}: a retried fetch finds an unchanged head, so a failing
+     * step 2 must not skip the recompute.
      */
-    #[AsEventListener]
+    #[AsEventListener(priority: 1)]
     public function onRepositoryFetched(RepositoryFetched $fetched): void
     {
         $previous = $fetched->previousDefaultBranchHead;

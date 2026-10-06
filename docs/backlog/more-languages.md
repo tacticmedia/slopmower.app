@@ -23,7 +23,7 @@ Status: backlog. The proof of concept extracts symbols for PHP only, with `nikic
 1. Fixture files per language give the expected symbol tables, with FQNs and ranges.
 2. The Symbols menu lists the symbols of a supported file, and an exact range selection becomes a symbol anchor.
 3. A symbol anchor in a supported language re-anchors by FQN, as architecture section 5.4 describes for PHP.
-4. A syntax error gives no symbol table and no error, as for PHP.
+4. A syntax error gives `parseError: true`, no symbols, and no error, as for PHP (REST V9).
 5. The index job stays within the runtime of the PHP extractor for files of the same size, within a factor that the evaluation records.
 
 ## Dependencies

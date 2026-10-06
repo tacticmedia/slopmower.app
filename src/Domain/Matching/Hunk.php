@@ -23,7 +23,7 @@ final readonly class Hunk
     }
 
     /**
-     * True for an insertion directly above the line.
+     * Also true for an insertion directly above the line.
      */
     public function endsBefore(int $oldLine): bool
     {
@@ -31,7 +31,7 @@ final readonly class Hunk
     }
 
     /**
-     * True for an insertion directly below the line.
+     * Also true for an insertion directly below the line.
      */
     public function startsAfter(int $oldLine): bool
     {

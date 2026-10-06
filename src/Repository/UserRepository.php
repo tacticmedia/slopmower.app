@@ -65,7 +65,7 @@ final class UserRepository extends ServiceEntityRepository
     }
 
     /**
-     * The one place that refuses a tenant that is being deleted.
+     * The one sign-in check that refuses a tenant that is being deleted.
      *
      * @throws TenantBeingDeleted
      */

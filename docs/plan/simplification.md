@@ -38,8 +38,8 @@ Record a baseline before S01 and after every step: PHP and TS file count, lines 
 | S10 | One pattern for reads | Done 2026-10-06, [report](reports/S10.md) | 7ddf178 | src 381 PHP / 24768 lines, 381 types; tests 268 PHP / 22966 lines; assets 128 TS / 6484 lines; check 2m15s |
 | S11 | GitHub duplicates | Done 2026-10-03, [report](reports/S11.md) | a437ff1 | src 406 PHP / 25918 lines, 406 types; tests 272 PHP / 23153 lines; assets 128 TS / 6484 lines; check 2m37s |
 | S12 | Front-end duplicates | Done 2026-10-03, [report](reports/S12.md) | d58d900 | src 406 PHP / 25954 lines, 406 types; tests 272 PHP / 23118 lines; assets 128 TS / 6484 lines; check 2m29s |
-| S13 | Namespace cycles | Done 2026-10-06, [report](reports/S13.md) | | src 380 PHP / 24730 lines, 380 types; tests 268 PHP / 22966 lines; assets 128 TS / 6484 lines |
-| S14 | Final: docs, decisions, metrics | Not started | | |
+| S13 | Namespace cycles | Done 2026-10-06, [report](reports/S13.md) | 72d9216 | src 380 PHP / 24730 lines, 380 types; tests 268 PHP / 22966 lines; assets 128 TS / 6484 lines; check 2m15s |
+| S14 | Final: docs, decisions, metrics | Done 2026-10-06, [report](reports/S14.md) | | src 380 PHP / 24731 lines, 380 types; tests 269 PHP / 22991 lines; assets 128 TS / 6484 lines |
 
 ### S01 Dead code (independent)
 

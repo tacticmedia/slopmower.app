@@ -17,7 +17,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * The partial index lets a second GitHub connect find the existing row. Its predicate is in the form PostgreSQL
+ * The partial unique index keeps one row per tenant and GitHub repository ID. Its predicate is in the form PostgreSQL
  * returns, so the schema comparison finds no change.
  *
  * The sync columns change only through the DQL updates of {@see RepositoryRepository}, which bypass the
@@ -118,7 +118,8 @@ class Repository implements TenantOwned
     }
 
     /**
-     * Each sign-in updates the name, the installation, and the visibility from the candidate list.
+     * Each sign-in updates the name, the installation, and the visibility from the candidate list, and each
+     * `repository` webhook the name and the visibility.
      */
     public function recordGitHubListing(RepositoryName $name, int $installationId, bool $private): void
     {

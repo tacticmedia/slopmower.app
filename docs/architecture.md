@@ -500,10 +500,10 @@ Web UI and REST API      MCP over HTTP      Webhook consumer      Messenger hand
                                         |
              Domain: value objects, events, reducer, state machine, anchor matching
                                         |
-             Ports: Doctrine repositories, the `github.client` HTTP client, FetchCommand, GitReader, PhpSymbolExtractor, LivePublisher
+             Ports: Doctrine repositories, the `github.client` HTTP client, BareClone, GitReader, PhpSymbolExtractor, LivePublisher
 ```
 
-- Adapters map input, call application services, and normalize the result. A `kernel.request` listener and a Messenger middleware set the tenant context. MCP and REST return the same JSON.
+- Adapters map input and normalize the result. Logic that several adapters share is in an application service. Logic with one caller stays in its adapter. A `kernel.request` listener and a Messenger middleware set the tenant context. MCP and REST return the same JSON.
 - Actor: the web UI acts as `user`. An API token acts as `agent` for its user, and `agentName` is the token name, for example "claude-code laptop".
 - Request commands respond with a `RequestCommandResult`: the request summary, the caller's `allowedActions`, and the events that the command wrote. `open` responds with the `Request`, and `link_commits` with a `LinkCommitsResult`. The other commands do not return the full request, so the agent's context stays small.
 
@@ -736,11 +736,11 @@ Static checks: PHPStan level 8 on `src/` and `tests/`, php-cs-fixer with `@Symfo
 | D30 | Token scope | Name as agent name. Scope: all repositories of the tenant, or one repository. Optional expiry. Secret `hr_` and 32 random bytes in base64url, shown once, stored as SHA-256. Revocable, last use shown. |
 | D31 | Keyboard access | "Comment on lines", "Symbols", and "Comment on file" in the file header. The "+" of a selection has a name and takes Enter and Space. The library's gutter is not changed. Keyboard-only tests in the UI suite. |
 | D32 | Usage limits | None in the proof of concept. Proposal: [usage-limits.md](backlog/usage-limits.md). |
-| D33 | Container tooling | PHP, Composer, the console, and PHPUnit run in the `php` container through `make`. npm and Vite run on the host. M00 and the M01 baseline use host PHP and Composer. The host needs no PHP after that. |
+| D33 | Container tooling | PHP, Composer, the console, and PHPUnit run in the `php` container through `make`. npm and Vite run on the host. Only `make e2e` runs npm in the `php` container, to pin the playwright-php server. M00 and the M01 baseline use host PHP and Composer. The host needs no PHP after that. |
 | D34 | `e2e` environment | A fourth kernel environment, `e2e`, serves the site of the full-stack E2E tests on `:8081` in the `php` container. It uses classic mode, native sessions in PostgreSQL, `sync://` Messenger, its own Mercure hub, and its own database `app_e2e`, which the E2E tests seed from the PHPUnit process. It needs real sessions, because the mock session storage of `test` cannot keep a browser session. |
 | D35 | Package installs | Each package is installed in the milestone that first uses it, so each step stays small and reviewable. `extra.symfony.docker` is `false` from M01 on, so recipes, for example Mercure, add no compose services. The compose files are maintained by hand. |
 | D36 | Test databases | Tests reset the database by truncation, through the `ResetDatabase` trait, because the E2E and concurrency tests need committed rows |
-| D37 | Event payloads | Explicit codecs per event type, without Serializer and without reflection, because stored events are never rewritten and their format must not drift. REST and MCP share one Serializer. A response class is schema-shaped: its public properties are the fields of its schema, in schema order, and `ObjectNormalizer` writes it. A class that cannot be, because it wraps an entity, a recorded event, or an `App\Git` object, merges another schema, or computes a field, has one normalizer named after its schema, and that normalizer also maps its nested parts. Values go through the value normalizers, and an anchor goes through `AnchorCodec::encode()`, the stored payload format. |
+| D37 | Event payloads | Explicit codecs per event type, without Serializer and without reflection, because stored events are never rewritten and their format must not drift. REST and MCP share one Serializer. Response rules: [docs/plan/README.md](plan/README.md#code-conventions). |
 | D38 | Git secrets | Tokens reach git only through `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`, and `GIT_CONFIG_VALUE_<n>` environment variables, never through argv, because `symfony/process` exception messages print the argv |
 | D39 | Locks | `symfony/lock` with PostgreSQL advisory locks, because the `php` and `worker` containers share the clones |
 | D40 | MCP sessions | The bundle's `file` session store under `var/mcp-sessions`, because there is one `php` container. A shared store: [mcp-session-store.md](backlog/mcp-session-store.md). |

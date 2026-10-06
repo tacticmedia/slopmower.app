@@ -6,6 +6,7 @@ namespace App\Entity;
 
 use App\Domain\Anchor\LineRange;
 use App\Domain\Anchor\SymbolKind;
+use App\Domain\Anchor\SymbolRef;
 use App\Domain\Git\BlobSha;
 use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\TenantId;
@@ -22,8 +23,6 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_symbol_blob', columns: ['tenant_id', 'repository_id', 'blob_sha'])]
 class Symbol implements TenantOwned
 {
-    public const int MAX_FQN_CHARACTERS = 1024;
-
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: Types::BIGINT)]
@@ -41,13 +40,13 @@ class Symbol implements TenantOwned
     #[ORM\Column(enumType: SymbolKind::class)]
     private SymbolKind $kind;
 
-    #[ORM\Column(length: self::MAX_FQN_CHARACTERS)]
+    #[ORM\Column(length: SymbolRef::MAX_FQN_CHARACTERS)]
     private string $fqn;
 
-    #[ORM\Column(length: self::MAX_FQN_CHARACTERS)]
+    #[ORM\Column(length: SymbolRef::MAX_FQN_CHARACTERS)]
     private string $name;
 
-    #[ORM\Column(length: self::MAX_FQN_CHARACTERS, nullable: true)]
+    #[ORM\Column(length: SymbolRef::MAX_FQN_CHARACTERS, nullable: true)]
     private ?string $parentFqn;
 
     #[ORM\Column]

@@ -8,7 +8,7 @@ use App\Domain\Error\InvalidInput;
 
 final readonly class SymbolRef
 {
-    private const int MAX_FQN_CHARACTERS = 1024;
+    public const int MAX_FQN_CHARACTERS = 1024;
 
     private function __construct(
         public string $language,

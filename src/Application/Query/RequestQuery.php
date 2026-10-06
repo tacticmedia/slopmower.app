@@ -198,7 +198,7 @@ final class RequestQuery
             try {
                 return [LocationTarget::Requested, $this->reader->resolvePrefix($gitDir, $at, 'at')];
             } catch (CommitNotFound) {
-                // D24: a commit missing from the server clone gets one synchronous fetch.
+                // F14: a commit missing from the server clone gets one synchronous fetch.
                 $this->fetchRepository->fetchNow($repositoryId);
 
                 return [LocationTarget::Requested, $this->reader->resolvePrefix($gitDir, $at, 'at')];

@@ -26,7 +26,6 @@ use App\Repository\GitHubInstallationRepository;
 use App\Repository\RepositoryRepository;
 use App\Source\FetchCommand;
 use App\Source\LocalRepositoryDiscovery;
-use App\Source\SourceUnavailable;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;

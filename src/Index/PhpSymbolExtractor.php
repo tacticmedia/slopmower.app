@@ -12,7 +12,7 @@ use PhpParser\Parser;
 use PhpParser\ParserFactory;
 
 /**
- * FQNs as in architecture section 3: `Ns\Type`, `Ns\Type::method()`, `Ns\Type::$property`, `Ns\Type::CONSTANT`,
+ * FQNs: `Ns\Type`, `Ns\Type::method()`, `Ns\Type::$property`, `Ns\Type::CONSTANT`,
  * `Ns\Enum::Case`, `Ns\function()`, `Ns\CONSTANT`. Promoted constructor parameters are properties.
  */
 final class PhpSymbolExtractor

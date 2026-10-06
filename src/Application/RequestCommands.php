@@ -53,7 +53,7 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Each method but linkCommits() returns the events that the command wrote. The ID of an opened request is in the
- * requestId of its event. Git work runs outside the event transaction (D26).
+ * requestId of its event. Git work runs outside the event transaction.
  */
 final class RequestCommands
 {
@@ -216,8 +216,8 @@ final class RequestCommands
     }
 
     /**
-     * D5: in one transaction, request.opened or request.commented per draft of the user in the review, sorted by
-     * createdAt, then batch.submitted. Deletes exactly the drafts that it read, so a draft created meanwhile stays.
+     * D5 of docs/specs/rest-api-requests.md section 5: in one transaction, request.opened or request.commented per draft
+     * of the user in the review, sorted by createdAt, then batch.submitted. Deletes exactly the drafts that it read, so a draft created meanwhile stays.
      *
      * @return list<RecordedEvent> batch.submitted last
      *

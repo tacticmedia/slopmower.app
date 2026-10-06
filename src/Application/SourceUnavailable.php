@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Source;
+namespace App\Application;
 
 /**
  * The source of a repository cannot be fetched. The message becomes `sync.lastError`.

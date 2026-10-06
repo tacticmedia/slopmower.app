@@ -16,7 +16,7 @@ use App\Repository\IndexedBlobRepository;
 use App\Repository\SymbolRepository;
 
 /**
- * The one parse-on-demand path. Only a regular file that is renderable, not binary and at most 1 MiB, has symbols.
+ * The one parse-on-demand path. Only a regular, non-binary file of at most 1 MiB has symbols.
  */
 final class BlobSymbols
 {

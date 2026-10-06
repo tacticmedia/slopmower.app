@@ -139,7 +139,7 @@ All 38 milestones are "Done". The Date column holds the date of the milestone co
 | M34c | [Full-stack suite on Playwright](M34c-full-stack-suite-on-playwright.md) | Done | 2026-10-03 | [Report](reports/M34c.md) |
 | M35 | [Isolation audit and acceptance](M35-isolation-audit-and-acceptance.md) | Done | 2026-10-03 | [Report](reports/M35.md) |
 
-Next: the [simplification plan](simplification.md), S00 to S14, has its own status table.
+The [simplification plan](simplification.md), S00 to S14, is complete. Its status table holds the baseline and the metrics after each step.
 
 ## Order
 
@@ -223,12 +223,12 @@ make up
   | `src/Domain` | Pure PHP, so unit tests run it without the kernel (D44). It imports only `App\Domain`, `Symfony\Component\Uid`, and PHP core. |
   | `src/Application` | Use cases and queries |
   | `src/Entity`, `src/Repository` | Doctrine entities and repositories |
-  | `src/Doctrine` | DBAL types and embeddables |
+  | `src/Doctrine` | DBAL types, DQL functions, and embeddables |
   | `src/EventStore`, `src/Projection` | Event log writes and projections |
   | `src/Git`, `src/Source` | Git primitives and repository sources |
-  | `src/Tenancy`, `src/Security` | Tenant context, SQL filter, authenticators |
+  | `src/Tenancy`, `src/Security` | Tenant context, SQL filters, authenticators |
   | `src/Controller` | `Api/`, `E2e/`, and the controllers outside `/api/v1` |
-  | `src/Http` | The REST exception listener, the CSRF listener, the cursor codec |
+  | `src/Http` | The `/api/v1` listeners, the cursor codec, the `QueryInput` marker |
   | `src/Serializer/Normalizer` | The value normalizers, and one normalizer per schema whose response class cannot be schema-shaped. REST and MCP share them. |
   | `src/Mcp` | `McpTools` with every tool, the session decorators, generated `BundledSchemas` |
   | `src/Live`, `src/Index`, `src/Anchoring`, `src/Docs` | Mercure, symbol index, re-anchoring, public documentation |
@@ -239,15 +239,15 @@ make up
   - Install packages with `composer require` and let the Flex recipe write the configuration. Write configuration by hand only where no recipe exists, with a one-line header comment that says so.
   - Use attributes: `#[Route]`, `#[IsGranted]`, `#[MapRequestPayload]`, `#[MapQueryString]`, `#[AsCommand]`, `#[AsMessageHandler]`, `#[AsEventListener]`, `#[Autowire]`, `#[When]`. A route that exists only in one environment also sets `env:` on `#[Route]`.
   - Rely on autowiring. No YAML service definition unless it is unavoidable.
-- Paginated lists use `Http\Cursor`: `decode()` checks the sort key types, and `next()` makes `nextCursor`.
-- Controllers are thin: map the input, call one service, return the normalized JSON. Logic with no other consumer stays in the controller, in the action or a private method. Path IDs resolve to visible entities in argument value resolvers, so the error check order of docs/specs holds. See M11. Errors are `DomainError` subclasses. `ApiExceptionListener` maps them for REST, and `McpTools::run()` maps them for MCP.
+- Paginated lists use `Http\Cursor`: `decode()` checks the sort key types, and `next()` makes `nextCursor`. The updates feed V10 takes the event `seq` as its cursor.
+- A controller maps the input and returns the normalized JSON. Logic that another caller shares is in a service. Logic with no other consumer stays in the controller, in the action or a private method. Path IDs resolve to visible entities in argument value resolvers, so the error check order of docs/specs holds. See M11. Errors are `DomainError` subclasses. `ApiExceptionListener` maps them for REST, and `McpTools::run()` maps them for MCP.
 - Reads:
   - A read that several callers share, REST and MCP (D37) or a controller and a use case, is one method of an `Application\Query` service. A method that builds the same view as such a read stays next to it, for example `ReviewQuery::get()`.
   - A read with one caller stays in its controller, for example Q9 in `CommitDiffController`.
   - The response class of a read is in `Application\Query`, also for a read that stays in its controller.
 - Responses go through the Serializer that REST and MCP share:
   - A response class is schema-shaped: its public properties are the fields of its schema, in schema order, and `ObjectNormalizer` writes it. An array literal in an action follows the same rule.
-  - A class that cannot be, because it wraps an entity, a recorded event, or an `App\Git` object, merges another schema, or computes a field, has one normalizer named after its schema, and that normalizer also maps its nested parts. The normalizers are in `src/Serializer/Normalizer`.
+  - A class cannot be schema-shaped when it wraps an entity, a recorded event, or an `App\Git` object, when it merges another schema, or when it computes a field. Such a class has one normalizer named after its schema, and that normalizer also maps its nested parts. The normalizers are in `src/Serializer/Normalizer`.
   - Values go through the value normalizers, and an anchor goes through `AnchorCodec::encode()`, the stored payload format. The value normalizers are `ValueObjectNormalizer`, `ActorNormalizer`, `UtcTimeNormalizer`, and the framework enum normalizer. Pass the value object, not its string.
 - Tenancy:
   - Every tenant entity implements `TenantOwned`.
@@ -274,7 +274,7 @@ make up
   - Primer for components. CSS modules for our layout CSS.
   - `@pierre/diffs` only inside `assets/code/CodeFile.tsx`, `assets/code/CommitDiff.tsx`, and their worker pool options in `assets/code/workerPool.ts`.
   - API types in `assets/api/types/`, written from docs/specs and checked against `docs/specs/fixtures/`.
-- PHP, TypeScript, and CSS files have typically 200 to 400 lines, 800 at most. Generated files are exempt. One class per file.
+- A PHP, TypeScript, or CSS file has at most 800 lines. `FileSizeLimitTest` enforces it. Generated files are exempt. One class per file.
 
 ## Test conventions
 
@@ -411,11 +411,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 - **Compose and .env.** Compose reads the Symfony `.env` for interpolation. Override `LOCAL_REPOSITORIES_HOST_DIR` through the shell environment.
 - **Compose environment and test processes.** Real environment variables win over `.env` files. A variable in the compose `environment:` list of `php` also reaches the `test` and `e2e` processes in that container. Put per-environment values into `.env.dev`, `.env.test`, and `.env.e2e`.
 - **Root in the container.** The `php` container runs as root, so permission-based tests prove nothing. Compare bytes and modification times.
-- **One database role.** Do not add init scripts under `/docker-entrypoint-initdb.d/`. The aborted setup attempt learned these facts. They matter only when [docs/backlog/database-hardening.md](../backlog/database-hardening.md) is implemented:
-  - an init script under `/docker-entrypoint-initdb.d/` created a non-owner runtime role;
-  - the Docker `POSTGRES_USER` is a superuser, and a superuser bypasses row-level security;
-  - the app then needs two connections: the owner for migrations, the runtime role for the app;
-  - with the Symfony CLI, the owner URL fits `DATABASE_URL`, and the runtime URL needs its own variable.
+- **One database role.** Do not add init scripts under `/docker-entrypoint-initdb.d/`. A second role needs the facts in [database-hardening.md](../backlog/database-hardening.md).
 
 ### PHPStan level 8
 
