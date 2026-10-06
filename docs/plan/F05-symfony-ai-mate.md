@@ -23,7 +23,7 @@ Coding agents that work on this repository read the logs, the profiler, and the 
 - Add one make target, `make mate c="<arguments>"`, that runs `vendor/bin/mate <arguments>` in the `php` container, like `make console`.
 - `mate/config.php` points the Monolog extension at the container's log directory.
 - Skills that `mate discover` installs follow Mate's own layout. Their path is recorded in the report. They are committed when Mate expects them in the repository, and git-ignored when they are generated.
-- `AGENTS.md` "Everyday workflow": when something fails, use the Mate tools through `make mate` (log search, profiler) before reading files by hand. `docs/plan/README.md` "Environment and commands" gets the `make mate` row.
+- `AGENTS.md` "Everyday workflow": when something fails, agents run the Mate tools as `docker compose exec -T php vendor/bin/mate <command>` (log tail, profiler) before reading files by hand. That is the invocation given to `mate init`, so it matches Mate's own block in `AGENTS.md`. `make mate c="..."` is the shortcut for people, in the `docs/plan/README.md` "Environment and commands" row.
 
 ## Depends on
 
@@ -32,7 +32,7 @@ M01. No contract change and no product behaviour change.
 ## In scope
 
 - The make target and the two doc updates above. The packages, `mate init`, `mate/config.php`, and the skills come from Jan's install.
-- A check that `make mate c="tools:list"` lists the Symfony and Monolog tools, and that `make mate c="tools:call monolog-search --level=ERROR"` returns entries from the dev log.
+- A check that `make mate c="tools:list"` lists the Symfony and Monolog tools, and that `make mate c="tools:call monolog-tail --level=ERROR"` returns entries from the dev log.
 
 ## Out of scope
 
