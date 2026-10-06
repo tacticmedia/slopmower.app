@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Webhook;
 
 use App\Domain\Actor\ActorKind;
+use App\Domain\Event\CommitLinkedEvent;
+use App\Domain\Event\DecidedEvent;
 use App\Domain\Event\EventType;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Git\CommitSha;
 use App\Domain\Request\Command\Claim;
-use App\Domain\Request\Command\LinkCommits;
 use App\Git\GitRunner;
 use App\Git\PinRefs;
 use App\Git\TenantDataPaths;
@@ -87,7 +88,10 @@ final class PushWebhookTest extends WebTestCase
         $requestId = self::openRequest($reviewId);
         self::requestCommands()->claim(new Claim($requestId), RequestScenario::claimingAgent());
         $fix = $source->commit(['src/Fix.php' => "<?php\n"], 'Round totals');
-        self::requestCommands()->linkCommits(new LinkCommits(CommitSha::fromString($fix), [$requestId]), RequestScenario::claimingAgent(), []);
+        // A pending link without the fetch that Q7 queues, so the push is the only trigger.
+        self::executor()->execute($reviewId, RequestScenario::claimingAgent(), static fn (): array => [
+            new DecidedEvent(new CommitLinkedEvent(CommitSha::fromString($fix), [$requestId], null, false, null, null)),
+        ]);
         $source->git('push', '--quiet', 'origin', 'main');
 
         self::deliverFixture($client, 'push');

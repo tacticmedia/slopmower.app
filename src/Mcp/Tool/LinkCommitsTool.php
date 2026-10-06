@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tool;
 
-use App\Application\LinkCommits;
 use App\Application\Query\LinkCommitsResult;
+use App\Application\RequestCommands;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\RequestId;
+use App\Domain\Request\Command\LinkCommits;
 use App\Mcp\BundledSchemas;
 use App\Mcp\McpToolRunner;
 use App\Security\CurrentActor;
@@ -24,7 +25,7 @@ final class LinkCommitsTool
 
     public function __construct(
         private readonly McpToolRunner $runner,
-        private readonly LinkCommits $linkCommits,
+        private readonly RequestCommands $commands,
         private readonly CurrentActor $currentActor,
     ) {
     }
@@ -48,10 +49,12 @@ final class LinkCommitsTool
         #[Schema(items: ['type' => 'string', 'pattern' => McpToolRunner::ULID], minItems: 1, maxItems: 50, uniqueItems: true)] array $requestIds,
         #[Schema(maxLength: 65536)] ?string $note = null,
     ): array {
-        return $this->runner->run(self::NAME, fn (): LinkCommitsResult => $this->linkCommits->link(
-            CommitSha::fromString($commitSha),
-            array_values(array_map(static fn (string $id): RequestId => RequestId::fromString($id, 'requestIds'), $requestIds)),
-            $note,
+        return $this->runner->run(self::NAME, fn (): LinkCommitsResult => $this->commands->linkCommits(
+            new LinkCommits(
+                CommitSha::fromString($commitSha),
+                array_values(array_map(static fn (string $id): RequestId => RequestId::fromString($id, 'requestIds'), $requestIds)),
+                $note,
+            ),
             $this->currentActor->get(),
         ));
     }

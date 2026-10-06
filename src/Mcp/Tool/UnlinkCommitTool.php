@@ -6,9 +6,10 @@ namespace App\Mcp\Tool;
 
 use App\Application\Query\RequestCommandResult;
 use App\Application\Query\RequestQuery;
-use App\Application\UnlinkCommit;
+use App\Application\RequestCommands;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\RequestId;
+use App\Domain\Request\Command\UnlinkCommit;
 use App\Mcp\BundledSchemas;
 use App\Mcp\McpToolRunner;
 use App\Security\CurrentActor;
@@ -25,7 +26,7 @@ final class UnlinkCommitTool
 
     public function __construct(
         private readonly McpToolRunner $runner,
-        private readonly UnlinkCommit $unlinkCommit,
+        private readonly RequestCommands $commands,
         private readonly RequestQuery $requests,
         private readonly CurrentActor $currentActor,
     ) {
@@ -50,7 +51,7 @@ final class UnlinkCommitTool
             $id = RequestId::fromString($requestId, 'requestId');
             $actor = $this->currentActor->get();
 
-            return $this->requests->commandResult($id, $actor, $this->unlinkCommit->unlink($id, CommitSha::fromString($commitSha), $actor));
+            return $this->requests->commandResult($id, $actor, $this->commands->unlinkCommit(new UnlinkCommit($id, CommitSha::fromString($commitSha)), $actor));
         });
     }
 }

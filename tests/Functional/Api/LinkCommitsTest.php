@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
-use App\Application\LinkCommits;
+use App\Application\RequestCommands;
 use App\Entity\User;
 use App\Git\PinRefs;
 use App\Message\FetchRepositoryJob;
@@ -104,7 +104,7 @@ final class LinkCommitsTest extends WebTestCase
         self::assertSame(['pending', [[1, 1]]], [$result['state'], array_map(static fn (array $request): array => [$request['commitCount'], $request['pendingCommitCount']], $result['requests'])]);
         $fetches = $this->queuedFetches();
         self::assertCount(1, $fetches);
-        self::assertSame(LinkCommits::FETCH_DELAY_MILLISECONDS, $fetches[0]->last(DelayStamp::class)?->getDelay());
+        self::assertSame(RequestCommands::FETCH_DELAY_MILLISECONDS, $fetches[0]->last(DelayStamp::class)?->getDelay());
         self::assertArrayNotHasKey(PinRefs::COMMITS.$fix, self::pins($this->user, $this->repositoryId));
     }
 

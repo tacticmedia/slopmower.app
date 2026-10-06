@@ -7,6 +7,7 @@ namespace App\Tests\Functional\EventStore;
 use App\Domain\Actor\Actor;
 use App\Domain\Event\BatchSubmittedEvent;
 use App\Domain\Event\CommitFoundEvent;
+use App\Domain\Event\CommitLinkedEvent;
 use App\Domain\Event\DecidedEvent;
 use App\Domain\Event\EventType;
 use App\Domain\Event\RequestCommentedEvent;
@@ -80,15 +81,18 @@ final class ProjectionConsistencyTest extends KernelTestCase
     {
         $commands = self::requestCommands();
         $agent = RequestScenario::claimingAgent();
+        $availableCommit = RequestScenario::commit(RequestScenario::LINKED_COMMIT);
         $wrongCommit = CommitSha::fromString(RequestScenario::OTHER_COMMIT);
         $foundCommit = CommitSha::fromString(self::FOUND_COMMIT);
         $requestId = self::openRequest($reviewId);
 
         $commands->claim(new Claim($requestId), $agent);
-        $commands->linkCommits(new LinkCommits(CommitSha::fromString(RequestScenario::LINKED_COMMIT), [$requestId]), $agent, [RequestScenario::commit(RequestScenario::LINKED_COMMIT)]);
-        $commands->linkCommits(new LinkCommits($wrongCommit, [$requestId], 'Wrong commit.'), $agent, []);
+        self::executor()->execute($reviewId, $agent, static fn (): array => [
+            new DecidedEvent(new CommitLinkedEvent($availableCommit->commitSha, [$requestId], null, true, $availableCommit->subject, $availableCommit->committedAt)),
+        ]);
+        $commands->linkCommits(new LinkCommits($wrongCommit, [$requestId], 'Wrong commit.'), $agent);
         $commands->unlinkCommit(new UnlinkCommit($requestId, $wrongCommit), $agent);
-        $commands->linkCommits(new LinkCommits($foundCommit, [$requestId]), $agent, []);
+        $commands->linkCommits(new LinkCommits($foundCommit, [$requestId]), $agent);
         self::executor()->execute($reviewId, Actor::system(), static fn (): array => [
             new DecidedEvent(new CommitFoundEvent($foundCommit, [$requestId], 'Extract TaxRounding', new \DateTimeImmutable('2026-09-29T07:50:00Z'))),
         ]);

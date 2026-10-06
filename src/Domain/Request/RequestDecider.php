@@ -49,7 +49,7 @@ final class RequestDecider
 
     /**
      * @param list<RequestState> $states       The state of each request that the command names
-     * @param list<CommitInfo>   $availability The commits that the application found in the server clone
+     * @param list<CommitInfo>   $availability For link_commits: the commit, when the server clone has it
      *
      * @return list<DecidedEvent> Empty when the command changes nothing
      *
@@ -96,7 +96,7 @@ final class RequestDecider
         $state = $byId[$command->requestIds()[0]->toString()];
 
         if ($command instanceof MarkReadyForReview) {
-            self::assertCommitsAvailable($state, $availability);
+            self::assertCommitsAvailable($state);
         }
 
         $event = match (true) {
@@ -256,15 +256,12 @@ final class RequestDecider
         return [new DecidedEvent(new CommitLinkedEvent($command->commitSha, $newlyLinked, $command->note, null !== $commit, $commit?->subject, $commit?->committedAt))];
     }
 
-    /**
-     * @param list<CommitInfo> $availability
-     */
-    private static function assertCommitsAvailable(RequestState $state, array $availability): void
+    private static function assertCommitsAvailable(RequestState $state): void
     {
         $pendingCommits = [];
 
         foreach ($state->links as $link) {
-            if (CommitLinkState::Pending === $link->state && null === self::find($availability, $link->commitSha)) {
+            if (CommitLinkState::Pending === $link->state) {
                 $pendingCommits[] = $link->commitSha;
             }
         }

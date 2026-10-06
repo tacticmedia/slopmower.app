@@ -500,7 +500,7 @@ Web UI and REST API      MCP over HTTP      Webhook consumer      Messenger hand
                                         |
              Domain: value objects, events, reducer, state machine, anchor matching
                                         |
-             Ports: Doctrine repositories, the `github.client` HTTP client, FetchCommand, GitReader, SymbolExtractor, LivePublisher
+             Ports: Doctrine repositories, the `github.client` HTTP client, FetchCommand, GitReader, PhpSymbolExtractor, LivePublisher
 ```
 
 - Adapters map input, call application services, and normalize the result. A `kernel.request` listener and a Messenger middleware set the tenant context. MCP and REST return the same JSON.
@@ -747,7 +747,7 @@ Static checks: PHPStan level 8 on `src/` and `tests/`, php-cs-fixer with `@Symfo
 | D41 | Mercure hub URL | Always set. Without it the bundle compiles `FrankenPhpHub` inside FrankenPHP, and CLI processes that share the cache break. |
 | D42 | Live update payloads | IDs only. Clients read the data again through REST. The browser revalidates its React Router loaders, so there is one data model. |
 | D43 | Dev transport | The dev app runs over HTTP at `http://localhost:8000`. Localhost is a secure context, so the clipboard API and EventSource work. TLS is operations. |
-| D44 | Convention tests | Meta-tests enforce the test rules and the file-size rule, so the rules hold without review effort. |
+| D44 | Convention tests | Meta-tests enforce the test rules, the file-size rule, and the purity of `src/Domain`, so the rules hold without review effort. Purity keeps the deciders, reducers, event codecs, and matching algorithms testable without the kernel. |
 
 ## 12. Risks
 

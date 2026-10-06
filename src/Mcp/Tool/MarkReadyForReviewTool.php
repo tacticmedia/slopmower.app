@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tool;
 
-use App\Application\MarkReadyForReview;
 use App\Application\Query\RequestCommandResult;
 use App\Application\Query\RequestQuery;
+use App\Application\RequestCommands;
 use App\Domain\Identity\RequestId;
+use App\Domain\Request\Command\MarkReadyForReview;
 use App\Mcp\BundledSchemas;
 use App\Mcp\McpToolRunner;
 use App\Security\CurrentActor;
@@ -24,7 +25,7 @@ final class MarkReadyForReviewTool
 
     public function __construct(
         private readonly McpToolRunner $runner,
-        private readonly MarkReadyForReview $markReadyForReview,
+        private readonly RequestCommands $commands,
         private readonly RequestQuery $requests,
         private readonly CurrentActor $currentActor,
     ) {
@@ -49,7 +50,7 @@ final class MarkReadyForReviewTool
             $requestId = RequestId::fromString($id, 'id');
             $actor = $this->currentActor->get();
 
-            return $this->requests->commandResult($requestId, $actor, $this->markReadyForReview->markReady($requestId, $note, $actor));
+            return $this->requests->commandResult($requestId, $actor, $this->commands->markReadyForReview(new MarkReadyForReview($requestId, $note), $actor));
         });
     }
 }

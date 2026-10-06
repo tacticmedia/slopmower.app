@@ -15,7 +15,7 @@ use PhpParser\ParserFactory;
  * FQNs as in architecture section 3: `Ns\Type`, `Ns\Type::method()`, `Ns\Type::$property`, `Ns\Type::CONSTANT`,
  * `Ns\Enum::Case`, `Ns\function()`, `Ns\CONSTANT`. Promoted constructor parameters are properties.
  */
-final class PhpSymbolExtractor implements SymbolExtractor
+final class PhpSymbolExtractor
 {
     private readonly Parser $parser;
 
@@ -35,7 +35,8 @@ final class PhpSymbolExtractor implements SymbolExtractor
     }
 
     /**
-     * The NameResolver also throws a parse error, for example for a duplicate `use` alias.
+     * A syntax error gives `parseError` and no symbols. The NameResolver also throws a parse error, for example for a
+     * duplicate `use` alias.
      */
     public function extract(string $source): SymbolTable
     {

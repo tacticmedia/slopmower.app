@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
-use App\Application\MarkReadyForReview;
 use App\Application\Query\RequestQuery;
 use App\Application\RequestCommands;
-use App\Application\UnlinkCommit;
 use App\Controller\Api\Input\RequiredNoteInput;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Git\CommitSha;
 use App\Domain\Request\Command\Claim;
+use App\Domain\Request\Command\MarkReadyForReview;
+use App\Domain\Request\Command\UnlinkCommit;
 use App\Entity\ChangeRequest;
 use App\Security\AgentUser;
 use App\Security\CurrentActor;
@@ -30,32 +30,32 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class AgentRequestController extends AbstractController
 {
     public function __construct(
+        private readonly RequestCommands $commands,
         private readonly RequestQuery $requests,
         private readonly CurrentActor $currentActor,
     ) {
     }
 
     #[Route('/claim', name: 'claim', methods: ['POST'])]
-    public function claim(#[MapEntity(id: 'requestId')] ChangeRequest $request, RequestCommands $commands): JsonResponse
+    public function claim(#[MapEntity(id: 'requestId')] ChangeRequest $request): JsonResponse
     {
-        return $this->result($request, $commands->claim(new Claim($request->getId()), $this->currentActor->get()));
+        return $this->result($request, $this->commands->claim(new Claim($request->getId()), $this->currentActor->get()));
     }
 
     #[Route('/commits/{commitSha}', name: 'unlink_commit', methods: ['DELETE'])]
-    public function unlinkCommit(#[MapEntity(id: 'requestId')] ChangeRequest $request, string $commitSha, UnlinkCommit $unlinkCommit): JsonResponse
+    public function unlinkCommit(#[MapEntity(id: 'requestId')] ChangeRequest $request, string $commitSha): JsonResponse
     {
-        return $this->result($request, $unlinkCommit->unlink($request->getId(), CommitSha::fromString($commitSha), $this->currentActor->get()));
+        return $this->result($request, $this->commands->unlinkCommit(new UnlinkCommit($request->getId(), CommitSha::fromString($commitSha)), $this->currentActor->get()));
     }
 
     #[Route('/ready', name: 'ready', methods: ['POST'])]
     public function ready(
         #[MapEntity(id: 'requestId')] ChangeRequest $request,
-        MarkReadyForReview $markReadyForReview,
         #[MapRequestPayload(acceptFormat: 'json')] RequiredNoteInput $input,
     ): JsonResponse {
         \assert(null !== $input->note);
 
-        return $this->result($request, $markReadyForReview->markReady($request->getId(), $input->note, $this->currentActor->get()));
+        return $this->result($request, $this->commands->markReadyForReview(new MarkReadyForReview($request->getId(), $input->note), $this->currentActor->get()));
     }
 
     /**

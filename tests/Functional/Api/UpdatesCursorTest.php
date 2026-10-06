@@ -113,7 +113,7 @@ final class UpdatesCursorTest extends WebTestCase
         self::asAgent($this->user, static function (RequestCommands $commands, Actor $agent) use ($r1, $r2): void {
             $commands->claim(new Claim($r1), $agent);
             $commands->claim(new Claim($r2), $agent);
-            $commands->linkCommits(new LinkCommits(CommitSha::fromString(str_repeat('e', 40)), [$r1, $r2], 'One refactoring covers both.'), $agent, []);
+            $commands->linkCommits(new LinkCommits(CommitSha::fromString(str_repeat('e', 40)), [$r1, $r2], 'One refactoring covers both.'), $agent);
         });
         self::requestCommand($this->client, $r2->toString(), 'comments', ['body' => 'Keep the old method as deprecated.']);
         self::asAgent($this->user, static fn (RequestCommands $commands, Actor $agent): array => $commands->reply(new Reply($r1, 'Done with the totals.'), $agent));

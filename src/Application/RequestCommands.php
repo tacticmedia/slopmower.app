@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace App\Application;
 
+use App\Application\Query\LinkCommitsResult;
+use App\Application\Query\RequestQuery;
 use App\Domain\Actor\Actor;
+use App\Domain\Error\CommitsNotAvailable;
 use App\Domain\Error\InvalidInput;
+use App\Domain\Error\InvalidTransition;
 use App\Domain\Error\NotFound;
+use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Error\ReviewClosed;
 use App\Domain\Event\BatchSubmittedEvent;
 use App\Domain\Event\DecidedEvent;
@@ -14,6 +19,7 @@ use App\Domain\Event\RecordedEvent;
 use App\Domain\Event\RequestCommentedEvent;
 use App\Domain\Git\CommitInfo;
 use App\Domain\Identity\BatchId;
+use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Request\Command\Claim;
@@ -27,23 +33,33 @@ use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\RequestCommand;
 use App\Domain\Request\Command\UnlinkCommit;
 use App\Domain\Request\Command\Verify;
+use App\Domain\Request\CommitLinkState;
 use App\Domain\Request\RequestDecider;
 use App\Domain\Request\RequestState;
 use App\Domain\Review\ReviewSnapshot;
 use App\Entity\Draft;
 use App\EventStore\CommandExecutor;
+use App\Git\GitFailed;
+use App\Git\GitReader;
+use App\Git\PinRefs;
+use App\Git\TenantDataPaths;
 use App\Projection\RequestStateMapper;
 use App\Repository\ChangeRequestRepository;
 use App\Repository\CommitLinkRepository;
 use App\Repository\DraftRepository;
 use App\Repository\ReviewRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 
 /**
- * Each method returns the events that the command wrote. The ID of an opened request is in the requestId of its event.
+ * Each method but linkCommits() returns the events that the command wrote. The ID of an opened request is in the
+ * requestId of its event. Git work runs outside the event transaction (D26).
  */
 final class RequestCommands
 {
+    /** Requests during the delay reuse the queued fetch, so this is the debounce per repository. */
+    public const int FETCH_DELAY_MILLISECONDS = 5000;
+
     public function __construct(
         private readonly CommandExecutor $executor,
         private readonly EntityManagerInterface $entityManager,
@@ -51,6 +67,12 @@ final class RequestCommands
         private readonly ChangeRequestRepository $requests,
         private readonly CommitLinkRepository $links,
         private readonly DraftRepository $drafts,
+        private readonly RequestQuery $requestQuery,
+        private readonly FetchRepository $fetchRepository,
+        private readonly GitReader $reader,
+        private readonly PinRefs $pins,
+        private readonly TenantDataPaths $paths,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -87,33 +109,86 @@ final class RequestCommands
     }
 
     /**
-     * @param list<CommitInfo> $availability The commit, when the server clone has it
+     * Q7. A commit that the server clone has is pinned before the transaction. A missing one stays pending and queues
+     * a fetch, which {@see ResolvePendingCommitLinks} follows.
      *
-     * @return list<RecordedEvent> Empty when every pair is linked already
+     * @throws NotFound|InvalidInput|ReviewClosed|InvalidTransition
      */
-    public function linkCommits(LinkCommits $command, Actor $actor, array $availability): array
+    public function linkCommits(LinkCommits $command, Actor $actor): LinkCommitsResult
     {
+        $commitSha = $command->commitSha;
         $first = $command->requestIds[0] ?? throw InvalidInput::field('requestIds', 'Must not be empty.');
+        $review = ($this->requests->findFresh($first) ?? throw new NotFound())->getReview();
+        $repository = $review->getRepository();
+        $gitDir = $this->paths->clonePath($repository->getTenantId(), $repository->getId());
+        $commit = $this->reader->hasCommit($gitDir, $commitSha) ? $this->reader->commitInfo($gitDir, $commitSha) : null;
 
-        return $this->run($this->reviewOf($first), $command, $actor, $availability);
+        if (null !== $commit) {
+            $this->pins->pinCommit($gitDir, $commitSha);
+        }
+
+        try {
+            $events = $this->run($review->getId(), $command, $actor, null === $commit ? [] : [$commit]);
+        } catch (\Throwable $failure) {
+            if (null !== $commit && !$this->links->isLinkedInRepository($repository->getId(), $commitSha)) {
+                $this->pins->unpinCommit($gitDir, $commitSha);
+            }
+
+            throw $failure;
+        }
+
+        if (null === $commit) {
+            $this->requestFetch($repository->getId());
+        }
+
+        return $this->requestQuery->linkCommitsResult($commitSha, null === $commit ? CommitLinkState::Pending : CommitLinkState::Available, $command->requestIds, $events);
     }
 
     /**
+     * Q8. Deletes the pin of the commit after the transaction, when no other link in the repository names it.
+     *
      * @return list<RecordedEvent>
+     *
+     * @throws NotFound|InvalidInput|ReviewClosed|InvalidTransition
      */
     public function unlinkCommit(UnlinkCommit $command, Actor $actor): array
     {
-        return $this->run($this->reviewOf($command->requestId), $command, $actor);
+        $events = $this->run($this->reviewOf($command->requestId), $command, $actor);
+        $repository = ($this->requests->findFresh($command->requestId) ?? throw new NotFound())->getReview()->getRepository();
+
+        if (!$this->links->isLinkedInRepository($repository->getId(), $command->commitSha)) {
+            try {
+                $this->pins->unpinCommit($this->paths->clonePath($repository->getTenantId(), $repository->getId()), $command->commitSha);
+            } catch (GitFailed $failure) {
+                // The unlink is committed. A removed repository has no clone left.
+                $this->logger->warning('The pin of commit {commitSha} could not be deleted.', ['commitSha' => $command->commitSha->toString(), 'exception' => $failure]);
+            }
+        }
+
+        return $events;
     }
 
     /**
-     * @param list<CommitInfo> $availability The pending linked commits that the server clone has now
+     * Q10. Pending links get one synchronous fetch, during which {@see ResolvePendingCommitLinks} writes commit.found in
+     * its own transaction. The command then reads the links again.
      *
      * @return list<RecordedEvent>
+     *
+     * @throws NotFound|InvalidInput|ReviewClosed|InvalidTransition|CommitsNotAvailable|RepositoryUnavailable
      */
-    public function markReadyForReview(MarkReadyForReview $command, Actor $actor, array $availability = []): array
+    public function markReadyForReview(MarkReadyForReview $command, Actor $actor): array
     {
-        return $this->run($this->reviewOf($command->requestId), $command, $actor, $availability);
+        $reviewId = $this->reviewOf($command->requestId);
+
+        try {
+            // The decider checks pending links last, so every other refusal comes before any fetch.
+            return $this->run($reviewId, $command, $actor);
+        } catch (CommitsNotAvailable) {
+            $request = $this->requests->findFresh($command->requestId) ?? throw new NotFound();
+            $this->fetchRepository->fetchNow($request->getReview()->getRepository()->getId());
+        }
+
+        return $this->run($reviewId, $command, $actor);
     }
 
     /**
@@ -208,6 +283,15 @@ final class RequestCommands
         $request = $this->requests->findFresh($requestId) ?? throw new NotFound();
 
         return RequestStateMapper::toState($request, $this->links->findFreshOf($request));
+    }
+
+    private function requestFetch(RepositoryId $repositoryId): void
+    {
+        try {
+            $this->fetchRepository->request($repositoryId, self::FETCH_DELAY_MILLISECONDS);
+        } catch (RepositoryUnavailable) {
+            // The access is removed. The link stays pending, and Q10 answers repository_unavailable.
+        }
     }
 
     private function decideDraft(Draft $draft, BatchId $batchId, ReviewSnapshot $review, Actor $actor): DecidedEvent

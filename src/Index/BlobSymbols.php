@@ -14,19 +14,14 @@ use App\Git\GitReader;
 use App\Git\TreeEntry;
 use App\Repository\IndexedBlobRepository;
 use App\Repository\SymbolRepository;
-use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
  * The one parse-on-demand path. Only a regular file that is renderable, not binary and at most 1 MiB, has symbols.
  */
 final class BlobSymbols
 {
-    /**
-     * @param iterable<SymbolExtractor> $extractors
-     */
     public function __construct(
-        #[AutowireIterator(SymbolExtractor::class)]
-        private readonly iterable $extractors,
+        private readonly PhpSymbolExtractor $extractor,
         private readonly IndexedBlobRepository $indexedBlobs,
         private readonly SymbolRepository $symbols,
         private readonly IndexSql $indexSql,
@@ -36,7 +31,7 @@ final class BlobSymbols
 
     public function supports(RepoPath $path): bool
     {
-        return null !== $this->extractorFor($path);
+        return $this->extractor->supports($path);
     }
 
     /**
@@ -49,17 +44,16 @@ final class BlobSymbols
      */
     public function of(Repository $repository, string $gitDir, TreeEntry $entry): SymbolTable
     {
-        $extractor = $this->extractorFor(RepoPath::fromString($entry->path));
         $criteria = ['repositoryId' => $repository->getId(), 'blobSha' => BlobSha::fromString($entry->objectId)];
-        $indexed = null !== $extractor && $entry->isRenderableFile() ? $this->indexedBlobs->findOneBy($criteria) : null;
+        $indexed = $this->supports(RepoPath::fromString($entry->path)) && $entry->isRenderableFile() ? $this->indexedBlobs->findOneBy($criteria) : null;
 
-        if (null === $extractor || !$indexed instanceof IndexedBlob) {
+        if (!$indexed instanceof IndexedBlob) {
             return $this->parse($repository, $gitDir, $entry);
         }
 
         $symbols = array_map(static fn (Symbol $symbol): ExtractedSymbol => $symbol->toExtracted(), $this->symbols->findBy($criteria));
 
-        return new SymbolTable($extractor->language(), $indexed->hasParseError(), $symbols);
+        return new SymbolTable($this->extractor->language(), $indexed->hasParseError(), $symbols);
     }
 
     /**
@@ -72,13 +66,11 @@ final class BlobSymbols
      */
     public function parse(Repository $repository, string $gitDir, TreeEntry $entry): SymbolTable
     {
-        $extractor = $this->extractorFor(RepoPath::fromString($entry->path));
-
-        if (null === $extractor) {
+        if (!$this->supports(RepoPath::fromString($entry->path))) {
             return SymbolTable::unsupported();
         }
 
-        $noSymbols = new SymbolTable($extractor->language(), false, []);
+        $noSymbols = new SymbolTable($this->extractor->language(), false, []);
         $blobSha = BlobSha::fromString($entry->objectId);
         $blob = $entry->isRenderableFile() ? $this->reader->readBlob($gitDir, $blobSha) : null;
 
@@ -86,20 +78,9 @@ final class BlobSymbols
             return $noSymbols;
         }
 
-        $table = $extractor->extract($blob->bytes);
+        $table = $this->extractor->extract($blob->bytes);
         $this->indexSql->insertBlob($repository->getTenantId(), $repository->getId(), $blobSha, $table);
 
         return $table;
-    }
-
-    private function extractorFor(RepoPath $path): ?SymbolExtractor
-    {
-        foreach ($this->extractors as $extractor) {
-            if ($extractor->supports($path)) {
-                return $extractor;
-            }
-        }
-
-        return null;
     }
 }

@@ -38,15 +38,6 @@ final class MarkReadyTest extends KernelTestCase
         self::fail('No CommitsNotAvailable was thrown.');
     }
 
-    #[TestDox('All links available gives ready_for_review')]
-    public function testAllLinksAvailableGivesReady(): void
-    {
-        $scenario = self::withPendingLink();
-        $availability = [RequestScenario::commit(RequestScenario::OTHER_COMMIT)];
-
-        self::assertSame('request.ready_for_review', $scenario->outcome(self::ready($scenario), RequestScenario::claimingAgent(), $availability));
-    }
-
     /**
      * One available link and one pending link.
      */

@@ -14,7 +14,7 @@ Status: backlog. The proof of concept extracts symbols for PHP only, with `nikic
   - a small Node sidecar with `web-tree-sitter`.
 - Check the current versions of the CLI, `web-tree-sitter`, and each grammar before the work starts. The phase 1 values are in the stack findings.
 - Use the `tags.scm` definition queries of each grammar to find classes, functions, and methods, and map them to `SymbolKind`.
-- Add one `SymbolExtractor` implementation per language through the tagged iterator that the index job already uses. The index job keeps skipping blobs that are already indexed.
+- Add an extractor interface with one implementation per language, `PhpSymbolExtractor` included, and let `BlobSymbols` pick the extractor through a tagged iterator. The index job keeps skipping blobs that are already indexed.
 - Start with JavaScript and TypeScript.
 - The symbol range rule stays: from the doc comment, if there is one, to the last line of the node.
 

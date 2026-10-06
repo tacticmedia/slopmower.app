@@ -220,7 +220,7 @@ make up
 
   | Directory | Content |
   |---|---|
-  | `src/Domain` | Pure PHP. It imports only `App\Domain`, `Symfony\Component\Uid`, and PHP core. |
+  | `src/Domain` | Pure PHP, so unit tests run it without the kernel (D44). It imports only `App\Domain`, `Symfony\Component\Uid`, and PHP core. |
   | `src/Application` | Use cases and queries |
   | `src/Entity`, `src/Repository` | Doctrine entities and repositories |
   | `src/Doctrine` | DBAL types and embeddables |
