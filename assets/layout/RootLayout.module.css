@@ -29,3 +29,15 @@
     margin: 0 auto;
     padding: var(--base-size-24) var(--base-size-16);
 }
+
+/* ReviewLayout sets data-focus-mode. */
+.page:has([data-focus-mode]) .header {
+    display: none;
+}
+
+@media (width > 768px) {
+    .page:has([data-focus-mode]) .main {
+        max-width: none;
+        padding: 0;
+    }
+}

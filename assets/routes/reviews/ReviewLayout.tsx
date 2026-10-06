@@ -1,7 +1,9 @@
 import { CodeIcon, CommentDiscussionIcon } from '@primer/octicons-react';
 import { Banner, Heading, Link, RelativeTime, UnderlineNav } from '@primer/react';
-import { Outlet, Link as RouterLink, useLoaderData, useMatch } from 'react-router';
+import { useEffect, useMemo } from 'react';
+import { Outlet, Link as RouterLink, useLoaderData, useMatch, useOutletContext } from 'react-router';
 import type { Review } from '../../api/types/review';
+import { usePreference } from '../../layout/usePreference';
 import { AgentPromptSnippet } from '../../review/AgentPromptSnippet';
 import { CloseReviewDialog } from '../../review/CloseReviewDialog';
 import { DeleteReviewDialog } from '../../review/DeleteReviewDialog';
@@ -12,9 +14,17 @@ import { shortSha } from '../../review/shortSha';
 import styles from './ReviewLayout.module.css';
 import type { ReviewData } from './reviewData';
 
+/** The outlet context of the review routes. Focus mode applies only while a file is open. */
+export type FocusMode = { focus: boolean; setFocus(on: boolean): void };
+
+export function useFocusMode(): FocusMode {
+    return useOutletContext<FocusMode>();
+}
+
 function ClosedBanner({ review }: { review: Extract<Review, { state: 'closed' }> }) {
     return (
         <Banner
+            className={styles.closed}
             variant="warning"
             title="This review is closed and read-only"
             data-testid="review-closed"
@@ -51,9 +61,30 @@ function ReviewNavigation({ review }: { review: Review }) {
 
 export function ReviewLayout() {
     const { review, drafts } = useLoaderData<ReviewData>();
+    const [focusPreferred, setFocus] = usePreference('focus');
+    const fileOpen = null !== useMatch('/reviews/:reviewId/files/*');
+    const focus = focusPreferred && fileOpen;
+    const focusMode = useMemo<FocusMode>(() => ({ focus, setFocus }), [focus, setFocus]);
+
+    useEffect(() => {
+        if (!focus) {
+            return;
+        }
+        const leave = (event: KeyboardEvent): void => {
+            // Comment boxes are forms.
+            const inForm = event.target instanceof Element && null !== event.target.closest('form');
+            if ('Escape' === event.key && !event.defaultPrevented && !inForm) {
+                setFocus(false);
+            }
+        };
+        // On the window, after the menus and dialogs that take Escape on the document.
+        window.addEventListener('keydown', leave);
+
+        return () => window.removeEventListener('keydown', leave);
+    }, [focus, setFocus]);
 
     return (
-        <div className={styles.page}>
+        <div className={styles.page} data-focus-mode={focus ? '' : undefined}>
             <header className={styles.header}>
                 <div className={styles.titleRow}>
                     <div className={styles.titleText}>
@@ -80,7 +111,7 @@ export function ReviewLayout() {
                 <ReviewNavigation review={review} />
             </header>
             {'closed' === review.state && <ClosedBanner review={review} />}
-            <Outlet />
+            <Outlet context={focusMode} />
         </div>
     );
 }

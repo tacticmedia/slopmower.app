@@ -5,6 +5,7 @@ import { FileTree } from '../../review/FileTree';
 import { encodedRouteParam } from '../encodedRouteParam';
 import styles from './CodeLayout.module.css';
 import type { ReviewData } from './reviewData';
+import { useFocusMode } from './ReviewLayout';
 import { listDirectory } from './treeData';
 
 export function codeLayoutLoader({ request, params }: LoaderFunctionArgs): Promise<TreeListing> {
@@ -19,13 +20,14 @@ export function CodeLayout() {
     const viewedPaths = useRouteLoaderData<ReviewData>('review')?.viewedPaths;
     const viewed = useMemo(() => new Set(viewedPaths), [viewedPaths]);
     const currentPath = useParams()['*'] || null;
+    const focusMode = useFocusMode();
 
     return (
-        <div className={styles.layout}>
+        <div className={focusMode.focus ? `${styles.layout} ${styles.focus}` : styles.layout}>
             <aside className={styles.tree}>
                 <FileTree reviewId={reviewId} entries={items} currentPath={currentPath} viewed={viewed} />
             </aside>
-            <Outlet />
+            <Outlet context={focusMode} />
         </div>
     );
 }

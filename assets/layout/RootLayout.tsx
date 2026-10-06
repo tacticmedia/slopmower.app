@@ -11,7 +11,7 @@ export function RootLayout() {
 
     return (
         <div className={styles.page} data-live={live ? 'connected' : 'disconnected'}>
-            <Header>
+            <Header className={styles.header}>
                 <Header.Item>
                     <Header.Link as={NavLink} to="/" className={styles.brand}>
                         Holistic Review

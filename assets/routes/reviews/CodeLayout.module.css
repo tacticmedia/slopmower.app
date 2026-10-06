@@ -23,3 +23,16 @@
         max-height: 40vh;
     }
 }
+
+@media (width > 768px) {
+    .focus {
+        height: 100vh;
+        grid-template-rows: minmax(0, 1fr);
+        align-items: stretch;
+        padding: var(--base-size-8);
+    }
+
+    .focus .tree {
+        max-height: none;
+    }
+}

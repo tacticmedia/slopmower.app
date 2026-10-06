@@ -93,6 +93,12 @@ If an agent claimed a request and stopped working on it, click **Unassign**. The
 
 Select **Viewed** in the file header when you are finished with a file. The file tree marks viewed files. The marks stay for the whole review, because the code of the review never changes.
 
+## Focus mode
+
+Click **Focus** in the file header to show only the file tree and the file. They fill the window, and each scrolls on its own. To leave, click **Focus** again or press Escape. Escape in a comment box does not leave focus mode.
+
+Focus mode stays on when you open another file or reload the page. The choice is saved in your browser. On a narrow screen, focus mode only hides the headers.
+
 ## Outdated requests
 
 A request is **Outdated** when its code changed on the default branch, or when Holistic Review cannot find the code there any more. The review view always shows the code at the review commit, so the request stays at its original place. The label tells you that the code on the default branch is different.

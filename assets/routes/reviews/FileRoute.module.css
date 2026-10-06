@@ -27,3 +27,16 @@
     justify-content: center;
     padding: var(--base-size-32);
 }
+
+@media (width > 768px) {
+    .focus .fileThreads {
+        max-height: calc(100% / 3);
+        overflow: auto;
+    }
+
+    .focus .viewport {
+        flex: 1;
+        height: auto;
+        min-height: 0;
+    }
+}
