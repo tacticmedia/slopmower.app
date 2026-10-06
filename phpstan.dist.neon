@@ -24,9 +24,3 @@ parameters:
         containerXmlPath: var/cache/test/App_KernelTestDebugContainer.xml
     doctrine:
         objectManagerLoader: tests/object-manager.php
-    ignoreErrors:
-        # KernelTrait calls getAllowedEnvs() through MicroKernelTrait.
-        -
-            identifier: method.unused
-            message: '#getAllowedEnvs\(\)#'
-            path: src/Kernel.php

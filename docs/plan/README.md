@@ -351,19 +351,19 @@ The session writes it into `reports/MNN.md`:
 
 ## Verified versions
 
-Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03. `composer.lock`, `package-lock.json`, and the images hold these versions, except `symfony/uid`: 8.1.8 is installed.
+Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, and Symfony AI Mate rows on 2026-10-07. `composer.lock`, `package-lock.json`, and the images hold these versions.
 
 | Package | Version | Source |
 |---|---|---|
 | PHP | 8.5.11 | https://www.php.net/releases/index.php?json&version=8 |
-| Symfony | 8.1.7. 8.2 is due 11/2026. 8.1 ends 01/2027. | https://symfony.com/releases/8.1.json |
+| Symfony | 8.1.8. 8.2 is due 11/2026. 8.1 ends 01/2027. | https://symfony.com/releases/8.1.json |
 | PostgreSQL | 18.6, Docker tag `18-alpine` | https://www.postgresql.org/versions.json |
 | FrankenPHP | 1.12.7, Docker tag `dunglas/frankenphp:1.12.7-php8.5-trixie`, worker mode through Symfony Runtime's `FrankenPhpWorkerRunner` | https://github.com/php/frankenphp/releases/tag/v1.12.7 |
 | dunglas/symfony-docker | Template, guide "Using Symfony Docker with an existing project" | https://github.com/dunglas/symfony-docker |
 | Node.js | 24 LTS, 24.21.0 | https://nodejs.org/dist/index.json |
 | Node.js in the `php` image | 24.21.0 from `node:24-trixie-slim`, npm 11.19.0 | `node --version` in the `php` container |
-| `doctrine/orm`, `doctrine/doctrine-migrations-bundle`, `symfony/messenger` with the Doctrine transport | 3.7.2, 4.0.1, 8.1, installed | `composer show` |
-| `symfony/process`, `symfony/uid` | 8.1.7, 8.1.5 | https://repo.packagist.org/p2/symfony/process.json |
+| `doctrine/orm`, `doctrine/doctrine-migrations-bundle`, `symfony/messenger` with the Doctrine transport | 3.7.4, 4.0.1, 8.1, installed | `composer show` |
+| `symfony/process`, `symfony/uid` | 8.1.7, 8.1.8 | https://repo.packagist.org/p2/symfony/process.json |
 | `mcp/sdk`, `symfony/mcp-bundle` | 0.8.1, 0.14.1, exact pins | https://repo.packagist.org/p2/mcp/sdk.json |
 | `nyholm/psr7` | 1.8 | https://repo.packagist.org/p2/nyholm/psr7.json |
 | `hwi/oauth-bundle` | 2.5.0 of 2026-02-19, MIT, PHP 8.3 or later, Symfony `^6.4\|^7.4\|^8.0`, uses Symfony HttpClient | https://repo.packagist.org/p2/hwi/oauth-bundle.json |
@@ -375,7 +375,8 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 | `twig/markdown-extra` | 3.29.0 | https://repo.packagist.org/p2/twig/markdown-extra.json |
 | `league/commonmark` | 2.10.3 | https://repo.packagist.org/p2/league/commonmark.json |
 | `opis/json-schema` | 2.6.0, draft 2020-12 | https://repo.packagist.org/p2/opis/json-schema.json |
-| `phpunit/phpunit`, `phpstan/phpstan` | 13.3.5, 2.2.16 | https://repo.packagist.org/p2/phpunit/phpunit.json |
+| `phpunit/phpunit`, `phpstan/phpstan` | 13.4.1, 2.3.0 | https://repo.packagist.org/p2/phpunit/phpunit.json |
+| `symfony/ai-mate`, `symfony/ai-monolog-mate-extension`, `symfony/ai-symfony-mate-extension` | 0.13.0, dev only. 0.14.0 exists. | https://repo.packagist.org/p2/symfony/ai-mate.json |
 | `playwright-php/playwright` | 1.5.0, exact pin. Its Node server uses npm `playwright` 1.63.0. | https://repo.packagist.org/p2/playwright-php/playwright.json |
 | `friendsofphp/php-cs-fixer` | 3.95.27 | https://repo.packagist.org/p2/friendsofphp/php-cs-fixer.json |
 | `react`, `react-dom`, `@types/react`, `@types/react-dom` | 19.3.0 | https://www.npmjs.com/package/react |
@@ -417,7 +418,6 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 
 ### PHPStan level 8
 
-- PHPStan reports `Kernel::getAllowedEnvs()` as unused. This is a false positive: `KernelTrait` calls it through `MicroKernelTrait`. Ignore it by the identifier `method.unused`.
 - phpstan-doctrine needs `objectManagerLoader`: `tests/object-manager.php`.
 
 ### Mocked UI suite
