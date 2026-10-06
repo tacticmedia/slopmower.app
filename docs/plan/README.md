@@ -158,6 +158,7 @@ PHP, Composer, the console, and PHPUnit run in the `php` container. `make` wraps
 | `make worker-restart` | `bin/console messenger:stop-workers`. Compose restarts the worker with the new code. Run it after a PHP change that the worker uses. |
 | `make console c="<arguments>"` | `bin/console <arguments>` |
 | `make composer c="<arguments>"` | `composer <arguments>` |
+| `make mate c="<arguments>"` | `vendor/bin/mate <arguments>`: Symfony AI Mate tools, for example `tools:list` or `tools:call monolog-tail --level=ERROR` |
 | `make migration` | `bin/console make:migration --no-interaction` |
 | `make db-reset` | Dev database: drop, create, migrate. Ask Jan first. |
 | `make db-test` | Databases `app_test` and `app_e2e`: create each one if it is missing, then migrate it |

@@ -85,8 +85,11 @@ Three specifics worth spelling out, because they are easy to get wrong:
 - Run the app with `make up`, and console commands with `make console c="..."`.
   [docs/plan/README.md](docs/plan/README.md#environment-and-commands) lists every
   target.
-- When something fails, read `var/log/dev.log` and the web profiler
-  (`/_profiler`) before changing code.
+- When something fails, run the Symfony AI Mate tools as
+  `docker compose exec -T php vendor/bin/mate <command>` before you read the logs
+  or the web profiler (`/_profiler`) by hand and before you change code. For
+  example `docker compose exec -T php vendor/bin/mate tools:list` and
+  `docker compose exec -T php vendor/bin/mate tools:call monolog-tail --level=ERROR`.
 - If `maker-bundle` is installed, prefer `bin/console make:*` with every argument
   passed up front and `--no-interaction` where supported: makers prompt on a
   terminal by default, which hangs a non-interactive shell. If a maker still
