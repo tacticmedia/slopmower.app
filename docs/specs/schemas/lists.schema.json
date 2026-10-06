@@ -159,6 +159,21 @@
         }
       }
     },
+    "DeclarationList": {
+      "type": "object",
+      "required": ["reviewId", "items"],
+      "properties": {
+        "reviewId": {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "declaration.schema.json"
+          }
+        }
+      }
+    },
     "DraftList": {
       "type": "object",
       "required": ["reviewId", "items"],

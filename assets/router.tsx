@@ -11,6 +11,7 @@ import { RepositoryRoute, repositoryAction, repositoryLoader } from './routes/re
 import { commitDiffLoader, diffSidesLoader, shouldRevalidateChanges } from './routes/requests/changesData';
 import { requestAction, requestListLoader, requestLoader } from './routes/requests/requestData';
 import { CodeLayout, codeLayoutLoader, NoFileSelected } from './routes/reviews/CodeLayout';
+import { declarationsLoader, shouldRevalidateDeclarations } from './routes/reviews/declarationsData';
 import { fileAction, fileLoader } from './routes/reviews/fileData';
 import { ReviewLayout } from './routes/reviews/ReviewLayout';
 import { reviewAction, reviewLoader } from './routes/reviews/reviewData';
@@ -59,6 +60,7 @@ export const router = createBrowserRouter([
                             },
                             { path: 'tree', loader: treeLoader },
                             { path: 'symbols', loader: symbolsLoader, shouldRevalidate: shouldRevalidateSymbols },
+                            { path: 'declarations', loader: declarationsLoader, shouldRevalidate: shouldRevalidateDeclarations },
                             {
                                 path: 'requests',
                                 loader: requestListLoader,

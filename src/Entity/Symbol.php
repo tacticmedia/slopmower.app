@@ -18,9 +18,11 @@ use Doctrine\ORM\Mapping as ORM;
 
 /**
  * One symbol of a parsed blob. {@see IndexSql} writes the rows.
+ * The FQN index holds the SHA-256 of the FQN, because a btree entry of a long multibyte FQN exceeds the PostgreSQL limit.
  */
 #[ORM\Entity(repositoryClass: SymbolRepository::class, readOnly: true)]
 #[ORM\Index(name: 'idx_symbol_blob', columns: ['tenant_id', 'repository_id', 'blob_sha'])]
+#[ORM\Index(name: 'idx_symbol_fqn', columns: ['tenant_id', 'repository_id', 'fqn_sha256'])]
 class Symbol implements TenantOwned
 {
     #[ORM\Id]
@@ -42,6 +44,9 @@ class Symbol implements TenantOwned
 
     #[ORM\Column(length: SymbolRef::MAX_FQN_CHARACTERS)]
     private string $fqn;
+
+    #[ORM\Column(length: 64, options: ['fixed' => true])]
+    private string $fqnSha256;
 
     #[ORM\Column(length: SymbolRef::MAX_FQN_CHARACTERS)]
     private string $name;

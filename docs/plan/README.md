@@ -426,6 +426,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 - A Playwright context denies clipboard writes. A test of a copy button grants `clipboard-read` and `clipboard-write`.
 - `page.route` cannot stream a response, so `EventSource` is replaced by `addInitScript`.
 - `context.route` also intercepts the imports of the `@pierre/diffs` worker. `page.route` is enough for `/api/v1`.
+- The worker pool renders with `useTokenTransformer`, so each code token is an element with `data-char`, its UTF-16 offset in the line. A Cmd-click is `click({ modifiers: ['ControlOrMeta'] })` on such a token.
 
 ### Test environments and front-end builds
 

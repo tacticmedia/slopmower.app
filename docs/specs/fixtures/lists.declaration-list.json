@@ -1,0 +1,15 @@
+{
+  "reviewId": "01K6B3A1B2C3D4E5F6G7H8J9KM",
+  "items": [
+    {
+      "path": "src/Billing/Tax/TaxRate.php",
+      "fqn": "App\\Billing\\Tax\\TaxRate",
+      "kind": "class",
+      "range": {
+        "startLine": 7,
+        "endLine": 31
+      },
+      "declarationStartLine": 10
+    }
+  ]
+}

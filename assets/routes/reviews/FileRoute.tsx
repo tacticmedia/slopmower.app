@@ -7,7 +7,7 @@ import type { FileContent } from '../../api/types/file-content';
 import type { Me } from '../../api/types/me';
 import type { Symbol as CodeSymbol } from '../../api/types/symbol';
 import { type CodeAnnotation, NO_ANNOTATIONS, stableAnnotations, threadsByLine } from '../../code/annotations';
-import type { Overflow } from '../../code/CodeFile';
+import type { NamePosition, Overflow } from '../../code/CodeFile';
 import { type LineRange, lineRange } from '../../code/lineHash';
 import { bottomLine, type GestureRange } from '../../code/rangeSelection';
 import { matchingSymbol, symbolKindLabel } from '../../code/symbolMatch';
@@ -19,8 +19,10 @@ import { type Composer, type SubmitMode, useFileComments } from '../../comments/
 import { usePreference } from '../../layout/usePreference';
 import { FileHeader } from '../../review/FileHeader';
 import { FilePlaceholder } from '../../review/FilePlaceholder';
+import { GoToDeclaration } from '../../review/GoToDeclaration';
 import { SymbolsMenu } from '../../review/SymbolsMenu';
 import { ViewedCheckbox } from '../../review/ViewedCheckbox';
+import { useGoToDeclaration } from './declarationsData';
 import type { FileView } from './fileData';
 import styles from './FileRoute.module.css';
 import type { ReviewData } from './reviewData';
@@ -52,6 +54,9 @@ export function FileRoute() {
     const filePendingDrafts = useMemo(() => comments.drafts.filter((draft) => null === draft.range), [comments.drafts]);
     const fileComposer = null !== comments.composer && null === comments.composer.range ? comments.composer : null;
     const [wrap, setWrap] = usePreference('wrap');
+    // V14 resolves names in PHP files only.
+    const navigable = 'php' === content.language && null !== text;
+    const goTo = useGoToDeclaration(review.id, content.path);
     const { select } = selection;
     const { open } = comments;
     // An exact symbol range anchors to the symbol.
@@ -75,6 +80,7 @@ export function FileRoute() {
     return (
         <section className={focus ? `${styles.file} ${styles.focus}` : styles.file} aria-label={content.path}>
             <FileHeader path={content.path}>
+                {navigable && <GoToDeclaration key={content.path} outcome={goTo.outcome} onSubmit={goTo.named} onChoose={(target) => void goTo.go(target)} onDismiss={goTo.dismiss} />}
                 {null !== text && (
                     <Button size="small" aria-pressed={wrap} leadingVisual={wrap ? CheckIcon : undefined} onClick={() => setWrap(!wrap)}>
                         Wrap lines
@@ -109,6 +115,7 @@ export function FileRoute() {
                     comments={comments}
                     caller={caller}
                     onComment={commentable ? openLines : null}
+                    onNavigate={navigable ? goTo.atPosition : null}
                     reviewLabel={reviewLabel}
                     overflow={wrap ? 'wrap' : 'scroll'}
                 />
@@ -125,13 +132,15 @@ type CodeProps = {
     caller: Actor;
     /** Null on a closed review. */
     onComment: ((range: LineRange) => void) | null;
+    /** Null for a file that is not PHP. */
+    onNavigate: ((position: NamePosition) => void) | null;
     reviewLabel: string;
     overflow: Overflow;
 };
 
 const draftLine = (draft: DraftView): number | null => (null === draft.range ? null : bottomLine(draft.range));
 
-function Code({ content, text, selection, comments, caller, onComment, reviewLabel, overflow }: CodeProps) {
+function Code({ content, text, selection, comments, caller, onComment, onNavigate, reviewLabel, overflow }: CodeProps) {
     const { composer, threads, drafts, submit, cancel } = comments;
     const commentable = null !== onComment;
     const composerLine = null !== composer && null !== composer.range ? bottomLine(composer.range) : null;
@@ -179,6 +188,7 @@ function Code({ content, text, selection, comments, caller, onComment, reviewLab
                     annotations={currentAnnotations}
                     renderAnnotation={renderAnnotation}
                     onComment={null === onComment ? null : comment}
+                    onNavigate={onNavigate}
                     overflow={overflow}
                     className={styles.scroller}
                 />

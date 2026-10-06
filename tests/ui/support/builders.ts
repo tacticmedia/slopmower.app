@@ -6,9 +6,10 @@ import type { ApiToken, ApiTokenWithSecret } from '../../../assets/api/types/api
 import type { CommitLink } from '../../../assets/api/types/commit-link';
 import type { Action, ActorKind, RequestStatus, ThreadEntryType } from '../../../assets/api/types/common';
 import type { CommitDiff, CommitDiffFile } from '../../../assets/api/types/commit-diff';
+import type { Declaration } from '../../../assets/api/types/declaration';
 import type { ErrorBody, ErrorDetails } from '../../../assets/api/types/error';
 import type { Event } from '../../../assets/api/types/event';
-import type { CandidateList, MercureAuthorization, ReviewPage } from '../../../assets/api/types/lists';
+import type { CandidateList, DeclarationList, MercureAuthorization, ReviewPage } from '../../../assets/api/types/lists';
 import type { Me } from '../../../assets/api/types/me';
 import type { Repository } from '../../../assets/api/types/repository';
 import type { RepositoryCandidate } from '../../../assets/api/types/repository-candidate';
@@ -82,6 +83,11 @@ export function localCandidate(directory: string, connectedRepositoryId: string 
 
 export function candidateList(items: RepositoryCandidate[], overrides: Partial<CandidateList> = {}): CandidateList {
     return { items, truncated: false, localEnabled: true, githubListedAt: null, githubConfigureUrl: null, ...overrides };
+}
+
+/** V14 with the targets that the test resolves the name to. */
+export function declarationList(reviewId: string, items: Declaration[]): DeclarationList {
+    return { ...fixture<DeclarationList>('lists.declaration-list.json'), reviewId, items };
 }
 
 /** An open review with a ready symbol index and no requests. */

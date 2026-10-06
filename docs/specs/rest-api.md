@@ -43,6 +43,7 @@ Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json). 
 | [V11](#v11-list-viewed-files) | GET | `/api/v1/reviews/{reviewId}/viewed-files` | S | 200 | [`lists.schema.json#/$defs/ViewedFiles`](schemas/lists.schema.json) |
 | [V12](#v12-mark-a-file-as-viewed) | PUT | `/api/v1/reviews/{reviewId}/viewed-files` | S | 200 | [`lists.schema.json#/$defs/ViewedFiles`](schemas/lists.schema.json) |
 | [V13](#v13-delete-a-review) | DELETE | `/api/v1/reviews/{reviewId}` | S | 204 | none |
+| [V14](#v14-find-declarations) | GET | `/api/v1/reviews/{reviewId}/declarations?path=` | S, B | 200 | [`lists.schema.json#/$defs/DeclarationList`](schemas/lists.schema.json) |
 | [Q1](rest-api-requests.md#q1-list-requests) | GET | `/api/v1/reviews/{reviewId}/requests` | S, B | 200 | [`lists.schema.json#/$defs/RequestPage`](schemas/lists.schema.json) |
 | [Q2](rest-api-requests.md#q2-open-a-request) | POST | `/api/v1/reviews/{reviewId}/requests` | S | 201 | [`request.schema.json`](schemas/request.schema.json) |
 | [Q3](rest-api-requests.md#q3-get-a-request) | GET | `/api/v1/requests/{requestId}` | S, B | 200 | [`request.schema.json`](schemas/request.schema.json) |
@@ -564,3 +565,50 @@ The endpoint works for open and closed reviews, and for reviews of a repository 
 - The index stays, because it belongs to the repository and the commit, not to the review.
 - The server publishes a `repository` live update, because `openReviewCount` can change.
 - Afterwards the review ID and the IDs of its requests and drafts get 404.
+
+### V14 Find declarations
+
+- **Request:** `GET /api/v1/reviews/{reviewId}/declarations?path=&line=&column=` for a name at a position, or `GET /api/v1/reviews/{reviewId}/declarations?path=&name=` for a typed name.
+- **Authentication:** S, B
+- **Success:** 200 [`DeclarationList`](schemas/lists.schema.json)
+- **Errors:**
+  - 404 `not_found`: no such path at the review commit;
+  - 422 `invalid_input`: the path is not a PHP file, `*.php`, or it is a directory or a submodule; the query has neither `line` and `column` nor `name`, or it has both; `name` is not a PHP name;
+  - 409 `repository_unavailable`.
+
+| Query | Type | Notes |
+|---|---|---|
+| `path` | RepoPath | Required. The file that contains the name. The extension match ignores case. |
+| `line` | integer, 1 or more | With `column` |
+| `column` | integer, 1 or more | Counts the Unicode characters of the line, from 1 |
+| `name` | string, 1 to 1024 characters | `Type`, `Ns\Type`, `\Ns\Type`, `namespace\Type`, `function`, `CONSTANT`, `Type::member`, `Type::method()`, or `Type::$property` |
+
+Rules:
+
+- The server parses the file at the review commit and resolves the name statically, as PHP does: with the namespace and the `use` imports of the file.
+- A position resolves the name that covers it:
+  - a class-like name in any position, also in a `use` import;
+  - the member of `Type::method()`, `Type::CONSTANT`, `Type::Case`, and `Type::$property`;
+  - a function call and a constant;
+  - `self` and `static` give the enclosing class-like, `parent` gives the parent class.
+- Any other position gives no targets. For example, a method call on a variable, `$x->foo()`, needs type inference.
+- `name` resolves in the context of the file. A file with several namespaces uses its last one. A leading `\` makes the name fully qualified, and a leading `namespace\` makes it relative to the namespace of the file.
+  - A name without `::` matches a class-like, a function, and a constant.
+  - In `Type::member`, the class part resolves as a class name. `member()` matches a method, `$member` a property, and `member` a method, a class constant, or an enum case.
+- An unqualified function or constant name that no `use` imports resolves in the namespace of the file first, then in the global namespace, as PHP falls back at run time.
+- The targets are the declarations of the resolved names among the symbols of the review commit, see [V9](#v9-list-symbols). FQNs compare exactly, also in case.
+- While the index job runs, see [V5](#v5-get-the-index-status), a file that the job has not parsed yet gives no targets.
+- A name without a declaration in the commit, for example a vendor class that is not committed, gives `items: []`. So do a file that is not renderable, see [V7](#v7-get-file-metadata), a file that does not parse, and a position without a name.
+- `range` and `declarationStartLine` are those of the symbol in V9. `range` starts at the doc comment, if any. `declarationStartLine` is the first line of the declaration, attributes included, and the UI jumps to it.
+- Items are sorted by `path` in byte order, then by `range.startLine`, then by `fqn`. The list is not paginated.
+
+Example response to `?path=src%2FBilling%2FInvoiceTotals.php&line=12&column=24`, [fixtures/lists.declaration-list.json](fixtures/lists.declaration-list.json):
+
+```json
+{
+  "reviewId": "01K6B3A1B2C3D4E5F6G7H8J9KM",
+  "items": [
+    {"path":"src/Billing/Tax/TaxRate.php","fqn":"App\\Billing\\Tax\\TaxRate","kind":"class","range":{"startLine":7,"endLine":31},"declarationStartLine":10}
+  ]
+}
+```

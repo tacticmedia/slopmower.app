@@ -135,7 +135,7 @@ final class IndexReviewHandlerTest extends KernelTestCase
         $first = $this->startIndexedReview();
         $parseErrors = self::connection()->fetchAllKeyValue('SELECT blob_sha, parse_error FROM indexed_blob');
         // One stored symbol per blob, so a parse that ran again would count 0 instead of 1.
-        self::connection()->executeStatement("INSERT INTO symbol (tenant_id, repository_id, blob_sha, kind, fqn, name, start_line, end_line, declaration_start_line) SELECT tenant_id, repository_id, blob_sha, 'class', 'Marker', 'Marker', 1, 1, 1 FROM indexed_blob");
+        self::connection()->executeStatement("INSERT INTO symbol (tenant_id, repository_id, blob_sha, kind, fqn, fqn_sha256, name, start_line, end_line, declaration_start_line) SELECT tenant_id, repository_id, blob_sha, 'class', 'Marker', '".hash('sha256', 'Marker')."', 'Marker', 1, 1, 1 FROM indexed_blob");
         $this->source->commit(['docs/notes.md' => "Notes\n"]);
 
         $second = $this->startIndexedReview();

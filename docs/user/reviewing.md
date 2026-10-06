@@ -85,6 +85,18 @@ When the agent declines a request, it must give a reason with evidence that you 
 
 If an agent claimed a request and stopped working on it, click **Unassign**. The request goes back to its status before the claim.
 
+## Go to a declaration
+
+In a PHP file, hold Cmd (Ctrl outside macOS) and click a name to open its declaration at the review commit. The name is underlined while you hold the key. A plain click still selects text. This works for class names in any position, `Type::method()`, `Type::CONSTANT`, `Type::$property`, enum cases, `self`, `static`, and `parent`, function calls, and constants.
+
+With the keyboard, move to **Go to declaration** in the file header with Tab, type a name, and press Enter. The name resolves like PHP code in the open file, with its namespace and its `use` imports. Start a fully qualified name with `\`, for example `\App\Billing\Invoice`, and a name in the namespace of the file with `namespace\`. A member takes the form `Invoice::total` or `Invoice::$lines`.
+
+- One declaration opens at its first line, below any doc comment, and that line is selected. The file opens when the declaration is in another file.
+- Several declarations open a menu. Choose one.
+- **No declaration in this commit** means that the review commit does not declare the name, for example a vendor class that is not committed, or that the symbol index has not reached the file yet.
+
+The browser's Back button returns to the line that you clicked. A method call on a variable, such as `$invoice->total()`, has no target, because it needs the type of the variable.
+
 ## Wrap long lines
 
 **Wrap lines** in the file header wraps long lines in the code and in the changes of linked commits, and your browser remembers the choice.

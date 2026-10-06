@@ -38,6 +38,7 @@ import inputsWontDo from '../../docs/specs/fixtures/inputs.wont-do.json';
 import linkCommitsResultAvailable from '../../docs/specs/fixtures/link-commits-result.available.json';
 import linkCommitsResultPending from '../../docs/specs/fixtures/link-commits-result.pending.json';
 import listsCandidateList from '../../docs/specs/fixtures/lists.candidate-list.json';
+import listsDeclarationList from '../../docs/specs/fixtures/lists.declaration-list.json';
 import listsDraftList from '../../docs/specs/fixtures/lists.draft-list.json';
 import listsMercureAuthorization from '../../docs/specs/fixtures/lists.mercure-authorization.json';
 import listsRepositoryPage from '../../docs/specs/fixtures/lists.repository-page.json';
@@ -96,6 +97,7 @@ import type {
 import type { LinkCommitsResult } from './types/link-commits-result';
 import type {
     CandidateList,
+    DeclarationList,
     DraftList,
     MercureAuthorization,
     RepositoryPage,
@@ -166,6 +168,7 @@ const checkedFixtures = {
     'link-commits-result.available.json': linkCommitsResultAvailable satisfies Widen<LinkCommitsResult>,
     'link-commits-result.pending.json': linkCommitsResultPending satisfies Widen<LinkCommitsResult>,
     'lists.candidate-list.json': listsCandidateList satisfies Widen<CandidateList>,
+    'lists.declaration-list.json': listsDeclarationList satisfies Widen<DeclarationList>,
     'lists.draft-list.json': listsDraftList satisfies Widen<DraftList>,
     'lists.mercure-authorization.json': listsMercureAuthorization satisfies Widen<MercureAuthorization>,
     'lists.repository-page.json': listsRepositoryPage satisfies Widen<RepositoryPage>,

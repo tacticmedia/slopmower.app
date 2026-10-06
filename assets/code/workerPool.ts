@@ -9,5 +9,6 @@ export const POOL_OPTIONS: WorkerPoolOptions = {
     poolSize: 2,
 };
 
-// No `langs`: each grammar loads with the first file that needs it.
-export const HIGHLIGHTER_OPTIONS: WorkerInitializationRenderOptions = { theme: THEME };
+// No `langs`: each grammar loads with the first file that needs it. The token events of CodeFile need
+// `useTokenTransformer` here, because a working pool ignores that option of the view.
+export const HIGHLIGHTER_OPTIONS: WorkerInitializationRenderOptions = { theme: THEME, useTokenTransformer: true };

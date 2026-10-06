@@ -11,7 +11,7 @@ This directory is the v1 contract of Holistic Review: the REST API, the MCP serv
 | [rest-api-requests.md](rest-api-requests.md) | REST requests, updates, drafts, API tokens, and the routes outside `/api/v1` |
 | [mcp.md](mcp.md) | MCP endpoint, server instructions, the 12 tools, error mapping, parity with REST |
 | [webhooks-and-live-updates.md](webhooks-and-live-updates.md) | GitHub webhooks, fetch triggers and post-fetch steps, Mercure live updates |
-| [schemas/](schemas/) | 27 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
+| [schemas/](schemas/) | 28 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
 | [fixtures/](fixtures/) | One realistic example per response shape, error code, live-update type, and request body. See [section 11](#11-fixtures). |
 
 ## 2. Conventions
@@ -98,7 +98,7 @@ Fixtures: one file per code, `fixtures/error.<code>.json` with `-` in place of `
 
 - Lists that can grow take `limit` and `cursor` and return `nextCursor`. `nextCursor` is null on the last page.
 - A cursor is opaque: base64url JSON of the sort key of the last item, plus a hash of the filters. It never expires. A cursor sent with other filters gets 422 `invalid_input`.
-- Bounded lists are not paginated: drafts, tokens, viewed files, candidates, and symbols. Candidates stop at 1,000 items and set `truncated`.
+- Bounded lists are not paginated: drafts, tokens, viewed files, candidates, symbols, and declarations. Candidates stop at 1,000 items and set `truncated`.
 - `GET /api/v1/reviews/{reviewId}/updates` uses a different cursor: the integer event number. See [rest-api-requests.md](rest-api-requests.md#4-updates).
 
 ## 6. Caching and ETags
@@ -208,6 +208,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [tree-entry.schema.json](schemas/tree-entry.schema.json) | `https://holistic-review.invalid/schemas/v1/tree-entry.schema.json` | One entry of a tree listing |
 | [file-content.schema.json](schemas/file-content.schema.json) | `https://holistic-review.invalid/schemas/v1/file-content.schema.json` | File metadata at the review commit |
 | [symbol.schema.json](schemas/symbol.schema.json) | `https://holistic-review.invalid/schemas/v1/symbol.schema.json` | One PHP symbol of a file |
+| [declaration.schema.json](schemas/declaration.schema.json) | `https://holistic-review.invalid/schemas/v1/declaration.schema.json` | One declaration of a name at the review commit |
 | [draft.schema.json](schemas/draft.schema.json) | `https://holistic-review.invalid/schemas/v1/draft.schema.json` | A draft of the pending batch |
 | [batch-submission.schema.json](schemas/batch-submission.schema.json) | `https://holistic-review.invalid/schemas/v1/batch-submission.schema.json` | Result of a batch submission |
 | [api-token.schema.json](schemas/api-token.schema.json) | `https://holistic-review.invalid/schemas/v1/api-token.schema.json` | ApiToken, plus `TokenName` and `ApiTokenWithSecret` |
@@ -241,7 +242,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [error.invalid-input.json](fixtures/error.invalid-input.json) | `error.schema.json` | Q11, `mark_wont_do` |
 | [error.invalid-transition.json](fixtures/error.invalid-transition.json) | `error.schema.json` | Q5, `claim_request` |
 | [error.not-found.json](fixtures/error.not-found.json) | `error.schema.json` | Any invisible ID |
-| [error.repository-unavailable.json](fixtures/error.repository-unavailable.json) | `error.schema.json` | R5, V1, V6 to V9, Q2, Q3, Q9, Q10 |
+| [error.repository-unavailable.json](fixtures/error.repository-unavailable.json) | `error.schema.json` | R5, V1, V6 to V9, V14, Q2, Q3, Q9, Q10 |
 | [error.review-closed.json](fixtures/error.review-closed.json) | `error.schema.json` | Writes on a closed review |
 | [error.unauthorized.json](fixtures/error.unauthorized.json) | `error.schema.json` | Any endpoint, the MCP transport |
 | [file-content.php.json](fixtures/file-content.php.json) | `file-content.schema.json` | V7 |
@@ -266,6 +267,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [link-commits-result.available.json](fixtures/link-commits-result.available.json) | `link-commits-result.schema.json` | Q7, `link_commits` |
 | [link-commits-result.pending.json](fixtures/link-commits-result.pending.json) | `link-commits-result.schema.json` | Q7, `link_commits` |
 | [lists.candidate-list.json](fixtures/lists.candidate-list.json) | `lists.schema.json#/$defs/CandidateList` | R2 |
+| [lists.declaration-list.json](fixtures/lists.declaration-list.json) | `lists.schema.json#/$defs/DeclarationList` | V14 |
 | [lists.draft-list.json](fixtures/lists.draft-list.json) | `lists.schema.json#/$defs/DraftList` | D1 |
 | [lists.mercure-authorization.json](fixtures/lists.mercure-authorization.json) | `lists.schema.json#/$defs/MercureAuthorization` | A3 |
 | [lists.repository-page.json](fixtures/lists.repository-page.json) | `lists.schema.json#/$defs/RepositoryPage` | R1, `list_repositories` |

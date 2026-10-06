@@ -1,13 +1,25 @@
-import { cleanLastNewline, type CodeViewItem, type CodeViewLineSelection, type FileContents, type LineAnnotation, type SelectedLineRange } from '@pierre/diffs';
+import {
+    cleanLastNewline,
+    type CodeViewItem,
+    type CodeViewLineSelection,
+    type FileContents,
+    type LineAnnotation,
+    type SelectedLineRange,
+    type TokenEventBase,
+} from '@pierre/diffs';
 import { CodeView, type CodeViewHandle, type CodeViewReactOptions, WorkerPoolContextProvider } from '@pierre/diffs/react';
 import { BaseStyles } from '@primer/react';
-import { memo, type ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
+import { memo, type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef } from 'react';
 import type { CodeAnnotation } from './annotations';
+import { characterColumn } from './characterColumn';
 import { type LineRange, lineRange } from './lineHash';
 import type { GestureRange } from './rangeSelection';
 import { HIGHLIGHTER_OPTIONS, POOL_OPTIONS, THEME } from './workerPool';
 
 export type Overflow = 'scroll' | 'wrap';
+
+/** A V14 position: `column` is 1-based, in Unicode characters of the line. */
+export type NamePosition = { line: number; column: number };
 
 export type CodeFileProps = {
     path: string;
@@ -24,6 +36,8 @@ export type CodeFileProps = {
     renderAnnotation(lineNumber: number): ReactNode;
     /** The range of a click, a drag, Enter, or Space on the gutter "+". Null hides the "+". */
     onComment: ((range: GestureRange) => void) | null;
+    /** Cmd-click, or Ctrl-click, on a token. Null turns code navigation off. */
+    onNavigate: ((position: NamePosition) => void) | null;
     overflow: Overflow;
     className?: string;
 };
@@ -58,6 +72,7 @@ const FileView = memo(function FileView({
     annotations,
     renderAnnotation,
     onComment,
+    onNavigate,
     overflow,
     className,
 }: CodeFileProps) {
@@ -67,15 +82,19 @@ const FileView = memo(function FileView({
     const reported = useRef<LineRange | null>(null);
     // Changing view options renders the whole file again, so the options read the latest handler.
     const commentHandler = useRef(onComment);
+    const navigateHandler = useRef(onNavigate);
     const latestSelection = useRef(selection);
     // The view applies a changed item only when its version changes.
     const itemVersion = useRef(0);
+    const hoveredToken = useRef<HTMLElement | null>(null);
     const commentable = null !== onComment;
+    const navigable = null !== onNavigate;
 
     useEffect(() => {
         commentHandler.current = onComment;
+        navigateHandler.current = onNavigate;
         latestSelection.current = selection;
-    }, [onComment, selection]);
+    }, [onComment, onNavigate, selection]);
 
     useEffect(() => {
         const element = container.current;
@@ -83,8 +102,16 @@ const FileView = memo(function FileView({
         return null === element ? undefined : keyboardGutterUtility(element, () => latestSelection.current, (range) => commentHandler.current?.(range));
     }, []);
 
+    useEffect(() => (navigable ? underlineWhileModifierHeld(hoveredToken) : undefined), [navigable]);
+
     // The language follows the name, so equal bytes at another path need their own highlighting.
     const file = useMemo<FileContents>(() => ({ name: path, contents: cleanLastNewline(contents), cacheKey: `${blobSha}:${path}` }), [path, blobSha, contents]);
+    const latestContents = useRef(file.contents);
+
+    useEffect(() => {
+        latestContents.current = file.contents;
+    }, [file]);
+
     // An annotation change keeps the file object: while the first highlight is pending, the view compares file objects
     // by identity, and a new object of the same cacheKey leaves it blank for good.
     const items = useMemo<CodeViewItem<undefined>[]>(
@@ -99,8 +126,25 @@ const FileView = memo(function FileView({
             onLineSelected: (range: SelectedLineRange | null) => onSelectionCommit(toLineRange(range)),
             enableGutterUtility: commentable,
             onGutterUtilityClick: commentable ? ({ start, end }: SelectedLineRange) => commentHandler.current?.({ start, end }) : undefined,
+            ...(navigable
+                ? {
+                      onTokenClick: (token: TokenEventBase, event: MouseEvent) => {
+                          if (isModifierHeld(event)) {
+                              navigateHandler.current?.({ line: token.lineNumber, column: characterColumn(latestContents.current, token.lineNumber, token.lineCharStart) });
+                          }
+                      },
+                      onTokenEnter: (token: TokenEventBase, event: PointerEvent) => {
+                          hoveredToken.current = token.tokenElement;
+                          underline(token.tokenElement, isModifierHeld(event));
+                      },
+                      onTokenLeave: (token: TokenEventBase) => {
+                          hoveredToken.current = null;
+                          underline(token.tokenElement, false);
+                      },
+                  }
+                : {}),
         }),
-        [onSelectionCommit, commentable, overflow],
+        [onSelectionCommit, commentable, navigable, overflow],
     );
     const reportSelection = useCallback(
         (next: CodeViewLineSelection | null) => {
@@ -168,6 +212,38 @@ function keyboardGutterUtility(container: HTMLElement, selection: () => LineRang
     return () => {
         container.removeEventListener('focusin', name);
         container.removeEventListener('keydown', press);
+    };
+}
+
+/**
+ * Cmd on macOS. Ctrl elsewhere: a Ctrl-click on macOS opens the context menu and sends no click.
+ */
+function isModifierHeld(event: MouseEvent | KeyboardEvent): boolean {
+    return event.metaKey || event.ctrlKey;
+}
+
+function underline(token: HTMLElement, on: boolean): void {
+    token.style.textDecoration = on ? 'underline' : '';
+    token.style.cursor = on ? 'pointer' : '';
+}
+
+/**
+ * The view reports a token on pointer moves only, so a key press under a resting pointer needs its own listener.
+ *
+ * @returns The cleanup
+ */
+function underlineWhileModifierHeld(hovered: RefObject<HTMLElement | null>): () => void {
+    const toggle = (event: KeyboardEvent): void => {
+        if (null !== hovered.current) {
+            underline(hovered.current, isModifierHeld(event));
+        }
+    };
+    window.addEventListener('keydown', toggle);
+    window.addEventListener('keyup', toggle);
+
+    return () => {
+        window.removeEventListener('keydown', toggle);
+        window.removeEventListener('keyup', toggle);
     };
 }
 

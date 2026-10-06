@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/declaration.schema.json",
+  "title": "Declaration",
+  "type": "object",
+  "required": ["path", "fqn", "kind", "range", "declarationStartLine"],
+  "properties": {
+    "path": {
+      "$ref": "common.schema.json#/$defs/RepoPath"
+    },
+    "fqn": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "kind": {
+      "$ref": "common.schema.json#/$defs/SymbolKind"
+    },
+    "range": {
+      "$ref": "anchor.schema.json#/$defs/LineRange",
+      "description": "The symbol range of V9: from the doc comment, if any, to the last line of the node."
+    },
+    "declarationStartLine": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "First line of the node, attributes included, doc comment excluded. The UI jumps to this line."
+    }
+  }
+}

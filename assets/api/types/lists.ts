@@ -1,5 +1,6 @@
 import type { ApiToken } from './api-token';
 import type { CommitSha, Cursor, DateTime, ObjectSha, RepoPath, ReviewState, Ulid } from './common';
+import type { Declaration } from './declaration';
 import type { Draft } from './draft';
 import type { Repository } from './repository';
 import type { RepositoryCandidate } from './repository-candidate';
@@ -56,6 +57,11 @@ export type SymbolList = {
     language: string | null;
     parseError: boolean;
     items: Symbol[];
+};
+
+export type DeclarationList = {
+    reviewId: Ulid;
+    items: Declaration[];
 };
 
 export type DraftList = {
