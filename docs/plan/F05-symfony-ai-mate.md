@@ -19,7 +19,7 @@ Coding agents that work on this repository read the logs, the profiler, and the 
 
 ## Decisions
 
-- Install the three packages as dev dependencies at their latest stable versions. Check Packagist first, and record any conflict with the exact pins (`mcp/sdk` 0.8.1, `symfony/mcp-bundle` 0.14.1).
+- Jan installs the packages himself with `composer require --dev` (2026-10-07). F05 adds no other wrapper than the make target.
 - Add one make target, `make mate c="<arguments>"`, that runs `vendor/bin/mate <arguments>` in the `php` container, like `make console`.
 - `mate/config.php` points the Monolog extension at the container's log directory.
 - Skills that `mate discover` installs follow Mate's own layout. Their path is recorded in the report. They are committed when Mate expects them in the repository, and git-ignored when they are generated.
@@ -31,7 +31,7 @@ M01. No contract change and no product behaviour change.
 
 ## In scope
 
-- `composer require --dev` through `make composer`, `mate init`, `mate/config.php`, the make target, the skills, and the two doc updates above.
+- The make target and the two doc updates above. The packages, `mate init`, `mate/config.php`, and the skills come from Jan's install.
 - A check that `make mate c="tools:list"` lists the Symfony and Monolog tools, and that `make mate c="tools:call monolog-search --level=ERROR"` returns entries from the dev log.
 
 ## Out of scope
