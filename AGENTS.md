@@ -20,6 +20,13 @@ No feature, refactoring, or behaviour change lives only in a session. The reposi
 - **Reports:** `docs/plan/reports/Fnn.md` records what was built and every deviation from the scope file.
 - **Unfinished work:** a session that stops with work unfinished writes the state into the status row and the report: the done parts and the next step.
 
+## Hard rule: bugs and issues before features
+
+Fix the bugs and known issues first, and add features after that.
+- **Known issues** are open bugs, deferred review findings, follow-ups in `docs/plan/reports/`, and "Remains" or "Candidate" entries of the developer guide ledger.
+- **Order:** they get their own entry in [docs/plan/features.md](docs/plan/features.md), ahead of any feature that is not started.
+- **Bugs found mid-feature:** a bug found while a feature is in progress goes ahead of the next feature.
+
 ## Ask before generating
 
 If the task doesn't specify, ask rather than guess:
