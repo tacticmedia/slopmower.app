@@ -8,6 +8,18 @@ Twig, API Platform, Messenger, or Lock are installed unless one of those says so
 
 Every session starts at [docs/plan/README.md](docs/plan/README.md). It says how to start, which milestone comes next, and which documents are the sources of truth. The product requirements are in [docs/requirements.md](docs/requirements.md), the architecture is in [docs/architecture.md](docs/architecture.md), and the API contracts are in [docs/specs/](docs/specs/).
 
+## Hard rule: every feature request is documented
+
+No feature, refactoring, or behaviour change lives only in a session. The repository is the record, so any later session can continue without the conversation.
+
+- **Before any code:** the request has a row in [docs/plan/features.md](docs/plan/features.md) and a scope file `docs/plan/Fnn-<name>.md`. The scope file has a goal, decisions, in scope, out of scope, acceptance tests, and verification.
+- **An idea that is not scheduled** goes to the Candidates list of `features.md` in the session where it comes up.
+- **Every source counts:** Jan in a session, a change request in Holistic Review (also when Holistic Review reviews itself), a review finding, or a follow-up in a report.
+- **Local fixes:** a change request that asks only for a local fix is documented by its own thread and its linked commits. A request that asks for more gets a scope file, and its thread links that file.
+- **Decisions:** they go into the scope file in the session that makes them. A decision about the architecture or a contract also goes into [architecture section 11](docs/architecture.md#11-decisions).
+- **Reports:** `docs/plan/reports/Fnn.md` records what was built and every deviation from the scope file.
+- **Unfinished work:** a session that stops with work unfinished writes the state into the status row and the report: the done parts and the next step.
+
 ## Ask before generating
 
 If the task doesn't specify, ask rather than guess:
