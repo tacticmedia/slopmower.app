@@ -17,11 +17,13 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | # | Feature | Status | Commit | Files / lines after |
 |---|---|---|---|---|
 | F01 | [General requests](F01-general-requests.md) | In progress | | |
+| F02 | [Focus mode](F02-focus-mode.md) | Not started | | |
+| F03 | [Line wrapping](F03-line-wrapping.md) | Not started | | |
+| F04 | [Code navigation](F04-code-navigation.md) | Not started, open questions | | |
 
 ## Candidates
 
 Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also be opened as a general request in Holistic Review itself.
 
-- **Focus mode.** A full-screen view with only the file tree and the code view, so that nested scroll areas do not compete.
-- **Line wrapping.** The code view wraps long lines on request.
-- **Code navigation.** Jump from a name in the code view to its declaration: classes, functions, and other files, from the symbol index of the review commit.
+- **Quick open.** Find a file or a symbol of the review commit by name and open it, from the file tree data (V6) and the symbol index. Split from F04.
+- **One scroll area in the normal file view.** Outside focus mode, the window, the file tree, and the code view each scroll. Split from F02.
