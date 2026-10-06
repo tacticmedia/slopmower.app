@@ -7,7 +7,6 @@ namespace App\Entity;
 use App\Domain\Identity\TenantId;
 use App\Domain\Repository\RepositoryName;
 use App\Repository\GitHubCandidateRepository;
-use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UlidType;

@@ -13,7 +13,6 @@ use App\Domain\Repository\RepositoryName;
 use App\Domain\Repository\RepositorySource;
 use App\Domain\Repository\SyncState;
 use App\Repository\RepositoryRepository;
-use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 

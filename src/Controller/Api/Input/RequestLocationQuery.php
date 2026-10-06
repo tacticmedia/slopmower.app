@@ -6,6 +6,7 @@ namespace App\Controller\Api\Input;
 
 use App\Domain\Error\InvalidInput;
 use App\Domain\Git\CommitShaPrefix;
+use App\Http\QueryInput;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**

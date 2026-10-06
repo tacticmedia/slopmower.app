@@ -9,7 +9,6 @@ use App\Domain\Anchor\Anchor;
 use App\Domain\Identity\DraftId;
 use App\Domain\Identity\TenantId;
 use App\Repository\DraftRepository;
-use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 

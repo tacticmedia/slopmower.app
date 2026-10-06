@@ -22,7 +22,6 @@ final readonly class AgentUser implements UserInterface
         public ApiTokenId $tokenId,
         public UserId $userId,
         public string $agentName,
-        public AccessScope $scope,
     ) {
     }
 

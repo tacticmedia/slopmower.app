@@ -16,7 +16,6 @@ use App\Domain\Review\IndexState;
 use App\Domain\Review\ReviewSnapshot;
 use App\Domain\Review\ReviewState;
 use App\Repository\ReviewRepository;
-use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 

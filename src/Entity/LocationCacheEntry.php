@@ -15,7 +15,6 @@ use App\Domain\Location\Location;
 use App\Domain\Location\LocationStatus;
 use App\Domain\Location\OrphanReason;
 use App\Repository\LocationCacheEntryRepository;
-use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 

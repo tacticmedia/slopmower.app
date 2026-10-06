@@ -7,6 +7,7 @@ namespace App\Security;
 use App\Domain\Identity\TenantId;
 use App\Entity\Tenant;
 use App\Entity\User;
+use App\Repository\TenantBeingDeleted;
 use App\Repository\UserRepository;
 use App\Tenancy\TenantFilter;
 use Doctrine\ORM\EntityManagerInterface;

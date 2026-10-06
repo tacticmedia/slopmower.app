@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\GitHub;
+namespace App\Entity;
 
 /**
  * The `target_type` values of an installation that the server records.

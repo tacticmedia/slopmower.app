@@ -6,8 +6,8 @@ namespace App\Tests\Functional\Tenancy;
 
 use App\Domain\Identity\TenantId;
 use App\Entity\Tenant;
+use App\Entity\TenantOwned;
 use App\Entity\WebhookDelivery;
-use App\Tenancy\TenantOwned;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;

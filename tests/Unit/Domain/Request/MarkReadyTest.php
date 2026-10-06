@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Domain\Request;
 
-use App\Domain\Error\CommitsNotAvailable;
 use App\Domain\Git\CommitSha;
 use App\Domain\Request\Command\LinkCommits;
 use App\Domain\Request\Command\MarkReadyForReview;
+use App\Domain\Request\CommitsNotAvailable;
 use App\Tests\Support\Domain\RequestScenario;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;

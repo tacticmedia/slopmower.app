@@ -18,6 +18,7 @@ use App\Entity\Repository;
 use App\Entity\Review;
 use App\Entity\ReviewEvent;
 use App\Entity\Symbol;
+use App\Entity\TenantOwned;
 use App\Entity\User;
 use App\Entity\ViewedFile;
 use Doctrine\ORM\Mapping\ClassMetadata;

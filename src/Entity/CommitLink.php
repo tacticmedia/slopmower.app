@@ -10,7 +10,6 @@ use App\Domain\Git\CommitSha;
 use App\Domain\Identity\TenantId;
 use App\Domain\Request\CommitLinkState;
 use App\Repository\CommitLinkRepository;
-use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 

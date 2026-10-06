@@ -6,8 +6,8 @@ namespace App\Tests\Functional\Security;
 
 use App\Entity\SignInMethod;
 use App\Entity\User;
+use App\Repository\TenantBeingDeleted;
 use App\Security\GitHubUserProvider;
-use App\Security\TenantBeingDeleted;
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\GitHub\GitHubResponses;
 use Doctrine\DBAL\Connection;

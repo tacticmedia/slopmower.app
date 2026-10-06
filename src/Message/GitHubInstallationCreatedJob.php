@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message;
 
-use App\GitHub\GitHubAccountType;
+use App\Entity\GitHubAccountType;
 use Symfony\Component\Messenger\Attribute\AsMessage;
 
 #[AsMessage('async')]

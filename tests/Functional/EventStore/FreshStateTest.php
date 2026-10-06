@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\EventStore;
 
-use App\Domain\Error\InvalidTransition;
 use App\Domain\Request\Command\Claim;
+use App\Domain\Request\InvalidTransition;
 use App\Domain\Request\RequestStatus;
 use App\Repository\ChangeRequestRepository;
 use App\Tests\Support\Database\ResetDatabase;

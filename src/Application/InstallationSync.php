@@ -2,19 +2,21 @@
 
 declare(strict_types=1);
 
-namespace App\GitHub;
+namespace App\Application;
 
 use App\Application\Event\RepositoryChanged;
-use App\Application\FetchRepository;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Identity\TenantId;
 use App\Domain\Repository\RepositoryAccess;
 use App\Domain\Repository\RepositoryName;
 use App\Domain\Repository\RepositorySource;
+use App\Entity\GitHubAccountType;
 use App\Entity\GitHubCandidate;
 use App\Entity\GitHubInstallation;
 use App\Entity\Repository;
 use App\Entity\User;
+use App\GitHub\GitHubRequestFailed;
+use App\GitHub\InstallationTokenProvider;
 use App\GitHub\Payload\InstallationPayload;
 use App\GitHub\Payload\RepositoryPayload;
 use App\Repository\GitHubCandidateRepository;

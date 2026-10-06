@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tenancy;
 
 use App\Entity\Tenant;
+use App\Entity\TenantOwned;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Query\Filter\SQLFilter;
 

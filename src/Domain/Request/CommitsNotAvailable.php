@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Domain\Error;
+namespace App\Domain\Request;
 
+use App\Domain\Error\DomainError;
+use App\Domain\Error\ErrorCode;
 use App\Domain\Git\CommitSha;
 
 final class CommitsNotAvailable extends DomainError

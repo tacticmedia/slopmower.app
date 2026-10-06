@@ -6,9 +6,7 @@ namespace App\Domain\Request;
 
 use App\Domain\Actor\Actor;
 use App\Domain\Actor\ActorKind;
-use App\Domain\Error\CommitsNotAvailable;
 use App\Domain\Error\InvalidInput;
-use App\Domain\Error\InvalidTransition;
 use App\Domain\Error\ReviewClosed;
 use App\Domain\Event\CommitLinkedEvent;
 use App\Domain\Event\CommitUnlinkedEvent;
@@ -21,6 +19,7 @@ use App\Domain\Event\RequestReleasedEvent;
 use App\Domain\Event\RequestReopenedEvent;
 use App\Domain\Event\RequestVerifiedEvent;
 use App\Domain\Event\RequestWontDoEvent;
+use App\Domain\Event\WontDoReason;
 use App\Domain\Git\CommitInfo;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\CommentId;

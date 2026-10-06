@@ -8,7 +8,6 @@ use App\Domain\Git\RepoPath;
 use App\Domain\Identity\TenantId;
 use App\Repository\ViewedFileRepository;
 use App\Repository\ViewedFileSql;
-use App\Tenancy\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UlidType;
 use Symfony\Component\Uid\Ulid;

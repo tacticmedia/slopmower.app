@@ -8,7 +8,6 @@ use App\Domain\Identity\UserId;
 use App\Entity\SignInMethod;
 use App\Entity\Tenant;
 use App\Entity\User;
-use App\Security\TenantBeingDeleted;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;

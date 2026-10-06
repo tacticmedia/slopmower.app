@@ -6,6 +6,7 @@ namespace App\Security;
 
 use App\Domain\Identity\UserId;
 use App\Entity\User;
+use App\Repository\TenantBeingDeleted;
 use App\Repository\UserRepository;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantFilter;

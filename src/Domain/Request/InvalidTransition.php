@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Domain\Error;
+namespace App\Domain\Request;
 
 use App\Domain\Actor\Actor;
+use App\Domain\Error\DomainError;
+use App\Domain\Error\ErrorCode;
 use App\Domain\Identity\RequestId;
-use App\Domain\Request\Action;
-use App\Domain\Request\RequestStatus;
 
 final class InvalidTransition extends DomainError
 {

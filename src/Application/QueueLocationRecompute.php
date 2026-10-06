@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Anchoring;
+namespace App\Application;
 
 use App\Application\Event\RepositoryFetched;
 use App\Domain\Event\RecordedEvent;

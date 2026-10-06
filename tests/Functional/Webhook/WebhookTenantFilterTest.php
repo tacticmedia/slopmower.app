@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Webhook;
 
 use App\Entity\Tenant;
+use App\Entity\TenantOwned;
 use App\Message\FetchRepositoryJob;
 use App\Message\GitHubInstallationDeletedJob;
 use App\Message\GitHubPushJob;
 use App\Messenger\TenantStamp;
-use App\Tenancy\TenantOwned;
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Environment\EnvironmentVariables;
 use App\Tests\Support\Filesystem\TemporaryDirectories;

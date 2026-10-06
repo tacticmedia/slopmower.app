@@ -7,7 +7,6 @@ namespace App\Entity;
 use App\Domain\Identity\TenantId;
 use App\Domain\Identity\UserId;
 use App\Repository\UserRepository;
-use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\UserInterface;

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Domain\Request;
 
 use App\Domain\Actor\Actor;
-use App\Domain\Error\InvalidTransition;
 use App\Domain\Identity\UserId;
 use App\Domain\Request\Action;
 use App\Domain\Request\Command\Claim;
+use App\Domain\Request\InvalidTransition;
 use App\Domain\Request\RequestStatus;
 use App\Tests\Support\Domain\RequestScenario;
 use PHPUnit\Framework\Attributes\TestDox;

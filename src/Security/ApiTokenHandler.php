@@ -48,18 +48,18 @@ final class ApiTokenHandler implements AccessTokenHandlerInterface
             throw new BadCredentialsException('The owner of the API token is gone.');
         }
 
-        $scope = $token->getScope();
+        $repository = $token->getRepository();
         $this->tenantContext->set($token->getTenantId());
 
-        if (null !== $scope->repositoryId) {
-            $this->tenantContext->restrictToRepository($scope->repositoryId);
+        if (null !== $repository) {
+            $this->tenantContext->restrictToRepository($repository->getId());
         }
 
         if ($token->recordUse($now)) {
             $this->entityManager->flush();
         }
 
-        $agent = new AgentUser($token->getId(), $token->getUser()->getId(), $token->getName(), $scope);
+        $agent = new AgentUser($token->getId(), $token->getUser()->getId(), $token->getName());
 
         return new UserBadge($agent->getUserIdentifier(), static fn (): AgentUser => $agent);
     }

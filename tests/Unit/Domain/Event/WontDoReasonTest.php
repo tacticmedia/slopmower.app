@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Unit\Domain\Request;
+namespace App\Tests\Unit\Domain\Event;
 
-use App\Domain\Request\WontDoReason;
+use App\Domain\Event\WontDoReason;
 use App\Tests\Support\Domain\InvalidInputAssertions;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;

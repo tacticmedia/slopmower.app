@@ -9,6 +9,7 @@ use App\Application\Query\RequestSort;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Request\Awaiting;
 use App\Domain\Request\RequestStatus;
+use App\Http\QueryInput;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**

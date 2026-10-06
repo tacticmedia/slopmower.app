@@ -6,8 +6,8 @@ namespace App\Tests\Functional\Deletion;
 
 use App\Entity\User;
 use App\Message\PurgeTenantJob;
+use App\Repository\TenantBeingDeleted;
 use App\Security\LocalUserProvisioner;
-use App\Security\TenantBeingDeleted;
 use App\Tests\Support\Api\ApiFixtures;
 use App\Tests\Support\Api\RequestApiFixtures;
 use App\Tests\Support\Api\ReviewApiFixtures;

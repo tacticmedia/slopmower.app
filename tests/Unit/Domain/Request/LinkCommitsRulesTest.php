@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Domain\Request;
 
-use App\Domain\Error\InvalidTransition;
 use App\Domain\Event\CommitLinkedEvent;
 use App\Domain\Git\CommitSha;
 use App\Domain\Request\Command\Claim;
 use App\Domain\Request\Command\LinkCommits;
 use App\Domain\Request\Command\UnlinkCommit;
+use App\Domain\Request\InvalidTransition;
 use App\Domain\Request\RequestDecider;
 use App\Tests\Support\Domain\InvalidInputAssertions;
 use App\Tests\Support\Domain\RequestScenario;

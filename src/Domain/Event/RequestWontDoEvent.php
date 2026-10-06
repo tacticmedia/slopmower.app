@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Domain\Event;
 
 use App\Domain\Event\Codec\PayloadReader;
-use App\Domain\Request\WontDoReason;
 
 final readonly class RequestWontDoEvent implements DomainEvent
 {

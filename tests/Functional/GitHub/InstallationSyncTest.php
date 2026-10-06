@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\GitHub;
 
+use App\Application\InstallationSync;
 use App\Domain\Identity\TenantId;
 use App\Domain\Repository\RepositoryAccess;
 use App\Domain\Repository\RepositoryName;
@@ -11,7 +12,6 @@ use App\Domain\Repository\SyncState;
 use App\Entity\Repository;
 use App\Entity\User;
 use App\Git\TenantDataPaths;
-use App\GitHub\InstallationSync;
 use App\Message\DeleteCloneJob;
 use App\Repository\RepositoryRepository;
 use App\Tests\Support\Api\ApiFixtures;

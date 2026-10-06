@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Api\Input;
 
 use App\Application\Query\ReviewStateFilter;
+use App\Http\QueryInput;
 use Symfony\Component\Validator\Constraints as Assert;
 
 final readonly class ReviewListQuery implements QueryInput

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Domain\Request;
+namespace App\Domain\Event;
 
 use App\Domain\Error\InvalidInput;
 

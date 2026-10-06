@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Audit;
 
 use App\Entity\Tenant;
-use App\Tenancy\TenantOwned;
+use App\Entity\TenantOwned;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\TestDox;

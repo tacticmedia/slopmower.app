@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace App\MessageHandler;
 
 use App\Application\FetchRepository;
+use App\Application\InstallationSync;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Identity\TenantId;
 use App\Domain\Repository\RepositoryName;
 use App\Entity\GitHubCandidate;
 use App\Entity\GitHubInstallation;
-use App\Entity\Repository;
 use App\GitHub\GitHubRequestFailed;
-use App\GitHub\InstallationSync;
 use App\GitHub\InstallationTokenProvider;
 use App\GitHub\Payload\RepositoryPayload;
 use App\Live\LivePublisher;

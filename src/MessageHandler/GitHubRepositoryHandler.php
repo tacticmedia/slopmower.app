@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\MessageHandler;
 
 use App\Application\Event\RepositoryChanged;
+use App\Application\InstallationSync;
 use App\Entity\Repository;
-use App\GitHub\InstallationSync;
 use App\Message\GitHubRepositoryUpdatedJob;
 use App\Repository\RepositoryRepository;
 use App\Tenancy\TenantContext;

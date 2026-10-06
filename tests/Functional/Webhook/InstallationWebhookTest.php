@@ -7,7 +7,7 @@ namespace App\Tests\Functional\Webhook;
 use App\Application\FetchRepository;
 use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Error\RepositoryUnavailableReason;
-use App\GitHub\GitHubAccountType;
+use App\Entity\GitHubAccountType;
 use App\Message\GitHubInstallationCreatedJob;
 use App\Messenger\TenantStamp;
 use App\Repository\GitHubCandidateRepository;

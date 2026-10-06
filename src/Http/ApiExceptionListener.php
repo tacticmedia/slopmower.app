@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http;
 
-use App\Controller\Api\Input\QueryInput;
 use App\Domain\Error\DomainError;
 use App\Domain\Error\ErrorCode;
 use App\Domain\Error\InvalidInput;

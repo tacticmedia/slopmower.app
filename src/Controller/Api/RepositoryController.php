@@ -6,6 +6,7 @@ namespace App\Controller\Api;
 
 use App\Application\ConnectedRepository;
 use App\Application\FetchRepository;
+use App\Application\InstallationSync;
 use App\Application\Query\RepositoryQuery;
 use App\Controller\Api\Input\ConfirmQuery;
 use App\Controller\Api\Input\ConnectRepositoryInput;
@@ -17,7 +18,6 @@ use App\Domain\Repository\RepositorySource;
 use App\Entity\Repository;
 use App\Entity\User;
 use App\EventStore\CommandExecutor;
-use App\GitHub\InstallationSync;
 use App\Live\LivePublisher;
 use App\Live\LiveTopics;
 use App\Message\DeleteCloneJob;

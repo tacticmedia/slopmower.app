@@ -9,7 +9,6 @@ use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\TenantId;
 use App\Index\IndexSql;
 use App\Repository\IndexedBlobRepository;
-use App\Tenancy\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
 
 /**

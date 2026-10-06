@@ -17,7 +17,6 @@ use App\Domain\Request\Resolution;
 use App\MessageHandler\RecomputeLocationsHandler;
 use App\Projection\RequestStateMapper;
 use App\Repository\ChangeRequestRepository;
-use App\Tenancy\TenantOwned;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 

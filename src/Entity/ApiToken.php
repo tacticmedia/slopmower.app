@@ -6,11 +6,10 @@ namespace App\Entity;
 
 use App\Domain\ApiToken\ApiTokenSecret;
 use App\Domain\ApiToken\ApiTokenState;
+use App\Domain\ApiToken\TokenScope;
 use App\Domain\Identity\ApiTokenId;
 use App\Domain\Identity\TenantId;
 use App\Repository\ApiTokenRepository;
-use App\Security\AccessScope;
-use App\Tenancy\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -149,9 +148,9 @@ class ApiToken implements TenantOwned
         return $this->repository;
     }
 
-    public function getScope(): AccessScope
+    public function getScope(): TokenScope
     {
-        return null === $this->repository ? AccessScope::allRepositories() : AccessScope::repository($this->repository->getId());
+        return null === $this->repository ? TokenScope::AllRepositories : TokenScope::Repository;
     }
 
     public function getCreatedAt(): \DateTimeImmutable
