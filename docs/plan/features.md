@@ -37,16 +37,16 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F19 | [Change the plan requirement](F19-change-the-plan-requirement.md) | Not started, after F15 | | |
 | F20 | [Unlink a pull request](F20-unlink-a-pull-request.md) | Not started | | |
 | F21 | [File view fills the window](F21-file-view-fills-the-window.md) | Not started | | |
+| F22 | [Quick open ranking](F22-quick-open-ranking.md) | In progress | | |
+| F23 | [Focus mode shortcut](F23-focus-mode-shortcut.md) | In progress | | |
 
 ## Candidates
 
 Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also be opened as a general request in Holistic Review itself.
 
 - **Batch thread read.** The file view makes one Q1 call per 200 requests under the path prefix and one Q3 call per request on the file, because only Q3 returns a thread. A batch read, for example `thread` on Q1 with an exact path, makes it one call. A Q1 filter by request IDs would also replace the Q3 reads of hidden reply drafts. Developer guide ledger, row "Front end".
-- **Focus mode shortcut.** A keyboard shortcut that toggles focus mode. The app has no global key handler yet. From the F02 report.
 - **Name resolution at the selection.** "Go to declaration" with a typed name resolves with the namespace and the imports at the end of the file, so a file with several namespaces uses the last one. The namespace at the selection needs the line in V14. From the F04 report.
 - **Declaration suggestions.** "Go to declaration" could suggest names from V16 while typing. From the F04 and F11 reports.
-- **Quick open ranking.** Shorter names first within a group, and camel-case abbreviations such as `CE` for `CommandExecutor`. From the F11 report.
 - **Carry-over as a job.** V15 locates and captures in the HTTP request. A Messenger job with a live update, if a large source review shows that it is slow. From the F10 report.
 
 ## For Jan
