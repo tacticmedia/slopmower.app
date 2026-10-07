@@ -25,21 +25,15 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F07 | [Front-end bugs and UX fixes](F07-front-end-bugs-and-ux-fixes.md) | Done 2026-10-07, [report](reports/F07.md) | a7cb072 | src 385 PHP / 25339 lines, 385 types; tests 271 PHP / 23316 lines; assets 137 TS / 7276 lines; check 2m43s |
 | F08 | [Code-quality leftovers](F08-code-quality-leftovers.md) | In progress | | |
 | F09 | [Dev environment and docs issues](F09-dev-environment-and-docs-issues.md) | Done 2026-10-07, [report](reports/F09.md) | f9bef5b | src 385 PHP / 25339 lines, 385 types; tests 271 PHP / 23316 lines; assets 136 TS / 7036 lines; check 3m18s |
+| F10 | [Carry over open requests](F10-carry-over-open-requests.md) | Not started, after F08 | | |
+| F11 | [Quick open](F11-quick-open.md) | Not started, after F10 | | |
 
 ## Candidates
 
 Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also be opened as a general request in Holistic Review itself.
 
-- **Quick open.** Find a file or a symbol of the review commit by name and open it, from the file tree data (V6) and the symbol index. Split from F04.
 - **One scroll area in the normal file view.** Outside focus mode, the window, the file tree, and the code view each scroll. Split from F02.
 - **Project-specific Mate tools.** For example a tool that reads the event log of a review. Split from F05.
-
-## Next, after the fixes
-
-Hard rule: bugs and issues before features. These are scheduled after F06 to F09, in this order. Each gets its scope file before any code.
-
-1. **Carry over open requests** ([backlog item](../backlog/request-carry-over.md)).
-2. **Quick open** (candidate above).
 
 ## For Jan
 
@@ -55,3 +49,4 @@ Decisions or actions that only Jan can take. Each comes from a report or a revie
   - playwright-php 1.5.0: there is no `allTextContents()`, and `filter(['has'])` takes CSS only.
   - Symfony: a `_failure_path` that starts with "http" but is not a URL becomes a route name, and the GitHub callback answers 500.
 - **GitHub App:** when a real App exists, record real API responses and webhook deliveries for the fixtures. Confirm the by-ID fetch of pending SHAs and the listing of a suspended installation. Set `GITHUB_APP_WEBHOOK_SECRET` in the vault, and the webhook content type to JSON.
+- **phpstan-doctrine:** it finds a type descriptor by DBAL type class, not by type name. So `IdentifierType` and `StringValueType`, which serve several value classes, fall back to `mixed` in DQL result shapes. The fix needs either two new `phpstanApi` ignores, which the definition of done forbids, or an upstream change. F08 item 6 is left open for it.
