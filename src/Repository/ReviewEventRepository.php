@@ -94,7 +94,7 @@ final class ReviewEventRepository extends ServiceEntityRepository
         $newestFirst = $this->ofReview($reviewId)
             ->andWhere('event.type IN (:types)')
             ->andWhere('event.seq <= :upToSeq')
-            ->orderBy('event.seq', 'DESC')
+            ->orderBy('event.seq', \SortDirection::Descending)
             ->setMaxResults($limit)
             ->setParameter('types', array_map(static fn (EventType $type): string => $type->value, self::REVIEW_EVENT_TYPES), ArrayParameterType::STRING)
             ->setParameter('upToSeq', $upToSeq)

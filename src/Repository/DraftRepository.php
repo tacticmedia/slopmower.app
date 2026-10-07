@@ -31,8 +31,8 @@ final class DraftRepository extends ServiceEntityRepository
     {
         /** @var list<Draft> $drafts */
         $drafts = $this->ofUser($userId, $reviewId)
-            ->orderBy('draft.createdAt', 'ASC')
-            ->addOrderBy('draft.id', 'ASC')
+            ->orderBy('draft.createdAt')
+            ->addOrderBy('draft.id')
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
             ->getResult();

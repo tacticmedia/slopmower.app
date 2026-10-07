@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Domain\Event;
 
 use App\Domain\Error\InvalidInput;
+use App\Domain\StringValue;
 
 /**
  * Keeps the text as written. Only the length check trims.
  */
 final readonly class WontDoReason implements \Stringable
 {
+    use StringValue;
+
     private const int MIN_CHARACTERS = 20;
 
     private function __construct(private string $value)
@@ -24,15 +27,5 @@ final readonly class WontDoReason implements \Stringable
         }
 
         return new self($value);
-    }
-
-    public function toString(): string
-    {
-        return $this->value;
-    }
-
-    public function __toString(): string
-    {
-        return $this->value;
     }
 }

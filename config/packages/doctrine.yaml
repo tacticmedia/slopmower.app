@@ -10,11 +10,14 @@ doctrine:
             App\Domain\Identity\CommentId: App\Doctrine\Type\IdentifierType
             App\Domain\Identity\DraftId: App\Doctrine\Type\IdentifierType
             App\Domain\Identity\EventId: App\Doctrine\Type\IdentifierType
+            App\Domain\Identity\GitHubCandidateId: App\Doctrine\Type\IdentifierType
+            App\Domain\Identity\GitHubInstallationId: App\Doctrine\Type\IdentifierType
             App\Domain\Identity\RepositoryId: App\Doctrine\Type\IdentifierType
             App\Domain\Identity\RequestId: App\Doctrine\Type\IdentifierType
             App\Domain\Identity\ReviewId: App\Doctrine\Type\IdentifierType
             App\Domain\Identity\TenantId: App\Doctrine\Type\IdentifierType
             App\Domain\Identity\UserId: App\Doctrine\Type\IdentifierType
+            App\Domain\Identity\ViewedFileId: App\Doctrine\Type\IdentifierType
             App\Domain\Git\BlobSha: App\Doctrine\Type\StringValueType
             App\Domain\Git\CommitSha: App\Doctrine\Type\StringValueType
             App\Domain\Git\RepoPath: App\Doctrine\Type\StringValueType

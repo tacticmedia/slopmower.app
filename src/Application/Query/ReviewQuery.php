@@ -59,8 +59,8 @@ final class ReviewQuery
         $builder = $this->select()
             ->where('review.repository = :repository')
             ->setParameter('repository', $repositoryId, RepositoryId::class)
-            ->orderBy('review.createdAt', 'DESC')
-            ->addOrderBy('review.id', 'DESC')
+            ->orderBy('review.createdAt', \SortDirection::Descending)
+            ->addOrderBy('review.id', \SortDirection::Descending)
             ->setMaxResults($limit + 1);
 
         if (null !== $state->state()) {

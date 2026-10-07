@@ -61,7 +61,7 @@ final class UserRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('appUser')
             ->addSelect('tenant.deletionRequestedAt')
-            ->join(Tenant::class, 'tenant', Join::WITH, 'tenant.id = appUser.tenantId');
+            ->join(Tenant::class, 'tenant', Join::ON, 'tenant.id = appUser.tenantId');
     }
 
     /**

@@ -22,7 +22,6 @@ class CommitLink implements TenantOwned
 {
     #[ORM\Id]
     #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: false)]
     private ChangeRequest $request;
 
     #[ORM\Id]

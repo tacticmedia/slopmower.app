@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Domain\Identity\GitHubInstallationId;
 use App\Domain\Identity\TenantId;
 use App\Repository\GitHubInstallationRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * An installation of the GitHub App that the user can access: listed at the last sign-in, then changed by the
@@ -21,8 +20,8 @@ use Symfony\Component\Uid\Ulid;
 class GitHubInstallation implements TenantOwned
 {
     #[ORM\Id]
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $id;
+    #[ORM\Column(type: GitHubInstallationId::class)]
+    private GitHubInstallationId $id;
 
     #[ORM\Column(type: TenantId::class)]
     private TenantId $tenantId;
@@ -41,7 +40,7 @@ class GitHubInstallation implements TenantOwned
 
     public function __construct(TenantId $tenantId, int $installationId, string $accountLogin, GitHubAccountType $accountType, ?\DateTimeImmutable $suspendedAt)
     {
-        $this->id = new Ulid();
+        $this->id = GitHubInstallationId::generate();
         $this->tenantId = $tenantId;
         $this->installationId = $installationId;
         $this->accountLogin = $accountLogin;

@@ -7,6 +7,7 @@ namespace App\Source;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Git\RefName;
 use App\Domain\Repository\RepositoryName;
+use App\Git\GitReader;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Filesystem\Path;
 
@@ -21,6 +22,9 @@ final class LocalRepositoryDiscovery
 
     private const int MAX_HEAD_BYTES = 1024;
 
+    /** A reftable repository keeps HEAD in the reftable, and its `HEAD` file names this branch. */
+    private const string REFTABLE_HEAD_BRANCH = '.invalid';
+
     private readonly ?string $directory;
 
     public function __construct(
@@ -28,6 +32,7 @@ final class LocalRepositoryDiscovery
         string $localRepositoriesDir,
         #[Autowire(param: 'kernel.project_dir')]
         string $projectDir,
+        private readonly GitReader $reader,
     ) {
         $this->directory = '' === $localRepositoriesDir ? null : Path::makeAbsolute($localRepositoriesDir, $projectDir);
     }
@@ -122,26 +127,32 @@ final class LocalRepositoryDiscovery
         }
 
         if (self::isDirectory("{$realPath}/.git")) {
-            return new LocalRepositoryCandidate($name, false, self::headBranch("{$realPath}/.git/HEAD"), $realPath);
+            return new LocalRepositoryCandidate($name, false, $this->headBranch("{$realPath}/.git"), $realPath);
         }
 
         if (self::isFile("{$realPath}/HEAD") && self::isDirectory("{$realPath}/objects") && self::isDirectory("{$realPath}/refs")) {
-            return new LocalRepositoryCandidate($name, true, self::headBranch("{$realPath}/HEAD"), $realPath);
+            return new LocalRepositoryCandidate($name, true, $this->headBranch($realPath), $realPath);
         }
 
         return null;
     }
 
-    private static function headBranch(string $headFile): ?string
+    /**
+     * Git runs only for a reftable repository: a git process per candidate slows a listing of 1,000 candidates by seconds.
+     */
+    private function headBranch(string $gitDir): ?string
     {
+        $headFile = "{$gitDir}/HEAD";
         $head = self::isFile($headFile) && is_readable($headFile) ? file_get_contents($headFile, length: self::MAX_HEAD_BYTES) : false;
 
         if (false === $head || 1 !== preg_match('~^ref: refs/heads/(\S+)\n?$~D', $head, $match)) {
             return null;
         }
 
+        $branch = self::REFTABLE_HEAD_BRANCH === $match[1] ? $this->reader->headBranch($gitDir) : $match[1];
+
         try {
-            return RefName::fromString($match[1])->toString();
+            return null === $branch ? null : RefName::fromString($branch)->toString();
         } catch (InvalidInput) {
             return null;
         }

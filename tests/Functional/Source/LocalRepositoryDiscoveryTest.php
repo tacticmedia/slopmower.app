@@ -45,6 +45,22 @@ final class LocalRepositoryDiscoveryTest extends KernelTestCase
         ], false), self::discovery()->list());
     }
 
+    #[TestDox('Reads the head branch of normal and bare reftable repositories')]
+    public function testReadsTheHeadBranchOfReftableRepositories(): void
+    {
+        $source = GitRepositoryBuilder::init($this->temporaryDirectory().'/source');
+        $source->commit();
+        $source->switch('develop');
+        $source->git('clone', '--quiet', '--ref-format=reftable', $source->path, "{$this->root}/billing");
+        $source->git('clone', '--bare', '--quiet', '--ref-format=reftable', $source->path, "{$this->root}/archive.git");
+
+        self::assertStringEqualsFile("{$this->root}/billing/.git/HEAD", "ref: refs/heads/.invalid\n");
+        self::assertEquals(new LocalRepositoryListing([
+            new LocalRepositoryCandidate('archive.git', true, 'develop', "{$this->root}/archive.git"),
+            new LocalRepositoryCandidate('billing', false, 'develop', "{$this->root}/billing"),
+        ], false), self::discovery()->list());
+    }
+
     #[TestDox('Ignores files, dot directories, worktree and submodule .git files, and symlinks')]
     public function testIgnoresEverythingElse(): void
     {

@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Domain\Git;
 
 use App\Domain\Error\InvalidInput;
+use App\Domain\StringValue;
 
 final readonly class BlobSha implements \Stringable
 {
+    use StringValue;
+
     private function __construct(private string $value)
     {
     }
@@ -19,15 +22,5 @@ final readonly class BlobSha implements \Stringable
         }
 
         return new self($value);
-    }
-
-    public function toString(): string
-    {
-        return $this->value;
-    }
-
-    public function __toString(): string
-    {
-        return $this->value;
     }
 }

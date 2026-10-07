@@ -429,6 +429,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 ### PHPStan level 8
 
 - phpstan-doctrine needs `objectManagerLoader`: `tests/object-manager.php`.
+- phpstan-doctrine finds a type descriptor by the DBAL type class, so DQL results of `IdentifierType` and `StringValueType` columns are `mixed`. A descriptor for the class gives `Identifier` for every ID column, and `doctrine.columnType` then fails on each typed ID property. A descriptor per type name needs a subclass of `DefaultDescriptorRegistry`, which PHPStan reports as `phpstanApi.class`.
 
 ### Mocked UI suite
 

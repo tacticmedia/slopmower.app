@@ -8,9 +8,9 @@ use App\Domain\Git\RepoPath;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Identity\TenantId;
 use App\Domain\Identity\UserId;
+use App\Domain\Identity\ViewedFileId;
 use App\Entity\ViewedFile;
 use Doctrine\DBAL\Connection;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * Idempotent writes of the "Viewed" marks, also under concurrent calls.
@@ -28,7 +28,7 @@ final class ViewedFileSql
     public function mark(TenantId $tenantId, UserId $userId, ReviewId $reviewId, RepoPath $path): void
     {
         $this->connection->executeStatement(self::MARK, [
-            'id' => new Ulid()->toRfc4122(),
+            'id' => ViewedFileId::generate()->toRfc4122(),
             'path' => $path->toString(),
         ] + self::key($tenantId, $userId, $reviewId, $path));
     }

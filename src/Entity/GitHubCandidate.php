@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Domain\Identity\GitHubCandidateId;
 use App\Domain\Identity\TenantId;
 use App\Domain\Repository\RepositoryName;
 use App\Repository\GitHubCandidateRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * A repository that the user can connect: listed at the last sign-in, then changed by the installation webhooks (R2).
@@ -21,8 +20,8 @@ use Symfony\Component\Uid\Ulid;
 class GitHubCandidate implements TenantOwned
 {
     #[ORM\Id]
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $id;
+    #[ORM\Column(type: GitHubCandidateId::class)]
+    private GitHubCandidateId $id;
 
     #[ORM\Column(type: TenantId::class)]
     private TenantId $tenantId;
@@ -66,7 +65,7 @@ class GitHubCandidate implements TenantOwned
         string $htmlUrl,
         \DateTimeImmutable $listedAt,
     ) {
-        $this->id = new Ulid();
+        $this->id = GitHubCandidateId::generate();
         $this->tenantId = $tenantId;
         $this->githubRepositoryId = $githubRepositoryId;
         $this->installationId = $installationId;

@@ -7,7 +7,6 @@ namespace App\Tests\Functional\GitHub;
 use App\Application\FetchRepository;
 use App\Application\ServerClone;
 use App\Entity\Repository;
-use App\GitHub\GitHubAppJwtFactory;
 use App\GitHub\InstallationTokenProvider;
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Environment\EnvironmentVariables;
@@ -65,7 +64,7 @@ final class InstallationTokenTest extends KernelTestCase
 
         self::runQueuedMessages();
 
-        foreach ([InstallationTokenProvider::class, GitHubAppJwtFactory::class, ServerClone::class] as $serviceId) {
+        foreach ([InstallationTokenProvider::class, ServerClone::class] as $serviceId) {
             $service = self::getContainer()->get($serviceId);
 
             foreach (new \ReflectionObject($service)->getProperties() as $property) {

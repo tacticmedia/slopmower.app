@@ -31,7 +31,7 @@ final class ViewedFileRepository extends ServiceEntityRepository
             ->select('viewed.path')
             ->where('viewed.user = :userId')
             ->andWhere('viewed.review = :reviewId')
-            ->orderBy('viewed.path', 'ASC')
+            ->orderBy('viewed.path')
             ->setParameter('userId', $userId, UserId::class)
             ->setParameter('reviewId', $reviewId, ReviewId::class)
             ->getQuery()

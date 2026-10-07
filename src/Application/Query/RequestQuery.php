@@ -274,7 +274,7 @@ final class RequestQuery
     {
         match ($sort) {
             RequestSort::Created => $builder->orderBy('request.id'),
-            RequestSort::Updated => $builder->orderBy('request.updatedAt', 'DESC')->addOrderBy('request.id'),
+            RequestSort::Updated => $builder->orderBy('request.updatedAt', \SortDirection::Descending)->addOrderBy('request.id'),
             RequestSort::Path => $builder
                 ->addSelect(self::ANCHOR_PATH.' AS HIDDEN anchorPath', self::ANCHOR_START_LINE.' AS HIDDEN anchorStartLine')
                 ->orderBy('anchorPath')

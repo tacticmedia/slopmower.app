@@ -7,25 +7,35 @@ namespace App\Controller\Api;
 use App\Application\AnchorFactory;
 use App\Application\Query\BatchSubmission;
 use App\Application\Query\RequestQuery;
-use App\Application\RequestCommands;
 use App\Controller\Api\Input\AnchorInput;
 use App\Controller\Api\Input\CreateDraftInput;
 use App\Controller\Api\Input\SubmitDraftsInput;
 use App\Controller\Api\Input\UpdateDraftInput;
+use App\Domain\Actor\Actor;
 use App\Domain\Anchor\Anchor;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Error\NotFound;
 use App\Domain\Event\BatchSubmittedEvent;
+use App\Domain\Event\DecidedEvent;
 use App\Domain\Event\RequestCommentedEvent;
 use App\Domain\Event\RequestOpenedEvent;
+use App\Domain\Identity\BatchId;
 use App\Domain\Identity\RequestId;
+use App\Domain\Request\Command\Open;
+use App\Domain\Request\Command\Reply;
+use App\Domain\Request\RequestDecider;
+use App\Domain\Review\ReviewSnapshot;
 use App\Entity\ChangeRequest;
 use App\Entity\Draft;
 use App\Entity\DraftKind;
 use App\Entity\Review;
 use App\Entity\User;
+use App\EventStore\CommandExecutor;
+use App\Projection\RequestStateMapper;
 use App\Repository\ChangeRequestRepository;
+use App\Repository\CommitLinkRepository;
 use App\Repository\DraftRepository;
+use App\Repository\ReviewRepository;
 use App\Security\CurrentActor;
 use App\Security\Voter\DraftVoter;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
@@ -125,15 +135,46 @@ final class DraftController extends AbstractController
         return new Response(status: Response::HTTP_NO_CONTENT);
     }
 
+    /**
+     * In one transaction: request.opened or request.commented per draft of the user, sorted by createdAt, then
+     * batch.submitted. Deletes exactly the drafts that it read, so a draft created meanwhile stays.
+     */
     #[Route('/api/v1/reviews/{reviewId}/drafts/submit', name: 'submit', methods: ['POST'])]
     public function submit(
         #[MapEntity(id: 'reviewId')] Review $review,
-        RequestCommands $commands,
-        RequestQuery $requestQuery,
+        CommandExecutor $executor,
+        ReviewRepository $reviews,
         ChangeRequestRepository $requests,
+        CommitLinkRepository $links,
+        RequestQuery $requestQuery,
         #[MapRequestPayload(acceptFormat: 'json')] SubmitDraftsInput $input = new SubmitDraftsInput(),
     ): JsonResponse {
-        $events = $commands->submitDrafts($review->getId(), $input->summary, $this->currentActor->get());
+        $actor = $this->currentActor->get();
+        $batchId = BatchId::generate();
+        /** @var list<Draft> $drafts */
+        $drafts = [];
+
+        $events = $executor->execute(
+            $review->getId(),
+            $actor,
+            function () use ($review, $reviews, $requests, $links, $batchId, $input, $actor, &$drafts): array {
+                $snapshot = ($reviews->findFresh($review->getId()) ?? throw new NotFound())->toSnapshot();
+                $drafts = $this->drafts->findOfUser($this->currentActor->sessionUser()->getId(), $review->getId());
+
+                if ([] === $drafts) {
+                    throw InvalidInput::field('', 'There are no drafts to submit.');
+                }
+
+                $decided = array_map(static fn (Draft $draft): DecidedEvent => self::decideDraft($draft, $batchId, $snapshot, $actor, $requests, $links), $drafts);
+
+                return [...$decided, new DecidedEvent(self::batchSubmitted($batchId, $input->summary, $decided))];
+            },
+            function () use (&$drafts): void {
+                foreach ($drafts as $draft) {
+                    $this->entityManager->remove($draft);
+                }
+            },
+        );
         $submitted = array_last($events);
         $batch = $submitted?->event;
 
@@ -158,6 +199,38 @@ final class DraftController extends AbstractController
             new BatchSubmission($batch->batchId, $submitted->reviewId, $batch->summary, $submitted->occurredAt, $submitted->seq, $requestQuery->summaries($opened), $replies),
             Response::HTTP_CREATED,
         );
+    }
+
+    private static function decideDraft(Draft $draft, BatchId $batchId, ReviewSnapshot $review, Actor $actor, ChangeRequestRepository $requests, CommitLinkRepository $links): DecidedEvent
+    {
+        $replyTo = $draft->getRequest();
+        $request = null === $replyTo ? null : $requests->findFresh($replyTo->getId()) ?? throw new NotFound();
+        $command = null === $request
+            ? new Open($draft->getAnchor(), $draft->getBody(), $batchId)
+            : new Reply($request->getId(), $draft->getBody(), batchId: $batchId);
+        $states = null === $request ? [] : [RequestStateMapper::toState($request, $links->findFreshOf($request))];
+
+        return RequestDecider::decide($command, $states, $review, $actor)[0] ?? throw new \LogicException('A draft decides one event.');
+    }
+
+    /**
+     * @param list<DecidedEvent> $decided The request events of the batch
+     */
+    private static function batchSubmitted(BatchId $batchId, ?string $summary, array $decided): BatchSubmittedEvent
+    {
+        $requestIds = [];
+        $commentIds = [];
+
+        foreach ($decided as $event) {
+            $requestId = $event->requestId ?? throw new \LogicException('A draft decides a request event.');
+            $requestIds[$requestId->toString()] ??= $requestId;
+
+            if ($event->event instanceof RequestCommentedEvent) {
+                $commentIds[] = $event->event->commentId;
+            }
+        }
+
+        return new BatchSubmittedEvent($batchId, $summary, array_values($requestIds), $commentIds);
     }
 
     /**

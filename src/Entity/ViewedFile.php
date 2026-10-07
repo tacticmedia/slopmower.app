@@ -6,11 +6,10 @@ namespace App\Entity;
 
 use App\Domain\Git\RepoPath;
 use App\Domain\Identity\TenantId;
+use App\Domain\Identity\ViewedFileId;
 use App\Repository\ViewedFileRepository;
 use App\Repository\ViewedFileSql;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UlidType;
-use Symfony\Component\Uid\Ulid;
 
 /**
  * One "Viewed" mark. {@see ViewedFileSql} writes the marks. The unique key holds the SHA-256 hex digest of the path,
@@ -21,8 +20,8 @@ use Symfony\Component\Uid\Ulid;
 class ViewedFile implements TenantOwned
 {
     #[ORM\Id]
-    #[ORM\Column(type: UlidType::NAME)]
-    private Ulid $id;
+    #[ORM\Column(type: ViewedFileId::class)]
+    private ViewedFileId $id;
 
     #[ORM\Column(type: TenantId::class)]
     private TenantId $tenantId;
@@ -47,7 +46,7 @@ class ViewedFile implements TenantOwned
             throw new \LogicException('The review belongs to another tenant.');
         }
 
-        $this->id = new Ulid();
+        $this->id = ViewedFileId::generate();
         $this->tenantId = $review->getTenantId();
         $this->user = $user;
         $this->review = $review;

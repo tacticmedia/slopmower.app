@@ -11,12 +11,8 @@ use App\Domain\Error\InvalidInput;
 use App\Domain\Error\NotFound;
 use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Error\ReviewClosed;
-use App\Domain\Event\BatchSubmittedEvent;
-use App\Domain\Event\DecidedEvent;
 use App\Domain\Event\RecordedEvent;
-use App\Domain\Event\RequestCommentedEvent;
 use App\Domain\Git\CommitInfo;
-use App\Domain\Identity\BatchId;
 use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
@@ -36,8 +32,6 @@ use App\Domain\Request\CommitsNotAvailable;
 use App\Domain\Request\InvalidTransition;
 use App\Domain\Request\RequestDecider;
 use App\Domain\Request\RequestState;
-use App\Domain\Review\ReviewSnapshot;
-use App\Entity\Draft;
 use App\EventStore\CommandExecutor;
 use App\Git\GitFailed;
 use App\Git\GitReader;
@@ -46,9 +40,7 @@ use App\Git\TenantDataPaths;
 use App\Projection\RequestStateMapper;
 use App\Repository\ChangeRequestRepository;
 use App\Repository\CommitLinkRepository;
-use App\Repository\DraftRepository;
 use App\Repository\ReviewRepository;
-use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -62,11 +54,9 @@ final class RequestCommands
 
     public function __construct(
         private readonly CommandExecutor $executor,
-        private readonly EntityManagerInterface $entityManager,
         private readonly ReviewRepository $reviews,
         private readonly ChangeRequestRepository $requests,
         private readonly CommitLinkRepository $links,
-        private readonly DraftRepository $drafts,
         private readonly RequestQuery $requestQuery,
         private readonly FetchRepository $fetchRepository,
         private readonly GitReader $reader,
@@ -216,46 +206,6 @@ final class RequestCommands
     }
 
     /**
-     * D5 of docs/specs/rest-api-requests.md section 5: in one transaction, request.opened or request.commented per draft
-     * of the user in the review, sorted by createdAt, then batch.submitted. Deletes exactly the drafts that it read, so a draft created meanwhile stays.
-     *
-     * @return list<RecordedEvent> batch.submitted last
-     *
-     * @throws NotFound
-     * @throws InvalidInput No drafts
-     * @throws ReviewClosed
-     */
-    public function submitDrafts(ReviewId $reviewId, ?string $summary, Actor $actor): array
-    {
-        $userId = $actor->userId ?? throw new \LogicException('Only a user submits drafts.');
-        $batchId = BatchId::generate();
-        /** @var list<Draft> $drafts */
-        $drafts = [];
-
-        return $this->executor->execute(
-            $reviewId,
-            $actor,
-            function () use ($reviewId, $userId, $batchId, $summary, $actor, &$drafts): array {
-                $review = ($this->reviews->findFresh($reviewId) ?? throw new NotFound())->toSnapshot();
-                $drafts = $this->drafts->findOfUser($userId, $reviewId);
-
-                if ([] === $drafts) {
-                    throw InvalidInput::field('', 'There are no drafts to submit.');
-                }
-
-                $decided = array_map(fn (Draft $draft): DecidedEvent => $this->decideDraft($draft, $batchId, $review, $actor), $drafts);
-
-                return [...$decided, new DecidedEvent(self::batchSubmitted($batchId, $summary, $decided))];
-            },
-            function () use (&$drafts): void {
-                foreach ($drafts as $draft) {
-                    $this->entityManager->remove($draft);
-                }
-            },
-        );
-    }
-
-    /**
      * @param list<CommitInfo> $availability
      *
      * @return list<RecordedEvent>
@@ -292,36 +242,5 @@ final class RequestCommands
         } catch (RepositoryUnavailable) {
             // The access is removed. The link stays pending, and Q10 answers repository_unavailable.
         }
-    }
-
-    private function decideDraft(Draft $draft, BatchId $batchId, ReviewSnapshot $review, Actor $actor): DecidedEvent
-    {
-        $request = $draft->getRequest();
-        $command = null === $request
-            ? new Open($draft->getAnchor(), $draft->getBody(), $batchId)
-            : new Reply($request->getId(), $draft->getBody(), batchId: $batchId);
-
-        return RequestDecider::decide($command, array_map($this->state(...), $command->requestIds()), $review, $actor)[0]
-            ?? throw new \LogicException('A draft decides one event.');
-    }
-
-    /**
-     * @param list<DecidedEvent> $decided The request events of the batch
-     */
-    private static function batchSubmitted(BatchId $batchId, ?string $summary, array $decided): BatchSubmittedEvent
-    {
-        $requestIds = [];
-        $commentIds = [];
-
-        foreach ($decided as $event) {
-            $requestId = $event->requestId ?? throw new \LogicException('A draft decides a request event.');
-            $requestIds[$requestId->toString()] ??= $requestId;
-
-            if ($event->event instanceof RequestCommentedEvent) {
-                $commentIds[] = $event->event->commentId;
-            }
-        }
-
-        return new BatchSubmittedEvent($batchId, $summary, array_values($requestIds), $commentIds);
     }
 }

@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Domain\Repository;
 
 use App\Domain\Error\InvalidInput;
+use App\Domain\StringValue;
 
 final readonly class RepositoryName implements \Stringable
 {
+    use StringValue;
+
     private const int MAX_CHARACTERS = 255;
 
     private function __construct(
@@ -64,15 +67,5 @@ final readonly class RepositoryName implements \Stringable
             RepositorySource::Github => 0 === strcasecmp($this->value, $other->value),
             RepositorySource::Local => $this->value === $other->value,
         };
-    }
-
-    public function toString(): string
-    {
-        return $this->value;
-    }
-
-    public function __toString(): string
-    {
-        return $this->value;
     }
 }

@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Domain\Git;
 
 use App\Domain\Error\InvalidInput;
+use App\Domain\StringValue;
 
 final readonly class RepoPath implements \Stringable
 {
+    use StringValue;
+
     private const int MAX_CHARACTERS = 4096;
 
     private function __construct(private string $value)
@@ -33,15 +36,5 @@ final readonly class RepoPath implements \Stringable
     public function equals(self $other): bool
     {
         return $this->value === $other->value;
-    }
-
-    public function toString(): string
-    {
-        return $this->value;
-    }
-
-    public function __toString(): string
-    {
-        return $this->value;
     }
 }
