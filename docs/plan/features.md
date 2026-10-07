@@ -35,10 +35,11 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F17 | [Project Mate tools](F17-project-mate-tools.md) | Done 2026-10-07, [report](reports/F17.md) | 5852bb2 | src 419 PHP / 27834 lines, 419 types; tests 284 PHP / 25239 lines; assets 146 TS / 8052 lines; check 3m19s |
 | F18 | [Known issues](F18-known-issues.md) | Done 2026-10-07, [report](reports/F18.md) | e62f28e | src 419 PHP / 27834 lines, 419 types; tests 284 PHP / 25239 lines; assets 148 TS / 8211 lines; check 3m9s |
 | F19 | [Change the plan requirement](F19-change-the-plan-requirement.md) | Done 2026-10-07, [report](reports/F19.md) | bd46b91 | src 423 PHP / 27964 lines, 423 types; tests 285 PHP / 25409 lines; assets 149 TS / 8305 lines; check 3m2s |
-| F20 | [Unlink a pull request](F20-unlink-a-pull-request.md) | Not started | | |
-| F21 | [File view fills the window](F21-file-view-fills-the-window.md) | Not started | | |
+| F20 | [Unlink a pull request](F20-unlink-a-pull-request.md) | In progress | | |
+| F21 | [File view fills the window](F21-file-view-fills-the-window.md) | Implemented, not committed: the commit waits for Jan | | |
 | F22 | [Quick open ranking](F22-quick-open-ranking.md) | Done 2026-10-07, [report](reports/F22.md) | fd0be4a | src 424 PHP / 28127 lines, 424 types; tests 286 PHP / 25522 lines; assets 149 TS / 8305 lines; check 2m52s |
 | F23 | [Focus mode shortcut](F23-focus-mode-shortcut.md) | Done 2026-10-07, [report](reports/F23.md) | a526f55 | src 419 PHP / 27834 lines, 419 types; tests 284 PHP / 25239 lines; assets 149 TS / 8268 lines; check 2m54s |
+| F24 | [Gutter "+" keeps the focus](F24-gutter-plus-keeps-the-focus.md) | Not started, a bug ahead of new features | | |
 
 ## Candidates
 
