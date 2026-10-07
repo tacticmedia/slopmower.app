@@ -1661,6 +1661,14 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     default_cookie_lifetime?: int|Param, // Default lifetime of the cookie containing the JWT, in seconds. Defaults to the value of "framework.session.cookie_lifetime". // Default: null
  *     enable_profiler?: bool|Param, // Deprecated: The child node "enable_profiler" at path "mercure.enable_profiler" is deprecated. // Enable Symfony Web Profiler integration.
  * }
+ * @psalm-type RdsAuthConfig = array{
+ *     region?: scalar|Param|null, // AWS region of the RDS endpoint and the secret. Required when iam_username or secret_arn is set; the default falls back to AWS_DEFAULT_REGION, then to the AsyncAws bundle region. // Default: "%env(rds_region:AWS_REGION)%"
+ *     iam_username?: scalar|Param|null, // Database user for RDS IAM token authentication. Null or empty disables IAM authentication. // Default: "%env(default::RDS_IAM_USERNAME)%"
+ *     secret_arn?: scalar|Param|null, // ARN of the RDS-managed master-password secret. Null or empty disables the master-password refresh. // Default: "%env(default::RDS_SECRET_ARN)%"
+ *     cache_pool?: scalar|Param|null, // Cache pool service id that stores accepted credentials. Null or empty disables caching. // Default: "cache.app"
+ *     event_dispatcher?: scalar|Param|null, // Event dispatcher service id that receives the ConfiguredPasswordOutdated event. Null or empty disables the dispatch. // Default: "event_dispatcher"
+ *     connections?: list<scalar|Param|null>,
+ * }
  * @psalm-type ConfigType = array{
  *     imports?: ImportsConfig,
  *     parameters?: ParametersConfig,
@@ -1676,6 +1684,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     reprise?: RepriseConfig,
  *     mcp?: McpConfig,
  *     mercure?: MercureConfig,
+ *     rds_auth?: RdsAuthConfig,
  *     "when@dev"?: array{
  *         imports?: ImportsConfig,
  *         parameters?: ParametersConfig,
@@ -1694,6 +1703,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         reprise?: RepriseConfig,
  *         mcp?: McpConfig,
  *         mercure?: MercureConfig,
+ *         rds_auth?: RdsAuthConfig,
  *     },
  *     "when@e2e"?: array{
  *         imports?: ImportsConfig,
@@ -1710,6 +1720,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         reprise?: RepriseConfig,
  *         mcp?: McpConfig,
  *         mercure?: MercureConfig,
+ *         rds_auth?: RdsAuthConfig,
  *     },
  *     "when@prod"?: array{
  *         imports?: ImportsConfig,
@@ -1726,6 +1737,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         reprise?: RepriseConfig,
  *         mcp?: McpConfig,
  *         mercure?: MercureConfig,
+ *         rds_auth?: RdsAuthConfig,
  *     },
  *     "when@test"?: array{
  *         imports?: ImportsConfig,
@@ -1743,6 +1755,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         reprise?: RepriseConfig,
  *         mcp?: McpConfig,
  *         mercure?: MercureConfig,
+ *         rds_auth?: RdsAuthConfig,
  *     },
  *     ...<string, ExtensionType|array{ // extra keys must follow the when@%env% pattern or match an extension alias
  *         imports?: ImportsConfig,

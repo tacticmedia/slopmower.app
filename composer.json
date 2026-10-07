@@ -54,6 +54,7 @@
         "symfony/web-link": "~8.1.0",
         "symfony/webhook": "~8.1.0",
         "symfony/yaml": "~8.1.0",
+        "tacticmedia/rds-auth-bundle": "^1.1",
         "twig/extra-bundle": "^2.12 || ^3.0",
         "twig/markdown-extra": "^3.29.0",
         "twig/twig": "^2.12 || ^3.0"
@@ -63,7 +64,7 @@
         "opis/json-schema": "^2.6",
         "phpstan/phpstan": "^2.3",
         "phpstan/phpstan-doctrine": "^2.0",
-        "phpstan/phpstan-phpunit": "^2.1",
+        "phpstan/phpstan-phpunit": "^2.1.1",
         "phpstan/phpstan-symfony": "^2.1",
         "phpunit/phpunit": "^13.4.1",
         "playwright-php/playwright": "1.5.0",

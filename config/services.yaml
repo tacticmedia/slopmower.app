@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=../vendor/symfony/dependency-injection/Loader/schema/services.schema.json
 
 parameters:
-    # Used by doctrine.dbal.dbname_suffix and the session DSN.
+    # Used by doctrine.dbal.dbname_suffix.
     app.database_suffix: ''
     # Message classes that the worker handles without a TenantStamp and without a tenant context.
     app.tenantless_messages: ['Symfony\Component\RemoteEvent\Messenger\ConsumeRemoteEventMessage']
@@ -26,16 +26,6 @@ services:
 
     App\:
         resource: '../src/'
-
-    # Its own connection, opened at session start and closed at session save, so a worker never keeps a dead one.
-    # The advisory lock serializes the requests of one session, so no request writes back a session that logout deleted.
-    Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler:
-        arguments:
-            $pdoOrDsn: 'pgsql:host=%env(key:host:url:DATABASE_URL)%;port=%env(key:port:url:DATABASE_URL)%;dbname=%env(key:path:url:DATABASE_URL)%%app.database_suffix%'
-            $options:
-                db_username: '%env(key:user:url:DATABASE_URL)%'
-                db_password: '%env(key:pass:url:DATABASE_URL)%'
-                lock_mode: !php/const Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler::LOCK_ADVISORY
 
     # The bundle builds its own client. The alias makes it use github.client, whose mock_response_factory the test environment sets.
     hwi_oauth.http_client: '@github.client'

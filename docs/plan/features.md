@@ -42,6 +42,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F24 | [Gutter "+" keeps the focus](F24-gutter-plus-keeps-the-focus.md) | Done 2026-10-07, [report](reports/F24.md) | db26591 | src 427 PHP / 28311 lines, 427 types; tests 286 PHP / 25622 lines; assets 149 TS / 8356 lines; check 2m45s |
 | F25 | [GitHub-style code browser](F25-github-style-code-browser.md) | Done 2026-10-08, [report](reports/F25.md) | 680b78c | src 427 PHP / 28311 lines, 427 types; tests 286 PHP / 25622 lines; assets 155 TS / 8977 lines; check 3m53s |
 | F26 | [Blame view](F26-blame-view.md) | Not started, after F25 | | |
+| F28 | [RDS authentication](F28-rds-authentication.md) | Done 2026-10-08, [report](reports/F28.md) | | src 428 PHP / 28337 lines, 428 types; tests 289 PHP / 25730 lines; assets 155 TS / 8977 lines |
 
 ## Candidates
 
@@ -59,6 +60,7 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **Single-child directory chains.** GitHub shows a chain of directories with one child each as one row of the directory table, for example "Test/Constraint". From F25.
 - **Markdown preview of a file.** GitHub shows a `.md` file rendered, with "Preview | Code". From F25.
 - **"Finish review" in the stuck header.** The review header scrolls away in the code browser, and the stuck row of the file header could show "Finish your review" while drafts exist. From F25.
+- **Database parameters instead of `DATABASE_URL`.** In the master-password mode of `tacticmedia/rds-auth-bundle`, the deployment injects the raw password, and a raw RDS master password can contain `%`, `#`, and `?`, which break a URL. Separate variables for the host, the port, the database name, the user, the password, and the server version avoid the encoding. From F28.
 - **Pull request links after a repository rename.** A GitHub URL is stored in the canonical form of the repository name as connected (F14). After the repository is renamed on GitHub, a link under the old name no longer matches `link_pull_request` or `unlink_pull_request`. From the F20 report.
 
 ## For Jan

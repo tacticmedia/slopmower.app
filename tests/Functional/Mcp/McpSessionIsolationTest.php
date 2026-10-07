@@ -6,6 +6,7 @@ namespace App\Tests\Functional\Mcp;
 
 use App\Tests\Support\Api\ApiFixtures;
 use App\Tests\Support\Clock\SleepHookClock;
+use App\Tests\Support\Database\LockStores;
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Fixtures\TenantFixtures;
 use App\Tests\Support\Mcp\McpTestClient;
@@ -17,7 +18,6 @@ use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Lock\LockInterface;
-use Symfony\Component\Lock\Store\StoreFactory;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -110,7 +110,7 @@ final class McpSessionIsolationTest extends WebTestCase
 
     private static function lockInAnotherSession(string $sessionId): LockInterface
     {
-        $lock = new LockFactory(StoreFactory::createStore((string) $_SERVER['LOCK_DSN']))->createLock("mcp-session-{$sessionId}", ttl: null);
+        $lock = new LockFactory(LockStores::inAnotherSession(self::getContainer()))->createLock("mcp-session-{$sessionId}", ttl: null);
         self::assertTrue($lock->acquire());
 
         return $lock;

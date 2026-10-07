@@ -2,8 +2,10 @@
 framework:
     secret: '%env(APP_SECRET)%'
 
+    # The file lock serializes the requests of one session, so no request writes back a session that logout deleted.
     session:
-        handler_id: Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler
+        handler_id: session.handler.native_file
+        save_path: '%kernel.project_dir%/var/sessions/%kernel.environment%'
 
     # Domain errors are answers to the client, not failures of the server.
     exceptions:

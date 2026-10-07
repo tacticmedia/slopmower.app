@@ -16,7 +16,7 @@ Holistic Review lets you review a full codebase at one commit, in a view like a 
 |---|---|---|
 | `php` container | FrankenPHP in worker mode. It serves the HTML shell, the REST API `/api/v1`, the MCP endpoint `/_mcp`, the user docs `/docs`, the GitHub webhook `/webhook/github`, and the built-in Mercure hub. It also serves the `e2e` site on port 8081 in classic mode (D34). | `src/Controller/`, `src/Mcp/`, `src/Webhook/` |
 | `worker` container | `messenger:consume async`, same image and volumes. It clones and fetches, builds the symbol index, computes locations again, applies webhook jobs, and purges tenants. | `src/MessageHandler/`, `src/Message/` |
-| `database` container | PostgreSQL 18. It holds all rows, the Messenger queue `doctrine://`, the browser sessions, and the advisory locks of `symfony/lock` (D39). | `src/Entity/`, `migrations/` |
+| `database` container | PostgreSQL 18. It holds all rows, the Messenger queue `doctrine://`, and the advisory locks of `symfony/lock` (D39) on the connection `lock`. | `src/Entity/`, `migrations/` |
 | Host | Node.js 24 and Vite build `assets/` for the shell page. `npm run dev` gives hot reload. | `assets/`, `vite.config.ts` |
 | Tenant data | One bare git clone per tenant and repository at `$APP_TENANT_DATA_DIR/<tenantId>/repositories/<repositoryId>.git`. | `src/Git/TenantDataPaths.php` |
 

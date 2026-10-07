@@ -1,2 +1,13 @@
+# PostgreSQL advisory locks (D39) on a DoctrineBundle connection, so the RDS authentication middleware wraps it (D58).
+# framework.lock cannot build this store: StoreFactory turns a DBAL Connection into the table-based DoctrineDbalStore.
 framework:
-    lock: '%env(LOCK_DSN)%'
+    lock: false
+
+services:
+    Symfony\Component\Lock\Store\DoctrineDbalPostgreSqlStore:
+        arguments: ['@doctrine.dbal.lock_connection']
+
+    Symfony\Component\Lock\LockFactory:
+        arguments: ['@Symfony\Component\Lock\Store\DoctrineDbalPostgreSqlStore']
+        calls: [[setLogger, ['@logger']]]
+        tags: [{ name: monolog.logger, channel: lock }]

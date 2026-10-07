@@ -6,11 +6,11 @@ namespace App\Tests\Functional\Git;
 
 use App\Domain\Identity\RepositoryId;
 use App\Git\RepositoryLock;
+use App\Tests\Support\Database\LockStores;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\Lock\LockFactory;
-use Symfony\Component\Lock\Store\StoreFactory;
 
 final class RepositoryLockTest extends KernelTestCase
 {
@@ -29,6 +29,6 @@ final class RepositoryLockTest extends KernelTestCase
      */
     private static function holder(): RepositoryLock
     {
-        return new RepositoryLock(new LockFactory(StoreFactory::createStore((string) $_SERVER['LOCK_DSN'])), new NativeClock());
+        return new RepositoryLock(new LockFactory(LockStores::inAnotherSession(self::getContainer())), new NativeClock());
     }
 }

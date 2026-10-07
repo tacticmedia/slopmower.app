@@ -13,6 +13,7 @@ use App\Git\GitReader;
 use App\Git\RepositoryLock;
 use App\Message\FetchRepositoryJob;
 use App\Tests\Support\Clock\SleepHookClock;
+use App\Tests\Support\Database\LockStores;
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Environment\EnvironmentVariables;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
@@ -28,7 +29,6 @@ use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Lock\LockInterface;
-use Symfony\Component\Lock\Store\StoreFactory;
 use Symfony\Component\Messenger\Envelope;
 
 /**
@@ -154,7 +154,7 @@ final class FetchSingleFlightTest extends KernelTestCase
 
     private static function lockInAnotherSession(RepositoryId $repositoryId): LockInterface
     {
-        $lock = new RepositoryLock(new LockFactory(StoreFactory::createStore((string) $_SERVER['LOCK_DSN'])), new NativeClock())->create($repositoryId);
+        $lock = new RepositoryLock(new LockFactory(LockStores::inAnotherSession(self::getContainer())), new NativeClock())->create($repositoryId);
         self::assertTrue($lock->acquire());
 
         return $lock;

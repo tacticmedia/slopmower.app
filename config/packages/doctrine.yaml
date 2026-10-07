@@ -1,9 +1,16 @@
 doctrine:
     dbal:
-        url: '%env(resolve:DATABASE_URL)%'
-
-        profiling_collect_backtrace: '%kernel.debug%'
-        dbname_suffix: '%app.database_suffix%'
+        default_connection: default
+        connections:
+            default:
+                url: '%env(resolve:DATABASE_URL)%'
+                profiling_collect_backtrace: '%kernel.debug%'
+                dbname_suffix: '%app.database_suffix%'
+            # The advisory locks of config/packages/lock.yaml, in a database session of their own (D39, D58).
+            lock:
+                url: '%env(resolve:DATABASE_URL)%'
+                profiling_collect_backtrace: '%kernel.debug%'
+                dbname_suffix: '%app.database_suffix%'
         types:
             App\Domain\Identity\ApiTokenId: App\Doctrine\Type\IdentifierType
             App\Domain\Identity\BatchId: App\Doctrine\Type\IdentifierType
