@@ -27,7 +27,7 @@ The comment box receives the focus. Type your comment. Comments use GitHub-flavo
 
 If a comment cannot be saved, its box opens again with your text, the error, and the selected lines.
 
-Symbols are available for PHP, JavaScript, JSX, TypeScript, and TSX files. A symbol range includes the doc comment above the symbol, and the decorators or attributes of its declaration. In JavaScript and TypeScript, a symbol name joins the names of its class, interface, or namespace with `.`, for example `InvoiceTotals.total()`. When a file has no symbols, or they could not be loaded, **Symbols** is unavailable, and its tooltip says why.
+Symbols are available for PHP, JavaScript, JSX, TypeScript, TSX, Python, Go, and Rust files. A symbol range includes the doc comment above the symbol, and the decorators or attributes of its declaration. A Python docstring is inside the range. In JavaScript, TypeScript, Python, and Go, a symbol name joins the names of its class, interface, struct, or namespace with `.`, for example `InvoiceTotals.total()`. A Go method takes the name of its receiver type, for example `Totals.Sum()`. Rust joins names with `::`, for example `Total::new()`, and a method of a trait implementation is `<Total as From<i64>>::from()`. When a file has no symbols, or they could not be loaded, **Symbols** is unavailable, and its tooltip says why.
 
 ## Open a general request
 

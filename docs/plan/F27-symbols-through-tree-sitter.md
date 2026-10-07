@@ -1,6 +1,6 @@
 # F27 Symbols through tree-sitter
 
-Workflow, conventions, and status: [feature track](features.md). Jan asked on 2026-10-08 for symbols in JavaScript, TypeScript, Python, Go, and Rust, in a shape that takes more languages later. F27 builds the engine with JavaScript and TypeScript. [F29](F29-symbols-for-python-go-rust.md) adds Python, Go, and Rust. Together they implement [more-languages.md](../backlog/more-languages.md).
+Workflow, conventions, and status: [feature track](features.md). Jan asked on 2026-10-08 for symbols in JavaScript, TypeScript, Python, Go, and Rust, in a shape that takes more languages later. F27 builds the engine with JavaScript and TypeScript. [F29](F29-symbols-for-python-go-rust.md) adds Python, Go, and Rust. Together they implement the backlog item "More languages".
 
 ## Goal
 

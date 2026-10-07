@@ -105,7 +105,7 @@ final class SymbolsApiTest extends WebTestCase
     {
         $review = $this->startReview();
         $uri = "/api/v1/reviews/{$review['id']}/symbols?path=src%2FBilling%2FInvoiceTotals.php";
-        $etag = 'W/"v2-'.$this->source->revParse('main:src/Billing/InvoiceTotals.php').'"';
+        $etag = 'W/"v3-'.$this->source->revParse('main:src/Billing/InvoiceTotals.php').'"';
 
         $first = self::apiRequest($this->client, 'GET', $uri);
         $notModified = self::apiRequest($this->client, 'GET', $uri, server: ['HTTP_IF_NONE_MATCH' => $etag]);
@@ -126,12 +126,40 @@ final class SymbolsApiTest extends WebTestCase
         $response = self::apiRequest($this->client, 'GET', "/api/v1/reviews/{$review['id']}/symbols?path=assets%2Ftotals.ts");
         $symbols = self::assertApiResponse($response, 200, 'lists.schema.json#/$defs/SymbolList');
 
-        self::assertSame('W/"v2-'.$this->source->revParse('main:assets/totals.ts').'"', $response->headers->get('ETag'));
+        self::assertSame('W/"v3-'.$this->source->revParse('main:assets/totals.ts').'"', $response->headers->get('ETag'));
         self::assertSame(['typescript', false], [$symbols['language'], $symbols['parseError']]);
         self::assertSame([
             ['kind' => 'class', 'fqn' => 'InvoiceTotals', 'name' => 'InvoiceTotals', 'parentFqn' => null, 'range' => ['startLine' => 1, 'endLine' => 8], 'declarationStartLine' => 4, 'docStartLine' => 1],
             ['kind' => 'method', 'fqn' => 'InvoiceTotals.total()', 'name' => 'total', 'parentFqn' => 'InvoiceTotals', 'range' => ['startLine' => 5, 'endLine' => 7], 'declarationStartLine' => 5, 'docStartLine' => null],
         ], $symbols['items']);
+    }
+
+    #[TestDox('Python, Go, and Rust files give their language, their symbols, and the ETag of V9')]
+    public function testPythonGoAndRustFilesGiveTheirSymbols(): void
+    {
+        $this->source->commit([
+            'tools/totals.py' => "class Totals:\n    @property\n    def total(self) -> int:\n        return 0\n",
+            'billing/totals.go' => "package billing\n\n// Sum adds the lines.\nfunc (t *Totals[T]) Sum() int { return 0 }\n",
+            'src/totals.rs' => "impl From<i64> for Total {\n    fn from(cents: i64) -> Self {\n        Total\n    }\n}\n",
+        ]);
+        $review = $this->startReview();
+        $expected = [
+            'tools/totals.py' => ['python', [['class', 'Totals', null], ['method', 'Totals.total()', 'Totals']]],
+            'billing/totals.go' => ['go', [['method', 'Totals.Sum()', 'Totals']]],
+            'src/totals.rs' => ['rust', [['method', '<Total as From<i64>>::from()', 'Total']]],
+        ];
+
+        foreach ($expected as $path => [$language, $items]) {
+            $response = self::apiRequest($this->client, 'GET', "/api/v1/reviews/{$review['id']}/symbols?path=".rawurlencode($path));
+            $symbols = self::assertApiResponse($response, 200, 'lists.schema.json#/$defs/SymbolList');
+
+            self::assertSame('W/"v3-'.$this->source->revParse("main:{$path}").'"', $response->headers->get('ETag'));
+            self::assertSame([$language, false, $items], [
+                $symbols['language'],
+                $symbols['parseError'],
+                array_map(static fn (array $item): array => [$item['kind'], $item['fqn'], $item['parentFqn']], $symbols['items']),
+            ]);
+        }
     }
 
     #[TestDox('Identical bytes at a .js and a .ts path give each its own language, and one indexed_blob row')]

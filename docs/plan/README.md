@@ -391,7 +391,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 | `@primer/behaviors` | 1.11.0, the version that `@primer/react` installs, for `isEditableElement()` and `isMacOS()` | https://www.npmjs.com/package/@primer/behaviors |
 | `react-markdown`, `remark-gfm`, `vitest` | 10.1.0, 4.0.1, 5.0.2 | https://www.npmjs.com/package/react-markdown |
 | `@playwright/test`, `ajv`, `ajv-formats`, `@types/node` | 1.63.0, 8.20.0, 3.0.1, 24.19.1 | https://www.npmjs.com/package/@playwright/test |
-| `web-tree-sitter`, `tree-sitter-javascript`, `tree-sitter-typescript` | 0.27.0, 0.25.0, 0.23.2, exact pins in `symbols/package.json`. web-tree-sitter 0.27.0 loads grammars of ABI 13 to 15, and tree-sitter-typescript 0.23.2 is ABI 14. Install with `--ignore-scripts`: the install scripts of the grammars compile Node bindings, which need Python and a C compiler. | https://www.npmjs.com/package/web-tree-sitter |
+| `web-tree-sitter`, `tree-sitter-javascript`, `tree-sitter-typescript`, `tree-sitter-python`, `tree-sitter-go`, `tree-sitter-rust` | 0.27.0, 0.25.0, 0.23.2, 0.25.0, 0.25.0, 0.24.0, exact pins in `symbols/package.json`. web-tree-sitter 0.27.0 loads grammars of ABI 13 to 15. tree-sitter-typescript 0.23.2 and tree-sitter-rust 0.24.0 are ABI 14, the others ABI 15. tree-sitter-rust 0.24.1 and 0.24.2 are GitHub tags without an npm release. Install with `--ignore-scripts`: the install scripts of the grammars compile Node bindings, which need Python and a C compiler. | https://www.npmjs.com/package/web-tree-sitter |
 | Node.js in the `symbols` image | 24.21.0 from `node:24-trixie-slim`. It runs the TypeScript sources directly, with type stripping. | `node --version` in the `symbols` container |
 
 ## Known gotchas

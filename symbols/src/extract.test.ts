@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { SYMBOL_KINDS } from '../../assets/api/types/common.ts';
-import { extract, type SymbolTable } from './extract.ts';
+import { extract, ROLES, type SymbolTable } from './extract.ts';
 import { type LoadedLanguage, loadLanguages } from './languages.ts';
 
 type Row = [kind: string, fqn: string, name: string, parentFqn: string | null, start: number, end: number, declarationStartLine: number, docStartLine: number | null];
@@ -80,8 +80,79 @@ describe('ExtractTest', () => {
         ]);
     });
 
+    it('The Python fixture with decorators, a nested class, and a function in a method gives its table', () => {
+        expect(fixture('python', 'invoice.py')).toEqual([
+            ['class', 'Line', 'Line', null, 7, 18, 7, null],
+            ['class', 'Line.Meta', 'Meta', 'Line', 14, 18, 14, null],
+            ['method', 'Line.Meta.describe()', 'describe', 'Line.Meta', 17, 18, 17, null],
+            ['class', 'InvoiceTotals', 'InvoiceTotals', null, 21, 38, 21, null],
+            ['method', 'InvoiceTotals.__init__()', '__init__', 'InvoiceTotals', 22, 23, 22, null],
+            ['method', 'InvoiceTotals.total()', 'total', 'InvoiceTotals', 25, 34, 25, null],
+            ['method', 'InvoiceTotals.load()', 'load', 'InvoiceTotals', 36, 38, 36, null],
+            ['function', 'format_total()', 'format_total', null, 41, 42, 41, null],
+        ]);
+    });
+
+    it('The Go fixture with a receiver type of another file, pointer and generic receivers, and doc comment blocks gives its table', () => {
+        expect(fixture('go', 'totals.go')).toEqual([
+            ['type', 'Currency', 'Currency', null, 9, 10, 10, 9],
+            ['constant', 'Scale', 'Scale', null, 13, 14, 14, 13],
+            ['constant', 'Rounding', 'Rounding', null, 15, 15, 15, null],
+            ['struct', 'Totals', 'Totals', null, 18, 24, 20, 18],
+            ['property', 'Totals.Lines', 'Lines', 'Totals', 21, 22, 22, 21],
+            ['property', 'Totals.Currency', 'Currency', 'Totals', 23, 23, 23, null],
+            ['interface', 'Amount', 'Amount', null, 26, 29, 27, 26],
+            ['method', 'Amount.Cents()', 'Cents', 'Amount', 28, 28, 28, null],
+            ['method', 'Totals.Sum()', 'Sum', 'Totals', 31, 41, 32, 31],
+            ['method', 'Totals.Count()', 'Count', 'Totals', 43, 43, 43, null],
+            ['method', 'Line.Cents()', 'Cents', 'Line', 47, 47, 47, null],
+            ['function', 'Format()', 'Format', null, 49, 52, 49, null],
+        ]);
+    });
+
+    it('The Rust fixture with impls, two From impls, nested modules, a macro, and attributes after a doc comment gives its table', () => {
+        expect(fixture('rust', 'totals.rs')).toEqual([
+            ['constant', 'SCALE', 'SCALE', null, 5, 6, 6, 5],
+            ['struct', 'Total', 'Total', null, 8, 15, 9, 8],
+            ['property', 'Total::cents', 'cents', 'Total', 12, 13, 13, 12],
+            ['property', 'Total::currency', 'currency', 'Total', 14, 14, 14, null],
+            ['enum', 'Currency', 'Currency', null, 17, 21, 17, null],
+            ['enum_case', 'Currency::Aud', 'Aud', 'Currency', 19, 19, 19, null],
+            ['enum_case', 'Currency::Eur', 'Eur', 'Currency', 20, 20, 20, null],
+            ['constant', 'Total::ZERO', 'ZERO', 'Total', 24, 24, 24, null],
+            ['method', 'Total::new()', 'new', 'Total', 26, 31, 26, null],
+            ['method', '<Total as From<i64>>::from()', 'from', 'Total', 35, 37, 35, null],
+            ['method', '<Total as From<u32>>::from()', 'from', 'Total', 41, 43, 41, null],
+            ['type', '<Total as std::ops::Add<i64>>::Output', 'Output', 'Total', 47, 47, 47, null],
+            ['method', '<Total as std::ops::Add<i64>>::add()', 'add', 'Total', 49, 51, 49, null],
+            ['method', '<Total as fmt::Display>::fmt()', 'fmt', 'Total', 55, 57, 55, null],
+            ['trait', 'Rounding', 'Rounding', null, 60, 62, 60, null],
+            ['method', 'Rounding::round()', 'round', 'Rounding', 61, 61, 61, null],
+            ['macro', 'total!', 'total', null, 64, 68, 64, null],
+            ['module', 'billing', 'billing', null, 70, 80, 70, null],
+            ['module', 'billing::tax', 'tax', 'billing', 71, 79, 71, null],
+            ['struct', 'billing::tax::Rate', 'Rate', 'billing::tax', 72, 72, 72, null],
+            ['method', 'billing::tax::Rate::value()', 'value', 'billing::tax::Rate', 75, 77, 75, null],
+        ]);
+    });
+
+    it('Line breaks in the type and trait of an impl become one space', () => {
+        const source = 'impl<T>\n    From<\n        Vec<T>,\n    > for &\'static\n    [T]\n{\n    fn from() {}\n}\n';
+
+        expect(rows(extract(language('rust'), source))).toEqual([['method', "<&'static [T] as From< Vec<T>, >>::from()", 'from', "&'static [T]", 7, 7, 7, null]]);
+    });
+
     it('A syntax error gives a parse error and no symbols', () => {
-        expect(extract(language('typescript'), 'export class InvoiceTotals {\n    total(): number {\n')).toEqual({ parseError: true, symbols: [] });
+        const broken: Record<string, string> = {
+            typescript: 'export class InvoiceTotals {\n    total(): number {\n',
+            python: 'class InvoiceTotals:\n    def total(self) -> int:\n        return (\n',
+            go: 'package billing\n\nfunc Total() int {\n',
+            rust: 'impl Total {\n    fn new() -> Self {\n',
+        };
+
+        for (const [id, source] of Object.entries(broken)) {
+            expect(extract(language(id), source)).toEqual({ parseError: true, symbols: [] });
+        }
     });
 
     it('A parse over the time budget gives a parse error, and the next parse starts from the beginning', () => {
@@ -124,7 +195,7 @@ describe('ExtractTest', () => {
     });
 
     it('Every kind that a query captures is a SymbolKind of the contract', () => {
-        const kinds = [...languages.values()].flatMap(({ query }) => query.captureNames.filter((name) => 'name' !== name));
+        const kinds = [...languages.values()].flatMap(({ query }) => query.captureNames.filter((name) => !ROLES.has(name)));
 
         expect(kinds.filter((kind) => !(SYMBOL_KINDS as readonly string[]).includes(kind))).toEqual([]);
     });

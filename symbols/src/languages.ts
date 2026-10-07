@@ -5,7 +5,10 @@ import { Language, Parser, Query } from 'web-tree-sitter';
 export type LanguageRow = {
     /** A `.wasm` file under `node_modules`. */
     grammar: string;
-    /** `queries/<query>.scm`. Its captures are `SymbolKind` values and `@name`. */
+    /**
+     * `queries/<query>.scm`. Its captures are `SymbolKind` values and `@name`. `@parent` names the parent inside the
+     * enclosing container, and `@as` the trait of a Rust trait impl.
+     */
     query: string;
     /** Joins a parent FQN and a name. */
     separator: string;
@@ -15,8 +18,10 @@ export type LanguageRow = {
     attributes: readonly string[];
     /** Node types whose descendants are no symbols: function bodies and anonymous classes. */
     opaque: readonly string[];
-    /** A preceding comment that matches starts the range. */
-    docComment: RegExp;
+    /** A preceding comment that matches starts the range. Null when the language has no doc comment before it. */
+    docComment: RegExp | null;
+    /** A blank line before the declaration ends the doc comment. */
+    docCommentAdjacent: boolean;
 };
 
 export type LoadedLanguage = { row: LanguageRow; parser: Parser; query: Query };
@@ -42,6 +47,7 @@ const JAVASCRIPT: Omit<LanguageRow, 'grammar'> = {
     attributes: [],
     opaque: JAVASCRIPT_OPAQUE,
     docComment: JSDOC,
+    docCommentAdjacent: false,
 };
 
 /** A top-level namespace is an expression statement. Method decorators are siblings of the method. */
@@ -52,6 +58,44 @@ const TYPESCRIPT: Omit<LanguageRow, 'grammar'> = {
     attributes: ['decorator'],
     opaque: JAVASCRIPT_OPAQUE,
     docComment: JSDOC,
+    docCommentAdjacent: false,
+};
+
+/** The docstring is inside the range. */
+const PYTHON: LanguageRow = {
+    grammar: 'tree-sitter-python/tree-sitter-python.wasm',
+    query: 'python',
+    separator: '.',
+    wrappers: ['decorated_definition'],
+    attributes: [],
+    opaque: ['function_definition'],
+    docComment: null,
+    docCommentAdjacent: false,
+};
+
+/** A field of an anonymous struct type is no property of the enclosing struct. */
+const GO: LanguageRow = {
+    grammar: 'tree-sitter-go/tree-sitter-go.wasm',
+    query: 'go',
+    separator: '.',
+    wrappers: [],
+    attributes: [],
+    opaque: ['function_declaration', 'method_declaration', 'func_literal', 'field_declaration'],
+    docComment: /^\/[/*]/,
+    docCommentAdjacent: true,
+};
+
+// An item in a block is local to the block. A doc comment is `///` or a block comment that opens with `/**`, but not
+// `////`, `/***`, or the empty `/**/`.
+const RUST: LanguageRow = {
+    grammar: 'tree-sitter-rust/tree-sitter-rust.wasm',
+    query: 'rust',
+    separator: '::',
+    wrappers: [],
+    attributes: ['attribute_item'],
+    opaque: ['block'],
+    docComment: /^(\/\/\/(?!\/)|\/\*\*(?![*/]))/,
+    docCommentAdjacent: false,
 };
 
 /** By V7 language. `TreeSitterSymbolExtractor::LANGUAGES` lists the same keys. */
@@ -60,6 +104,9 @@ export const LANGUAGES: Readonly<Record<string, LanguageRow>> = {
     jsx: { ...JAVASCRIPT, grammar: 'tree-sitter-javascript/tree-sitter-javascript.wasm' },
     typescript: { ...TYPESCRIPT, grammar: 'tree-sitter-typescript/tree-sitter-typescript.wasm' },
     tsx: { ...TYPESCRIPT, grammar: 'tree-sitter-typescript/tree-sitter-tsx.wasm' },
+    python: PYTHON,
+    go: GO,
+    rust: RUST,
 };
 
 export async function loadLanguages(): Promise<Map<string, LoadedLanguage>> {

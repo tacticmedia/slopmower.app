@@ -25,8 +25,11 @@ const CALLABLES: ReadonlySet<string> = new Set(['function', 'method']);
 
 const SUFFIXES: Readonly<Record<string, string>> = { function: '()', method: '()', macro: '!' };
 
-/** `node` carries the kind capture, `outer` is its outermost wrapper. */
-type Declaration = { kind: string; name: string; node: Node; outer: Node; pattern: number };
+/** Captures that are no kind: the name, and the parent and trait of a Go method or a Rust `impl` member. */
+export const ROLES: ReadonlySet<string> = new Set(['name', 'parent', 'as']);
+
+/** `node` carries the kind capture, `outer` is its outermost wrapper. `parent` and `as` are capture texts. */
+type Declaration = { kind: string; name: string; node: Node; outer: Node; pattern: number; parent: string | null; as: string | null };
 
 type Found = { symbol: ExtractedSymbol; declaration: Declaration };
 
@@ -56,13 +59,20 @@ function symbols(row: LanguageRow, matches: QueryMatch[]): ExtractedSymbol[] {
     const found: Found[] = [];
 
     for (const declaration of declarations(row, matches)) {
-        const parent = enclosingContainer(row, declaration.outer, containers);
+        const container = enclosingContainer(row, declaration.outer, containers);
 
-        if (undefined === parent || (MEMBERS.has(declaration.kind) && null === parent)) {
+        if (undefined === container) {
             continue;
         }
 
-        const symbol = toSymbol(row, declaration, parent);
+        const containerFqn = container?.fqn ?? null;
+        const parentFqn = null === declaration.parent ? containerFqn : joined(row, containerFqn, declaration.parent);
+
+        if (MEMBERS.has(declaration.kind) && null === parentFqn) {
+            continue;
+        }
+
+        const symbol = toSymbol(row, declaration, parentFqn);
         const previous = found.at(-1);
 
         if (undefined !== previous && isOverload(previous, symbol, declaration)) {
@@ -90,15 +100,28 @@ function declarations(row: LanguageRow, matches: QueryMatch[]): Declaration[] {
 
     for (const { patternIndex, captures } of matches) {
         const name = captures.find((capture) => 'name' === capture.name)?.node;
-        const kind = captures.find((capture) => 'name' !== capture.name);
+        const kind = captures.find((capture) => !ROLES.has(capture.name));
         const known = undefined === name ? undefined : byNameNode.get(name.id);
 
         if (undefined !== name && undefined !== kind && (undefined === known || patternIndex < known.pattern)) {
-            byNameNode.set(name.id, { kind: kind.name, name: name.text, node: kind.node, outer: outermost(row, kind.node), pattern: patternIndex });
+            byNameNode.set(name.id, {
+                kind: kind.name,
+                name: name.text,
+                node: kind.node,
+                outer: outermost(row, kind.node),
+                pattern: patternIndex,
+                parent: captureText(captures, 'parent'),
+                as: captureText(captures, 'as'),
+            });
         }
     }
 
     return [...byNameNode.values()].sort((first, second) => first.outer.startIndex - second.outer.startIndex || first.node.startIndex - second.node.startIndex);
+}
+
+/** Whitespace runs become one space, so the FQN does not depend on the line breaks of a type. */
+function captureText(captures: QueryMatch['captures'], name: string): string | null {
+    return captures.find((capture) => name === capture.name)?.node.text.replace(/\s+/g, ' ') ?? null;
 }
 
 function outermost(row: LanguageRow, node: Node): Node {
@@ -130,10 +153,15 @@ function enclosingContainer(row: LanguageRow, outer: Node, containers: ReadonlyM
     return null;
 }
 
+function joined(row: LanguageRow, parentFqn: string | null, name: string): string {
+    return null === parentFqn ? name : `${parentFqn}${row.separator}${name}`;
+}
+
 /**
- * D7: the range starts at the doc comment. A node that ends at column 0 ends on the line before.
+ * D7: the range starts at the doc comment. A node that ends at column 0 ends on the line before. A member of a
+ * trait impl is `<parent as trait>::name`.
  */
-function toSymbol(row: LanguageRow, { kind, name, outer }: Declaration, parent: ExtractedSymbol | null): ExtractedSymbol {
+function toSymbol(row: LanguageRow, { kind, name, outer, as }: Declaration, parentFqn: string | null): ExtractedSymbol {
     let first = outer;
 
     while (null !== first.previousNamedSibling && row.attributes.includes(first.previousNamedSibling.type)) {
@@ -146,9 +174,9 @@ function toSymbol(row: LanguageRow, { kind, name, outer }: Declaration, parent: 
 
     return {
         kind,
-        fqn: `${null === parent ? '' : `${parent.fqn}${row.separator}`}${name}${SUFFIXES[kind] ?? ''}`,
+        fqn: joined(row, null === as || null === parentFqn ? parentFqn : `<${parentFqn} as ${as}>`, `${name}${SUFFIXES[kind] ?? ''}`),
         name,
-        parentFqn: parent?.fqn ?? null,
+        parentFqn,
         startLine: docStartLine ?? declarationStartLine,
         endLine: 0 === endColumn && endRow > outer.startPosition.row ? endRow : endRow + 1,
         declarationStartLine,
@@ -159,11 +187,17 @@ function toSymbol(row: LanguageRow, { kind, name, outer }: Declaration, parent: 
 /**
  * The comment right before the declaration, and the comments that precede it line by line.
  */
-function docCommentStartLine(row: LanguageRow, first: Node): number | null {
+function docCommentStartLine({ docComment, docCommentAdjacent }: LanguageRow, first: Node): number | null {
+    if (null === docComment) {
+        return null;
+    }
+
     let doc: Node | null = null;
 
-    for (let sibling = first.previousNamedSibling; null !== sibling && row.docComment.test(sibling.text); sibling = sibling.previousNamedSibling) {
-        if (null !== doc && sibling.endPosition.row + 1 < doc.startPosition.row) {
+    for (let sibling = first.previousNamedSibling; null !== sibling && docComment.test(sibling.text); sibling = sibling.previousNamedSibling) {
+        const below = doc ?? first;
+
+        if ((null !== doc || docCommentAdjacent) && sibling.endPosition.row + 1 < below.startPosition.row) {
             break;
         }
 

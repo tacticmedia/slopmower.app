@@ -28,7 +28,7 @@ final class SymbolController extends AbstractController
      * docs/specs/README.md section 6. Increase it when the SymbolList representation changes, also for a changed
      * grammar or query of the symbols service.
      */
-    private const string ETAG_VERSION = 'v2';
+    private const string ETAG_VERSION = 'v3';
 
     #[Route('/api/v1/reviews/{reviewId}/symbols', name: 'api_review_symbols', methods: ['GET'])]
     public function __invoke(

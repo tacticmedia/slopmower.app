@@ -44,7 +44,7 @@ M12, M18. M24 for live progress.
 
 ## Out of scope
 
-- Symbols of other languages: [docs/backlog/more-languages.md](../backlog/more-languages.md).
+- Symbols of other languages: architecture [Symbol languages](../architecture.md#symbol-languages).
 
 ## Files (representative)
 

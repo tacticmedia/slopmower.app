@@ -28,7 +28,7 @@ M26, M21.
 
 ## Out of scope
 
-- Other languages: [docs/backlog/more-languages.md](../backlog/more-languages.md).
+- Other languages: architecture [Symbol languages](../architecture.md#symbol-languages).
 
 ## Files (representative)
 
