@@ -48,6 +48,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F30 | [Sign in after sign-out](F30-sign-in-after-sign-out.md) | Done 2026-10-08, [report](reports/F30.md) | bd375ca | src 429 PHP / 28362 lines, 429 types; tests 289 PHP / 25747 lines; assets 155 TS / 8977 lines |
 | F31 | [Directory view reload](F31-directory-view-reload.md) | Done 2026-10-08, [report](reports/F31.md) | 87042d7 | src 432 PHP / 28529 lines, 432 types; tests 291 PHP / 25995 lines; assets 155 TS / 8982 lines; check 3m41s |
 | F32 | [Symbols for Java, C#, Ruby, Bash, Scala, Zig, and Lua](F32-symbols-for-more-languages.md) | In progress (2026-10-08) | | |
+| F33 | [Twig symbols](F33-twig-symbols.md) | Not started, after F32 | | |
 
 ## Candidates
 
@@ -80,9 +81,8 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
   - C (`tree-sitter-c` 0.24.1): data only if `#define` maps to `constant` or `function`, because the `macro` suffix `!` holds for every language. `.h` maps to C, so a C++ header gives a parse error.
   - Small engine change: C++ (`tree-sitter-cpp` 0.23.4), where a declaration and an out-of-class definition in one file share an FQN; Elixir (`tree-sitter-elixir` 0.3.5), whose definitions are calls, so a query needs helper captures that are no kind.
   - Poor fit for the kinds: Haskell (one symbol per equation), OCaml, Julia (macros are `@m`), Terraform, CSS.
-  - Twig: see "Twig symbols".
+  - Twig: scheduled as F33, with the Twig lexer in PHP.
   - No usable `.wasm`: Kotlin, Swift, GraphQL, SQL, Markdown, and Vue ship none. Dart (1.0.0, 2023) and Twig (0.8.2) ship one that web-tree-sitter 0.27 refuses. Each needs a wasm build of its own. The npm name `tree-sitter-r` is a security placeholder.
-- **Twig symbols.** A `TwigSymbolExtractor` in PHP, as `PhpSymbolExtractor`, for the language `twig`, with no change to the `symbols` service. `twig/twig` 3.30.0 is installed. `Environment::parse()` needs the filters, functions, and tags of every extension that a template uses, so a reviewed repository with its own extensions fails with "Unknown filter". `Environment::tokenize()` with an `ArrayLoader` needs none: checked 2026-10-08, it returns each tag name with its line. So the extractor walks the token stream: `block` to `endblock`, a short `{% block name value %}` on one tag, and `macro` to `endmacro`. A lexer error or an unbalanced end tag gives `parseError`. The lexer drops `{# #}` comments, so there is no doc comment start. To decide: a new kind `block`, or blocks as `method`, because Twig compiles a block into a method. From F32.
 
 ## For Jan
 
