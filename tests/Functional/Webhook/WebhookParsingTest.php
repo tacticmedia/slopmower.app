@@ -42,12 +42,12 @@ final class WebhookParsingTest extends WebTestCase
         self::assertSame(406, $client->getResponse()->getStatusCode());
     }
 
-    #[TestDox('Unparsable JSON with a valid signature gives 406')]
-    public function testUnparsableJsonGives406(): void
+    #[TestDox('A body that is not a JSON object gives 406, also with a valid signature')]
+    public function testBodyOtherThanJsonObjectGives406(): void
     {
         $client = static::createClient();
 
-        foreach (['{"zen": ', '"a JSON string"'] as $body) {
+        foreach (['{"zen": ', '"a JSON string"', '[{"zen": "Design for failure."}]', ' []'] as $body) {
             self::assertSame(406, self::deliver($client, 'ping', $body)->getStatusCode(), $body);
             self::assertSame([], self::asyncTransport()->getSent());
         }

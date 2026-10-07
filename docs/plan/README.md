@@ -393,7 +393,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 
 ### Recipes and bundles
 
-- **HWIOAuthBundle.** Its recipe is a contrib recipe. Version 2.5.0 requires `symfony/form`, so keep Form. It has no PKCE. Its `csrf` option defaults to `false`: set it to `true`.
+- **HWIOAuthBundle.** Its recipe is a contrib recipe. Version 2.5.0 requires `symfony/form`, so keep Form. It has no PKCE. Its `csrf` option defaults to `false`: set it to `true`. Its failure handler stores no error in the session, so `Security\SignInErrorListener` stores it for `/login`.
 - **symfony/mcp-bundle 0.14.1.** It has no Flex recipe. Only `config/bundles.php` gets `Symfony\AI\McpBundle\McpBundle`. Write `config/packages/mcp.yaml` and `config/routes/mcp.yaml` by hand. The HTTP transport needs `nyholm/psr7`. The `nyholm/psr7` and `php-http/discovery` recipes both alias the PSR-17 interfaces: keep one set.
 - **MCP bundle options.** `http.allowed_hosts` defaults to localhost only, as DNS rebinding protection. The HTTP path is `servers.<name>.http.path`. The session store is one of `file`, `memory`, `cache`, or `framework`. The `cache` store needs a PSR-16 service. The default directory of the `file` store is under `%kernel.cache_dir%`, which `cache:clear` removes, so set `directory` explicitly.
 - **mcp/sdk 0.8.1 behaviour:**
@@ -460,5 +460,6 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 - **SQL filter parameter.** Between worker requests, DoctrineBundle's `Registry::reset()` only calls `clear()` on an open entity manager. The filter keeps its parameter. `TenantContext::reset()` must drop it. See M05.
 - **Environment-specific firewalls.** Do not rely on merging a security firewall across `when@<environment>` blocks. Keep the authenticators in the base firewall and guard them in code.
 - **Bearer requests and sessions.** A stateful firewall writes every authenticated token into the session in `ContextListener::onKernelResponse`. Bearer requests therefore use their own stateless firewall `api_bearer`. See M14.
+- **Failed flush.** A failed flush closes the entity manager. Code that goes on, for example after a unique key violation, calls `ManagerRegistry::resetManager()`, which resets the injected `EntityManagerInterface` in place.
 - **Messenger deduplication.** Do not use `DeduplicateStamp` with the advisory-lock store. An advisory lock belongs to one database session, so the worker cannot release a lock that the web process took.
 - **Live-update payloads.** They carry IDs only. Never put a `RequestSummary`, a `Review`, or other data into a Mercure update.

@@ -24,6 +24,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: ReviewEventRepository::class, readOnly: true)]
 #[ORM\UniqueConstraint(name: 'uniq_review_event_seq', columns: ['tenant_id', 'seq'])]
 #[ORM\Index(name: 'idx_review_event_review', columns: ['tenant_id', 'review_id', 'seq'])]
+// GIN with jsonb_path_ops for `@>`, from the migration. DBAL cannot declare an index method.
+#[ORM\Index(name: 'idx_review_event_request_ids', columns: ['request_ids'])]
 class ReviewEvent implements TenantOwned
 {
     #[ORM\Id]

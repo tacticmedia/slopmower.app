@@ -7,8 +7,12 @@ namespace App\Tests\Functional\Webhook;
 use App\Application\FetchRepository;
 use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Error\RepositoryUnavailableReason;
+use App\Domain\Repository\RepositoryAccess;
+use App\Domain\Repository\RepositoryName;
 use App\Entity\GitHubAccountType;
 use App\Message\GitHubInstallationCreatedJob;
+use App\Message\GitHubRepositoriesRemovedJob;
+use App\Message\GitHubRepositoryUpdatedJob;
 use App\Messenger\TenantStamp;
 use App\Repository\GitHubCandidateRepository;
 use App\Tenancy\TenantContext;
@@ -117,6 +121,30 @@ final class InstallationWebhookTest extends WebTestCase
 
         self::assertSame('acme/billing-service', self::storedRepository($repository)->getName()->toString());
         self::assertContains(['type' => 'repository', 'repositoryId' => $repository->getId()->toString()], self::repositoriesTopicUpdates($repository->getTenantId()));
+    }
+
+    #[TestDox('A repository job and an installation job queued before the tenant deletion mark change nothing and publish nothing')]
+    public function testJobsOfTenantBeingDeletedChangeNothing(): void
+    {
+        $this->useLocalGitHub();
+        $this->gitHubSource();
+        $repository = self::clonedGitHubRepository(1);
+        $updatesBefore = self::repositoriesTopicUpdates($repository->getTenantId());
+        self::getContainer()->get(Connection::class)->executeStatement('UPDATE tenant SET deletion_requested_at = now()');
+
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+        $tenantStamp = new TenantStamp($repository->getTenantId());
+        $bus->dispatch(new GitHubRepositoryUpdatedJob(812345, RepositoryName::github('acme/billing-service'), !$repository->isGithubPrivate(), true), [$tenantStamp]);
+        $bus->dispatch(new GitHubRepositoriesRemovedJob([812345]), [$tenantStamp]);
+        self::runQueuedMessages();
+
+        $stored = self::storedRepository($repository);
+        self::assertSame(
+            ['acme/billing', $repository->isGithubPrivate(), RepositoryAccess::Active],
+            [$stored->getName()->toString(), $stored->isGithubPrivate(), $stored->getAccess()],
+        );
+        self::assertSame([812345], self::storedCandidateIds($repository->getTenantId()));
+        self::assertSame($updatesBefore, self::repositoriesTopicUpdates($repository->getTenantId()));
     }
 
     #[TestDox('A rename onto the name of another connected repository of the tenant waits')]

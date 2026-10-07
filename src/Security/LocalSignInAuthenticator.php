@@ -17,7 +17,6 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Badge\CsrfTokenBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
-use Symfony\Component\Security\Http\SecurityRequestAttributes;
 use Symfony\Component\Security\Http\Util\TargetPathTrait;
 
 /**
@@ -74,10 +73,11 @@ final class LocalSignInAuthenticator extends AbstractAuthenticator
         return new RedirectResponse($targetPath);
     }
 
+    /**
+     * {@see SignInErrorListener} stores the error for /login.
+     */
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): Response
     {
-        $request->getSession()->set(SecurityRequestAttributes::AUTHENTICATION_ERROR, $exception);
-
         return new RedirectResponse($this->urlGenerator->generate('app_login'));
     }
 }

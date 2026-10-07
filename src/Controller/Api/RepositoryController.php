@@ -6,7 +6,7 @@ namespace App\Controller\Api;
 
 use App\Application\ConnectedRepository;
 use App\Application\FetchRepository;
-use App\Application\InstallationSync;
+use App\Application\GitHubRepositoriesLock;
 use App\Application\Query\RepositoryQuery;
 use App\Controller\Api\Input\ConfirmQuery;
 use App\Controller\Api\Input\ConnectRepositoryInput;
@@ -54,6 +54,7 @@ final class RepositoryController extends AbstractController
         private readonly FetchRepository $fetchRepository,
         private readonly EntityManagerInterface $entityManager,
         private readonly TenantContext $tenantContext,
+        private readonly GitHubRepositoriesLock $repositoriesLock,
         private readonly LockFactory $lockFactory,
         private readonly ClockInterface $clock,
     ) {
@@ -127,16 +128,13 @@ final class RepositoryController extends AbstractController
     /**
      * A new repository is `cloning`, and its clone job is queued after the row commits.
      *
-     * @throws NotFound     The ID is not a candidate of the tenant
+     * @throws NotFound     The ID is not a candidate of the tenant, or the tenant is being deleted
      * @throws InvalidInput Another repository of the tenant has the name, in any case
      */
     private function connectGitHub(int $githubRepositoryId): ConnectedRepository
     {
         $tenantId = $this->tenantContext->get();
-        $lock = $this->lockFactory->createLock(InstallationSync::lockKey($tenantId), ttl: null);
-        $lock->acquire(true);
-
-        try {
+        $connected = $this->repositoriesLock->run($tenantId, function () use ($tenantId, $githubRepositoryId): ConnectedRepository {
             $candidate = $this->candidates->findByGitHubId($githubRepositoryId) ?? throw new NotFound('The GitHub repository is not a candidate.');
             $existing = $this->repositoryRows->findGitHub($githubRepositoryId);
 
@@ -152,14 +150,15 @@ final class RepositoryController extends AbstractController
 
             $repository = Repository::gitHub($tenantId, $name, $githubRepositoryId, $candidate->getInstallationId(), $candidate->isPrivate(), $this->clock->now());
             $this->entityManager->persist($repository);
-            $this->entityManager->flush();
-        } finally {
-            $lock->release();
+
+            return new ConnectedRepository($repository, true);
+        }) ?? throw new NotFound();
+
+        if ($connected->created) {
+            $this->fetchRepository->queueClone($connected->repository);
         }
 
-        $this->fetchRepository->queueClone($repository);
-
-        return new ConnectedRepository($repository, true);
+        return $connected;
     }
 
     /**

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\MessageHandler;
 
 use App\Application\FetchRepository;
-use App\Application\InstallationSync;
+use App\Application\GitHubRepositoriesLock;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Identity\TenantId;
 use App\Domain\Repository\RepositoryName;
@@ -24,12 +24,10 @@ use App\Message\GitHubRepositoriesRemovedJob;
 use App\Repository\GitHubCandidateRepository;
 use App\Repository\GitHubInstallationRepository;
 use App\Repository\RepositoryRepository;
-use App\Repository\TenantRepository;
 use App\Tenancy\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\Target;
-use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Serializer\Exception\ExceptionInterface as SerializerException;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
@@ -38,7 +36,8 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
  * The `installation` and `installation_repositories` events of docs/specs/webhooks-and-live-updates.md section 1. The
- * installation and candidate rows change under the lock that the sign-in sync and the GitHub connect hold too.
+ * installation and candidate rows change under the lock that the sign-in sync and the GitHub connect hold too. A job
+ * for a tenant that is being deleted does nothing.
  */
 final class GitHubInstallationHandler
 {
@@ -51,10 +50,9 @@ final class GitHubInstallationHandler
         private readonly GitHubInstallationRepository $installations,
         private readonly GitHubCandidateRepository $candidates,
         private readonly RepositoryRepository $repositories,
-        private readonly TenantRepository $tenants,
         private readonly FetchRepository $fetchRepository,
         private readonly TenantContext $tenantContext,
-        private readonly LockFactory $lockFactory,
+        private readonly GitHubRepositoriesLock $repositoriesLock,
         private readonly LivePublisher $publisher,
         private readonly LiveTopics $topics,
         private readonly ClockInterface $clock,
@@ -66,11 +64,17 @@ final class GitHubInstallationHandler
     {
         $tenantId = $this->tenantContext->get();
 
-        $this->locked($tenantId, function () use ($job, $tenantId): void {
+        $ran = $this->repositoriesLock->run($tenantId, function () use ($job, $tenantId): true {
             if (null === $this->installations->findOneBy(['installationId' => $job->installationId])) {
                 $this->entityManager->persist(new GitHubInstallation($tenantId, $job->installationId, $job->accountLogin, $job->accountType, $job->suspendedAt));
             }
+
+            return true;
         });
+
+        if (null === $ran) {
+            return;
+        }
 
         $this->publishCandidatesChanged($tenantId);
     }
@@ -83,7 +87,7 @@ final class GitHubInstallationHandler
     {
         $tenantId = $this->tenantContext->get();
 
-        $this->locked($tenantId, function () use ($job): void {
+        $ran = $this->repositoriesLock->run($tenantId, function () use ($job): true {
             foreach ($this->candidates->findBy(['installationId' => $job->installationId]) as $candidate) {
                 $this->entityManager->remove($candidate);
             }
@@ -91,7 +95,13 @@ final class GitHubInstallationHandler
             foreach ($this->installations->findBy(['installationId' => $job->installationId]) as $installation) {
                 $this->entityManager->remove($installation);
             }
+
+            return true;
         });
+
+        if (null === $ran) {
+            return;
+        }
 
         $this->removeAccess(['githubInstallationId' => $job->installationId]);
         $this->publishCandidatesChanged($tenantId);
@@ -100,7 +110,7 @@ final class GitHubInstallationHandler
     #[AsMessageHandler]
     public function handleSuspension(GitHubInstallationSuspensionJob $job): void
     {
-        $this->locked($this->tenantContext->get(), function () use ($job): void {
+        $this->repositoriesLock->run($this->tenantContext->get(), function () use ($job): void {
             $this->installations->findOneBy(['installationId' => $job->installationId])?->recordSuspension($job->suspendedAt);
         });
     }
@@ -122,7 +132,7 @@ final class GitHubInstallationHandler
             $repositories[] = $this->readRepository($job->installationId, $githubRepositoryId, $fullName);
         }
 
-        $this->locked($tenantId, function () use ($job, $tenantId, $repositories): void {
+        $ran = $this->repositoriesLock->run($tenantId, function () use ($job, $tenantId, $repositories): true {
             $listedAt = $this->candidates->lastListedAt() ?? $this->clock->now();
 
             foreach ($repositories as $repository) {
@@ -130,7 +140,13 @@ final class GitHubInstallationHandler
                     $this->entityManager->persist(new GitHubCandidate($tenantId, $repository->id, $job->installationId, $job->accountLogin, self::name($repository), $repository->private, $repository->defaultBranch, $repository->htmlUrl, $listedAt));
                 }
             }
+
+            return true;
         });
+
+        if (null === $ran) {
+            return;
+        }
 
         $this->publishCandidatesChanged($tenantId);
     }
@@ -143,11 +159,17 @@ final class GitHubInstallationHandler
     {
         $tenantId = $this->tenantContext->get();
 
-        $this->locked($tenantId, function () use ($job): void {
+        $ran = $this->repositoriesLock->run($tenantId, function () use ($job): true {
             foreach ($this->candidates->findBy(['githubRepositoryId' => $job->githubRepositoryIds]) as $candidate) {
                 $this->entityManager->remove($candidate);
             }
+
+            return true;
         });
+
+        if (null === $ran) {
+            return;
+        }
 
         $this->removeAccess(['githubRepositoryId' => $job->githubRepositoryIds]);
         $this->publishCandidatesChanged($tenantId);
@@ -199,25 +221,6 @@ final class GitHubInstallationHandler
             return RepositoryName::github($repository->fullName);
         } catch (InvalidInput $invalid) {
             throw new GitHubRequestFailed("GitHub answered the invalid repository name {$repository->fullName}.", 0, $invalid);
-        }
-    }
-
-    /**
-     * @param \Closure(): void $work Runs in a transaction, not for a tenant that is gone or being deleted
-     */
-    private function locked(TenantId $tenantId, \Closure $work): void
-    {
-        $lock = $this->lockFactory->createLock(InstallationSync::lockKey($tenantId), ttl: null);
-        $lock->acquire(true);
-
-        try {
-            $this->entityManager->wrapInTransaction(function () use ($tenantId, $work): void {
-                if ($this->tenants->lockActive($tenantId)) {
-                    $work();
-                }
-            });
-        } finally {
-            $lock->release();
         }
     }
 

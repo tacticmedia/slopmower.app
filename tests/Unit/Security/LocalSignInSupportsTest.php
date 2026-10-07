@@ -27,6 +27,7 @@ final class LocalSignInSupportsTest extends KernelTestCase
         $entityManager = self::createStub(EntityManagerInterface::class);
         $provisioner = new LocalUserProvisioner(
             $entityManager,
+            self::createStub(ManagerRegistry::class),
             new UserRepository(self::createStub(ManagerRegistry::class)),
             new TenantFilter($entityManager),
             new MockClock(),

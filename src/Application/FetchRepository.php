@@ -165,17 +165,14 @@ final class FetchRepository
 
     /**
      * D22: marks the repository removed and queues the deletion of its clone and index. Its reviews stay, and the
-     * recompute sets the `outdated` flags of their requests to null.
+     * recompute sets the `outdated` flags of their requests to null. A repeated call dispatches again, so a failed
+     * dispatch does not leave the clone. The jobs are idempotent.
      */
     public function removeAccess(Repository $repository): void
     {
         $this->refuseOpenTransaction();
         $id = $repository->getId();
-
-        if (!$this->repositories->removeAccess($id)) {
-            return;
-        }
-
+        $this->repositories->removeAccess($id);
         $this->bus->dispatch(new DeleteCloneJob($repository->getTenantId(), $id));
 
         foreach ($this->reviews->findOfRepository($id) as $review) {
@@ -183,6 +180,18 @@ final class FetchRepository
         }
 
         $this->dispatcher->dispatch(new RepositoryChanged($repository->getTenantId(), $id));
+    }
+
+    /**
+     * For a repository whose access an earlier call removed: queues the deletion of a clone that a failed dispatch left.
+     */
+    public function deleteLeftClone(Repository $repository): void
+    {
+        $this->refuseOpenTransaction();
+
+        if (is_dir($this->paths->clonePath($repository->getTenantId(), $repository->getId()))) {
+            $this->bus->dispatch(new DeleteCloneJob($repository->getTenantId(), $repository->getId()));
+        }
     }
 
     private function nowUnixSeconds(): float

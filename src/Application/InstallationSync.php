@@ -29,7 +29,6 @@ use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
-use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Security\Http\Event\LoginSuccessEvent;
 use Symfony\Component\Serializer\Exception\ExceptionInterface as SerializerException;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
@@ -57,19 +56,11 @@ final class InstallationSync
         private readonly RepositoryRepository $repositories,
         private readonly FetchRepository $fetchRepository,
         private readonly TenantContext $tenantContext,
-        private readonly LockFactory $lockFactory,
+        private readonly GitHubRepositoriesLock $repositoriesLock,
         private readonly EventDispatcherInterface $dispatcher,
         private readonly ClockInterface $clock,
         private readonly LoggerInterface $logger,
     ) {
-    }
-
-    /**
-     * The tenant lock of the GitHub repository names, installations, and candidates.
-     */
-    public static function lockKey(TenantId $tenantId): string
-    {
-        return "github-repositories:{$tenantId}";
     }
 
     public function __invoke(LoginSuccessEvent $event): void
@@ -85,7 +76,8 @@ final class InstallationSync
 
     /**
      * Replaces the installations and candidates of the tenant. A connected repository that the listing lacks loses its
-     * access. A failed or partial listing changes nothing.
+     * access, and one that lost it earlier loses a clone that is left. A failed or partial listing, and a tenant that is
+     * being deleted, change nothing.
      */
     public function sync(User $user, #[\SensitiveParameter] string $userToken): void
     {
@@ -101,17 +93,14 @@ final class InstallationSync
 
         // The firewall authenticates before TenantContextListener runs.
         $this->tenantContext->set($tenantId);
-        $lock = $this->lockFactory->createLock(self::lockKey($tenantId), ttl: null);
-        $lock->acquire(true);
-
-        try {
-            [$lostAccess, $renamed] = $this->entityManager->wrapInTransaction(fn (): array => $this->record($installations, $candidates));
-        } finally {
-            $lock->release();
-        }
+        [$lostAccess, $removedEarlier, $renamed] = $this->repositoriesLock->run($tenantId, fn (): array => $this->record($installations, $candidates)) ?? [[], [], []];
 
         foreach ($lostAccess as $repository) {
             $this->fetchRepository->removeAccess($repository);
+        }
+
+        foreach ($removedEarlier as $repository) {
+            $this->fetchRepository->deleteLeftClone($repository);
         }
 
         foreach ($renamed as $repository) {
@@ -123,7 +112,7 @@ final class InstallationSync
      * @param list<GitHubInstallation> $installations
      * @param list<GitHubCandidate>    $candidates
      *
-     * @return array{list<Repository>, list<Repository>} The active repositories that the listing lacks, and the renamed ones
+     * @return array{list<Repository>, list<Repository>, list<Repository>} The active and removed repositories that the listing lacks, and the renamed ones
      */
     private function record(array $installations, array $candidates): array
     {
@@ -141,6 +130,7 @@ final class InstallationSync
         }
 
         $lostAccess = [];
+        $removedEarlier = [];
         $renamed = [];
 
         foreach ($this->repositories->findBy(['source' => RepositorySource::Github]) as $repository) {
@@ -149,6 +139,8 @@ final class InstallationSync
             if (null === $candidate) {
                 if (RepositoryAccess::Active === $repository->getAccess()) {
                     $lostAccess[] = $repository;
+                } else {
+                    $removedEarlier[] = $repository;
                 }
 
                 continue;
@@ -165,7 +157,7 @@ final class InstallationSync
 
         $this->entityManager->flush();
 
-        return [$lostAccess, $renamed];
+        return [$lostAccess, $removedEarlier, $renamed];
     }
 
     /**

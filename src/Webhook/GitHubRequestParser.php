@@ -15,8 +15,8 @@ use Symfony\Component\Webhook\Client\AbstractRequestParser;
 use Symfony\Component\Webhook\Exception\RejectWebhookException;
 
 /**
- * docs/specs/webhooks-and-live-updates.md section 1. A request that does not match, and a body that is not a JSON
- * object or array, get 406 from {@see AbstractRequestParser}.
+ * docs/specs/webhooks-and-live-updates.md section 1. A request that does not match, an unparsable body, and a body
+ * that is not a JSON object get 406.
  */
 final class GitHubRequestParser extends AbstractRequestParser
 {
@@ -51,6 +51,13 @@ final class GitHubRequestParser extends AbstractRequestParser
         $event = (string) $request->headers->get('X-GitHub-Event');
         $name = \in_array($event, self::HANDLED_EVENTS, true) ? "github.{$event}" : 'github.ignored';
 
-        return new RemoteEvent($name, (string) $request->headers->get('X-GitHub-Delivery'), $request->toArray());
+        $payload = $request->toArray();
+
+        // toArray() also decodes a JSON list. Of the valid JSON bodies, only an object starts with "{".
+        if (!str_starts_with(ltrim($request->getContent()), '{')) {
+            throw new RejectWebhookException(Response::HTTP_NOT_ACCEPTABLE, 'Request body is not a JSON object.');
+        }
+
+        return new RemoteEvent($name, (string) $request->headers->get('X-GitHub-Delivery'), $payload);
     }
 }

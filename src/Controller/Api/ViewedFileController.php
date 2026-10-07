@@ -16,6 +16,7 @@ use App\Entity\User;
 use App\Repository\ViewedFileRepository;
 use App\Repository\ViewedFileSql;
 use App\Security\CurrentActor;
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -57,9 +58,7 @@ final class ViewedFileController extends AbstractController
         $path = RepoPath::fromString($input->path);
 
         try {
-            $files->entry($fetchRepository->readyClonePath($review->getRepository()->getId()), $review, $path);
-        } catch (NotFound) {
-            throw InvalidInput::field('path', 'No file has this path at the review commit.');
+            $clonePath = $fetchRepository->readyClonePath($review->getRepository()->getId());
         } catch (RepositoryUnavailable $unavailable) {
             // review_closed comes before repository_unavailable in the check order of docs/specs/README.md section 4.
             $review->assertOpen();
@@ -67,11 +66,22 @@ final class ViewedFileController extends AbstractController
             throw $unavailable;
         }
 
+        try {
+            $files->entry($clonePath, $review, $path);
+        } catch (NotFound) {
+            throw InvalidInput::field('path', 'No file has this path at the review commit.');
+        }
+
         $review->assertOpen();
         $userId = $this->currentActor->sessionUser()->getId();
 
         if ($input->viewed) {
-            $marks->mark($review->getTenantId(), $userId, $review->getId(), $path);
+            try {
+                $marks->mark($review->getTenantId(), $userId, $review->getId(), $path);
+            } catch (ForeignKeyConstraintViolationException) {
+                // A delete of the review or the user committed after the read.
+                throw new NotFound();
+            }
         } else {
             $marks->unmark($review->getTenantId(), $userId, $review->getId(), $path);
         }

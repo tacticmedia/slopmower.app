@@ -69,7 +69,7 @@ final class RepositoryRepository extends ServiceEntityRepository
 
     /**
      * A rename onto a name that another GitHub repository of the tenant holds, in any case, waits until that one is
-     * renamed or deleted. Callers hold the lock of {@see \App\Application\InstallationSync::lockKey()}.
+     * renamed or deleted. Callers hold {@see \App\Application\GitHubRepositoriesLock}.
      */
     public function nameAfterRename(Repository $repository, RepositoryName $newName): RepositoryName
     {
@@ -80,19 +80,15 @@ final class RepositoryRepository extends ServiceEntityRepository
 
     /**
      * D22: `removed` and `unavailable`, and a queued fetch job finds nothing to do.
-     *
-     * @return bool False when the access was removed already
      */
-    public function removeAccess(RepositoryId $id): bool
+    public function removeAccess(RepositoryId $id): void
     {
-        return 1 === $this->update($id)
+        $this->update($id)
             ->set('repository.access', ':removed')
             ->set('repository.syncState', ':unavailable')
             ->set('repository.fetchRequested', 'false')
-            ->andWhere('repository.access = :active')
             ->setParameter('removed', RepositoryAccess::Removed)
             ->setParameter('unavailable', SyncState::Unavailable)
-            ->setParameter('active', RepositoryAccess::Active)
             ->getQuery()
             ->execute();
     }

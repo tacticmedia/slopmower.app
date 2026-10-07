@@ -26,6 +26,7 @@ use App\Tests\Support\GitHub\LocalGitHub;
 use App\Tests\Support\Live\PublishedUpdates;
 use App\Tests\Support\Messenger\QueuedMessages;
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -105,6 +106,29 @@ final class InstallationSyncTest extends WebTestCase
         $client->loginUser($user, 'web');
         $response = self::assertApiResponse(self::apiRequest($client, 'GET', '/api/v1/repositories/'.$repository->getId()), 200, 'repository.schema.json');
         self::assertSame(['access' => 'removed', 'state' => 'unavailable'], ['access' => $response['access'], 'state' => ((array) $response['sync'])['state']]);
+    }
+
+    #[TestDox('A sync queues only the deletion of a clone that an earlier removal left')]
+    public function testSyncDeletesALeftClone(): void
+    {
+        $this->useLocalGitHub();
+        $this->gitHubSource('acme/billing');
+        static::createClient();
+        $user = self::syncedUser();
+        $repository = self::connectGitHub($user->getTenantId());
+        self::runQueuedMessages();
+        // An earlier removal marked the repository, and then its dispatch failed.
+        self::getContainer()->get(RepositoryRepository::class)->removeAccess($repository->getId());
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+        $updatesBefore = self::repositoriesTopicUpdates($user->getTenantId());
+
+        self::sync($user, GitHubResponses::BILLING_REMOVED_ACCESS_TOKEN);
+
+        self::assertEquals(
+            [new DeleteCloneJob($user->getTenantId(), $repository->getId())],
+            array_map(static fn (Envelope $envelope): object => $envelope->getMessage(), [...self::asyncTransport()->get()]),
+        );
+        self::assertSame($updatesBefore, self::repositoriesTopicUpdates($user->getTenantId()));
     }
 
     #[TestDox('The sync leaves the installation, the candidate, and the connected repository of another tenant unchanged')]

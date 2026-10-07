@@ -28,6 +28,7 @@ use App\Repository\ChangeRequestRepository;
 use App\Repository\DraftRepository;
 use App\Security\CurrentActor;
 use App\Security\Voter\DraftVoter;
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
@@ -89,6 +90,9 @@ final class DraftController extends AbstractController
             $review->assertOpen();
             $this->entityManager->persist($draft);
             $this->entityManager->flush();
+        } catch (ForeignKeyConstraintViolationException) {
+            // A delete of the review, the request, or the user committed after the read.
+            throw new NotFound();
         } finally {
             $lock->release();
         }

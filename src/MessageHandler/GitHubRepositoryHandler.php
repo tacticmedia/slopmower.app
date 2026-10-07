@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace App\MessageHandler;
 
 use App\Application\Event\RepositoryChanged;
-use App\Application\InstallationSync;
+use App\Application\GitHubRepositoriesLock;
 use App\Entity\Repository;
 use App\Message\GitHubRepositoryUpdatedJob;
 use App\Repository\RepositoryRepository;
 use App\Tenancy\TenantContext;
-use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
@@ -23,9 +21,8 @@ final class GitHubRepositoryHandler
 {
     public function __construct(
         private readonly RepositoryRepository $repositories,
-        private readonly EntityManagerInterface $entityManager,
         private readonly TenantContext $tenantContext,
-        private readonly LockFactory $lockFactory,
+        private readonly GitHubRepositoriesLock $repositoriesLock,
         private readonly EventDispatcherInterface $dispatcher,
     ) {
     }
@@ -33,14 +30,7 @@ final class GitHubRepositoryHandler
     public function __invoke(GitHubRepositoryUpdatedJob $job): void
     {
         $tenantId = $this->tenantContext->get();
-        $lock = $this->lockFactory->createLock(InstallationSync::lockKey($tenantId), ttl: null);
-        $lock->acquire(true);
-
-        try {
-            $renamed = $this->entityManager->wrapInTransaction(fn (): ?Repository => $this->record($job));
-        } finally {
-            $lock->release();
-        }
+        $renamed = $this->repositoriesLock->run($tenantId, fn (): ?Repository => $this->record($job));
 
         if (null !== $renamed) {
             $this->dispatcher->dispatch(new RepositoryChanged($tenantId, $renamed->getId()));
