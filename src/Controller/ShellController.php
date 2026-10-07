@@ -20,6 +20,7 @@ final class ShellController extends AbstractController
     #[Route('/repositories/{id}', name: 'shell_repository', methods: ['GET'])]
     #[Route('/reviews/{id}', name: 'shell_review', methods: ['GET'])]
     #[Route('/reviews/{id}/files/{path}', name: 'shell_review_file', requirements: ['path' => '.+'], methods: ['GET'])]
+    #[Route('/reviews/{id}/tree/{path}', name: 'shell_review_tree', requirements: ['path' => '.+'], methods: ['GET'])]
     #[Route('/reviews/{id}/requests', name: 'shell_review_requests', methods: ['GET'])]
     #[Route('/requests/{id}', name: 'shell_request', methods: ['GET'])]
     #[Route('/settings', name: 'shell_settings', methods: ['GET'])]
