@@ -1022,13 +1022,13 @@ final class BundledSchemas
                             ['$ref' => '#/$defs/Ulid'],
                             ['type' => 'null'],
                         ],
-                        'description' => 'Set for request.* and commit.unlinked.',
+                        'description' => 'Set for request.*, commit.unlinked, and pull_request.unlinked.',
                     ],
                     'requestIds' => [
                         'type' => 'array',
                         'uniqueItems' => true,
                         'items' => ['$ref' => '#/$defs/Ulid'],
-                        'description' => 'Every request the event concerns: [requestId] for request events and commit.unlinked; covered requests for commit.linked, commit.found, and pull_request.linked; opened and commented requests for batch.submitted; [] for review events.',
+                        'description' => 'Every request the event concerns: [requestId] for request events, commit.unlinked, and pull_request.unlinked; covered requests for commit.linked, commit.found, and pull_request.linked; opened and commented requests for batch.submitted; [] for review events.',
                     ],
                     'actor' => ['$ref' => '#/$defs/Actor'],
                     'occurredAt' => ['$ref' => '#/$defs/DateTime'],
@@ -1068,7 +1068,7 @@ final class BundledSchemas
                             ['$ref' => '#/$defs/PullRequestUrl'],
                             ['type' => 'null'],
                         ],
-                        'description' => 'pull_request.linked only.',
+                        'description' => 'pull_request.linked and pull_request.unlinked.',
                     ],
                     'statusAfter' => [
                         'anyOf' => [
@@ -1083,7 +1083,10 @@ final class BundledSchemas
             'EventType' => [
                 'anyOf' => [
                     [
-                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived', 'batch.submitted'],
+                        'enum' => [
+                            'review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'pull_request.unlinked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived',
+                            'batch.submitted',
+                        ],
                     ],
                     ['type' => 'string'],
                 ],
@@ -1450,7 +1453,7 @@ final class BundledSchemas
             'Action' => [
                 'anyOf' => [
                     [
-                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal', 'set_plan_requirement'],
+                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal', 'set_plan_requirement'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -1908,7 +1911,7 @@ final class BundledSchemas
                             ['$ref' => '#/$defs/PullRequestUrl'],
                             ['type' => 'null'],
                         ],
-                        'description' => 'pull_request.linked only.',
+                        'description' => 'pull_request.linked and pull_request.unlinked.',
                     ],
                     'statusAfter' => ['$ref' => '#/$defs/RequestStatus'],
                 ],
@@ -1916,7 +1919,7 @@ final class BundledSchemas
             'ThreadEntryType' => [
                 'anyOf' => [
                     [
-                        'enum' => ['request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived'],
+                        'enum' => ['request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'pull_request.unlinked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -1949,7 +1952,7 @@ final class BundledSchemas
             'Action' => [
                 'anyOf' => [
                     [
-                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal', 'set_plan_requirement'],
+                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal', 'set_plan_requirement'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -2107,13 +2110,13 @@ final class BundledSchemas
                             ['$ref' => '#/$defs/Ulid'],
                             ['type' => 'null'],
                         ],
-                        'description' => 'Set for request.* and commit.unlinked.',
+                        'description' => 'Set for request.*, commit.unlinked, and pull_request.unlinked.',
                     ],
                     'requestIds' => [
                         'type' => 'array',
                         'uniqueItems' => true,
                         'items' => ['$ref' => '#/$defs/Ulid'],
-                        'description' => 'Every request the event concerns: [requestId] for request events and commit.unlinked; covered requests for commit.linked, commit.found, and pull_request.linked; opened and commented requests for batch.submitted; [] for review events.',
+                        'description' => 'Every request the event concerns: [requestId] for request events, commit.unlinked, and pull_request.unlinked; covered requests for commit.linked, commit.found, and pull_request.linked; opened and commented requests for batch.submitted; [] for review events.',
                     ],
                     'actor' => ['$ref' => '#/$defs/Actor'],
                     'occurredAt' => ['$ref' => '#/$defs/DateTime'],
@@ -2153,7 +2156,7 @@ final class BundledSchemas
                             ['$ref' => '#/$defs/PullRequestUrl'],
                             ['type' => 'null'],
                         ],
-                        'description' => 'pull_request.linked only.',
+                        'description' => 'pull_request.linked and pull_request.unlinked.',
                     ],
                     'statusAfter' => [
                         'anyOf' => [
@@ -2168,7 +2171,10 @@ final class BundledSchemas
             'EventType' => [
                 'anyOf' => [
                     [
-                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived', 'batch.submitted'],
+                        'enum' => [
+                            'review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'pull_request.unlinked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived',
+                            'batch.submitted',
+                        ],
                     ],
                     ['type' => 'string'],
                 ],
@@ -2549,13 +2555,13 @@ final class BundledSchemas
                             ['$ref' => '#/$defs/Ulid'],
                             ['type' => 'null'],
                         ],
-                        'description' => 'Set for request.* and commit.unlinked.',
+                        'description' => 'Set for request.*, commit.unlinked, and pull_request.unlinked.',
                     ],
                     'requestIds' => [
                         'type' => 'array',
                         'uniqueItems' => true,
                         'items' => ['$ref' => '#/$defs/Ulid'],
-                        'description' => 'Every request the event concerns: [requestId] for request events and commit.unlinked; covered requests for commit.linked, commit.found, and pull_request.linked; opened and commented requests for batch.submitted; [] for review events.',
+                        'description' => 'Every request the event concerns: [requestId] for request events, commit.unlinked, and pull_request.unlinked; covered requests for commit.linked, commit.found, and pull_request.linked; opened and commented requests for batch.submitted; [] for review events.',
                     ],
                     'actor' => ['$ref' => '#/$defs/Actor'],
                     'occurredAt' => ['$ref' => '#/$defs/DateTime'],
@@ -2595,7 +2601,7 @@ final class BundledSchemas
                             ['$ref' => '#/$defs/PullRequestUrl'],
                             ['type' => 'null'],
                         ],
-                        'description' => 'pull_request.linked only.',
+                        'description' => 'pull_request.linked and pull_request.unlinked.',
                     ],
                     'statusAfter' => [
                         'anyOf' => [
@@ -2610,7 +2616,10 @@ final class BundledSchemas
             'EventType' => [
                 'anyOf' => [
                     [
-                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived', 'batch.submitted'],
+                        'enum' => [
+                            'review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'pull_request.unlinked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived',
+                            'batch.submitted',
+                        ],
                     ],
                     ['type' => 'string'],
                 ],
@@ -2987,13 +2996,13 @@ final class BundledSchemas
                             ['$ref' => '#/$defs/Ulid'],
                             ['type' => 'null'],
                         ],
-                        'description' => 'Set for request.* and commit.unlinked.',
+                        'description' => 'Set for request.*, commit.unlinked, and pull_request.unlinked.',
                     ],
                     'requestIds' => [
                         'type' => 'array',
                         'uniqueItems' => true,
                         'items' => ['$ref' => '#/$defs/Ulid'],
-                        'description' => 'Every request the event concerns: [requestId] for request events and commit.unlinked; covered requests for commit.linked, commit.found, and pull_request.linked; opened and commented requests for batch.submitted; [] for review events.',
+                        'description' => 'Every request the event concerns: [requestId] for request events, commit.unlinked, and pull_request.unlinked; covered requests for commit.linked, commit.found, and pull_request.linked; opened and commented requests for batch.submitted; [] for review events.',
                     ],
                     'actor' => ['$ref' => '#/$defs/Actor'],
                     'occurredAt' => ['$ref' => '#/$defs/DateTime'],
@@ -3033,7 +3042,7 @@ final class BundledSchemas
                             ['$ref' => '#/$defs/PullRequestUrl'],
                             ['type' => 'null'],
                         ],
-                        'description' => 'pull_request.linked only.',
+                        'description' => 'pull_request.linked and pull_request.unlinked.',
                     ],
                     'statusAfter' => [
                         'anyOf' => [
@@ -3048,7 +3057,10 @@ final class BundledSchemas
             'EventType' => [
                 'anyOf' => [
                     [
-                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived', 'batch.submitted'],
+                        'enum' => [
+                            'review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'pull_request.unlinked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived',
+                            'batch.submitted',
+                        ],
                     ],
                     ['type' => 'string'],
                 ],

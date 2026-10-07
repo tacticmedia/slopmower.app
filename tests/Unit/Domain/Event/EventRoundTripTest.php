@@ -18,6 +18,7 @@ use App\Domain\Event\CommitUnlinkedEvent;
 use App\Domain\Event\DomainEvent;
 use App\Domain\Event\EventType;
 use App\Domain\Event\PullRequestLinkedEvent;
+use App\Domain\Event\PullRequestUnlinkedEvent;
 use App\Domain\Event\RequestClaimedEvent;
 use App\Domain\Event\RequestCommentedEvent;
 use App\Domain\Event\RequestOpenedEvent;
@@ -156,6 +157,7 @@ final class EventRoundTripTest extends KernelTestCase
                 [RequestId::fromString(self::REQUEST_A), RequestId::fromString(self::REQUEST_B)],
                 'One pull request for both requests.',
             ),
+            EventType::PullRequestUnlinked => new PullRequestUnlinkedEvent(PullRequestUrl::fromString('https://github.com/acme/billing/pull/42'), RequestId::fromString(self::REQUEST_B)),
             EventType::RequestReadyForReview => new RequestReadyForReviewEvent('Totals use Money. Tests cover the rounding.'),
             EventType::RequestWontDo => new RequestWontDoEvent(WontDoReason::fromString('The PDF library API requires float amounts.')),
             EventType::RequestVerified => new RequestVerifiedEvent(null),

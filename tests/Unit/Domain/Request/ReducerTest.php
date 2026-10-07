@@ -10,6 +10,7 @@ use App\Domain\Event\CommitFoundEvent;
 use App\Domain\Event\DecidedEvent;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\BatchId;
+use App\Domain\Repository\RepositoryName;
 use App\Domain\Request\Command\Claim;
 use App\Domain\Request\Command\LinkCommits;
 use App\Domain\Request\Command\MarkReadyForReview;
@@ -20,6 +21,7 @@ use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\SetPlanRequirement;
 use App\Domain\Request\Command\UnlinkCommit;
+use App\Domain\Request\Command\UnlinkPullRequest;
 use App\Domain\Request\Command\Verify;
 use App\Domain\Request\PullRequestUrl;
 use App\Domain\Request\RequestReducer;
@@ -121,6 +123,10 @@ final class ReducerTest extends KernelTestCase
             'pull_request.linked, without agent tracking' => [
                 static fn () => $scenario->run($scenario->validCommand('link_pull_request'), $agent),
                 ['pullRequestUrls' => [RequestScenario::PULL_REQUEST]],
+            ],
+            'pull_request.unlinked, without agent tracking' => [
+                static fn () => $scenario->run(new UnlinkPullRequest($id, RequestScenario::PULL_REQUEST, RepositoryName::github(RequestScenario::REPOSITORY)), $agent),
+                ['pullRequestUrls' => []],
             ],
             'request.verified' => [
                 static fn () => $scenario->run(new Verify($id), $user),

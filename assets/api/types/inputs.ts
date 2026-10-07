@@ -81,6 +81,10 @@ export type LinkPullRequestInput = {
     note?: string | null;
 };
 
+export type UnlinkPullRequestInput = {
+    url: PullRequestUrl;
+};
+
 export type CreateDraftInput =
     | { kind: 'new_request'; anchor?: AnchorInput | null; requestId?: null; body: Markdown; requireApproval?: boolean | null }
     | { kind: 'reply'; anchor?: null; requestId: Ulid; body: Markdown; requireApproval?: null };

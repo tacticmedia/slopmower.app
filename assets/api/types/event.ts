@@ -6,7 +6,7 @@ export type Event = {
     eventId: Ulid;
     type: EventType;
     reviewId: Ulid;
-    /** Set for request.* and commit.unlinked. */
+    /** Set for request.*, commit.unlinked, and pull_request.unlinked. */
     requestId: Ulid | null;
     /** Every request the event concerns; [] for review events. */
     requestIds: Ulid[];
@@ -19,7 +19,7 @@ export type Event = {
     batchId: Ulid | null;
     /** commit.* and review.started. */
     commitSha: CommitSha | null;
-    /** pull_request.linked only. */
+    /** pull_request.linked and pull_request.unlinked. */
     pullRequestUrl: PullRequestUrl | null;
     /** Null when requestId is null. */
     statusAfter: RequestStatus | null;

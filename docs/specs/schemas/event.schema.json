@@ -27,7 +27,7 @@
           "type": "null"
         }
       ],
-      "description": "Set for request.* and commit.unlinked."
+      "description": "Set for request.*, commit.unlinked, and pull_request.unlinked."
     },
     "requestIds": {
       "type": "array",
@@ -35,7 +35,7 @@
       "items": {
         "$ref": "common.schema.json#/$defs/Ulid"
       },
-      "description": "Every request the event concerns: [requestId] for request events and commit.unlinked; covered requests for commit.linked, commit.found, and pull_request.linked; opened and commented requests for batch.submitted; [] for review events."
+      "description": "Every request the event concerns: [requestId] for request events, commit.unlinked, and pull_request.unlinked; covered requests for commit.linked, commit.found, and pull_request.linked; opened and commented requests for batch.submitted; [] for review events."
     },
     "actor": {
       "$ref": "actor.schema.json"
@@ -101,7 +101,7 @@
           "type": "null"
         }
       ],
-      "description": "pull_request.linked only."
+      "description": "pull_request.linked and pull_request.unlinked."
     },
     "statusAfter": {
       "anyOf": [

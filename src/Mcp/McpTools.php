@@ -424,6 +424,26 @@ final class McpTools
     }
 
     /**
+     * Section 4.15: REST Q19.
+     *
+     * @param string $url       Pull request URL
+     * @param string $requestId Request ID
+     *
+     * @return array<string, mixed>
+     */
+    #[McpTool(
+        name: 'unlink_pull_request',
+        title: 'Unlink pull request',
+        description: 'Remove a pull request link that you made by mistake from a request: in_progress and held by you, or ready_for_review.',
+        annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
+        outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT,
+    )]
+    public function unlinkPullRequest(#[Schema(pattern: self::PULL_REQUEST_URL, maxLength: 2048)] string $url, #[Schema(pattern: self::ULID)] string $requestId): array
+    {
+        return $this->requestCommand('unlink_pull_request', $requestId, 'requestId', fn (RequestId $id, Actor $actor): array => $this->commands->unlinkPullRequest($id, $url, $actor));
+    }
+
+    /**
      * @param \Closure(RequestId, Actor): list<RecordedEvent> $command
      *
      * @return array<string, mixed>

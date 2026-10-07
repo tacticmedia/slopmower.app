@@ -18,7 +18,7 @@ export type ThreadEntry = {
     batchId: Ulid | null;
     /** commit.* only. */
     commitSha: CommitSha | null;
-    /** pull_request.linked only. */
+    /** pull_request.linked and pull_request.unlinked. */
     pullRequestUrl: PullRequestUrl | null;
     statusAfter: RequestStatus;
 };

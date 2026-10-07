@@ -12,6 +12,7 @@ enum Action: string
     case LinkCommits = 'link_commits';
     case UnlinkCommit = 'unlink_commit';
     case LinkPullRequest = 'link_pull_request';
+    case UnlinkPullRequest = 'unlink_pull_request';
     case MarkReadyForReview = 'mark_ready_for_review';
     case MarkWontDo = 'mark_wont_do';
     case Verify = 'verify';

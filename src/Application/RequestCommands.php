@@ -32,6 +32,7 @@ use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\RequestCommand;
 use App\Domain\Request\Command\SetPlanRequirement;
 use App\Domain\Request\Command\UnlinkCommit;
+use App\Domain\Request\Command\UnlinkPullRequest;
 use App\Domain\Request\Command\Verify;
 use App\Domain\Request\CommitLinkState;
 use App\Domain\Request\CommitsNotAvailable;
@@ -157,6 +158,20 @@ final class RequestCommands
         $events = $this->run($review->getId(), new LinkPullRequest($url, $requestIds, $repository, $note), $actor);
 
         return $this->requestQuery->linkPullRequestResult(PullRequestUrl::forRepository($url, $repository), $requestIds, $events);
+    }
+
+    /**
+     * Q19. The command carries the name of the review's repository, as in {@see self::linkPullRequest()}.
+     *
+     * @return list<RecordedEvent>
+     *
+     * @throws NotFound|InvalidInput|ReviewClosed|InvalidTransition
+     */
+    public function unlinkPullRequest(RequestId $requestId, string $url, Actor $actor): array
+    {
+        $review = ($this->requests->find($requestId) ?? throw new NotFound())->getReview();
+
+        return $this->run($review->getId(), new UnlinkPullRequest($requestId, $url, $review->getRepository()->getName()), $actor);
     }
 
     /**

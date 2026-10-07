@@ -142,6 +142,11 @@ export class FakeReview {
         this.requests[this.requests.indexOf(current)] = { ...current, pullRequestUrls: [...current.pullRequestUrls, url] };
     }
 
+    agentUnlinksPullRequest(id: string, url: string): void {
+        const current = this.#apply(id, { ...this.#entry('pull_request.unlinked', AGENT, null, this.find(id).status), pullRequestUrl: url });
+        this.requests[this.requests.indexOf(current)] = { ...current, pullRequestUrls: current.pullRequestUrls.filter((linked) => linked !== url) };
+    }
+
     agentMarksReady(id: string, note: string): void {
         this.#apply(id, this.#entry('request.ready_for_review', AGENT, note, 'ready_for_review'), { status: 'ready_for_review', resolution: 'fixed' });
     }
@@ -220,8 +225,8 @@ export class FakeReview {
             tracking.statusBeforeClaim = current.status;
         }
         tracking.wontDoBy = 'wont_do' !== status ? null : 'wont_do' === transition.status ? entry.actor.kind : tracking.wontDoBy;
-        // A pull request link is no agent event for the `awaiting` rules.
-        if ('agent' === entry.actor.kind && 'pull_request.linked' !== entry.type) {
+        // A pull request link or unlink is no agent event for the `awaiting` rules.
+        if ('agent' === entry.actor.kind && !['pull_request.linked', 'pull_request.unlinked'].includes(entry.type)) {
             tracking.lastAgentEventSeq = entry.seq;
             tracking.lastAgentEventIsQuestion = 'request.commented' === entry.type && entry.question;
         } else if ('user' === entry.actor.kind && ['request.commented', 'request.proposal_approved', 'request.proposal_rejected'].includes(entry.type)) {

@@ -9,6 +9,7 @@ use App\Domain\Event\CommitFoundEvent;
 use App\Domain\Event\CommitLinkedEvent;
 use App\Domain\Event\CommitUnlinkedEvent;
 use App\Domain\Event\PullRequestLinkedEvent;
+use App\Domain\Event\PullRequestUnlinkedEvent;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Event\RequestClaimedEvent;
 use App\Domain\Event\RequestCommentedEvent;
@@ -75,6 +76,9 @@ final class RequestReducer
                 ),
             ],
             $event instanceof PullRequestLinkedEvent => ['pullRequestUrls' => [...$state->pullRequestUrls, $event->url]],
+            $event instanceof PullRequestUnlinkedEvent => [
+                'pullRequestUrls' => array_values(array_filter($state->pullRequestUrls, static fn (PullRequestUrl $url): bool => !$url->equals($event->url))),
+            ],
             $event instanceof RequestReadyForReviewEvent => [
                 ...self::UNCLAIMED,
                 'status' => RequestStatus::ReadyForReview,
@@ -105,6 +109,10 @@ final class RequestReducer
 
         if (($event instanceof CommitUnlinkedEvent || $event instanceof CommitFoundEvent) && null === $state->link($event->commitSha)) {
             throw new \LogicException("{$recorded->type->value} names a commit that is not linked to the request.");
+        }
+
+        if ($event instanceof PullRequestUnlinkedEvent && !$state->hasPullRequest($event->url)) {
+            throw new \LogicException("{$recorded->type->value} names a pull request that is not linked to the request.");
         }
 
         return $state->with([...$changes, ...self::tracking($recorded)]);
@@ -149,7 +157,7 @@ final class RequestReducer
     }
 
     /**
-     * A pull request link is no agent event for the `awaiting` rules, so it never takes the turn from the user.
+     * A pull request link or unlink is no agent event for the `awaiting` rules, so it never takes the turn from the user.
      *
      * @return array{lastEventSeq: int, updatedAt: \DateTimeImmutable, lastAgentEventSeq?: int, lastAgentEventIsQuestion?: bool, lastUserCommentSeq?: int}
      */
@@ -160,7 +168,7 @@ final class RequestReducer
         $isComment = $event instanceof RequestCommentedEvent;
         $isUserMessage = $isComment || $event instanceof RequestProposalApprovedEvent || $event instanceof RequestProposalRejectedEvent;
 
-        if ($event instanceof PullRequestLinkedEvent) {
+        if ($event instanceof PullRequestLinkedEvent || $event instanceof PullRequestUnlinkedEvent) {
             return $tracking;
         }
 
@@ -179,7 +187,7 @@ final class RequestReducer
         $event = $recorded->event;
         $named = match (true) {
             $event instanceof CommitLinkedEvent, $event instanceof CommitFoundEvent, $event instanceof PullRequestLinkedEvent => $event->requestIds,
-            $event instanceof CommitUnlinkedEvent => [$event->requestId],
+            $event instanceof CommitUnlinkedEvent, $event instanceof PullRequestUnlinkedEvent => [$event->requestId],
             default => [$recorded->requestId],
         };
 

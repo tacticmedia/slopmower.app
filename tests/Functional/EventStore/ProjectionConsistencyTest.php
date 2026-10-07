@@ -80,7 +80,7 @@ final class ProjectionConsistencyTest extends KernelTestCase
 
     /**
      * Opened with requireApproval. Claim, a rejected and an approved proposal, links (available, pending and unlinked,
-     * pending and found), a pull request link, ready, verify, reopen, and the plan waived.
+     * pending and found), pull request links (linked and unlinked, linked), ready, verify, reopen, and the plan waived.
      */
     private static function fixedRequest(ReviewId $reviewId): RequestId
     {
@@ -106,7 +106,9 @@ final class ProjectionConsistencyTest extends KernelTestCase
         self::executor()->execute($reviewId, Actor::system(), static fn (): array => [
             new DecidedEvent(new CommitFoundEvent($foundCommit, [$requestId], 'Extract TaxRounding', new \DateTimeImmutable('2026-09-29T07:50:00Z'))),
         ]);
+        $commands->linkPullRequest(RequestScenario::LINKED_PULL_REQUEST, [$requestId], 'Wrong pull request.', $agent);
         $commands->linkPullRequest(RequestScenario::PULL_REQUEST, [$requestId], 'Opened for review.', $agent);
+        $commands->unlinkPullRequest($requestId, RequestScenario::LINKED_PULL_REQUEST, $agent);
         $commands->markReadyForReview(new MarkReadyForReview($requestId, 'Extracted TaxRounding.'), $agent);
         $commands->verify(new Verify($requestId), RequestScenario::user());
         $commands->reopen(new Reopen($requestId, 'Also cover the shipping totals.'), RequestScenario::user());

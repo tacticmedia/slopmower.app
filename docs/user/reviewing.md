@@ -91,7 +91,7 @@ A linked commit does not finish a request. The agent marks the request **Ready f
 
 ## Pull requests
 
-When the agent opened a pull request for its work, it links the pull request to the requests that it covers. The header of the request lists its pull requests, and the conversation shows each link. Click a pull request to open it in a new tab.
+When the agent opened a pull request for its work, it links the pull request to the requests that it covers. The header of the request lists its pull requests, and the conversation shows each link. Click a pull request to open it in a new tab. The agent can remove a link that it made by mistake. The conversation shows the removal too.
 
 A pull request link does not change the status, and the request does not wait for you because of it. Holistic Review stores the address only. It does not read the pull request from GitHub. The agent opens a pull request only when you or the instructions of your repository ask for it.
 

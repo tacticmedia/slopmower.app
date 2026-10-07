@@ -18,6 +18,7 @@ enum EventType: string
     case CommitUnlinked = 'commit.unlinked';
     case CommitFound = 'commit.found';
     case PullRequestLinked = 'pull_request.linked';
+    case PullRequestUnlinked = 'pull_request.unlinked';
     case RequestReadyForReview = 'request.ready_for_review';
     case RequestWontDo = 'request.wont_do';
     case RequestVerified = 'request.verified';
@@ -45,6 +46,7 @@ enum EventType: string
             self::CommitUnlinked => CommitUnlinkedEvent::class,
             self::CommitFound => CommitFoundEvent::class,
             self::PullRequestLinked => PullRequestLinkedEvent::class,
+            self::PullRequestUnlinked => PullRequestUnlinkedEvent::class,
             self::RequestReadyForReview => RequestReadyForReviewEvent::class,
             self::RequestWontDo => RequestWontDoEvent::class,
             self::RequestVerified => RequestVerifiedEvent::class,

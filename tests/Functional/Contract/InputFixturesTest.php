@@ -59,8 +59,8 @@ final class InputFixturesTest extends WebTestCase
 
     /**
      * Per fixture: its schema, the endpoint, the success status and schema, whether an agent token calls, the fixture
-     * requests that the agent claims first, whether a draft must exist, and whether the agent proposes on the first
-     * request.
+     * requests that the agent claims first, whether a draft must exist, whether the agent proposes on the first
+     * request, and whether the agent links the fixture URL to the first request.
      */
     private const array CASES = [
         'inputs.approve-proposal.json' => ['schema' => 'inputs.schema.json#/$defs/ApproveProposalInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/approve-proposal', 'status' => 200, 'response' => self::RESULT, 'claimed' => [self::FIXTURE_REQUEST_ID], 'proposed' => true],
@@ -85,13 +85,14 @@ final class InputFixturesTest extends WebTestCase
         'inputs.release.json' => ['schema' => 'inputs.schema.json#/$defs/OptionalNoteInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/release', 'status' => 200, 'response' => self::RESULT, 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID]],
         'inputs.start-review.json' => ['schema' => 'inputs.schema.json#/$defs/StartReviewInput', 'method' => 'POST', 'path' => '/api/v1/repositories/{repositoryId}/reviews', 'status' => 201, 'response' => 'review.schema.json'],
         'inputs.submit-drafts.json' => ['schema' => 'inputs.schema.json#/$defs/SubmitDraftsInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/drafts/submit', 'status' => 201, 'response' => 'batch-submission.schema.json', 'draft' => true],
+        'inputs.unlink-pull-request.json' => ['schema' => 'inputs.schema.json#/$defs/UnlinkPullRequestInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/unlink-pull-request', 'status' => 200, 'response' => self::RESULT, 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID], 'linked' => true],
         'inputs.update-draft.json' => ['schema' => 'inputs.schema.json#/$defs/UpdateDraftInput', 'method' => 'PATCH', 'path' => '/api/v1/drafts/{draftId}', 'status' => 200, 'response' => 'draft.schema.json', 'draft' => true],
         'inputs.viewed-file.json' => ['schema' => 'inputs.schema.json#/$defs/ViewedFileInput', 'method' => 'PUT', 'path' => '/api/v1/reviews/{reviewId}/viewed-files', 'status' => 200, 'response' => 'lists.schema.json#/$defs/ViewedFiles'],
         'inputs.wont-do.json' => ['schema' => 'inputs.schema.json#/$defs/WontDoInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/wont-do', 'status' => 200, 'response' => self::RESULT],
     ];
 
     /**
-     * @param array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true} $case
+     * @param array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true, linked?: true} $case
      */
     #[TestDox('Every request body fixture of docs/specs is accepted by its endpoint')]
     #[DataProvider('fixtures')]
@@ -132,6 +133,10 @@ final class InputFixturesTest extends WebTestCase
         array_walk_recursive($body, static function (mixed &$value) use ($ids): void {
             $value = \is_string($value) ? ($ids[$value] ?? $value) : $value;
         });
+
+        if (isset($case['linked'])) {
+            self::agentRequest($client, $secret, 'POST', '/api/v1/pull-request-links', ['url' => $body['url'], 'requestIds' => [$ids[self::FIXTURE_REQUEST_ID]]], schema: 'link-pull-request-result.schema.json');
+        }
         $uri = strtr($case['path'], [
             '{reviewId}' => $reviewId,
             '{repositoryId}' => $repositoryId,
@@ -146,7 +151,7 @@ final class InputFixturesTest extends WebTestCase
     }
 
     /**
-     * @return iterable<string, array{string, array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true}}>
+     * @return iterable<string, array{string, array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true, linked?: true}}>
      */
     public static function fixtures(): iterable
     {

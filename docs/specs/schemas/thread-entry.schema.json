@@ -81,7 +81,7 @@
           "type": "null"
         }
       ],
-      "description": "pull_request.linked only."
+      "description": "pull_request.linked and pull_request.unlinked."
     },
     "statusAfter": {
       "$ref": "common.schema.json#/$defs/RequestStatus"

@@ -35,11 +35,11 @@ final readonly class RecordedEvent
     }
 
     /**
-     * `Event.requestId` of event.schema.json: set for request events and commit.unlinked.
+     * `Event.requestId` of event.schema.json: set for request events, commit.unlinked, and pull_request.unlinked.
      */
     public function subjectRequestId(): ?RequestId
     {
-        return $this->event instanceof CommitUnlinkedEvent ? $this->event->requestId : $this->requestId;
+        return $this->event instanceof CommitUnlinkedEvent || $this->event instanceof PullRequestUnlinkedEvent ? $this->event->requestId : $this->requestId;
     }
 
     /**
@@ -53,7 +53,7 @@ final readonly class RecordedEvent
 
         return match (true) {
             $event instanceof CommitLinkedEvent, $event instanceof CommitFoundEvent, $event instanceof PullRequestLinkedEvent, $event instanceof BatchSubmittedEvent => $event->requestIds,
-            $event instanceof CommitUnlinkedEvent => [$event->requestId],
+            $event instanceof CommitUnlinkedEvent, $event instanceof PullRequestUnlinkedEvent => [$event->requestId],
             null !== $this->requestId => [$this->requestId],
             default => [],
         };

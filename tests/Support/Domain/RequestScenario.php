@@ -13,6 +13,7 @@ use App\Domain\Event\CommitLinkedEvent;
 use App\Domain\Event\CommitUnlinkedEvent;
 use App\Domain\Event\DecidedEvent;
 use App\Domain\Event\PullRequestLinkedEvent;
+use App\Domain\Event\PullRequestUnlinkedEvent;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Git\BlobSha;
 use App\Domain\Git\CommitInfo;
@@ -40,6 +41,7 @@ use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\RequestCommand;
 use App\Domain\Request\Command\SetPlanRequirement;
 use App\Domain\Request\Command\UnlinkCommit;
+use App\Domain\Request\Command\UnlinkPullRequest;
 use App\Domain\Request\Command\Verify;
 use App\Domain\Request\RequestDecider;
 use App\Domain\Request\RequestReducer;
@@ -68,6 +70,7 @@ final class RequestScenario
     public const string REASON = 'The current rounding is required by the tax office.';
     public const string REPOSITORY = 'acme/billing';
     public const string PULL_REQUEST = 'https://github.com/acme/billing/pull/42';
+    public const string LINKED_PULL_REQUEST = 'https://github.com/acme/billing/pull/41';
     private const string USER_ID = '01K6AZZ9Y8X7W6V5T4S3R2Q1P0';
     private const string REVIEW_COMMIT = '79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091';
     private const string PLAN = 'Extract `TaxRounding` and call it from `total()` and `tax()`.';
@@ -91,7 +94,8 @@ final class RequestScenario
     }
 
     /**
-     * A request in one of {@see self::STATES}. The claiming agent did the agent steps. With $linked, the request has one available link.
+     * A request in one of {@see self::STATES}. The claiming agent did the agent steps. With $linked, the request has one available
+     * commit link and one pull request link.
      */
     public static function inState(string $state, bool $linked = true): self
     {
@@ -109,6 +113,7 @@ final class RequestScenario
 
         if ($linked) {
             $scenario->run(new LinkCommits(CommitSha::fromString(self::LINKED_COMMIT), [$id]), $agent, [self::commit(self::LINKED_COMMIT)]);
+            $scenario->run(new LinkPullRequest(self::LINKED_PULL_REQUEST, [$id], RepositoryName::github(self::REPOSITORY)), $agent);
         }
 
         match ($state) {
@@ -199,6 +204,7 @@ final class RequestScenario
             'link_commits' => new LinkCommits(CommitSha::fromString(self::OTHER_COMMIT), [$id]),
             'unlink_commit' => new UnlinkCommit($id, CommitSha::fromString(self::LINKED_COMMIT)),
             'link_pull_request' => new LinkPullRequest(self::PULL_REQUEST, [$id], RepositoryName::github(self::REPOSITORY)),
+            'unlink_pull_request' => new UnlinkPullRequest($id, self::LINKED_PULL_REQUEST, RepositoryName::github(self::REPOSITORY)),
             'mark_ready_for_review' => new MarkReadyForReview($id, 'Extracted TaxRounding.'),
             'mark_wont_do' => new MarkWontDo($id, self::REASON),
             'verify' => new Verify($id),
@@ -280,7 +286,7 @@ final class RequestScenario
         $event = $decided->event;
         $requestIds = match (true) {
             $event instanceof CommitLinkedEvent, $event instanceof CommitFoundEvent, $event instanceof PullRequestLinkedEvent => $event->requestIds,
-            $event instanceof CommitUnlinkedEvent => [$event->requestId],
+            $event instanceof CommitUnlinkedEvent, $event instanceof PullRequestUnlinkedEvent => [$event->requestId],
             default => null === $decided->requestId ? [] : [$decided->requestId],
         };
 

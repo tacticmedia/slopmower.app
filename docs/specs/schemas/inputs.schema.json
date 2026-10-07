@@ -267,6 +267,15 @@
         }
       }
     },
+    "UnlinkPullRequestInput": {
+      "type": "object",
+      "required": ["url"],
+      "properties": {
+        "url": {
+          "$ref": "common.schema.json#/$defs/PullRequestUrl"
+        }
+      }
+    },
     "CreateDraftInput": {
       "type": "object",
       "required": ["kind", "body"],

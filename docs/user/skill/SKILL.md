@@ -31,6 +31,7 @@ server.
 | `link_commits` | `commitSha`, `requestIds`, `note?` | Record that a commit implements requests that you hold |
 | `unlink_commit` | `commitSha`, `requestId` | Remove a link that you made by mistake |
 | `link_pull_request` | `url`, `requestIds`, `note?` | Record that a pull request implements requests that you hold, or that are ready for review |
+| `unlink_pull_request` | `url`, `requestId` | Remove a pull request link that you made by mistake |
 | `mark_ready_for_review` | `id`, `note` | Finish a request that you hold |
 | `mark_wont_do` | `id`, `reason` | Decline a request, with evidence |
 | `propose_solution` | `id`, `plan`, `diff?` | Propose a plan, with a diff for a straightforward change, before you link commits |

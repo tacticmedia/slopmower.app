@@ -163,6 +163,7 @@ final class McpRestParityTest extends WebTestCase
             [$doneByMcp, $doneByRest, 'reply_to_request', ['id' => $doneByMcp, 'body' => 'Rounding too?', 'question' => true], 'POST', 'comments', ['body' => 'Rounding too?', 'question' => true]],
             [$doneByMcp, $doneByRest, 'link_commits', ['commitSha' => $commit, 'requestIds' => [$doneByMcp], 'note' => $note], 'POST', '/api/v1/commit-links', ['commitSha' => $commit, 'requestIds' => [$doneByRest], 'note' => $note]],
             [$doneByMcp, $doneByRest, 'link_pull_request', ['url' => self::PULL_REQUEST, 'requestIds' => [$doneByMcp], 'note' => $note], 'POST', '/api/v1/pull-request-links', ['url' => self::PULL_REQUEST, 'requestIds' => [$doneByRest], 'note' => $note]],
+            [$doneByMcp, $doneByRest, 'unlink_pull_request', ['url' => self::PULL_REQUEST, 'requestId' => $doneByMcp], 'POST', 'unlink-pull-request', ['url' => self::PULL_REQUEST]],
             [$doneByMcp, $doneByRest, 'unlink_commit', ['commitSha' => $commit, 'requestId' => $doneByMcp], 'DELETE', "commits/{$commit}", null],
             [$doneByMcp, $doneByRest, 'mark_ready_for_review', ['id' => $doneByMcp, 'note' => $note], 'POST', 'ready', ['note' => $note]],
             [$releasedByMcp, $releasedByRest, 'claim_request', ['id' => $releasedByMcp], 'POST', 'claim', null],

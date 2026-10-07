@@ -24,4 +24,17 @@ test.describe('PullRequestLink', () => {
 
         await expect(tab).toHaveURL(PULL_REQUEST);
     });
+
+    test('An unlinked pull request leaves the header, and the thread shows the unlink', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        const request = review.seedLines(SMALL_FILE, 9, 12, 'Extract the tax calculation.');
+        review.agentClaims(request.id);
+        review.agentLinksPullRequest(request.id, PULL_REQUEST);
+        review.agentUnlinksPullRequest(request.id, PULL_REQUEST);
+        await openRequest(page, request.id);
+
+        const entry = page.locator(`${DETAIL_THREAD} [data-testid="thread-comment"]`).filter({ hasText: 'unlinked a pull request' });
+        await expect(entry.getByTestId('thread-pull-request')).toHaveAttribute('href', PULL_REQUEST);
+        await expect(page.locator(`${DETAIL} [data-testid="pull-request-list"]`)).toHaveCount(0);
+    });
 });

@@ -30,9 +30,10 @@ use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Q17. The agent claimed two requests of a review of a local repository.
+ * Q17 and Q19. The agent claimed two requests of a review of a local repository.
  */
 final class PullRequestLinkTest extends WebTestCase
 {
@@ -151,6 +152,72 @@ final class PullRequestLinkTest extends WebTestCase
 
         self::assertSame(['requestId' => $open, 'action' => 'link_pull_request', 'status' => 'open'], array_intersect_key($error['details'] ?? [], array_flip(['requestId', 'action', 'status'])));
         self::assertSame([], self::readRequest($this->client, $this->first)['pullRequestUrls']);
+    }
+
+    #[TestDox('Unlink removes the URL from pullRequestUrls and adds the thread entry')]
+    public function testUnlinkRemovesTheUrl(): void
+    {
+        $this->link([$this->first, $this->second]);
+
+        $result = $this->unlink($this->first, self::URL);
+
+        self::assertSame([['pull_request.unlinked', $this->first, [$this->first], self::URL, 'in_progress']], array_map(
+            static fn (array $event): array => [$event['type'], $event['requestId'], $event['requestIds'], $event['pullRequestUrl'], $event['statusAfter']],
+            $result['events'],
+        ));
+        $request = self::readRequest($this->client, $this->first);
+        $entry = array_last($request['thread']);
+        self::assertSame([], $request['pullRequestUrls']);
+        self::assertSame(['pull_request.unlinked', self::URL], [$entry['type'], $entry['pullRequestUrl']]);
+        self::assertSame([self::URL], self::readRequest($this->client, $this->second)['pullRequestUrls']);
+    }
+
+    #[TestDox('Unlinking a URL that is not linked gives 422')]
+    public function testUnlinkOfAnUnknownUrlGivesInvalidInput(): void
+    {
+        $this->link([$this->first]);
+
+        $error = self::assertApiError($this->unlinkRequest($this->first, 'https://github.com/acme/billing/pull/43'), 422, 'invalid_input');
+
+        self::assertSame([['field' => 'url', 'message' => 'Is not linked to the request.']], $error['details']['violations'] ?? null);
+    }
+
+    #[TestDox('On a GitHub repository, a URL in another letter case unlinks the linked pull request')]
+    public function testGitHubUrlInAnotherCaseUnlinks(): void
+    {
+        $requestId = $this->storeGitHubRequest();
+        self::agentRequest($this->client, $this->secret, 'POST', "/api/v1/requests/{$requestId}/claim");
+        $this->link([$requestId]);
+
+        $result = $this->unlink($requestId, 'https://github.com/Acme/Billing/pull/42');
+
+        self::assertSame([self::URL], array_column($result['events'], 'pullRequestUrl'));
+        self::assertSame([], self::readRequest($this->client, $requestId)['pullRequestUrls']);
+    }
+
+    #[TestDox('An open request refuses an unlink and keeps the link')]
+    public function testOpenRequestRefusesAnUnlink(): void
+    {
+        $this->link([$this->first]);
+        self::agentRequest($this->client, $this->secret, 'POST', "/api/v1/requests/{$this->first}/release");
+
+        $error = self::assertApiError($this->unlinkRequest($this->first, self::URL), 409, 'invalid_transition');
+
+        self::assertSame(['requestId' => $this->first, 'action' => 'unlink_pull_request', 'status' => 'open'], array_intersect_key($error['details'] ?? [], array_flip(['requestId', 'action', 'status'])));
+        self::assertSame([self::URL], self::readRequest($this->client, $this->first)['pullRequestUrls']);
+    }
+
+    /**
+     * @return array<string, mixed> The RequestCommandResult
+     */
+    private function unlink(string $requestId, string $url): array
+    {
+        return self::agentRequest($this->client, $this->secret, 'POST', "/api/v1/requests/{$requestId}/unlink-pull-request", ['url' => $url]);
+    }
+
+    private function unlinkRequest(string $requestId, string $url): Response
+    {
+        return self::bearerRequest($this->client, $this->secret, 'POST', "/api/v1/requests/{$requestId}/unlink-pull-request", ['url' => $url]);
     }
 
     /**

@@ -16,7 +16,8 @@ final class AllowedActionsTest extends KernelTestCase
     private const array CALLERS = ['user', 'claiming agent', 'another agent'];
 
     /**
-     * Valid input and available links. A state without links has no valid unlink_commit input, so that action is left out there.
+     * Valid input and available links. A state without links has no valid unlink_commit or unlink_pull_request input, so
+     * those actions are left out there.
      */
     #[TestDox('An action is allowed if and only if decide() throws neither invalid_transition nor review_closed, except a repeated claim by the holder')]
     #[DataProvider('combinations')]
@@ -32,7 +33,7 @@ final class AllowedActionsTest extends KernelTestCase
         $allowedActions = AllowedActions::for($scenario->state(), $scenario->review(), $actor);
 
         foreach (Action::cases() as $action) {
-            if (Action::UnlinkCommit === $action && !$linked) {
+            if (in_array($action, [Action::UnlinkCommit, Action::UnlinkPullRequest], true) && !$linked) {
                 continue;
             }
 
@@ -91,18 +92,18 @@ final class AllowedActionsTest extends KernelTestCase
     {
         $rows = [
             ['open', true, ['reply', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'claim', 'mark_wont_do'], ['reply', 'claim', 'mark_wont_do']],
-            ['in_progress', true, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], ['reply']],
+            ['in_progress', true, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], ['reply']],
             ['in_progress', false, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'release', 'link_commits', 'link_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], ['reply']],
-            ['ready_for_review', true, ['reply', 'verify', 'reopen'], ['reply', 'link_pull_request'], ['reply', 'link_pull_request']],
+            ['ready_for_review', true, ['reply', 'verify', 'reopen'], ['reply', 'link_pull_request', 'unlink_pull_request'], ['reply', 'link_pull_request', 'unlink_pull_request']],
             ['verified', true, ['reply', 'reopen'], ['reply'], ['reply']],
             ['reopened', true, ['reply', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'claim', 'mark_wont_do'], ['reply', 'claim', 'mark_wont_do']],
             ['wont_do by agent', true, ['reply', 'verify', 'reopen'], ['reply'], ['reply']],
             ['wont_do by user', true, ['reply', 'reopen'], ['reply'], ['reply']],
-            ['proposal pending', true, ['reply', 'release', 'mark_wont_do', 'approve_proposal', 'reject_proposal', 'set_plan_requirement'], ['reply', 'release', 'unlink_commit', 'mark_wont_do', 'propose_solution'], ['reply']],
+            ['proposal pending', true, ['reply', 'release', 'mark_wont_do', 'approve_proposal', 'reject_proposal', 'set_plan_requirement'], ['reply', 'release', 'unlink_commit', 'unlink_pull_request', 'mark_wont_do', 'propose_solution'], ['reply']],
             ['proposal pending', false, ['reply', 'release', 'mark_wont_do', 'approve_proposal', 'reject_proposal', 'set_plan_requirement'], ['reply', 'release', 'mark_wont_do', 'propose_solution'], ['reply']],
-            ['proposal rejected', true, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'release', 'unlink_commit', 'mark_wont_do', 'propose_solution'], ['reply']],
-            ['plan required', true, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'release', 'unlink_commit', 'mark_wont_do', 'propose_solution'], ['reply']],
-            ['plan approved', true, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], ['reply']],
+            ['proposal rejected', true, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'release', 'unlink_commit', 'unlink_pull_request', 'mark_wont_do', 'propose_solution'], ['reply']],
+            ['plan required', true, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'release', 'unlink_commit', 'unlink_pull_request', 'mark_wont_do', 'propose_solution'], ['reply']],
+            ['plan approved', true, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], ['reply']],
         ];
 
         foreach ($rows as [$state, $linked, $user, $claimingAgent, $otherAgent]) {

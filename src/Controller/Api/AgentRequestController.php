@@ -8,6 +8,7 @@ use App\Application\Query\RequestQuery;
 use App\Application\RequestCommands;
 use App\Controller\Api\Input\ProposeSolutionInput;
 use App\Controller\Api\Input\RequiredNoteInput;
+use App\Controller\Api\Input\UnlinkPullRequestInput;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Git\CommitSha;
 use App\Domain\Request\Command\Claim;
@@ -25,7 +26,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * Q5, Q8, Q10, and Q14 of docs/specs/rest-api-requests.md section 3: bearer only.
+ * Q5, Q8, Q10, Q14, and Q19 of docs/specs/rest-api-requests.md section 3: bearer only.
  */
 #[Route('/api/v1/requests/{requestId}', name: 'api_request_')]
 #[IsGranted(AgentUser::ROLE, message: CurrentActor::BEARER_ONLY)]
@@ -68,6 +69,16 @@ final class AgentRequestController extends AbstractController
         \assert(null !== $input->plan);
 
         return $this->result($request, $this->commands->propose(new ProposeSolution($request->getId(), $input->plan, $input->diff), $this->currentActor->get()));
+    }
+
+    #[Route('/unlink-pull-request', name: 'unlink_pull_request', methods: ['POST'])]
+    public function unlinkPullRequest(
+        #[MapEntity(id: 'requestId')] ChangeRequest $request,
+        #[MapRequestPayload(acceptFormat: 'json')] UnlinkPullRequestInput $input,
+    ): JsonResponse {
+        \assert(null !== $input->url);
+
+        return $this->result($request, $this->commands->unlinkPullRequest($request->getId(), $input->url, $this->currentActor->get()));
     }
 
     /**

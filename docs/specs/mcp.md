@@ -48,7 +48,7 @@ Holistic Review stores change requests that the user wrote while reviewing this 
 3. get_updates(review) without a cursor returns what waits for you. Keep the returned cursor and pass it in the next call; if hasMore is true, call again at once.
 4. For each request with awaiting "agent", reopened ones first: get_request, then reply_to_request (question: true when you need an answer, then move on), or claim_request before you edit code.
 5. When requireApproval is true, or the request is unclear or large, propose_solution after the claim and take the next request. The decision comes back through get_updates. Link no commit before proposal.state is approved; on "rejected", read the note and propose again.
-6. Commit per request, then link_commits with the full SHA and every request that the commit covers. GitHub repositories: push before mark_ready_for_review. Local repositories: committing is enough. If you opened a pull request for the work, link_pull_request with its URL and every request that it covers.
+6. Commit per request, then link_commits with the full SHA and every request that the commit covers. GitHub repositories: push before mark_ready_for_review. Local repositories: committing is enough. If you opened a pull request for the work, link_pull_request with its URL and every request that it covers; unlink_pull_request removes a link made by mistake.
 7. Finish with mark_ready_for_review (what changed, how you tested it), or mark_wont_do with evidence the user can check, or release_request if you stop.
 
 Never verify, reopen, create requests, or decide on proposals. Errors are isError results whose text is {"error":{"code","message","details"}}. On invalid_transition call get_request and read allowedActions and proposal. On review_closed stop working on that review.
@@ -90,6 +90,7 @@ The `inputSchema` blocks below are what the SDK 0.8.1 `SchemaGenerator` generate
 | [`mark_wont_do`](#412-mark_wont_do) | Mark won't do | false | false | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) | [Q11](rest-api-requests.md#q11-mark-wont-do) |
 | [`propose_solution`](#413-propose_solution) | Propose solution | false | false | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) | [Q14](rest-api-requests.md#q14-propose-a-solution) |
 | [`link_pull_request`](#414-link_pull_request) | Link pull request | false | true | [`link-pull-request-result.schema.json`](schemas/link-pull-request-result.schema.json) | [Q17](rest-api-requests.md#q17-link-a-pull-request-to-requests) |
+| [`unlink_pull_request`](#415-unlink_pull_request) | Unlink pull request | false | false | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) | [Q19](rest-api-requests.md#q19-unlink-a-pull-request) |
 
 Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 
@@ -540,6 +541,36 @@ public function linkPullRequest(
 - **Errors:** `not_found`, `review_closed`, `invalid_transition`, `invalid_input` for requests from several reviews or a pull request of another GitHub repository.
 - **Example:** arguments as in [fixtures/inputs.link-pull-request.json](fixtures/inputs.link-pull-request.json) give [fixtures/link-pull-request-result.linked.json](fixtures/link-pull-request-result.linked.json).
 
+### 4.15 `unlink_pull_request`
+
+- **Title:** `Unlink pull request`
+- **Description:**
+
+```text
+Remove a pull request link that you made by mistake from a request: in_progress and held by you, or ready_for_review.
+```
+
+```php
+/**
+ * @param string $url       Pull request URL
+ * @param string $requestId Request ID
+ */
+#[McpTool(name: 'unlink_pull_request', title: 'Unlink pull request', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false), outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT)]
+public function unlinkPullRequest(#[Schema(pattern: self::PULL_REQUEST_URL, maxLength: 2048)] string $url, #[Schema(pattern: self::ULID)] string $requestId): array
+```
+
+```json
+{"type":"object","properties":{
+ "url":{"type":"string","description":"Pull request URL","maxLength":2048,"pattern":"^https://\\S+$"},
+ "requestId":{"type":"string","description":"Request ID","pattern":"^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"}},
+ "required":["url","requestId"]}
+```
+
+- **Output:** [`request-command-result.schema.json`](schemas/request-command-result.schema.json).
+- **Behaviour:** REST Q19. The unlink changes neither the status nor `awaiting`.
+- **Errors:** `not_found`, `review_closed`, `invalid_transition`, `invalid_input` when the URL breaks the rule of `link_pull_request` or is not linked to the request.
+- **Example:** arguments `{"url":"https://github.com/acme/billing/pull/42","requestId":"01K6B3P2A9QRSTVWXYZ0123457"}`. The result has the shape of [fixtures/request-command-result.claim.json](fixtures/request-command-result.claim.json) with one `pull_request.unlinked` event.
+
 ## 5. Error codes in MCP
 
 | Code | Delivered as | Agent action |
@@ -573,6 +604,7 @@ public function linkPullRequest(
 | `mark_wont_do` | `POST /api/v1/requests/{id}/wont-do` |
 | `propose_solution` | `POST /api/v1/requests/{id}/propose` |
 | `link_pull_request` | `POST /api/v1/pull-request-links` |
+| `unlink_pull_request` | `POST /api/v1/requests/{id}/unlink-pull-request` |
 
 `McpRestParityTest` compares the MCP and REST payloads of every tool: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, and every write tool.
 

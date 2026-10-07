@@ -14,6 +14,7 @@ This file continues [rest-api.md](rest-api.md). That file has the conventions, t
 | link | [Q7](#q7-link-a-commit-to-requests) | `link_commits` | the claiming agent, for **every** named request | `in_progress` | unchanged | one `commit.linked` that names the newly linked requests | Pairs that are already linked are skipped. No event when nothing is new. |
 | unlink | [Q8](#q8-unlink-a-commit) | `unlink_commit` | the claiming agent | `in_progress` | unchanged | `commit.unlinked` | 422 `invalid_input` when not linked |
 | link pull request | [Q17](#q17-link-a-pull-request-to-requests) | `link_pull_request` | an agent, for **every** named request: the claiming agent while `in_progress`, any agent while `ready_for_review` | `in_progress`, `ready_for_review` | unchanged | one `pull_request.linked` that names the newly linked requests | Pairs that are already linked are skipped. No event when nothing is new. |
+| unlink pull request | [Q19](#q19-unlink-a-pull-request) | `unlink_pull_request` | an agent: the claiming agent while `in_progress`, any agent while `ready_for_review` | `in_progress`, `ready_for_review` | unchanged | `pull_request.unlinked` | 422 `invalid_input` when not linked |
 | ready | [Q10](#q10-mark-ready-for-review) | `mark_ready_for_review` | the claiming agent | `in_progress` | `ready_for_review` | any `commit.found` first, then `request.ready_for_review` | 409 |
 | won't do | [Q11](#q11-mark-wont-do) | `mark_wont_do` | agent, which must be the claiming agent when `in_progress`, or user | `open`, `reopened`, `in_progress` | `wont_do` | `request.wont_do` | 409 |
 | verify | [Q12](#q12-verify-a-request) | none | user | `ready_for_review`; `wont_do` set by an agent | `verified` | `request.verified` | 409 |
@@ -57,6 +58,7 @@ Proposals: the claiming agent proposes a solution in the thread, a Markdown plan
 | `link_commits` | `in_progress`, claimed by the caller, and the proposal gate is open | never |
 | `unlink_commit` | `in_progress`, claimed by the caller, and at least one link exists | never |
 | `link_pull_request` | `in_progress`, claimed by the caller, and the proposal gate is open, or `ready_for_review`. `request.ready_for_review` clears the claim, so any agent may link then. | never |
+| `unlink_pull_request` | `in_progress` and claimed by the caller, or `ready_for_review`, and at least one pull request is linked | never |
 | `mark_ready_for_review` | `in_progress`, claimed by the caller, and the proposal gate is open | never |
 | `mark_wont_do` | `open` or `reopened`, or `in_progress` claimed by the caller | `open`, `reopened`, `in_progress` |
 | `verify` | never | `ready_for_review`, or `wont_do` whose last `request.wont_do` actor is an agent |
@@ -406,7 +408,7 @@ The proposal replaces the current one, also an approved one. The request then wa
   - 409 `review_closed`;
   - 409 `invalid_transition`: the first request that is neither `in_progress`, claimed by the caller, with the proposal gate open, nor `ready_for_review`. Nothing is written.
 
-The server stores the URL only. It never reads the pull request from GitHub. A link never changes the status, and it does not hand the turn to the user, because `pull_request.linked` does not count as an agent event for the `awaiting` rules. A request lists its pull requests in `Request.pullRequestUrls`. There is no unlink.
+The server stores the URL only. It never reads the pull request from GitHub. A link never changes the status, and it does not hand the turn to the user, because `pull_request.linked` does not count as an agent event for the `awaiting` rules. A request lists its pull requests in `Request.pullRequestUrls`. [Q19](#q19-unlink-a-pull-request) removes a link.
 
 Example body, [fixtures/inputs.link-pull-request.json](fixtures/inputs.link-pull-request.json):
 
@@ -423,6 +425,16 @@ Example body, [fixtures/inputs.link-pull-request.json](fixtures/inputs.link-pull
 - **Errors:** 409 `invalid_transition`: the request is `ready_for_review`, `wont_do`, or `verified`; 409 `review_closed`.
 
 The proposal gate uses the new value at once. On an `in_progress` request without an approved proposal, `true` refuses `link_commits`, `mark_ready_for_review`, and `link_pull_request` until the user approves a proposal. `false` opens the gate when `proposal` is null. A pending or rejected proposal still blocks. The two events are no user message for `awaiting` rule 2, so they never hand the turn to the agent. The agent reads `requireApproval` in `get_request`, and the message of a refused command says that the request asks for a plan first. No MCP tool changes the value.
+
+### Q19 Unlink a pull request
+
+- **Request:** `POST /api/v1/requests/{requestId}/unlink-pull-request`
+- **Authentication:** B
+- **Body:** [`UnlinkPullRequestInput`](schemas/inputs.schema.json), `{url}`. A URL does not fit a path segment, so the URL is in the body, unlike Q8. Example: [fixtures/inputs.unlink-pull-request.json](fixtures/inputs.unlink-pull-request.json).
+- **Success:** 200 `RequestCommandResult` with one `pull_request.unlinked` event.
+- **Errors:** 422 `invalid_input`: a URL that breaks the rule of Q17, or a URL that is not linked to the request; 409 `invalid_transition`, 409 `review_closed`.
+
+`url` follows the rule of [Q17](#q17-link-a-pull-request-to-requests). For a GitHub repository the server compares the stored form, so a URL in another letter case unlinks the link. The callers and statuses are those of Q17 without the proposal gate. An unlink changes neither the status nor `awaiting`.
 
 ## 4. Updates
 

@@ -10,10 +10,11 @@ use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
- * Architecture section 6 and docs/specs/rest-api-requests.md section 1. Each state has one available link, and the claiming agent
- * holds the in_progress request. Inputs are valid: link_commits names a new commit, unlink_commit the linked one,
- * link_pull_request a pull request of the review's GitHub repository, a proposal decision the current proposal,
- * or a new ID when none is pending, and set_plan_requirement the other value.
+ * Architecture section 6 and docs/specs/rest-api-requests.md section 1. Each state has one available commit link and one
+ * pull request link, and the claiming agent holds the in_progress request. Inputs are valid: link_commits names a new
+ * commit, unlink_commit the linked one, link_pull_request a new pull request of the review's GitHub repository,
+ * unlink_pull_request the linked one, a proposal decision the current proposal, or a new ID when none is pending, and
+ * set_plan_requirement the other value.
  */
 final class TransitionMatrixTest extends KernelTestCase
 {
@@ -24,6 +25,7 @@ final class TransitionMatrixTest extends KernelTestCase
     private const string LINKED = 'commit.linked';
     private const string UNLINKED = 'commit.unlinked';
     private const string PULL_REQUEST_LINKED = 'pull_request.linked';
+    private const string PULL_REQUEST_UNLINKED = 'pull_request.unlinked';
     private const string READY = 'request.ready_for_review';
     private const string WONT_DO = 'request.wont_do';
     private const string VERIFIED = 'request.verified';
@@ -68,6 +70,11 @@ final class TransitionMatrixTest extends KernelTestCase
             'user' => [self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T],
             'claiming agent' => [self::T, self::PULL_REQUEST_LINKED, self::PULL_REQUEST_LINKED, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::PULL_REQUEST_LINKED],
             'another agent' => [self::T, self::T, self::PULL_REQUEST_LINKED, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T],
+        ],
+        'unlink_pull_request' => [
+            'user' => [self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T],
+            'claiming agent' => [self::T, self::PULL_REQUEST_UNLINKED, self::PULL_REQUEST_UNLINKED, self::T, self::T, self::T, self::T, self::PULL_REQUEST_UNLINKED, self::PULL_REQUEST_UNLINKED, self::PULL_REQUEST_UNLINKED, self::PULL_REQUEST_UNLINKED],
+            'another agent' => [self::T, self::T, self::PULL_REQUEST_UNLINKED, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T],
         ],
         'mark_ready_for_review' => [
             'user' => [self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T],

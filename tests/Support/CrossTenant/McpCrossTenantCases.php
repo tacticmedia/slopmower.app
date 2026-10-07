@@ -30,6 +30,7 @@ final class McpCrossTenantCases
             'link_commits' => [['commitSha' => self::COMMIT_SHA, 'requestIds' => ['{requestId}']]],
             'unlink_commit' => [['commitSha' => self::COMMIT_SHA, 'requestId' => '{requestId}']],
             'link_pull_request' => [['url' => 'https://github.com/acme/billing/pull/42', 'requestIds' => ['{requestId}']]],
+            'unlink_pull_request' => [['url' => 'https://github.com/acme/billing/pull/42', 'requestId' => '{requestId}']],
             'mark_ready_for_review' => [['id' => '{requestId}', 'note' => 'Done.']],
             'mark_wont_do' => [['id' => '{requestId}', 'reason' => 'The totals already use integer cents.']],
             'propose_solution' => [['id' => '{requestId}', 'plan' => 'Extract `TaxRounding`.']],

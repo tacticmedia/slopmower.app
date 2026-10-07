@@ -12,6 +12,7 @@ use App\Domain\Event\CommitLinkedEvent;
 use App\Domain\Event\CommitUnlinkedEvent;
 use App\Domain\Event\DecidedEvent;
 use App\Domain\Event\PullRequestLinkedEvent;
+use App\Domain\Event\PullRequestUnlinkedEvent;
 use App\Domain\Event\RequestClaimedEvent;
 use App\Domain\Event\RequestCommentedEvent;
 use App\Domain\Event\RequestOpenedEvent;
@@ -47,6 +48,7 @@ use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\RequestCommand;
 use App\Domain\Request\Command\SetPlanRequirement;
 use App\Domain\Request\Command\UnlinkCommit;
+use App\Domain\Request\Command\UnlinkPullRequest;
 use App\Domain\Request\Command\Verify;
 use App\Domain\Review\ReviewSnapshot;
 
@@ -123,6 +125,7 @@ final class RequestDecider
             $command instanceof Claim => new RequestClaimedEvent(),
             $command instanceof Release => new RequestReleasedEvent($command->note),
             $command instanceof UnlinkCommit => new CommitUnlinkedEvent($command->commitSha, $state->id),
+            $command instanceof UnlinkPullRequest => new PullRequestUnlinkedEvent(PullRequestUrl::forRepository($command->url, $command->repository), $state->id),
             $command instanceof MarkReadyForReview => new RequestReadyForReviewEvent($command->note),
             $command instanceof MarkWontDo => new RequestWontDoEvent(WontDoReason::fromString($command->reason)),
             $command instanceof Verify => new RequestVerifiedEvent($command->note),
@@ -195,6 +198,7 @@ final class RequestDecider
             $command instanceof UnlinkCommit => null === $byId[$command->requestId->toString()]->link($command->commitSha)
                 ? [['field' => 'commitSha', 'message' => 'Is not linked to the request.']]
                 : [],
+            $command instanceof UnlinkPullRequest => self::unlinkPullRequestViolations($command, $byId[$command->requestId->toString()]),
             $command instanceof MarkReadyForReview, $command instanceof Reopen => self::textViolations('note', $command->note),
             $command instanceof MarkWontDo => self::reasonViolations($command->reason),
             $command instanceof ProposeSolution => [...self::textViolations('plan', $command->plan), ...self::diffViolations($command->diff)],
@@ -262,6 +266,20 @@ final class RequestDecider
     }
 
     /**
+     * @return list<array{field: string, message: string}>
+     */
+    private static function unlinkPullRequestViolations(UnlinkPullRequest $command, RequestState $state): array
+    {
+        try {
+            $url = PullRequestUrl::forRepository($command->url, $command->repository);
+        } catch (InvalidInput $error) {
+            return $error->details()['violations'];
+        }
+
+        return $state->hasPullRequest($url) ? [] : [['field' => 'url', 'message' => 'Is not linked to the request.']];
+    }
+
+    /**
      * A decision on a proposal that a newer one replaced. Without a pending proposal, {@see AllowedActions} refuses.
      *
      * @return list<array{field: string, message: string}>
@@ -307,6 +325,7 @@ final class RequestDecider
             $command instanceof LinkCommits => Action::LinkCommits,
             $command instanceof UnlinkCommit => Action::UnlinkCommit,
             $command instanceof LinkPullRequest => Action::LinkPullRequest,
+            $command instanceof UnlinkPullRequest => Action::UnlinkPullRequest,
             $command instanceof MarkReadyForReview => Action::MarkReadyForReview,
             $command instanceof MarkWontDo => Action::MarkWontDo,
             $command instanceof Verify => Action::Verify,

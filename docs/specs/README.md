@@ -9,7 +9,7 @@ This directory is the v1 contract of Holistic Review: the REST API, the MCP serv
 | [README.md](README.md) | Conventions, authentication, errors, pagination, caching, repository sources, versioning, schema and fixture index |
 | [rest-api.md](rest-api.md) | REST endpoint index, account, repositories, reviews and code |
 | [rest-api-requests.md](rest-api-requests.md) | REST requests, updates, drafts, API tokens, and the routes outside `/api/v1` |
-| [mcp.md](mcp.md) | MCP endpoint, server instructions, the 14 tools, error mapping, parity with REST |
+| [mcp.md](mcp.md) | MCP endpoint, server instructions, the 15 tools, error mapping, parity with REST |
 | [webhooks-and-live-updates.md](webhooks-and-live-updates.md) | GitHub webhooks, fetch triggers and post-fetch steps, Mercure live updates |
 | [schemas/](schemas/) | 31 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
 | [fixtures/](fixtures/) | One realistic example per response shape, error code, live-update type, and request body. See [section 11](#11-fixtures). |
@@ -178,6 +178,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Pull request links, decision D50: the endpoint Q17 and the tool `link_pull_request`, the `Action` value `link_pull_request`, the `EventType` and `ThreadEntryType` value `pull_request.linked`, `Request.pullRequestUrls`, and `pullRequestUrl` in `ThreadEntry` and `Event`. All are additive. On an `in_progress` request, the gate of D49 applies to `link_pull_request` as to `link_commits`.
     - Q9 file order, decision D51: `files` of `CommitDiff` lists the files that touch the anchor first, then the other files in the order of `git diff-tree`. It is the order that the server returns, so no client sees a change.
     - Plan requirement changes, decision D52: the endpoint Q18, the `Action` value `set_plan_requirement`, the `EventType` and `ThreadEntryType` values `request.plan_required` and `request.plan_waived`, and the input `PlanRequirementInput`. All are additive. `requireApproval` changes after the request opens, and the gate of D49 uses its current value.
+    - Pull request unlinks, decision D53: the endpoint Q19 and the tool `unlink_pull_request`, the `Action` value `unlink_pull_request`, the `EventType` and `ThreadEntryType` value `pull_request.unlinked`, and `UnlinkPullRequestInput`. All are additive.
     - Quick open ranking, decision D54: V16 also matches a name by word starts, for example `CE` for `CommandExecutor`, ranks word starts between a name prefix and a name substring, and orders by the length of the name before the length of the path. The wire format does not change.
 
 ## 9. Contract tests
@@ -279,6 +280,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.release.json](fixtures/inputs.release.json) | `inputs.schema.json#/$defs/OptionalNoteInput` | Q6, Q12 |
 | [inputs.start-review.json](fixtures/inputs.start-review.json) | `inputs.schema.json#/$defs/StartReviewInput` | V1 |
 | [inputs.submit-drafts.json](fixtures/inputs.submit-drafts.json) | `inputs.schema.json#/$defs/SubmitDraftsInput` | D5 |
+| [inputs.unlink-pull-request.json](fixtures/inputs.unlink-pull-request.json) | `inputs.schema.json#/$defs/UnlinkPullRequestInput` | Q19 |
 | [inputs.update-draft.json](fixtures/inputs.update-draft.json) | `inputs.schema.json#/$defs/UpdateDraftInput` | D3 |
 | [inputs.viewed-file.json](fixtures/inputs.viewed-file.json) | `inputs.schema.json#/$defs/ViewedFileInput` | V12 |
 | [inputs.wont-do.json](fixtures/inputs.wont-do.json) | `inputs.schema.json#/$defs/WontDoInput` | Q11 |

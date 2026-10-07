@@ -20,6 +20,7 @@ const MarkdownBody = lazy(() => import('./MarkdownBody').then(({ MarkdownBody })
 const CAPTIONS: Record<string, string> = {
     'commit.linked': 'linked a commit',
     'pull_request.linked': 'linked a pull request',
+    'pull_request.unlinked': 'unlinked a pull request',
     'request.released': 'unassigned this',
     'request.ready_for_review': 'marked this ready for review',
     'request.wont_do': "closed this as won't do",

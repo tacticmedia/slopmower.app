@@ -43,6 +43,7 @@ final class AllowedActions
             Action::LinkCommits, Action::MarkReadyForReview => $holds && $proposalGateOpen,
             Action::UnlinkCommit => $holds && [] !== $state->links,
             Action::LinkPullRequest => $isAgent && (($holds && $proposalGateOpen) || RequestStatus::ReadyForReview === $status),
+            Action::UnlinkPullRequest => $isAgent && ($holds || RequestStatus::ReadyForReview === $status) && [] !== $state->pullRequestUrls,
             Action::MarkWontDo => ($isAgent && ($openOrReopened || $holds)) || ($isUser && ($openOrReopened || $inProgress)),
             Action::Verify => $isUser && (RequestStatus::ReadyForReview === $status || (RequestStatus::WontDo === $status && ActorKind::Agent === $state->wontDoBy)),
             Action::Reopen => $isUser && in_array($status, [RequestStatus::ReadyForReview, RequestStatus::WontDo, RequestStatus::Verified], true),
