@@ -40,6 +40,8 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F22 | [Quick open ranking](F22-quick-open-ranking.md) | Done 2026-10-07, [report](reports/F22.md) | fd0be4a | src 424 PHP / 28127 lines, 424 types; tests 286 PHP / 25522 lines; assets 149 TS / 8305 lines; check 2m52s |
 | F23 | [Focus mode shortcut](F23-focus-mode-shortcut.md) | Done 2026-10-07, [report](reports/F23.md) | a526f55 | src 419 PHP / 27834 lines, 419 types; tests 284 PHP / 25239 lines; assets 149 TS / 8268 lines; check 2m54s |
 | F24 | [Gutter "+" keeps the focus](F24-gutter-plus-keeps-the-focus.md) | Done 2026-10-07, [report](reports/F24.md) | db26591 | src 427 PHP / 28311 lines, 427 types; tests 286 PHP / 25622 lines; assets 149 TS / 8356 lines; check 2m45s |
+| F25 | [GitHub-style code browser](F25-github-style-code-browser.md) | Not started | | |
+| F26 | [Blame view](F26-blame-view.md) | Not started, after F25 | | |
 
 ## Candidates
 
@@ -51,7 +53,12 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **Carry-over as a job.** V15 locates and captures in the HTTP request. A Messenger job with a live update, if a large source review shows that it is slow. From the F10 report.
 - **Test suite memory.** The functional suite grows by about 50 MB over its run, to a peak of about 165 MB. A look at what each test leaves behind (kernels, clients, static caches) could lower it. `bin/phpunit --testsuite unit,functional --log-events-text <file> --with-telemetry` reproduces it. From the F18 report.
 - **Quick open on a large repository.** For a one-letter query, V16 reads every name with that letter: 5,382 rows here, about 94 ms of ranking for 130,000 synthetic candidates, and a libpq result buffer outside the PHP `memory_limit`. A name index or a word-start test in SQL bounds the transfer and the time, and a cursor bounds the buffer. PostgreSQL `lower()` and `mb_strtolower()` also differ for a few characters such as `İ`. From the F22 report.
-- **Compact review header in the file view.** At 1280x720 the review header with the tabs ends at 328 px, so the code view gets 292 px, or 256 px with the dev toolbar open. The agent prompt and the index progress could share one line or sit behind a disclosure. From the F21 report.
+- **Last commit in the directory table.** GitHub shows the last commit message and date of each entry, and a last-commit box above the table and the file. V6 has no commit data, so this needs a new endpoint (specs first) and `git log` per entry, with a cache. From F25.
+- **Line options menu.** GitHub's "Line N options" button on a selected range: "Copy lines", "Copy permalink". From F25.
+- **Sticky horizontal scrollbar.** GitHub keeps a proxy of the horizontal scrollbar of the code at the window bottom. The code view has its horizontal scrollbar at the file bottom. From F25.
+- **Single-child directory chains.** GitHub shows a chain of directories with one child each as one row of the directory table, for example "Test/Constraint". From F25.
+- **Markdown preview of a file.** GitHub shows a `.md` file rendered, with "Preview | Code". From F25.
+- **"Finish review" in the stuck header.** The review header scrolls away in the code browser, and the stuck row of the file header could show "Finish your review" while drafts exist. From F25.
 - **Pull request links after a repository rename.** A GitHub URL is stored in the canonical form of the repository name as connected (F14). After the repository is renamed on GitHub, a link under the old name no longer matches `link_pull_request` or `unlink_pull_request`. From the F20 report.
 
 ## For Jan
