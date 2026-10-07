@@ -28,6 +28,8 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F10 | [Carry over open requests](F10-carry-over-open-requests.md) | Done 2026-10-07, [report](reports/F10.md) | 4fd9f5a | src 401 PHP / 26168 lines, 401 types; tests 276 PHP / 24142 lines; assets 142 TS / 7626 lines; check 2m41s |
 | F11 | [Quick open](F11-quick-open.md) | Done 2026-10-07, [report](reports/F11.md) | 22b8596 | src 395 PHP / 25608 lines, 395 types; tests 275 PHP / 23794 lines; assets 140 TS / 7465 lines; check 2m43s |
 | F12 | [Index job memory](F12-index-job-memory.md) | Done 2026-10-07, [report](reports/F12.md) | 20cf30d | src 401 PHP / 26212 lines, 401 types; tests 277 PHP / 24268 lines; assets 142 TS / 7626 lines; check 2m36s |
+| F13 | [Agent proposals](F13-agent-proposals.md) | Not started | | |
+| F14 | [Pull request links](F14-pull-request-links.md) | Not started | | |
 
 ## Candidates
 
@@ -36,6 +38,8 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **One scroll area in the normal file view.** Outside focus mode, the window, the file tree, and the code view each scroll. Split from F02.
 - **Project-specific Mate tools.** For example a tool that reads the event log of a review. Split from F05.
 - **Carry over on an open review.** V15 can run on any open review, but the UI offers it only at review start. An action on an open review would carry requests later, for example after one is released. Split from F10.
+- **Change the plan requirement of an open request.** `requireApproval` is fixed when the request opens. The user could switch it on or off later. Split from F13.
+- **Unlink a pull request.** F14 links a pull request and has no unlink. Split from F14.
 
 ## For Jan
 
