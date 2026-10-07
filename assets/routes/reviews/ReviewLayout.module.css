@@ -50,14 +50,3 @@
     margin-top: var(--base-size-4);
     white-space: pre-wrap;
 }
-
-.page[data-focus-mode] > .header,
-.page[data-focus-mode] > .closed {
-    display: none;
-}
-
-@media (width > 768px) {
-    .page[data-file-view] {
-        flex: auto;
-    }
-}

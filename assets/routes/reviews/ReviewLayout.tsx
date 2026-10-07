@@ -1,12 +1,7 @@
-import { isEditableElement } from '@primer/behaviors/utils';
-import { CheckIcon, CodeIcon, CommentDiscussionIcon } from '@primer/octicons-react';
-import { Banner, Button, Heading, Link, RelativeTime, UnderlineNav } from '@primer/react';
-import { KeybindingHint } from '@primer/react/experimental';
-import { useEffect, useMemo } from 'react';
-import { Outlet, Link as RouterLink, useLoaderData, useMatch, useOutletContext } from 'react-router';
+import { CodeIcon, CommentDiscussionIcon } from '@primer/octicons-react';
+import { Banner, Heading, Link, RelativeTime, UnderlineNav } from '@primer/react';
+import { Outlet, Link as RouterLink, useLoaderData, useMatch } from 'react-router';
 import type { Review } from '../../api/types/review';
-import { ariaKeyShortcuts, hintKeys, isPressed, type ModShortcut } from '../../layout/modShortcut';
-import { usePreference } from '../../layout/usePreference';
 import { AgentPromptSnippet } from '../../review/AgentPromptSnippet';
 import { CarryOverDialog } from '../../review/CarryOverDialog';
 import { CloseReviewDialog } from '../../review/CloseReviewDialog';
@@ -18,32 +13,6 @@ import { ReviewIdCopy } from '../../review/ReviewIdCopy';
 import { shortSha } from '../../review/shortSha';
 import styles from './ReviewLayout.module.css';
 import type { ReviewData } from './reviewData';
-
-/** The outlet context of the review routes. Focus mode applies only while a file is open. */
-export type FocusMode = { focus: boolean; setFocus(on: boolean): void };
-
-export function useFocusMode(): FocusMode {
-    return useOutletContext<FocusMode>();
-}
-
-const FOCUS_SHORTCUT: ModShortcut = { key: 'Enter', shift: true };
-
-export function FocusToggle() {
-    const { focus, setFocus } = useFocusMode();
-
-    return (
-        <Button
-            size="small"
-            aria-pressed={focus}
-            leadingVisual={focus ? CheckIcon : undefined}
-            trailingVisual={<KeybindingHint keys={hintKeys(FOCUS_SHORTCUT)} size="small" />}
-            aria-keyshortcuts={ariaKeyShortcuts(FOCUS_SHORTCUT)}
-            onClick={() => setFocus(!focus)}
-        >
-            Focus
-        </Button>
-    );
-}
 
 function ClosedBanner({ review }: { review: Extract<Review, { state: 'closed' }> }) {
     return (
@@ -85,50 +54,11 @@ function ReviewNavigation({ review }: { review: Review }) {
 
 export function ReviewLayout() {
     const { review, drafts } = useLoaderData<ReviewData>();
-    const [focusPreferred, setFocus] = usePreference('focus');
-    const fileOpen = null !== useMatch('/reviews/:reviewId/files/*');
-    const focus = focusPreferred && fileOpen;
-    const focusMode = useMemo<FocusMode>(() => ({ focus, setFocus }), [focus, setFocus]);
-
-    useEffect(() => {
-        if (!focus) {
-            return;
-        }
-        const leave = (event: KeyboardEvent): void => {
-            // Comment boxes are forms.
-            const inForm = event.target instanceof Element && null !== event.target.closest('form');
-            if ('Escape' === event.key && !event.defaultPrevented && !inForm) {
-                setFocus(false);
-            }
-        };
-        // On the window, after the menus and dialogs that take Escape on the document.
-        window.addEventListener('keydown', leave);
-
-        return () => window.removeEventListener('keydown', leave);
-    }, [focus, setFocus]);
-
-    useEffect(() => {
-        if (!fileOpen) {
-            return;
-        }
-        const toggle = (event: KeyboardEvent): void => {
-            const target = event.composedPath()[0] ?? null;
-            // A dialog can belong to the review header, which focus mode hides.
-            const inDialog = target instanceof Element && null !== target.closest('[role="dialog"]');
-            if (isPressed(FOCUS_SHORTCUT, event) && !isEditableElement(target) && !inDialog) {
-                event.preventDefault();
-                event.stopPropagation();
-                setFocus(!focus);
-            }
-        };
-        // In the capture phase: a tree item takes Enter with any modifier and stops its propagation.
-        window.addEventListener('keydown', toggle, true);
-
-        return () => window.removeEventListener('keydown', toggle, true);
-    }, [fileOpen, focus, setFocus]);
+    // Every tab but Requests is the code browser.
+    const codeBrowser = null === useMatch('/reviews/:reviewId/requests');
 
     return (
-        <div className={styles.page} data-file-view={fileOpen ? '' : undefined} data-focus-mode={focus ? '' : undefined}>
+        <div className={styles.page} data-code-browser={codeBrowser ? '' : undefined}>
             <header className={styles.header}>
                 <div className={styles.titleRow}>
                     <div className={styles.titleText}>
@@ -157,7 +87,7 @@ export function ReviewLayout() {
                 <ReviewNavigation review={review} />
             </header>
             {'closed' === review.state && <ClosedBanner review={review} />}
-            <Outlet context={focusMode} />
+            <Outlet />
         </div>
     );
 }

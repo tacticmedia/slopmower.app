@@ -45,3 +45,15 @@ export function symbolShortName({ kind, name }: CodeSymbol): string {
             return name;
     }
 }
+
+/** The kinds whose declaration line shows as a sticky scope line. */
+const SCOPE_KINDS: ReadonlySet<string> = new Set(['class', 'interface', 'trait', 'enum', 'function', 'method']);
+
+/**
+ * The scopes that enclose `line` below their declaration line, outermost first, as GitHub's sticky lines show them.
+ */
+export function enclosingScopes(symbols: readonly CodeSymbol[], line: number): CodeSymbol[] {
+    return symbols
+        .filter(({ kind, declarationStartLine, range }) => SCOPE_KINDS.has(kind) && declarationStartLine < line && line <= range.endLine)
+        .sort((first, second) => first.declarationStartLine - second.declarationStartLine);
+}

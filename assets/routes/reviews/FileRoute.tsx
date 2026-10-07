@@ -1,6 +1,6 @@
-import { CheckIcon } from '@primer/octicons-react';
-import { Button, Spinner } from '@primer/react';
-import { lazy, Suspense, useCallback, useMemo, useState } from 'react';
+import { CheckIcon, DownloadIcon } from '@primer/octicons-react';
+import { Button, ButtonGroup, IconButton, Spinner } from '@primer/react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLoaderData, useRouteLoaderData } from 'react-router';
 import type { Actor } from '../../api/types/actor';
 import type { FileContent } from '../../api/types/file-content';
@@ -10,23 +10,25 @@ import { type CodeAnnotation, NO_ANNOTATIONS, stableAnnotations, threadsByLine }
 import type { NamePosition, Overflow } from '../../code/CodeFile';
 import { type LineRange, lineRange } from '../../code/lineHash';
 import { bottomLine, type GestureRange } from '../../code/rangeSelection';
-import { matchingSymbol, symbolKindLabel } from '../../code/symbolMatch';
+import { enclosingScopes, matchingSymbol, symbolKindLabel } from '../../code/symbolMatch';
 import { CommentBox } from '../../comments/CommentBox';
 import { CommentOnLinesForm } from '../../comments/CommentOnLinesForm';
 import { type DraftView, fileDraftViews, reviewLabel as reviewButtonLabel } from '../../comments/draftView';
 import { ThreadList } from '../../comments/ThreadList';
 import { type Composer, type SubmitMode, useFileComments } from '../../comments/useFileComments';
+import { CopyButton } from '../../layout/CopyButton';
 import { usePreference } from '../../layout/usePreference';
 import { FileHeader } from '../../review/FileHeader';
 import { FilePlaceholder } from '../../review/FilePlaceholder';
 import { GoToDeclaration } from '../../review/GoToDeclaration';
+import { formatSize } from '../../review/pathSegments';
+import { ScopeLines } from '../../review/ScopeLines';
 import { SymbolsMenu } from '../../review/SymbolsMenu';
 import { ViewedCheckbox } from '../../review/ViewedCheckbox';
 import { useGoToDeclaration } from './declarationsData';
 import type { FileView } from './fileData';
 import styles from './FileRoute.module.css';
 import type { ReviewData } from './reviewData';
-import { FocusToggle } from './ReviewLayout';
 import { useFileSymbols } from './symbolsData';
 import { useLineSelection } from './useLineSelection';
 
@@ -48,7 +50,7 @@ export function FileRoute() {
     const comments = useFileComments({ path: content.path, threads, drafts: fileDrafts, caller, select: selection.select });
     const commentable = 'open' === review.state;
     const reviewLabel = reviewButtonLabel(drafts);
-    const { symbols, failed: symbolsFailed } = useFileSymbols(review.id, content.path, commentable && null !== text);
+    const { symbols, failed: symbolsFailed } = useFileSymbols(review.id, content.path, null !== text);
     const fileThreads = useMemo(() => comments.threads.filter((thread) => null === thread.range), [comments.threads]);
     const filePendingDrafts = useMemo(() => comments.drafts.filter((draft) => null === draft.range), [comments.drafts]);
     const fileComposer = null !== comments.composer && null === comments.composer.range ? comments.composer : null;
@@ -76,9 +78,34 @@ export function FileRoute() {
         [select, open],
     );
 
+    const lines = useMemo(() => (null === text ? [] : text.split('\n')), [text]);
+    // Kept per path, so the scopes of the previous file never show.
+    const [scopes, setScopes] = useState<{ path: string; symbols: readonly CodeSymbol[] }>({ path: content.path, symbols: [] });
+    // A ref, so FileRoute renders again only when the scopes change, not with each line that scrolls by.
+    const topLine = useRef(1);
+    const followTopLine = useCallback(
+        (line: number) => {
+            topLine.current = line;
+            const next = null === symbols ? [] : enclosingScopes(symbols, line);
+            setScopes((previous) => (previous.path === content.path && sameSymbols(previous.symbols, next) ? previous : { path: content.path, symbols: next }));
+        },
+        [symbols, content.path],
+    );
+
+    // The symbols can arrive after the scroll that set the top line.
+    useEffect(() => followTopLine(topLine.current), [followTopLine]);
+    const goToLine = useCallback((line: number) => select(lineRange(line, line)), [select]);
+
     return (
         <section className={styles.file} aria-label={content.path}>
-            <FileHeader path={content.path} planToApprove={threads.some((thread) => thread.proposalPending)}>
+            <FileHeader
+                reviewId={review.id}
+                repositoryName={review.repositoryName}
+                path={content.path}
+                planToApprove={threads.some((thread) => thread.proposalPending)}
+                summary={<FileSummary content={content} text={text} />}
+                stuckBelow={<ScopeLines scopes={scopes.path === content.path ? scopes.symbols : []} lines={lines} onChoose={goToLine} />}
+            >
                 {navigable && <GoToDeclaration key={content.path} outcome={goTo.outcome} onSubmit={goTo.named} onChoose={(target) => void goTo.go(target)} onDismiss={goTo.dismiss} />}
                 {null !== text && (
                     <Button size="small" aria-pressed={wrap} leadingVisual={wrap ? CheckIcon : undefined} onClick={() => setWrap(!wrap)}>
@@ -93,7 +120,7 @@ export function FileRoute() {
                     </Button>
                 )}
                 <ViewedCheckbox path={content.path} viewed={viewedPaths.includes(content.path)} disabled={!commentable} />
-                <FocusToggle />
+                <RawActions content={content} text={text} />
             </FileHeader>
             {(fileThreads.length > 0 || filePendingDrafts.length > 0 || null !== fileComposer) && (
                 <div className={styles.fileThreads} data-testid="file-threads">
@@ -103,7 +130,9 @@ export function FileRoute() {
                 </div>
             )}
             {null === text ? (
-                <FilePlaceholder content={content} />
+                <div className={styles.code}>
+                    <FilePlaceholder content={content} />
+                </div>
             ) : (
                 <Code
                     content={content}
@@ -115,9 +144,31 @@ export function FileRoute() {
                     onNavigate={navigable ? goTo.atPosition : null}
                     reviewLabel={reviewLabel}
                     overflow={wrap ? 'wrap' : 'scroll'}
+                    onTopLineChange={followTopLine}
                 />
             )}
         </section>
+    );
+}
+
+/** As on GitHub: `2343 lines (2021 loc) · 79.1 KB`. */
+function FileSummary({ content, text }: { content: FileContent; text: string | null }) {
+    const linesOfCode = useMemo(() => (null === text ? 0 : text.split('\n').filter((line) => '' !== line.trim()).length), [text]);
+    const size = formatSize(content.sizeBytes);
+
+    return null === text || null === content.lineCount ? size : `${content.lineCount} lines (${linesOfCode} loc) · ${size}`;
+}
+
+/** V8 serves the bytes as `text/plain` with a sandbox CSP, so "Raw" opens them in a tab. */
+function RawActions({ content, text }: { content: FileContent; text: string | null }) {
+    return (
+        <ButtonGroup>
+            <Button as="a" size="small" href={content.rawUrl} target="_blank" rel="noreferrer">
+                Raw
+            </Button>
+            {null !== text && <CopyButton text={text} label="Copy raw file" iconOnly />}
+            <IconButton as="a" size="small" href={content.rawUrl} download={content.path.slice(content.path.lastIndexOf('/') + 1)} icon={DownloadIcon} aria-label="Download raw file" />
+        </ButtonGroup>
     );
 }
 
@@ -133,11 +184,12 @@ type CodeProps = {
     onNavigate: ((position: NamePosition) => void) | null;
     reviewLabel: string;
     overflow: Overflow;
+    onTopLineChange(line: number): void;
 };
 
 const draftLine = (draft: DraftView): number | null => (null === draft.range ? null : bottomLine(draft.range));
 
-function Code({ content, text, selection, comments, caller, onComment, onNavigate, reviewLabel, overflow }: CodeProps) {
+function Code({ content, text, selection, comments, caller, onComment, onNavigate, reviewLabel, overflow, onTopLineChange }: CodeProps) {
     const { composer, threads, drafts, submit, cancel } = comments;
     const commentable = null !== onComment;
     const composerLine = null !== composer && null !== composer.range ? bottomLine(composer.range) : null;
@@ -167,7 +219,7 @@ function Code({ content, text, selection, comments, caller, onComment, onNavigat
     const comment = useCallback((gesture: GestureRange) => onComment?.(lineRange(gesture.start, gesture.end)), [onComment]);
 
     return (
-        <div className={styles.viewport} data-testid="code-view">
+        <div className={styles.code} data-testid="code-view">
             <Suspense
                 fallback={
                     <div className={styles.loading}>
@@ -187,7 +239,7 @@ function Code({ content, text, selection, comments, caller, onComment, onNavigat
                     onComment={null === onComment ? null : comment}
                     onNavigate={onNavigate}
                     overflow={overflow}
-                    className={styles.scroller}
+                    onTopLineChange={onTopLineChange}
                 />
             </Suspense>
         </div>
@@ -231,6 +283,10 @@ function composerLabel({ range, symbol }: Composer): string {
     }
 
     return range.start === range.end ? `Comment on line ${range.start}` : `Comment on lines ${range.start} to ${range.end}`;
+}
+
+function sameSymbols(first: readonly CodeSymbol[], second: readonly CodeSymbol[]): boolean {
+    return first.length === second.length && first.every((symbol, index) => symbol === second[index]);
 }
 
 function loaded<T>(data: T | undefined, routeId: string): T {

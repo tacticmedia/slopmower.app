@@ -1,0 +1,35 @@
+.breadcrumbs {
+    min-width: 0;
+}
+
+.list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--text-title-size-small);
+}
+
+.segment {
+    display: inline-flex;
+    align-items: baseline;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.separator {
+    padding-inline: var(--base-size-4);
+    color: var(--fgColor-muted);
+}
+
+.repository {
+    font-weight: var(--base-text-weight-semibold);
+}
+
+.current {
+    margin: 0;
+    font-size: inherit;
+    font-weight: var(--base-text-weight-semibold);
+}

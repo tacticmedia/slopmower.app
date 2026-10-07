@@ -1,5 +1,5 @@
 import { CheckIcon, CopyIcon } from '@primer/octicons-react';
-import { Button, VisuallyHidden } from '@primer/react';
+import { Button, IconButton, VisuallyHidden } from '@primer/react';
 import { useEffect, useState } from 'react';
 import styles from './CopyButton.module.css';
 
@@ -7,7 +7,8 @@ type CopyState = 'idle' | 'copied' | 'failed';
 
 const RESULT_DURATION_MS = 2000;
 
-export function CopyButton({ text, label }: { text: string; label: string }) {
+/** `iconOnly` shows the label as the tooltip of an icon button. */
+export function CopyButton({ text, label, iconOnly = false }: { text: string; label: string; iconOnly?: boolean }) {
     const [state, setState] = useState<CopyState>('idle');
 
     useEffect(() => {
@@ -31,9 +32,13 @@ export function CopyButton({ text, label }: { text: string; label: string }) {
 
     return (
         <span className={styles.copy}>
-            <Button size="small" leadingVisual={'copied' === state ? CheckIcon : CopyIcon} onClick={copy}>
-                {{ idle: label, copied: 'Copied', failed: 'Copy failed' }[state]}
-            </Button>
+            {iconOnly ? (
+                <IconButton size="small" icon={'copied' === state ? CheckIcon : CopyIcon} aria-label={label} onClick={copy} />
+            ) : (
+                <Button size="small" leadingVisual={'copied' === state ? CheckIcon : CopyIcon} onClick={copy}>
+                    {{ idle: label, copied: 'Copied', failed: 'Copy failed' }[state]}
+                </Button>
+            )}
             {'failed' === state && <span className={styles.hint}>Select the text and copy it.</span>}
             <VisuallyHidden role="status">{'copied' === state ? 'Copied.' : ''}</VisuallyHidden>
         </span>

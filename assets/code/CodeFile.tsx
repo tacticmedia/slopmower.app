@@ -1,19 +1,12 @@
-import {
-    cleanLastNewline,
-    type CodeViewItem,
-    type CodeViewLineSelection,
-    type FileContents,
-    type LineAnnotation,
-    type SelectedLineRange,
-    type TokenEventBase,
-} from '@pierre/diffs';
-import { CodeView, type CodeViewHandle, type CodeViewReactOptions, WorkerPoolContextProvider } from '@pierre/diffs/react';
+import { cleanLastNewline, type FileContents, type LineAnnotation, type SelectedLineRange, VirtualizedFile, Virtualizer } from '@pierre/diffs';
+import { File, type FileOptions, VirtualizerContext, WorkerPoolContextProvider } from '@pierre/diffs/react';
 import { BaseStyles } from '@primer/react';
-import { memo, type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef } from 'react';
+import { memo, type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CodeAnnotation } from './annotations';
 import { characterColumn } from './characterColumn';
 import { type LineRange, lineRange } from './lineHash';
 import type { GestureRange } from './rangeSelection';
+import { centredScrollTop, isBelowHeader, stickyHeaderPx } from './scrollTarget';
 import { HIGHLIGHTER_OPTIONS, POOL_OPTIONS, THEME } from './workerPool';
 
 export type Overflow = 'scroll' | 'wrap';
@@ -39,8 +32,11 @@ export type CodeFileProps = {
     /** Cmd-click, or Ctrl-click, on a token. Null turns code navigation off. */
     onNavigate: ((position: NamePosition) => void) | null;
     overflow: Overflow;
-    className?: string;
+    /** The first line below the sticky header, after each scroll that changes it. */
+    onTopLineChange?: (line: number) => void;
 };
+
+type FileViewOptions = FileOptions<undefined, undefined>;
 
 /**
  * The pool owns the theme while it works. This one applies when the view falls back to the main thread.
@@ -49,18 +45,39 @@ const BASE_VIEW_OPTIONS = {
     theme: THEME,
     disableFileHeader: true,
     enableLineSelection: true,
-} as const satisfies CodeViewReactOptions<undefined, undefined>;
+} as const satisfies FileViewOptions;
+
+/** The scroll to a line corrects itself with the rendered rows, at most this often. */
+const MAXIMUM_SCROLL_MOVES = 60;
+
+/** How long the scroll to a line waits for the view to know the lines of the file. */
+const MAXIMUM_SCROLL_WAIT_MS = 10000;
 
 /**
- * The only wrapper around `CodeView`. The worker pool outlives file changes, the view does not.
+ * The only wrapper around the `@pierre/diffs` file view. The code scrolls with the window (D55): the view renders
+ * the rows near the viewport of the window. The worker pool and the virtualizer outlive file changes, the view does not.
  */
 export const CodeFile = memo(function CodeFile(props: CodeFileProps) {
+    const [virtualizer] = useState(() => new Virtualizer());
+
+    useEffect(() => {
+        virtualizer.setup(document);
+
+        return () => virtualizer.cleanUp();
+    }, [virtualizer]);
+
     return (
         <WorkerPoolContextProvider poolOptions={POOL_OPTIONS} highlighterOptions={HIGHLIGHTER_OPTIONS}>
-            <FileView key={props.path} {...props} />
+            <VirtualizerContext.Provider value={virtualizer}>
+                <FileView key={props.path} {...props} />
+            </VirtualizerContext.Provider>
         </WorkerPoolContextProvider>
     );
 });
+
+type ScrollRequest = { range: LineRange; moves: number; startedAtMs: number; running: boolean };
+
+type ScrollStep = 'done' | 'moved' | 'waiting';
 
 const FileView = memo(function FileView({
     path,
@@ -74,18 +91,19 @@ const FileView = memo(function FileView({
     onComment,
     onNavigate,
     overflow,
-    className,
+    onTopLineChange,
 }: CodeFileProps) {
-    const view = useRef<CodeViewHandle<undefined, undefined>>(null);
     const container = useRef<HTMLDivElement>(null);
+    const rendered = useRef<{ node: HTMLElement; file: VirtualizedFile<undefined, undefined> } | null>(null);
+    const pendingScroll = useRef<ScrollRequest | null>(null);
     // The last range that the view reported. A different `selection` comes from outside and is scrolled to.
     const reported = useRef<LineRange | null>(null);
     // Changing view options renders the whole file again, so the options read the latest handler.
     const commentHandler = useRef(onComment);
     const navigateHandler = useRef(onNavigate);
+    const topLineHandler = useRef(onTopLineChange);
+    const measureTopLine = useRef<() => void>(() => undefined);
     const latestSelection = useRef(selection);
-    // The view applies a changed item only when its version changes.
-    const itemVersion = useRef(0);
     const hoveredToken = useRef<HTMLElement | null>(null);
     const commentable = null !== onComment;
     const navigable = null !== onNavigate;
@@ -93,8 +111,38 @@ const FileView = memo(function FileView({
     useEffect(() => {
         commentHandler.current = onComment;
         navigateHandler.current = onNavigate;
+        topLineHandler.current = onTopLineChange;
         latestSelection.current = selection;
-    }, [onComment, onNavigate, selection]);
+    }, [onComment, onNavigate, onTopLineChange, selection]);
+
+    useEffect(() => {
+        let frame = 0;
+        let reportedLine = 0;
+        const measure = (): void => {
+            frame = 0;
+            const current = rendered.current;
+            if (null === current) {
+                return;
+            }
+            const belowHeader = stickyHeaderPx() - current.node.getBoundingClientRect().top;
+            const line = belowHeader <= 0 ? 1 : current.file.getNumericScrollAnchor(belowHeader)?.lineNumber;
+            if (undefined !== line && line !== reportedLine) {
+                reportedLine = line;
+                topLineHandler.current?.(line);
+            }
+        };
+        const schedule = (): void => {
+            frame ||= requestAnimationFrame(measure);
+        };
+        measureTopLine.current = schedule;
+        window.addEventListener('scroll', schedule, { passive: true });
+
+        return () => {
+            measureTopLine.current = () => undefined;
+            window.removeEventListener('scroll', schedule);
+            cancelAnimationFrame(frame);
+        };
+    }, []);
 
     useEffect(() => {
         const element = container.current;
@@ -112,69 +160,126 @@ const FileView = memo(function FileView({
         latestContents.current = file.contents;
     }, [file]);
 
-    // An annotation change keeps the file object: while the first highlight is pending, the view compares file objects
-    // by identity, and a new object of the same cacheKey leaves it blank for good.
-    const items = useMemo<CodeViewItem<undefined>[]>(
-        () => [{ id: path, type: 'file', file, annotations: [...annotations], version: ++itemVersion.current }],
-        [path, file, annotations],
+    const lineAnnotations = useMemo<LineAnnotation<undefined>[]>(() => [...annotations], [annotations]);
+    const selectedLines = useMemo<SelectedLineRange | null>(() => (null === selection ? null : { start: selection.start, end: selection.end }), [selection]);
+    const reportSelection = useCallback(
+        (range: SelectedLineRange | null) => {
+            reported.current = toLineRange(range);
+            onSelectionChange(reported.current);
+        },
+        [onSelectionChange],
     );
-    const selectedLines = useMemo<CodeViewLineSelection | null>(() => (null === selection ? null : { id: path, range: selection }), [path, selection]);
-    const options = useMemo<CodeViewReactOptions<undefined, undefined>>(
+    // Starts once the view has an instance, from `onPostRender` or from a new selection, then runs once per frame.
+    const scrollWhenRendered = useCallback(() => {
+        const request = pendingScroll.current;
+        if (null === request || null === rendered.current || request.running) {
+            return;
+        }
+        request.running = true;
+        const step = (): void => {
+            if (pendingScroll.current !== request || null === rendered.current) {
+                return;
+            }
+            const result = scrollToRange(rendered.current.node, rendered.current.file, request.range);
+            if ('moved' === result) {
+                request.moves++;
+            }
+            if ('done' === result || request.moves >= MAXIMUM_SCROLL_MOVES || performance.now() - request.startedAtMs > MAXIMUM_SCROLL_WAIT_MS) {
+                pendingScroll.current = null;
+
+                return;
+            }
+            requestAnimationFrame(step);
+        };
+        step();
+    }, []);
+    const options = useMemo<FileViewOptions>(
         () => ({
             ...BASE_VIEW_OPTIONS,
             overflow,
-            onLineSelected: (range: SelectedLineRange | null) => onSelectionCommit(toLineRange(range)),
+            onLineSelectionStart: reportSelection,
+            onLineSelectionChange: reportSelection,
+            // Not `onLineSelected`: the view also fires it when it applies the controlled selection, and a commit of
+            // that would replace the hash during a navigation. The end of a gesture comes with the same range.
+            onLineSelectionEnd: (range: SelectedLineRange | null) => {
+                reportSelection(range);
+                onSelectionCommit(toLineRange(range));
+            },
             enableGutterUtility: commentable,
             onGutterUtilityClick: commentable ? ({ start, end }: SelectedLineRange) => commentHandler.current?.({ start, end }) : undefined,
+            onPostRender: (node, instance, phase) => {
+                rendered.current = 'unmount' !== phase && instance instanceof VirtualizedFile ? { node, file: instance } : null;
+                scrollWhenRendered();
+                measureTopLine.current();
+            },
             ...(navigable
                 ? {
-                      onTokenClick: (token: TokenEventBase, event: MouseEvent) => {
+                      onTokenClick: (token, event) => {
                           if (isModifierHeld(event)) {
                               navigateHandler.current?.({ line: token.lineNumber, column: characterColumn(latestContents.current, token.lineNumber, token.lineCharStart) });
                           }
                       },
-                      onTokenEnter: (token: TokenEventBase, event: PointerEvent) => {
+                      onTokenEnter: (token, event) => {
                           hoveredToken.current = token.tokenElement;
                           underline(token.tokenElement, isModifierHeld(event));
                       },
-                      onTokenLeave: (token: TokenEventBase) => {
+                      onTokenLeave: (token) => {
                           hoveredToken.current = null;
                           underline(token.tokenElement, false);
                       },
                   }
                 : {}),
         }),
-        [onSelectionCommit, commentable, navigable, overflow],
-    );
-    const reportSelection = useCallback(
-        (next: CodeViewLineSelection | null) => {
-            reported.current = toLineRange(next?.range ?? null);
-            onSelectionChange(reported.current);
-        },
-        [onSelectionChange],
+        [reportSelection, onSelectionCommit, scrollWhenRendered, commentable, navigable, overflow],
     );
     // Without the wrapper, annotation content inherits the code font of the view.
     const renderSlot = useCallback((annotation: LineAnnotation<undefined>) => <BaseStyles>{renderAnnotation(annotation.lineNumber)}</BaseStyles>, [renderAnnotation]);
 
     useEffect(() => {
         if (null !== selection && !isSameRange(selection, reported.current)) {
-            view.current?.scrollTo({ type: 'range', id: path, range: selection, align: 'center' });
+            pendingScroll.current = { range: selection, moves: 0, startedAtMs: performance.now(), running: false };
+            scrollWhenRendered();
         }
-    }, [path, selection]);
+    }, [selection, scrollWhenRendered]);
 
     return (
-        <CodeView
-            ref={view}
-            containerRef={container}
-            items={items}
-            selectedLines={selectedLines}
-            onSelectedLinesChange={reportSelection}
-            options={options}
-            renderAnnotation={renderSlot}
-            className={className}
-        />
+        <div ref={container}>
+            <File file={file} lineAnnotations={lineAnnotations} selectedLines={selectedLines} options={options} renderAnnotation={renderSlot} />
+        </div>
     );
 });
+
+/**
+ * Centres the range below the sticky header. Before the rows exist, the position comes from the line heights that
+ * the view knows; once they are rendered, from the rows themselves.
+ *
+ * @returns `waiting` while the view does not know the lines yet
+ */
+function scrollToRange(node: HTMLElement, file: VirtualizedFile<undefined, undefined>, range: LineRange): ScrollStep {
+    const headerPx = stickyHeaderPx();
+    const first = node.shadowRoot?.querySelector(`[data-line="${range.start}"]`);
+    const last = node.shadowRoot?.querySelector(`[data-line="${range.end}"]`);
+
+    if (first instanceof HTMLElement && last instanceof HTMLElement) {
+        const span = { top: first.getBoundingClientRect().top, bottom: last.getBoundingClientRect().bottom };
+        if (isBelowHeader(span, headerPx, window.innerHeight)) {
+            return 'done';
+        }
+        window.scrollTo({ top: centredScrollTop({ top: span.top + window.scrollY, bottom: span.bottom + window.scrollY }, headerPx, window.innerHeight), behavior: 'instant' });
+
+        return 'moved';
+    }
+    const start = file.getLinePosition(range.start);
+    const end = file.getLinePosition(range.end);
+    // A height of 0: the view does not know the lines yet.
+    if (undefined === start || undefined === end || 0 === end.height) {
+        return 'waiting';
+    }
+    const fileTop = node.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo({ top: centredScrollTop({ top: fileTop + start.top, bottom: fileTop + end.top + end.height }, headerPx, window.innerHeight), behavior: 'instant' });
+
+    return 'moved';
+}
 
 /**
  * Decision D31. The library starts a comment on `pointerdown` only and gives the "+" no name. The "+" sits on the

@@ -1,0 +1,41 @@
+.scopes {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-inline: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-bottom: var(--borderWidth-thin) solid var(--borderColor-default);
+    background-color: var(--bgColor-default);
+    box-shadow: var(--shadow-resting-small);
+}
+
+.scope {
+    display: flex;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--fgColor-default);
+    font-family: var(--fontStack-monospace);
+    font-size: var(--text-codeBlock-size, 13px);
+    line-height: 20px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.scope:hover {
+    background-color: var(--bgColor-muted);
+}
+
+.number {
+    flex: none;
+    min-width: 5ch;
+    padding-inline: var(--base-size-8) var(--base-size-16);
+    color: var(--fgColor-muted);
+    text-align: right;
+}
+
+.text {
+    overflow: hidden;
+    white-space: pre;
+    text-overflow: ellipsis;
+}

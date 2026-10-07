@@ -2,3 +2,7 @@
 .body {
     font-size: var(--text-body-size-medium);
 }
+
+.readme {
+    font-size: var(--text-body-size-large);
+}

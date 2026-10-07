@@ -273,7 +273,7 @@ make up
   - Strict TypeScript.
   - React Router 8.4.0 in Data Mode: `createBrowserRouter`, route `loader`s read, route `action`s and `useFetcher` write, `router.revalidate()` in `assets/live/useLiveRevalidation.ts` refreshes after a Mercure message.
   - Local component state for the UI: `useState` for selection and drafts in progress, `useOptimistic` for new threads, drafts, and replies. No Redux, no global store, no query-cache library.
-  - Per-browser UI preferences (focus mode, line wrapping) go through `assets/layout/usePreference.ts`, which reads and writes `localStorage` inside `try`/`catch`. Nothing else uses browser storage.
+  - Per-browser UI preferences (the collapsed file tree, line wrapping) go through `assets/layout/usePreference.ts`, which reads and writes `localStorage` inside `try`/`catch`. The only other browser storage is the width of the tree pane, which Primer `PageLayout.Pane` keeps under its `widthStorageKey`.
   - A write form, `fetcher.Form`, takes `onSubmit` from `assets/layout/useSubmitOnce.ts`. Primer's `loading` and the fetcher state, which commits in a transition, do not stop a quick second click or Enter.
   - Primer for components. CSS modules for our layout CSS.
   - `@pierre/diffs` only inside `assets/code/CodeFile.tsx`, `assets/code/CommitDiff.tsx`, and their worker pool options in `assets/code/workerPool.ts`.
@@ -434,7 +434,8 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 
 ### Mocked UI suite
 
-- The code view turns off pointer events on its rows during a scroll and for 120 ms after it. A press right after a scroll lands on the container: `dragFromPlus()` centers the line number, then waits until the line number and the "+" receive the pointer.
+- The sticky file header covers the top rows of the code, and a row renders only after the scroll that brings it near the window. `dragFromPlus()` centers the line number, then waits until the line number and the "+" receive the pointer.
+- The window scrolls the code. The code view loads in its own chunk, so a test that scrolls waits until the page has the height of the code.
 - A Playwright context denies clipboard writes. A test of a copy button grants `clipboard-read` and `clipboard-write`.
 - `page.route` cannot stream a response, so `EventSource` is replaced by `addInitScript`.
 - `context.route` also intercepts the imports of the `@pierre/diffs` worker. `page.route` is enough for `/api/v1`.

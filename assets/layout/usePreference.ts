@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 
 /** A per-browser UI preference in `localStorage`, off by default. */
-export function usePreference(name: 'focus' | 'wrap'): [boolean, (on: boolean) => void] {
+export function usePreference(name: 'treeCollapsed' | 'wrap'): [boolean, (on: boolean) => void] {
     const key = `holistic-review.${name}`;
     const [on, setOn] = useState(() => {
         try {

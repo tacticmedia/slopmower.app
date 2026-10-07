@@ -1,33 +1,73 @@
+/* The sticky part sticks for the height of the file section, not of this element. */
 .header {
+    display: contents;
+}
+
+.pathRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-8);
+    padding-bottom: var(--base-size-16);
+}
+
+.sentinel {
+    height: 1px;
+    margin-bottom: -1px;
+}
+
+.sticky {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    height: 0;
+}
+
+.box {
+    position: absolute;
+    top: 0;
+    inset-inline: 0;
+}
+
+.stuckRow {
+    display: flex;
+    align-items: center;
+    gap: var(--base-size-8);
+    min-height: 44px;
+    padding-inline: var(--base-size-16);
+    background-color: var(--bgColor-default);
+}
+
+.top {
+    margin-left: auto;
+}
+
+.toolbar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: var(--base-size-8);
     padding: var(--base-size-8) var(--base-size-16);
-    border-bottom: var(--borderWidth-thin) solid var(--borderColor-default);
+    border: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-radius: var(--borderRadius-medium) var(--borderRadius-medium) 0 0;
     background-color: var(--bgColor-muted);
 }
 
-.title {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--base-size-8);
-    min-width: 0;
+.summary {
+    flex: none;
+    color: var(--fgColor-muted);
+    font-family: var(--fontStack-monospace);
+    font-size: var(--text-body-size-small);
 }
 
+/* Shares the row with the summary, and its controls wrap at the right. */
 .actions {
     display: flex;
+    flex: 1 1 0;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: flex-end;
     gap: var(--base-size-8);
-}
-
-.path {
-    margin: 0;
-    font-family: var(--fontStack-monospace);
-    font-size: var(--text-body-size-medium);
-    font-weight: var(--base-text-weight-semibold);
-    overflow-wrap: anywhere;
+    min-width: 0;
 }

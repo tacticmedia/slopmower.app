@@ -1,43 +1,23 @@
+/* No overflow clip: the sticky toolbar of the file header sticks inside this section. */
 .file {
-    display: flex;
-    flex-direction: column;
     min-width: 0;
-    border: var(--borderWidth-thin) solid var(--borderColor-default);
-    border-radius: var(--borderRadius-medium);
-    overflow: hidden;
 }
 
 .fileThreads {
+    border-inline: var(--borderWidth-thin) solid var(--borderColor-default);
     border-bottom: var(--borderWidth-thin) solid var(--borderColor-default);
 }
 
-/* CodeView virtualizes inside its own scroll container, which needs a fixed height. */
-.viewport {
-    height: 70vh;
-    min-height: 20rem;
-}
-
-.scroller {
-    height: 100%;
-    overflow: auto;
+/* The code has the height of the code, and the window scrolls. */
+.code {
+    border: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-top: 0;
+    border-radius: 0 0 var(--borderRadius-medium) var(--borderRadius-medium);
+    overflow: clip;
 }
 
 .loading {
     display: flex;
     justify-content: center;
     padding: var(--base-size-32);
-}
-
-/* The code layout bounds the file column. */
-@media (width > 768px) {
-    .fileThreads {
-        max-height: calc(100% / 3);
-        overflow: auto;
-    }
-
-    .viewport {
-        flex: 1;
-        height: auto;
-        min-height: 0;
-    }
 }

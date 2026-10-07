@@ -6,8 +6,6 @@ import { expect, test } from './support/test';
 
 const REQUESTS = '/api/v1/reviews/:reviewId/requests';
 const PLUS = `${CODE_HOST} [data-utility-button]`;
-const CODE_VIEW = '[data-testid="code-view"]';
-const CODE_SCROLLER = `${CODE_VIEW} > div`;
 
 async function commentOnLines(page: Page, startLine: number, endLine: number): Promise<void> {
     await tabToButton(page, 'Comment on lines');
@@ -47,13 +45,14 @@ async function openWithPlusOnLine100(page: Page, review: FakeReview): Promise<Lo
     return plus;
 }
 
-function outsideCodeView(locator: Locator): Promise<boolean> {
-    return locator.evaluate((element, view) => {
+/** Under the sticky file header or below the window. */
+function outsideVisibleCode(locator: Locator): Promise<boolean> {
+    return locator.evaluate((element) => {
         const { top, bottom } = element.getBoundingClientRect();
-        const visible = document.querySelector(view)?.getBoundingClientRect();
+        const header = document.querySelector('[data-testid="file-toolbar"]')?.getBoundingClientRect();
 
-        return undefined !== visible && (bottom <= visible.top || top >= visible.bottom);
-    }, CODE_VIEW);
+        return undefined !== header && (bottom <= header.bottom || top >= window.innerHeight);
+    });
 }
 
 /** The view renders in the animation frame after a scroll. */
@@ -61,9 +60,10 @@ function afterNextRender(page: Page): Promise<void> {
     return page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
 }
 
-/** Tabs from "Copy path", the last control before the code, to `plus`, and waits for the render of the scroll that the focus causes. */
+/** Tabs from "Download raw file", the last control before the code, to `plus`, and waits for the render of the scroll that the focus causes. */
 async function tabFromHeaderTo(page: Page, plus: Locator): Promise<void> {
     await tabToButton(page, 'Copy path');
+    await tabUntil(page, () => page.evaluate(() => document.activeElement?.hasAttribute('download') ?? false), '"Download raw file"');
     await page.keyboard.press('Tab');
     await afterNextRender(page);
     await expect(plus).toBeFocused();
@@ -127,8 +127,8 @@ test.describe('KeyboardCommentOnLines', () => {
 
     test('The gutter + outside the visible code keeps the focus that Tab gives it, and Space opens the comment box', async ({ page, api }) => {
         const plus = await openWithPlusOnLine100(page, new FakeReview(api));
-        await page.locator(CODE_SCROLLER).evaluate((scroller) => scroller.scrollBy(0, scroller.clientHeight / 2 + 60));
-        await expect.poll(() => outsideCodeView(plus), 'The row of line 100 stays rendered above the visible code.').toBe(true);
+        await page.evaluate(() => window.scrollBy(0, window.innerHeight / 2 + 60));
+        await expect.poll(() => outsideVisibleCode(plus), 'The row of line 100 stays rendered above the visible code.').toBe(true);
 
         await tabFromHeaderTo(page, plus);
         await page.keyboard.press('Space');
@@ -143,7 +143,7 @@ test.describe('KeyboardCommentOnLines', () => {
         await expect.poll(() => page.evaluate(() => document.body === document.activeElement), 'The "+" is the last control of the page.').toBe(true);
 
         // The render inserts the "+" into its row again.
-        await page.locator(CODE_SCROLLER).evaluate((scroller) => scroller.scrollBy(0, 60));
+        await page.evaluate(() => window.scrollBy(0, 60));
         await afterNextRender(page);
 
         await expect(plus).not.toBeFocused();

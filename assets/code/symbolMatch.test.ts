@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Symbol as CodeSymbol } from '../api/types/symbol';
-import { matchingSymbol } from './symbolMatch';
+import { enclosingScopes, matchingSymbol } from './symbolMatch';
 
 const TOTAL: CodeSymbol = {
     kind: 'method',
@@ -53,5 +53,22 @@ describe('SymbolMatchTest', () => {
         const first: CodeSymbol = { ...TOTAL, kind: 'property', fqn: 'App\\Billing\\InvoiceTotals::$a', name: 'a', range: { startLine: 12, endLine: 12 }, declarationStartLine: 12, docStartLine: null };
 
         expect(matchingSymbol([first, { ...first, fqn: 'App\\Billing\\InvoiceTotals::$b', name: 'b' }], { start: 12, end: 12 })).toBeNull();
+    });
+});
+
+describe('EnclosingScopesTest', () => {
+    it('Gives the class and the method of a line inside the method, outermost first', () => {
+        expect(enclosingScopes([TOTAL, CLASS], 45)).toEqual([CLASS, TOTAL]);
+    });
+
+    it('Leaves out a scope whose declaration line is the line itself, or that ends above it', () => {
+        expect(enclosingScopes(SYMBOLS, 41)).toEqual([CLASS]);
+        expect(enclosingScopes(SYMBOLS, 60)).toEqual([CLASS]);
+    });
+
+    it('Leaves out members that are not scopes', () => {
+        const property: CodeSymbol = { ...TOTAL, kind: 'property', range: { startLine: 20, endLine: 30 }, declarationStartLine: 20 };
+
+        expect(enclosingScopes([CLASS, property], 25)).toEqual([CLASS]);
     });
 });

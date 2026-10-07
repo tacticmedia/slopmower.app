@@ -19,7 +19,7 @@ const SHORTCUT: ModShortcut = { key: 'K', shift: false };
 
 /**
  * The button and the shortcut open the dialog. The shortcut is off in a text field outside the dialog, where the
- * platform may bind it. The review layout only hides the header in focus mode, so the shortcut works there too.
+ * platform may bind it. The header stays mounted when the page scrolls it away, so the shortcut works there too.
  */
 export function QuickOpen({ reviewId, indexState }: Props) {
     const [open, setOpen] = useState(false);

@@ -1,51 +1,46 @@
+/* The tree pane and the file reach the window edges, as on GitHub. `main` pads the review header. */
 .layout {
-    display: grid;
-    grid-template-columns: minmax(12rem, 18rem) minmax(0, 1fr);
-    align-items: start;
-    gap: var(--base-size-16);
+    margin-inline: calc(-1 * var(--base-size-16));
+    border-top: var(--borderWidth-thin) solid var(--borderColor-default);
+}
+
+.paneHeader {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: var(--base-size-8);
+    padding: var(--base-size-8) var(--base-size-16) var(--base-size-8) var(--base-size-8);
+    background-color: var(--bgColor-default);
+}
+
+.paneTitle {
+    margin: 0;
+    font-size: var(--text-title-size-small);
+    font-weight: var(--base-text-weight-semibold);
 }
 
 .tree {
-    max-height: 80vh;
-    overflow: auto;
+    padding: 0 var(--base-size-8) var(--base-size-16);
 }
 
-.hint {
-    color: var(--fgColor-muted);
+@media (width >= 768px) {
+    /* Primer's sticky pane wrapper has only a max-height, so the divider would end with a short tree. */
+    .pane {
+        height: 100vh;
+    }
 }
 
-.error {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--base-size-16);
-}
-
-@media (max-width: 768px) {
-    .layout {
-        grid-template-columns: minmax(0, 1fr);
+/* The pane stacks above the file: not sticky, and the tree scrolls on its own. */
+@media (width < 768px) {
+    .pane {
+        position: static;
+        max-height: none;
     }
 
     .tree {
         max-height: 40vh;
-    }
-}
-
-/* ReviewLayout sets data-file-view and data-focus-mode. */
-@media (width > 768px) {
-    [data-file-view] > .layout {
-        flex: 1 0 20rem;
-        /* Not auto: the automatic minimum is the height of the whole tree. */
-        min-height: 20rem;
-        grid-template-rows: minmax(0, 1fr);
-        align-items: stretch;
-    }
-
-    [data-file-view] > .layout > .tree {
-        max-height: none;
-    }
-
-    [data-focus-mode] > .layout {
-        padding: var(--base-size-8);
+        overflow: auto;
     }
 }

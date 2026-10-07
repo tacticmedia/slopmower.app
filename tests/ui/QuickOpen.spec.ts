@@ -90,21 +90,6 @@ test.describe('QuickOpen', () => {
         await expect(dialog(page)).toHaveCount(0);
     });
 
-    test('In focus mode, Cmd+K opens Quick open, and Escape closes only the dialog', async ({ page, api }) => {
-        const review = reviewWithHits(api, [TAX_RATE_FILE]);
-        await openFile(page, review, SMALL_FILE);
-        const focusToggle = page.locator('[data-testid="file-header"]').getByRole('button', { name: 'Focus' });
-        await focusToggle.click();
-        await expect(page.getByRole('heading', { level: 1 })).toBeHidden();
-
-        await page.keyboard.press('ControlOrMeta+k');
-        await expect(searchField(page)).toBeFocused();
-        await page.keyboard.press('Escape');
-
-        await expect(dialog(page)).toHaveCount(0);
-        await expect(focusToggle).toHaveAttribute('aria-pressed', 'true');
-    });
-
     test('A partial result says that the index is in progress', async ({ page, api }) => {
         const review = reviewWithHits(api, [TAX_RATE_FILE], true);
         await openFile(page, review, SMALL_FILE);

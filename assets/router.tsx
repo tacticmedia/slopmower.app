@@ -11,14 +11,15 @@ import { RepositoryRoute, repositoryAction, repositoryLoader } from './routes/re
 import { commitDiffLoader, diffSidesLoader, shouldRevalidateChanges } from './routes/requests/changesData';
 import { requestAction, requestListLoader, requestLoader } from './routes/requests/requestData';
 import { carryOverSourcesLoader } from './routes/reviews/carryOverData';
-import { CodeLayout, codeLayoutLoader, CodeRouteError, NoFileSelected } from './routes/reviews/CodeLayout';
+import { CodeLayout, codeLayoutLoader } from './routes/reviews/CodeLayout';
 import { declarationsLoader, shouldRevalidateDeclarations } from './routes/reviews/declarationsData';
+import { DirectoryRoute } from './routes/reviews/DirectoryRoute';
 import { fileAction, fileLoader } from './routes/reviews/fileData';
 import { ReviewLayout } from './routes/reviews/ReviewLayout';
 import { reviewAction, reviewLoader } from './routes/reviews/reviewData';
 import { searchLoader, shouldRevalidateSearch } from './routes/reviews/searchData';
 import { shouldRevalidateSymbols, symbolsLoader } from './routes/reviews/symbolsData';
-import { treeLoader } from './routes/reviews/treeData';
+import { directoryLoader, treeLoader } from './routes/reviews/treeData';
 import { SettingsRoute } from './routes/settings/SettingsRoute';
 import { settingsAction, settingsLoader } from './routes/settings/settingsData';
 
@@ -47,20 +48,21 @@ export const router = createBrowserRouter([
                             {
                                 loader: codeLayoutLoader,
                                 element: <CodeLayout />,
-                                errorElement: <CodeRouteError />,
+                                errorElement: <RouteError embedded />,
                                 children: [
-                                    { index: true, element: <NoFileSelected /> },
+                                    { index: true, loader: directoryLoader, element: <DirectoryRoute />, errorElement: <RouteError embedded /> },
+                                    { path: 'tree/*', loader: directoryLoader, element: <DirectoryRoute />, errorElement: <RouteError embedded /> },
                                     {
                                         path: 'files/*',
                                         loader: fileLoader,
                                         action: fileAction,
                                         // The loader stays in the shell bundle and runs while the component chunk loads.
                                         lazy: { Component: () => import('./routes/reviews/FileRoute').then(({ FileRoute }) => FileRoute) },
-                                        errorElement: <CodeRouteError />,
+                                        errorElement: <RouteError embedded />,
                                     },
                                 ],
                             },
-                            { path: 'tree', loader: treeLoader },
+                            { path: 'tree-entries', loader: treeLoader },
                             { path: 'symbols', loader: symbolsLoader, shouldRevalidate: shouldRevalidateSymbols },
                             { path: 'declarations', loader: declarationsLoader, shouldRevalidate: shouldRevalidateDeclarations },
                             { path: 'search', loader: searchLoader, shouldRevalidate: shouldRevalidateSearch },

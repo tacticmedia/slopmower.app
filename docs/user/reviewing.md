@@ -130,9 +130,9 @@ The list shows the files and the PHP symbols of the review commit that match you
 
 - Move through the list with the arrow keys and press Enter, or click a hit.
 - A file opens at its start. A symbol opens its file at the first line of its declaration, below any doc comment, and that line is selected.
-- Escape closes the dialog. It does not leave focus mode.
+- Escape closes the dialog.
 
-The shortcut also works in focus mode. It does nothing while you type in a comment box or another text field. **Index in progress** means that the symbol index has not finished, so some files and symbols are not in the list yet. **Index failed: hits may be missing** means that the symbol index of the review failed, so the list can stay incomplete.
+The shortcut does nothing while you type in a comment box or another text field. **Index in progress** means that the symbol index has not finished, so some files and symbols are not in the list yet. **Index failed: hits may be missing** means that the symbol index of the review failed, so the list can stay incomplete.
 
 ## Wrap long lines
 
@@ -140,15 +140,23 @@ The shortcut also works in focus mode. It does nothing while you type in a comme
 
 ## Viewed files
 
-Select **Viewed** in the file header when you are finished with a file. The file tree marks viewed files. The marks stay for the whole review, because the code of the review never changes.
+Select **Viewed** in the file header when you are finished with a file. The file tree and the directory tables mark viewed files. The marks stay for the whole review, because the code of the review never changes.
 
-## Focus mode
+## Browse the code
 
-The file tree and the file fill the window below the headers, and each scrolls on its own. Click **Focus** in the file header, or press Cmd+Shift+Enter (Ctrl+Shift+Enter outside macOS), to hide the headers, so the tree and the file get the whole window. To leave, click **Focus** or press the shortcut again, or press Escape.
+The **Code** tab works like the file browser of GitHub. The page scrolls: the review header moves out of the window, and the file tree and the file fill the window. The tree stays at the left with the height of the window and scrolls on its own.
 
-The shortcut works only while a file is open. It does nothing while you type in a comment box or another text field, or in a dialog. Escape in a comment box does not leave focus mode.
+- Drag the edge of the tree, or focus it and press the arrow keys, to change its width.
+- **Collapse file tree** hides the tree. **Expand file tree**, before the path of the file, shows it again.
+- Your browser remembers the width and whether the tree is hidden.
 
-Focus mode stays on when you open another file or reload the page. The choice is saved in your browser. On a narrow screen, the tree is above the file and the page scrolls, and focus mode only hides the headers.
+Without an open file, the tab shows the root directory as a table: the name, the size of each file, and a mark on viewed files. Click a directory in the table or in the tree to see its table. The chevron in the tree only opens and closes a directory. A `README.md` of the directory shows below the table.
+
+Above a file, each part of the path links to its directory, and **Copy path** copies the path. The toolbar shows the number of lines and the size, the file commands, **Raw**, which opens the file as plain text, and buttons that copy and download the whole file.
+
+When you scroll into the code, the toolbar stays at the top of the window, with the path and **Top** above it. **Top** goes back to the top of the page. In a PHP file, the declaration lines of the class and the function around the top line stay below the toolbar. Click one to go to it.
+
+On a narrow screen, the tree is above the file and scrolls away with the page.
 
 ## Outdated requests
 

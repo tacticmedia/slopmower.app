@@ -219,11 +219,11 @@ A row counts the PHP files of its namespace and of the sub-namespaces without a 
 |---|---|---|
 | `assets/app.tsx`, `router.tsx`, `layout/` | 10 | Entry, the one data router, `RootLayout` with the live hook (D29), `usePreference` for per-browser UI preferences, `useSubmitOnce` for write forms, `modShortcut` for the Cmd or Ctrl keyboard shortcuts |
 | `assets/api/` | 33 | `fetch` client with the CSRF header, `ApiError`, TypeScript types written from the schemas |
-| `assets/routes/` | 30 | Screens. Loaders read and actions write. Most actions branch on an `intent` field. |
-| `assets/code/` | 9 | `CodeFile` and `CommitDiff`, the only wrappers around the pinned `@pierre/diffs` (D1): `CommitDiff.tsx` also exports `ProposalDiff`. Their shared `workerPool` options. |
+| `assets/routes/` | 31 | Screens. Loaders read and actions write. Most actions branch on an `intent` field. |
+| `assets/code/` | 10 | `CodeFile` and `CommitDiff`, the only wrappers around the pinned `@pierre/diffs` (D1): `CommitDiff.tsx` also exports `ProposalDiff`. Their shared `workerPool` options. |
 | `assets/comments/` | 12 | Threads, drafts, comment box, `useOptimistic` updates |
 | `assets/live/` | 2 | `LiveSubscription`, the one Mercure subscription, and `EventPositions` |
-| `assets/requests/`, `review/`, `settings/` | 53 | Presentational components and pure helpers |
+| `assets/requests/`, `review/`, `settings/` | 57 | Presentational components and pure helpers |
 
 ### 3.3 Dependency picture
 
@@ -336,8 +336,8 @@ An agent cannot open a request. A user opens one through `RequestController::ope
 |---|---|---|---|---|
 | Unit | `tests/Unit/`, 65 classes | PHPUnit, `KernelTestCase` without boot | Value objects, the transition matrix, `awaiting` rules, event codecs, pure anchoring algorithms. `Conventions/` holds the meta-tests, for example domain purity, 800-line limit, no container mocks, TestDox on every test (D44). | `docker compose exec php bin/phpunit --testsuite unit` |
 | Functional | `tests/Functional/`, 161 classes | `KernelTestCase` and `WebTestCase` on `app_test`, real git repositories in temporary directories, `MockHttpClient` for GitHub | Event store and projections, re-anchoring cases F1 to F14, tenant isolation, REST and MCP contracts against the schemas, webhooks, deletion, the headless slice | `make test` runs unit and functional |
-| Front-end unit | `assets/**/*.test.ts`, 21 files | Vitest | Pure TypeScript: live subscription, helpers, enum arrays and fixtures against the schemas | `make front` |
-| UI | `tests/ui/*.spec.ts`, 45 specs | Playwright Test on the host, against the SPA built by `tests/ui/vite.config.ts` | Screen flows with no PHP, database, or git. `tests/ui/support/mockApi.ts` answers `/api/v1`, and each mocked body validates against the schemas. A fake `EventSource` sends live updates. | `make ui` |
+| Front-end unit | `assets/**/*.test.ts`, 24 files | Vitest | Pure TypeScript: live subscription, helpers, enum arrays and fixtures against the schemas | `make front` |
+| UI | `tests/ui/*.spec.ts`, 47 specs | Playwright Test on the host, against the SPA built by `tests/ui/vite.config.ts` | Screen flows with no PHP, database, or git. `tests/ui/support/mockApi.ts` answers `/api/v1`, and each mocked body validates against the schemas. A fake `EventSource` sends live updates. | `make ui` |
 | Full-stack E2E | `tests/E2E/`, 7 classes | `FullStackTestCase` in `tests/Support/E2E/` with playwright-php, against the `e2e` site on port 8081 and `app_e2e` | Sign-in, the vertical slice through browser and MCP, a live agent reply, account deletion, a scoped token | `make e2e` |
 
 Run `make db-test` once and after each migration. `make check` runs all gates. One PHP test: `docker compose exec php bin/phpunit --filter StartReviewTest`. One UI spec: `npx playwright test tests/ui/LineComment.spec.ts`. One Vitest file: `npx vitest run assets/live/useLiveRevalidation.test.ts`. Shared PHP fixtures and helpers are in `tests/Support/`.
