@@ -96,13 +96,13 @@ final class TreeAndFileTest extends WebTestCase
 
         $first = self::apiRequest($this->client, 'GET', $uri);
         $file = self::assertApiResponse($first, 200, 'file-content.schema.json');
-        $notModified = self::apiRequest($this->client, 'GET', $uri, server: ['HTTP_IF_NONE_MATCH' => "W/\"v1-{$blobSha}\""]);
+        $notModified = self::apiRequest($this->client, 'GET', $uri, server: ['HTTP_IF_NONE_MATCH' => "W/\"v2-{$blobSha}\""]);
 
         self::assertSame(['php', 5, null, "/api/v1/reviews/{$review['id']}/raw?path=src/Billing/InvoiceTotals.php"], [$file['language'], $file['lineCount'], $file['symlinkTarget'], $file['rawUrl']]);
         self::assertSame(304, $notModified->getStatusCode());
         self::assertSame('', (string) $notModified->getContent());
         foreach ([$first, $notModified] as $response) {
-            self::assertSame("W/\"v1-{$blobSha}\"", $response->headers->get('ETag'));
+            self::assertSame("W/\"v2-{$blobSha}\"", $response->headers->get('ETag'));
             self::assertSame('no-cache, private', $response->headers->get('Cache-Control'));
             self::assertSame('Authorization, Cookie', $response->headers->get('Vary'));
         }

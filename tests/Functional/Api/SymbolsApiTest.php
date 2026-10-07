@@ -105,7 +105,7 @@ final class SymbolsApiTest extends WebTestCase
     {
         $review = $this->startReview();
         $uri = "/api/v1/reviews/{$review['id']}/symbols?path=src%2FBilling%2FInvoiceTotals.php";
-        $etag = 'W/"v3-'.$this->source->revParse('main:src/Billing/InvoiceTotals.php').'"';
+        $etag = 'W/"v4-'.$this->source->revParse('main:src/Billing/InvoiceTotals.php').'"';
 
         $first = self::apiRequest($this->client, 'GET', $uri);
         $notModified = self::apiRequest($this->client, 'GET', $uri, server: ['HTTP_IF_NONE_MATCH' => $etag]);
@@ -126,7 +126,7 @@ final class SymbolsApiTest extends WebTestCase
         $response = self::apiRequest($this->client, 'GET', "/api/v1/reviews/{$review['id']}/symbols?path=assets%2Ftotals.ts");
         $symbols = self::assertApiResponse($response, 200, 'lists.schema.json#/$defs/SymbolList');
 
-        self::assertSame('W/"v3-'.$this->source->revParse('main:assets/totals.ts').'"', $response->headers->get('ETag'));
+        self::assertSame('W/"v4-'.$this->source->revParse('main:assets/totals.ts').'"', $response->headers->get('ETag'));
         self::assertSame(['typescript', false], [$symbols['language'], $symbols['parseError']]);
         self::assertSame([
             ['kind' => 'class', 'fqn' => 'InvoiceTotals', 'name' => 'InvoiceTotals', 'parentFqn' => null, 'range' => ['startLine' => 1, 'endLine' => 8], 'declarationStartLine' => 4, 'docStartLine' => 1],
@@ -134,26 +134,40 @@ final class SymbolsApiTest extends WebTestCase
         ], $symbols['items']);
     }
 
-    #[TestDox('Python, Go, and Rust files give their language, their symbols, and the ETag of V9')]
-    public function testPythonGoAndRustFilesGiveTheirSymbols(): void
+    #[TestDox('A file of each other tree-sitter language gives its language, its symbols, and the ETag of V9')]
+    public function testFileOfEachOtherTreeSitterLanguageGivesItsSymbols(): void
     {
         $this->source->commit([
             'tools/totals.py' => "class Totals:\n    @property\n    def total(self) -> int:\n        return 0\n",
             'billing/totals.go' => "package billing\n\n// Sum adds the lines.\nfunc (t *Totals[T]) Sum() int { return 0 }\n",
             'src/totals.rs' => "impl From<i64> for Total {\n    fn from(cents: i64) -> Self {\n        Total\n    }\n}\n",
+            'java/Totals.java' => "class Totals {\n    long total() {\n        return 0;\n    }\n}\n",
+            'dotnet/Totals.cs' => "namespace Billing;\n\npublic class Totals\n{\n    public long Count { get; }\n}\n",
+            'lib/totals.rb' => "module Billing\n  class Totals\n    def self.build; end\n  end\nend\n",
+            'bin/release.sh' => "#!/bin/sh\nfunction release {\n    echo 1\n}\n",
+            'scala/Totals.scala' => "object Totals {\n  def empty: Long = 0\n}\n",
+            'zig/totals.zig' => "pub const Totals = struct {\n    cents: i64,\n};\n",
+            'lua/totals.lua' => "function M:count()\n  return 0\nend\n",
         ]);
         $review = $this->startReview();
         $expected = [
             'tools/totals.py' => ['python', [['class', 'Totals', null], ['method', 'Totals.total()', 'Totals']]],
             'billing/totals.go' => ['go', [['method', 'Totals.Sum()', 'Totals']]],
             'src/totals.rs' => ['rust', [['method', '<Total as From<i64>>::from()', 'Total']]],
+            'java/Totals.java' => ['java', [['class', 'Totals', null], ['method', 'Totals.total()', 'Totals']]],
+            'dotnet/Totals.cs' => ['csharp', [['class', 'Totals', null], ['property', 'Totals.Count', 'Totals']]],
+            'lib/totals.rb' => ['ruby', [['module', 'Billing', null], ['class', 'Billing::Totals', 'Billing'], ['method', 'Billing::Totals::build()', 'Billing::Totals']]],
+            'bin/release.sh' => ['shellscript', [['function', 'release()', null]]],
+            'scala/Totals.scala' => ['scala', [['module', 'Totals', null], ['method', 'Totals.empty()', 'Totals']]],
+            'zig/totals.zig' => ['zig', [['struct', 'Totals', null], ['property', 'Totals.cents', 'Totals']]],
+            'lua/totals.lua' => ['lua', [['method', 'M.count()', 'M']]],
         ];
 
         foreach ($expected as $path => [$language, $items]) {
             $response = self::apiRequest($this->client, 'GET', "/api/v1/reviews/{$review['id']}/symbols?path=".rawurlencode($path));
             $symbols = self::assertApiResponse($response, 200, 'lists.schema.json#/$defs/SymbolList');
 
-            self::assertSame('W/"v3-'.$this->source->revParse("main:{$path}").'"', $response->headers->get('ETag'));
+            self::assertSame('W/"v4-'.$this->source->revParse("main:{$path}").'"', $response->headers->get('ETag'));
             self::assertSame([$language, false, $items], [
                 $symbols['language'],
                 $symbols['parseError'],

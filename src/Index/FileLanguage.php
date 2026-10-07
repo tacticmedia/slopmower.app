@@ -8,7 +8,8 @@ use App\Domain\Git\RepoPath;
 
 /**
  * The V7 `language`: an open set of highlighting language names, chosen by file name, case-insensitively. V9 uses it to
- * pick a {@see SymbolExtractor}.
+ * pick a {@see SymbolExtractor}. A new entry changes V7, so it increases the V7 ETag version of docs/specs/README.md
+ * section 6.
  */
 final class FileLanguage
 {
@@ -47,6 +48,9 @@ final class FileLanguage
         'rs' => 'rust',
         'java' => 'java',
         'kt' => 'kotlin',
+        'scala' => 'scala',
+        'zig' => 'zig',
+        'lua' => 'lua',
         'c' => 'c',
         'h' => 'c',
         'cpp' => 'cpp',

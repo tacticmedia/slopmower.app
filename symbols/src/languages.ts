@@ -98,6 +98,90 @@ const RUST: LanguageRow = {
     docCommentAdjacent: false,
 };
 
+/** Annotations are inside the declaration. An enum constant with a body is an anonymous class. */
+const JAVA: LanguageRow = {
+    grammar: 'tree-sitter-java/tree-sitter-java.wasm',
+    query: 'java',
+    separator: '.',
+    wrappers: [],
+    attributes: [],
+    opaque: ['block', 'constructor_body', 'object_creation_expression', 'enum_constant'],
+    docComment: JSDOC,
+    docCommentAdjacent: false,
+};
+
+/** Attributes are inside the declaration. No declaration of the query can be in a body. */
+const CSHARP: LanguageRow = {
+    grammar: 'tree-sitter-c-sharp/tree-sitter-c_sharp.wasm',
+    query: 'csharp',
+    separator: '.',
+    wrappers: [],
+    attributes: [],
+    opaque: [],
+    docComment: /^\/\/\/(?!\/)/,
+    docCommentAdjacent: true,
+};
+
+// A method wrapped in a call, as in `private def m`, starts at the call. Blocks and lambdas are closures. The shebang is
+// no doc comment.
+const RUBY: LanguageRow = {
+    grammar: 'tree-sitter-ruby/tree-sitter-ruby.wasm',
+    query: 'ruby',
+    separator: '::',
+    wrappers: ['argument_list', 'call'],
+    attributes: [],
+    opaque: ['method', 'singleton_method', 'block', 'do_block', 'lambda'],
+    docComment: /^#(?!!)/,
+    docCommentAdjacent: true,
+};
+
+const BASH: LanguageRow = {
+    grammar: 'tree-sitter-bash/tree-sitter-bash.wasm',
+    query: 'bash',
+    separator: '.',
+    wrappers: [],
+    attributes: [],
+    opaque: ['function_definition'],
+    docComment: /^#(?!!)/,
+    docCommentAdjacent: true,
+};
+
+/** Annotations are inside the declaration. A `val` initializer, a `given`, and `new T { }` hold no member. */
+const SCALA: LanguageRow = {
+    grammar: 'tree-sitter-scala/tree-sitter-scala.wasm',
+    query: 'scala',
+    separator: '.',
+    wrappers: [],
+    attributes: [],
+    opaque: ['function_definition', 'val_definition', 'var_definition', 'given_definition', 'block', 'lambda_expression', 'instance_expression'],
+    docComment: JSDOC,
+    docCommentAdjacent: false,
+};
+
+/** A container in a function body, such as the struct of a generic type function, is no symbol. */
+const ZIG: LanguageRow = {
+    grammar: '@tree-sitter-grammars/tree-sitter-zig/tree-sitter-zig.wasm',
+    query: 'zig',
+    separator: '.',
+    wrappers: [],
+    attributes: [],
+    opaque: ['block'],
+    docComment: /^\/\/\/(?!\/)/,
+    docCommentAdjacent: true,
+};
+
+/** `----`, a separator line, is no doc comment. */
+const LUA: LanguageRow = {
+    grammar: '@tree-sitter-grammars/tree-sitter-lua/tree-sitter-lua.wasm',
+    query: 'lua',
+    separator: '.',
+    wrappers: [],
+    attributes: [],
+    opaque: ['function_declaration', 'function_definition'],
+    docComment: /^---(?!-)/,
+    docCommentAdjacent: true,
+};
+
 /** By V7 language. `TreeSitterSymbolExtractor::LANGUAGES` lists the same keys. */
 export const LANGUAGES: Readonly<Record<string, LanguageRow>> = {
     javascript: { ...JAVASCRIPT, grammar: 'tree-sitter-javascript/tree-sitter-javascript.wasm' },
@@ -107,6 +191,13 @@ export const LANGUAGES: Readonly<Record<string, LanguageRow>> = {
     python: PYTHON,
     go: GO,
     rust: RUST,
+    java: JAVA,
+    csharp: CSHARP,
+    ruby: RUBY,
+    shellscript: BASH,
+    scala: SCALA,
+    zig: ZIG,
+    lua: LUA,
 };
 
 export async function loadLanguages(): Promise<Map<string, LoadedLanguage>> {

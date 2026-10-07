@@ -15,7 +15,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 final class TreeSitterSymbolExtractor implements SymbolExtractor
 {
     /** The keys of `LANGUAGES` in symbols/src/languages.ts. */
-    private const array LANGUAGES = ['javascript', 'jsx', 'typescript', 'tsx', 'python', 'go', 'rust'];
+    private const array LANGUAGES = ['javascript', 'jsx', 'typescript', 'tsx', 'python', 'go', 'rust', 'java', 'csharp', 'ruby', 'shellscript', 'scala', 'zig', 'lua'];
 
     public function __construct(
         #[Target('symbols.client')]

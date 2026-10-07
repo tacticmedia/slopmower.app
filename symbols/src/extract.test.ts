@@ -136,6 +136,124 @@ describe('ExtractTest', () => {
         ]);
     });
 
+    it('The Java fixture with a record, an annotation on a method, nested types, an enum with constants, and constructors gives its table', () => {
+        expect(fixture('java', 'InvoiceTotals.java')).toEqual([
+            ['class', 'InvoiceTotals', 'InvoiceTotals', null, 5, 63, 8, 5],
+            ['property', 'InvoiceTotals.SCALE', 'SCALE', 'InvoiceTotals', 9, 10, 10, 9],
+            ['property', 'InvoiceTotals.lines', 'lines', 'InvoiceTotals', 12, 12, 12, null],
+            ['method', 'InvoiceTotals.InvoiceTotals()', 'InvoiceTotals', 'InvoiceTotals', 14, 16, 14, null],
+            ['method', 'InvoiceTotals.total()', 'total', 'InvoiceTotals', 18, 25, 19, 18],
+            ['method', 'InvoiceTotals.toString()', 'toString', 'InvoiceTotals', 27, 33, 27, null],
+            ['class', 'InvoiceTotals.Line', 'Line', 'InvoiceTotals', 35, 38, 35, null],
+            ['method', 'InvoiceTotals.Line.Line()', 'Line', 'InvoiceTotals.Line', 36, 37, 36, null],
+            ['enum', 'InvoiceTotals.Currency', 'Currency', 'InvoiceTotals', 40, 59, 40, null],
+            ['enum_case', 'InvoiceTotals.Currency.AUD', 'AUD', 'InvoiceTotals.Currency', 41, 42, 42, 41],
+            ['enum_case', 'InvoiceTotals.Currency.EUR', 'EUR', 'InvoiceTotals.Currency', 43, 48, 43, null],
+            ['property', 'InvoiceTotals.Currency.sign', 'sign', 'InvoiceTotals.Currency', 50, 50, 50, null],
+            ['method', 'InvoiceTotals.Currency.Currency()', 'Currency', 'InvoiceTotals.Currency', 52, 54, 52, null],
+            ['method', 'InvoiceTotals.Currency.sign()', 'sign', 'InvoiceTotals.Currency', 56, 58, 56, null],
+            ['class', 'InvoiceTotals.Rounding', 'Rounding', 'InvoiceTotals', 61, 62, 61, null],
+            ['interface', 'Audited', 'Audited', null, 65, 67, 65, null],
+            ['method', 'Audited.value()', 'value', 'Audited', 66, 66, 66, null],
+        ]);
+    });
+
+    it('The C# fixtures with a file-scoped namespace, a block namespace, a property, an attribute, and a /// block give their tables', () => {
+        expect(fixture('csharp', 'InvoiceTotals.cs')).toEqual([
+            ['class', 'InvoiceTotals', 'InvoiceTotals', null, 6, 35, 9, 6],
+            ['property', 'InvoiceTotals.Scale', 'Scale', 'InvoiceTotals', 12, 13, 13, 12],
+            ['property', 'InvoiceTotals.lines', 'lines', 'InvoiceTotals', 15, 15, 15, null],
+            ['property', 'InvoiceTotals.Changed', 'Changed', 'InvoiceTotals', 17, 17, 17, null],
+            ['method', 'InvoiceTotals.InvoiceTotals()', 'InvoiceTotals', 'InvoiceTotals', 19, 22, 19, null],
+            ['property', 'InvoiceTotals.Count', 'Count', 'InvoiceTotals', 24, 25, 25, 24],
+            ['method', 'InvoiceTotals.Total()', 'Total', 'InvoiceTotals', 27, 32, 27, null],
+            ['class', 'InvoiceTotals.Line', 'Line', 'InvoiceTotals', 34, 34, 34, null],
+            ['enum', 'Currency', 'Currency', null, 37, 41, 37, null],
+            ['enum_case', 'Currency.Aud', 'Aud', 'Currency', 39, 39, 39, null],
+            ['enum_case', 'Currency.Eur', 'Eur', 'Currency', 40, 40, 40, null],
+            ['struct', 'Money', 'Money', null, 43, 43, 43, null],
+            ['interface', 'IRounding', 'IRounding', null, 45, 48, 45, null],
+            ['method', 'IRounding.Round()', 'Round', 'IRounding', 47, 47, 47, null],
+            ['type', 'TotalChanged', 'TotalChanged', null, 50, 50, 50, null],
+        ]);
+        expect(fixture('csharp', 'Tax.cs')).toEqual([
+            ['struct', 'Rate', 'Rate', null, 5, 9, 6, 5],
+            ['property', 'Rate.Value', 'Value', 'Rate', 8, 8, 8, null],
+            ['class', 'Defaults', 'Defaults', null, 12, 15, 12, null],
+            ['property', 'Defaults.Gst', 'Gst', 'Defaults', 14, 14, 14, null],
+        ]);
+    });
+
+    it('The Ruby fixture with nested modules and classes, def self.m, private def, a constant, and doc comments before the first statement of a body gives its table', () => {
+        expect(fixture('ruby', 'invoice_totals.rb')).toEqual([
+            ['module', 'Billing', 'Billing', null, 3, 43, 4, 3],
+            ['constant', 'Billing::SCALE', 'SCALE', 'Billing', 5, 6, 6, 5],
+            ['module', 'Billing::Tax', 'Tax', 'Billing', 8, 15, 8, null],
+            ['class', 'Billing::Tax::Rate', 'Rate', 'Billing::Tax', 9, 14, 10, 9],
+            ['method', 'Billing::Tax::Rate::initialize()', 'initialize', 'Billing::Tax::Rate', 11, 13, 11, null],
+            ['class', 'Billing::InvoiceTotals', 'InvoiceTotals', 'Billing', 17, 39, 18, 17],
+            ['method', 'Billing::InvoiceTotals::from()', 'from', 'Billing::InvoiceTotals', 19, 22, 20, 19],
+            ['method', 'Billing::InvoiceTotals::total()', 'total', 'Billing::InvoiceTotals', 24, 27, 24, null],
+            ['method', 'Billing::InvoiceTotals::round()', 'round', 'Billing::InvoiceTotals', 29, 32, 30, 29],
+            ['method', 'Billing::InvoiceTotals::empty()', 'empty', 'Billing::InvoiceTotals', 35, 37, 35, null],
+            ['class', 'Billing::Tax::Exempt', 'Exempt', 'Billing::Tax', 41, 42, 41, null],
+            ['function', 'format_total()', 'format_total', null, 45, 47, 45, null],
+        ]);
+    });
+
+    it('The Bash fixture with both function forms and a doc comment after the shebang gives its table', () => {
+        expect(fixture('shellscript', 'release.sh')).toEqual([
+            ['function', 'version()', 'version', null, 2, 6, 4, 2],
+            ['function', 'build()', 'build', null, 8, 11, 8, null],
+            ['function', 'publish()', 'publish', null, 13, 15, 13, null],
+        ]);
+    });
+
+    it('The Scala fixture with an object, a case class, a trait, enum cases, and a top-level def gives its table', () => {
+        expect(fixture('scala', 'InvoiceTotals.scala')).toEqual([
+            ['trait', 'Amount', 'Amount', null, 3, 7, 4, 3],
+            ['method', 'Amount.cents()', 'cents', 'Amount', 5, 5, 5, null],
+            ['property', 'Amount.currency', 'currency', 'Amount', 6, 6, 6, null],
+            ['class', 'InvoiceTotals', 'InvoiceTotals', null, 9, 19, 10, 9],
+            ['property', 'InvoiceTotals.scale', 'scale', 'InvoiceTotals', 12, 12, 12, null],
+            ['method', 'InvoiceTotals.total()', 'total', 'InvoiceTotals', 14, 18, 15, 14],
+            ['module', 'InvoiceTotals', 'InvoiceTotals', null, 21, 25, 21, null],
+            ['type', 'InvoiceTotals.Lines', 'Lines', 'InvoiceTotals', 22, 22, 22, null],
+            ['method', 'InvoiceTotals.empty()', 'empty', 'InvoiceTotals', 24, 24, 24, null],
+            ['enum', 'Currency', 'Currency', null, 27, 32, 27, null],
+            ['enum_case', 'Currency.Aud', 'Aud', 'Currency', 28, 28, 28, null],
+            ['enum_case', 'Currency.Eur', 'Eur', 'Currency', 28, 28, 28, null],
+            ['enum_case', 'Currency.Usd', 'Usd', 'Currency', 30, 31, 31, 30],
+            ['function', 'formatTotal()', 'formatTotal', null, 34, 34, 34, null],
+        ]);
+    });
+
+    it('The Zig fixture with a struct with fields and methods, an enum, and /// blocks gives its table', () => {
+        expect(fixture('zig', 'totals.zig')).toEqual([
+            ['constant', 'std', 'std', null, 1, 1, 1, null],
+            ['constant', 'scale', 'scale', null, 3, 4, 4, 3],
+            ['struct', 'Totals', 'Totals', null, 6, 22, 8, 6],
+            ['property', 'Totals.lines', 'lines', 'Totals', 9, 10, 10, 9],
+            ['property', 'Totals.currency', 'currency', 'Totals', 11, 11, 11, null],
+            ['constant', 'Totals.zero', 'zero', 'Totals', 13, 13, 13, null],
+            ['method', 'Totals.sum()', 'sum', 'Totals', 15, 21, 16, 15],
+            ['enum', 'Currency', 'Currency', null, 24, 31, 24, null],
+            ['enum_case', 'Currency.aud', 'aud', 'Currency', 25, 25, 25, null],
+            ['enum_case', 'Currency.eur', 'eur', 'Currency', 26, 26, 26, null],
+            ['method', 'Currency.code()', 'code', 'Currency', 28, 30, 28, null],
+            ['function', 'format()', 'format', null, 33, 35, 33, null],
+        ]);
+    });
+
+    it('The Lua fixture with M.f, M:m, a local function, and a separator line gives its table', () => {
+        expect(fixture('lua', 'totals.lua')).toEqual([
+            ['function', 'M.total()', 'total', 'M', 3, 11, 6, 3],
+            ['method', 'M.count()', 'count', 'M', 13, 15, 13, null],
+            ['function', 'round()', 'round', null, 18, 20, 18, null],
+            ['function', 'format_total()', 'format_total', null, 22, 24, 22, null],
+        ]);
+    });
+
     it('Line breaks in the type and trait of an impl become one space', () => {
         const source = 'impl<T>\n    From<\n        Vec<T>,\n    > for &\'static\n    [T]\n{\n    fn from() {}\n}\n';
 
@@ -148,6 +266,13 @@ describe('ExtractTest', () => {
             python: 'class InvoiceTotals:\n    def total(self) -> int:\n        return (\n',
             go: 'package billing\n\nfunc Total() int {\n',
             rust: 'impl Total {\n    fn new() -> Self {\n',
+            java: 'class InvoiceTotals {\n    long total() {\n',
+            csharp: 'class InvoiceTotals\n{\n    long Total()\n    {\n',
+            ruby: 'class InvoiceTotals\n  def total\n',
+            shellscript: 'total() {\n    echo 1\n',
+            scala: 'class InvoiceTotals {\n  def total(): Long = {\n',
+            zig: 'pub fn total() i64 {\n',
+            lua: 'function M.total()\n  return 1\n',
         };
 
         for (const [id, source] of Object.entries(broken)) {

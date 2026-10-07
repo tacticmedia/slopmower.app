@@ -35,8 +35,11 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api/v1/reviews/{reviewId}', name: 'api_review_')]
 final class CodeController extends AbstractController
 {
-    /** docs/specs/README.md section 6. Increase `v1` when the FileContent representation changes. */
-    private const string FILE_ETAG_VERSION = 'v1';
+    /**
+     * docs/specs/README.md section 6. Increase it when the FileContent representation changes, also for a new
+     * `language` of a file name.
+     */
+    private const string FILE_ETAG_VERSION = 'v2';
 
     private const array FILE_CACHE_HEADERS = ['Cache-Control' => 'private, no-cache', 'Vary' => 'Authorization, Cookie'];
 

@@ -25,7 +25,7 @@ const CALLABLES: ReadonlySet<string> = new Set(['function', 'method']);
 
 const SUFFIXES: Readonly<Record<string, string>> = { function: '()', method: '()', macro: '!' };
 
-/** Captures that are no kind: the name, and the parent and trait of a Go method or a Rust `impl` member. */
+/** Captures that are no kind: the name, the parent inside the enclosing container, and the trait of a Rust trait impl. */
 export const ROLES: ReadonlySet<string> = new Set(['name', 'parent', 'as']);
 
 /** `node` carries the kind capture, `outer` is its outermost wrapper. `parent` and `as` are capture texts. */
@@ -194,7 +194,7 @@ function docCommentStartLine({ docComment, docCommentAdjacent }: LanguageRow, fi
 
     let doc: Node | null = null;
 
-    for (let sibling = first.previousNamedSibling; null !== sibling && docComment.test(sibling.text); sibling = sibling.previousNamedSibling) {
+    for (let sibling = previousNamed(first); null !== sibling && docComment.test(sibling.text); sibling = sibling.previousNamedSibling) {
         const below = doc ?? first;
 
         if ((null !== doc || docCommentAdjacent) && sibling.endPosition.row + 1 < below.startPosition.row) {
@@ -205,6 +205,20 @@ function docCommentStartLine({ docComment, docCommentAdjacent }: LanguageRow, fi
     }
 
     return null === doc ? null : doc.startPosition.row + 1;
+}
+
+/**
+ * A parent that starts with the node passes the search on to its own previous sibling: a Ruby body starts at its first
+ * statement, after the comments before it.
+ */
+function previousNamed(node: Node): Node | null {
+    let current = node;
+
+    while (null === current.previousNamedSibling && null !== current.parent && current.parent.startIndex === current.startIndex) {
+        current = current.parent;
+    }
+
+    return current.previousNamedSibling;
 }
 
 /**
