@@ -12,6 +12,7 @@ parameters:
     paths:
         - bin
         - config
+        - mate/src
         - public
         - src
         - tests
