@@ -6,6 +6,7 @@ import type { Repository } from './repository';
 import type { RepositoryCandidate } from './repository-candidate';
 import type { RequestSummary } from './request-summary';
 import type { Review } from './review';
+import type { SearchHit } from './search-hit';
 import type { Symbol } from './symbol';
 import type { TreeEntry } from './tree-entry';
 
@@ -62,6 +63,13 @@ export type SymbolList = {
 export type DeclarationList = {
     reviewId: Ulid;
     items: Declaration[];
+};
+
+export type SearchHitList = {
+    reviewId: Ulid;
+    /** True while the index of the review is not ready. */
+    partial: boolean;
+    items: SearchHit[];
 };
 
 export type DraftList = {

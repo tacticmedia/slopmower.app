@@ -1,0 +1,24 @@
+{
+  "reviewId": "01K6B3A1B2C3D4E5F6G7H8J9KM",
+  "partial": false,
+  "items": [
+    {
+      "kind": "symbol",
+      "path": "src/Billing/Tax/TaxRate.php",
+      "fqn": "App\\Billing\\Tax\\TaxRate",
+      "symbolKind": "class",
+      "declarationStartLine": 10
+    },
+    {
+      "kind": "symbol",
+      "path": "src/Billing/InvoiceTotals.php",
+      "fqn": "App\\Billing\\InvoiceTotals::$taxRate",
+      "symbolKind": "property",
+      "declarationStartLine": 12
+    },
+    {
+      "kind": "file",
+      "path": "src/Billing/Tax/TaxRate.php"
+    }
+  ]
+}

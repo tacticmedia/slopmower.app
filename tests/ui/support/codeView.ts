@@ -17,6 +17,17 @@ export function lineNumber(page: Page, line: number): Locator {
     return page.locator(`${CODE_HOST} [data-column-number="${line}"]`);
 }
 
+/** The decoded path and the hash of the page URL. */
+export function location(page: Page): string {
+    const url = new URL(page.url());
+
+    return `${decodeURIComponent(url.pathname)}${url.hash}`;
+}
+
+export function selectedLines(page: Page): Promise<string[]> {
+    return page.locator(`${CODE_HOST} [data-line][data-selected-line]`).evaluateAll((lines) => lines.map((line) => line.getAttribute('data-line') ?? ''));
+}
+
 export async function openFile(page: Page, review: FakeReview, path: string, hash = ''): Promise<void> {
     await page.goto(review.fileUrl(path, hash));
     await expect(page.locator('[data-testid="file-header"]')).toContainText(path);

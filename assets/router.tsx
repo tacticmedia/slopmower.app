@@ -15,6 +15,7 @@ import { declarationsLoader, shouldRevalidateDeclarations } from './routes/revie
 import { fileAction, fileLoader } from './routes/reviews/fileData';
 import { ReviewLayout } from './routes/reviews/ReviewLayout';
 import { reviewAction, reviewLoader } from './routes/reviews/reviewData';
+import { searchLoader, shouldRevalidateSearch } from './routes/reviews/searchData';
 import { shouldRevalidateSymbols, symbolsLoader } from './routes/reviews/symbolsData';
 import { treeLoader } from './routes/reviews/treeData';
 import { SettingsRoute } from './routes/settings/SettingsRoute';
@@ -61,6 +62,7 @@ export const router = createBrowserRouter([
                             { path: 'tree', loader: treeLoader },
                             { path: 'symbols', loader: symbolsLoader, shouldRevalidate: shouldRevalidateSymbols },
                             { path: 'declarations', loader: declarationsLoader, shouldRevalidate: shouldRevalidateDeclarations },
+                            { path: 'search', loader: searchLoader, shouldRevalidate: shouldRevalidateSearch },
                             {
                                 path: 'requests',
                                 loader: requestListLoader,

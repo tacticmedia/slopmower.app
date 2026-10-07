@@ -11,7 +11,7 @@ This directory is the v1 contract of Holistic Review: the REST API, the MCP serv
 | [rest-api-requests.md](rest-api-requests.md) | REST requests, updates, drafts, API tokens, and the routes outside `/api/v1` |
 | [mcp.md](mcp.md) | MCP endpoint, server instructions, the 12 tools, error mapping, parity with REST |
 | [webhooks-and-live-updates.md](webhooks-and-live-updates.md) | GitHub webhooks, fetch triggers and post-fetch steps, Mercure live updates |
-| [schemas/](schemas/) | 28 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
+| [schemas/](schemas/) | 29 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
 | [fixtures/](fixtures/) | One realistic example per response shape, error code, live-update type, and request body. See [section 11](#11-fixtures). |
 
 ## 2. Conventions
@@ -98,7 +98,7 @@ Fixtures: one file per code, `fixtures/error.<code>.json` with `-` in place of `
 
 - Lists that can grow take `limit` and `cursor` and return `nextCursor`. `nextCursor` is null on the last page.
 - A cursor is opaque: base64url JSON of the sort key of the last item, plus a hash of the filters. It never expires. A cursor sent with other filters gets 422 `invalid_input`.
-- Bounded lists are not paginated: drafts, tokens, viewed files, candidates, symbols, and declarations. Candidates stop at 1,000 items and set `truncated`.
+- Bounded lists are not paginated: drafts, tokens, viewed files, candidates, symbols, declarations, and search hits. Candidates stop at 1,000 items and set `truncated`.
 - `GET /api/v1/reviews/{reviewId}/updates` uses a different cursor: the integer event number. See [rest-api-requests.md](rest-api-requests.md#4-updates).
 
 ## 6. Caching and ETags
@@ -138,7 +138,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
    - new endpoints and tools;
    - new optional input fields or query parameters whose absence keeps the old behaviour;
    - new response properties;
-   - new values in **open** sets: `Action`, `EventType`, `ThreadEntryType`, `ErrorCode`, `SymbolKind`, `language`, and the live-update `type`;
+   - new values in **open** sets: `Action`, `EventType`, `ThreadEntryType`, `ErrorCode`, `SymbolKind`, `language`, the live-update `type`, and the search hit `kind`;
    - new error codes for new situations;
    - relaxed validation, for example higher limits;
    - new headers.
@@ -209,6 +209,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [file-content.schema.json](schemas/file-content.schema.json) | `https://holistic-review.invalid/schemas/v1/file-content.schema.json` | File metadata at the review commit |
 | [symbol.schema.json](schemas/symbol.schema.json) | `https://holistic-review.invalid/schemas/v1/symbol.schema.json` | One PHP symbol of a file |
 | [declaration.schema.json](schemas/declaration.schema.json) | `https://holistic-review.invalid/schemas/v1/declaration.schema.json` | One declaration of a name at the review commit |
+| [search-hit.schema.json](schemas/search-hit.schema.json) | `https://holistic-review.invalid/schemas/v1/search-hit.schema.json` | One hit of a search at the review commit: `FileHit` or `SymbolHit` |
 | [draft.schema.json](schemas/draft.schema.json) | `https://holistic-review.invalid/schemas/v1/draft.schema.json` | A draft of the pending batch |
 | [batch-submission.schema.json](schemas/batch-submission.schema.json) | `https://holistic-review.invalid/schemas/v1/batch-submission.schema.json` | Result of a batch submission |
 | [api-token.schema.json](schemas/api-token.schema.json) | `https://holistic-review.invalid/schemas/v1/api-token.schema.json` | ApiToken, plus `TokenName` and `ApiTokenWithSecret` |
@@ -273,6 +274,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [lists.repository-page.json](fixtures/lists.repository-page.json) | `lists.schema.json#/$defs/RepositoryPage` | R1, `list_repositories` |
 | [lists.request-page.json](fixtures/lists.request-page.json) | `lists.schema.json#/$defs/RequestPage` | Q1, `list_requests` |
 | [lists.review-page.json](fixtures/lists.review-page.json) | `lists.schema.json#/$defs/ReviewPage` | V2, `list_reviews` |
+| [lists.search-hit-list.json](fixtures/lists.search-hit-list.json) | `lists.schema.json#/$defs/SearchHitList` | V16 |
 | [lists.symbol-list.json](fixtures/lists.symbol-list.json) | `lists.schema.json#/$defs/SymbolList` | V9 |
 | [lists.token-list.json](fixtures/lists.token-list.json) | `lists.schema.json#/$defs/TokenList` | T1 |
 | [lists.tree-listing.json](fixtures/lists.tree-listing.json) | `lists.schema.json#/$defs/TreeListing` | V6 |

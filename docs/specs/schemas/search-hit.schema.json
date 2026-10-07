@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/search-hit.schema.json",
+  "title": "SearchHit",
+  "description": "One hit of V16: a file or a PHP symbol of the review commit. `kind` is an open set.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/FileHit"
+    },
+    {
+      "$ref": "#/$defs/SymbolHit"
+    }
+  ],
+  "$defs": {
+    "FileHit": {
+      "type": "object",
+      "required": ["kind", "path"],
+      "properties": {
+        "kind": {
+          "const": "file"
+        },
+        "path": {
+          "$ref": "common.schema.json#/$defs/RepoPath"
+        }
+      }
+    },
+    "SymbolHit": {
+      "type": "object",
+      "required": ["kind", "path", "fqn", "symbolKind", "declarationStartLine"],
+      "properties": {
+        "kind": {
+          "const": "symbol"
+        },
+        "path": {
+          "$ref": "common.schema.json#/$defs/RepoPath",
+          "description": "The file that declares the symbol."
+        },
+        "fqn": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "symbolKind": {
+          "$ref": "common.schema.json#/$defs/SymbolKind"
+        },
+        "declarationStartLine": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "First line of the node, attributes included, doc comment excluded. The UI opens the file at this line."
+        }
+      }
+    }
+  }
+}

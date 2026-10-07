@@ -353,7 +353,7 @@ The session writes it into `reports/MNN.md`:
 
 ## Verified versions
 
-Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, and Symfony AI Mate rows on 2026-10-07. `composer.lock`, `package-lock.json`, and the images hold these versions.
+Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, and `@primer/behaviors` rows on 2026-10-07. `composer.lock`, `package-lock.json`, and the images hold these versions.
 
 | Package | Version | Source |
 |---|---|---|
@@ -386,6 +386,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 | `vite`, `@vitejs/plugin-react`, `typescript` | 8.3.1, 6.1.1, 7.0.2 | https://www.npmjs.com/package/vite |
 | `@pierre/diffs` | 1.5.1, exact pin, Apache-2.0 | https://www.npmjs.com/package/@pierre/diffs |
 | `@primer/react`, `@primer/primitives`, `@primer/octicons-react`, `@primer/css` | 38.40.0, 11.10.0, 19.38.0, 22.3.2 | https://www.npmjs.com/package/@primer/react |
+| `@primer/behaviors` | 1.11.0, the version that `@primer/react` installs, for `isEditableElement()` and `isMacOS()` | https://www.npmjs.com/package/@primer/behaviors |
 | `react-markdown`, `remark-gfm`, `vitest` | 10.1.0, 4.0.1, 5.0.2 | https://www.npmjs.com/package/react-markdown |
 | `@playwright/test`, `ajv`, `ajv-formats`, `@types/node` | 1.63.0, 8.20.0, 3.0.1, 24.19.1 | https://www.npmjs.com/package/@playwright/test |
 

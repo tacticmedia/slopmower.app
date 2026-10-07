@@ -9,6 +9,7 @@ import { CloseReviewDialog } from '../../review/CloseReviewDialog';
 import { DeleteReviewDialog } from '../../review/DeleteReviewDialog';
 import { FinishReviewOverlay } from '../../review/FinishReviewOverlay';
 import { IndexProgress } from '../../review/IndexProgress';
+import { QuickOpen } from '../../review/QuickOpen';
 import { ReviewIdCopy } from '../../review/ReviewIdCopy';
 import { shortSha } from '../../review/shortSha';
 import styles from './ReviewLayout.module.css';
@@ -98,6 +99,7 @@ export function ReviewLayout() {
                         </span>
                     </div>
                     <div className={styles.reviewActions}>
+                        <QuickOpen reviewId={review.id} indexState={review.index.state} />
                         {'open' === review.state && drafts.length > 0 && <FinishReviewOverlay draftCount={drafts.length} />}
                         {'open' === review.state && <CloseReviewDialog draftCount={drafts.length} />}
                         <DeleteReviewDialog repositoryId={review.repositoryId} />

@@ -11,7 +11,7 @@ Your coding agent, for example Claude Code, reads the change requests from Holis
 | [Getting started](getting-started.md) | Sign in with GitHub, connect a repository, and start a review |
 | [Run it locally](local-run.md) | Start Holistic Review with Docker on your computer and review repositories on your disk, without GitHub |
 | [Connect your agent](connect-your-agent.md) | Create a token, configure the MCP server, install the skill, and give your agent a review |
-| [Reviewing](reviewing.md) | Comment, go to declarations, work with the agent, verify, reopen, and close a review |
+| [Reviewing](reviewing.md) | Comment, go to declarations, open files and symbols by name, work with the agent, verify, reopen, and close a review |
 
 ## How it works
 

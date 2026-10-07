@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import type { Declaration } from '../../assets/api/types/declaration';
 import { declarationList } from './support/builders';
-import { CODE_HOST, openFile, tabUntil, waitForHighlighting } from './support/codeView';
+import { CODE_HOST, location, openFile, selectedLines, tabUntil, waitForHighlighting } from './support/codeView';
 import { FakeReview } from './support/fakeReview';
 import { codeViewFiles, NESTED_FILE } from './support/files';
 import { json, type MockApi } from './support/mockApi';
@@ -59,16 +59,6 @@ function reviewWithCaller(api: MockApi, targets: Declaration[]): FakeReview {
 async function cmdClickMoney(page: Page): Promise<void> {
     await waitForHighlighting(page, CLICKED_LINE);
     await page.locator(`${CODE_HOST} [data-line="${CLICKED_LINE}"] [data-char]`).filter({ hasText: /^Money$/ }).click({ modifiers: ['ControlOrMeta'] });
-}
-
-function location(page: Page): string {
-    const url = new URL(page.url());
-
-    return `${decodeURIComponent(url.pathname)}${url.hash}`;
-}
-
-function selectedLines(page: Page): Promise<string[]> {
-    return page.locator(`${CODE_HOST} [data-line][data-selected-line]`).evaluateAll((lines) => lines.map((line) => line.getAttribute('data-line') ?? ''));
 }
 
 test.describe('CodeNavigation', () => {

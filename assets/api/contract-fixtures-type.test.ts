@@ -44,6 +44,7 @@ import listsMercureAuthorization from '../../docs/specs/fixtures/lists.mercure-a
 import listsRepositoryPage from '../../docs/specs/fixtures/lists.repository-page.json';
 import listsRequestPage from '../../docs/specs/fixtures/lists.request-page.json';
 import listsReviewPage from '../../docs/specs/fixtures/lists.review-page.json';
+import listsSearchHitList from '../../docs/specs/fixtures/lists.search-hit-list.json';
 import listsSymbolList from '../../docs/specs/fixtures/lists.symbol-list.json';
 import listsTokenList from '../../docs/specs/fixtures/lists.token-list.json';
 import listsTreeListing from '../../docs/specs/fixtures/lists.tree-listing.json';
@@ -103,6 +104,7 @@ import type {
     RepositoryPage,
     RequestPage,
     ReviewPage,
+    SearchHitList,
     SymbolList,
     TokenList,
     TreeListing,
@@ -174,6 +176,7 @@ const checkedFixtures = {
     'lists.repository-page.json': listsRepositoryPage satisfies Widen<RepositoryPage>,
     'lists.request-page.json': listsRequestPage satisfies Widen<RequestPage>,
     'lists.review-page.json': listsReviewPage satisfies Widen<ReviewPage>,
+    'lists.search-hit-list.json': listsSearchHitList satisfies Widen<SearchHitList>,
     'lists.symbol-list.json': listsSymbolList satisfies Widen<SymbolList>,
     'lists.token-list.json': listsTokenList satisfies Widen<TokenList>,
     'lists.tree-listing.json': listsTreeListing satisfies Widen<TreeListing>,

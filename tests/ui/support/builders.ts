@@ -9,7 +9,7 @@ import type { CommitDiff, CommitDiffFile } from '../../../assets/api/types/commi
 import type { Declaration } from '../../../assets/api/types/declaration';
 import type { ErrorBody, ErrorDetails } from '../../../assets/api/types/error';
 import type { Event } from '../../../assets/api/types/event';
-import type { CandidateList, DeclarationList, MercureAuthorization, ReviewPage } from '../../../assets/api/types/lists';
+import type { CandidateList, DeclarationList, MercureAuthorization, ReviewPage, SearchHitList } from '../../../assets/api/types/lists';
 import type { Me } from '../../../assets/api/types/me';
 import type { Repository } from '../../../assets/api/types/repository';
 import type { RepositoryCandidate } from '../../../assets/api/types/repository-candidate';
@@ -17,6 +17,7 @@ import type { Request } from '../../../assets/api/types/request';
 import type { RequestCommandResult } from '../../../assets/api/types/request-command-result';
 import type { RequestSummary } from '../../../assets/api/types/request-summary';
 import type { Review } from '../../../assets/api/types/review';
+import type { SearchHit } from '../../../assets/api/types/search-hit';
 import type { ThreadEntry } from '../../../assets/api/types/thread-entry';
 
 const FIXTURE_DIRECTORY = new URL('../../../docs/specs/fixtures/', import.meta.url);
@@ -88,6 +89,11 @@ export function candidateList(items: RepositoryCandidate[], overrides: Partial<C
 /** V14 with the targets that the test resolves the name to. */
 export function declarationList(reviewId: string, items: Declaration[]): DeclarationList {
     return { ...fixture<DeclarationList>('lists.declaration-list.json'), reviewId, items };
+}
+
+/** V16 with the hits that the test searches for. */
+export function searchHitList(reviewId: string, items: SearchHit[], partial = false): SearchHitList {
+    return { ...fixture<SearchHitList>('lists.search-hit-list.json'), reviewId, partial, items };
 }
 
 /** An open review with a ready symbol index and no requests. */

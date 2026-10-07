@@ -44,6 +44,7 @@ Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json). 
 | [V12](#v12-mark-a-file-as-viewed) | PUT | `/api/v1/reviews/{reviewId}/viewed-files` | S | 200 | [`lists.schema.json#/$defs/ViewedFiles`](schemas/lists.schema.json) |
 | [V13](#v13-delete-a-review) | DELETE | `/api/v1/reviews/{reviewId}` | S | 204 | none |
 | [V14](#v14-find-declarations) | GET | `/api/v1/reviews/{reviewId}/declarations?path=` | S, B | 200 | [`lists.schema.json#/$defs/DeclarationList`](schemas/lists.schema.json) |
+| [V16](#v16-search-files-and-symbols) | GET | `/api/v1/reviews/{reviewId}/search?q=` | S, B | 200 | [`lists.schema.json#/$defs/SearchHitList`](schemas/lists.schema.json) |
 | [Q1](rest-api-requests.md#q1-list-requests) | GET | `/api/v1/reviews/{reviewId}/requests` | S, B | 200 | [`lists.schema.json#/$defs/RequestPage`](schemas/lists.schema.json) |
 | [Q2](rest-api-requests.md#q2-open-a-request) | POST | `/api/v1/reviews/{reviewId}/requests` | S | 201 | [`request.schema.json`](schemas/request.schema.json) |
 | [Q3](rest-api-requests.md#q3-get-a-request) | GET | `/api/v1/requests/{requestId}` | S, B | 200 | [`request.schema.json`](schemas/request.schema.json) |
@@ -609,6 +610,46 @@ Example response to `?path=src%2FBilling%2FInvoiceTotals.php&line=12&column=24`,
   "reviewId": "01K6B3A1B2C3D4E5F6G7H8J9KM",
   "items": [
     {"path":"src/Billing/Tax/TaxRate.php","fqn":"App\\Billing\\Tax\\TaxRate","kind":"class","range":{"startLine":7,"endLine":31},"declarationStartLine":10}
+  ]
+}
+```
+
+### V16 Search files and symbols
+
+- **Request:** `GET /api/v1/reviews/{reviewId}/search?q=&limit=`
+- **Authentication:** S, B
+- **Success:** 200 [`SearchHitList`](schemas/lists.schema.json)
+- **Errors:** 422 `invalid_input`: `q` is missing, empty, longer than 1,024 characters, or holds a NUL byte, or `limit` is outside 1 to 50.
+
+| Query | Type | Default | Notes |
+|---|---|---|---|
+| `q` | string, 1 to 1024 characters | none | Required. A part of a path or of a symbol name. |
+| `limit` | integer 1-50 | 20 | |
+
+Rules:
+
+- The server reads the index of the review commit, see [V5](#v5-get-the-index-status): the paths of `indexed_file` and the PHP symbols of their blobs. It does not read the clone.
+- A file hit is a file or a symlink whose path contains `q`. Submodules give no hit.
+- A symbol hit is a symbol whose name contains `q`. The name is the short name of [V9](#v9-list-symbols), for example `total` for `App\Billing\InvoiceTotals::total()`.
+- The match ignores case. `q` is a plain substring, without wildcards.
+- Order:
+  1. by the name: equal to `q`, then starting with `q`, then containing `q`, then a file whose path contains `q` but whose name does not. The name of a file is the last segment of its path.
+  2. by the length of `path`, shorter first;
+  3. by `path` in byte order;
+  4. files before symbols, then by `declarationStartLine`, then by `fqn` in byte order.
+- The list holds the first `limit` hits. It is not paginated.
+- `partial` is true while the index state is not `ready`. The hits then come from what the index job has written: a file that the job has not listed or parsed yet gives no hit.
+
+Example response to `?q=taxrate`, [fixtures/lists.search-hit-list.json](fixtures/lists.search-hit-list.json):
+
+```json
+{
+  "reviewId": "01K6B3A1B2C3D4E5F6G7H8J9KM",
+  "partial": false,
+  "items": [
+    {"kind":"symbol","path":"src/Billing/Tax/TaxRate.php","fqn":"App\\Billing\\Tax\\TaxRate","symbolKind":"class","declarationStartLine":10},
+    {"kind":"symbol","path":"src/Billing/InvoiceTotals.php","fqn":"App\\Billing\\InvoiceTotals::$taxRate","symbolKind":"property","declarationStartLine":12},
+    {"kind":"file","path":"src/Billing/Tax/TaxRate.php"}
   ]
 }
 ```

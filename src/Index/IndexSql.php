@@ -14,6 +14,7 @@ use App\Domain\Identity\TenantId;
 use App\Git\TreeEntry;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Types\Types;
 
 /**
@@ -44,6 +45,24 @@ final class IndexSql
         JOIN indexed_file listed ON listed.tenant_id = stored.tenant_id AND listed.repository_id = stored.repository_id AND listed.blob_sha = stored.blob_sha
         WHERE stored.tenant_id = :tenantId AND stored.repository_id = :repositoryId AND stored.fqn_sha256 IN (:fqnSha256s) AND stored.fqn IN (:fqns)
         AND listed.commit_sha = :commitSha
+        SQL;
+    /** `name` is lower case: the last path segment of a file, the short name of a symbol. Mode 160000 is a submodule. */
+    private const string SEARCH = <<<'SQL'
+        SELECT hit.kind, hit.path, hit.fqn, hit.symbol_kind, hit.declaration_start_line FROM (
+            SELECT 'file' AS kind, listed.path, NULL AS fqn, NULL AS symbol_kind, NULL AS declaration_start_line, lower(split_part(listed.path, '/', -1)) AS name
+            FROM indexed_file listed
+            WHERE listed.tenant_id = :tenantId AND listed.repository_id = :repositoryId AND listed.commit_sha = :commitSha
+            AND listed.mode <> '160000' AND strpos(lower(listed.path), lower(:query)) > 0
+            UNION ALL
+            SELECT 'symbol', listed.path, stored.fqn, stored.kind, stored.declaration_start_line, lower(stored.name)
+            FROM indexed_file listed
+            JOIN symbol stored ON stored.tenant_id = listed.tenant_id AND stored.repository_id = listed.repository_id AND stored.blob_sha = listed.blob_sha
+            WHERE listed.tenant_id = :tenantId AND listed.repository_id = :repositoryId AND listed.commit_sha = :commitSha
+            AND strpos(lower(stored.name), lower(:query)) > 0
+        ) hit
+        ORDER BY CASE WHEN hit.name = lower(:query) THEN 0 WHEN starts_with(hit.name, lower(:query)) THEN 1 WHEN strpos(hit.name, lower(:query)) > 0 THEN 2 ELSE 3 END,
+            length(hit.path), hit.path COLLATE "C", hit.kind, hit.declaration_start_line, hit.fqn COLLATE "C"
+        LIMIT :limit
         SQL;
     private const string DELETE_SYMBOLS = 'DELETE FROM symbol WHERE tenant_id = :tenantId AND repository_id = :repositoryId';
     private const string DELETE_BLOBS = 'DELETE FROM indexed_blob WHERE tenant_id = :tenantId AND repository_id = :repositoryId';
@@ -176,6 +195,24 @@ final class IndexSql
         usort($declarations, Declaration::compare(...));
 
         return $declarations;
+    }
+
+    /**
+     * V16: the files and symbols of the commit whose path or name contains $query, in the V16 order.
+     *
+     * @return list<FileHit|SymbolHit>
+     */
+    public function search(TenantId $tenantId, RepositoryId $repositoryId, CommitSha $commit, string $query, int $limit): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            self::SEARCH,
+            ['tenantId' => $tenantId->toRfc4122(), 'repositoryId' => $repositoryId->toRfc4122(), 'commitSha' => $commit->toString(), 'query' => $query, 'limit' => $limit],
+            ['limit' => ParameterType::INTEGER],
+        );
+
+        return array_map(static fn (array $row): FileHit|SymbolHit => 'file' === $row['kind']
+            ? new FileHit(RepoPath::fromString((string) $row['path']))
+            : new SymbolHit(RepoPath::fromString((string) $row['path']), (string) $row['fqn'], SymbolKind::from((string) $row['symbol_kind']), (int) $row['declaration_start_line']), $rows);
     }
 
     /**

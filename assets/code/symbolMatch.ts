@@ -29,8 +29,8 @@ export function duplicateFqns(symbols: readonly CodeSymbol[]): ReadonlySet<strin
 }
 
 /** For example "class constant" for `class_constant`. */
-export function symbolKindLabel(symbol: CodeSymbol): string {
-    return symbol.kind.replaceAll('_', ' ');
+export function symbolKindLabel({ kind }: Pick<CodeSymbol, 'kind'>): string {
+    return kind.replaceAll('_', ' ');
 }
 
 /** The name as the FQN ends: `total()`, `$taxRate`, `SCALE`. */

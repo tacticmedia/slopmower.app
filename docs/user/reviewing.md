@@ -101,6 +101,16 @@ With the keyboard, move to **Go to declaration** in the file header with Tab, ty
 
 The browser's Back button returns to the line that you clicked. A method call on a variable, such as `$invoice->total()`, has no target, because it needs the type of the variable.
 
+## Quick open
+
+Click **Quick open** in the review header, or press Cmd+K (Ctrl+K outside macOS), and type a part of a file path or of a symbol name. The list shows the files and the PHP symbols of the review commit that contain your text, in any case. A name equal to your text comes first, then names that start with it, then names that contain it, then paths that contain it. Shorter paths come first within each group.
+
+- Move through the list with the arrow keys and press Enter, or click a hit.
+- A file opens at its start. A symbol opens its file at the first line of its declaration, below any doc comment, and that line is selected.
+- Escape closes the dialog. It does not leave focus mode.
+
+The shortcut also works in focus mode. It does nothing while you type in a comment box or another text field. **Index in progress** means that the symbol index has not finished, so some files and symbols are not in the list yet. **Index failed: hits may be missing** means that the symbol index of the review failed, so the list can stay incomplete.
+
 ## Wrap long lines
 
 **Wrap lines** in the file header wraps long lines in the code and in the changes of linked commits, and your browser remembers the choice.
