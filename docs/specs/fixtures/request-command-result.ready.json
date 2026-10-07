@@ -41,7 +41,7 @@
     "requireApproval": false,
     "proposal": null
   },
-  "allowedActions": ["reply"],
+  "allowedActions": ["reply", "link_pull_request"],
   "events": [
     {
       "seq": 1852,
@@ -64,6 +64,7 @@
       "question": false,
       "batchId": null,
       "commitSha": null,
+      "pullRequestUrl": null,
       "statusAfter": "ready_for_review"
     }
   ]

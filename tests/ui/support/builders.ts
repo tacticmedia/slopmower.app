@@ -141,6 +141,7 @@ export function threadEntry(seq: number, type: ThreadEntryType, actor: ThreadEnt
         question: false,
         batchId: null,
         commitSha: null,
+        pullRequestUrl: null,
         statusAfter,
     };
 }

@@ -21,6 +21,7 @@ use App\Domain\Location\LocationTarget;
 use App\Domain\Request\AllowedActions;
 use App\Domain\Request\Awaiting;
 use App\Domain\Request\CommitLinkState;
+use App\Domain\Request\PullRequestUrl;
 use App\Domain\Request\RequestStatus;
 use App\Entity\ChangeRequest;
 use App\Entity\Comment;
@@ -161,6 +162,21 @@ final class RequestQuery
             $state,
             $this->summaries(array_map($this->fresh(...), $requestIds)),
             // A commit.linked event has no subject request, so its Event.statusAfter is null.
+            array_map(static fn (RecordedEvent $event): EventView => new EventView($event, null), $events),
+        );
+    }
+
+    /**
+     * @param list<RequestId>     $requestIds The requests that the command named
+     * @param list<RecordedEvent> $events     The pull_request.linked event that the command wrote, if any
+     *
+     * @throws NotFound
+     */
+    public function linkPullRequestResult(PullRequestUrl $url, array $requestIds, array $events): LinkPullRequestResult
+    {
+        return new LinkPullRequestResult(
+            $url,
+            $this->summaries(array_map($this->fresh(...), $requestIds)),
             array_map(static fn (RecordedEvent $event): EventView => new EventView($event, null), $events),
         );
     }

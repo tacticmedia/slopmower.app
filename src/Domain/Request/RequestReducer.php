@@ -8,6 +8,7 @@ use App\Domain\Actor\ActorKind;
 use App\Domain\Event\CommitFoundEvent;
 use App\Domain\Event\CommitLinkedEvent;
 use App\Domain\Event\CommitUnlinkedEvent;
+use App\Domain\Event\PullRequestLinkedEvent;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Event\RequestClaimedEvent;
 use App\Domain\Event\RequestCommentedEvent;
@@ -24,7 +25,7 @@ use App\Domain\Identity\EventId;
 use App\Domain\Identity\RequestId;
 
 /**
- * Applies the thread entries of one request: its request events and the commit events that name it.
+ * Applies the thread entries of one request: its request events and the commit and pull request events that name it.
  * Review events and batch.submitted leave the state unchanged.
  */
 final class RequestReducer
@@ -71,6 +72,7 @@ final class RequestReducer
                     $state->links,
                 ),
             ],
+            $event instanceof PullRequestLinkedEvent => ['pullRequestUrls' => [...$state->pullRequestUrls, $event->url]],
             $event instanceof RequestReadyForReviewEvent => [
                 ...self::UNCLAIMED,
                 'status' => RequestStatus::ReadyForReview,
@@ -120,6 +122,7 @@ final class RequestReducer
             wontDoBy: null,
             resolution: null,
             links: [],
+            pullRequestUrls: [],
             lastUserCommentSeq: null,
             lastAgentEventSeq: null,
             lastAgentEventIsQuestion: false,
@@ -142,6 +145,8 @@ final class RequestReducer
     }
 
     /**
+     * A pull request link is no agent event for the `awaiting` rules, so it never takes the turn from the user.
+     *
      * @return array{lastEventSeq: int, updatedAt: \DateTimeImmutable, lastAgentEventSeq?: int, lastAgentEventIsQuestion?: bool, lastUserCommentSeq?: int}
      */
     private static function tracking(RecordedEvent $recorded): array
@@ -150,6 +155,10 @@ final class RequestReducer
         $event = $recorded->event;
         $isComment = $event instanceof RequestCommentedEvent;
         $isUserMessage = $isComment || $event instanceof RequestProposalApprovedEvent || $event instanceof RequestProposalRejectedEvent;
+
+        if ($event instanceof PullRequestLinkedEvent) {
+            return $tracking;
+        }
 
         if (ActorKind::Agent === $recorded->actor->kind) {
             $tracking['lastAgentEventSeq'] = $recorded->seq;
@@ -165,7 +174,7 @@ final class RequestReducer
     {
         $event = $recorded->event;
         $named = match (true) {
-            $event instanceof CommitLinkedEvent, $event instanceof CommitFoundEvent => $event->requestIds,
+            $event instanceof CommitLinkedEvent, $event instanceof CommitFoundEvent, $event instanceof PullRequestLinkedEvent => $event->requestIds,
             $event instanceof CommitUnlinkedEvent => [$event->requestId],
             default => [$recorded->requestId],
         };

@@ -12,6 +12,7 @@ use App\Domain\Event\CommitFoundEvent;
 use App\Domain\Event\CommitLinkedEvent;
 use App\Domain\Event\CommitUnlinkedEvent;
 use App\Domain\Event\DecidedEvent;
+use App\Domain\Event\PullRequestLinkedEvent;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Git\BlobSha;
 use App\Domain\Git\CommitInfo;
@@ -23,9 +24,11 @@ use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Identity\TenantId;
 use App\Domain\Identity\UserId;
+use App\Domain\Repository\RepositoryName;
 use App\Domain\Request\Command\ApproveProposal;
 use App\Domain\Request\Command\Claim;
 use App\Domain\Request\Command\LinkCommits;
+use App\Domain\Request\Command\LinkPullRequest;
 use App\Domain\Request\Command\MarkReadyForReview;
 use App\Domain\Request\Command\MarkWontDo;
 use App\Domain\Request\Command\Open;
@@ -62,6 +65,8 @@ final class RequestScenario
     public const string LINKED_COMMIT = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678';
     public const string OTHER_COMMIT = 'e5f6a7b8c9d0e1f2a3b4c5d6e7f8091a2b3c4d5e';
     public const string REASON = 'The current rounding is required by the tax office.';
+    public const string REPOSITORY = 'acme/billing';
+    public const string PULL_REQUEST = 'https://github.com/acme/billing/pull/42';
     private const string USER_ID = '01K6AZZ9Y8X7W6V5T4S3R2Q1P0';
     private const string REVIEW_COMMIT = '79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091';
     private const string PLAN = 'Extract `TaxRounding` and call it from `total()` and `tax()`.';
@@ -191,6 +196,7 @@ final class RequestScenario
             'release' => new Release($id),
             'link_commits' => new LinkCommits(CommitSha::fromString(self::OTHER_COMMIT), [$id]),
             'unlink_commit' => new UnlinkCommit($id, CommitSha::fromString(self::LINKED_COMMIT)),
+            'link_pull_request' => new LinkPullRequest(self::PULL_REQUEST, [$id], RepositoryName::github(self::REPOSITORY)),
             'mark_ready_for_review' => new MarkReadyForReview($id, 'Extracted TaxRounding.'),
             'mark_wont_do' => new MarkWontDo($id, self::REASON),
             'verify' => new Verify($id),
@@ -270,7 +276,7 @@ final class RequestScenario
         $recorded = $this->recorded($decided, $actor);
         $event = $decided->event;
         $requestIds = match (true) {
-            $event instanceof CommitLinkedEvent, $event instanceof CommitFoundEvent => $event->requestIds,
+            $event instanceof CommitLinkedEvent, $event instanceof CommitFoundEvent, $event instanceof PullRequestLinkedEvent => $event->requestIds,
             $event instanceof CommitUnlinkedEvent => [$event->requestId],
             default => null === $decided->requestId ? [] : [$decided->requestId],
         };

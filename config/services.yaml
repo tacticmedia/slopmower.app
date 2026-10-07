@@ -14,7 +14,7 @@ parameters:
         3. get_updates(review) without a cursor returns what waits for you. Keep the returned cursor and pass it in the next call; if hasMore is true, call again at once.
         4. For each request with awaiting "agent", reopened ones first: get_request, then reply_to_request (question: true when you need an answer, then move on), or claim_request before you edit code.
         5. When requireApproval is true, or the request is unclear or large, propose_solution after the claim and take the next request. The decision comes back through get_updates. Link no commit before proposal.state is approved; on "rejected", read the note and propose again.
-        6. Commit per request, then link_commits with the full SHA and every request that the commit covers. GitHub repositories: push before mark_ready_for_review. Local repositories: committing is enough.
+        6. Commit per request, then link_commits with the full SHA and every request that the commit covers. GitHub repositories: push before mark_ready_for_review. Local repositories: committing is enough. If you opened a pull request for the work, link_pull_request with its URL and every request that it covers.
         7. Finish with mark_ready_for_review (what changed, how you tested it), or mark_wont_do with evidence the user can check, or release_request if you stop.
 
         Never verify, reopen, create requests, or decide on proposals. Errors are isError results whose text is {"error":{"code","message","details"}}. On invalid_transition call get_request and read allowedActions and proposal. On review_closed stop working on that review.

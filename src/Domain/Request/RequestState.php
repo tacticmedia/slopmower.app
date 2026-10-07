@@ -17,7 +17,8 @@ use App\Domain\Identity\ReviewId;
 final readonly class RequestState
 {
     /**
-     * @param list<LinkedCommit> $links In link order
+     * @param list<LinkedCommit>   $links           In link order
+     * @param list<PullRequestUrl> $pullRequestUrls In link order
      */
     public function __construct(
         public RequestId $id,
@@ -33,6 +34,7 @@ final readonly class RequestState
         public ?ActorKind $wontDoBy,
         public ?Resolution $resolution,
         public array $links,
+        public array $pullRequestUrls,
         public ?int $lastUserCommentSeq,
         public ?int $lastAgentEventSeq,
         public bool $lastAgentEventIsQuestion,
@@ -46,7 +48,7 @@ final readonly class RequestState
     }
 
     /**
-     * @param array{status?: RequestStatus, statusBeforeClaim?: ?RequestStatus, claimedBy?: ?Actor, claimedAt?: ?\DateTimeImmutable, wontDoBy?: ?ActorKind, resolution?: ?Resolution, links?: list<LinkedCommit>, lastUserCommentSeq?: ?int, lastAgentEventSeq?: ?int, lastAgentEventIsQuestion?: bool, lastEventSeq?: int, updatedAt?: \DateTimeImmutable, proposal?: ?Proposal} $changes
+     * @param array{status?: RequestStatus, statusBeforeClaim?: ?RequestStatus, claimedBy?: ?Actor, claimedAt?: ?\DateTimeImmutable, wontDoBy?: ?ActorKind, resolution?: ?Resolution, links?: list<LinkedCommit>, pullRequestUrls?: list<PullRequestUrl>, lastUserCommentSeq?: ?int, lastAgentEventSeq?: ?int, lastAgentEventIsQuestion?: bool, lastEventSeq?: int, updatedAt?: \DateTimeImmutable, proposal?: ?Proposal} $changes
      */
     public function with(array $changes): self
     {
@@ -76,6 +78,11 @@ final readonly class RequestState
         }
 
         return null;
+    }
+
+    public function hasPullRequest(PullRequestUrl $url): bool
+    {
+        return array_any($this->pullRequestUrls, static fn (PullRequestUrl $linked): bool => $linked->equals($url));
     }
 
     private function assertConsistent(): void

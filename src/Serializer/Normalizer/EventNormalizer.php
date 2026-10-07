@@ -10,6 +10,7 @@ use App\Domain\Event\CommitFoundEvent;
 use App\Domain\Event\CommitLinkedEvent;
 use App\Domain\Event\CommitUnlinkedEvent;
 use App\Domain\Event\DomainEvent;
+use App\Domain\Event\PullRequestLinkedEvent;
 use App\Domain\Event\RequestCommentedEvent;
 use App\Domain\Event\RequestOpenedEvent;
 use App\Domain\Event\RequestProposalApprovedEvent;
@@ -65,6 +66,7 @@ final class EventNormalizer implements NormalizerInterface, NormalizerAwareInter
                 $event instanceof CommitLinkedEvent, $event instanceof CommitUnlinkedEvent, $event instanceof CommitFoundEvent, $event instanceof ReviewStartedEvent => $event->commitSha,
                 default => null,
             },
+            'pullRequestUrl' => $event instanceof PullRequestLinkedEvent ? $event->url : null,
             'statusAfter' => $data->statusAfter,
         ], $format, $context);
         \assert(\is_array($normalized));
@@ -93,7 +95,7 @@ final class EventNormalizer implements NormalizerInterface, NormalizerAwareInter
         return match (true) {
             $event instanceof RequestOpenedEvent, $event instanceof RequestCommentedEvent => $event->body,
             $event instanceof RequestReleasedEvent, $event instanceof RequestReadyForReviewEvent, $event instanceof RequestVerifiedEvent,
-            $event instanceof RequestReopenedEvent, $event instanceof CommitLinkedEvent, $event instanceof ReviewClosedEvent,
+            $event instanceof RequestReopenedEvent, $event instanceof CommitLinkedEvent, $event instanceof PullRequestLinkedEvent, $event instanceof ReviewClosedEvent,
             $event instanceof RequestProposalApprovedEvent, $event instanceof RequestProposalRejectedEvent => $event->note,
             $event instanceof RequestProposedEvent => $event->plan,
             $event instanceof RequestWontDoEvent => $event->reason->toString(),

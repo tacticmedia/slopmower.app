@@ -1,5 +1,5 @@
 import type { Actor } from './actor';
-import type { CommitSha, DateTime, EventSeq, RequestStatus, ThreadEntryType, Ulid, UnifiedDiff } from './common';
+import type { CommitSha, DateTime, EventSeq, PullRequestUrl, RequestStatus, ThreadEntryType, Ulid, UnifiedDiff } from './common';
 
 export type ThreadEntry = {
     seq: EventSeq;
@@ -18,5 +18,7 @@ export type ThreadEntry = {
     batchId: Ulid | null;
     /** commit.* only. */
     commitSha: CommitSha | null;
+    /** pull_request.linked only. */
+    pullRequestUrl: PullRequestUrl | null;
     statusAfter: RequestStatus;
 };

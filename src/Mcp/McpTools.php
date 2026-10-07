@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Mcp;
 
 use App\Application\Query\LinkCommitsResult;
+use App\Application\Query\LinkPullRequestResult;
 use App\Application\Query\RepositoryPage;
 use App\Application\Query\RepositoryQuery;
 use App\Application\Query\RequestCommandResult;
@@ -61,6 +62,7 @@ final class McpTools
     private const string ULID = '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$';
     private const string FULL_SHA = '^([0-9a-f]{40}|[0-9a-f]{64})$';
     private const string SHA_PREFIX = '^[0-9a-f]{7,64}$';
+    private const string PULL_REQUEST_URL = '^https://\S+$';
 
     public function __construct(
         private readonly RequestCommands $commands,
@@ -175,6 +177,35 @@ final class McpTools
                 array_values(array_map(static fn (string $id): RequestId => RequestId::fromString($id, 'requestIds'), $requestIds)),
                 $note,
             ),
+            $this->currentActor->get(),
+        ));
+    }
+
+    /**
+     * Section 4.14: REST Q17.
+     *
+     * @param string   $url        Pull request URL
+     * @param string[] $requestIds Every request that this pull request covers, all from one review
+     * @param ?string  $note       Optional note shown with the link
+     *
+     * @return array<string, mixed>
+     */
+    #[McpTool(
+        name: 'link_pull_request',
+        title: 'Link pull request',
+        description: "Record that a pull request implements one or more requests: each one in_progress and held by you, or ready_for_review. For a GitHub repository the URL is https://github.com/{owner}/{name}/pull/{number} of the reviewed repository. Linking does not change the status. Open a pull request only when the user or the repository's instructions ask for it.",
+        annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false),
+        outputSchema: BundledSchemas::LINK_PULL_REQUEST_RESULT,
+    )]
+    public function linkPullRequest(
+        #[Schema(pattern: self::PULL_REQUEST_URL, maxLength: 2048)] string $url,
+        #[Schema(items: ['type' => 'string', 'pattern' => self::ULID], minItems: 1, maxItems: 50, uniqueItems: true)] array $requestIds,
+        #[Schema(maxLength: 65536)] ?string $note = null,
+    ): array {
+        return $this->run('link_pull_request', fn (): LinkPullRequestResult => $this->commands->linkPullRequest(
+            $url,
+            array_values(array_map(static fn (string $id): RequestId => RequestId::fromString($id, 'requestIds'), $requestIds)),
+            $note,
             $this->currentActor->get(),
         ));
     }

@@ -32,9 +32,10 @@ final class ToolsListContractTest extends WebTestCase
         'requestId' => 'common.schema.json#/$defs/Ulid',
         'requestIds' => 'common.schema.json#/$defs/Ulid',
         'review' => 'common.schema.json#/$defs/Ulid',
+        'url' => 'common.schema.json#/$defs/PullRequestUrl',
     ];
 
-    #[TestDox('tools/list names, input schemas, and annotations of all 13 tools equal docs/specs')]
+    #[TestDox('tools/list names, input schemas, and annotations of all 14 tools equal docs/specs')]
     public function testToolsEqualDocsSpecs(): void
     {
         $listed = $this->listedTools();

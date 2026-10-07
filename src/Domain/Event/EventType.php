@@ -17,6 +17,7 @@ enum EventType: string
     case CommitLinked = 'commit.linked';
     case CommitUnlinked = 'commit.unlinked';
     case CommitFound = 'commit.found';
+    case PullRequestLinked = 'pull_request.linked';
     case RequestReadyForReview = 'request.ready_for_review';
     case RequestWontDo = 'request.wont_do';
     case RequestVerified = 'request.verified';
@@ -41,6 +42,7 @@ enum EventType: string
             self::CommitLinked => CommitLinkedEvent::class,
             self::CommitUnlinked => CommitUnlinkedEvent::class,
             self::CommitFound => CommitFoundEvent::class,
+            self::PullRequestLinked => PullRequestLinkedEvent::class,
             self::RequestReadyForReview => RequestReadyForReviewEvent::class,
             self::RequestWontDo => RequestWontDoEvent::class,
             self::RequestVerified => RequestVerifiedEvent::class,
@@ -63,7 +65,7 @@ enum EventType: string
     }
 
     /**
-     * The `requestId` column is set exactly for these. Review, batch, and commit events have none.
+     * The `requestId` column is set exactly for these. Review, batch, commit, and pull request events have none.
      */
     public function isRequestEvent(): bool
     {

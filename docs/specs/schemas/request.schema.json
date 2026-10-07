@@ -4,7 +4,7 @@
   "title": "Request",
   "description": "A request in full. Same fields as RequestSummary, with the full anchor and more.",
   "type": "object",
-  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq", "carriedFrom", "requireApproval", "proposal", "body", "reviewState", "reviewCommitSha", "location", "excerpt", "thread", "commits", "allowedActions"],
+  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq", "carriedFrom", "requireApproval", "proposal", "body", "reviewState", "reviewCommitSha", "location", "excerpt", "thread", "commits", "pullRequestUrls", "allowedActions"],
   "properties": {
     "id": {
       "$ref": "common.schema.json#/$defs/Ulid"
@@ -164,6 +164,14 @@
       "items": {
         "$ref": "commit-link.schema.json"
       }
+    },
+    "pullRequestUrls": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/PullRequestUrl"
+      },
+      "description": "In link order."
     },
     "allowedActions": {
       "type": "array",

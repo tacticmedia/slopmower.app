@@ -93,6 +93,7 @@
       "question": false,
       "batchId": null,
       "commitSha": null,
+      "pullRequestUrl": null,
       "statusAfter": "open"
     },
     {
@@ -113,6 +114,7 @@
       "question": false,
       "batchId": "01K6B3P1Z8Y7X6W5V4T3S2R1Q0",
       "commitSha": null,
+      "pullRequestUrl": null,
       "statusAfter": "open"
     },
     {
@@ -133,9 +135,11 @@
       "question": false,
       "batchId": null,
       "commitSha": null,
+      "pullRequestUrl": null,
       "statusAfter": "in_progress"
     }
   ],
   "commits": [],
-  "allowedActions": ["reply", "release", "link_commits", "mark_ready_for_review", "mark_wont_do", "propose_solution"]
+  "pullRequestUrls": [],
+  "allowedActions": ["reply", "release", "link_commits", "link_pull_request", "mark_ready_for_review", "mark_wont_do", "propose_solution"]
 }

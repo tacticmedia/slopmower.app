@@ -48,7 +48,7 @@ Holistic Review stores change requests that the user wrote while reviewing this 
 3. get_updates(review) without a cursor returns what waits for you. Keep the returned cursor and pass it in the next call; if hasMore is true, call again at once.
 4. For each request with awaiting "agent", reopened ones first: get_request, then reply_to_request (question: true when you need an answer, then move on), or claim_request before you edit code.
 5. When requireApproval is true, or the request is unclear or large, propose_solution after the claim and take the next request. The decision comes back through get_updates. Link no commit before proposal.state is approved; on "rejected", read the note and propose again.
-6. Commit per request, then link_commits with the full SHA and every request that the commit covers. GitHub repositories: push before mark_ready_for_review. Local repositories: committing is enough.
+6. Commit per request, then link_commits with the full SHA and every request that the commit covers. GitHub repositories: push before mark_ready_for_review. Local repositories: committing is enough. If you opened a pull request for the work, link_pull_request with its URL and every request that it covers.
 7. Finish with mark_ready_for_review (what changed, how you tested it), or mark_wont_do with evidence the user can check, or release_request if you stop.
 
 Never verify, reopen, create requests, or decide on proposals. Errors are isError results whose text is {"error":{"code","message","details"}}. On invalid_transition call get_request and read allowedActions and proposal. On review_closed stop working on that review.
@@ -67,6 +67,7 @@ Never verify, reopen, create requests, or decide on proposals. Errors are isErro
   - `ULID = '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'`
   - `FULL_SHA = '^([0-9a-f]{40}|[0-9a-f]{64})$'`
   - `SHA_PREFIX = '^[0-9a-f]{7,64}$'`
+  - `PULL_REQUEST_URL = '^https://\S+$'`
 - **Schema generation.** In SDK 0.8.1, `?string $x = null` generates `{"type":["null","string"],"default":null}`, and `?int` generates `["null","integer"]`: null comes first. A nullable backed enum generates `{"type":["string","null"],"enum":[..., null],"default":null}`. A parameter without a default is required. An empty `required` list is left out. The docblock type `list<string>` produces an empty `items` schema `{}`, so array parameters need `#[Schema(items: ...)]`.
 
 ## 4. Tools
@@ -88,6 +89,7 @@ The `inputSchema` blocks below are what the SDK 0.8.1 `SchemaGenerator` generate
 | [`mark_ready_for_review`](#411-mark_ready_for_review) | Mark ready for review | false | false | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) | [Q10](rest-api-requests.md#q10-mark-ready-for-review) |
 | [`mark_wont_do`](#412-mark_wont_do) | Mark won't do | false | false | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) | [Q11](rest-api-requests.md#q11-mark-wont-do) |
 | [`propose_solution`](#413-propose_solution) | Propose solution | false | false | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) | [Q14](rest-api-requests.md#q14-propose-a-solution) |
+| [`link_pull_request`](#414-link_pull_request) | Link pull request | false | true | [`link-pull-request-result.schema.json`](schemas/link-pull-request-result.schema.json) | [Q17](rest-api-requests.md#q17-link-a-pull-request-to-requests) |
 
 Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 
@@ -502,6 +504,42 @@ public function proposeSolution(#[Schema(pattern: self::ULID)] string $id, #[Sch
 - **Errors:** `not_found`, `review_closed`, `invalid_transition`, `invalid_input` for a plan of whitespace only or a diff that is not a git diff of 1 to 9 files.
 - **Example:** arguments as in [fixtures/inputs.propose-solution.json](fixtures/inputs.propose-solution.json) plus `id` give [fixtures/request-command-result.proposed.json](fixtures/request-command-result.proposed.json).
 
+### 4.14 `link_pull_request`
+
+- **Title:** `Link pull request`
+- **Description:**
+
+```text
+Record that a pull request implements one or more requests: each one in_progress and held by you, or ready_for_review. For a GitHub repository the URL is https://github.com/{owner}/{name}/pull/{number} of the reviewed repository. Linking does not change the status. Open a pull request only when the user or the repository's instructions ask for it.
+```
+
+```php
+/**
+ * @param string   $url        Pull request URL
+ * @param string[] $requestIds Every request that this pull request covers, all from one review
+ * @param ?string  $note       Optional note shown with the link
+ */
+#[McpTool(name: 'link_pull_request', title: 'Link pull request', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false), outputSchema: BundledSchemas::LINK_PULL_REQUEST_RESULT)]
+public function linkPullRequest(
+    #[Schema(pattern: self::PULL_REQUEST_URL, maxLength: 2048)] string $url,
+    #[Schema(items: ['type' => 'string', 'pattern' => self::ULID], minItems: 1, maxItems: 50, uniqueItems: true)] array $requestIds,
+    #[Schema(maxLength: 65536)] ?string $note = null,
+): array
+```
+
+```json
+{"type":"object","properties":{
+ "url":{"type":"string","description":"Pull request URL","maxLength":2048,"pattern":"^https://\\S+$"},
+ "requestIds":{"type":"array","description":"Every request that this pull request covers, all from one review","items":{"type":"string","pattern":"^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"},"minItems":1,"maxItems":50,"uniqueItems":true},
+ "note":{"type":["null","string"],"description":"Optional note shown with the link","default":null,"maxLength":65536}},
+ "required":["url","requestIds"]}
+```
+
+- **Output:** [`link-pull-request-result.schema.json`](schemas/link-pull-request-result.schema.json).
+- **Behaviour:** REST Q17. One URL, 1 to 50 request IDs of one review. Linking an existing pair again is a no-op. The link changes neither the status nor `awaiting`.
+- **Errors:** `not_found`, `review_closed`, `invalid_transition`, `invalid_input` for requests from several reviews or a pull request of another GitHub repository.
+- **Example:** arguments as in [fixtures/inputs.link-pull-request.json](fixtures/inputs.link-pull-request.json) give [fixtures/link-pull-request-result.linked.json](fixtures/link-pull-request-result.linked.json).
+
 ## 5. Error codes in MCP
 
 | Code | Delivered as | Agent action |
@@ -534,6 +572,7 @@ public function proposeSolution(#[Schema(pattern: self::ULID)] string $id, #[Sch
 | `mark_ready_for_review` | `POST /api/v1/requests/{id}/ready` |
 | `mark_wont_do` | `POST /api/v1/requests/{id}/wont-do` |
 | `propose_solution` | `POST /api/v1/requests/{id}/propose` |
+| `link_pull_request` | `POST /api/v1/pull-request-links` |
 
 `McpRestParityTest` compares the MCP and REST payloads of every tool: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, and every write tool.
 
@@ -549,8 +588,8 @@ The response. The members `"...": "..."` stand for the rest of [fixtures/request
 
 ```json
 {"jsonrpc":"2.0","id":4,"result":{
- "content":[{"type":"text","text":"{\"request\":{\"id\":\"01K6B3P2A9QRSTVWXYZ0123456\",\"status\":\"in_progress\",\"...\":\"...\"},\"allowedActions\":[\"reply\",\"release\",\"link_commits\",\"mark_ready_for_review\",\"mark_wont_do\",\"propose_solution\"],\"events\":[{\"seq\":1840,\"type\":\"request.claimed\",\"...\":\"...\"}]}"}],
- "structuredContent":{"request":{"id":"01K6B3P2A9QRSTVWXYZ0123456","status":"in_progress","awaiting":"agent","...":"..."},"allowedActions":["reply","release","link_commits","mark_ready_for_review","mark_wont_do","propose_solution"],"events":[{"seq":1840,"type":"request.claimed","...":"..."}]},
+ "content":[{"type":"text","text":"{\"request\":{\"id\":\"01K6B3P2A9QRSTVWXYZ0123456\",\"status\":\"in_progress\",\"...\":\"...\"},\"allowedActions\":[\"reply\",\"release\",\"link_commits\",\"link_pull_request\",\"mark_ready_for_review\",\"mark_wont_do\",\"propose_solution\"],\"events\":[{\"seq\":1840,\"type\":\"request.claimed\",\"...\":\"...\"}]}"}],
+ "structuredContent":{"request":{"id":"01K6B3P2A9QRSTVWXYZ0123456","status":"in_progress","awaiting":"agent","...":"..."},"allowedActions":["reply","release","link_commits","link_pull_request","mark_ready_for_review","mark_wont_do","propose_solution"],"events":[{"seq":1840,"type":"request.claimed","...":"..."}]},
  "isError":false}}
 ```
 

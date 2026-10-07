@@ -10,14 +10,15 @@ use App\Domain\Git\RefName;
 use App\Domain\Git\RepoPath;
 use App\Domain\Identity\Identifier;
 use App\Domain\Repository\RepositoryName;
+use App\Domain\Request\PullRequestUrl;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
 /**
- * IDs as upper-case ULIDs, SHAs in lower case, paths, refs, and names as they are.
+ * IDs as upper-case ULIDs, SHAs in lower case, paths, refs, names, and URLs as they are.
  */
 final class ValueObjectNormalizer implements NormalizerInterface
 {
-    private const array TYPES = [Identifier::class, CommitSha::class, BlobSha::class, RepoPath::class, RefName::class, RepositoryName::class];
+    private const array TYPES = [Identifier::class, CommitSha::class, BlobSha::class, RepoPath::class, RefName::class, RepositoryName::class, PullRequestUrl::class];
 
     /**
      * @param array<string, mixed> $context

@@ -9,9 +9,9 @@ This directory is the v1 contract of Holistic Review: the REST API, the MCP serv
 | [README.md](README.md) | Conventions, authentication, errors, pagination, caching, repository sources, versioning, schema and fixture index |
 | [rest-api.md](rest-api.md) | REST endpoint index, account, repositories, reviews and code |
 | [rest-api-requests.md](rest-api-requests.md) | REST requests, updates, drafts, API tokens, and the routes outside `/api/v1` |
-| [mcp.md](mcp.md) | MCP endpoint, server instructions, the 13 tools, error mapping, parity with REST |
+| [mcp.md](mcp.md) | MCP endpoint, server instructions, the 14 tools, error mapping, parity with REST |
 | [webhooks-and-live-updates.md](webhooks-and-live-updates.md) | GitHub webhooks, fetch triggers and post-fetch steps, Mercure live updates |
-| [schemas/](schemas/) | 30 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
+| [schemas/](schemas/) | 31 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
 | [fixtures/](fixtures/) | One realistic example per response shape, error code, live-update type, and request body. See [section 11](#11-fixtures). |
 
 ## 2. Conventions
@@ -41,6 +41,7 @@ This directory is the v1 contract of Holistic Review: the REST API, the MCP serv
 | `reason` of won't do | at least 20 characters after trimming, at most 65,536 characters |
 | review `title` | 1 to 200 characters |
 | `ref` | 1 to 255 characters |
+| pull request `url` | `https`, at most 2,048 characters, no whitespace. For a GitHub repository, `https://github.com/{owner}/{name}/pull/{number}` of the review's repository, compared case-insensitively. The server stores such a URL with the repository name as connected. A local repository accepts any such URL as written. |
 | token `name` | 1 to 64 characters, pattern in [api-token.schema.json](schemas/api-token.schema.json) |
 
 ## 3. Authentication, actors, and scope
@@ -174,6 +175,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 10. **Amendments before the first release.** Until the first release, v1 is amended in place, without a v2, because its only clients are the web UI and the bundled skill. The amendments:
     - General requests, decision D45 of [architecture.md](../architecture.md) section 11: `anchor` is nullable in `Request`, `RequestSummary`, and `Draft`, and optional in `OpenRequestInput` and `CreateDraftInput`.
     - Agent proposals, decision D49: `link_commits` and `mark_ready_for_review` are refused while a proposal is pending or rejected, and while `requireApproval` holds without an approved proposal. `awaiting` rule 2 counts a proposal decision as a user message, and rule 3 also matches a pending proposal. `request.opened` has the payload field `requireApproval`, read as false when missing. New: the actions `propose_solution`, `approve_proposal`, and `reject_proposal`, three event and thread entry types, the closed set `ProposalState` on the new property `proposal`, and `diff` in `Event` and `ThreadEntry`.
+    - Pull request links, decision D50: the endpoint Q17 and the tool `link_pull_request`, the `Action` value `link_pull_request`, the `EventType` and `ThreadEntryType` value `pull_request.linked`, `Request.pullRequestUrls`, and `pullRequestUrl` in `ThreadEntry` and `Event`. All are additive. On an `in_progress` request, the gate of D49 applies to `link_pull_request` as to `link_commits`.
 
 ## 9. Contract tests
 
@@ -219,6 +221,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [updates-page.schema.json](schemas/updates-page.schema.json) | `https://holistic-review.invalid/schemas/v1/updates-page.schema.json` | Result of the updates endpoint and `get_updates`, plus `UpdatedRequest` |
 | [request-command-result.schema.json](schemas/request-command-result.schema.json) | `https://holistic-review.invalid/schemas/v1/request-command-result.schema.json` | Result of a request command |
 | [link-commits-result.schema.json](schemas/link-commits-result.schema.json) | `https://holistic-review.invalid/schemas/v1/link-commits-result.schema.json` | Result of `link_commits` |
+| [link-pull-request-result.schema.json](schemas/link-pull-request-result.schema.json) | `https://holistic-review.invalid/schemas/v1/link-pull-request-result.schema.json` | Result of `link_pull_request` |
 | [me.schema.json](schemas/me.schema.json) | `https://holistic-review.invalid/schemas/v1/me.schema.json` | The caller, the tenant, the features, and the links |
 | [lists.schema.json](schemas/lists.schema.json) | `https://holistic-review.invalid/schemas/v1/lists.schema.json` | `$defs` only: every page and list, and `MercureAuthorization` |
 | [inputs.schema.json](schemas/inputs.schema.json) | `https://holistic-review.invalid/schemas/v1/inputs.schema.json` | `$defs` only: every REST request body |
@@ -262,6 +265,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.create-draft-reply.json](fixtures/inputs.create-draft-reply.json) | `inputs.schema.json#/$defs/CreateDraftInput` | D2 |
 | [inputs.create-token.json](fixtures/inputs.create-token.json) | `inputs.schema.json#/$defs/CreateTokenInput` | T2 |
 | [inputs.link-commits.json](fixtures/inputs.link-commits.json) | `inputs.schema.json#/$defs/LinkCommitsInput` | Q7 |
+| [inputs.link-pull-request.json](fixtures/inputs.link-pull-request.json) | `inputs.schema.json#/$defs/LinkPullRequestInput` | Q17 |
 | [inputs.open-general-request.json](fixtures/inputs.open-general-request.json) | `inputs.schema.json#/$defs/OpenRequestInput` | Q2 |
 | [inputs.open-request-approval.json](fixtures/inputs.open-request-approval.json) | `inputs.schema.json#/$defs/OpenRequestInput` | Q2 with "Ask for a plan first" |
 | [inputs.open-request.json](fixtures/inputs.open-request.json) | `inputs.schema.json#/$defs/OpenRequestInput` | Q2 |
@@ -276,6 +280,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.wont-do.json](fixtures/inputs.wont-do.json) | `inputs.schema.json#/$defs/WontDoInput` | Q11 |
 | [link-commits-result.available.json](fixtures/link-commits-result.available.json) | `link-commits-result.schema.json` | Q7, `link_commits` |
 | [link-commits-result.pending.json](fixtures/link-commits-result.pending.json) | `link-commits-result.schema.json` | Q7, `link_commits` |
+| [link-pull-request-result.linked.json](fixtures/link-pull-request-result.linked.json) | `link-pull-request-result.schema.json` | Q17, `link_pull_request` |
 | [lists.candidate-list.json](fixtures/lists.candidate-list.json) | `lists.schema.json#/$defs/CandidateList` | R2 |
 | [lists.declaration-list.json](fixtures/lists.declaration-list.json) | `lists.schema.json#/$defs/DeclarationList` | V14 |
 | [lists.draft-list.json](fixtures/lists.draft-list.json) | `lists.schema.json#/$defs/DraftList` | D1 |

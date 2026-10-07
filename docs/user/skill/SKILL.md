@@ -30,6 +30,7 @@ server.
 | `reply_to_request` | `id`, `body`, `question?` | Answer, or ask with `question: true` |
 | `link_commits` | `commitSha`, `requestIds`, `note?` | Record that a commit implements requests that you hold |
 | `unlink_commit` | `commitSha`, `requestId` | Remove a link that you made by mistake |
+| `link_pull_request` | `url`, `requestIds`, `note?` | Record that a pull request implements requests that you hold, or that are ready for review |
 | `mark_ready_for_review` | `id`, `note` | Finish a request that you hold |
 | `mark_wont_do` | `id`, `reason` | Decline a request, with evidence |
 | `propose_solution` | `id`, `plan`, `diff?` | Propose a plan, with a diff for a straightforward change, before you link commits |
@@ -135,9 +136,15 @@ and read their whole thread, because the user rejected an earlier result.
    - Local repository: the commit must be on a branch of the connected
      repository. Committing is enough. A commit in a worktree of that
      repository counts. Do not push.
-9. Call `mark_ready_for_review` with a note: what you changed and how you
-   tested it. The server fetches once. If a linked commit is still missing, it
-   refuses with `commits_not_available`.
+9. If you opened a pull request for the work, link it with
+   `link_pull_request`: its URL and every request ID that it covers. Open one
+   only when the user or the repository's instructions ask for it. For a
+   GitHub repository the URL must be a pull request of that repository. While
+   the request is in progress, the proposal rule of step 4 applies as for
+   commits. You can also link it after step 10.
+10. Call `mark_ready_for_review` with a note: what you changed and how you
+    tested it. The server fetches once. If a linked commit is still missing, it
+    refuses with `commits_not_available`.
 
 ## 5. When you have nothing left
 
@@ -174,7 +181,7 @@ A tool error is a result with `isError: true`. Its text is JSON:
 | `unauthorized` | The token is missing, wrong, revoked, or expired. It arrives as HTTP 401 from the server, not as a tool result. | Tell the user to check `HOLISTIC_REVIEW_TOKEN` and the token in Settings. Stop. |
 | `forbidden` | The caller may not do this. The MCP tools do not return it. | Tell the user |
 | `not_found` | No such repository, review, or request for this token. A token for one repository sees only that repository. | Check the ID or name, then list again. If it is still missing, tell the user. |
-| `invalid_input` | The input failed a check, for example a blank body, a reason under 20 characters after trimming, requests from several reviews, a commit that is not linked, or an ambiguous SHA prefix | Read `details.violations`, fix the input, and call again |
+| `invalid_input` | The input failed a check, for example a blank body, a reason under 20 characters after trimming, requests from several reviews, a commit that is not linked, a pull request of another repository, or an ambiguous SHA prefix | Read `details.violations`, fix the input, and call again |
 | `invalid_transition` | The status, the claim holder, or the proposal state does not allow the action | Call `get_request` and read `allowedActions`, `proposal`, and `details.claimedBy`. A pending proposal: take the next request. You hold the request, and `proposal` is null or rejected: propose with `propose_solution`. Otherwise take the next request. |
 | `review_closed` | The user closed the review | Stop working on this review. Tell the user. Do not retry. |
 | `commits_not_available` | The commits in `details.pendingCommits` are not in the server's copy after one fetch | GitHub: push them. Local: make sure that they are on a branch of the connected repository. Then call `mark_ready_for_review` again. |

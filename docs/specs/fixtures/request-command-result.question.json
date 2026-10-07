@@ -43,7 +43,7 @@
     "requireApproval": false,
     "proposal": null
   },
-  "allowedActions": ["reply", "release", "link_commits", "unlink_commit", "mark_ready_for_review", "mark_wont_do", "propose_solution"],
+  "allowedActions": ["reply", "release", "link_commits", "unlink_commit", "link_pull_request", "mark_ready_for_review", "mark_wont_do", "propose_solution"],
   "events": [
     {
       "seq": 1844,
@@ -66,6 +66,7 @@
       "question": true,
       "batchId": null,
       "commitSha": null,
+      "pullRequestUrl": null,
       "statusAfter": "in_progress"
     }
   ]

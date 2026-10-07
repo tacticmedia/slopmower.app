@@ -66,7 +66,7 @@ final class ProjectionConsistencyTest extends KernelTestCase
         self::assertSame(['available', $linkedAvailable['linked_at']], [$linkedAvailable['state'], $linkedAvailable['found_at']]);
 
         $connection->executeStatement("UPDATE review SET title = 'Tampered', last_event_seq = 0 WHERE tenant_id = ?", $tenant);
-        $connection->executeStatement("UPDATE change_request SET status = 'open', body = 'Tampered', awaiting = 'none', last_event_seq = 0, require_approval = false, proposal_state = NULL WHERE tenant_id = ?", $tenant);
+        $connection->executeStatement("UPDATE change_request SET status = 'open', body = 'Tampered', awaiting = 'none', last_event_seq = 0, require_approval = false, proposal_state = NULL, pull_request_urls = '[]' WHERE tenant_id = ?", $tenant);
         $connection->executeStatement("UPDATE commit_link SET state = 'pending', found_at = NULL WHERE tenant_id = ?", $tenant);
         $connection->executeStatement('DELETE FROM comment WHERE tenant_id = ?', $tenant);
 
@@ -79,7 +79,7 @@ final class ProjectionConsistencyTest extends KernelTestCase
 
     /**
      * Opened with requireApproval. Claim, a rejected and an approved proposal, links (available, pending and unlinked,
-     * pending and found), ready, verify, reopen.
+     * pending and found), a pull request link, ready, verify, reopen.
      */
     private static function fixedRequest(ReviewId $reviewId): RequestId
     {
@@ -105,6 +105,7 @@ final class ProjectionConsistencyTest extends KernelTestCase
         self::executor()->execute($reviewId, Actor::system(), static fn (): array => [
             new DecidedEvent(new CommitFoundEvent($foundCommit, [$requestId], 'Extract TaxRounding', new \DateTimeImmutable('2026-09-29T07:50:00Z'))),
         ]);
+        $commands->linkPullRequest(RequestScenario::PULL_REQUEST, [$requestId], 'Opened for review.', $agent);
         $commands->markReadyForReview(new MarkReadyForReview($requestId, 'Extracted TaxRounding.'), $agent);
         $commands->verify(new Verify($requestId), RequestScenario::user());
         $commands->reopen(new Reopen($requestId, 'Also cover the shipping totals.'), RequestScenario::user());

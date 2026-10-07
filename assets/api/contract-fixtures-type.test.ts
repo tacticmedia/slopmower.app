@@ -29,6 +29,7 @@ import inputsCreateDraftNewRequest from '../../docs/specs/fixtures/inputs.create
 import inputsCreateDraftReply from '../../docs/specs/fixtures/inputs.create-draft-reply.json';
 import inputsCreateToken from '../../docs/specs/fixtures/inputs.create-token.json';
 import inputsLinkCommits from '../../docs/specs/fixtures/inputs.link-commits.json';
+import inputsLinkPullRequest from '../../docs/specs/fixtures/inputs.link-pull-request.json';
 import inputsOpenGeneralRequest from '../../docs/specs/fixtures/inputs.open-general-request.json';
 import inputsOpenRequestApproval from '../../docs/specs/fixtures/inputs.open-request-approval.json';
 import inputsOpenRequest from '../../docs/specs/fixtures/inputs.open-request.json';
@@ -43,6 +44,7 @@ import inputsViewedFile from '../../docs/specs/fixtures/inputs.viewed-file.json'
 import inputsWontDo from '../../docs/specs/fixtures/inputs.wont-do.json';
 import linkCommitsResultAvailable from '../../docs/specs/fixtures/link-commits-result.available.json';
 import linkCommitsResultPending from '../../docs/specs/fixtures/link-commits-result.pending.json';
+import linkPullRequestResultLinked from '../../docs/specs/fixtures/link-pull-request-result.linked.json';
 import listsCandidateList from '../../docs/specs/fixtures/lists.candidate-list.json';
 import listsDeclarationList from '../../docs/specs/fixtures/lists.declaration-list.json';
 import listsDraftList from '../../docs/specs/fixtures/lists.draft-list.json';
@@ -98,6 +100,7 @@ import type {
     CreateDraftInput,
     CreateTokenInput,
     LinkCommitsInput,
+    LinkPullRequestInput,
     OpenRequestInput,
     OptionalNoteInput,
     ProposeSolutionInput,
@@ -110,6 +113,7 @@ import type {
     WontDoInput,
 } from './types/inputs';
 import type { LinkCommitsResult } from './types/link-commits-result';
+import type { LinkPullRequestResult } from './types/link-pull-request-result';
 import type {
     CandidateList,
     DeclarationList,
@@ -175,6 +179,7 @@ const checkedFixtures = {
     'inputs.create-draft-reply.json': inputsCreateDraftReply satisfies Widen<CreateDraftInput>,
     'inputs.create-token.json': inputsCreateToken satisfies Widen<CreateTokenInput>,
     'inputs.link-commits.json': inputsLinkCommits satisfies Widen<LinkCommitsInput>,
+    'inputs.link-pull-request.json': inputsLinkPullRequest satisfies Widen<LinkPullRequestInput>,
     'inputs.open-general-request.json': inputsOpenGeneralRequest satisfies Widen<OpenRequestInput>,
     'inputs.open-request-approval.json': inputsOpenRequestApproval satisfies Widen<OpenRequestInput>,
     'inputs.open-request.json': inputsOpenRequest satisfies Widen<OpenRequestInput>,
@@ -189,6 +194,7 @@ const checkedFixtures = {
     'inputs.wont-do.json': inputsWontDo satisfies Widen<WontDoInput>,
     'link-commits-result.available.json': linkCommitsResultAvailable satisfies Widen<LinkCommitsResult>,
     'link-commits-result.pending.json': linkCommitsResultPending satisfies Widen<LinkCommitsResult>,
+    'link-pull-request-result.linked.json': linkPullRequestResultLinked satisfies Widen<LinkPullRequestResult>,
     'lists.candidate-list.json': listsCandidateList satisfies Widen<CandidateList>,
     'lists.declaration-list.json': listsDeclarationList satisfies Widen<DeclarationList>,
     'lists.draft-list.json': listsDraftList satisfies Widen<DraftList>,

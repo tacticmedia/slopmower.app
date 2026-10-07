@@ -60,7 +60,7 @@ final class ClaimReleaseToolTest extends WebTestCase
         $result = self::assertToolResult($this->mcp, $this->mcp->callTool('claim_request', ['id' => $this->requestId]), 'claim_request');
 
         self::assertSame(['in_progress', 'agent', self::AGENT_NAME], [$result['request']['status'], $result['request']['awaiting'], $result['request']['claimedBy']['agentName']]);
-        self::assertSame(['reply', 'release', 'link_commits', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], $result['allowedActions']);
+        self::assertSame(['reply', 'release', 'link_commits', 'link_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], $result['allowedActions']);
         self::assertSame([['request.claimed', 'in_progress']], array_map(static fn (array $event): array => [$event['type'], $event['statusAfter']], $result['events']));
     }
 

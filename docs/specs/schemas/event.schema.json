@@ -4,7 +4,7 @@
   "title": "Event",
   "description": "An entry of the review event log as returned by get_updates, the updates endpoint, and command results.",
   "type": "object",
-  "required": ["seq", "eventId", "type", "reviewId", "requestId", "requestIds", "actor", "occurredAt", "body", "diff", "commentId", "question", "batchId", "commitSha", "statusAfter"],
+  "required": ["seq", "eventId", "type", "reviewId", "requestId", "requestIds", "actor", "occurredAt", "body", "diff", "commentId", "question", "batchId", "commitSha", "pullRequestUrl", "statusAfter"],
   "properties": {
     "seq": {
       "$ref": "common.schema.json#/$defs/EventSeq"
@@ -35,7 +35,7 @@
       "items": {
         "$ref": "common.schema.json#/$defs/Ulid"
       },
-      "description": "Every request the event concerns: [requestId] for request events and commit.unlinked; covered requests for commit.linked and commit.found; opened and commented requests for batch.submitted; [] for review events."
+      "description": "Every request the event concerns: [requestId] for request events and commit.unlinked; covered requests for commit.linked, commit.found, and pull_request.linked; opened and commented requests for batch.submitted; [] for review events."
     },
     "actor": {
       "$ref": "actor.schema.json"
@@ -91,6 +91,17 @@
         }
       ],
       "description": "commit.* and review.started."
+    },
+    "pullRequestUrl": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/PullRequestUrl"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "pull_request.linked only."
     },
     "statusAfter": {
       "anyOf": [

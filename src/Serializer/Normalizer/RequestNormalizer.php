@@ -37,6 +37,7 @@ final class RequestNormalizer implements NormalizerInterface, NormalizerAwareInt
             'excerpt' => $data->excerpt,
             'thread' => $data->thread,
             'commits' => $data->commits,
+            'pullRequestUrls' => $state->pullRequestUrls,
             'allowedActions' => $data->allowedActions,
         ], $format, $context);
         \assert(\is_array($summary) && \is_array($details));

@@ -6,6 +6,8 @@ export type CommitSha = string;
 export type CommitShaPrefix = string;
 export type ObjectSha = string;
 export type RepoPath = string;
+/** `https`, at most 2,048 characters, no whitespace. */
+export type PullRequestUrl = string;
 /** RFC 3339, UTC, `Z` suffix. */
 export type DateTime = string;
 export type Markdown = string;
@@ -81,6 +83,7 @@ export const ACTIONS = [
     'release',
     'link_commits',
     'unlink_commit',
+    'link_pull_request',
     'mark_ready_for_review',
     'mark_wont_do',
     'verify',
@@ -102,6 +105,7 @@ export const EVENT_TYPES = [
     'commit.linked',
     'commit.unlinked',
     'commit.found',
+    'pull_request.linked',
     'request.ready_for_review',
     'request.wont_do',
     'request.verified',
@@ -122,6 +126,7 @@ export const THREAD_ENTRY_TYPES = [
     'commit.linked',
     'commit.unlinked',
     'commit.found',
+    'pull_request.linked',
     'request.ready_for_review',
     'request.wont_do',
     'request.verified',

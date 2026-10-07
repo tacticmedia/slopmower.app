@@ -520,6 +520,52 @@
                 "idempotentHint": false,
                 "openWorldHint": false
             }
+        },
+        {
+            "name": "link_pull_request",
+            "title": "Link pull request",
+            "description": "Record that a pull request implements one or more requests: each one in_progress and held by you, or ready_for_review. For a GitHub repository the URL is https://github.com/{owner}/{name}/pull/{number} of the reviewed repository. Linking does not change the status. Open a pull request only when the user or the repository's instructions ask for it.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "Pull request URL",
+                        "maxLength": 2048,
+                        "pattern": "^https://\\S+$"
+                    },
+                    "requestIds": {
+                        "type": "array",
+                        "description": "Every request that this pull request covers, all from one review",
+                        "items": {
+                            "type": "string",
+                            "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                        },
+                        "minItems": 1,
+                        "maxItems": 50,
+                        "uniqueItems": true
+                    },
+                    "note": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "Optional note shown with the link",
+                        "default": null,
+                        "maxLength": 65536
+                    }
+                },
+                "required": [
+                    "url",
+                    "requestIds"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            }
         }
     ]
 }

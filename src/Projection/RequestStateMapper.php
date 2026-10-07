@@ -45,6 +45,7 @@ final class RequestStateMapper
             wontDoBy: $request->getWontDoBy(),
             resolution: $request->getResolution(),
             links: array_map(static fn (CommitLink $link): LinkedCommit => new LinkedCommit($link->getCommitSha(), $link->getState()), $links),
+            pullRequestUrls: $request->getPullRequestUrls(),
             lastUserCommentSeq: $request->getLastUserCommentSeq(),
             lastAgentEventSeq: $request->getLastAgentEventSeq(),
             lastAgentEventIsQuestion: $request->isLastAgentEventQuestion(),
@@ -91,6 +92,7 @@ final class RequestStateMapper
             lastEventSeq: $state->lastEventSeq,
             updatedAt: $state->updatedAt,
             proposal: $state->proposal,
+            pullRequestUrls: $state->pullRequestUrls,
         );
     }
 }

@@ -62,6 +62,7 @@ Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json). 
 | [Q14](rest-api-requests.md#q14-propose-a-solution) | POST | `/api/v1/requests/{requestId}/propose` | B | 200 | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) |
 | [Q15](rest-api-requests.md#q15-approve-a-proposal) | POST | `/api/v1/requests/{requestId}/approve-proposal` | S | 200 | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) |
 | [Q16](rest-api-requests.md#q16-reject-a-proposal) | POST | `/api/v1/requests/{requestId}/reject-proposal` | S | 200 | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) |
+| [Q17](rest-api-requests.md#q17-link-a-pull-request-to-requests) | POST | `/api/v1/pull-request-links` | B | 200 | [`link-pull-request-result.schema.json`](schemas/link-pull-request-result.schema.json) |
 | [D1](rest-api-requests.md#d1-list-drafts) | GET | `/api/v1/reviews/{reviewId}/drafts` | S | 200 | [`lists.schema.json#/$defs/DraftList`](schemas/lists.schema.json) |
 | [D2](rest-api-requests.md#d2-create-a-draft) | POST | `/api/v1/reviews/{reviewId}/drafts` | S | 201 | [`draft.schema.json`](schemas/draft.schema.json) |
 | [D3](rest-api-requests.md#d3-update-a-draft) | PATCH | `/api/v1/drafts/{draftId}` | S | 200 | [`draft.schema.json`](schemas/draft.schema.json) |

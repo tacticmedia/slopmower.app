@@ -107,6 +107,8 @@ These two principles control all decisions.
 - A link stays `pending` until the commit is in the server clone. For a GitHub repository the commit must be pushed. For a local repository a commit on a branch of the connected repository is enough.
 - `mark_ready_for_review` requires every linked commit to be in the server clone after one fetch. Otherwise it fails with `commits_not_available`.
 - The user sees the linked commits of each request and the diff of each commit.
+- An agent that opened a pull request for its work links it to the requests that it covers: requests that it holds, or requests that are ready for review. For a GitHub repository the URL must name a pull request of the reviewed repository. A pull request link changes neither the status nor whose turn it is. The server stores the URL only and never reads the pull request. There is no unlink.
+- The user sees the linked pull requests of each request, in its header and in its thread. A pull request opens in a new tab.
 
 ### FR10 Human interface
 
@@ -132,8 +134,8 @@ These two principles control all decisions.
 - An MCP server over Streamable HTTP, built with the official PHP SDK `mcp/sdk` and the official Symfony integration `symfony/mcp-bundle`, as Principle A requires.
 - A REST API with the same operations and the same JSON, for agents without MCP. There is no agent CLI.
 - Both interfaces use one application service layer. No logic is duplicated.
-- Operations: list repositories, list reviews, list requests with filters, get updates since a cursor, get one request with its current code context, claim, release, reply, propose a solution, link and unlink commits, mark ready for review, and mark won't do. The contracts are in [specs/](specs/README.md).
-- An Agent Skill in `SKILL.md` teaches the agent the workflow: find the review, list what waits, claim, fix, test, commit, link, and mark ready.
+- Operations: list repositories, list reviews, list requests with filters, get updates since a cursor, get one request with its current code context, claim, release, reply, propose a solution, link and unlink commits, link a pull request, mark ready for review, and mark won't do. The contracts are in [specs/](specs/README.md).
+- An Agent Skill in `SKILL.md` teaches the agent the workflow: find the review, list what waits, claim, fix, test, commit, link, and mark ready. It links a pull request only when it opened one, and it opens one only when the user or the repository's instructions ask for it.
 
 ### FR13 API tokens
 

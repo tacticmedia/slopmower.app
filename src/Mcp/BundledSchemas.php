@@ -1011,7 +1011,7 @@ final class BundledSchemas
                 'title' => 'Event',
                 'description' => 'An entry of the review event log as returned by get_updates, the updates endpoint, and command results.',
                 'type' => 'object',
-                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'batchId', 'commitSha', 'statusAfter'],
+                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'batchId', 'commitSha', 'pullRequestUrl', 'statusAfter'],
                 'properties' => [
                     'seq' => ['$ref' => '#/$defs/EventSeq'],
                     'eventId' => ['$ref' => '#/$defs/Ulid'],
@@ -1028,7 +1028,7 @@ final class BundledSchemas
                         'type' => 'array',
                         'uniqueItems' => true,
                         'items' => ['$ref' => '#/$defs/Ulid'],
-                        'description' => 'Every request the event concerns: [requestId] for request events and commit.unlinked; covered requests for commit.linked and commit.found; opened and commented requests for batch.submitted; [] for review events.',
+                        'description' => 'Every request the event concerns: [requestId] for request events and commit.unlinked; covered requests for commit.linked, commit.found, and pull_request.linked; opened and commented requests for batch.submitted; [] for review events.',
                     ],
                     'actor' => ['$ref' => '#/$defs/Actor'],
                     'occurredAt' => ['$ref' => '#/$defs/DateTime'],
@@ -1063,6 +1063,13 @@ final class BundledSchemas
                         ],
                         'description' => 'commit.* and review.started.',
                     ],
+                    'pullRequestUrl' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/PullRequestUrl'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'pull_request.linked only.',
+                    ],
                     'statusAfter' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/RequestStatus'],
@@ -1076,7 +1083,7 @@ final class BundledSchemas
             'EventType' => [
                 'anyOf' => [
                     [
-                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'batch.submitted'],
+                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'batch.submitted'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -1150,6 +1157,7 @@ final class BundledSchemas
             'ProposalState' => [
                 'enum' => ['pending', 'approved', 'rejected'],
             ],
+            'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://\\S+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
@@ -1304,7 +1312,7 @@ final class BundledSchemas
         'type' => 'object',
         'required' => [
             'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
-            'requireApproval', 'proposal', 'body', 'reviewState', 'reviewCommitSha', 'location', 'excerpt', 'thread', 'commits', 'allowedActions',
+            'requireApproval', 'proposal', 'body', 'reviewState', 'reviewCommitSha', 'location', 'excerpt', 'thread', 'commits', 'pullRequestUrls', 'allowedActions',
         ],
         'properties' => [
             'id' => ['$ref' => '#/$defs/Ulid'],
@@ -1389,6 +1397,12 @@ final class BundledSchemas
                 'type' => 'array',
                 'items' => ['$ref' => '#/$defs/CommitLink'],
             ],
+            'pullRequestUrls' => [
+                'type' => 'array',
+                'uniqueItems' => true,
+                'items' => ['$ref' => '#/$defs/PullRequestUrl'],
+                'description' => 'In link order.',
+            ],
             'allowedActions' => [
                 'type' => 'array',
                 'uniqueItems' => true,
@@ -1436,7 +1450,7 @@ final class BundledSchemas
             'Action' => [
                 'anyOf' => [
                     [
-                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal'],
+                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -1817,6 +1831,7 @@ final class BundledSchemas
             'ProposalState' => [
                 'enum' => ['pending', 'approved', 'rejected'],
             ],
+            'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://\\S+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
@@ -1847,9 +1862,9 @@ final class BundledSchemas
             ],
             'ThreadEntry' => [
                 'title' => 'ThreadEntry',
-                'description' => 'One event in a request\'s timeline: comments, status changes, commit links.',
+                'description' => 'One event in a request\'s timeline: comments, status changes, commit and pull request links.',
                 'type' => 'object',
-                'required' => ['seq', 'eventId', 'type', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'batchId', 'commitSha', 'statusAfter'],
+                'required' => ['seq', 'eventId', 'type', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'batchId', 'commitSha', 'pullRequestUrl', 'statusAfter'],
                 'properties' => [
                     'seq' => ['$ref' => '#/$defs/EventSeq'],
                     'eventId' => ['$ref' => '#/$defs/Ulid'],
@@ -1858,7 +1873,7 @@ final class BundledSchemas
                     'occurredAt' => ['$ref' => '#/$defs/DateTime'],
                     'body' => [
                         'type' => ['string', 'null'],
-                        'description' => 'opened: request body; commented: comment; proposed: plan; released, ready_for_review, verified, reopened, proposal_approved, proposal_rejected, commit.linked: note; wont_do: reason; else null.',
+                        'description' => 'opened: request body; commented: comment; proposed: plan; released, ready_for_review, verified, reopened, proposal_approved, proposal_rejected, commit.linked, pull_request.linked: note; wont_do: reason; else null.',
                     ],
                     'diff' => [
                         'anyOf' => [
@@ -1888,13 +1903,20 @@ final class BundledSchemas
                         ],
                         'description' => 'commit.* only.',
                     ],
+                    'pullRequestUrl' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/PullRequestUrl'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'pull_request.linked only.',
+                    ],
                     'statusAfter' => ['$ref' => '#/$defs/RequestStatus'],
                 ],
             ],
             'ThreadEntryType' => [
                 'anyOf' => [
                     [
-                        'enum' => ['request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected'],
+                        'enum' => ['request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -1927,7 +1949,7 @@ final class BundledSchemas
             'Action' => [
                 'anyOf' => [
                     [
-                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal'],
+                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -2074,7 +2096,7 @@ final class BundledSchemas
                 'title' => 'Event',
                 'description' => 'An entry of the review event log as returned by get_updates, the updates endpoint, and command results.',
                 'type' => 'object',
-                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'batchId', 'commitSha', 'statusAfter'],
+                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'batchId', 'commitSha', 'pullRequestUrl', 'statusAfter'],
                 'properties' => [
                     'seq' => ['$ref' => '#/$defs/EventSeq'],
                     'eventId' => ['$ref' => '#/$defs/Ulid'],
@@ -2091,7 +2113,7 @@ final class BundledSchemas
                         'type' => 'array',
                         'uniqueItems' => true,
                         'items' => ['$ref' => '#/$defs/Ulid'],
-                        'description' => 'Every request the event concerns: [requestId] for request events and commit.unlinked; covered requests for commit.linked and commit.found; opened and commented requests for batch.submitted; [] for review events.',
+                        'description' => 'Every request the event concerns: [requestId] for request events and commit.unlinked; covered requests for commit.linked, commit.found, and pull_request.linked; opened and commented requests for batch.submitted; [] for review events.',
                     ],
                     'actor' => ['$ref' => '#/$defs/Actor'],
                     'occurredAt' => ['$ref' => '#/$defs/DateTime'],
@@ -2126,6 +2148,13 @@ final class BundledSchemas
                         ],
                         'description' => 'commit.* and review.started.',
                     ],
+                    'pullRequestUrl' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/PullRequestUrl'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'pull_request.linked only.',
+                    ],
                     'statusAfter' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/RequestStatus'],
@@ -2139,7 +2168,7 @@ final class BundledSchemas
             'EventType' => [
                 'anyOf' => [
                     [
-                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'batch.submitted'],
+                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'batch.submitted'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -2213,6 +2242,7 @@ final class BundledSchemas
             'ProposalState' => [
                 'enum' => ['pending', 'approved', 'rejected'],
             ],
+            'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://\\S+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
@@ -2508,7 +2538,7 @@ final class BundledSchemas
                 'title' => 'Event',
                 'description' => 'An entry of the review event log as returned by get_updates, the updates endpoint, and command results.',
                 'type' => 'object',
-                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'batchId', 'commitSha', 'statusAfter'],
+                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'batchId', 'commitSha', 'pullRequestUrl', 'statusAfter'],
                 'properties' => [
                     'seq' => ['$ref' => '#/$defs/EventSeq'],
                     'eventId' => ['$ref' => '#/$defs/Ulid'],
@@ -2525,7 +2555,7 @@ final class BundledSchemas
                         'type' => 'array',
                         'uniqueItems' => true,
                         'items' => ['$ref' => '#/$defs/Ulid'],
-                        'description' => 'Every request the event concerns: [requestId] for request events and commit.unlinked; covered requests for commit.linked and commit.found; opened and commented requests for batch.submitted; [] for review events.',
+                        'description' => 'Every request the event concerns: [requestId] for request events and commit.unlinked; covered requests for commit.linked, commit.found, and pull_request.linked; opened and commented requests for batch.submitted; [] for review events.',
                     ],
                     'actor' => ['$ref' => '#/$defs/Actor'],
                     'occurredAt' => ['$ref' => '#/$defs/DateTime'],
@@ -2560,6 +2590,13 @@ final class BundledSchemas
                         ],
                         'description' => 'commit.* and review.started.',
                     ],
+                    'pullRequestUrl' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/PullRequestUrl'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'pull_request.linked only.',
+                    ],
                     'statusAfter' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/RequestStatus'],
@@ -2573,7 +2610,7 @@ final class BundledSchemas
             'EventType' => [
                 'anyOf' => [
                     [
-                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'batch.submitted'],
+                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'batch.submitted'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -2647,6 +2684,445 @@ final class BundledSchemas
             'ProposalState' => [
                 'enum' => ['pending', 'approved', 'rejected'],
             ],
+            'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://\\S+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
+            'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
+            'RequestStatus' => [
+                'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
+            ],
+            'RequestSummary' => [
+                'title' => 'RequestSummary',
+                'type' => 'object',
+                'required' => [
+                    'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
+                    'requireApproval', 'proposal',
+                ],
+                'properties' => [
+                    'id' => ['$ref' => '#/$defs/Ulid'],
+                    'reviewId' => ['$ref' => '#/$defs/Ulid'],
+                    'repositoryId' => ['$ref' => '#/$defs/Ulid'],
+                    'status' => ['$ref' => '#/$defs/RequestStatus'],
+                    'awaiting' => ['$ref' => '#/$defs/Awaiting'],
+                    'resolution' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Resolution'],
+                            ['type' => 'null'],
+                        ],
+                    ],
+                    'closed' => ['type' => 'boolean', 'description' => 'verified, or wont_do set by the user.'],
+                    'anchor' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/AnchorSummary'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Null for a general request, which belongs to the whole review.',
+                    ],
+                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'First non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
+                    'author' => ['$ref' => '#/$defs/Actor'],
+                    'claimedBy' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Actor'],
+                            ['type' => 'null'],
+                        ],
+                    ],
+                    'claimedAt' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/DateTime'],
+                            ['type' => 'null'],
+                        ],
+                    ],
+                    'commentCount' => ['type' => 'integer', 'minimum' => 0],
+                    'commitCount' => ['type' => 'integer', 'minimum' => 0],
+                    'pendingCommitCount' => ['type' => 'integer', 'minimum' => 0],
+                    'outdated' => [
+                        'type' => ['boolean', 'null'],
+                        'description' => 'Location at the default-branch head is changed or orphaned. Null until computed, when the clone is gone, and for a general request.',
+                    ],
+                    'createdAt' => ['$ref' => '#/$defs/DateTime'],
+                    'updatedAt' => ['$ref' => '#/$defs/DateTime'],
+                    'lastEventSeq' => ['$ref' => '#/$defs/EventSeq', 'description' => 'seq of the last entry of the request\'s thread.'],
+                    'carriedFrom' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/CarriedFrom'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The source request that V15 carried over to this request. Null for any other request.',
+                    ],
+                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Fixed when the request opens.'],
+                    'proposal' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Proposal'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The current proposal of the claim. Null without one; release, won\'t do, and reopen set it to null.',
+                    ],
+                ],
+                'allOf' => [
+                    [
+                        'if' => [
+                            'properties' => [
+                                'status' => ['const' => 'in_progress'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'claimedBy' => ['$ref' => '#/$defs/Actor'],
+                                'claimedAt' => ['$ref' => '#/$defs/DateTime'],
+                            ],
+                        ],
+                        'else' => [
+                            'properties' => [
+                                'claimedBy' => ['type' => 'null'],
+                                'claimedAt' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'required' => ['anchor'],
+                            'properties' => [
+                                'anchor' => ['type' => 'null'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'outdated' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'Resolution' => [
+                'enum' => ['fixed', 'wont_do'],
+            ],
+            'SymbolKind' => [
+                'anyOf' => [
+                    [
+                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant'],
+                    ],
+                    ['type' => 'string'],
+                ],
+                'description' => 'Open set.',
+            ],
+            'SymbolRef' => [
+                'type' => 'object',
+                'required' => ['language', 'kind', 'fqn'],
+                'properties' => [
+                    'language' => ['type' => 'string', 'minLength' => 1, 'description' => '\'php\' in v1.'],
+                    'kind' => ['$ref' => '#/$defs/SymbolKind'],
+                    'fqn' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 1024],
+                ],
+            ],
+            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'UnifiedDiff' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
+        ],
+    ];
+
+    /** link-pull-request-result.schema.json */
+    public const array LINK_PULL_REQUEST_RESULT = [
+        'title' => 'LinkPullRequestResult',
+        'type' => 'object',
+        'required' => ['url', 'requests', 'events'],
+        'properties' => [
+            'url' => ['$ref' => '#/$defs/PullRequestUrl'],
+            'requests' => [
+                'type' => 'array',
+                'minItems' => 1,
+                'items' => ['$ref' => '#/$defs/RequestSummary'],
+            ],
+            'events' => [
+                'type' => 'array',
+                'items' => ['$ref' => '#/$defs/Event'],
+            ],
+        ],
+        '$defs' => [
+            'Actor' => [
+                'title' => 'Actor',
+                'type' => 'object',
+                'required' => ['kind', 'userId', 'agentName', 'name', 'avatarUrl'],
+                'properties' => [
+                    'kind' => ['$ref' => '#/$defs/ActorKind'],
+                    'userId' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The user; for an agent, the user it acts for.',
+                    ],
+                    'agentName' => [
+                        'type' => ['string', 'null'],
+                        'minLength' => 1,
+                        'maxLength' => 64,
+                        'description' => 'API token name. Agents only.',
+                    ],
+                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Holistic Review\' for system.'],
+                    'avatarUrl' => [
+                        'type' => ['string', 'null'],
+                        'format' => 'uri',
+                        'description' => 'Users only.',
+                    ],
+                ],
+                'allOf' => [
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'user'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['$ref' => '#/$defs/Ulid'],
+                                'agentName' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'agent'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['$ref' => '#/$defs/Ulid'],
+                                'agentName' => ['type' => 'string'],
+                                'avatarUrl' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'system'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['type' => 'null'],
+                                'agentName' => ['type' => 'null'],
+                                'avatarUrl' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'ActorKind' => [
+                'enum' => ['user', 'agent', 'system'],
+            ],
+            'AnchorKind' => [
+                'enum' => ['line', 'range', 'symbol', 'file'],
+            ],
+            'AnchorSummary' => [
+                'type' => 'object',
+                'required' => ['kind', 'path', 'range', 'symbol'],
+                'properties' => [
+                    'kind' => ['$ref' => '#/$defs/AnchorKind'],
+                    'path' => ['$ref' => '#/$defs/RepoPath'],
+                    'range' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/LineRange'],
+                            ['type' => 'null'],
+                        ],
+                    ],
+                    'symbol' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/SymbolRef'],
+                            ['type' => 'null'],
+                        ],
+                    ],
+                ],
+                'allOf' => [
+                    ['$ref' => '#/$defs/KindRules'],
+                ],
+            ],
+            'Awaiting' => [
+                'enum' => ['agent', 'user', 'none'],
+            ],
+            'CarriedFrom' => [
+                'type' => 'object',
+                'required' => ['reviewId', 'requestId'],
+                'properties' => [
+                    'reviewId' => ['$ref' => '#/$defs/Ulid'],
+                    'requestId' => ['$ref' => '#/$defs/Ulid'],
+                ],
+            ],
+            'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
+            'ContentSnapshot' => [
+                'type' => 'object',
+                'required' => ['lines', 'truncated', 'lineCount', 'before', 'after', 'normalizedHash'],
+                'properties' => [
+                    'lines' => [
+                        'type' => 'array',
+                        'maxItems' => 200,
+                        'items' => ['type' => 'string'],
+                        'description' => 'Normalized lines (LF, no trailing whitespace); all lines up to 200, else the first 100 and the last 100.',
+                    ],
+                    'truncated' => ['type' => 'boolean'],
+                    'lineCount' => ['type' => 'integer', 'minimum' => 1],
+                    'before' => [
+                        'type' => 'array',
+                        'maxItems' => 3,
+                        'items' => ['type' => 'string'],
+                    ],
+                    'after' => [
+                        'type' => 'array',
+                        'maxItems' => 3,
+                        'items' => ['type' => 'string'],
+                    ],
+                    'normalizedHash' => ['type' => 'string', 'pattern' => '^sha256:[0-9a-f]{64}$', 'description' => 'SHA-256 of the full region in comparison form: each line trimmed, each inner whitespace run replaced by one space, lines joined with LF, no final LF.'],
+                ],
+            ],
+            'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
+            'Event' => [
+                'title' => 'Event',
+                'description' => 'An entry of the review event log as returned by get_updates, the updates endpoint, and command results.',
+                'type' => 'object',
+                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'batchId', 'commitSha', 'pullRequestUrl', 'statusAfter'],
+                'properties' => [
+                    'seq' => ['$ref' => '#/$defs/EventSeq'],
+                    'eventId' => ['$ref' => '#/$defs/Ulid'],
+                    'type' => ['$ref' => '#/$defs/EventType'],
+                    'reviewId' => ['$ref' => '#/$defs/Ulid'],
+                    'requestId' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Set for request.* and commit.unlinked.',
+                    ],
+                    'requestIds' => [
+                        'type' => 'array',
+                        'uniqueItems' => true,
+                        'items' => ['$ref' => '#/$defs/Ulid'],
+                        'description' => 'Every request the event concerns: [requestId] for request events and commit.unlinked; covered requests for commit.linked, commit.found, and pull_request.linked; opened and commented requests for batch.submitted; [] for review events.',
+                    ],
+                    'actor' => ['$ref' => '#/$defs/Actor'],
+                    'occurredAt' => ['$ref' => '#/$defs/DateTime'],
+                    'body' => [
+                        'type' => ['string', 'null'],
+                        'description' => 'As ThreadEntry.body; plus review.started: title; review.closed: note; batch.submitted: summary.',
+                    ],
+                    'diff' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/UnifiedDiff'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'As ThreadEntry.diff.',
+                    ],
+                    'commentId' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                    ],
+                    'question' => ['type' => 'boolean'],
+                    'batchId' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                    ],
+                    'commitSha' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/CommitSha'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'commit.* and review.started.',
+                    ],
+                    'pullRequestUrl' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/PullRequestUrl'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'pull_request.linked only.',
+                    ],
+                    'statusAfter' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/RequestStatus'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Status of requestId after the event; null when requestId is null.',
+                    ],
+                ],
+            ],
+            'EventSeq' => ['type' => 'integer', 'minimum' => 0, 'description' => 'Per-tenant event number, gapless, in commit order.'],
+            'EventType' => [
+                'anyOf' => [
+                    [
+                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'batch.submitted'],
+                    ],
+                    ['type' => 'string'],
+                ],
+                'description' => 'Open set.',
+            ],
+            'KindRules' => [
+                'allOf' => [
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'file'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'range' => ['type' => 'null'],
+                                'symbol' => ['type' => 'null'],
+                                'snapshot' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => [
+                                    'enum' => ['line', 'range'],
+                                ],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'range' => ['$ref' => '#/$defs/LineRange'],
+                                'symbol' => ['type' => 'null'],
+                                'snapshot' => ['$ref' => '#/$defs/ContentSnapshot'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'symbol'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'range' => ['$ref' => '#/$defs/LineRange'],
+                                'symbol' => ['$ref' => '#/$defs/SymbolRef'],
+                                'snapshot' => ['$ref' => '#/$defs/ContentSnapshot'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'LineRange' => [
+                'type' => 'object',
+                'required' => ['startLine', 'endLine'],
+                'description' => '1-based, inclusive; endLine >= startLine.',
+                'properties' => [
+                    'startLine' => ['type' => 'integer', 'minimum' => 1],
+                    'endLine' => ['type' => 'integer', 'minimum' => 1],
+                ],
+            ],
+            'Proposal' => [
+                'type' => 'object',
+                'required' => ['eventId', 'state'],
+                'properties' => [
+                    'eventId' => ['$ref' => '#/$defs/Ulid', 'description' => 'The request.proposed event.'],
+                    'state' => ['$ref' => '#/$defs/ProposalState'],
+                ],
+            ],
+            'ProposalState' => [
+                'enum' => ['pending', 'approved', 'rejected'],
+            ],
+            'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://\\S+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],

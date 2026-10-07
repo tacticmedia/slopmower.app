@@ -60,6 +60,7 @@
       "question": false,
       "batchId": null,
       "commitSha": null,
+      "pullRequestUrl": null,
       "statusAfter": "open"
     },
     {
@@ -80,6 +81,7 @@
       "question": false,
       "batchId": null,
       "commitSha": null,
+      "pullRequestUrl": null,
       "statusAfter": "in_progress"
     },
     {
@@ -100,9 +102,11 @@
       "question": false,
       "batchId": null,
       "commitSha": null,
+      "pullRequestUrl": null,
       "statusAfter": "in_progress"
     }
   ],
   "commits": [],
+  "pullRequestUrls": [],
   "allowedActions": ["reply", "release", "mark_wont_do", "approve_proposal", "reject_proposal"]
 }

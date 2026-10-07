@@ -1,5 +1,5 @@
 import type { Actor } from '../api/types/actor';
-import type { DateTime, EventSeq, ProposalState, RequestStatus, ThreadEntryType, Ulid, UnifiedDiff } from '../api/types/common';
+import type { DateTime, EventSeq, ProposalState, PullRequestUrl, RequestStatus, ThreadEntryType, Ulid, UnifiedDiff } from '../api/types/common';
 import type { Request as ReviewRequest } from '../api/types/request';
 import type { ThreadEntry } from '../api/types/thread-entry';
 import type { CarriedFrom } from '../api/types/request-summary';
@@ -14,14 +14,15 @@ export type ProposalView = {
     state: ProposalState | 'superseded' | 'withdrawn';
 };
 
-/** A thread entry with a body, a diff, or an approval. */
+/** A thread entry with a body, a diff, a pull request, or an approval. */
 export type CommentView = {
     key: string;
     type: ThreadEntryType;
     author: Actor;
     occurredAt: DateTime;
-    /** Null only for an approval without a note. */
+    /** Null only for an approval or a pull request link without a note. */
     body: string | null;
+    pullRequestUrl: PullRequestUrl | null;
     question: boolean;
     /** Shown before the server confirms it. */
     pending: boolean;
@@ -46,7 +47,7 @@ export type ThreadView = {
 };
 
 /**
- * Entries without a body, such as a claim, are left out. An approval without a note stays.
+ * Entries without a body, a diff, or a pull request, such as a claim, are left out. An approval without a note stays.
  */
 export function threadView(request: ReviewRequest): ThreadView {
     const range = request.anchor?.range ?? null;
@@ -54,13 +55,14 @@ export function threadView(request: ReviewRequest): ThreadView {
     const latestProposalSeq = request.thread.findLast(({ type }) => 'request.proposed' === type)?.seq ?? null;
 
     for (const entry of request.thread) {
-        if (null !== entry.body || null !== entry.diff || 'request.proposal_approved' === entry.type) {
+        if (null !== entry.body || null !== entry.diff || null !== entry.pullRequestUrl || 'request.proposal_approved' === entry.type) {
             comments.push({
                 key: entry.eventId,
                 type: entry.type,
                 author: entry.actor,
                 occurredAt: entry.occurredAt,
                 body: entry.body,
+                pullRequestUrl: entry.pullRequestUrl,
                 question: entry.question,
                 pending: false,
                 proposal: 'request.proposed' === entry.type ? proposalView(entry, request, latestProposalSeq) : null,
@@ -94,7 +96,7 @@ let pendingCount = 0;
 export function pendingComment(type: ThreadEntryType, body: string, author: Actor): CommentView {
     pendingCount += 1;
 
-    return { key: `pending-${pendingCount}`, type, author, occurredAt: new Date().toISOString(), body, question: false, pending: true, proposal: null };
+    return { key: `pending-${pendingCount}`, type, author, occurredAt: new Date().toISOString(), body, pullRequestUrl: null, question: false, pending: true, proposal: null };
 }
 
 export function pendingThread(range: LineRange | null, symbol: string | null, body: string, author: Actor): ThreadView {

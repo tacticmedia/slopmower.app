@@ -15,9 +15,10 @@ import { type CommentView, linesText, pendingComment, type ThreadView } from './
 // A separate chunk, so the Markdown libraries stay out of the bundles that import this box.
 const MarkdownBody = lazy(() => import('./MarkdownBody').then(({ MarkdownBody }) => ({ default: MarkdownBody })));
 
-/** What a thread entry with a body did, after the author name. */
+/** What a thread entry with a body or a pull request did, after the author name. */
 const CAPTIONS: Record<string, string> = {
     'commit.linked': 'linked a commit',
+    'pull_request.linked': 'linked a pull request',
     'request.released': 'unassigned this',
     'request.ready_for_review': 'marked this ready for review',
     'request.wont_do': "closed this as won't do",
@@ -104,7 +105,7 @@ export function ThreadBox({ thread, caller, showHeader = true, detail = false }:
 }
 
 function ThreadComment({ comment, onQuote, children }: { comment: CommentView; onQuote: (() => void) | null; children?: ReactNode }) {
-    const { author } = comment;
+    const { author, pullRequestUrl } = comment;
     const caption = CAPTIONS[comment.type];
 
     return (
@@ -129,6 +130,11 @@ function ThreadComment({ comment, onQuote, children }: { comment: CommentView; o
                     </ActionMenu>
                 )}
             </div>
+            {null !== pullRequestUrl && (
+                <Link href={pullRequestUrl} target="_blank" rel="noreferrer" className={styles.pullRequest} data-testid="thread-pull-request">
+                    {pullRequestUrl}
+                </Link>
+            )}
             {null !== comment.body && (
                 <Suspense fallback={<p className={styles.plain}>{comment.body}</p>}>
                     <MarkdownBody markdown={comment.body} />

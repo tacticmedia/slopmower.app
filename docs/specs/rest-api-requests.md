@@ -13,6 +13,7 @@ This file continues [rest-api.md](rest-api.md). That file has the conventions, t
 | release | [Q6](#q6-release-a-request) | `release_request` | the claiming agent, or the user with "Unassign" | `in_progress` | the status before the claim | `request.released` | 409 `invalid_transition` |
 | link | [Q7](#q7-link-a-commit-to-requests) | `link_commits` | the claiming agent, for **every** named request | `in_progress` | unchanged | one `commit.linked` that names the newly linked requests | Pairs that are already linked are skipped. No event when nothing is new. |
 | unlink | [Q8](#q8-unlink-a-commit) | `unlink_commit` | the claiming agent | `in_progress` | unchanged | `commit.unlinked` | 422 `invalid_input` when not linked |
+| link pull request | [Q17](#q17-link-a-pull-request-to-requests) | `link_pull_request` | an agent, for **every** named request: the claiming agent while `in_progress`, any agent while `ready_for_review` | `in_progress`, `ready_for_review` | unchanged | one `pull_request.linked` that names the newly linked requests | Pairs that are already linked are skipped. No event when nothing is new. |
 | ready | [Q10](#q10-mark-ready-for-review) | `mark_ready_for_review` | the claiming agent | `in_progress` | `ready_for_review` | any `commit.found` first, then `request.ready_for_review` | 409 |
 | won't do | [Q11](#q11-mark-wont-do) | `mark_wont_do` | agent, which must be the claiming agent when `in_progress`, or user | `open`, `reopened`, `in_progress` | `wont_do` | `request.wont_do` | 409 |
 | verify | [Q12](#q12-verify-a-request) | none | user | `ready_for_review`; `wont_do` set by an agent | `verified` | `request.verified` | 409 |
@@ -41,7 +42,7 @@ Proposals: the claiming agent proposes a solution in the thread, a Markdown plan
 
 - `proposal` is the current proposal of the claim: `{eventId, state}` with the state `pending`, `approved`, or `rejected`, else null. A new proposal replaces the current one, whatever its state. Release, won't do, and reopen set it to null, so after a reopen the agent proposes again. `ready_for_review` and `verified` keep it.
 - `requireApproval` ("Ask for a plan first") is set when the request opens and does not change after that. A carried request keeps the value of its source.
-- The proposal gate is open when `proposal` is null or approved, and approved when `requireApproval` is true. `link_commits` and `mark_ready_for_review` need it. So a pending or rejected proposal always blocks them.
+- The proposal gate is open when `proposal` is null or approved, and approved when `requireApproval` is true. `link_commits` and `mark_ready_for_review` need it, and so does `link_pull_request` on an `in_progress` request. So a pending or rejected proposal always blocks them.
 - A decision names the proposal in `proposalEventId`. While a proposal is pending, another ID gives 422 `invalid_input`, so the user never approves a proposal that a newer one replaced. Without a pending proposal, the decision gets 409 `invalid_transition`.
 - A decision counts as a user message for `awaiting` rule 2, and a pending proposal waits for the user by rule 3.
 
@@ -54,6 +55,7 @@ Proposals: the claiming agent proposes a solution in the thread, a Markdown plan
 | `release` | `in_progress` and claimed by the caller | `in_progress` |
 | `link_commits` | `in_progress`, claimed by the caller, and the proposal gate is open | never |
 | `unlink_commit` | `in_progress`, claimed by the caller, and at least one link exists | never |
+| `link_pull_request` | `in_progress`, claimed by the caller, and the proposal gate is open, or `ready_for_review`. `request.ready_for_review` clears the claim, so any agent may link then. | never |
 | `mark_ready_for_review` | `in_progress`, claimed by the caller, and the proposal gate is open | never |
 | `mark_wont_do` | `open` or `reopened`, or `in_progress` claimed by the caller | `open`, `reopened`, `in_progress` |
 | `verify` | never | `ready_for_review`, or `wont_do` whose last `request.wont_do` actor is an agent |
@@ -115,9 +117,9 @@ Example response, [fixtures/lists.request-page.json](fixtures/lists.request-page
 - A general request has `location` and `excerpt` null. The server checks only the syntax of `at` and `context`, so it never resolves `at` and never sends `commit_not_found` or `repository_unavailable` for it. Example: [fixtures/request.general.json](fixtures/request.general.json).
 - `thread` holds, in `seq` order:
   - the events of the request;
-  - `commit.linked` events whose `requestIds` contain it;
+  - `commit.linked` and `pull_request.linked` events whose `requestIds` contain it;
   - `commit.found` events for commits linked to it.
-- `commits` is sorted by `linkedAt`.
+- `commits` is sorted by `linkedAt`. `pullRequestUrls` is in link order.
 - `carriedFrom` names the source request of a request that [V15](rest-api.md#v15-carry-over-open-requests) carried over, else it is null. Example: [fixtures/request.carried.json](fixtures/request.carried.json).
 
 Example response for `GET /api/v1/requests/01K6B3P2A9QRSTVWXYZ0123456?at=a1b2c3d4e5f60718293a4b5c6d7e8f9012345678`, [fixtures/request.in-progress.json](fixtures/request.in-progress.json):
@@ -152,14 +154,15 @@ Example response for `GET /api/v1/requests/01K6B3P2A9QRSTVWXYZ0123456?at=a1b2c3d
   "location": {"target":"requested","targetSha":"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678","status":"changed","path":"src/Billing/InvoiceTotals.php","range":{"startLine":38,"endLine":51},"confidence":1,"reason":null},
   "excerpt": null,
   "thread": [
-    {"seq":1830,"eventId":"01K6C2EVT00000000000001830","type":"request.opened","actor":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"occurredAt":"2026-09-29T07:20:00Z","body":"Use `Money` instead of `float` for totals.","diff":null,"commentId":null,"question":false,"batchId":"01K6B3P1Z8Y7X6W5V4T3S2R1Q0","commitSha":null,"statusAfter":"open"},
-    {"seq":1840,"eventId":"01K6C2EVT00000000000001840","type":"request.claimed","actor":{"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},"occurredAt":"2026-09-29T07:40:00Z","body":null,"diff":null,"commentId":null,"question":false,"batchId":null,"commitSha":null,"statusAfter":"in_progress"},
-    {"seq":1842,"eventId":"01K6C2EVT00000000000001842","type":"commit.linked","actor":{"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},"occurredAt":"2026-09-29T07:45:00Z","body":"One refactoring covers both.","diff":null,"commentId":null,"question":false,"batchId":null,"commitSha":"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678","statusAfter":"in_progress"}
+    {"seq":1830,"eventId":"01K6C2EVT00000000000001830","type":"request.opened","actor":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"occurredAt":"2026-09-29T07:20:00Z","body":"Use `Money` instead of `float` for totals.","diff":null,"commentId":null,"question":false,"batchId":"01K6B3P1Z8Y7X6W5V4T3S2R1Q0","commitSha":null,"pullRequestUrl":null,"statusAfter":"open"},
+    {"seq":1840,"eventId":"01K6C2EVT00000000000001840","type":"request.claimed","actor":{"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},"occurredAt":"2026-09-29T07:40:00Z","body":null,"diff":null,"commentId":null,"question":false,"batchId":null,"commitSha":null,"pullRequestUrl":null,"statusAfter":"in_progress"},
+    {"seq":1842,"eventId":"01K6C2EVT00000000000001842","type":"commit.linked","actor":{"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},"occurredAt":"2026-09-29T07:45:00Z","body":"One refactoring covers both.","diff":null,"commentId":null,"question":false,"batchId":null,"commitSha":"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678","pullRequestUrl":null,"statusAfter":"in_progress"}
   ],
   "commits": [
     {"commitSha":"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678","state":"available","linkedBy":{"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},"linkedAt":"2026-09-29T07:45:00Z","note":"One refactoring covers both.","foundAt":"2026-09-29T07:45:00Z","subject":"Use Money for invoice totals (01K6B3P2A9QRSTVWXYZ0123456)","committedAt":"2026-09-29T07:44:10Z","otherRequestIds":["01K6B3P2A9QRSTVWXYZ0123457"]}
   ],
-  "allowedActions": ["reply","release","link_commits","unlink_commit","mark_ready_for_review","mark_wont_do","propose_solution"]
+  "pullRequestUrls": [],
+  "allowedActions": ["reply","release","link_commits","unlink_commit","link_pull_request","mark_ready_for_review","mark_wont_do","propose_solution"]
 }
 ```
 
@@ -206,7 +209,7 @@ Example response, [fixtures/commit-diff.modified.json](fixtures/commit-diff.modi
 
 ## 3. Writes
 
-All command responses except Q2 and Q7 are [`RequestCommandResult`](schemas/request-command-result.schema.json): `{request: RequestSummary, allowedActions, events}`. `events` holds the events that the command wrote.
+All command responses except Q2, Q7, and Q17 are [`RequestCommandResult`](schemas/request-command-result.schema.json): `{request: RequestSummary, allowedActions, events}`. `events` holds the events that the command wrote.
 
 ### Q2 Open a request
 
@@ -386,6 +389,28 @@ The proposal replaces the current one, also an approved one. The request then wa
 - **Success:** 200 `RequestCommandResult` with one `request.proposal_rejected` event. `proposal.state` becomes `rejected`, and the request waits for the agent, which proposes again.
 - **Errors:** as [Q15](#q15-approve-a-proposal), and 422 `invalid_input` for a note of whitespace only.
 
+### Q17 Link a pull request to requests
+
+- **Request:** `POST /api/v1/pull-request-links`
+- **Authentication:** B
+- **Body:** [`LinkPullRequestInput`](schemas/inputs.schema.json), `{url, requestIds, note?}`.
+  - `url` follows the rule of [README.md section 2.2](README.md#22-text-limits). For a GitHub repository it names a pull request of the review's repository, and the server stores it with the repository name as connected. So `url` in the result, the event, and `pullRequestUrls` is that form, and a URL in another letter case names a pair that is already linked.
+  - `requestIds` holds 1 to 50 unique IDs, all from the same review.
+- **Success:** 200 [`LinkPullRequestResult`](schemas/link-pull-request-result.schema.json). Example: [fixtures/link-pull-request-result.linked.json](fixtures/link-pull-request-result.linked.json).
+- **Errors:**
+  - 404 `not_found`: any request ID;
+  - 422 `invalid_input`: a URL that breaks the rule, or requests from more than one review. The violations of `url` and `requestIds` come together.
+  - 409 `review_closed`;
+  - 409 `invalid_transition`: the first request that is neither `in_progress`, claimed by the caller, with the proposal gate open, nor `ready_for_review`. Nothing is written.
+
+The server stores the URL only. It never reads the pull request from GitHub. A link never changes the status, and it does not hand the turn to the user, because `pull_request.linked` does not count as an agent event for the `awaiting` rules. A request lists its pull requests in `Request.pullRequestUrls`. There is no unlink.
+
+Example body, [fixtures/inputs.link-pull-request.json](fixtures/inputs.link-pull-request.json):
+
+```json
+{"url":"https://github.com/acme/billing/pull/42","requestIds":["01K6B3P2A9QRSTVWXYZ0123456","01K6B3P2A9QRSTVWXYZ0123457"],"note":"One pull request for both requests."}
+```
+
 ## 4. Updates
 
 - **Request:** `GET /api/v1/reviews/{reviewId}/updates`, endpoint [V10](rest-api.md#v10-get-updates)
@@ -425,7 +450,7 @@ Example response for `cursor=1842`, [fixtures/updates-page.cursor.json](fixtures
   "hasMore": false,
   "awaitingTotal": 1,
   "requests": [
-    {"request":{"id":"01K6B3P2A9QRSTVWXYZ0123456","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","status":"in_progress","awaiting":"agent","resolution":null,"closed":false,"anchor":{"kind":"symbol","path":"src/Billing/InvoiceTotals.php","range":{"startLine":38,"endLine":49},"symbol":{"language":"php","kind":"method","fqn":"App\\Billing\\InvoiceTotals::total()"}},"summary":"Use `Money` instead of `float` for totals.","author":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"claimedBy":{"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},"claimedAt":"2026-09-29T07:40:00Z","commentCount":1,"commitCount":1,"pendingCommitCount":0,"outdated":false,"createdAt":"2026-09-29T07:20:00Z","updatedAt":"2026-09-29T07:50:00Z","lastEventSeq":1850,"carriedFrom":null,"requireApproval":false,"proposal":null},"newEvents":[{"seq":1850,"eventId":"01K6C2EVT00000000000001850","type":"request.commented","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","requestId":"01K6B3P2A9QRSTVWXYZ0123456","requestIds":["01K6B3P2A9QRSTVWXYZ0123456"],"actor":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"occurredAt":"2026-09-29T07:50:00Z","body":"Keep the old method as deprecated for one release.","diff":null,"commentId":"01K6C3C0MMENT0000000000002","question":false,"batchId":null,"commitSha":null,"statusAfter":"in_progress"}],"omittedEvents":0}
+    {"request":{"id":"01K6B3P2A9QRSTVWXYZ0123456","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","status":"in_progress","awaiting":"agent","resolution":null,"closed":false,"anchor":{"kind":"symbol","path":"src/Billing/InvoiceTotals.php","range":{"startLine":38,"endLine":49},"symbol":{"language":"php","kind":"method","fqn":"App\\Billing\\InvoiceTotals::total()"}},"summary":"Use `Money` instead of `float` for totals.","author":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"claimedBy":{"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},"claimedAt":"2026-09-29T07:40:00Z","commentCount":1,"commitCount":1,"pendingCommitCount":0,"outdated":false,"createdAt":"2026-09-29T07:20:00Z","updatedAt":"2026-09-29T07:50:00Z","lastEventSeq":1850,"carriedFrom":null,"requireApproval":false,"proposal":null},"newEvents":[{"seq":1850,"eventId":"01K6C2EVT00000000000001850","type":"request.commented","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","requestId":"01K6B3P2A9QRSTVWXYZ0123456","requestIds":["01K6B3P2A9QRSTVWXYZ0123456"],"actor":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"occurredAt":"2026-09-29T07:50:00Z","body":"Keep the old method as deprecated for one release.","diff":null,"commentId":"01K6C3C0MMENT0000000000002","question":false,"batchId":null,"commitSha":null,"pullRequestUrl":null,"statusAfter":"in_progress"}],"omittedEvents":0}
   ],
   "reviewEvents": []
 }

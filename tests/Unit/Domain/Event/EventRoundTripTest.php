@@ -17,6 +17,7 @@ use App\Domain\Event\CommitLinkedEvent;
 use App\Domain\Event\CommitUnlinkedEvent;
 use App\Domain\Event\DomainEvent;
 use App\Domain\Event\EventType;
+use App\Domain\Event\PullRequestLinkedEvent;
 use App\Domain\Event\RequestClaimedEvent;
 use App\Domain\Event\RequestCommentedEvent;
 use App\Domain\Event\RequestOpenedEvent;
@@ -42,6 +43,7 @@ use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Request\CarriedFrom;
 use App\Domain\Request\ProposedDiff;
+use App\Domain\Request\PullRequestUrl;
 use App\Tests\Support\Domain\EventFixtures;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -146,6 +148,11 @@ final class EventRoundTripTest extends KernelTestCase
                 [RequestId::fromString(self::REQUEST_A)],
                 'Extract TaxRounding',
                 new \DateTimeImmutable('2026-09-29T08:02:31Z'),
+            ),
+            EventType::PullRequestLinked => new PullRequestLinkedEvent(
+                PullRequestUrl::fromString('https://github.com/acme/billing/pull/42'),
+                [RequestId::fromString(self::REQUEST_A), RequestId::fromString(self::REQUEST_B)],
+                'One pull request for both requests.',
             ),
             EventType::RequestReadyForReview => new RequestReadyForReviewEvent('Totals use Money. Tests cover the rounding.'),
             EventType::RequestWontDo => new RequestWontDoEvent(WontDoReason::fromString('The PDF library API requires float amounts.')),

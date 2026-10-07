@@ -61,6 +61,16 @@ final class AwaitingPolicyTest extends KernelTestCase
         yield 'rule 2 over rule 5: user reply on an agent\'s wont_do' => ['agent', static fn (): RequestScenario => self::userReply(RequestScenario::inState('wont_do by agent'))];
     }
 
+    #[TestDox('A pull request link after a user reply on a ready_for_review request keeps awaiting agent')]
+    public function testPullRequestLinkKeepsAwaiting(): void
+    {
+        $scenario = self::userReply(RequestScenario::inState('ready_for_review'));
+
+        $scenario->run($scenario->validCommand('link_pull_request'), RequestScenario::claimingAgent());
+
+        self::assertSame(Awaiting::Agent, AwaitingPolicy::evaluate($scenario->state()));
+    }
+
     private static function userReply(RequestScenario $scenario): RequestScenario
     {
         $scenario->run(new Reply($scenario->requestId(), 'Please also cover the shipping totals.'), RequestScenario::user());

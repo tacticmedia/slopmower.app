@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Application;
 
 use App\Application\Query\LinkCommitsResult;
+use App\Application\Query\LinkPullRequestResult;
 use App\Application\Query\RequestQuery;
 use App\Domain\Actor\Actor;
 use App\Domain\Error\InvalidInput;
@@ -19,6 +20,7 @@ use App\Domain\Identity\ReviewId;
 use App\Domain\Request\Command\ApproveProposal;
 use App\Domain\Request\Command\Claim;
 use App\Domain\Request\Command\LinkCommits;
+use App\Domain\Request\Command\LinkPullRequest;
 use App\Domain\Request\Command\MarkReadyForReview;
 use App\Domain\Request\Command\MarkWontDo;
 use App\Domain\Request\Command\Open;
@@ -33,6 +35,7 @@ use App\Domain\Request\Command\Verify;
 use App\Domain\Request\CommitLinkState;
 use App\Domain\Request\CommitsNotAvailable;
 use App\Domain\Request\InvalidTransition;
+use App\Domain\Request\PullRequestUrl;
 use App\Domain\Request\RequestDecider;
 use App\Domain\Request\RequestState;
 use App\EventStore\CommandExecutor;
@@ -47,8 +50,8 @@ use App\Repository\ReviewRepository;
 use Psr\Log\LoggerInterface;
 
 /**
- * Each method but linkCommits() returns the events that the command wrote. The ID of an opened request is in the
- * requestId of its event. Git work runs outside the event transaction.
+ * Each method but linkCommits() and linkPullRequest() returns the events that the command wrote. The ID of an opened
+ * request is in the requestId of its event. Git work runs outside the event transaction.
  */
 final class RequestCommands
 {
@@ -135,6 +138,24 @@ final class RequestCommands
         }
 
         return $this->requestQuery->linkCommitsResult($commitSha, null === $commit ? CommitLinkState::Pending : CommitLinkState::Available, $command->requestIds, $events);
+    }
+
+    /**
+     * Q17. The command carries the name of the review's repository, so the decider checks a GitHub URL against it and
+     * stores its canonical form.
+     *
+     * @param list<RequestId> $requestIds
+     *
+     * @throws NotFound|InvalidInput|ReviewClosed|InvalidTransition
+     */
+    public function linkPullRequest(string $url, array $requestIds, ?string $note, Actor $actor): LinkPullRequestResult
+    {
+        $first = $requestIds[0] ?? throw InvalidInput::field('requestIds', 'Must not be empty.');
+        $review = ($this->requests->findFresh($first) ?? throw new NotFound())->getReview();
+        $repository = $review->getRepository()->getName();
+        $events = $this->run($review->getId(), new LinkPullRequest($url, $requestIds, $repository, $note), $actor);
+
+        return $this->requestQuery->linkPullRequestResult(PullRequestUrl::forRepository($url, $repository), $requestIds, $events);
     }
 
     /**

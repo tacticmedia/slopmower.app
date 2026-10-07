@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://holistic-review.invalid/schemas/v1/thread-entry.schema.json",
   "title": "ThreadEntry",
-  "description": "One event in a request's timeline: comments, status changes, commit links.",
+  "description": "One event in a request's timeline: comments, status changes, commit and pull request links.",
   "type": "object",
-  "required": ["seq", "eventId", "type", "actor", "occurredAt", "body", "diff", "commentId", "question", "batchId", "commitSha", "statusAfter"],
+  "required": ["seq", "eventId", "type", "actor", "occurredAt", "body", "diff", "commentId", "question", "batchId", "commitSha", "pullRequestUrl", "statusAfter"],
   "properties": {
     "seq": {
       "$ref": "common.schema.json#/$defs/EventSeq"
@@ -23,7 +23,7 @@
     },
     "body": {
       "type": ["string", "null"],
-      "description": "opened: request body; commented: comment; proposed: plan; released, ready_for_review, verified, reopened, proposal_approved, proposal_rejected, commit.linked: note; wont_do: reason; else null."
+      "description": "opened: request body; commented: comment; proposed: plan; released, ready_for_review, verified, reopened, proposal_approved, proposal_rejected, commit.linked, pull_request.linked: note; wont_do: reason; else null."
     },
     "diff": {
       "anyOf": [
@@ -71,6 +71,17 @@
         }
       ],
       "description": "commit.* only."
+    },
+    "pullRequestUrl": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/PullRequestUrl"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "pull_request.linked only."
     },
     "statusAfter": {
       "$ref": "common.schema.json#/$defs/RequestStatus"

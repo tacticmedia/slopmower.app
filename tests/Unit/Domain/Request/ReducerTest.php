@@ -20,6 +20,7 @@ use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\UnlinkCommit;
 use App\Domain\Request\Command\Verify;
+use App\Domain\Request\PullRequestUrl;
 use App\Domain\Request\RequestReducer;
 use App\Domain\Request\RequestState;
 use App\Domain\Request\RequestStatus;
@@ -54,7 +55,7 @@ final class ReducerTest extends KernelTestCase
 
         $expected = [
             'status' => 'open', 'statusBeforeClaim' => null, 'claimedBy' => null, 'claimedAt' => null, 'wontDoBy' => null,
-            'resolution' => null, 'links' => [], 'lastUserCommentSeq' => null, 'lastAgentEventSeq' => null,
+            'resolution' => null, 'links' => [], 'pullRequestUrls' => [], 'lastUserCommentSeq' => null, 'lastAgentEventSeq' => null,
             'lastAgentEventIsQuestion' => false, 'lastEventSeq' => 2, 'updatedAt' => '07:02',
         ];
         self::assertSame($expected, self::fields($scenario->state()));
@@ -107,6 +108,10 @@ final class ReducerTest extends KernelTestCase
             'request.ready_for_review' => [
                 static fn () => $scenario->run(new MarkReadyForReview($id, 'Done.'), $agent),
                 ['status' => 'ready_for_review', 'statusBeforeClaim' => null, 'claimedBy' => null, 'claimedAt' => null, 'resolution' => 'fixed', 'lastAgentEventSeq' => 14],
+            ],
+            'pull_request.linked, without agent tracking' => [
+                static fn () => $scenario->run($scenario->validCommand('link_pull_request'), $agent),
+                ['pullRequestUrls' => [RequestScenario::PULL_REQUEST]],
             ],
             'request.verified' => [
                 static fn () => $scenario->run(new Verify($id), $user),
@@ -272,6 +277,7 @@ final class ReducerTest extends KernelTestCase
             'wontDoBy' => $state->wontDoBy?->value,
             'resolution' => $state->resolution?->value,
             'links' => $links,
+            'pullRequestUrls' => array_map(static fn (PullRequestUrl $url): string => $url->toString(), $state->pullRequestUrls),
             'lastUserCommentSeq' => $state->lastUserCommentSeq,
             'lastAgentEventSeq' => $state->lastAgentEventSeq,
             'lastAgentEventIsQuestion' => $state->lastAgentEventIsQuestion,

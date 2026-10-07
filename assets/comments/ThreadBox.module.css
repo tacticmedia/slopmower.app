@@ -66,6 +66,11 @@
     color: var(--fgColor-muted);
 }
 
+.pullRequest {
+    align-self: flex-start;
+    overflow-wrap: anywhere;
+}
+
 .menu {
     margin-left: auto;
 }

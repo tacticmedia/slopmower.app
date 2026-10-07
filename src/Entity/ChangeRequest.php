@@ -17,6 +17,7 @@ use App\Domain\Request\Awaiting;
 use App\Domain\Request\CarriedFrom;
 use App\Domain\Request\Proposal;
 use App\Domain\Request\ProposalState;
+use App\Domain\Request\PullRequestUrl;
 use App\Domain\Request\RequestStatus;
 use App\Domain\Request\Resolution;
 use App\MessageHandler\RecomputeLocationsHandler;
@@ -90,6 +91,10 @@ class ChangeRequest implements TenantOwned
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
+    /** @var list<string> In link order */
+    #[ORM\Column(type: Types::JSONB, options: ['default' => '[]'])]
+    private array $pullRequestUrls = [];
+
     /** Not event data, so the projection rebuild keeps it. {@see RecomputeLocationsHandler} sets it. */
     #[ORM\Column(nullable: true)]
     private ?bool $outdated = null;
@@ -137,6 +142,9 @@ class ChangeRequest implements TenantOwned
         $this->requireApproval = $requireApproval;
     }
 
+    /**
+     * @param list<PullRequestUrl> $pullRequestUrls
+     */
     public function project(
         RequestStatus $status,
         ?RequestStatus $statusBeforeClaim,
@@ -151,6 +159,7 @@ class ChangeRequest implements TenantOwned
         int $lastEventSeq,
         \DateTimeImmutable $updatedAt,
         ?Proposal $proposal,
+        array $pullRequestUrls,
     ): void {
         $this->status = $status;
         $this->statusBeforeClaim = $statusBeforeClaim;
@@ -166,6 +175,7 @@ class ChangeRequest implements TenantOwned
         $this->updatedAt = $updatedAt;
         $this->proposalEventId = $proposal?->eventId;
         $this->proposalState = $proposal?->state;
+        $this->pullRequestUrls = array_map(static fn (PullRequestUrl $url): string => $url->toString(), $pullRequestUrls);
     }
 
     public function getId(): RequestId
@@ -264,6 +274,14 @@ class ChangeRequest implements TenantOwned
     public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
+    }
+
+    /**
+     * @return list<PullRequestUrl>
+     */
+    public function getPullRequestUrls(): array
+    {
+        return array_map(PullRequestUrl::fromString(...), $this->pullRequestUrls);
     }
 
     /**

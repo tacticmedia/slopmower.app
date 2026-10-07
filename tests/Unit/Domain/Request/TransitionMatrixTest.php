@@ -11,8 +11,9 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
  * Architecture section 6 and docs/specs/rest-api-requests.md section 1. Each state has one available link, and the claiming agent
- * holds the in_progress request. Inputs are valid: link_commits names a new commit, unlink_commit the linked one, and a
- * proposal decision the current proposal, or a new ID when none is pending.
+ * holds the in_progress request. Inputs are valid: link_commits names a new commit, unlink_commit the linked one,
+ * link_pull_request a pull request of the review's GitHub repository, and a proposal decision the current proposal,
+ * or a new ID when none is pending.
  */
 final class TransitionMatrixTest extends KernelTestCase
 {
@@ -22,6 +23,7 @@ final class TransitionMatrixTest extends KernelTestCase
     private const string RELEASED = 'request.released';
     private const string LINKED = 'commit.linked';
     private const string UNLINKED = 'commit.unlinked';
+    private const string PULL_REQUEST_LINKED = 'pull_request.linked';
     private const string READY = 'request.ready_for_review';
     private const string WONT_DO = 'request.wont_do';
     private const string VERIFIED = 'request.verified';
@@ -59,6 +61,11 @@ final class TransitionMatrixTest extends KernelTestCase
             'user' => [self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T],
             'claiming agent' => [self::T, self::UNLINKED, self::T, self::T, self::T, self::T, self::T, self::UNLINKED, self::UNLINKED, self::UNLINKED, self::UNLINKED],
             'another agent' => [self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T],
+        ],
+        'link_pull_request' => [
+            'user' => [self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T],
+            'claiming agent' => [self::T, self::PULL_REQUEST_LINKED, self::PULL_REQUEST_LINKED, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::PULL_REQUEST_LINKED],
+            'another agent' => [self::T, self::T, self::PULL_REQUEST_LINKED, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T],
         ],
         'mark_ready_for_review' => [
             'user' => [self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T],

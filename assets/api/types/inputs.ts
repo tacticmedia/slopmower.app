@@ -1,6 +1,6 @@
 import type { AnchorInput } from './anchor';
 import type { TokenName } from './api-token';
-import type { CommitSha, DateTime, Markdown, RepoPath, Ulid, UnifiedDiff } from './common';
+import type { CommitSha, DateTime, Markdown, PullRequestUrl, RepoPath, Ulid, UnifiedDiff } from './common';
 import type { LocalDirectory } from './repository';
 
 export type ConnectRepositoryInput =
@@ -67,6 +67,12 @@ export type RejectProposalInput = {
 
 export type LinkCommitsInput = {
     commitSha: CommitSha;
+    requestIds: Ulid[];
+    note?: string | null;
+};
+
+export type LinkPullRequestInput = {
+    url: PullRequestUrl;
     requestIds: Ulid[];
     note?: string | null;
 };

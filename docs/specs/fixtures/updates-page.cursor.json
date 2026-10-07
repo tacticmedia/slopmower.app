@@ -76,6 +76,7 @@
           "question": false,
           "batchId": null,
           "commitSha": null,
+          "pullRequestUrl": null,
           "statusAfter": "in_progress"
         }
       ],

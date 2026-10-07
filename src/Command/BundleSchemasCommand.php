@@ -30,6 +30,7 @@ final class BundleSchemasCommand
         'REQUEST' => 'request.schema.json',
         'REQUEST_COMMAND_RESULT' => 'request-command-result.schema.json',
         'LINK_COMMITS_RESULT' => 'link-commits-result.schema.json',
+        'LINK_PULL_REQUEST_RESULT' => 'link-pull-request-result.schema.json',
     ];
 
     /** Keys that identify a file. A bundled copy lives inside another document. */

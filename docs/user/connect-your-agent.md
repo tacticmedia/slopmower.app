@@ -73,6 +73,8 @@ The agent then lists the requests that wait for it, asks questions, and works on
 
 To let the agent keep watching the review for your replies, ask it to do so. In Claude Code you can use the `/loop` command.
 
+If you want a pull request for the work, ask the agent for one, or put the rule into the instructions of your repository, for example `CLAUDE.md` or `AGENTS.md`. The agent then links the pull request to its requests, and Holistic Review shows the link on each request. For a GitHub repository, the pull request must belong to the reviewed repository.
+
 ## If something goes wrong
 
 | What you see | What to do |

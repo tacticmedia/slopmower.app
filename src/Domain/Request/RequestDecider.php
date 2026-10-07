@@ -11,6 +11,7 @@ use App\Domain\Error\ReviewClosed;
 use App\Domain\Event\CommitLinkedEvent;
 use App\Domain\Event\CommitUnlinkedEvent;
 use App\Domain\Event\DecidedEvent;
+use App\Domain\Event\PullRequestLinkedEvent;
 use App\Domain\Event\RequestClaimedEvent;
 use App\Domain\Event\RequestCommentedEvent;
 use App\Domain\Event\RequestOpenedEvent;
@@ -32,6 +33,7 @@ use App\Domain\Identity\UniqueIds;
 use App\Domain\Request\Command\ApproveProposal;
 use App\Domain\Request\Command\Claim;
 use App\Domain\Request\Command\LinkCommits;
+use App\Domain\Request\Command\LinkPullRequest;
 use App\Domain\Request\Command\MarkReadyForReview;
 use App\Domain\Request\Command\MarkWontDo;
 use App\Domain\Request\Command\Open;
@@ -97,6 +99,10 @@ final class RequestDecider
 
         if ($command instanceof LinkCommits) {
             return self::linkCommits($command, $byId, $availability);
+        }
+
+        if ($command instanceof LinkPullRequest) {
+            return self::linkPullRequest($command, $byId);
         }
 
         $state = $byId[$command->requestIds()[0]->toString()];
@@ -173,7 +179,11 @@ final class RequestDecider
                 ...self::textViolations('body', $command->body),
                 ...($command->question && ActorKind::User === $actor->kind ? [['field' => 'question', 'message' => 'Only an agent asks a question.']] : []),
             ],
-            $command instanceof LinkCommits => self::linkViolations($command, $byId, $review),
+            $command instanceof LinkCommits => self::linkViolations($command->requestIds, $byId, $review),
+            $command instanceof LinkPullRequest => [
+                ...self::pullRequestUrlViolations($command),
+                ...self::linkViolations($command->requestIds, $byId, $review),
+            ],
             $command instanceof UnlinkCommit => null === $byId[$command->requestId->toString()]->link($command->commitSha)
                 ? [['field' => 'commitSha', 'message' => 'Is not linked to the request.']]
                 : [],
@@ -230,6 +240,20 @@ final class RequestDecider
     }
 
     /**
+     * @return list<array{field: string, message: string}>
+     */
+    private static function pullRequestUrlViolations(LinkPullRequest $command): array
+    {
+        try {
+            PullRequestUrl::forRepository($command->url, $command->repository);
+        } catch (InvalidInput $error) {
+            return $error->details()['violations'];
+        }
+
+        return [];
+    }
+
+    /**
      * A decision on a proposal that a newer one replaced. Without a pending proposal, {@see AllowedActions} refuses.
      *
      * @return list<array{field: string, message: string}>
@@ -244,19 +268,20 @@ final class RequestDecider
     }
 
     /**
+     * @param list<RequestId>             $requestIds
      * @param array<string, RequestState> $byId
      *
      * @return list<array{field: string, message: string}>
      */
-    private static function linkViolations(LinkCommits $command, array $byId, ReviewSnapshot $review): array
+    private static function linkViolations(array $requestIds, array $byId, ReviewSnapshot $review): array
     {
-        $violations = UniqueIds::violations($command->requestIds, 'requestIds');
+        $violations = UniqueIds::violations($requestIds, 'requestIds');
 
-        if (count($command->requestIds) > self::MAX_LINKED_REQUESTS) {
+        if (count($requestIds) > self::MAX_LINKED_REQUESTS) {
             $violations[] = ['field' => 'requestIds', 'message' => 'Must hold at most 50 IDs.'];
         }
 
-        foreach ($command->requestIds as $index => $requestId) {
+        foreach ($requestIds as $index => $requestId) {
             if (!$byId[$requestId->toString()]->reviewId->equals($review->id)) {
                 $violations[] = ['field' => "requestIds.{$index}", 'message' => 'Must belong to the review of the other requests.'];
             }
@@ -273,6 +298,7 @@ final class RequestDecider
             $command instanceof Release => Action::Release,
             $command instanceof LinkCommits => Action::LinkCommits,
             $command instanceof UnlinkCommit => Action::UnlinkCommit,
+            $command instanceof LinkPullRequest => Action::LinkPullRequest,
             $command instanceof MarkReadyForReview => Action::MarkReadyForReview,
             $command instanceof MarkWontDo => Action::MarkWontDo,
             $command instanceof Verify => Action::Verify,
@@ -304,6 +330,22 @@ final class RequestDecider
         $commit = self::find($availability, $command->commitSha);
 
         return [new DecidedEvent(new CommitLinkedEvent($command->commitSha, $newlyLinked, $command->note, null !== $commit, $commit?->subject, $commit?->committedAt))];
+    }
+
+    /**
+     * @param array<string, RequestState> $byId
+     *
+     * @return list<DecidedEvent>
+     */
+    private static function linkPullRequest(LinkPullRequest $command, array $byId): array
+    {
+        $url = PullRequestUrl::forRepository($command->url, $command->repository);
+        $newlyLinked = array_values(array_filter(
+            $command->requestIds,
+            static fn (RequestId $requestId): bool => !$byId[$requestId->toString()]->hasPullRequest($url),
+        ));
+
+        return [] === $newlyLinked ? [] : [new DecidedEvent(new PullRequestLinkedEvent($url, $newlyLinked, $command->note))];
     }
 
     private static function assertCommitsAvailable(RequestState $state): void

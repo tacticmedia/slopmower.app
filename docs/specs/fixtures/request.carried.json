@@ -83,6 +83,7 @@
       "question": false,
       "batchId": null,
       "commitSha": null,
+      "pullRequestUrl": null,
       "statusAfter": "open"
     },
     {
@@ -103,9 +104,11 @@
       "question": false,
       "batchId": null,
       "commitSha": null,
+      "pullRequestUrl": null,
       "statusAfter": "open"
     }
   ],
   "commits": [],
+  "pullRequestUrls": [],
   "allowedActions": ["reply", "mark_wont_do"]
 }

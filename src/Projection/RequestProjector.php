@@ -7,6 +7,7 @@ namespace App\Projection;
 use App\Domain\Event\CommitFoundEvent;
 use App\Domain\Event\CommitLinkedEvent;
 use App\Domain\Event\CommitUnlinkedEvent;
+use App\Domain\Event\PullRequestLinkedEvent;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Event\RequestCommentedEvent;
 use App\Domain\Event\RequestOpenedEvent;
@@ -58,6 +59,10 @@ final class RequestProjector
             foreach ($event->requestIds as $requestId) {
                 [, $links] = $this->apply($requestId, $recorded);
                 self::link($links, $event->commitSha)->found($recorded->occurredAt, $event->subject, $event->committedAt);
+            }
+        } elseif ($event instanceof PullRequestLinkedEvent) {
+            foreach ($event->requestIds as $requestId) {
+                $this->apply($requestId, $recorded);
             }
         } elseif (null !== $recorded->requestId) {
             [$request] = $this->apply($recorded->requestId, $recorded);

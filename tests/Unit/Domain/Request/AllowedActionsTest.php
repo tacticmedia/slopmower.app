@@ -46,7 +46,7 @@ final class AllowedActionsTest extends KernelTestCase
                 self::assertFalse($allowed, $action->value);
             } else {
                 self::assertSame($allowed, !$refused, "{$action->value} gives {$outcome}");
-                self::assertTrue($refused || 1 === preg_match('/^(request|commit)\./', $outcome), "{$action->value} gives {$outcome}");
+                self::assertTrue($refused || 1 === preg_match('/^(request|commit|pull_request)\./', $outcome), "{$action->value} gives {$outcome}");
             }
         }
     }
@@ -91,9 +91,9 @@ final class AllowedActionsTest extends KernelTestCase
     {
         $rows = [
             ['open', true, ['reply', 'mark_wont_do'], ['reply', 'claim', 'mark_wont_do'], ['reply', 'claim', 'mark_wont_do']],
-            ['in_progress', true, ['reply', 'release', 'mark_wont_do'], ['reply', 'release', 'link_commits', 'unlink_commit', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], ['reply']],
-            ['in_progress', false, ['reply', 'release', 'mark_wont_do'], ['reply', 'release', 'link_commits', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], ['reply']],
-            ['ready_for_review', true, ['reply', 'verify', 'reopen'], ['reply'], ['reply']],
+            ['in_progress', true, ['reply', 'release', 'mark_wont_do'], ['reply', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], ['reply']],
+            ['in_progress', false, ['reply', 'release', 'mark_wont_do'], ['reply', 'release', 'link_commits', 'link_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], ['reply']],
+            ['ready_for_review', true, ['reply', 'verify', 'reopen'], ['reply', 'link_pull_request'], ['reply', 'link_pull_request']],
             ['verified', true, ['reply', 'reopen'], ['reply'], ['reply']],
             ['reopened', true, ['reply', 'mark_wont_do'], ['reply', 'claim', 'mark_wont_do'], ['reply', 'claim', 'mark_wont_do']],
             ['wont_do by agent', true, ['reply', 'verify', 'reopen'], ['reply'], ['reply']],
@@ -102,7 +102,7 @@ final class AllowedActionsTest extends KernelTestCase
             ['proposal pending', false, ['reply', 'release', 'mark_wont_do', 'approve_proposal', 'reject_proposal'], ['reply', 'release', 'mark_wont_do', 'propose_solution'], ['reply']],
             ['proposal rejected', true, ['reply', 'release', 'mark_wont_do'], ['reply', 'release', 'unlink_commit', 'mark_wont_do', 'propose_solution'], ['reply']],
             ['plan required', true, ['reply', 'release', 'mark_wont_do'], ['reply', 'release', 'unlink_commit', 'mark_wont_do', 'propose_solution'], ['reply']],
-            ['plan approved', true, ['reply', 'release', 'mark_wont_do'], ['reply', 'release', 'link_commits', 'unlink_commit', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], ['reply']],
+            ['plan approved', true, ['reply', 'release', 'mark_wont_do'], ['reply', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], ['reply']],
         ];
 
         foreach ($rows as [$state, $linked, $user, $claimingAgent, $otherAgent]) {

@@ -9,6 +9,7 @@ import type {
     EventSeq,
     Markdown,
     Proposal,
+    PullRequestUrl,
     RepoPath,
     Resolution,
     ReviewState,
@@ -60,6 +61,8 @@ export type Request = {
     /** Ascending seq; starts with request.opened. */
     thread: ThreadEntry[];
     commits: CommitLink[];
+    /** In link order. */
+    pullRequestUrls: PullRequestUrl[];
     /** For the caller. Empty when the review is closed. */
     allowedActions: Action[];
 } & RequestClaim;

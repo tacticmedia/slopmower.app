@@ -23,6 +23,7 @@ trait McpAssertions
         'release_request' => 'request-command-result.schema.json',
         'reply_to_request' => 'request-command-result.schema.json',
         'link_commits' => 'link-commits-result.schema.json',
+        'link_pull_request' => 'link-pull-request-result.schema.json',
         'unlink_commit' => 'request-command-result.schema.json',
         'mark_ready_for_review' => 'request-command-result.schema.json',
         'mark_wont_do' => 'request-command-result.schema.json',

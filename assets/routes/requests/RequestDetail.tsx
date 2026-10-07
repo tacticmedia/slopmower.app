@@ -68,6 +68,22 @@ export function RequestDetail() {
                         Claimed by <ClaimedBy claimedBy={request.claimedBy} claimedAt={request.claimedAt} />
                     </p>
                 )}
+                {request.pullRequestUrls.length > 0 && (
+                    <div className={styles.pullRequests} data-testid="pull-request-list">
+                        <span id="pull-requests" className={shared.muted}>
+                            Pull requests
+                        </span>
+                        <ul aria-labelledby="pull-requests" className={styles.pullRequestLinks}>
+                            {request.pullRequestUrls.map((url) => (
+                                <li key={url}>
+                                    <Link href={url} target="_blank" rel="noreferrer">
+                                        {url}
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
                 <RequestActions key={request.id} allowedActions={request.allowedActions} />
             </header>
             {'closed' === request.reviewState && (

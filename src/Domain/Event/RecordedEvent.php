@@ -52,7 +52,7 @@ final readonly class RecordedEvent
         $event = $this->event;
 
         return match (true) {
-            $event instanceof CommitLinkedEvent, $event instanceof CommitFoundEvent, $event instanceof BatchSubmittedEvent => $event->requestIds,
+            $event instanceof CommitLinkedEvent, $event instanceof CommitFoundEvent, $event instanceof PullRequestLinkedEvent, $event instanceof BatchSubmittedEvent => $event->requestIds,
             $event instanceof CommitUnlinkedEvent => [$event->requestId],
             null !== $this->requestId => [$this->requestId],
             default => [],
