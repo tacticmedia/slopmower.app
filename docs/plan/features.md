@@ -40,7 +40,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F22 | [Quick open ranking](F22-quick-open-ranking.md) | Done 2026-10-07, [report](reports/F22.md) | fd0be4a | src 424 PHP / 28127 lines, 424 types; tests 286 PHP / 25522 lines; assets 149 TS / 8305 lines; check 2m52s |
 | F23 | [Focus mode shortcut](F23-focus-mode-shortcut.md) | Done 2026-10-07, [report](reports/F23.md) | a526f55 | src 419 PHP / 27834 lines, 419 types; tests 284 PHP / 25239 lines; assets 149 TS / 8268 lines; check 2m54s |
 | F24 | [Gutter "+" keeps the focus](F24-gutter-plus-keeps-the-focus.md) | Done 2026-10-07, [report](reports/F24.md) | db26591 | src 427 PHP / 28311 lines, 427 types; tests 286 PHP / 25622 lines; assets 149 TS / 8356 lines; check 2m45s |
-| F25 | [GitHub-style code browser](F25-github-style-code-browser.md) | Not started | | |
+| F25 | [GitHub-style code browser](F25-github-style-code-browser.md) | In progress (2026-10-08) | | |
 | F26 | [Blame view](F26-blame-view.md) | Not started, after F25 | | |
 
 ## Candidates
