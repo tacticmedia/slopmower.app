@@ -33,6 +33,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F15 | [Proposal follow-ups](F15-proposal-follow-ups.md) | In progress | | |
 | F16 | [Carry over on an open review](F16-carry-over-on-an-open-review.md) | In progress | | |
 | F17 | [Project Mate tools](F17-project-mate-tools.md) | In progress | | |
+| F18 | [Known issues](F18-known-issues.md) | In progress | | |
 
 ## Candidates
 
@@ -41,15 +42,17 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **One scroll area in the normal file view.** Outside focus mode, the window, the file tree, and the code view each scroll. Split from F02.
 - **Change the plan requirement of an open request.** `requireApproval` is fixed when the request opens. The user could switch it on or off later. Split from F13.
 - **Unlink a pull request.** F14 links a pull request and has no unlink. Split from F14.
+- **Batch thread read.** The file view makes one Q1 call per 200 requests under the path prefix and one Q3 call per request on the file, because only Q3 returns a thread. A batch read, for example `thread` on Q1 with an exact path, makes it one call. A Q1 filter by request IDs would also replace the Q3 reads of hidden reply drafts. Developer guide ledger, row "Front end".
+- **Focus mode shortcut.** A keyboard shortcut that toggles focus mode. The app has no global key handler yet. From the F02 report.
+- **Name resolution at the selection.** "Go to declaration" with a typed name resolves with the namespace and the imports at the end of the file, so a file with several namespaces uses the last one. The namespace at the selection needs the line in V14. From the F04 report.
+- **Declaration suggestions.** "Go to declaration" could suggest names from V16 while typing. From the F04 and F11 reports.
+- **Quick open ranking.** Shorter names first within a group, and camel-case abbreviations such as `CE` for `CommandExecutor`. From the F11 report.
+- **Carry-over as a job.** V15 locates and captures in the HTTP request. A Messenger job with a live update, if a large source review shows that it is slow. From the F10 report.
 
 ## For Jan
 
 Decisions or actions that only Jan can take. Each comes from a report or a review, and each was checked on 2026-10-07.
 
-- **Contract:**
-  - Q9 defines no file order, so both the server and the client sort the files. Adding the order to Q9 lets the client sort go.
-  - A batch thread read (for example `thread` on Q1 with an exact path) would make the file view one call instead of one Q3 per request.
-- **Placement:** `Application\IssuedApiToken`, the T2 response, is the only response class outside `Application\Query`. It is a write result. Move it, or keep it.
 - **Licensing:** a distributed build carries the Apache-2.0 obligations of `@pierre/diffs`: the licence, the NOTICE, and the `@pierre/theme` NOTICE. The repository has no notice file.
 - **Upstream reports:**
   - `@pierre/diffs` 1.5.1 blank-view bug: `finalizeRender()` compares files by identity, but `cacheKey` elsewhere. Version 1.5.2 exists; its fix is not checked, and the version is pinned.
