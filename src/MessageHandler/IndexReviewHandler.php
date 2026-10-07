@@ -31,6 +31,9 @@ final class IndexReviewHandler
 {
     private const float PUBLISH_INTERVAL_SECONDS = 1.0;
 
+    /** In debug mode the Doctrine profiler keeps every statement of a message, so blobs are written in batches. */
+    private const int WRITE_BATCH_ROWS = 1000;
+
     private const string FAILURE_MESSAGE = 'The index job failed.';
 
     public function __construct(
@@ -72,7 +75,7 @@ final class IndexReviewHandler
 
     /**
      * Inserts every listed path. Rows of the commit that another review or an earlier run stored stay.
-     * Publishes the progress at most once per {@see PUBLISH_INTERVAL_SECONDS}.
+     * Publishes the progress at most once per {@see PUBLISH_INTERVAL_SECONDS}, after a write of the parsed blobs.
      */
     private function index(Review $review, float $publishedAtUnixSeconds): void
     {
@@ -85,21 +88,42 @@ final class IndexReviewHandler
         $symbolCounts = $this->indexSql->storedSymbolCounts($repository->getTenantId(), $repository->getId(), $commit);
         $filesTotal = count($entries);
         $symbolsTotal = 0;
+        $parsed = [];
+        $parsedRows = 0;
         $review->recordIndexProgress($filesTotal, 0, 0);
 
         foreach ($entries as $filesDone => $entry) {
             if ($this->blobSymbols->supports(RepoPath::fromString($entry->path))) {
-                $symbolsTotal += $symbolCounts[$entry->objectId] ??= count($this->blobSymbols->parse($repository, $gitDir, $entry)->symbols);
+                if (!isset($symbolCounts[$entry->objectId])) {
+                    $table = $this->blobSymbols->parse($gitDir, $entry);
+                    $symbolCounts[$entry->objectId] = count($table->symbols ?? []);
+
+                    if (null !== $table) {
+                        $parsed[$entry->objectId] = $table;
+                        $parsedRows += 1 + count($table->symbols);
+                    }
+                }
+
+                $symbolsTotal += $symbolCounts[$entry->objectId];
             }
 
             $review->recordIndexProgress($filesTotal, $filesDone + 1, $symbolsTotal);
             $nowUnixSeconds = self::unixSeconds($this->clock->now());
+            $publish = $nowUnixSeconds - $publishedAtUnixSeconds >= self::PUBLISH_INTERVAL_SECONDS;
 
-            if ($nowUnixSeconds - $publishedAtUnixSeconds >= self::PUBLISH_INTERVAL_SECONDS) {
+            if ($publish || $parsedRows >= self::WRITE_BATCH_ROWS) {
+                $this->indexSql->insertBlobs($repository->getTenantId(), $repository->getId(), $parsed);
+                $parsed = [];
+                $parsedRows = 0;
+            }
+
+            if ($publish) {
                 $this->flushAndPublish($review);
                 $publishedAtUnixSeconds = $nowUnixSeconds;
             }
         }
+
+        $this->indexSql->insertBlobs($repository->getTenantId(), $repository->getId(), $parsed);
     }
 
     /**

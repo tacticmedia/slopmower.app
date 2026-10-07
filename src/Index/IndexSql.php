@@ -6,7 +6,6 @@ namespace App\Index;
 
 use App\Domain\Anchor\LineRange;
 use App\Domain\Anchor\SymbolKind;
-use App\Domain\Git\BlobSha;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\RepoPath;
 use App\Domain\Identity\RepositoryId;
@@ -15,7 +14,6 @@ use App\Git\TreeEntry;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
-use Doctrine\DBAL\Types\Types;
 
 /**
  * Two index jobs at one commit, or V9 and a job, write the same rows. A unique key violation in the ORM closes the
@@ -29,9 +27,10 @@ final class IndexSql
 {
     private const string LOCK_REPOSITORY = "SELECT id FROM repository WHERE tenant_id = :tenantId AND id = :repositoryId AND access = 'active' FOR KEY SHARE";
     private const string INSERT_FILES = 'INSERT INTO indexed_file (tenant_id, repository_id, commit_sha, path_sha256, path, blob_sha, mode, size_bytes) VALUES ';
-    private const string INSERT_BLOB = 'INSERT INTO indexed_blob (tenant_id, repository_id, blob_sha, parse_error) VALUES (:tenantId, :repositoryId, :blobSha, :parseError) ON CONFLICT DO NOTHING';
+    private const string INSERT_BLOBS = 'INSERT INTO indexed_blob (tenant_id, repository_id, blob_sha, parse_error) VALUES ';
     private const string INSERT_SYMBOLS = 'INSERT INTO symbol (tenant_id, repository_id, blob_sha, kind, fqn, fqn_sha256, name, parent_fqn, start_line, end_line, declaration_start_line, doc_start_line) VALUES ';
     private const string ON_CONFLICT = ' ON CONFLICT DO NOTHING';
+    private const string RETURNING_BLOB_SHA = ' RETURNING blob_sha';
     private const string SYMBOL_COUNTS = <<<'SQL'
         SELECT indexed.blob_sha, COUNT(stored.id) FROM indexed_blob indexed
         LEFT JOIN symbol stored ON stored.tenant_id = indexed.tenant_id AND stored.repository_id = indexed.repository_id AND stored.blob_sha = indexed.blob_sha
@@ -94,37 +93,49 @@ final class IndexSql
     }
 
     /**
-     * The blob row and its symbols commit together. A blob that another writer stored keeps its symbols.
+     * The blob rows and their symbols commit together. A blob that another writer stored keeps its symbols.
      *
-     * @return bool False when the blob has a row already, or the repository is gone or removed
+     * @param array<string, SymbolTable> $tables By blob SHA
      */
-    public function insertBlob(TenantId $tenantId, RepositoryId $repositoryId, BlobSha $blob, SymbolTable $table): bool
+    public function insertBlobs(TenantId $tenantId, RepositoryId $repositoryId, array $tables): void
     {
-        return $this->connection->transactional(function () use ($tenantId, $repositoryId, $blob, $table): bool {
+        if ([] === $tables) {
+            return;
+        }
+
+        // Two writers wait for their common blob keys in one order, so they cannot deadlock.
+        ksort($tables, \SORT_STRING);
+
+        $this->connection->transactional(function () use ($tenantId, $repositoryId, $tables): void {
             if (!$this->lockRepository($tenantId, $repositoryId)) {
-                return false;
+                return;
             }
 
-            $inserted = $this->connection->executeStatement(self::INSERT_BLOB, [
-                'tenantId' => $tenantId->toRfc4122(),
-                'repositoryId' => $repositoryId->toRfc4122(),
-                'blobSha' => $blob->toString(),
-                'parseError' => $table->parseError,
-            ], ['parseError' => Types::BOOLEAN]);
+            $inserted = [];
 
-            if (0 === $inserted) {
-                return false;
+            foreach (array_chunk($tables, self::ROWS_PER_STATEMENT, true) as $chunk) {
+                $rows = array_map(static fn (string $blobSha, SymbolTable $table): array => [
+                    $tenantId->toRfc4122(), $repositoryId->toRfc4122(), $blobSha, $table->parseError,
+                ], array_keys($chunk), $chunk);
+                $values = array_merge(...$rows);
+                $types = array_map(static fn (bool|string $value): ParameterType => \is_bool($value) ? ParameterType::BOOLEAN : ParameterType::STRING, $values);
+                array_push($inserted, ...$this->connection->fetchFirstColumn(self::insertSql(self::INSERT_BLOBS, $rows).self::RETURNING_BLOB_SHA, $values, $types));
             }
 
-            foreach (array_chunk($table->symbols, self::ROWS_PER_STATEMENT) as $chunk) {
-                $rows = array_map(static fn (ExtractedSymbol $symbol): array => [
-                    $tenantId->toRfc4122(), $repositoryId->toRfc4122(), $blob->toString(), $symbol->kind->value, $symbol->fqn, hash('sha256', $symbol->fqn), $symbol->name, $symbol->parentFqn,
-                    $symbol->range->startLine, $symbol->range->endLine, $symbol->declarationStartLine, $symbol->docStartLine,
-                ], $chunk);
-                $this->insertRows(self::INSERT_SYMBOLS, $rows);
+            $symbolRows = [];
+
+            foreach (array_map(strval(...), $inserted) as $blobSha) {
+                foreach ($tables[$blobSha]->symbols as $symbol) {
+                    $symbolRows[] = [
+                        $tenantId->toRfc4122(), $repositoryId->toRfc4122(), $blobSha, $symbol->kind->value, $symbol->fqn, hash('sha256', $symbol->fqn), $symbol->name, $symbol->parentFqn,
+                        $symbol->range->startLine, $symbol->range->endLine, $symbol->declarationStartLine, $symbol->docStartLine,
+                    ];
+                }
             }
 
-            return true;
+            foreach (array_chunk($symbolRows, self::ROWS_PER_STATEMENT) as $chunk) {
+                $this->insertRows(self::INSERT_SYMBOLS, $chunk);
+            }
         });
     }
 
@@ -241,8 +252,16 @@ final class IndexSql
      */
     private function insertRows(string $insertInto, array $rows): void
     {
+        $this->connection->executeStatement(self::insertSql($insertInto, $rows), array_merge(...$rows));
+    }
+
+    /**
+     * @param non-empty-list<list<bool|int|string|null>> $rows
+     */
+    private static function insertSql(string $insertInto, array $rows): string
+    {
         $placeholders = '('.implode(', ', array_fill(0, count($rows[0]), '?')).')';
 
-        $this->connection->executeStatement($insertInto.implode(', ', array_fill(0, count($rows), $placeholders)).self::ON_CONFLICT, array_merge(...$rows));
+        return $insertInto.implode(', ', array_fill(0, count($rows), $placeholders)).self::ON_CONFLICT;
     }
 }

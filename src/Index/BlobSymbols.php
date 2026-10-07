@@ -44,43 +44,44 @@ final class BlobSymbols
      */
     public function of(Repository $repository, string $gitDir, TreeEntry $entry): SymbolTable
     {
-        $criteria = ['repositoryId' => $repository->getId(), 'blobSha' => BlobSha::fromString($entry->objectId)];
-        $indexed = $this->supports(RepoPath::fromString($entry->path)) && $entry->isRenderableFile() ? $this->indexedBlobs->findOneBy($criteria) : null;
-
-        if (!$indexed instanceof IndexedBlob) {
-            return $this->parse($repository, $gitDir, $entry);
-        }
-
-        $symbols = array_map(static fn (Symbol $symbol): ExtractedSymbol => $symbol->toExtracted(), $this->symbols->findBy($criteria));
-
-        return new SymbolTable($this->extractor->language(), $indexed->hasParseError(), $symbols);
-    }
-
-    /**
-     * Parses and stores without a lookup, for the index job, which skips the blobs that have an IndexedBlob row.
-     *
-     * @param string    $gitDir The clone of $repository
-     * @param TreeEntry $entry  A blob or submodule entry whose path RepoPath accepts
-     *
-     * @throws GitFailed
-     */
-    public function parse(Repository $repository, string $gitDir, TreeEntry $entry): SymbolTable
-    {
         if (!$this->supports(RepoPath::fromString($entry->path))) {
             return SymbolTable::unsupported();
         }
 
-        $noSymbols = new SymbolTable($this->extractor->language(), false, []);
-        $blobSha = BlobSha::fromString($entry->objectId);
-        $blob = $entry->isRenderableFile() ? $this->reader->readBlob($gitDir, $blobSha) : null;
+        $criteria = ['repositoryId' => $repository->getId(), 'blobSha' => BlobSha::fromString($entry->objectId)];
+        $indexed = $entry->isRenderableFile() ? $this->indexedBlobs->findOneBy($criteria) : null;
 
-        if (null === $blob || $blob->isBinary()) {
-            return $noSymbols;
+        if ($indexed instanceof IndexedBlob) {
+            $symbols = array_map(static fn (Symbol $symbol): ExtractedSymbol => $symbol->toExtracted(), $this->symbols->findBy($criteria));
+
+            return new SymbolTable($this->extractor->language(), $indexed->hasParseError(), $symbols);
         }
 
-        $table = $this->extractor->extract($blob->bytes);
-        $this->indexSql->insertBlob($repository->getTenantId(), $repository->getId(), $blobSha, $table);
+        $table = $this->parse($gitDir, $entry);
+
+        if (null === $table) {
+            return new SymbolTable($this->extractor->language(), false, []);
+        }
+
+        $this->indexSql->insertBlobs($repository->getTenantId(), $repository->getId(), [$entry->objectId => $table]);
 
         return $table;
+    }
+
+    /**
+     * Parses without a lookup and without a write, for the index job, which skips the blobs that have an IndexedBlob
+     * row and writes the others in batches.
+     *
+     * @param TreeEntry $entry A blob or submodule entry whose path the extractor supports
+     *
+     * @return SymbolTable|null Null for an entry that gets no IndexedBlob row: not a renderable file, or binary
+     *
+     * @throws GitFailed
+     */
+    public function parse(string $gitDir, TreeEntry $entry): ?SymbolTable
+    {
+        $blob = $entry->isRenderableFile() ? $this->reader->readBlob($gitDir, BlobSha::fromString($entry->objectId)) : null;
+
+        return null === $blob || $blob->isBinary() ? null : $this->extractor->extract($blob->bytes);
     }
 }

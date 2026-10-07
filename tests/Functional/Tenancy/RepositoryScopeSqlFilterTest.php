@@ -9,7 +9,6 @@ use App\Domain\Anchor\LineRange;
 use App\Domain\Anchor\SymbolKind;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Event\RequestClaimedEvent;
-use App\Domain\Git\BlobSha;
 use App\Domain\Git\RepoPath;
 use App\Domain\Identity\CommentId;
 use App\Domain\Identity\EventId;
@@ -94,7 +93,7 @@ final class RepositoryScopeSqlFilterTest extends KernelTestCase
         $indexSql = self::getContainer()->get(IndexSql::class);
         $indexSql->insertFiles($repository->getTenantId(), $repository->getId(), $review->getCommitSha(), [new TreeEntry('src/Totals.php', '100644', ObjectType::Blob, $blobSha, 20)]);
         $symbol = new ExtractedSymbol(SymbolKind::Class_, 'App\Totals', 'Totals', null, LineRange::of(3, 5), 3, null);
-        $indexSql->insertBlob($repository->getTenantId(), $repository->getId(), BlobSha::fromString($blobSha), new SymbolTable('php', false, [$symbol]));
+        $indexSql->insertBlobs($repository->getTenantId(), $repository->getId(), [$blobSha => new SymbolTable('php', false, [$symbol])]);
     }
 
     /**

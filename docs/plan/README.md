@@ -465,3 +465,4 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 - **Failed flush.** A failed flush closes the entity manager. Code that goes on, for example after a unique key violation, calls `ManagerRegistry::resetManager()`, which resets the injected `EntityManagerInterface` in place.
 - **Messenger deduplication.** Do not use `DeduplicateStamp` with the advisory-lock store. An advisory lock belongs to one database session, so the worker cannot release a lock that the web process took.
 - **Live-update payloads.** They carry IDs only. Never put a `RequestSummary`, a `Review`, or other data into a Mercure update.
+- **Doctrine profiler in the worker.** In debug mode (`dev`, `test`), DoctrineBundle's `DebugMiddleware` keeps every statement of one Messenger message, with its parameters and a backtrace, until the message ends. A job that writes per item grows with each statement, so it writes in batches. See F12.

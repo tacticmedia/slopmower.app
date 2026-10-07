@@ -6,7 +6,6 @@ namespace App\Tests\Functional\Index;
 
 use App\Application\Query\IndexStatus;
 use App\Application\ReviewCommands;
-use App\Domain\Git\BlobSha;
 use App\Domain\Git\RefName;
 use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\ReviewId;
@@ -100,12 +99,14 @@ final class IndexReviewHandlerTest extends KernelTestCase
         self::runQueuedMessages();
         $blobSha = $this->source->revParse('main:src/Shared.php');
 
-        // The writer that loses the race on the blob row stores no symbols.
-        $table = new PhpSymbolExtractor()->extract(self::CLASS_WITH_METHOD);
-        $stored = self::getContainer()->get(IndexSql::class)->insertBlob($this->repository->getTenantId(), $this->repository->getId(), BlobSha::fromString($blobSha), $table);
+        // The writer that loses the race on one blob row stores no symbols for it, and stores the other blob of its batch.
+        $extractor = new PhpSymbolExtractor();
+        self::getContainer()->get(IndexSql::class)->insertBlobs($this->repository->getTenantId(), $this->repository->getId(), [
+            $blobSha => $extractor->extract(self::CLASS_WITH_METHOD),
+            str_repeat('a', 40) => $extractor->extract("<?php\n\nfunction other(): void\n{\n}\n"),
+        ]);
 
-        self::assertFalse($stored);
-        self::assertSame([2, 1, 2], [self::rowCount('indexed_file'), self::rowCount('indexed_blob'), self::rowCount('symbol')]);
+        self::assertSame([2, 2, 3], [self::rowCount('indexed_file'), self::rowCount('indexed_blob'), self::rowCount('symbol')]);
         self::assertSame(IndexState::Ready, self::indexStatus($reviewId)->state);
     }
 

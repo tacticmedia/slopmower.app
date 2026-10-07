@@ -36,7 +36,8 @@ services:
 
   worker:
     <<: *php
-    command: ["bin/console", "messenger:consume", "async", "--time-limit=3600", "--memory-limit=256M", "-vv"]
+    # Below the 128M memory_limit of php.ini-development, so the worker stops after a message before PHP fails.
+    command: ["bin/console", "messenger:consume", "async", "--time-limit=3600", "--memory-limit=96M", "-vv"]
     depends_on:
       php:
         condition: service_healthy
