@@ -152,16 +152,17 @@ A request is **Outdated** when its code changed on the default branch, or when H
 
 When the code moved on, start a new review at the later commit and take the open requests of an older review with you. On the repository page, under **Start a review**, pick the older review in **Carry over open requests from**, then click **Start review**.
 
-Holistic Review finds the code of each open or reopened request at the new commit and opens a copy of the request in the new review. A list then shows every request of the older review with its outcome:
+An open review can also take the open requests of another review of the repository, for example after the agent released a request of that review, or you clicked **Unassign** on it. Click **Carry over requests** in the review header, pick the review in **Carry over open requests from**, then click **Carry over**. The list has the open and the closed reviews of the repository. A closed review shows **(closed)**.
+
+Holistic Review finds the code of each open or reopened request at the commit of the review that takes the requests, and opens a copy of the request in that review. A list then shows every request of the other review with its outcome:
 
 - **Carried**: the copy points at the same code, at its new place.
 - **Carried, the code changed**: the copy points at the changed code, and its first comment says that the code changed.
 - **Carried to the whole file, the code was not found**: the copy is a comment on the file, and its first comment shows the old code.
-- **Not carried**: the request stays in the older review only. The reason is its status, for example **in progress**, or that its file is gone.
+- **Carried earlier**: the review has a copy of the request from an earlier carry-over. Nothing changes.
+- **Not carried**: the request stays in the other review only. The reason is its status, for example **in progress**, or that its file is gone.
 
-A copy shows **Carried from the source request**, a link to the request in the older review. The older review does not change. Close it when you no longer need it.
-
-The UI offers carry-over when a review starts. A review that is already open cannot take requests from another review in the UI.
+A copy shows **Carried from the source request**, a link to the request in the other review. The other review does not change. Close it when you no longer need it.
 
 ## Close a review
 

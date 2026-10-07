@@ -51,7 +51,7 @@ async function carryOver(review: Review, fromReviewId: string): Promise<ActionRe
     try {
         const input: CarryOverInput = { fromReviewId };
 
-        return { review, carryOver: await apiWrite<CarryOverResult>('POST', `/api/v1/reviews/${review.id}/carry-over`, input) };
+        return { carryOver: await apiWrite<CarryOverResult>('POST', `/api/v1/reviews/${review.id}/carry-over`, input) };
     } catch (error) {
         return { error: `The review started, but the carry-over failed: ${actionError(error).error}` };
     }

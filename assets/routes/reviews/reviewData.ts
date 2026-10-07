@@ -2,8 +2,9 @@ import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'reac
 import { actionError, type ActionResult, optionalText, writeResult } from '../../api/actionResult';
 import { apiGet, apiWrite } from '../../api/client';
 import type { BatchSubmission } from '../../api/types/batch-submission';
+import type { CarryOverResult } from '../../api/types/carry-over-result';
 import type { Draft } from '../../api/types/draft';
-import type { CloseReviewInput, SubmitDraftsInput } from '../../api/types/inputs';
+import type { CarryOverInput, CloseReviewInput, SubmitDraftsInput } from '../../api/types/inputs';
 import type { DraftList, ViewedFiles } from '../../api/types/lists';
 import type { Review } from '../../api/types/review';
 import { eventPositions } from '../../live/eventPositions';
@@ -28,12 +29,23 @@ export async function reviewLoader({ request, params }: LoaderFunctionArgs): Pro
 }
 
 /**
- * Form field `intent`: `close` for V4, `submit` for D5, `delete` for V13 with the form field `repositoryId`.
+ * Form field `intent`: `close` for V4, `submit` for D5, `delete` for V13 with the form field `repositoryId`,
+ * `carry_over` for V15 with the form field `fromReviewId`.
  */
-export async function reviewAction({ request, params }: ActionFunctionArgs): Promise<ActionResult | Response> {
+export async function reviewAction({ request, params }: ActionFunctionArgs): Promise<ActionResult | CarryOverResult | Response> {
     const form = await request.formData();
     const review = `/api/v1/reviews/${encodedRouteParam(params, 'reviewId')}`;
     const intent = form.get('intent');
+
+    if ('carry_over' === intent) {
+        const input: CarryOverInput = { fromReviewId: String(form.get('fromReviewId')) };
+
+        try {
+            return await apiWrite<CarryOverResult>('POST', `${review}/carry-over`, input);
+        } catch (error) {
+            return actionError(error);
+        }
+    }
 
     if ('delete' === intent) {
         try {

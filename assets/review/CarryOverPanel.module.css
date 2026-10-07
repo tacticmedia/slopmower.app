@@ -1,0 +1,31 @@
+.panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-8);
+}
+
+.title {
+    margin: 0 0 var(--base-size-12);
+    font-size: var(--text-title-size-medium);
+    font-weight: var(--base-text-weight-semibold);
+}
+
+.items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-8);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-8);
+}
+
+.meta {
+    color: var(--fgColor-muted);
+}

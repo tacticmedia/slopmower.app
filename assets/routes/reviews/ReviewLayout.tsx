@@ -5,6 +5,7 @@ import { Outlet, Link as RouterLink, useLoaderData, useMatch, useOutletContext }
 import type { Review } from '../../api/types/review';
 import { usePreference } from '../../layout/usePreference';
 import { AgentPromptSnippet } from '../../review/AgentPromptSnippet';
+import { CarryOverDialog } from '../../review/CarryOverDialog';
 import { CloseReviewDialog } from '../../review/CloseReviewDialog';
 import { DeleteReviewDialog } from '../../review/DeleteReviewDialog';
 import { FinishReviewOverlay } from '../../review/FinishReviewOverlay';
@@ -101,6 +102,7 @@ export function ReviewLayout() {
                     <div className={styles.reviewActions}>
                         <QuickOpen reviewId={review.id} indexState={review.index.state} />
                         {'open' === review.state && drafts.length > 0 && <FinishReviewOverlay draftCount={drafts.length} />}
+                        {'open' === review.state && <CarryOverDialog review={review} />}
                         {'open' === review.state && <CloseReviewDialog draftCount={drafts.length} />}
                         <DeleteReviewDialog repositoryId={review.repositoryId} />
                     </div>

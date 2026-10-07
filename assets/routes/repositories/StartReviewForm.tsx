@@ -5,11 +5,11 @@ import type { CarryOverResult } from '../../api/types/carry-over-result';
 import type { Review } from '../../api/types/review';
 import { ActionErrorMessage } from '../../layout/ActionErrorMessage';
 import { useSubmitOnce } from '../../layout/useSubmitOnce';
-import { CarryOverPanel } from './CarryOverPanel';
+import { CarryOverPanel } from '../../review/CarryOverPanel';
 import styles from './RepositoryRoute.module.css';
 
 /** The action data of a start with carry-over. A start without it redirects to the review. */
-export type StartedWithCarryOver = { review: Review; carryOver: CarryOverResult };
+export type StartedWithCarryOver = { carryOver: CarryOverResult };
 
 type Props = {
     defaultBranch: string | null;
@@ -62,7 +62,11 @@ export function StartReviewForm({ defaultBranch, openReviews }: Props) {
                     <ActionErrorMessage result={failed} />
                 </div>
             </start.Form>
-            {null !== started && <CarryOverPanel review={started.review} result={started.carryOver} />}
+            {null !== started && (
+                <div className={styles.carryOverResult}>
+                    <CarryOverPanel result={started.carryOver} linkToReview />
+                </div>
+            )}
         </section>
     );
 }

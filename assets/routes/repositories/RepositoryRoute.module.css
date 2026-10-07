@@ -49,25 +49,6 @@
     max-width: 480px;
 }
 
-.carryOver {
-    display: flex;
-    flex-direction: column;
-    gap: var(--base-size-8);
+.carryOverResult {
     margin-top: var(--base-size-16);
-}
-
-.carryOverItems {
-    display: flex;
-    flex-direction: column;
-    gap: var(--base-size-8);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
-.carryOverItem {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--base-size-8);
 }

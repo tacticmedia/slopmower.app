@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import type { AgentActor, UserActor } from '../../../assets/api/types/actor';
 import type { Anchor, ContentSnapshot, LineRange } from '../../../assets/api/types/anchor';
 import type { ApiToken, ApiTokenWithSecret } from '../../../assets/api/types/api-token';
+import type { CarryOverResult } from '../../../assets/api/types/carry-over-result';
 import type { CommitLink } from '../../../assets/api/types/commit-link';
 import type { Action, ActorKind, Proposal, RequestStatus, ThreadEntryType } from '../../../assets/api/types/common';
 import type { CommitDiff, CommitDiffFile } from '../../../assets/api/types/commit-diff';
@@ -89,6 +90,13 @@ export function candidateList(items: RepositoryCandidate[], overrides: Partial<C
 /** V14 with the targets that the test resolves the name to. */
 export function declarationList(reviewId: string, items: Declaration[]): DeclarationList {
     return { ...fixture<DeclarationList>('lists.declaration-list.json'), reviewId, items };
+}
+
+/** V15 with the items of the fixture, as requests of the source review. */
+export function carryOverResult(reviewId: string, fromReviewId: string): CarryOverResult {
+    const { items } = fixture<CarryOverResult>('carry-over-result.mixed.json');
+
+    return { reviewId, fromReviewId, items: items.map((item) => ({ ...item, source: { ...item.source, reviewId: fromReviewId } })) };
 }
 
 /** V16 with the hits that the test searches for. */

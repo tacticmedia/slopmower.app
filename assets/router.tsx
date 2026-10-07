@@ -10,6 +10,7 @@ import { RepositoriesRoute, repositoriesAction, repositoriesLoader } from './rou
 import { RepositoryRoute, repositoryAction, repositoryLoader } from './routes/repositories/RepositoryRoute';
 import { commitDiffLoader, diffSidesLoader, shouldRevalidateChanges } from './routes/requests/changesData';
 import { requestAction, requestListLoader, requestLoader } from './routes/requests/requestData';
+import { carryOverSourcesLoader } from './routes/reviews/carryOverData';
 import { CodeLayout, codeLayoutLoader, CodeRouteError, NoFileSelected } from './routes/reviews/CodeLayout';
 import { declarationsLoader, shouldRevalidateDeclarations } from './routes/reviews/declarationsData';
 import { fileAction, fileLoader } from './routes/reviews/fileData';
@@ -81,6 +82,7 @@ export const router = createBrowserRouter([
                         children: [{ path: 'commits/:commitSha', loader: commitDiffLoader, shouldRevalidate: shouldRevalidateChanges }],
                     },
                     { path: 'repositories/:repositoryId/diff-sides', loader: diffSidesLoader, shouldRevalidate: shouldRevalidateChanges },
+                    { path: 'repositories/:repositoryId/carry-over-sources', loader: carryOverSourcesLoader },
                     { path: 'settings', loader: settingsLoader, action: settingsAction, element: <SettingsRoute /> },
                 ],
             },

@@ -221,7 +221,7 @@ A row counts the PHP files of its namespace and of the sub-namespaces without a 
 | `assets/code/` | 9 | `CodeFile` and `CommitDiff`, the only wrappers around the pinned `@pierre/diffs` (D1): `CommitDiff.tsx` also exports `ProposalDiff`. Their shared `workerPool` options. |
 | `assets/comments/` | 12 | Threads, drafts, comment box, `useOptimistic` updates |
 | `assets/live/` | 2 | `LiveSubscription`, the one Mercure subscription, and `EventPositions` |
-| `assets/requests/`, `review/`, `settings/` | 51 | Presentational components and pure helpers |
+| `assets/requests/`, `review/`, `settings/` | 53 | Presentational components and pure helpers |
 
 ### 3.3 Dependency picture
 

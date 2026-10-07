@@ -1,7 +1,6 @@
-import type { CarryOverResult } from '../../assets/api/types/carry-over-result';
 import type { CarryOverInput } from '../../assets/api/types/inputs';
 import type { Request } from '../../assets/api/types/request';
-import { fixture } from './support/builders';
+import { carryOverResult, fixture } from './support/builders';
 import { FakeRepositories } from './support/fakeRepositories';
 import { json } from './support/mockApi';
 import { expect, test } from './support/test';
@@ -14,13 +13,7 @@ test.describe('CarryOver', () => {
         const repositories = new FakeRepositories(api);
         const repository = repositories.addLocal('e2e-carry-over');
         const source = repositories.addReview(repository, { review: { title: 'First review' } });
-        api.on('POST', CARRY_OVER, ({ params, body }) => {
-            const result = fixture<CarryOverResult>('carry-over-result.mixed.json');
-            const fromReviewId = (body as CarryOverInput).fromReviewId;
-            const items = result.items.map((item) => ({ ...item, source: { ...item.source, reviewId: fromReviewId } }));
-
-            return json('carry-over-result.schema.json', { reviewId: params.reviewId, fromReviewId, items });
-        });
+        api.on('POST', CARRY_OVER, ({ params, body }) => json('carry-over-result.schema.json', carryOverResult(params.reviewId ?? '', (body as CarryOverInput).fromReviewId)));
         await page.goto(`/repositories/${repository.id}`);
 
         await page.locator(`${START_FORM} select[name="fromReviewId"]`).selectOption({ label: 'First review' });
