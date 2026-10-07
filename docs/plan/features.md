@@ -44,7 +44,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F26 | [Blame view](F26-blame-view.md) | Done 2026-10-08, [report](reports/F26.md) | 2d1ed28 | src 435 PHP / 28733 lines, 435 types; tests 292 PHP / 26119 lines; assets 159 TS / 9201 lines; check 3m24s |
 | F27 | [Symbols through tree-sitter](F27-symbols-through-tree-sitter.md) | Done 2026-10-08, [report](reports/F27.md) | 7b801a7 | src 432 PHP / 28528 lines, 432 types; tests 291 PHP / 25994 lines; assets 155 TS / 8982 lines; check 3m29s |
 | F28 | [RDS authentication](F28-rds-authentication.md) | Done 2026-10-08, [report](reports/F28.md) | a551ec9 | src 428 PHP / 28337 lines, 428 types; tests 289 PHP / 25730 lines; assets 155 TS / 8977 lines |
-| F29 | [Symbols for Python, Go, and Rust](F29-symbols-for-python-go-rust.md) | Done 2026-10-08, [report](reports/F29.md) | | src 435 PHP / 28733 lines, 435 types; tests 292 PHP / 26147 lines; assets 159 TS / 9201 lines |
+| F29 | [Symbols for Python, Go, and Rust](F29-symbols-for-python-go-rust.md) | Done 2026-10-08, [report](reports/F29.md) | 429e2f4 | src 435 PHP / 28733 lines, 435 types; tests 292 PHP / 26147 lines; assets 159 TS / 9201 lines; check 3m3s |
 | F30 | [Sign in after sign-out](F30-sign-in-after-sign-out.md) | Done 2026-10-08, [report](reports/F30.md) | bd375ca | src 429 PHP / 28362 lines, 429 types; tests 289 PHP / 25747 lines; assets 155 TS / 8977 lines |
 | F31 | [Directory view reload](F31-directory-view-reload.md) | Done 2026-10-08, [report](reports/F31.md) | 87042d7 | src 432 PHP / 28529 lines, 432 types; tests 291 PHP / 25995 lines; assets 155 TS / 8982 lines; check 3m41s |
 
