@@ -93,7 +93,7 @@ final class RequestDecider
             $allowedActions = AllowedActions::for($state, $review, $actor);
 
             if (!in_array($action, $allowedActions, true)) {
-                throw new InvalidTransition($state->id, $action, $state->status, $state->claimedBy, $allowedActions);
+                throw new InvalidTransition($state->id, $action, $state->status, $state->claimedBy, $allowedActions, self::closedGateReason($action, $state, $actor));
             }
         }
 
@@ -307,6 +307,23 @@ final class RequestDecider
             $command instanceof ApproveProposal => Action::ApproveProposal,
             $command instanceof RejectProposal => Action::RejectProposal,
             default => throw new \LogicException('No action for '.$command::class.'.'),
+        };
+    }
+
+    /**
+     * Ends the invalid_transition message when the closed proposal gate, not the status, refuses the holder.
+     */
+    private static function closedGateReason(Action $action, RequestState $state, Actor $actor): ?string
+    {
+        if (!in_array($action, [Action::LinkCommits, Action::MarkReadyForReview, Action::LinkPullRequest], true) || !$state->isClaimedBy($actor) || $state->proposalGateOpen()) {
+            return null;
+        }
+
+        return match ($state->proposal?->state) {
+            ProposalState::Pending => "the proposal waits for the user's decision",
+            ProposalState::Rejected => 'the user requested changes, so propose again',
+            null => 'the request asks for a plan first, so propose a solution',
+            ProposalState::Approved => throw new \LogicException('An approved proposal opens the gate.'),
         };
     }
 

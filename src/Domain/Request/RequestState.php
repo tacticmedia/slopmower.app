@@ -85,6 +85,14 @@ final readonly class RequestState
         return array_any($this->pullRequestUrls, static fn (PullRequestUrl $linked): bool => $linked->equals($url));
     }
 
+    /**
+     * Gates the holder's link_commits, mark_ready_for_review, and link_pull_request in {@see AllowedActions}.
+     */
+    public function proposalGateOpen(): bool
+    {
+        return null === $this->proposal ? !$this->requireApproval : ProposalState::Approved === $this->proposal->state;
+    }
+
     private function assertConsistent(): void
     {
         $inProgress = RequestStatus::InProgress === $this->status;

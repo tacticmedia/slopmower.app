@@ -1,5 +1,5 @@
 import type { Actor } from '../api/types/actor';
-import type { DateTime, EventSeq, ProposalState, PullRequestUrl, RequestStatus, ThreadEntryType, Ulid, UnifiedDiff } from '../api/types/common';
+import type { DateTime, EventSeq, Proposal, ProposalState, PullRequestUrl, RequestStatus, ThreadEntryType, Ulid, UnifiedDiff } from '../api/types/common';
 import type { Request as ReviewRequest } from '../api/types/request';
 import type { ThreadEntry } from '../api/types/thread-entry';
 import type { CarriedFrom } from '../api/types/request-summary';
@@ -10,7 +10,7 @@ export type ProposalView = {
     eventId: Ulid;
     seq: EventSeq;
     diff: UnifiedDiff | null;
-    /** The state of the current proposal; `superseded` when a later one exists, else `withdrawn`. */
+    /** First match: the state of the current proposal, the decision before the next proposal, `superseded`, `withdrawn`. */
     state: ProposalState | 'superseded' | 'withdrawn';
 };
 
@@ -43,6 +43,7 @@ export type ThreadView = {
     replyable: boolean;
     /** The caller may approve or reject the pending proposal. */
     decidable: boolean;
+    proposalPending: boolean;
     carriedFrom: CarriedFrom | null;
 };
 
@@ -52,9 +53,8 @@ export type ThreadView = {
 export function threadView(request: ReviewRequest): ThreadView {
     const range = request.anchor?.range ?? null;
     const comments: CommentView[] = [];
-    const latestProposalSeq = request.thread.findLast(({ type }) => 'request.proposed' === type)?.seq ?? null;
 
-    for (const entry of request.thread) {
+    for (const [index, entry] of request.thread.entries()) {
         if (null !== entry.body || null !== entry.diff || null !== entry.pullRequestUrl || 'request.proposal_approved' === entry.type) {
             comments.push({
                 key: entry.eventId,
@@ -65,7 +65,7 @@ export function threadView(request: ReviewRequest): ThreadView {
                 pullRequestUrl: entry.pullRequestUrl,
                 question: entry.question,
                 pending: false,
-                proposal: 'request.proposed' === entry.type ? proposalView(entry, request, latestProposalSeq) : null,
+                proposal: 'request.proposed' === entry.type ? proposalView(entry, request.thread.slice(index + 1), request.proposal) : null,
             });
         }
     }
@@ -80,15 +80,33 @@ export function threadView(request: ReviewRequest): ThreadView {
         comments,
         replyable: request.allowedActions.includes('reply'),
         decidable: request.allowedActions.includes('approve_proposal'),
+        proposalPending: 'pending' === request.proposal?.state,
         carriedFrom: request.carriedFrom,
     };
 }
 
-function proposalView(entry: ThreadEntry, request: ReviewRequest, latestProposalSeq: EventSeq | null): ProposalView {
-    const current = request.proposal?.eventId === entry.eventId ? request.proposal : null;
-    const state = null !== current ? current.state : null !== latestProposalSeq && entry.seq < latestProposalSeq ? 'superseded' : 'withdrawn';
+function proposalView(entry: ThreadEntry, laterEntries: readonly ThreadEntry[], current: Proposal | null): ProposalView {
+    const state = current?.eventId === entry.eventId ? current.state : laterState(laterEntries);
 
     return { eventId: entry.eventId, seq: entry.seq, diff: entry.diff, state };
+}
+
+/**
+ * A decision always names the pending proposal, which is the latest earlier one, so the thread order is enough.
+ */
+function laterState(laterEntries: readonly ThreadEntry[]): ProposalView['state'] {
+    for (const { type } of laterEntries) {
+        switch (type) {
+            case 'request.proposal_approved':
+                return 'approved';
+            case 'request.proposal_rejected':
+                return 'rejected';
+            case 'request.proposed':
+                return 'superseded';
+        }
+    }
+
+    return 'withdrawn';
 }
 
 let pendingCount = 0;
@@ -102,7 +120,7 @@ export function pendingComment(type: ThreadEntryType, body: string, author: Acto
 export function pendingThread(range: LineRange | null, symbol: string | null, body: string, author: Actor): ThreadView {
     const opened = pendingComment('request.opened', body, author);
 
-    return { key: opened.key, requestId: null, status: 'open', outdated: null, range, symbol, comments: [opened], replyable: false, decidable: false, carriedFrom: null };
+    return { key: opened.key, requestId: null, status: 'open', outdated: null, range, symbol, comments: [opened], replyable: false, decidable: false, proposalPending: false, carriedFrom: null };
 }
 
 export function linesText(range: LineRange | null): string {

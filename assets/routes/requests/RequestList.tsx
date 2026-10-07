@@ -1,4 +1,4 @@
-import { Button, Checkbox, FormControl, Label, Link, RelativeTime, SegmentedControl, TextInput } from '@primer/react';
+import { Button, Checkbox, FormControl, Link, RelativeTime, SegmentedControl, TextInput } from '@primer/react';
 import { type Column, DataTable, Table } from '@primer/react/experimental';
 import { type FormEvent, useMemo } from 'react';
 import { Link as RouterLink, useLoaderData, useRouteLoaderData, useSearchParams } from 'react-router';
@@ -15,6 +15,7 @@ import shared from '../../requests/Requests.module.css';
 import { ClaimedBy } from '../../requests/ClaimedBy';
 import { NewRequestBox } from '../../requests/NewRequestBox';
 import { OutdatedLabel } from '../../requests/OutdatedLabel';
+import { PlanToApproveLabel } from '../../requests/PlanToApproveLabel';
 import { StatusLabel } from '../../requests/StatusLabel';
 import { STATUS_TEXT } from '../../requests/statusText';
 import { TurnLabel } from '../../requests/TurnLabel';
@@ -72,11 +73,7 @@ function columns(reviewId: string): Column<RequestSummary>[] {
                 <span className={styles.labels}>
                     <StatusLabel status={request.status} />
                     <OutdatedLabel outdated={request.outdated} />
-                    {'pending' === request.proposal?.state && (
-                        <Label variant="attention" data-testid="plan-to-approve">
-                            Plan to approve
-                        </Label>
-                    )}
+                    <PlanToApproveLabel pending={'pending' === request.proposal?.state} />
                 </span>
             ),
         },

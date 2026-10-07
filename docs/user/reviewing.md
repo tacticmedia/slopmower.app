@@ -67,14 +67,14 @@ New replies from the agent show in the open request without a reload.
 
 Every comment box of a new request has the checkbox **Ask for a plan first**. It is checked by default. You cannot change it after the request is open. The request shows **Plan required**.
 
-With the checkbox, the agent proposes a solution before it commits: a plan, and for a straightforward change a diff. An agent can also propose on any other request, for example when the request is unclear. The list of requests shows **Plan to approve** while a proposal waits for you.
+With the checkbox, the agent proposes a solution before it commits: a plan, and for a straightforward change a diff. An agent can also propose on any other request, for example when the request is unclear. **Plan to approve** shows while a proposal waits for you: in the list of requests, on the thread in the code, and in the file header of a file with such a thread.
 
 On the request, the proposal shows the plan and the changes of each file of the diff. **Download .diff** saves the diff as a file.
 
 - **Approve** lets the agent do the work as proposed.
 - **Request changes** sends the proposal back. Type a note that says what to change. The agent proposes again.
 
-A newer proposal replaces the older one, which shows **Superseded**. A proposal of a claim that ended, for example after **Unassign**, shows **Withdrawn**.
+An older proposal keeps its decision: **Approved** or **Changes requested**. An older proposal without a decision shows **Superseded** when a newer one replaced it, or **Withdrawn** when its claim ended, for example after **Unassign**.
 
 ## Linked commits
 

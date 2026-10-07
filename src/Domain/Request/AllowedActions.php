@@ -34,8 +34,7 @@ final class AllowedActions
         $status = $state->status;
         $inProgress = RequestStatus::InProgress === $status;
         $openOrReopened = RequestStatus::Open === $status || RequestStatus::Reopened === $status;
-        $proposal = $state->proposal;
-        $proposalGateOpen = null === $proposal ? !$state->requireApproval : ProposalState::Approved === $proposal->state;
+        $proposalGateOpen = $state->proposalGateOpen();
 
         return match ($action) {
             Action::Reply => $isAgent || $isUser,
@@ -48,7 +47,7 @@ final class AllowedActions
             Action::Verify => $isUser && (RequestStatus::ReadyForReview === $status || (RequestStatus::WontDo === $status && ActorKind::Agent === $state->wontDoBy)),
             Action::Reopen => $isUser && in_array($status, [RequestStatus::ReadyForReview, RequestStatus::WontDo, RequestStatus::Verified], true),
             Action::ProposeSolution => $holds,
-            Action::ApproveProposal, Action::RejectProposal => $isUser && $inProgress && true === $proposal?->isPending(),
+            Action::ApproveProposal, Action::RejectProposal => $isUser && $inProgress && true === $state->proposal?->isPending(),
         };
     }
 }

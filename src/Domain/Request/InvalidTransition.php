@@ -20,8 +20,9 @@ final class InvalidTransition extends DomainError
         private readonly RequestStatus $status,
         private readonly ?Actor $claimedBy,
         private readonly array $allowedActions,
+        ?string $reason = null,
     ) {
-        parent::__construct("The request is {$status->value}, so {$action->value} is not allowed.");
+        parent::__construct("The request is {$status->value}, so {$action->value} is not allowed".(null === $reason ? '.' : ": {$reason}."));
     }
 
     public function code(): ErrorCode

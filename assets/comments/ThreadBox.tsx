@@ -5,6 +5,7 @@ import { Link as RouterLink, useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
 import type { Actor } from '../api/types/actor';
 import { OutdatedLabel } from '../requests/OutdatedLabel';
+import { PlanToApproveLabel } from '../requests/PlanToApproveLabel';
 import { ProposalEntry } from '../requests/ProposalEntry';
 import { StatusLabel } from '../requests/StatusLabel';
 import { CommentBox, type CommentBoxHandle } from './CommentBox';
@@ -68,6 +69,7 @@ export function ThreadBox({ thread, caller, showHeader = true, detail = false }:
                 <header className={styles.header}>
                     <StatusLabel status={thread.status} />
                     <OutdatedLabel outdated={thread.outdated} />
+                    <PlanToApproveLabel pending={thread.proposalPending} />
                     <span className={styles.lines}>{linesText(thread.range)}</span>
                     {null !== thread.symbol && (
                         <code className={styles.symbol} data-testid="thread-symbol">

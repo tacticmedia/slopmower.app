@@ -79,7 +79,7 @@ export function FileRoute() {
 
     return (
         <section className={focus ? `${styles.file} ${styles.focus}` : styles.file} aria-label={content.path}>
-            <FileHeader path={content.path}>
+            <FileHeader path={content.path} planToApprove={threads.some((thread) => thread.proposalPending)}>
                 {navigable && <GoToDeclaration key={content.path} outcome={goTo.outcome} onSubmit={goTo.named} onChoose={(target) => void goTo.go(target)} onDismiss={goTo.dismiss} />}
                 {null !== text && (
                     <Button size="small" aria-pressed={wrap} leadingVisual={wrap ? CheckIcon : undefined} onClick={() => setWrap(!wrap)}>

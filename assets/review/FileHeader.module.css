@@ -9,6 +9,14 @@
     background-color: var(--bgColor-muted);
 }
 
+.title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-8);
+    min-width: 0;
+}
+
 .actions {
     display: flex;
     flex-wrap: wrap;
