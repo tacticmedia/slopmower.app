@@ -43,6 +43,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F25 | [GitHub-style code browser](F25-github-style-code-browser.md) | Done 2026-10-08, [report](reports/F25.md) | 680b78c | src 427 PHP / 28311 lines, 427 types; tests 286 PHP / 25622 lines; assets 155 TS / 8977 lines; check 3m53s |
 | F26 | [Blame view](F26-blame-view.md) | Not started, after F25 | | |
 | F28 | [RDS authentication](F28-rds-authentication.md) | Done 2026-10-08, [report](reports/F28.md) | a551ec9 | src 428 PHP / 28337 lines, 428 types; tests 289 PHP / 25730 lines; assets 155 TS / 8977 lines |
+| F30 | [Sign in after sign-out](F30-sign-in-after-sign-out.md) | Not started. A bug: ahead of every feature that is not started. | | |
 
 ## Candidates
 
