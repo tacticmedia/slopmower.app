@@ -183,7 +183,7 @@ const FileView = memo(function FileView({
  * @returns The cleanup
  */
 function keyboardGutterUtility(container: HTMLElement, selection: () => LineRange | null, comment: (range: GestureRange) => void): () => void {
-    const utility = (event: Event): { button: HTMLButtonElement; range: LineRange } | null => {
+    const utility = (event: Event): { button: HTMLButtonElement; line: number; range: LineRange } | null => {
         const [button] = event.composedPath();
         const line = button instanceof HTMLButtonElement && button.hasAttribute('data-utility-button') ? Number(button.closest('[data-column-number]')?.getAttribute('data-column-number')) : NaN;
 
@@ -192,11 +192,7 @@ function keyboardGutterUtility(container: HTMLElement, selection: () => LineRang
         }
         const selected = selection();
 
-        return { button, range: null !== selected && selected.end === line ? selected : lineRange(line, line) };
-    };
-    const name = (event: FocusEvent): void => {
-        const found = utility(event);
-        found?.button.setAttribute('aria-label', found.range.start === found.range.end ? `Comment on line ${found.range.start}` : `Comment on lines ${found.range.start} to ${found.range.end}`);
+        return { button, line, range: null !== selected && selected.end === line ? selected : lineRange(line, line) };
     };
     const press = (event: KeyboardEvent): void => {
         const found = 'Enter' === event.key || ' ' === event.key ? utility(event) : null;
@@ -206,12 +202,59 @@ function keyboardGutterUtility(container: HTMLElement, selection: () => LineRang
             comment(found.range);
         }
     };
-    container.addEventListener('focusin', name);
+    // A render after a scroll inserts the focused "+" into its row again, which drops the focus.
+    let focused: { root: ShadowRoot; line: number } | null = null;
+    const regainFocus = (records: MutationRecord[]): void => {
+        const plus = focused?.root.querySelector(`[data-column-number="${focused.line}"] [data-utility-button]`);
+
+        if (plus instanceof HTMLElement && document.body === document.activeElement && records.some((record) => [...record.addedNodes].some((node) => node.contains(plus)))) {
+            plus.focus({ preventScroll: true });
+        }
+    };
+    const insertions = new MutationObserver(regainFocus);
+    const release = (): void => {
+        focused = null;
+        insertions.disconnect();
+    };
+    const focusIn = (event: FocusEvent): void => {
+        const found = utility(event);
+        const root = found?.button.getRootNode();
+
+        if (null === found || !(root instanceof ShadowRoot)) {
+            return;
+        }
+        found.button.setAttribute('aria-label', found.range.start === found.range.end ? `Comment on line ${found.range.start}` : `Comment on lines ${found.range.start} to ${found.range.end}`);
+        focused = { root, line: found.line };
+        insertions.observe(root, { childList: true, subtree: true });
+    };
+    const focusOut = (event: FocusEvent): void => {
+        if (null === utility(event)) {
+            return;
+        }
+        if (null !== event.relatedTarget) {
+            release();
+
+            return;
+        }
+        // A render that drops the focus inserts the "+" again in the same task. Its records reach the observer before
+        // this microtask, or through takeRecords().
+        queueMicrotask(() => {
+            regainFocus(insertions.takeRecords());
+
+            if (document.body === document.activeElement) {
+                release();
+            }
+        });
+    };
+    container.addEventListener('focusin', focusIn);
+    container.addEventListener('focusout', focusOut);
     container.addEventListener('keydown', press);
 
     return () => {
-        container.removeEventListener('focusin', name);
+        container.removeEventListener('focusin', focusIn);
+        container.removeEventListener('focusout', focusOut);
         container.removeEventListener('keydown', press);
+        release();
     };
 }
 

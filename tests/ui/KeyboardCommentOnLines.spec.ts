@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { CODE_HOST, COMPOSER, FILE_THREADS, focusedCommentBoxBelow, keyboardComment, openFile, tabToButton, tabUntil, waitForHighlighting } from './support/codeView';
 import { FakeReview } from './support/fakeReview';
 import { LARGE_FILE, SMALL_FILE } from './support/files';
@@ -6,6 +6,8 @@ import { expect, test } from './support/test';
 
 const REQUESTS = '/api/v1/reviews/:reviewId/requests';
 const PLUS = `${CODE_HOST} [data-utility-button]`;
+const CODE_VIEW = '[data-testid="code-view"]';
+const CODE_SCROLLER = `${CODE_VIEW} > div`;
 
 async function commentOnLines(page: Page, startLine: number, endLine: number): Promise<void> {
     await tabToButton(page, 'Comment on lines');
@@ -30,6 +32,41 @@ async function pressGutterPlus(page: Page, review: FakeReview, hash: string, las
     await page.keyboard.press(key);
 
     return name;
+}
+
+/**
+ * Opens the large file with line 100 selected.
+ *
+ * @returns The "+" of line 100
+ */
+async function openWithPlusOnLine100(page: Page, review: FakeReview): Promise<Locator> {
+    await openFile(page, review, LARGE_FILE, '#L100');
+    const plus = page.locator(`${CODE_HOST} [data-column-number="100"] [data-utility-button]`);
+    await expect(plus).toBeAttached();
+
+    return plus;
+}
+
+function outsideCodeView(locator: Locator): Promise<boolean> {
+    return locator.evaluate((element, view) => {
+        const { top, bottom } = element.getBoundingClientRect();
+        const visible = document.querySelector(view)?.getBoundingClientRect();
+
+        return undefined !== visible && (bottom <= visible.top || top >= visible.bottom);
+    }, CODE_VIEW);
+}
+
+/** The view renders in the animation frame after a scroll. */
+function afterNextRender(page: Page): Promise<void> {
+    return page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+}
+
+/** Tabs from "Copy path", the last control before the code, to `plus`, and waits for the render of the scroll that the focus causes. */
+async function tabFromHeaderTo(page: Page, plus: Locator): Promise<void> {
+    await tabToButton(page, 'Copy path');
+    await page.keyboard.press('Tab');
+    await afterNextRender(page);
+    await expect(plus).toBeFocused();
 }
 
 /** Decision D31. Every step uses the keyboard, none uses the mouse. */
@@ -86,5 +123,29 @@ test.describe('KeyboardCommentOnLines', () => {
             { anchor: { kind: 'range', path: SMALL_FILE, range: { startLine: 3, endLine: 4 } }, body: 'Join these lines.', requireApproval: true },
             { anchor: { kind: 'line', path: SMALL_FILE, range: { startLine: 6, endLine: 6 } }, body: 'Remove this blank line.', requireApproval: true },
         ]);
+    });
+
+    test('The gutter + outside the visible code keeps the focus that Tab gives it, and Space opens the comment box', async ({ page, api }) => {
+        const plus = await openWithPlusOnLine100(page, new FakeReview(api));
+        await page.locator(CODE_SCROLLER).evaluate((scroller) => scroller.scrollBy(0, scroller.clientHeight / 2 + 60));
+        await expect.poll(() => outsideCodeView(plus), 'The row of line 100 stays rendered above the visible code.').toBe(true);
+
+        await tabFromHeaderTo(page, plus);
+        await page.keyboard.press('Space');
+
+        await expect(await focusedCommentBoxBelow(page, 100)).toHaveAttribute('aria-label', 'Comment on line 100');
+    });
+
+    test('The gutter + does not take back the focus that Tab moves out of the page', async ({ page, api }) => {
+        const plus = await openWithPlusOnLine100(page, new FakeReview(api));
+        await tabFromHeaderTo(page, plus);
+        await page.keyboard.press('Tab');
+        await expect.poll(() => page.evaluate(() => document.body === document.activeElement), 'The "+" is the last control of the page.').toBe(true);
+
+        // The render inserts the "+" into its row again.
+        await page.locator(CODE_SCROLLER).evaluate((scroller) => scroller.scrollBy(0, 60));
+        await afterNextRender(page);
+
+        await expect(plus).not.toBeFocused();
     });
 });
