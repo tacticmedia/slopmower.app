@@ -1,6 +1,6 @@
 # F10 Carry over open requests
 
-Workflow, conventions, and status: [feature track](features.md). The design comes from the [backlog item](../backlog/request-carry-over.md). This file is the scope; the backlog item is replaced by it.
+Workflow, conventions, and status: [feature track](features.md). The design comes from the former backlog item "Carry over open requests" (removed by F10, see git history).
 
 ## Goal
 

@@ -35,6 +35,7 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 
 - **One scroll area in the normal file view.** Outside focus mode, the window, the file tree, and the code view each scroll. Split from F02.
 - **Project-specific Mate tools.** For example a tool that reads the event log of a review. Split from F05.
+- **Carry over on an open review.** V15 can run on any open review, but the UI offers it only at review start. An action on an open review would carry requests later, for example after one is released. Split from F10.
 
 ## For Jan
 
