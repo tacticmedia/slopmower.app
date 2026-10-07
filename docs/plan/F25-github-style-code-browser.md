@@ -35,7 +35,7 @@ Design:
 
 1. **Window-scroll virtualization (D55).** `@pierre/diffs` 1.5.2 `CodeView` virtualizes only inside its own element (F21). `Virtualizer` supports the window: `setup(root: HTMLElement | Document)` calls `setupWindow()` and reads `window.scrollY` (`dist/components/Virtualizer.js`). The library docs (Virtualization, React): the React wrapper scrolls with the window only through `VirtualizerContext.Provider` with a `Virtualizer` instance that the app creates. So `CodeFile` renders React `File` inside `VirtualizerContext.Provider`, with one `Virtualizer` set up on `document`. React `File` then creates a `VirtualizedFile` (`dist/react/utils/useFileInstance.js`).
 2. **Scroll to a line.** React `File` does not expose its instance. `FileOptions.onPostRender(node, instance, phase)` passes it, and `VirtualizedFile.getLinePosition(lineNumber)` gives `{top, height}` in the file. The target is the file top plus the line top, less the sticky header height, centred in the space below the header, through `window.scrollTo()`.
-3. **Spike first, as a gate** (step 1). It proves every `CodeFile` feature under the window `Virtualizer`. If one fails, stop and report to Jan. No fallback that steals wheel events or turns off virtualization.
+3. **No spike** (Jan, 2026-10-08): the implementation copies GitHub as mapped above. Every `CodeFile` feature keeps working under the window `Virtualizer`, and the acceptance tests and the manual check prove it. No fallback that steals wheel events or turns off virtualization.
 4. **Layout:** Primer `PageLayout` in the Code tab, `containerWidth="full"`. `PageLayout.Pane position="start" sticky resizable widthStorageKey="holistic-review.tree-width"`, width `{min: '256px', default: '320px', max: '640px'}`. `main` has no `max-width` on the Code tab.
 5. **Breakpoint stays at 768 px** (Primer `regular`, where `resizable` starts). At 768 px and below, the pane stacks above the content, is not sticky, and keeps `max-height: 40vh`.
 6. **Collapse file tree:** a button in the pane header. The `usePreference` key `'focus'` becomes `'treeCollapsed'`. While the tree is collapsed, "Expand file tree" is the first control of the breadcrumb row.
@@ -83,12 +83,12 @@ F21 (merged). F02 and F23 are removed.
 
 Each step ends with `make check` green. A session may stop at a step boundary and report.
 
-1. **Spike (gate).** Replace `CodeView` with `File` in a document-mode `Virtualizer`. In the dev stack, with this repository as a local repository, prove on `src/Mcp/BundledSchemas.php` (3,257 lines):
-   - the worker pool highlights the code, and fewer than 300 rows render at a time;
+1. **Code view:** decision 1. `CodeFile` renders `File` in a document-mode `Virtualizer`. It keeps, on a 3,000-line file:
+   - highlighting by the worker pool, with fewer than 300 rows rendered at a time;
    - controlled line selection, the gutter "+" with the pointer and the keyboard (D31), inline threads and the composer, Cmd-click on tokens, and Wrap lines;
-   - `#L3000` lands below the sticky header on the first load, after a wrap toggle, and after a change of file;
-   - a thread that opens above the viewport does not move the visible lines;
-   - the instance and the virtualizer clean up on a change of file and on unmount.
+   - `#L3000` below the sticky header on the first load, after a wrap toggle, and after a change of file;
+   - the visible lines in place when a thread opens above the viewport;
+   - the clean-up of the instance and the virtualizer on a change of file and on unmount.
 2. **Layout:** decisions 4 to 6, and the removal of focus mode.
 3. **File view:** decisions 2, 7 to 9.
 4. **Directory view:** decisions 10 and 11.
@@ -127,7 +127,6 @@ Mocked UI suite at 1280x720, unless a test names another size.
 
 ## Verification
 
-- The spike result is in the report before step 2.
 - `make check` is green.
 - Manual check in the dev stack at 1280x720 and 1920x1080, with the `chrome-devtools` MCP server, against the GitHub reference above:
   - on `src/Mcp/BundledSchemas.php`, a scroll moves the headers out; the pane sticks with the window height; the stuck row appears and the code does not jump;
