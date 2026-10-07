@@ -36,12 +36,12 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F18 | [Known issues](F18-known-issues.md) | In progress | | |
 | F19 | [Change the plan requirement](F19-change-the-plan-requirement.md) | Not started, after F15 | | |
 | F20 | [Unlink a pull request](F20-unlink-a-pull-request.md) | Not started | | |
+| F21 | [File view fills the window](F21-file-view-fills-the-window.md) | Not started | | |
 
 ## Candidates
 
 Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also be opened as a general request in Holistic Review itself.
 
-- **One scroll area in the normal file view.** Outside focus mode, the window, the file tree, and the code view each scroll. Split from F02.
 - **Batch thread read.** The file view makes one Q1 call per 200 requests under the path prefix and one Q3 call per request on the file, because only Q3 returns a thread. A batch read, for example `thread` on Q1 with an exact path, makes it one call. A Q1 filter by request IDs would also replace the Q3 reads of hidden reply drafts. Developer guide ledger, row "Front end".
 - **Focus mode shortcut.** A keyboard shortcut that toggles focus mode. The app has no global key handler yet. From the F02 report.
 - **Name resolution at the selection.** "Go to declaration" with a typed name resolves with the namespace and the imports at the end of the file, so a file with several namespaces uses the last one. The namespace at the selection needs the line in V14. From the F04 report.
