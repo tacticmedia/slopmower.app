@@ -45,7 +45,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F27 | [Symbols through tree-sitter](F27-symbols-through-tree-sitter.md) | Not started | | |
 | F28 | [RDS authentication](F28-rds-authentication.md) | Done 2026-10-08, [report](reports/F28.md) | a551ec9 | src 428 PHP / 28337 lines, 428 types; tests 289 PHP / 25730 lines; assets 155 TS / 8977 lines |
 | F29 | [Symbols for Python, Go, and Rust](F29-symbols-for-python-go-rust.md) | Not started, after F27 | | |
-| F30 | [Sign in after sign-out](F30-sign-in-after-sign-out.md) | Not started. A bug: ahead of every feature that is not started. | | |
+| F30 | [Sign in after sign-out](F30-sign-in-after-sign-out.md) | Done 2026-10-08, [report](reports/F30.md) | | src 429 PHP / 28362 lines, 429 types; tests 289 PHP / 25747 lines; assets 155 TS / 8977 lines |
 
 ## Candidates
 
@@ -78,5 +78,6 @@ Decisions or actions that only Jan can take. Each comes from a report or a revie
   - `@pierre/diffs` blank-view bug: `finalizeRender()` compares files by identity, but `cacheKey` elsewhere. Unchanged in 1.5.2, the pinned and latest version (F18). `CodeFile.tsx` keeps the file object, so the app is not affected.
   - playwright-php 1.5.0: there is no `allTextContents()`, and `filter(['has'])` takes CSS only.
   - Symfony: a `_failure_path` that starts with "http" but is not a URL becomes a route name, and the GitHub callback answers 500.
+  - Symfony 8.1: `SameOriginCsrfListener` writes the CSRF strategies of the logout request, those of the old session included, into the session that logout starts. A same-origin form in that session then fails the CSRF check. `ResetCsrfStrategyListener` works around it (F30).
 - **GitHub App:** when a real App exists, record real API responses and webhook deliveries for the fixtures. Confirm the by-ID fetch of pending SHAs and the listing of a suspended installation. Set `GITHUB_APP_WEBHOOK_SECRET` in the vault, and the webhook content type to JSON.
 - **phpstan-doctrine:** it finds a type descriptor by DBAL type class, not by type name. So `IdentifierType` and `StringValueType`, which serve several value classes, fall back to `mixed` in DQL result shapes. The fix needs either two new `phpstanApi` ignores, which the definition of done forbids, or an upstream change. F08 item 6 is left open for it.
