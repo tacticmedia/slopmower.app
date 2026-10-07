@@ -33,6 +33,8 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F15 | [Proposal follow-ups](F15-proposal-follow-ups.md) | In progress | | |
 | F16 | [Carry over on an open review](F16-carry-over-on-an-open-review.md) | In progress | | |
 | F17 | [Project Mate tools](F17-project-mate-tools.md) | In progress | | |
+| F19 | [Change the plan requirement](F19-change-the-plan-requirement.md) | Not started, after F15 | | |
+| F20 | [Unlink a pull request](F20-unlink-a-pull-request.md) | Not started | | |
 | F18 | [Known issues](F18-known-issues.md) | In progress | | |
 
 ## Candidates
@@ -40,8 +42,6 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also be opened as a general request in Holistic Review itself.
 
 - **One scroll area in the normal file view.** Outside focus mode, the window, the file tree, and the code view each scroll. Split from F02.
-- **Change the plan requirement of an open request.** `requireApproval` is fixed when the request opens. The user could switch it on or off later. Split from F13.
-- **Unlink a pull request.** F14 links a pull request and has no unlink. Split from F14.
 - **Batch thread read.** The file view makes one Q1 call per 200 requests under the path prefix and one Q3 call per request on the file, because only Q3 returns a thread. A batch read, for example `thread` on Q1 with an exact path, makes it one call. A Q1 filter by request IDs would also replace the Q3 reads of hidden reply drafts. Developer guide ledger, row "Front end".
 - **Focus mode shortcut.** A keyboard shortcut that toggles focus mode. The app has no global key handler yet. From the F02 report.
 - **Name resolution at the selection.** "Go to declaration" with a typed name resolves with the namespace and the imports at the end of the file, so a file with several namespaces uses the last one. The namespace at the selection needs the line in V14. From the F04 report.
