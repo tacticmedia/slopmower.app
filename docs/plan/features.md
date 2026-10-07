@@ -41,7 +41,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F23 | [Focus mode shortcut](F23-focus-mode-shortcut.md) | Done 2026-10-07, [report](reports/F23.md) | a526f55 | src 419 PHP / 27834 lines, 419 types; tests 284 PHP / 25239 lines; assets 149 TS / 8268 lines; check 2m54s |
 | F24 | [Gutter "+" keeps the focus](F24-gutter-plus-keeps-the-focus.md) | Done 2026-10-07, [report](reports/F24.md) | db26591 | src 427 PHP / 28311 lines, 427 types; tests 286 PHP / 25622 lines; assets 149 TS / 8356 lines; check 2m45s |
 | F25 | [GitHub-style code browser](F25-github-style-code-browser.md) | Done 2026-10-08, [report](reports/F25.md) | 680b78c | src 427 PHP / 28311 lines, 427 types; tests 286 PHP / 25622 lines; assets 155 TS / 8977 lines; check 3m53s |
-| F26 | [Blame view](F26-blame-view.md) | Not started, after F25 | | |
+| F26 | [Blame view](F26-blame-view.md) | In progress (2026-10-08) | | |
 | F27 | [Symbols through tree-sitter](F27-symbols-through-tree-sitter.md) | Not started | | |
 | F28 | [RDS authentication](F28-rds-authentication.md) | Done 2026-10-08, [report](reports/F28.md) | a551ec9 | src 428 PHP / 28337 lines, 428 types; tests 289 PHP / 25730 lines; assets 155 TS / 8977 lines |
 | F29 | [Symbols for Python, Go, and Rust](F29-symbols-for-python-go-rust.md) | Not started, after F27 | | |
@@ -63,6 +63,8 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **Single-child directory chains.** GitHub shows a chain of directories with one child each as one row of the directory table, for example "Test/Constraint". From F25.
 - **Markdown preview of a file.** GitHub shows a `.md` file rendered, with "Preview | Code". From F25.
 - **"Finish review" in the stuck header.** The review header scrolls away in the code browser, and the stuck row of the file header could show "Finish your review" while drafts exist. From F25.
+- **"Blame prior to change".** GitHub's blame block links to the blame of the parent commit at the path the file had there. It needs V17 at an ancestor of the review commit and the text of the file there, and a view that leaves the pinned commit. From F26.
+- **Blame avatars, commit links, and contributors.** GitHub shows the author avatar, links the summary to the commit page, and counts the contributors of the file. A local repository has no avatars and no commit page. From F26.
 - **Database parameters instead of `DATABASE_URL`.** In the master-password mode of `tacticmedia/rds-auth-bundle`, the deployment injects the raw password, and a raw RDS master password can contain `%`, `#`, and `?`, which break a URL. Separate variables for the host, the port, the database name, the user, the password, and the server version avoid the encoding. From F28.
 - **Pull request links after a repository rename.** A GitHub URL is stored in the canonical form of the repository name as connected (F14). After the repository is renamed on GitHub, a link under the old name no longer matches `link_pull_request` or `unlink_pull_request`. From the F20 report.
 - **Index version per language.** Stored symbols are keyed by blob, so a changed grammar or query of the `symbols` service leaves old rows until `app:index:rebuild --reparse`. A version per language on `indexed_blob` would re-parse stale rows on demand. From F27.
