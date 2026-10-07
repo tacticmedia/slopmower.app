@@ -33,7 +33,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F15 | [Proposal follow-ups](F15-proposal-follow-ups.md) | Done 2026-10-07, [report](reports/F15.md) | a57e1f6 | src 419 PHP / 27834 lines, 419 types; tests 283 PHP / 25157 lines; assets 146 TS / 8052 lines; check 3m42s |
 | F16 | [Carry over on an open review](F16-carry-over-on-an-open-review.md) | Done 2026-10-07, [report](reports/F16.md) | d5173c6 | src 419 PHP / 27834 lines, 419 types; tests 284 PHP / 25239 lines; assets 148 TS / 8209 lines; check 3m22s |
 | F17 | [Project Mate tools](F17-project-mate-tools.md) | Done 2026-10-07, [report](reports/F17.md) | 5852bb2 | src 419 PHP / 27834 lines, 419 types; tests 284 PHP / 25239 lines; assets 146 TS / 8052 lines; check 3m19s |
-| F18 | [Known issues](F18-known-issues.md) | Done 2026-10-07, [report](reports/F18.md) | | src 419 PHP / 27834 lines, 419 types; tests 284 PHP / 25239 lines; assets 148 TS / 8211 lines |
+| F18 | [Known issues](F18-known-issues.md) | Done 2026-10-07, [report](reports/F18.md) | e62f28e | src 419 PHP / 27834 lines, 419 types; tests 284 PHP / 25239 lines; assets 148 TS / 8211 lines; check 3m9s |
 | F19 | [Change the plan requirement](F19-change-the-plan-requirement.md) | In progress | | |
 | F20 | [Unlink a pull request](F20-unlink-a-pull-request.md) | Not started | | |
 | F21 | [File view fills the window](F21-file-view-fills-the-window.md) | Not started | | |
@@ -48,6 +48,7 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **Name resolution at the selection.** "Go to declaration" with a typed name resolves with the namespace and the imports at the end of the file, so a file with several namespaces uses the last one. The namespace at the selection needs the line in V14. From the F04 report.
 - **Declaration suggestions.** "Go to declaration" could suggest names from V16 while typing. From the F04 and F11 reports.
 - **Carry-over as a job.** V15 locates and captures in the HTTP request. A Messenger job with a live update, if a large source review shows that it is slow. From the F10 report.
+- **Test suite memory.** The functional suite grows by about 50 MB over its run, to a peak of about 165 MB. A look at what each test leaves behind (kernels, clients, static caches) could lower it. `bin/phpunit --testsuite unit,functional --log-events-text <file> --with-telemetry` reproduces it. From the F18 report.
 
 ## For Jan
 
@@ -55,7 +56,7 @@ Decisions or actions that only Jan can take. Each comes from a report or a revie
 
 - **Licensing:** a distributed build carries the Apache-2.0 obligations of `@pierre/diffs`: the licence, the NOTICE, and the `@pierre/theme` NOTICE. The repository has no notice file.
 - **Upstream reports:**
-  - `@pierre/diffs` 1.5.1 blank-view bug: `finalizeRender()` compares files by identity, but `cacheKey` elsewhere. Version 1.5.2 exists; its fix is not checked, and the version is pinned.
+  - `@pierre/diffs` blank-view bug: `finalizeRender()` compares files by identity, but `cacheKey` elsewhere. Unchanged in 1.5.2, the pinned and latest version (F18). `CodeFile.tsx` keeps the file object, so the app is not affected.
   - playwright-php 1.5.0: there is no `allTextContents()`, and `filter(['has'])` takes CSS only.
   - Symfony: a `_failure_path` that starts with "http" but is not a URL becomes a route name, and the GitHub callback answers 500.
 - **GitHub App:** when a real App exists, record real API responses and webhook deliveries for the fixtures. Confirm the by-ID fetch of pending SHAs and the listing of a suspended installation. Set `GITHUB_APP_WEBHOOK_SECRET` in the vault, and the webhook content type to JSON.
