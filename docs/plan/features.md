@@ -33,9 +33,9 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F15 | [Proposal follow-ups](F15-proposal-follow-ups.md) | In progress | | |
 | F16 | [Carry over on an open review](F16-carry-over-on-an-open-review.md) | In progress | | |
 | F17 | [Project Mate tools](F17-project-mate-tools.md) | In progress | | |
+| F18 | [Known issues](F18-known-issues.md) | In progress | | |
 | F19 | [Change the plan requirement](F19-change-the-plan-requirement.md) | Not started, after F15 | | |
 | F20 | [Unlink a pull request](F20-unlink-a-pull-request.md) | Not started | | |
-| F18 | [Known issues](F18-known-issues.md) | In progress | | |
 
 ## Candidates
 
