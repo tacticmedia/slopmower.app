@@ -181,6 +181,7 @@ Another request, read by the claiming agent with `context=2` and without `at`: [
 The endpoint returns the diff data of one linked commit for the verify view.
 
 - It compares the commit with its first parent: `git diff-tree -r -M --numstat` plus the raw output. It lists at most 300 files. `truncated` is true when more files changed.
+- `files` lists the files that touch the anchor first, then the other files, each group in the order of `git diff-tree`. So the cut at 300 files keeps the files that touch the anchor.
 - `location` is the request located at this commit, with `target: linked_commit`.
 - `touchesAnchor` is true when `path` equals `location.path`. When `location` is null or orphaned, it is true when `path` or `oldPath` equals the anchor path.
 - For a general request, `location` is null and `touchesAnchor` is false.

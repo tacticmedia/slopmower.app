@@ -33,7 +33,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F15 | [Proposal follow-ups](F15-proposal-follow-ups.md) | Done 2026-10-07, [report](reports/F15.md) | a57e1f6 | src 419 PHP / 27834 lines, 419 types; tests 283 PHP / 25157 lines; assets 146 TS / 8052 lines; check 3m42s |
 | F16 | [Carry over on an open review](F16-carry-over-on-an-open-review.md) | Done 2026-10-07, [report](reports/F16.md) | d5173c6 | src 419 PHP / 27834 lines, 419 types; tests 284 PHP / 25239 lines; assets 148 TS / 8209 lines; check 3m22s |
 | F17 | [Project Mate tools](F17-project-mate-tools.md) | Done 2026-10-07, [report](reports/F17.md) | 5852bb2 | src 419 PHP / 27834 lines, 419 types; tests 284 PHP / 25239 lines; assets 146 TS / 8052 lines; check 3m19s |
-| F18 | [Known issues](F18-known-issues.md) | In progress | | |
+| F18 | [Known issues](F18-known-issues.md) | Done 2026-10-07, [report](reports/F18.md) | | src 419 PHP / 27834 lines, 419 types; tests 284 PHP / 25239 lines; assets 148 TS / 8211 lines |
 | F19 | [Change the plan requirement](F19-change-the-plan-requirement.md) | In progress | | |
 | F20 | [Unlink a pull request](F20-unlink-a-pull-request.md) | Not started | | |
 | F21 | [File view fills the window](F21-file-view-fills-the-window.md) | Not started | | |

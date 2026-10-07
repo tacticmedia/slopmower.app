@@ -41,6 +41,20 @@ test.describe('Proposal', () => {
         await expect(page.locator(`${DETAIL} [data-testid="plan-required"]`)).toHaveText('Plan required');
     });
 
+    test('A proposed diff that starts after line 1 has no expand control', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        const requestId = claimedRequest(review);
+        const { eventId } = review.agentProposes(requestId, PLAN, DIFF);
+
+        await openRequest(page, requestId);
+
+        const file = proposal(page, eventId).locator('[data-testid="proposal-diff-file"][data-path="src/Billing/InvoiceTotals.php"]');
+        await expect(file.locator(DIFF_LINE).first()).toBeAttached();
+        await expect(file.locator('[data-separator]').first()).toHaveText('@@ -48,5 +48,10 @@');
+        await expect(file.locator('[data-expand-button]')).toHaveCount(0);
+        await expect(file.locator('[data-unmodified-lines]'), 'No "N unmodified lines" row offers the lines above.').toHaveCount(0);
+    });
+
     test('Download .diff saves the diff text', async ({ page, api }) => {
         const review = new FakeReview(api);
         const requestId = claimedRequest(review);

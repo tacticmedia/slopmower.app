@@ -58,7 +58,7 @@ test.describe('ChangesTab', () => {
         const round = commitLink(sha1('Round the tax'), 'Round the tax');
         const [readme, movedReadme, changelog] = ['# Code view\n', '# Code view\n\nTax moved.\n', 'Round the tax.\n'];
         const rounded = smallFile('$this->roundedTax($net, $taxBasisPoints)');
-        // The fake lists the files in path order, so the test proves that the UI moves the anchored file up.
+        // Git lists the files in path order, and Q9 moves the anchored file up.
         linkCommits(
             api,
             review,

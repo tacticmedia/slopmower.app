@@ -251,8 +251,11 @@ export function commitLink(commitSha: string, subject: string): CommitLink {
     return { commitSha, state: 'available', linkedBy: AGENT, linkedAt, note: null, foundAt: linkedAt, subject, committedAt: linkedAt, otherRequestIds: [] };
 }
 
+/** `files` in git order. Q9 lists the files that touch the anchor first (D51). */
 export function commitDiff(request: Request, commit: CommitLink, files: CommitDiffFile[]): CommitDiff {
-    return { ...fixture<CommitDiff>('commit-diff.modified.json'), requestId: request.id, commitSha: commit.commitSha, subject: commit.subject ?? '', files };
+    const q9Files = files.toSorted((first, second) => Number(second.touchesAnchor) - Number(first.touchesAnchor));
+
+    return { ...fixture<CommitDiff>('commit-diff.modified.json'), requestId: request.id, commitSha: commit.commitSha, subject: commit.subject ?? '', files: q9Files };
 }
 
 export function modifiedFile(path: string, oldText: string, newText: string, touchesAnchor: boolean): CommitDiffFile {

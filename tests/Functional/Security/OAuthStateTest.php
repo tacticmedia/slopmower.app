@@ -21,7 +21,7 @@ final class OAuthStateTest extends WebTestCase
     /**
      * @param array<string, string> $stateParameter
      */
-    #[TestDox('A callback with a missing or wrong state is rejected, and /login shows the error')]
+    #[TestDox('A callback with a missing or wrong state is rejected, and /login says that signing in with GitHub failed')]
     #[DataProvider('invalidStates')]
     public function testCallbackWithInvalidStateIsRejected(array $stateParameter): void
     {
@@ -35,7 +35,7 @@ final class OAuthStateTest extends WebTestCase
         self::assertSame([], self::gitHubRequests($client), 'No code exchange without a valid state.');
         self::assertSame(0, (int) self::getContainer()->get(Connection::class)->fetchOne('SELECT count(*) FROM app_user'));
         $client->followRedirect();
-        self::assertSelectorTextSame('[role="alert"]', 'An authentication exception occurred.');
+        self::assertSelectorTextSame('[role="alert"]', 'Signing in with GitHub failed. Try again.');
         $client->request('GET', '/api/v1/me');
         self::assertResponseStatusCodeSame(401);
     }

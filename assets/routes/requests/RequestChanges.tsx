@@ -1,5 +1,5 @@
 import { Label, RelativeTime, Spinner } from '@primer/react';
-import { lazy, Suspense, useEffect, useMemo, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router';
 import type { CommitLink } from '../../api/types/commit-link';
 import type { Request as ReviewRequest } from '../../api/types/request';
@@ -84,10 +84,6 @@ function keepInView(section: HTMLElement): () => void {
 function AvailableCommit({ requestId, repositoryId, commitSha, located }: { requestId: string; repositoryId: string; commitSha: string; located: boolean }) {
     const diff = useCommitDiff(requestId, commitSha);
     const [wrap] = usePreference('wrap');
-    const files = useMemo(
-        () => (undefined === diff || 'error' in diff ? [] : diff.files.toSorted((first, second) => Number(second.touchesAnchor) - Number(first.touchesAnchor))),
-        [diff],
-    );
 
     if (undefined === diff) {
         return (
@@ -112,7 +108,7 @@ function AvailableCommit({ requestId, repositoryId, commitSha, located }: { requ
             </p>
             {located && <LocationInfo location={diff.location} />}
             {diff.truncated && <p className={styles.note}>Only the first {diff.files.length} changed files are shown.</p>}
-            {0 === files.length ? (
+            {0 === diff.files.length ? (
                 <p className={styles.note}>No file changed.</p>
             ) : (
                 <Suspense
@@ -122,7 +118,7 @@ function AvailableCommit({ requestId, repositoryId, commitSha, located }: { requ
                         </p>
                     }
                 >
-                    <CommitDiff repositoryId={repositoryId} files={files} overflow={wrap ? 'wrap' : 'scroll'} />
+                    <CommitDiff repositoryId={repositoryId} files={diff.files} overflow={wrap ? 'wrap' : 'scroll'} />
                 </Suspense>
             )}
         </>

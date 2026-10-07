@@ -246,7 +246,7 @@ make up
 - Reads:
   - A read that several callers share, REST and MCP (D37) or a controller and a use case, is one method of an `Application\Query` service. A method that builds the same view as such a read stays next to it, for example `ReviewQuery::get()`.
   - A read with one caller stays in its controller, for example Q9 in `CommitDiffController`.
-  - The response class of a read is in `Application\Query`, also for a read that stays in its controller.
+  - The response class of an endpoint is in `Application\Query`, also for a read that stays in its controller and for a write, for example `IssuedApiToken` of T2.
 - Responses go through the Serializer that REST and MCP share:
   - A response class is schema-shaped: its public properties are the fields of its schema, in schema order, and `ObjectNormalizer` writes it. An array literal in an action follows the same rule.
   - A class cannot be schema-shaped when it wraps an entity, a recorded event, or an `App\Git` object, when it merges another schema, or when it computes a field. Such a class has one normalizer named after its schema, and that normalizer also maps its nested parts. The normalizers are in `src/Serializer/Normalizer`.
@@ -324,7 +324,7 @@ Every milestone:
    - the E2E suite.
 3. Schema changes have generated migrations, applied to the dev and test databases.
 4. Responses validate against docs/specs, and every new route and tool has a cross-tenant case.
-5. The exact pins hold: `mcp/sdk` 0.8.1, `symfony/mcp-bundle` 0.14.1, `symfony/reprise` 1.3.0, `@symfony/reprise` 1.3.0, `@pierre/diffs` 1.5.1.
+5. The exact pins hold: `mcp/sdk` 0.8.1, `symfony/mcp-bundle` 0.14.1, `symfony/reprise` 1.3.0, `@symfony/reprise` 1.3.0, `@pierre/diffs` 1.5.2.
 6. File sizes are within the limits. No TODO without a backlog entry.
 7. The report is written, the status table is updated, and nothing is committed without Jan's permission in the session.
 
@@ -353,7 +353,7 @@ The session writes it into `reports/MNN.md`:
 
 ## Verified versions
 
-Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, and `@primer/behaviors` rows on 2026-10-07. `composer.lock`, `package-lock.json`, and the images hold these versions.
+Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07. `composer.lock`, `package-lock.json`, and the images hold these versions.
 
 | Package | Version | Source |
 |---|---|---|
@@ -384,7 +384,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 | `react`, `react-dom`, `@types/react`, `@types/react-dom` | 19.3.0 | https://www.npmjs.com/package/react |
 | `react-router` | 8.4.0, Data Mode. Peers `react` and `react-dom` `>=19.2.7`. | https://www.npmjs.com/package/react-router |
 | `vite`, `@vitejs/plugin-react`, `typescript` | 8.3.1, 6.1.1, 7.0.2 | https://www.npmjs.com/package/vite |
-| `@pierre/diffs` | 1.5.1, exact pin, Apache-2.0 | https://www.npmjs.com/package/@pierre/diffs |
+| `@pierre/diffs` | 1.5.2, exact pin, Apache-2.0 | https://www.npmjs.com/package/@pierre/diffs |
 | `@primer/react`, `@primer/primitives`, `@primer/octicons-react`, `@primer/css` | 38.40.0, 11.10.0, 19.38.0, 22.3.2 | https://www.npmjs.com/package/@primer/react |
 | `@primer/behaviors` | 1.11.0, the version that `@primer/react` installs, for `isEditableElement()` and `isMacOS()` | https://www.npmjs.com/package/@primer/behaviors |
 | `react-markdown`, `remark-gfm`, `vitest` | 10.1.0, 4.0.1, 5.0.2 | https://www.npmjs.com/package/react-markdown |
@@ -394,7 +394,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 
 ### Recipes and bundles
 
-- **HWIOAuthBundle.** Its recipe is a contrib recipe. Version 2.5.0 requires `symfony/form`, so keep Form. It has no PKCE. Its `csrf` option defaults to `false`: set it to `true`. Its failure handler stores no error in the session, so `Security\SignInErrorListener` stores it for `/login`.
+- **HWIOAuthBundle.** Its recipe is a contrib recipe. Version 2.5.0 requires `symfony/form`, so keep Form. It has no PKCE. Its `csrf` option defaults to `false`: set it to `true`. Its failure handler stores no error in the session, so `Security\SignInErrorListener` stores it for `/login`. It throws plain `AuthenticationException`s, for example for a wrong `state`, so `translations/security.en.xlf` maps their message key to "Signing in with GitHub failed. Try again."
 - **symfony/mcp-bundle 0.14.1.** It has no Flex recipe. Only `config/bundles.php` gets `Symfony\AI\McpBundle\McpBundle`. Write `config/packages/mcp.yaml` and `config/routes/mcp.yaml` by hand. The HTTP transport needs `nyholm/psr7`. The `nyholm/psr7` and `php-http/discovery` recipes both alias the PSR-17 interfaces: keep one set.
 - **MCP bundle options.** `http.allowed_hosts` defaults to localhost only, as DNS rebinding protection. The HTTP path is `servers.<name>.http.path`. The session store is one of `file`, `memory`, `cache`, or `framework`. The `cache` store needs a PSR-16 service. The default directory of the `file` store is under `%kernel.cache_dir%`, which `cache:clear` removes, so set `directory` explicitly.
 - **mcp/sdk 0.8.1 behaviour:**

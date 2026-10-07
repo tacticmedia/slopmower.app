@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
-use App\Application\IssuedApiToken;
+use App\Application\Query\IssuedApiToken;
 use App\Controller\Api\Input\CreateTokenInput;
 use App\Domain\ApiToken\ApiTokenSecret;
 use App\Domain\Error\InvalidInput;

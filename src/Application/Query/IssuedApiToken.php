@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Application;
+namespace App\Application\Query;
 
 use App\Domain\ApiToken\ApiTokenSecret;
 use App\Entity\ApiToken;

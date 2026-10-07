@@ -11,7 +11,7 @@
         "test:ui": "playwright test"
     },
     "dependencies": {
-        "@pierre/diffs": "1.5.1",
+        "@pierre/diffs": "1.5.2",
         "@primer/behaviors": "1.11.0",
         "@primer/css": "22.3.2",
         "@primer/octicons-react": "19.38.0",

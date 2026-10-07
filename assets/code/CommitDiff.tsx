@@ -21,6 +21,12 @@ const DIFF_OPTIONS: Record<Overflow, FileDiffOptions<undefined, undefined>> = {
     wrap: { ...BASE_DIFF_OPTIONS, overflow: 'wrap' },
 };
 
+// A patch holds no unchanged lines to expand, so its separators are the `@@` hunk headers.
+const PROPOSAL_DIFF_OPTIONS: Record<Overflow, FileDiffOptions<undefined, undefined>> = {
+    scroll: { ...DIFF_OPTIONS.scroll, hunkSeparators: 'metadata' },
+    wrap: { ...DIFF_OPTIONS.wrap, hunkSeparators: 'metadata' },
+};
+
 const STATUS_TEXT: Record<CommitDiffFileStatus, string> = {
     added: 'Added',
     modified: 'Modified',
@@ -68,7 +74,7 @@ export const ProposalDiff = memo(function ProposalDiff({ diff, cacheKey, overflo
                         <h3 className={styles.path}>{undefined === file.prevName ? file.name : `${file.prevName} to ${file.name}`}</h3>
                     </header>
                     <div className={styles.body}>
-                        <FileDiff fileDiff={file} options={DIFF_OPTIONS[overflow]} />
+                        <FileDiff fileDiff={file} options={PROPOSAL_DIFF_OPTIONS[overflow]} />
                     </div>
                 </section>
             ))}

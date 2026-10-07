@@ -176,6 +176,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - General requests, decision D45 of [architecture.md](../architecture.md) section 11: `anchor` is nullable in `Request`, `RequestSummary`, and `Draft`, and optional in `OpenRequestInput` and `CreateDraftInput`.
     - Agent proposals, decision D49: `link_commits` and `mark_ready_for_review` are refused while a proposal is pending or rejected, and while `requireApproval` holds without an approved proposal. `awaiting` rule 2 counts a proposal decision as a user message, and rule 3 also matches a pending proposal. `request.opened` has the payload field `requireApproval`, read as false when missing. New: the actions `propose_solution`, `approve_proposal`, and `reject_proposal`, three event and thread entry types, the closed set `ProposalState` on the new property `proposal`, and `diff` in `Event` and `ThreadEntry`.
     - Pull request links, decision D50: the endpoint Q17 and the tool `link_pull_request`, the `Action` value `link_pull_request`, the `EventType` and `ThreadEntryType` value `pull_request.linked`, `Request.pullRequestUrls`, and `pullRequestUrl` in `ThreadEntry` and `Event`. All are additive. On an `in_progress` request, the gate of D49 applies to `link_pull_request` as to `link_commits`.
+    - Q9 file order, decision D51: `files` of `CommitDiff` lists the files that touch the anchor first, then the other files in the order of `git diff-tree`. It is the order that the server returns, so no client sees a change.
 
 ## 9. Contract tests
 

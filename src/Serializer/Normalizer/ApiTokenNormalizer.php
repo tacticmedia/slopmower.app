@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Serializer\Normalizer;
 
-use App\Application\IssuedApiToken;
+use App\Application\Query\IssuedApiToken;
 use App\Entity\ApiToken;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareInterface;
