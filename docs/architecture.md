@@ -653,7 +653,7 @@ These documents cover only the local development environment. Operations belong 
 | Service | Runs | Notes |
 |---|---|---|
 | `php` | FrankenPHP 1.12.7 with the built-in Mercure hub | The `dev` application at `http://localhost:8000` over HTTP, in worker mode. The `e2e` site on `:8081` in the same container, in classic mode, for the full-stack E2E tests. |
-| `worker` | `messenger:consume async` | Same image and volumes as `php` |
+| `worker` | `messenger:consume async` | Same image and volumes as `php`. Its own cache directory, `APP_CACHE_DIR=var/cache/worker`, so a rebuild of the `php` container's cache does not remove files that it loads. |
 | `database` | `postgres:18-alpine` | The data volume mounts `/var/lib/postgresql`. One database role. |
 
 - **Volumes:** the database, the tenant data, and the host directory that `LOCAL_REPOSITORIES_HOST_DIR` names. That directory is mounted read-only at `/repositories`, and the application reads `APP_LOCAL_REPOSITORIES_DIR=/repositories`. When `APP_LOCAL_REPOSITORIES_DIR` is empty, local sources are off.
@@ -746,7 +746,7 @@ Static checks: PHPStan level 8 on `src/` and `tests/`, php-cs-fixer with `@Symfo
 | D38 | Git secrets | Tokens reach git only through `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`, and `GIT_CONFIG_VALUE_<n>` environment variables, never through argv, because `symfony/process` exception messages print the argv |
 | D39 | Locks | `symfony/lock` with PostgreSQL advisory locks, because the `php` and `worker` containers share the clones |
 | D40 | MCP sessions | The bundle's `file` session store under `var/mcp-sessions`, because there is one `php` container. A shared store: [mcp-session-store.md](backlog/mcp-session-store.md). |
-| D41 | Mercure hub URL | Always set. Without it the bundle compiles `FrankenPhpHub` inside FrankenPHP, and CLI processes that share the cache break. |
+| D41 | Mercure hub URL | Always set. Without it the bundle compiles `FrankenPhpHub`, which calls `mercure_publish()`, a function that `docker/frankenphp/conf.d/10-app.ini` disables. |
 | D42 | Live update payloads | IDs only. Clients read the data again through REST. The browser revalidates its React Router loaders, so there is one data model. |
 | D43 | Dev transport | The dev app runs over HTTP at `http://localhost:8000`. Localhost is a secure context, so the clipboard API and EventSource work. TLS is operations. |
 | D44 | Convention tests | Meta-tests enforce the test rules, the file-size rule, and the purity of `src/Domain`, so the rules hold without review effort. Purity keeps the deciders, reducers, event codecs, and matching algorithms testable without the kernel. |

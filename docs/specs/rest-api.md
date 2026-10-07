@@ -184,7 +184,7 @@ The endpoint lists the repositories that the user can connect.
 | `q` | string | none | Case-insensitive substring of the name |
 | `includeConnected` | boolean | true | |
 
-- **GitHub candidates** come from the list per tenant that the server takes at the last sign-in. It calls `GET /user/installations` and `GET /user/installations/{id}/repositories` with the user token, which it never stores. The `installation_repositories.added` webhook updates the list for installations on the own account of the user. To refresh the list, the user signs in again through `/connect/github`. The setup URL `/github/installed` does that automatically.
+- **GitHub candidates** come from the list per tenant that the server takes at the last sign-in. It calls `GET /user/installations` and `GET /user/installations/{id}/repositories` with the user token, which it never stores. It skips an installation whose `target_type` is neither `User` nor `Organization`, for example an enterprise installation. The `installation_repositories.added` webhook updates the list for installations on the own account of the user. To refresh the list, the user signs in again through `/connect/github`. The setup URL `/github/installed` does that automatically.
 - **Local candidates** are scanned again on every call. The scan lists the direct children of `APP_LOCAL_REPOSITORIES_DIR`, skips symlinks and names that start with `.`, and keeps directories that hold a `.git` directory, or the `HEAD`, `objects`, and `refs` of a bare repository.
 - The list holds at most 1,000 items, sorted by source and then by name. `truncated` is true when more exist.
 
@@ -436,7 +436,7 @@ Rules:
 
 - `binary` follows the rule of git: a NUL byte in the first 8,000 bytes.
 - `tooLarge` means `sizeBytes > 1048576`.
-- `renderable = type == file && !binary && !tooLarge`.
+- `renderable = type == file && !binary && !tooLarge`. It does not check the encoding: a file that is not valid UTF-8 is renderable, but takes no `line`, `range`, or `symbol` anchor, see [Q2](rest-api-requests.md#q2-open-a-request).
 - Every file takes file comments.
 
 Example response, [fixtures/file-content.php.json](fixtures/file-content.php.json):

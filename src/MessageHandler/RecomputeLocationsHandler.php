@@ -25,7 +25,7 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
- * Step 3 of docs/specs/webhooks-and-live-updates.md section 2.2: the `outdated` flag of each request of the review,
+ * Step 2 of docs/specs/webhooks-and-live-updates.md section 2.2: the `outdated` flag of each request of the review,
  * from its location at the default-branch head.
  */
 #[AsMessageHandler]

@@ -27,7 +27,7 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 4096,
-      "pattern": "^(?!/)(?!-)(?!.*//)(?!(.*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$",
+      "pattern": "^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$",
       "description": "Relative path, '/' separators, no leading '/' or '-', no empty, '.' or '..' segment, no NUL byte."
     },
     "DateTime": {

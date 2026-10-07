@@ -198,6 +198,7 @@ The host ports 8000 and 5432 are the defaults of `HTTP_PORT` and `DATABASE_PORT`
 | `DEFAULT_URI` | `.env` | Base of the Mercure topics, from M24 on. Not the base of the links in `/api/v1/me`, which come from the request. |
 | `APP_PUBLIC_HOST` | `.env` | Host that the MCP transport accepts, from M15 on |
 | `LOCK_DSN` | `.env`, with the host `database` | Store of `symfony/lock`: PostgreSQL advisory locks, from M08 on |
+| `APP_CACHE_DIR` | Compose `worker` service | `var/cache/worker`: the worker's own cache directory. Cache pools, and so the `messenger:stop-workers` signal, stay shared in `APP_SHARE_DIR`. |
 | `MERCURE_URL`, `MERCURE_PUBLIC_URL`, `MERCURE_JWT_SECRET` | `.env` files. Also `MERCURE_URL` in the compose `worker` service, because the hub runs in the `php` container, and `MERCURE_JWT_SECRET` in the compose `php` service, because Caddy reads only the container environment. | Hub URL for the publisher, hub URL for the browser, JWT secret |
 | `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_SLUG` | Empty in `.env`, real values in `.env.local`, fake values in `.env.test` and `.env.e2e` | GitHub App identity, from M32 on. Empty means that no GitHub App is configured. |
 | `GITHUB_GIT_BASE_URL` | `.env`, default `https://github.com` | Base URL for GitHub clone and fetch, from M33 on. Tests point it at a local bare repository. The token extraheader stays bound to `https://github.com`, so another base URL never receives the token. |
@@ -404,7 +405,13 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
   - `outputSchema` comes only from `#[McpTool]`, so it must be a constant expression;
   - `structuredContent` must be a JSON object in the 2025-11-25 protocol era;
   - anything written to stdout corrupts the stdio transport.
-- **Mercure hub URL.** Always set `hubs.default.url`. When it is unset and the container is built inside FrankenPHP, the bundle compiles `FrankenPhpHub`, which calls `mercure_publish()`. See `$builtinHub = !isset($hub['url'])` in `MercureExtension.php`. CLI processes that share `var/cache` then break.
+- **Mercure hub URL.** Always set `hubs.default.url`. When it is unset, the bundle compiles `FrankenPhpHub`, which calls `mercure_publish()`, a function that `10-app.ini` disables. See `$builtinHub = !isset($hub['url'])` in `MercureExtension.php`.
+- **`mercure_publish()` is disabled.** Only FrankenPHP defines it, and the Mercure bundle changes its configuration tree when it exists. `docker/frankenphp/conf.d/10-app.ini` sets `disable_functions = mercure_publish`, so FrankenPHP and the CLI build the same container and write the same `config/reference.php`.
+- **Mercure 1.x.** FrankenPHP 1.12.7 bundles Mercure 0.24.2. The first FrankenPHP release with Mercure 1.x needs these changes in one step:
+  - `protocol_version: '1.0'` on the hub in `config/packages/mercure.yaml`;
+  - the `iss`, `sub`, and `client_id` claims in `mercure.hubs.default.jwt.claims`. `aud` defaults to `public_url`, but the app publishes to the internal `MERCURE_URL`, so pin the hub's `resource_identifier` or set `aud`, as the bundle's `claims` option describes;
+  - `issuer` blocks in the Caddyfile. Mercure 1.0 refuses the top-level `publisher_jwt` and `subscriber_jwt` directives unless `protocol_version_compatibility 8` is set;
+  - `cookie_name: mercureAuthorization`, because the 1.0 default `__Secure-mercure_access_token` cannot be set over plain HTTP.
 - **Reprise recipe.** It re-creates `assets/app.js` and `assets/styles/app.css`, and edits `templates/base.html.twig`.
 - **symfony/webhook.** The recipe route prefix is `/webhook`, so the GitHub endpoint is `/webhook/github`. A request parser that returns `null` makes Symfony answer 406. Return a `RemoteEvent` for every verified delivery.
 
@@ -415,6 +422,8 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 - **Compose environment and test processes.** Real environment variables win over `.env` files. A variable in the compose `environment:` list of `php` also reaches the `test` and `e2e` processes in that container. Put per-environment values into `.env.dev`, `.env.test`, and `.env.e2e`.
 - **Root in the container.** The `php` container runs as root, so permission-based tests prove nothing. Compare bytes and modification times.
 - **One database role.** Do not add init scripts under `/docker-entrypoint-initdb.d/`. A second role needs the facts in [database-hardening.md](../backlog/database-hardening.md).
+- **Image build context.** `.dockerignore` excludes `docs/` and every `*.md` file. `DocsCatalog` reads `docs/user/` and `docs/specs/schemas/` at run time, so a production stage that copies the source must include both, or `/docs` answers 500.
+- **Worker cache.** The compose `worker` sets `APP_CACHE_DIR=var/cache/worker`, so it builds its own container in `var/cache/worker/dev`. A rebuild of `var/cache/dev` by the `php` container removes container files that a worker on the shared cache still loads, and such a worker dies with its message delivered until the 15-minute redelivery.
 
 ### PHPStan level 8
 

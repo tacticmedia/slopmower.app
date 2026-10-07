@@ -42,6 +42,9 @@ services:
         condition: service_healthy
     environment:
       MERCURE_URL: http://php/.well-known/mercure
+      # Its own container build: a rebuild of the shared var/cache by the php container removes files that a running
+      # worker still loads. Cache pools stay shared in APP_SHARE_DIR, so messenger:stop-workers reaches it.
+      APP_CACHE_DIR: var/cache/worker
     # The upstream image checks the Caddy admin endpoint, which the worker does not run.
     healthcheck:
       disable: true

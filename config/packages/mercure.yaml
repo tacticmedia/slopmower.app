@@ -1,7 +1,7 @@
 mercure:
     hubs:
         default:
-            # D41: without a URL the bundle compiles FrankenPhpHub, which breaks console processes that share the cache.
+            # D41: without a URL the bundle compiles FrankenPhpHub, which calls mercure_publish(), disabled in 10-app.ini.
             url: '%env(MERCURE_URL)%'
             public_url: '%env(MERCURE_PUBLIC_URL)%'
             jwt:

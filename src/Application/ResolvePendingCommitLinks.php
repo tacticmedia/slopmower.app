@@ -19,7 +19,7 @@ use App\Repository\CommitLinkRepository;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 
 /**
- * Step 2 of docs/specs/webhooks-and-live-updates.md section 2.2. The only writer of commit.found.
+ * Step 3 of docs/specs/webhooks-and-live-updates.md section 2.2. The only writer of commit.found.
  */
 final class ResolvePendingCommitLinks
 {

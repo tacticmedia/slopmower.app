@@ -20,4 +20,16 @@ final class HealthEndpointTest extends WebTestCase
         self::assertSelectorExists('title');
         self::assertSelectorExists('span#js');
     }
+
+    #[TestDox('GET /healthz stores no profiler entry')]
+    public function testHealthzIsNotProfiled(): void
+    {
+        $client = static::createClient();
+        $client->enableProfiler();
+
+        $client->request('GET', '/healthz');
+
+        self::assertResponseIsSuccessful();
+        self::assertEmpty($client->getProfile());
+    }
 }

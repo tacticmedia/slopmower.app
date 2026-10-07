@@ -89,6 +89,8 @@ The rename-collision rule exists in `InstallationSync::record()` and `Repository
 
 `REQUEST_PAGE_LIMIT` is defined twice; `CodeFile.tsx` and `CommitDiff.tsx` repeat `THEME`, `POOL_OPTIONS`, and a header parse; `RequestChanges.tsx` sorts a list the server already sorts. Remove the duplicates. `fileThreads()` reads all Q1 pages and then one Q3 per request: keep it unless the specs allow fewer calls, and record the cost.
 
+The [S12 report](reports/S12.md) found no header parse in the two wrappers. Their third duplicate is `HIGHLIGHTER_OPTIONS`.
+
 ### S13 Namespace cycles
 
 The guide lists 13 namespace cycles. Break each one that a move or an inversion of one call removes. Record the cycles that the domain forces.

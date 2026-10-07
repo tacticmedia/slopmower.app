@@ -26,9 +26,9 @@ final class QueueLocationRecompute
     }
 
     /**
-     * Step 3 of docs/specs/webhooks-and-live-updates.md section 2.2. It runs before step 2,
+     * Step 2 of docs/specs/webhooks-and-live-updates.md section 2.2. It runs before step 3,
      * {@see ResolvePendingCommitLinks::onRepositoryFetched()}: a retried fetch finds an unchanged head, so a failing
-     * step 2 must not skip the recompute.
+     * step 3 must not skip the recompute.
      */
     #[AsEventListener(priority: 1)]
     public function onRepositoryFetched(RepositoryFetched $fetched): void

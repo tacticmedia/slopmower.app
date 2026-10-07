@@ -94,7 +94,7 @@ Example response, [fixtures/lists.request-page.json](fixtures/lists.request-page
 | Query | Type | Default | Notes |
 |---|---|---|---|
 | `at` | `^[0-9a-f]{7,64}$` | none | Resolved with `git rev-parse --verify --end-of-options <at>^{commit}`. If the commit is missing, the server fetches once. With `at`, `location.target` is `requested`. |
-| `context` | integer 0-50 | none | When set, `excerpt` holds the located region at the target commit, with `context` lines on each side and at most 400 lines. `excerpt` is null when the location is `orphaned` or the file is not renderable. |
+| `context` | integer 0-50 | none | When set, `excerpt` holds the located region at the target commit, with `context` lines on each side and at most 400 lines. `excerpt` is null when the location is `orphaned`, or the file is not renderable, not valid UTF-8, or empty. |
 
 - Without `at`, the server computes `location` at the default-branch head, with `target: default_branch`. `location` is null when the clone is gone.
 - A general request has `location` and `excerpt` null. The server checks only the syntax of `at` and `context`, so it never resolves `at` and never sends `commit_not_found` or `repository_unavailable` for it. Example: [fixtures/request.general.json](fixtures/request.general.json).
@@ -196,7 +196,7 @@ All command responses except Q2 and Q7 are [`RequestCommandResult`](schemas/requ
 - **Body:** [`OpenRequestInput`](schemas/inputs.schema.json), `{anchor?: AnchorInput|null, body}`.
 - **Success:** 201 [`Request`](schemas/request.schema.json) in full, with `Location: /api/v1/requests/{id}`. Examples: [fixtures/request.opened-range.json](fixtures/request.opened-range.json), [fixtures/request.general.json](fixtures/request.general.json).
 - **Errors:**
-  - 422 `invalid_input`: unknown path, range outside the file, FQN not found or ambiguous, kind and fields do not agree, or the file is not renderable for a `line`, `range`, or `symbol` anchor;
+  - 422 `invalid_input`: unknown path, range outside the file, FQN not found or ambiguous, kind and fields do not agree, or the file is not renderable or not valid UTF-8 for a `line`, `range`, or `symbol` anchor;
   - 409 `review_closed`;
   - 409 `repository_unavailable`: the clone is gone, for a request with an anchor.
 
@@ -206,7 +206,7 @@ The endpoint opens a request at once, as a "single comment". Anchor capture: the
 - `line` requires `startLine == endLine`.
 - `range` requires `endLine > startLine`.
 - `file` works for any file, including binary and too-large files.
-- `line`, `range`, and `symbol` require a renderable file.
+- `line`, `range`, and `symbol` require a renderable file in valid UTF-8.
 
 Example body, [fixtures/inputs.open-request.json](fixtures/inputs.open-request.json):
 

@@ -24,7 +24,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F06 | [Back-end bugs](F06-back-end-bugs.md) | In progress | | |
 | F07 | [Front-end bugs and UX fixes](F07-front-end-bugs-and-ux-fixes.md) | In progress | | |
 | F08 | [Code-quality leftovers](F08-code-quality-leftovers.md) | Not started, after F06 | | |
-| F09 | [Dev environment and docs issues](F09-dev-environment-and-docs-issues.md) | In progress | | |
+| F09 | [Dev environment and docs issues](F09-dev-environment-and-docs-issues.md) | Done 2026-10-07, [report](reports/F09.md) | | src 385 PHP / 25339 lines, 385 types; tests 271 PHP / 23316 lines; assets 136 TS / 7036 lines |
 
 ## Candidates
 
