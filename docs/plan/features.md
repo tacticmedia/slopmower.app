@@ -47,6 +47,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F29 | [Symbols for Python, Go, and Rust](F29-symbols-for-python-go-rust.md) | Done 2026-10-08, [report](reports/F29.md) | 429e2f4 | src 435 PHP / 28733 lines, 435 types; tests 292 PHP / 26147 lines; assets 159 TS / 9201 lines; check 3m3s |
 | F30 | [Sign in after sign-out](F30-sign-in-after-sign-out.md) | Done 2026-10-08, [report](reports/F30.md) | bd375ca | src 429 PHP / 28362 lines, 429 types; tests 289 PHP / 25747 lines; assets 155 TS / 8977 lines |
 | F31 | [Directory view reload](F31-directory-view-reload.md) | Done 2026-10-08, [report](reports/F31.md) | 87042d7 | src 432 PHP / 28529 lines, 432 types; tests 291 PHP / 25995 lines; assets 155 TS / 8982 lines; check 3m41s |
+| F32 | [Symbols for Java, C#, Ruby, Bash, Scala, Zig, and Lua](F32-symbols-for-more-languages.md) | In progress (2026-10-08) | | |
 
 ## Candidates
 
@@ -75,11 +76,13 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **Top-level group label.** The Symbols menu heads the top-level group "Functions and constants", which also holds TypeScript types and Go and Rust types. "Top level" fits every language. From F27.
 - **Symbol extraction edge cases.** TypeScript parameter properties (`constructor(private x)`) are no properties, while PHP promoted parameters are. A top-level `const` in an `if` block is a constant. A Python `def` in an `if` or `try` of a class body is a function with the class as parent. A Rust attribute above the doc comment is outside the range. A trailing comment at the end of the line before a declaration joins its doc comment. A Rust `impl a::S` keeps the path in `parentFqn`, so its members do not group with the struct. From F27 and F29.
 - **More symbol languages.** Checked 2026-10-08 with web-tree-sitter 0.27.0 on Node 24.12: the npm grammar ships a `.wasm` that loads and parses without errors.
-  - Data only, as F29: Java (`tree-sitter-java` 0.23.5), C# (`tree-sitter-c-sharp` 0.23.5), Ruby (`tree-sitter-ruby` 0.23.1), Bash (`tree-sitter-bash` 0.25.1), Scala (`tree-sitter-scala` 0.24.0), Zig (`@tree-sitter-grammars/tree-sitter-zig` 1.1.2), and Lua (`@tree-sitter-grammars/tree-sitter-lua` 0.4.1). `FileLanguage` maps Java, C#, Ruby, and Bash already; Scala, Zig, and Lua need their extensions. Check C# file-scoped namespaces, and choose the Ruby separator (`::` for all).
+  - Data only: Java, C#, Ruby, Bash, Scala, Zig, and Lua, scheduled as F32.
   - C (`tree-sitter-c` 0.24.1): data only if `#define` maps to `constant` or `function`, because the `macro` suffix `!` holds for every language. `.h` maps to C, so a C++ header gives a parse error.
   - Small engine change: C++ (`tree-sitter-cpp` 0.23.4), where a declaration and an out-of-class definition in one file share an FQN; Elixir (`tree-sitter-elixir` 0.3.5), whose definitions are calls, so a query needs helper captures that are no kind.
   - Poor fit for the kinds: Haskell (one symbol per equation), OCaml, Julia (macros are `@m`), Terraform, CSS.
+  - Twig: see "Twig symbols".
   - No usable `.wasm`: Kotlin, Swift, GraphQL, SQL, Markdown, and Vue ship none. Dart (1.0.0, 2023) and Twig (0.8.2) ship one that web-tree-sitter 0.27 refuses. Each needs a wasm build of its own. The npm name `tree-sitter-r` is a security placeholder.
+- **Twig symbols.** A `TwigSymbolExtractor` in PHP, as `PhpSymbolExtractor`, for the language `twig`, with no change to the `symbols` service. `twig/twig` 3.30.0 is installed. `Environment::parse()` needs the filters, functions, and tags of every extension that a template uses, so a reviewed repository with its own extensions fails with "Unknown filter". `Environment::tokenize()` with an `ArrayLoader` needs none: checked 2026-10-08, it returns each tag name with its line. So the extractor walks the token stream: `block` to `endblock`, a short `{% block name value %}` on one tag, and `macro` to `endmacro`. A lexer error or an unbalanced end tag gives `parseError`. The lexer drops `{# #}` comments, so there is no doc comment start. To decide: a new kind `block`, or blocks as `method`, because Twig compiles a block into a method. From F32.
 
 ## For Jan
 
