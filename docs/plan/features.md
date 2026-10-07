@@ -37,7 +37,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F19 | [Change the plan requirement](F19-change-the-plan-requirement.md) | Done 2026-10-07, [report](reports/F19.md) | bd46b91 | src 423 PHP / 27964 lines, 423 types; tests 285 PHP / 25409 lines; assets 149 TS / 8305 lines; check 3m2s |
 | F20 | [Unlink a pull request](F20-unlink-a-pull-request.md) | Not started | | |
 | F21 | [File view fills the window](F21-file-view-fills-the-window.md) | Not started | | |
-| F22 | [Quick open ranking](F22-quick-open-ranking.md) | Done 2026-10-07, [report](reports/F22.md) | | src 424 PHP / 28127 lines, 424 types; tests 286 PHP / 25522 lines; assets 149 TS / 8305 lines |
+| F22 | [Quick open ranking](F22-quick-open-ranking.md) | Done 2026-10-07, [report](reports/F22.md) | fd0be4a | src 424 PHP / 28127 lines, 424 types; tests 286 PHP / 25522 lines; assets 149 TS / 8305 lines; check 2m52s |
 | F23 | [Focus mode shortcut](F23-focus-mode-shortcut.md) | Done 2026-10-07, [report](reports/F23.md) | a526f55 | src 419 PHP / 27834 lines, 419 types; tests 284 PHP / 25239 lines; assets 149 TS / 8268 lines; check 2m54s |
 
 ## Candidates
@@ -49,6 +49,7 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **Declaration suggestions.** "Go to declaration" could suggest names from V16 while typing. From the F04 and F11 reports.
 - **Carry-over as a job.** V15 locates and captures in the HTTP request. A Messenger job with a live update, if a large source review shows that it is slow. From the F10 report.
 - **Test suite memory.** The functional suite grows by about 50 MB over its run, to a peak of about 165 MB. A look at what each test leaves behind (kernels, clients, static caches) could lower it. `bin/phpunit --testsuite unit,functional --log-events-text <file> --with-telemetry` reproduces it. From the F18 report.
+- **Quick open on a large repository.** For a one-letter query, V16 reads every name with that letter: 5,382 rows here, about 94 ms of ranking for 130,000 synthetic candidates, and a libpq result buffer outside the PHP `memory_limit`. A name index or a word-start test in SQL bounds the transfer and the time, and a cursor bounds the buffer. PostgreSQL `lower()` and `mb_strtolower()` also differ for a few characters such as `İ`. From the F22 report.
 
 ## For Jan
 
