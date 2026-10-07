@@ -168,7 +168,7 @@ PHP, Composer, the console, and PHPUnit run in the `php` container. `make` wraps
 | `make cs` | `vendor/bin/php-cs-fixer fix --dry-run --diff` |
 | `make cs-fix` | `vendor/bin/php-cs-fixer fix` |
 | `make lint` | `lint:container`, `lint:yaml config`, `lint:twig templates`, `doctrine:schema:validate --env=test` |
-| `make front` | On the host when `package.json` exists: `npm ci --prefix symbols --ignore-scripts` when `symbols/node_modules` is missing, then `npm run typecheck && npm test` |
+| `make front` | On the host when `package.json` exists: `npm ci --prefix symbols --ignore-scripts` when `symbols/package-lock.json` is newer than the installed packages, then `npm run typecheck && npm test` |
 | `make ui` | On the host when `package.json` exists: `npx playwright install chromium` (returns at once when the browser is present), then `npm run test:ui`: Playwright against the mocked API, on `UI_PORT` |
 | `make check` | `cs`, `stan`, `lint`, `test`, `front`, `ui`, `e2e` |
 

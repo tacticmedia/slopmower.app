@@ -81,9 +81,14 @@ lint: ## Container, YAML, Twig, and schema checks
 
 front: ## TypeScript and Vitest on the host, with the packages of symbols
 ifneq ($(PACKAGE_JSON),)
-	test -d symbols/node_modules || npm ci --prefix symbols --ignore-scripts --no-audit --no-fund
+front: symbols/node_modules/.package-lock.json
 	npm run typecheck && npm test
 endif
+
+# Installs again when the lock file is newer than the installed packages.
+symbols/node_modules/.package-lock.json: symbols/package-lock.json
+	npm ci --prefix symbols --ignore-scripts --no-audit --no-fund
+	touch $@
 
 ui: ## Playwright suite against the mocked API on the host, port UI_PORT
 ifneq ($(PACKAGE_JSON),)
