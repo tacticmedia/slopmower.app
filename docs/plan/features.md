@@ -30,19 +30,17 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F12 | [Index job memory](F12-index-job-memory.md) | Done 2026-10-07, [report](reports/F12.md) | 20cf30d | src 401 PHP / 26212 lines, 401 types; tests 277 PHP / 24268 lines; assets 142 TS / 7626 lines; check 2m36s |
 | F13 | [Agent proposals](F13-agent-proposals.md) | Done 2026-10-07, [report](reports/F13.md) | dca8362 | src 413 PHP / 26933 lines, 413 types; tests 280 PHP / 24818 lines; assets 144 TS / 7963 lines; check 3m11s |
 | F14 | [Pull request links](F14-pull-request-links.md) | Done 2026-10-07, [report](reports/F14.md) | dc0b5ee | src 419 PHP / 27809 lines, 419 types; tests 282 PHP / 25115 lines; assets 145 TS / 8014 lines; check 3m5s |
+| F15 | [Proposal follow-ups](F15-proposal-follow-ups.md) | In progress | | |
+| F16 | [Carry over on an open review](F16-carry-over-on-an-open-review.md) | In progress | | |
+| F17 | [Project Mate tools](F17-project-mate-tools.md) | In progress | | |
 
 ## Candidates
 
 Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also be opened as a general request in Holistic Review itself.
 
 - **One scroll area in the normal file view.** Outside focus mode, the window, the file tree, and the code view each scroll. Split from F02.
-- **Project-specific Mate tools.** For example a tool that reads the event log of a review. Split from F05.
-- **Carry over on an open review.** V15 can run on any open review, but the UI offers it only at review start. An action on an open review would carry requests later, for example after one is released. Split from F10.
 - **Change the plan requirement of an open request.** `requireApproval` is fixed when the request opens. The user could switch it on or off later. Split from F13.
 - **Unlink a pull request.** F14 links a pull request and has no unlink. Split from F14.
-- **Pending proposal in the file view.** A pending proposal shows only in the thread of the code view. A label in the file tree or the file header would show it at once. From the F13 report.
-- **Label of an approved proposal after a reopen.** The scope rule labels it "Withdrawn". A label such as "Done" for an approved proposal of a request that reached `ready_for_review` reads better. From the F13 report.
-- **`invalid_transition` message for a closed proposal gate.** The message names only the status, for example "The request is in_progress, so link_commits is not allowed." A message that names the proposal state helps an agent with an old skill. From the F13 report.
 
 ## For Jan
 
