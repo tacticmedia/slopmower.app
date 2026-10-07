@@ -124,7 +124,9 @@ The browser's Back button returns to the line that you clicked. A method call on
 
 ## Quick open
 
-Click **Quick open** in the review header, or press Cmd+K (Ctrl+K outside macOS), and type a part of a file path or of a symbol name. The list shows the files and the PHP symbols of the review commit that contain your text, in any case. A name equal to your text comes first, then names that start with it, then names that contain it, then paths that contain it. Shorter paths come first within each group.
+Click **Quick open** in the review header, or press Cmd+K (Ctrl+K outside macOS), and type a part of a file path or of a symbol name. You can also type the starts of the words of a name: `CE` or `ComEx` finds `CommandExecutor`, and `ReqDec` finds `RequestDecider`. A word starts after a character such as `_` or `.`, at a capital letter after a lower-case letter or a digit, and at the last capital letter before a lower-case letter, so `HTTPClient` has the words `HTTP` and `Client`. Case does not matter.
+
+The list shows the files and the PHP symbols of the review commit that match your text. A name equal to your text comes first, then names that start with it, then names whose word starts match it, then names that contain it, then paths that contain it. Within each group, shorter names come first, then shorter paths.
 
 - Move through the list with the arrow keys and press Enter, or click a hit.
 - A file opens at its start. A symbol opens its file at the first line of its declaration, below any doc comment, and that line is selected.

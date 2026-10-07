@@ -31,6 +31,8 @@ final class SearchTest extends WebTestCase
         'src/Billing/Money.php' => "<?php\n\nnamespace App\\Billing;\n\nfinal class Money\n{\n}\n",
         'src/Billing/MoneyFormatter.php' => "<?php\n\nnamespace App\\Billing;\n\nfinal class MoneyFormatter\n{\n}\n",
         'src/Billing/Invoice.php' => "<?php\n\nnamespace App\\Billing;\n\nfinal class Invoice\n{\n    public function toMoney(): Money\n    {\n        return new Money();\n    }\n}\n",
+        'src/Billing/Wallet/MoneyBag.php' => "<?php\n\nnamespace App\\Billing\\Wallet;\n\nfinal class MoneyBag\n{\n}\n",
+        'src/EventStore/CommandExecutor.php' => "<?php\n\nnamespace App\\EventStore;\n\nfinal class CommandExecutor\n{\n}\n",
         'docs/money/README.md' => "# Money\n",
     ];
 
@@ -50,7 +52,7 @@ final class SearchTest extends WebTestCase
         $this->reviewId = (string) self::startReviewThroughApi($this->client, self::connectAndClone($this->client))['id'];
     }
 
-    #[TestDox('File and symbol hits come in rank order, without submodules')]
+    #[TestDox('File and symbol hits come in rank order, a shorter name first, without submodules')]
     public function testHitsComeInRankOrder(): void
     {
         self::runQueuedMessages();
@@ -60,13 +62,28 @@ final class SearchTest extends WebTestCase
             'partial' => false,
             'items' => [
                 ['kind' => 'symbol', 'path' => 'src/Billing/Money.php', 'fqn' => 'App\Billing\Money', 'symbolKind' => 'class', 'declarationStartLine' => 5],
+                ['kind' => 'symbol', 'path' => 'src/Billing/Wallet/MoneyBag.php', 'fqn' => 'App\Billing\Wallet\MoneyBag', 'symbolKind' => 'class', 'declarationStartLine' => 5],
                 ['kind' => 'file', 'path' => 'src/Billing/Money.php'],
-                ['kind' => 'file', 'path' => 'src/Billing/MoneyFormatter.php'],
+                ['kind' => 'file', 'path' => 'src/Billing/Wallet/MoneyBag.php'],
                 ['kind' => 'symbol', 'path' => 'src/Billing/MoneyFormatter.php', 'fqn' => 'App\Billing\MoneyFormatter', 'symbolKind' => 'class', 'declarationStartLine' => 5],
+                ['kind' => 'file', 'path' => 'src/Billing/MoneyFormatter.php'],
                 ['kind' => 'symbol', 'path' => 'src/Billing/Invoice.php', 'fqn' => 'App\Billing\Invoice::toMoney()', 'symbolKind' => 'method', 'declarationStartLine' => 7],
                 ['kind' => 'file', 'path' => 'docs/money/README.md'],
             ],
         ], $this->search('MONEY'));
+    }
+
+    #[TestDox('Word starts of a name rank before a name that only contains the query')]
+    public function testWordStartsRankBeforeSubstring(): void
+    {
+        self::runQueuedMessages();
+
+        self::assertSame([
+            ['kind' => 'symbol', 'path' => 'src/EventStore/CommandExecutor.php', 'fqn' => 'App\EventStore\CommandExecutor', 'symbolKind' => 'class', 'declarationStartLine' => 5],
+            ['kind' => 'file', 'path' => 'src/EventStore/CommandExecutor.php'],
+            ['kind' => 'symbol', 'path' => 'src/Billing/Invoice.php', 'fqn' => 'App\Billing\Invoice', 'symbolKind' => 'class', 'declarationStartLine' => 5],
+            ['kind' => 'file', 'path' => 'src/Billing/Invoice.php'],
+        ], $this->search('CE')['items']);
     }
 
     #[TestDox('The result is partial while the index is not ready')]

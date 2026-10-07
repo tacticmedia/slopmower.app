@@ -660,20 +660,24 @@ The endpoint copies the open requests of the source review into the target revie
 
 | Query | Type | Default | Notes |
 |---|---|---|---|
-| `q` | string, 1 to 1024 characters | none | Required. A part of a path or of a symbol name. |
+| `q` | string, 1 to 1024 characters | none | Required. A part of a path or of a symbol name, or word starts of a name. |
 | `limit` | integer 1-50 | 20 | |
 
 Rules:
 
 - The server reads the index of the review commit, see [V5](#v5-get-the-index-status): the paths of `indexed_file` and the PHP symbols of their blobs. It does not read the clone.
-- A file hit is a file or a symlink whose path contains `q`. Submodules give no hit.
-- A symbol hit is a symbol whose name contains `q`. The name is the short name of [V9](#v9-list-symbols), for example `total` for `App\Billing\InvoiceTotals::total()`.
-- The match ignores case. `q` is a plain substring, without wildcards.
+- The words of a name are split at every character that is not a letter or a digit, before an upper-case letter that follows a lower-case letter or a digit, and before an upper-case letter that follows an upper-case letter and precedes a lower-case letter. So `HTTPClient` has the words `HTTP` and `Client`.
+- A name matches `q` by word starts when `q` is a sequence of non-empty prefixes of its words, in word order, with words skipped where needed. `CE` and `ComEx` match `CommandExecutor`, `tax` matches `InvoiceTax`, and `ce` does not match `Service`. A `q` with a character that is not a letter or a digit matches no name by word starts.
+- A file hit is a file or a symlink whose path contains `q`, or whose name matches `q` by word starts. The name of a file is the last segment of its path. Submodules give no hit.
+- A symbol hit is a symbol whose name contains `q` or matches it by word starts. The name is the short name of [V9](#v9-list-symbols), for example `total` for `App\Billing\InvoiceTotals::total()`.
+- The match ignores case. `q` has no wildcards.
 - Order:
-  1. by the name: equal to `q`, then starting with `q`, then containing `q`, then a file whose path contains `q` but whose name does not. The name of a file is the last segment of its path.
-  2. by the length of `path`, shorter first;
-  3. by `path` in byte order;
-  4. files before symbols, then by `declarationStartLine`, then by `fqn` in byte order.
+  1. by the name: equal to `q`, then starting with `q`, then matching `q` by word starts, then containing `q`, then a file whose path contains `q` and whose name matches neither way;
+  2. by the length of the name, shorter first;
+  3. by the length of `path`, shorter first;
+  4. by `path` in byte order;
+  5. files before symbols, then by `declarationStartLine`, then by `fqn` in byte order.
+- Lengths count characters.
 - The list holds the first `limit` hits. It is not paginated.
 - `partial` is true while the index state is not `ready`. The hits then come from what the index job has written: a file that the job has not listed or parsed yet gives no hit.
 

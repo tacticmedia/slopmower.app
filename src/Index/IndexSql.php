@@ -45,23 +45,22 @@ final class IndexSql
         WHERE stored.tenant_id = :tenantId AND stored.repository_id = :repositoryId AND stored.fqn_sha256 IN (:fqnSha256s) AND stored.fqn IN (:fqns)
         AND listed.commit_sha = :commitSha
         SQL;
-    /** `name` is lower case: the last path segment of a file, the short name of a symbol. Mode 160000 is a submodule. */
+    /**
+     * The V16 candidates. `name` is the last path segment of a file, the short name of a symbol. Mode 160000 is a
+     * submodule. A name that contains the query or matches it by word starts holds its characters in order, so it
+     * matches the LIKE pattern `:characters`.
+     */
     private const string SEARCH = <<<'SQL'
-        SELECT hit.kind, hit.path, hit.fqn, hit.symbol_kind, hit.declaration_start_line FROM (
-            SELECT 'file' AS kind, listed.path, NULL AS fqn, NULL AS symbol_kind, NULL AS declaration_start_line, lower(split_part(listed.path, '/', -1)) AS name
-            FROM indexed_file listed
-            WHERE listed.tenant_id = :tenantId AND listed.repository_id = :repositoryId AND listed.commit_sha = :commitSha
-            AND listed.mode <> '160000' AND strpos(lower(listed.path), lower(:query)) > 0
-            UNION ALL
-            SELECT 'symbol', listed.path, stored.fqn, stored.kind, stored.declaration_start_line, lower(stored.name)
-            FROM indexed_file listed
-            JOIN symbol stored ON stored.tenant_id = listed.tenant_id AND stored.repository_id = listed.repository_id AND stored.blob_sha = listed.blob_sha
-            WHERE listed.tenant_id = :tenantId AND listed.repository_id = :repositoryId AND listed.commit_sha = :commitSha
-            AND strpos(lower(stored.name), lower(:query)) > 0
-        ) hit
-        ORDER BY CASE WHEN hit.name = lower(:query) THEN 0 WHEN starts_with(hit.name, lower(:query)) THEN 1 WHEN strpos(hit.name, lower(:query)) > 0 THEN 2 ELSE 3 END,
-            length(hit.path), hit.path COLLATE "C", hit.kind, hit.declaration_start_line, hit.fqn COLLATE "C"
-        LIMIT :limit
+        SELECT 'file' AS kind, listed.path, split_part(listed.path, '/', -1) AS name, NULL AS fqn, NULL AS symbol_kind, NULL AS declaration_start_line
+        FROM indexed_file listed
+        WHERE listed.tenant_id = :tenantId AND listed.repository_id = :repositoryId AND listed.commit_sha = :commitSha AND listed.mode <> '160000'
+        AND (strpos(lower(listed.path), lower(:query)) > 0 OR lower(split_part(listed.path, '/', -1)) LIKE lower(:characters))
+        UNION ALL
+        SELECT 'symbol', listed.path, stored.name, stored.fqn, stored.kind, stored.declaration_start_line
+        FROM indexed_file listed
+        JOIN symbol stored ON stored.tenant_id = listed.tenant_id AND stored.repository_id = listed.repository_id AND stored.blob_sha = listed.blob_sha
+        WHERE listed.tenant_id = :tenantId AND listed.repository_id = :repositoryId AND listed.commit_sha = :commitSha
+        AND lower(stored.name) LIKE lower(:characters)
         SQL;
     private const string DELETE_SYMBOLS = 'DELETE FROM symbol WHERE tenant_id = :tenantId AND repository_id = :repositoryId';
     private const string DELETE_BLOBS = 'DELETE FROM indexed_blob WHERE tenant_id = :tenantId AND repository_id = :repositoryId';
@@ -209,21 +208,21 @@ final class IndexSql
     }
 
     /**
-     * V16: the files and symbols of the commit whose path or name contains $query, in the V16 order.
+     * V16: the first $limit files and symbols of the commit that match $query, in the order of {@see SearchRank::top()}.
      *
      * @return list<FileHit|SymbolHit>
      */
     public function search(TenantId $tenantId, RepositoryId $repositoryId, CommitSha $commit, string $query, int $limit): array
     {
-        $rows = $this->connection->fetchAllAssociative(
+        $characters = '%'.implode('%', array_map(static fn (string $character): string => addcslashes($character, '%_\\'), mb_str_split($query))).'%';
+        $candidates = $this->connection->iterateAssociative(
             self::SEARCH,
-            ['tenantId' => $tenantId->toRfc4122(), 'repositoryId' => $repositoryId->toRfc4122(), 'commitSha' => $commit->toString(), 'query' => $query, 'limit' => $limit],
-            ['limit' => ParameterType::INTEGER],
+            ['tenantId' => $tenantId->toRfc4122(), 'repositoryId' => $repositoryId->toRfc4122(), 'commitSha' => $commit->toString(), 'query' => $query, 'characters' => $characters],
         );
 
         return array_map(static fn (array $row): FileHit|SymbolHit => 'file' === $row['kind']
             ? new FileHit(RepoPath::fromString((string) $row['path']))
-            : new SymbolHit(RepoPath::fromString((string) $row['path']), (string) $row['fqn'], SymbolKind::from((string) $row['symbol_kind']), (int) $row['declaration_start_line']), $rows);
+            : new SymbolHit(RepoPath::fromString((string) $row['path']), (string) $row['fqn'], SymbolKind::from((string) $row['symbol_kind']), (int) $row['declaration_start_line']), SearchRank::top($candidates, $query, $limit));
     }
 
     /**
