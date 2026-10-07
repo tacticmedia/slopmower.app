@@ -3,6 +3,7 @@ import { useId, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
 import { ActionErrorMessage } from '../layout/ActionErrorMessage';
+import { useSubmitOnce } from '../layout/useSubmitOnce';
 import styles from './CloseReviewDialog.module.css';
 
 /**
@@ -11,9 +12,16 @@ import styles from './CloseReviewDialog.module.css';
 export function CloseReviewDialog({ draftCount }: { draftCount: number }) {
     const [open, setOpen] = useState(false);
     const close = useFetcher<ActionResult>();
+    const submitOnce = useSubmitOnce(close.submit);
     const openButton = useRef<HTMLButtonElement>(null);
     const note = useRef<HTMLTextAreaElement>(null);
     const formId = useId();
+    const busy = 'idle' !== close.state;
+    const closeUnlessBusy = (): void => {
+        if (!busy) {
+            setOpen(false);
+        }
+    };
 
     return (
         <>
@@ -24,15 +32,15 @@ export function CloseReviewDialog({ draftCount }: { draftCount: number }) {
                 <Dialog
                     title="Close review"
                     subtitle="A closed review is read-only, and it leaves the default lists."
-                    onClose={() => setOpen(false)}
+                    onClose={closeUnlessBusy}
                     returnFocusRef={openButton}
                     initialFocusRef={note}
                     footerButtons={[
-                        { content: 'Cancel', onClick: () => setOpen(false) },
-                        { content: 'Close review', buttonType: 'danger', type: 'submit', form: formId, loading: 'idle' !== close.state },
+                        { content: 'Cancel', onClick: closeUnlessBusy, disabled: busy },
+                        { content: 'Close review', buttonType: 'danger', type: 'submit', form: formId, loading: busy },
                     ]}
                 >
-                    <close.Form method="post" id={formId} className={styles.form}>
+                    <close.Form method="post" id={formId} className={styles.form} onSubmit={submitOnce}>
                         <input type="hidden" name="intent" value="close" />
                         {draftCount > 0 && (
                             <Banner

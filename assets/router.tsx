@@ -10,7 +10,7 @@ import { RepositoriesRoute, repositoriesAction, repositoriesLoader } from './rou
 import { RepositoryRoute, repositoryAction, repositoryLoader } from './routes/repositories/RepositoryRoute';
 import { commitDiffLoader, diffSidesLoader, shouldRevalidateChanges } from './routes/requests/changesData';
 import { requestAction, requestListLoader, requestLoader } from './routes/requests/requestData';
-import { CodeLayout, codeLayoutLoader, NoFileSelected } from './routes/reviews/CodeLayout';
+import { CodeLayout, codeLayoutLoader, CodeRouteError, NoFileSelected } from './routes/reviews/CodeLayout';
 import { declarationsLoader, shouldRevalidateDeclarations } from './routes/reviews/declarationsData';
 import { fileAction, fileLoader } from './routes/reviews/fileData';
 import { ReviewLayout } from './routes/reviews/ReviewLayout';
@@ -45,7 +45,7 @@ export const router = createBrowserRouter([
                             {
                                 loader: codeLayoutLoader,
                                 element: <CodeLayout />,
-                                errorElement: <RouteError embedded />,
+                                errorElement: <CodeRouteError />,
                                 children: [
                                     { index: true, element: <NoFileSelected /> },
                                     {
@@ -54,7 +54,7 @@ export const router = createBrowserRouter([
                                         action: fileAction,
                                         // The loader stays in the shell bundle and runs while the component chunk loads.
                                         lazy: { Component: () => import('./routes/reviews/FileRoute').then(({ FileRoute }) => FileRoute) },
-                                        errorElement: <RouteError embedded />,
+                                        errorElement: <CodeRouteError />,
                                     },
                                 ],
                             },

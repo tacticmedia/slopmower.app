@@ -62,6 +62,11 @@ export function ThreadBox({ thread, caller, showHeader = true }: Props) {
                     <StatusLabel status={thread.status} />
                     <OutdatedLabel outdated={thread.outdated} />
                     <span className={styles.lines}>{linesText(thread.range)}</span>
+                    {null !== thread.symbol && (
+                        <code className={styles.symbol} data-testid="thread-symbol">
+                            {thread.symbol}
+                        </code>
+                    )}
                 </header>
             )}
             <ol className={styles.comments}>

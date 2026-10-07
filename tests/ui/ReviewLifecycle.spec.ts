@@ -1,11 +1,24 @@
 import type { Page } from '@playwright/test';
 import { newId } from './support/builders';
 import { FakeRepositories } from './support/fakeRepositories';
-import { apiError } from './support/mockApi';
+import { apiError, type MockApi } from './support/mockApi';
 import { expect, test } from './support/test';
 
 const REVIEW_LIST = '[data-testid="review-list"]';
 const START_FORM = '[data-testid="start-review-form"]';
+const START = '/api/v1/repositories/:repositoryId/reviews';
+const CLOSE = '/api/v1/reviews/:reviewId/close';
+
+/** Holds the requests to the route until the returned function runs, then passes them on to the fake. */
+function hold(api: MockApi, method: string, path: string): () => void {
+    let release = (): void => undefined;
+    const released = new Promise<void>((resolve) => {
+        release = resolve;
+    });
+    api.on(method, path, () => released.then(() => undefined));
+
+    return release;
+}
 
 function reviewTitles(page: Page) {
     return page.locator(`${REVIEW_LIST} tbody th`);
@@ -27,7 +40,7 @@ test.describe('ReviewLifecycle', () => {
         const reviewId = new URL(page.url()).pathname.split('/').at(-1) ?? '';
         await expect(page.locator('[data-testid="review-id"]')).toHaveText(reviewId);
         await expect(page.locator('[data-testid="agent-prompt"]')).toHaveText(`Work on Holistic Review ${reviewId}`);
-        expect(api.bodies('POST', '/api/v1/repositories/:repositoryId/reviews')).toEqual([{ ref: 'main', title: null }]);
+        expect(api.bodies('POST', START)).toEqual([{ ref: 'main', title: null }]);
     });
 
     test('The copy button shows Copied', async ({ page, api }) => {
@@ -68,7 +81,7 @@ test.describe('ReviewLifecycle', () => {
 
         await expect(page.locator('[data-testid="review-closed"]')).toContainText('Shipped in 2.4');
         await expect(closeButton(page)).toHaveCount(0);
-        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/close')).toEqual([{ note: 'Shipped in 2.4' }]);
+        expect(api.bodies('POST', CLOSE)).toEqual([{ note: 'Shipped in 2.4' }]);
 
         await page.locator(`header a[href="/repositories/${repository.id}"]`).click();
         await expect(page.locator(REVIEW_LIST)).toContainText('This repository has no open reviews.');
@@ -77,6 +90,37 @@ test.describe('ReviewLifecycle', () => {
         await expect(page.locator(`${REVIEW_LIST} table`)).toContainText('Closing review');
         await expect(reviewTitles(page)).toHaveText(['Closing review']);
         await expect(page.locator(`${REVIEW_LIST} table`)).toContainText('Closed');
+    });
+
+    test('A double click on Start review starts one review', async ({ page, api }) => {
+        const repository = new FakeRepositories(api).addLocal('e2e-lifecycle');
+        const release = hold(api, 'POST', START);
+        await page.goto(`/repositories/${repository.id}`);
+
+        await page.locator(`${START_FORM} button[type="submit"]`).dblclick();
+        release();
+
+        await expect(page).toHaveURL(/\/reviews\/[0-9A-HJKMNP-TV-Z]{26}$/);
+        expect(api.callsTo('POST', START)).toHaveLength(1);
+    });
+
+    test('The Close review dialog stays open until V4 answers, and closes the review once', async ({ page, api }) => {
+        const repositories = new FakeRepositories(api);
+        const review = repositories.addReview(repositories.addLocal('e2e-lifecycle'));
+        const release = hold(api, 'POST', CLOSE);
+        await page.goto(`/reviews/${review.id}`);
+        await closeButton(page).click();
+        const dialog = page.getByRole('dialog');
+
+        await dialog.locator('button[type="submit"]').dblclick();
+        await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+        await page.keyboard.press('Escape');
+
+        await expect(dialog).toBeVisible();
+        release();
+        await expect(page.locator('[data-testid="review-closed"]')).toBeVisible();
+        await expect(dialog).toHaveCount(0);
+        expect(api.callsTo('POST', CLOSE)).toHaveLength(1);
     });
 
     test('An unknown review ID shows the route error, and the header stays', async ({ page, api }) => {

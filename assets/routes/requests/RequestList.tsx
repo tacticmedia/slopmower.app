@@ -4,7 +4,6 @@ import { type FormEvent, useMemo } from 'react';
 import { Link as RouterLink, useLoaderData, useRouteLoaderData, useSearchParams } from 'react-router';
 import { REQUEST_STATUSES, type RequestStatus } from '../../api/types/common';
 import type { Draft } from '../../api/types/draft';
-import type { RequestPage } from '../../api/types/lists';
 import type { Me } from '../../api/types/me';
 import type { RequestSummary } from '../../api/types/request-summary';
 import type { DraftView } from '../../comments/draftView';
@@ -20,20 +19,20 @@ import { StatusLabel } from '../../requests/StatusLabel';
 import { STATUS_TEXT } from '../../requests/statusText';
 import { TurnLabel } from '../../requests/TurnLabel';
 import type { ReviewData } from '../reviews/reviewData';
-import { requestFilters } from './requestData';
+import { type RequestListData, requestFilters } from './requestData';
 import styles from './RequestList.module.css';
 
 const NO_THREADS: readonly ThreadView[] = [];
 
 /**
- * Every pending draft of the caller. A reply names its request by the summary when the page lists it.
+ * Every pending draft of the caller. A reply names its request by its summary.
  */
-function pendingDraftViews(reviewId: string, drafts: readonly Draft[], items: readonly RequestSummary[]): DraftView[] {
+function pendingDraftViews(reviewId: string, drafts: readonly Draft[], { items, hiddenReplySummaries }: RequestListData): DraftView[] {
     return drafts.map((draft) => {
         const view = { key: draft.id, draftId: draft.id, body: draft.body };
 
         if ('reply' === draft.kind) {
-            const summary = items.find(({ id }) => id === draft.requestId)?.summary;
+            const summary = items.find(({ id }) => id === draft.requestId)?.summary ?? hiddenReplySummaries[draft.requestId];
 
             return { ...view, range: null, label: undefined === summary ? 'Reply to a request' : `Reply to ${summary}`, href: `/requests/${encodeURIComponent(draft.requestId)}` };
         }
@@ -92,11 +91,12 @@ function columns(reviewId: string): Column<RequestSummary>[] {
 }
 
 export function RequestList() {
-    const { reviewId, total, items } = useLoaderData<RequestPage>();
+    const listData = useLoaderData<RequestListData>();
+    const { reviewId, total, items } = listData;
     const me = useRouteLoaderData<Me>('root');
     const reviewData = useRouteLoaderData<ReviewData>('review');
     const drafts = reviewData?.drafts;
-    const pendingDrafts = useMemo(() => pendingDraftViews(reviewId, drafts ?? [], items), [reviewId, drafts, items]);
+    const pendingDrafts = useMemo(() => pendingDraftViews(reviewId, drafts ?? [], listData), [reviewId, drafts, listData]);
     const [searchParams, setSearchParams] = useSearchParams();
     const filters = requestFilters(searchParams);
     const setFilter = (name: 'status' | 'awaiting' | 'path' | 'outdated', value: string | null): void => {

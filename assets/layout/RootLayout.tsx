@@ -3,10 +3,12 @@ import { NavLink, Outlet, useFetcher, useLoaderData } from 'react-router';
 import type { Me } from '../api/types/me';
 import { useLiveRevalidation } from '../live/useLiveRevalidation';
 import styles from './RootLayout.module.css';
+import { useSubmitOnce } from './useSubmitOnce';
 
 export function RootLayout() {
     const me = useLoaderData<Me>();
     const signOut = useFetcher();
+    const submitOnce = useSubmitOnce(signOut.submit);
     const live = useLiveRevalidation();
 
     return (
@@ -30,7 +32,7 @@ export function RootLayout() {
                 <Header.Item className={styles.user}>
                     {null !== me.user.avatarUrl && <Avatar src={me.user.avatarUrl} alt="" size={20} />}
                     <span data-testid="current-user">{me.user.login}</span>
-                    <signOut.Form method="post" action="/sign-out">
+                    <signOut.Form method="post" action="/sign-out" onSubmit={submitOnce}>
                         <Button type="submit" size="small" loading={'idle' !== signOut.state}>
                             Sign out
                         </Button>

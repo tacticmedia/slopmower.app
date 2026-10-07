@@ -46,10 +46,10 @@ export function FileRoute() {
     const { focus, setFocus } = useFocusMode();
     const fileDrafts = useMemo(() => fileDraftViews(drafts, content.path), [drafts, content.path]);
     const selection = useLineSelection(content.path, content.lineCount);
-    const comments = useFileComments({ path: content.path, threads, drafts: fileDrafts, caller, clearSelection: selection.clear });
+    const comments = useFileComments({ path: content.path, threads, drafts: fileDrafts, caller, select: selection.select });
     const commentable = 'open' === review.state;
     const reviewLabel = reviewButtonLabel(drafts);
-    const symbols = useFileSymbols(review.id, content.path, commentable && null !== text);
+    const { symbols, failed: symbolsFailed } = useFileSymbols(review.id, content.path, commentable && null !== text);
     const fileThreads = useMemo(() => comments.threads.filter((thread) => null === thread.range), [comments.threads]);
     const filePendingDrafts = useMemo(() => comments.drafts.filter((draft) => null === draft.range), [comments.drafts]);
     const fileComposer = null !== comments.composer && null === comments.composer.range ? comments.composer : null;
@@ -87,7 +87,7 @@ export function FileRoute() {
                     </Button>
                 )}
                 {commentable && null !== text && null !== content.lineCount && <CommentOnLinesForm lineCount={content.lineCount} onSubmit={commentOnLines} />}
-                {commentable && null !== text && <SymbolsMenu symbols={symbols} onChoose={commentOnSymbol} />}
+                {commentable && null !== text && <SymbolsMenu symbols={symbols} failed={symbolsFailed} onChoose={commentOnSymbol} />}
                 {commentable && (
                     <Button size="small" onClick={() => open(null)}>
                         Comment on file

@@ -3,7 +3,7 @@ import styles from './Requests.module.css';
 import { snapshotRows } from './snapshotRows';
 
 /**
- * The anchored lines as captured at the review commit.
+ * The anchored lines as captured at the review commit, between dimmed context lines.
  */
 export function AnchorSnapshot({ anchor }: { anchor: Anchor }) {
     if (null === anchor.snapshot) {
@@ -22,7 +22,7 @@ export function AnchorSnapshot({ anchor }: { anchor: Anchor }) {
                                 </td>
                             </tr>
                         ) : (
-                            <tr key={row.line} data-line={row.line}>
+                            <tr key={row.line} data-line={row.line} data-context={'context' === row.kind ? '' : undefined} className={'context' === row.kind ? styles.snapshotContext : undefined}>
                                 <td className={styles.lineNumber}>{row.line}</td>
                                 <td className={styles.lineText}>{row.text}</td>
                             </tr>

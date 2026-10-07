@@ -1,13 +1,17 @@
 import { Label, RelativeTime, Spinner } from '@primer/react';
-import { lazy, Suspense, useMemo } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef } from 'react';
+import { useLocation } from 'react-router';
 import type { CommitLink } from '../../api/types/commit-link';
 import type { Request as ReviewRequest } from '../../api/types/request';
 import { usePreference } from '../../layout/usePreference';
 import { LocationInfo } from '../../requests/LocationInfo';
 import shared from '../../requests/Requests.module.css';
+import { commitSectionId } from '../../requests/requestTabs';
 import { shortSha } from '../../review/shortSha';
 import { useCommitDiff } from './changesData';
 import styles from './RequestChanges.module.css';
+
+const USER_INPUT_EVENTS = ['wheel', 'touchstart', 'pointerdown', 'keydown'] as const;
 
 // A separate chunk, so the diff library loads with the first diff.
 const CommitDiff = lazy(() => import('../../code/CommitDiff').then(({ CommitDiff }) => ({ default: CommitDiff })));
@@ -33,10 +37,15 @@ export function RequestChanges({ request }: { request: ReviewRequest }) {
 }
 
 function CommitChanges({ requestId, repositoryId, commit, located }: { requestId: string; repositoryId: string; commit: CommitLink; located: boolean }) {
-    const titleId = `commit-${commit.commitSha}`;
+    const titleId = commitSectionId(commit.commitSha);
+    const linked = `#${titleId}` === useLocation().hash;
+    const section = useRef<HTMLElement>(null);
+
+    // A client-side navigation does not scroll to the hash.
+    useEffect(() => (linked && null !== section.current ? keepInView(section.current) : undefined), [linked]);
 
     return (
-        <section className={shared.section} aria-labelledby={titleId} data-testid="commit-changes" data-commit-sha={commit.commitSha}>
+        <section ref={section} className={shared.section} aria-labelledby={titleId} data-testid="commit-changes" data-commit-sha={commit.commitSha}>
             <h2 id={titleId} className={styles.commitTitle}>
                 <code title={commit.commitSha}>{shortSha(commit.commitSha)}</code>
                 {'available' === commit.state ? <span className={shared.subject}>{commit.subject}</span> : <Label variant="attention">Pending</Label>}
@@ -48,6 +57,28 @@ function CommitChanges({ requestId, repositoryId, commit, located }: { requestId
             )}
         </section>
     );
+}
+
+/**
+ * Scrolls to the section, and again each time the commit list changes its height while the commits load, until the user
+ * scrolls, clicks, or types.
+ *
+ * @returns The cleanup
+ */
+function keepInView(section: HTMLElement): () => void {
+    const resizes = new ResizeObserver(() => section.scrollIntoView());
+    const stop = (): void => {
+        resizes.disconnect();
+        for (const type of USER_INPUT_EVENTS) {
+            window.removeEventListener(type, stop);
+        }
+    };
+    resizes.observe(section.parentElement ?? section);
+    for (const type of USER_INPUT_EVENTS) {
+        window.addEventListener(type, stop, { passive: true });
+    }
+
+    return stop;
 }
 
 function AvailableCommit({ requestId, repositoryId, commitSha, located }: { requestId: string; repositoryId: string; commitSha: string; located: boolean }) {

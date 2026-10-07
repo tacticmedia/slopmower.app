@@ -1,7 +1,8 @@
 import { type FileContents, type FileDiffOptions, parseDiffFromFile } from '@pierre/diffs';
 import { FileDiff, WorkerPoolContextProvider } from '@pierre/diffs/react';
-import { Label, Spinner } from '@primer/react';
-import { memo, useMemo } from 'react';
+import { ChevronDownIcon, ChevronRightIcon } from '@primer/octicons-react';
+import { IconButton, Label, Spinner } from '@primer/react';
+import { memo, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import type { CommitDiffFile, CommitDiffFileStatus } from '../api/types/commit-diff';
 import { type DiffSides, useDiffSides } from '../routes/requests/changesData';
 import type { Overflow } from './CodeFile';
@@ -29,25 +30,44 @@ const STATUS_TEXT: Record<CommitDiffFileStatus, string> = {
     type_changed: 'Type changed',
 };
 
+/** Above this many files, only the files that touch the anchor start expanded. */
+const COLLAPSE_ABOVE_FILES = 20;
+
+/** The default `--diffs-line-height` of `@pierre/diffs`. */
+const DIFF_LINE_HEIGHT_PX = 20;
+
+/** A file starts to load this far outside the window. */
+const LOAD_AHEAD_MARGIN = '200px';
+
 /**
- * The only wrapper around `FileDiff`. Each file loads its sides through R7 when it renders.
+ * The only wrapper around `FileDiff`. A file loads its sides through R7 once it is expanded and near the window.
  */
 export const CommitDiff = memo(function CommitDiff({ repositoryId, files, overflow }: { repositoryId: string; files: readonly CommitDiffFile[]; overflow: Overflow }) {
+    const collapsed = files.length > COLLAPSE_ABOVE_FILES;
+
     return (
         <WorkerPoolContextProvider poolOptions={POOL_OPTIONS} highlighterOptions={HIGHLIGHTER_OPTIONS}>
             {files.map((file) => (
-                <FileChange key={`${file.oldPath ?? ''}:${file.path}`} repositoryId={repositoryId} file={file} overflow={overflow} />
+                <FileChange key={`${file.oldPath ?? ''}:${file.path}`} repositoryId={repositoryId} file={file} overflow={overflow} initiallyExpanded={!collapsed || file.touchesAnchor} />
             ))}
         </WorkerPoolContextProvider>
     );
 });
 
-function FileChange({ repositoryId, file, overflow }: { repositoryId: string; file: CommitDiffFile; overflow: Overflow }) {
+type FileChangeProps = { repositoryId: string; file: CommitDiffFile; overflow: Overflow; initiallyExpanded: boolean };
+
+function FileChange({ repositoryId, file, overflow, initiallyExpanded }: FileChangeProps) {
     const placeholder = diffPlaceholder(file);
+    const [expanded, setExpanded] = useState(initiallyExpanded);
+    const near = useNearWindow(expanded && null === placeholder);
+    const changedLines = (file.additions ?? 0) + (file.deletions ?? 0);
+    // Until the diff renders, the file takes about the height of its changed lines, so the files below stay away.
+    const pendingHeight = `${Math.max(changedLines, 1) * DIFF_LINE_HEIGHT_PX}px`;
 
     return (
-        <section className={styles.file} data-testid="commit-diff-file" data-path={file.path} aria-label={file.path}>
+        <section ref={near.ref} className={styles.file} data-testid="commit-diff-file" data-path={file.path} aria-label={file.path}>
             <header className={styles.header}>
+                <IconButton icon={expanded ? ChevronDownIcon : ChevronRightIcon} aria-label="Toggle the diff" aria-expanded={expanded} variant="invisible" size="small" onClick={() => setExpanded(!expanded)} />
                 <h3 className={styles.path}>{null === file.oldPath ? file.path : `${file.oldPath} to ${file.path}`}</h3>
                 <Label variant="secondary">{STATUS_TEXT[file.status]}</Label>
                 {file.touchesAnchor && (
@@ -61,20 +81,60 @@ function FileChange({ repositoryId, file, overflow }: { repositoryId: string; fi
                     </span>
                 )}
             </header>
-            {null === placeholder ? <LoadedDiff repositoryId={repositoryId} file={file} overflow={overflow} /> : <p className={styles.placeholder}>{placeholder}</p>}
+            <div className={styles.body} hidden={!expanded}>
+                {null !== placeholder ? (
+                    <p className={styles.placeholder}>{placeholder}</p>
+                ) : near.reached ? (
+                    <LoadedDiff repositoryId={repositoryId} file={file} overflow={overflow} pendingHeight={pendingHeight} />
+                ) : (
+                    <PendingDiff height={pendingHeight} />
+                )}
+            </div>
         </section>
     );
 }
 
-function LoadedDiff({ repositoryId, file, overflow }: { repositoryId: string; file: CommitDiffFile; overflow: Overflow }) {
+/**
+ * `reached` turns true when the element comes near the window while `watching` is true, and stays true.
+ */
+function useNearWindow(watching: boolean): { ref: RefObject<HTMLElement | null>; reached: boolean } {
+    const ref = useRef<HTMLElement>(null);
+    const [reached, setReached] = useState(false);
+
+    useEffect(() => {
+        const element = ref.current;
+        if (!watching || reached || null === element) {
+            return;
+        }
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries.some((entry) => entry.isIntersecting)) {
+                    setReached(true);
+                }
+            },
+            { rootMargin: LOAD_AHEAD_MARGIN },
+        );
+        observer.observe(element);
+
+        return () => observer.disconnect();
+    }, [watching, reached]);
+
+    return { ref, reached };
+}
+
+function PendingDiff({ height }: { height: string }) {
+    return (
+        <p className={styles.placeholder} style={{ minHeight: height }}>
+            <Spinner size="small" srText={null} /> Loading the diff
+        </p>
+    );
+}
+
+function LoadedDiff({ repositoryId, file, overflow, pendingHeight }: { repositoryId: string; file: CommitDiffFile; overflow: Overflow; pendingHeight: string }) {
     const sides = useDiffSides(repositoryId, file.oldBlobSha, file.newBlobSha);
 
     if (undefined === sides) {
-        return (
-            <p className={styles.placeholder}>
-                <Spinner size="small" srText={null} /> Loading the diff
-            </p>
-        );
+        return <PendingDiff height={pendingHeight} />;
     }
 
     if ('error' in sides) {

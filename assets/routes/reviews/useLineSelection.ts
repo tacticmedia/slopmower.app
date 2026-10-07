@@ -30,9 +30,7 @@ export function useLineSelection(path: string, lineCount: number | null) {
         [commit],
     );
 
-    const clear = useCallback(() => select(null), [select]);
-
-    return { selection, change: setSelection, commit, select, clear };
+    return { selection, change: setSelection, commit, select };
 }
 
 function linkedRange(hash: string, lineCount: number | null): LineRange | null {

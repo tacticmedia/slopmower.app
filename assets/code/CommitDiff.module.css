@@ -9,9 +9,12 @@
     flex-wrap: wrap;
     align-items: center;
     gap: var(--base-size-8);
-    padding: var(--base-size-8) var(--base-size-16);
-    border-bottom: var(--borderWidth-thin) solid var(--borderColor-default);
+    padding: var(--base-size-8) var(--base-size-16) var(--base-size-8) var(--base-size-8);
     background-color: var(--bgColor-muted);
+}
+
+.body {
+    border-top: var(--borderWidth-thin) solid var(--borderColor-default);
 }
 
 .path {

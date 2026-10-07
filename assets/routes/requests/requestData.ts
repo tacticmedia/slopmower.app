@@ -1,8 +1,8 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 import { type ActionResult, writeResult } from '../../api/actionResult';
 import { apiGet, apiGetAllPages, apiWrite } from '../../api/client';
-import { REQUEST_STATUSES, type RequestStatus } from '../../api/types/common';
-import type { RequestPage } from '../../api/types/lists';
+import { REQUEST_STATUSES, type RequestStatus, type Ulid } from '../../api/types/common';
+import type { DraftList, RequestPage } from '../../api/types/lists';
 import type { Request as ReviewRequest } from '../../api/types/request';
 import type { RequestCommandResult } from '../../api/types/request-command-result';
 import { rememberEvents } from '../../live/eventPositions';
@@ -40,10 +40,16 @@ export function requestFilters(search: URLSearchParams): RequestFilters {
     };
 }
 
+/** The data of the request list route. */
+export type RequestListData = RequestPage & {
+    /** The summaries of the requests of reply drafts that the filters hide. */
+    hiddenReplySummaries: Record<Ulid, string>;
+};
+
 /**
  * Most recently updated first, so the agent's latest work is on top.
  */
-export function requestListLoader({ request, params }: LoaderFunctionArgs): Promise<RequestPage> {
+export async function requestListLoader({ request, params }: LoaderFunctionArgs): Promise<RequestListData> {
     const { status, waitingForYou, path, outdated } = requestFilters(new URL(request.url).searchParams);
     const query = new URLSearchParams({ sort: 'updated', limit: String(REQUEST_PAGE_LIMIT) });
     if (null !== status) {
@@ -58,8 +64,20 @@ export function requestListLoader({ request, params }: LoaderFunctionArgs): Prom
     if (outdated) {
         query.set('outdated', 'true');
     }
+    const review = `/api/v1/reviews/${encodedRouteParam(params, 'reviewId')}`;
+    const filtered = null !== status || waitingForYou || '' !== path || outdated;
+    const [page, drafts] = await Promise.all([
+        apiGetAllPages<RequestPage>(`${review}/requests?${query.toString()}`, request.signal),
+        filtered ? apiGet<DraftList>(`${review}/drafts`, request.signal) : null,
+    ]);
+    const listed = new Set(page.items.map(({ id }) => id));
+    const hidden = new Set(drafts?.items.flatMap((draft) => ('reply' === draft.kind && !listed.has(draft.requestId) ? [draft.requestId] : [])));
+    // A summary only labels a draft, so a failed read keeps the list and the default label.
+    const summaries = await Promise.all(
+        [...hidden].map((id) => apiGet<ReviewRequest>(`/api/v1/requests/${encodeURIComponent(id)}`, request.signal).then(({ summary }): [Ulid, string][] => [[id, summary]], () => [])),
+    );
 
-    return apiGetAllPages<RequestPage>(`/api/v1/reviews/${encodedRouteParam(params, 'reviewId')}/requests?${query.toString()}`, request.signal);
+    return { ...page, hiddenReplySummaries: Object.fromEntries(summaries.flat()) };
 }
 
 export function requestLoader({ request, params }: LoaderFunctionArgs): Promise<ReviewRequest> {

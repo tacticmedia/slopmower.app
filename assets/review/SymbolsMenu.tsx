@@ -1,13 +1,14 @@
 import { TriangleDownIcon } from '@primer/octicons-react';
-import { Button, SelectPanel } from '@primer/react';
+import { Button, SelectPanel, Tooltip } from '@primer/react';
 import { useMemo, useState } from 'react';
 import type { Symbol as CodeSymbol } from '../api/types/symbol';
 import { duplicateFqns, symbolKindLabel, symbolShortName } from '../code/symbolMatch';
 import { MAX_SHOWN_SYMBOLS, symbolItems, TOP_LEVEL_GROUP } from './symbolItems';
 
 type Props = {
-    /** Null while the symbols load. */
+    /** Null while the symbols load and when they failed to load. */
     symbols: readonly CodeSymbol[] | null;
+    failed: boolean;
     onChoose(symbol: CodeSymbol): void;
 };
 
@@ -15,9 +16,10 @@ type Props = {
 function ignoreSelection(): void {}
 
 /**
- * Decision D31. Primer's filterable menu is the SelectPanel; an ActionMenu takes no filter field.
+ * Decision D31. Primer's filterable menu is the SelectPanel; an ActionMenu takes no filter field. Without symbols, the
+ * button says why in a tooltip: `aria-disabled` keeps it focusable and hoverable, `disabled` would not.
  */
-export function SymbolsMenu({ symbols, onChoose }: Props) {
+export function SymbolsMenu({ symbols, failed, onChoose }: Props) {
     const [open, setOpen] = useState(false);
     const [filter, setFilter] = useState('');
     const { groups, shownCount, matchCount } = useMemo(() => symbolItems(symbols ?? [], filter), [symbols, filter]);
@@ -51,12 +53,23 @@ export function SymbolsMenu({ symbols, onChoose }: Props) {
             setFilter('');
         }
     };
+    const unavailable = failed ? 'Symbols could not be loaded' : 0 === symbols?.length ? 'No symbols in this file' : null;
+
+    if (null !== unavailable) {
+        return (
+            <Tooltip text={unavailable} type="description">
+                <Button size="small" trailingAction={TriangleDownIcon} aria-disabled>
+                    Symbols
+                </Button>
+            </Tooltip>
+        );
+    }
 
     return (
         <SelectPanel
             title="Symbols"
             renderAnchor={(anchorProps) => (
-                <Button {...anchorProps} size="small" trailingAction={TriangleDownIcon} disabled={null === symbols || 0 === symbols.length}>
+                <Button {...anchorProps} size="small" trailingAction={TriangleDownIcon} disabled={null === symbols}>
                     Symbols
                 </Button>
             )}

@@ -17,7 +17,8 @@ type TreeProps = {
 type EntryProps = Omit<TreeProps, 'entries'> & { entry: TreeEntry };
 
 /**
- * The tree at the review commit. Directories list their entries through V6 when they expand.
+ * The tree at the review commit. Directories list their entries through V6 when they expand, and the directories
+ * above the open file expand.
  */
 export function FileTree(props: TreeProps) {
     return (
@@ -38,8 +39,18 @@ function Entries({ entries, ...props }: TreeProps) {
 function DirectoryItem({ entry, ...props }: EntryProps) {
     const { reviewId, currentPath } = props;
     const { load, state, data } = useFetcher<TreeResult>();
-    const [expanded, setExpanded] = useState(() => null !== currentPath && currentPath.startsWith(`${entry.path}/`));
+    const holdsCurrent = null !== currentPath && currentPath.startsWith(`${entry.path}/`);
+    const [expanded, setExpanded] = useState(holdsCurrent);
+    const [followedPath, setFollowedPath] = useState(currentPath);
     const href = treeHref(reviewId, entry.path);
+
+    // A newly opened file expands its ancestors. Other directories keep the state that the user gave them.
+    if (followedPath !== currentPath) {
+        setFollowedPath(currentPath);
+        if (holdsCurrent) {
+            setExpanded(true);
+        }
+    }
 
     useEffect(() => {
         if (expanded && 'idle' === state && undefined === data) {

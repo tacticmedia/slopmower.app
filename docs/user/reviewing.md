@@ -23,9 +23,11 @@ You can comment on a line, a range of lines, a symbol, or a file. Each comment o
 | A symbol | Open **Symbols** in the file header, move to a symbol with the arrow keys, and press Enter. |
 | A file | Move to **Comment on file** with Tab and press Enter. |
 
-The comment box receives the focus. Type your comment. Comments use GitHub-flavoured Markdown.
+The comment box receives the focus. Type your comment. Comments use GitHub-flavoured Markdown. Press Ctrl+Enter (Cmd+Enter on macOS) to send it with its submit button, for example **Add single comment** or **Reply**. In a box with **Cancel**, Escape cancels it.
 
-Symbols are available for PHP files. A symbol range includes the doc comment above the symbol.
+If a comment cannot be saved, its box opens again with your text, the error, and the selected lines.
+
+Symbols are available for PHP files. A symbol range includes the doc comment above the symbol. When a file has no symbols, or they could not be loaded, **Symbols** is unavailable, and its tooltip says why.
 
 ## Open a general request
 
@@ -66,7 +68,9 @@ New replies from the agent show in the open request without a reload.
 The agent links each commit to the requests that it covers. One commit can cover several requests. The request shows each linked commit with its state:
 
 - **Pending**: Holistic Review does not have the commit yet. For a GitHub repository, the agent must push. For a local repository, the commit must be on a branch of the connected repository.
-- **Available**: Holistic Review has the commit. Click it to see its changes.
+- **Available**: Holistic Review has the commit. Click it to see its changes on the **Changes** tab.
+
+On the **Changes** tab, a commit with more than 20 changed files opens only the files that hold the code of the request. Click the arrow of a file to show or hide its changes.
 
 A linked commit does not finish a request. The agent marks the request **Ready for review** when it is finished.
 

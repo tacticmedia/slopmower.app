@@ -46,6 +46,23 @@ test.describe('FileComment', () => {
         await expect(page.locator(`${CODE_HOST} [data-utility-button]`)).toHaveCount(0);
     });
 
+    test('Escape cancels the comment box, and Ctrl+Enter sends it', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        await openFile(page, review, SMALL_FILE);
+        const composer = page.locator(`${FILE_THREADS} ${COMPOSER}`);
+        await page.getByRole('button', { name: 'Comment on file' }).click();
+        await composer.fill('Discard this.');
+
+        await composer.press('Escape');
+        await expect(composer).toHaveCount(0);
+        await page.getByRole('button', { name: 'Comment on file' }).click();
+        await composer.fill('Split this class.');
+        await composer.press('ControlOrMeta+Enter');
+
+        await waitForSavedThread(page, FILE_THREADS, 'Split this class.');
+        expect(api.bodies('POST', REQUESTS)).toEqual([{ anchor: { kind: 'file', path: SMALL_FILE }, body: 'Split this class.' }]);
+    });
+
     test('A failed comment opens its box again with the text and the error', async ({ page, api }) => {
         const review = new FakeReview(api);
         await openFile(page, review, SMALL_FILE);

@@ -48,6 +48,11 @@ export function RequestDetail() {
                     <OutdatedLabel outdated={request.outdated} />
                     <TurnLabel awaiting={request.awaiting} />
                     <AnchorLink reviewId={request.reviewId} anchor={request.anchor} />
+                    {null !== request.anchor && null !== request.anchor.symbol && (
+                        <code className={shared.location} data-testid="anchor-symbol">
+                            {request.anchor.symbol.fqn}
+                        </code>
+                    )}
                     <span className={shared.muted}>
                         Opened by {request.author.name} <RelativeTime datetime={request.createdAt} />
                     </span>

@@ -20,6 +20,12 @@
     font-size: var(--text-body-size-small);
 }
 
+.symbol {
+    min-width: 0;
+    font-size: var(--text-body-size-small);
+    overflow-wrap: anywhere;
+}
+
 .comments {
     margin: 0;
     padding: 0;

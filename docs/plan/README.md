@@ -274,6 +274,7 @@ make up
   - React Router 8.4.0 in Data Mode: `createBrowserRouter`, route `loader`s read, route `action`s and `useFetcher` write, `router.revalidate()` in `assets/live/useLiveRevalidation.ts` refreshes after a Mercure message.
   - Local component state for the UI: `useState` for selection and drafts in progress, `useOptimistic` for new threads, drafts, and replies. No Redux, no global store, no query-cache library.
   - Per-browser UI preferences (focus mode, line wrapping) go through `assets/layout/usePreference.ts`, which reads and writes `localStorage` inside `try`/`catch`. Nothing else uses browser storage.
+  - A write form, `fetcher.Form`, takes `onSubmit` from `assets/layout/useSubmitOnce.ts`. Primer's `loading` and the fetcher state, which commits in a transition, do not stop a quick second click or Enter.
   - Primer for components. CSS modules for our layout CSS.
   - `@pierre/diffs` only inside `assets/code/CodeFile.tsx`, `assets/code/CommitDiff.tsx`, and their worker pool options in `assets/code/workerPool.ts`.
   - API types in `assets/api/types/`, written from docs/specs and checked against `docs/specs/fixtures/`.

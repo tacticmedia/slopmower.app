@@ -14,6 +14,13 @@
     color: var(--fgColor-muted);
 }
 
+.error {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--base-size-16);
+}
+
 @media (max-width: 768px) {
     .layout {
         grid-template-columns: minmax(0, 1fr);

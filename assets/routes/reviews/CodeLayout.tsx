@@ -1,6 +1,9 @@
+import { CheckIcon } from '@primer/octicons-react';
+import { Button } from '@primer/react';
 import { useMemo } from 'react';
 import { type LoaderFunctionArgs, Outlet, useLoaderData, useParams, useRouteLoaderData } from 'react-router';
 import type { TreeListing } from '../../api/types/lists';
+import { RouteError } from '../../layout/RouteError';
 import { FileTree } from '../../review/FileTree';
 import { encodedRouteParam } from '../encodedRouteParam';
 import styles from './CodeLayout.module.css';
@@ -34,4 +37,23 @@ export function CodeLayout() {
 
 export function NoFileSelected() {
     return <p className={styles.hint}>Select a file in the tree.</p>;
+}
+
+/**
+ * The error element of the code layout and the file route. Focus mode hides the review header, so the error keeps the
+ * Focus toggle.
+ */
+export function CodeRouteError() {
+    const { focus, setFocus } = useFocusMode();
+
+    return (
+        <div className={styles.error}>
+            <RouteError embedded />
+            {focus && (
+                <Button size="small" aria-pressed leadingVisual={CheckIcon} onClick={() => setFocus(false)}>
+                    Focus
+                </Button>
+            )}
+        </div>
+    );
 }

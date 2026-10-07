@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
-import { localCandidate, me } from './support/builders';
+import type { Repository } from '../../assets/api/types/repository';
+import { fixture, localCandidate, me, newId } from './support/builders';
 import { FakeRepositories } from './support/fakeRepositories';
 import { expect, test } from './support/test';
 
@@ -37,6 +38,18 @@ test.describe('Repositories', () => {
         repositories.finishClone(repository?.id ?? '');
         await live.push({ type: 'repository', repositoryId: repository?.id ?? '' });
         await expect(page.locator(`${CONNECTED} [data-testid="sync-state"]`)).toContainText('Ready');
+    });
+
+    test('A GitHub repository shows its owner, its visibility, and a link to GitHub', async ({ page, api }) => {
+        const repository = { ...fixture<Repository>('repository.github-cloning.json'), id: newId() };
+        new FakeRepositories(api).repositories.push(repository);
+
+        await page.goto(`/repositories/${repository.id}`);
+
+        const details = page.locator('[data-testid="github-details"]');
+        await expect(details).toContainText('Private');
+        await expect(details).toContainText('Owner acme');
+        await expect(details.getByRole('link', { name: 'View on GitHub' })).toHaveAttribute('href', 'https://github.com/acme/billing');
     });
 
     test('A notice shows when local repositories are disabled', async ({ page, api }) => {

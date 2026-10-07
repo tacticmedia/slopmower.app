@@ -3,7 +3,7 @@ import type { Declaration } from '../../assets/api/types/declaration';
 import { declarationList } from './support/builders';
 import { CODE_HOST, openFile, tabUntil, waitForHighlighting } from './support/codeView';
 import { FakeReview } from './support/fakeReview';
-import { codeViewFiles } from './support/files';
+import { codeViewFiles, NESTED_FILE } from './support/files';
 import { json, type MockApi } from './support/mockApi';
 import { expect, test } from './support/test';
 
@@ -99,6 +99,15 @@ test.describe('CodeNavigation', () => {
         await expect.poll(() => location(page)).toBe(review.fileUrl(MONEY_FILE, '#L8'));
         await expect(page.locator('[data-testid="file-header"]')).toContainText(MONEY_FILE);
         expect(api.callsTo('GET', DECLARATIONS).map(({ query }) => Object.fromEntries(query))).toEqual([{ path: CALLER, name: 'Money' }]);
+    });
+
+    test('The tree expands the collapsed directory of the declaration', async ({ page, api }) => {
+        const review = reviewWithCaller(api, [{ path: NESTED_FILE, fqn: 'App\\Billing\\Tax\\TaxRate', kind: 'class', range: { startLine: 5, endLine: 7 }, declarationStartLine: 5 }]);
+        await openFile(page, review, CALLER);
+
+        await cmdClickMoney(page);
+
+        await expect(page.locator(`[data-testid="file-tree"] [data-path="${NESTED_FILE}"]`)).toHaveAttribute('aria-current', 'true');
     });
 
     test('A name without a declaration shows the message and stays on the file', async ({ page, api }) => {

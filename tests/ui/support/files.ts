@@ -2,7 +2,7 @@ import type { Symbol as CodeSymbol } from '../../../assets/api/types/symbol';
 
 export const SMALL_FILE = 'src/Billing/InvoiceTotals.php';
 
-const NESTED_FILE = 'src/Billing/Tax/TaxRate.php';
+export const NESTED_FILE = 'src/Billing/Tax/TaxRate.php';
 
 /** `round()` has the lines 11 to 17 with its doc comment, its declaration starts on line 14. */
 export const SYMBOL_FILE = 'src/Billing/TaxRounding.php';

@@ -27,6 +27,16 @@ test.describe('GeneralRequest', () => {
         expect(api.bodies('POST', '/api/v1/reviews/:reviewId/requests')).toEqual([{ anchor: null, body: 'Add a full-screen focus mode.' }]);
     });
 
+    test('A closed review has no New request button', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        review.close();
+
+        await page.goto(`/reviews/${review.id}/requests`);
+
+        await expect(page.locator('[data-testid="request-filters"]')).toBeVisible();
+        await expect(page.getByRole('button', { name: 'New request', exact: true })).toHaveCount(0);
+    });
+
     test('A general draft joins the batch', async ({ page, api }) => {
         const review = new FakeReview(api);
 

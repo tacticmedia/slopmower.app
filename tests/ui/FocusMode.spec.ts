@@ -2,6 +2,7 @@ import type { Locator, Page } from '@playwright/test';
 import { COMPOSER, FILE_THREADS, openFile, waitForSymbols } from './support/codeView';
 import { FakeReview } from './support/fakeReview';
 import { codeViewFiles, LARGE_FILE, SMALL_FILE, SYMBOL_FILE } from './support/files';
+import { apiError } from './support/mockApi';
 import { expect, test } from './support/test';
 
 /** Enough root files to make the tree taller than the window. */
@@ -92,6 +93,25 @@ test.describe('FocusMode', () => {
         await page.keyboard.press('Escape');
 
         await expectFocusMode(page, true);
+    });
+
+    test('A file error and a tree error in focus mode keep the Focus toggle', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        await openFile(page, review, SMALL_FILE);
+        await focusToggle(page).click();
+        const reviewNavigation = page.getByRole('navigation', { name: 'Review' });
+        const errorToggle = page.getByRole('button', { name: 'Focus', exact: true });
+        await expect(reviewNavigation).toBeHidden();
+
+        await page.goto(review.fileUrl('src/Missing.php'));
+        await expect(page.locator('[data-testid="route-error"]')).toContainText('Something went wrong');
+        await expect(errorToggle).toBeVisible();
+        api.on('GET', '/api/v1/reviews/:reviewId/tree', () => apiError(500, 'internal_error', 'The tree could not be listed.'));
+        await page.goto(review.fileUrl(SMALL_FILE));
+        await expect(page.locator('[data-testid="route-error"]')).toContainText('The tree could not be listed.');
+        await errorToggle.click();
+
+        await expect(reviewNavigation).toBeVisible();
     });
 
     test('Escape in the Symbols menu closes only the menu', async ({ page, api }) => {

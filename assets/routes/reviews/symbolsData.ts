@@ -7,7 +7,10 @@ import type { Symbol as CodeSymbol } from '../../api/types/symbol';
 import { encodedRouteParam } from '../encodedRouteParam';
 
 /** The data of the `symbols` route that {@link useFileSymbols} loads. */
-type SymbolsResult = SymbolList | { error: string };
+type SymbolsResult = SymbolList | { error: string; path: string };
+
+/** `symbols` is null while they load, when they failed to load, and while the read is off. */
+export type FileSymbols = { symbols: readonly CodeSymbol[] | null; failed: boolean };
 
 export async function symbolsLoader({ request, params }: LoaderFunctionArgs): Promise<SymbolsResult> {
     const path = new URL(request.url).searchParams.get('path') ?? '';
@@ -15,7 +18,7 @@ export async function symbolsLoader({ request, params }: LoaderFunctionArgs): Pr
     try {
         return await apiGet<SymbolList>(`/api/v1/reviews/${encodedRouteParam(params, 'reviewId')}/symbols?path=${encodeURIComponent(path)}`, request.signal);
     } catch (error) {
-        return actionError(error);
+        return { ...actionError(error), path };
     }
 }
 
@@ -25,9 +28,9 @@ export function shouldRevalidateSymbols(): boolean {
 }
 
 /**
- * V9 of the file. Null while the symbols load, when they failed to load, and while `enabled` is false.
+ * V9 of the file, while `enabled` is true.
  */
-export function useFileSymbols(reviewId: string, path: string, enabled: boolean): readonly CodeSymbol[] | null {
+export function useFileSymbols(reviewId: string, path: string, enabled: boolean): FileSymbols {
     const { load, data } = useFetcher<SymbolsResult>();
     const href = enabled ? `/reviews/${encodeURIComponent(reviewId)}/symbols?path=${encodeURIComponent(path)}` : null;
 
@@ -37,5 +40,7 @@ export function useFileSymbols(reviewId: string, path: string, enabled: boolean)
         }
     }, [href, load]);
 
-    return null !== href && undefined !== data && 'items' in data && data.path === path ? data.items : null;
+    const current = null !== href && undefined !== data && data.path === path ? data : null;
+
+    return { symbols: null !== current && 'items' in current ? current.items : null, failed: null !== current && 'error' in current };
 }

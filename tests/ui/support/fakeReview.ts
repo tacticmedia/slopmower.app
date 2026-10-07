@@ -90,6 +90,10 @@ export class FakeReview {
         return this.#openRequest({ kind: startLine === endLine ? 'line' : 'range', path, range: { startLine, endLine } }, body);
     }
 
+    seedSymbol(path: string, fqn: string, body: string): Request {
+        return this.#openRequest({ kind: 'symbol', path, symbol: { fqn } }, body);
+    }
+
     /** A D2 draft, as if the user had written it earlier. */
     seedDraft(input: CreateDraftInput): Draft {
         return this.#createDraft(input);

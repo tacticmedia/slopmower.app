@@ -3,6 +3,7 @@ import { Link as RouterLink, useFetcher } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
 import type { RepositoryCandidate } from '../../api/types/repository-candidate';
 import { ActionErrorMessage } from '../../layout/ActionErrorMessage';
+import { useSubmitOnce } from '../../layout/useSubmitOnce';
 import styles from './CandidateConnection.module.css';
 
 /**
@@ -11,6 +12,7 @@ import styles from './CandidateConnection.module.css';
  */
 export function CandidateConnection({ candidate }: { candidate: RepositoryCandidate }) {
     const fetcher = useFetcher<ActionResult>();
+    const submitOnce = useSubmitOnce(fetcher.submit);
 
     if (null !== candidate.connectedRepositoryId) {
         return (
@@ -21,7 +23,7 @@ export function CandidateConnection({ candidate }: { candidate: RepositoryCandid
     }
 
     return (
-        <fetcher.Form method="post" className={styles.connect}>
+        <fetcher.Form method="post" className={styles.connect} onSubmit={submitOnce}>
             {'github' === candidate.source ? (
                 <input type="hidden" name="githubRepositoryId" value={candidate.github.repositoryId} />
             ) : (

@@ -4,6 +4,7 @@ import { useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
 import type { Ulid } from '../api/types/common';
 import { ActionErrorMessage } from '../layout/ActionErrorMessage';
+import { useSubmitOnce } from '../layout/useSubmitOnce';
 import styles from './DeleteReviewDialog.module.css';
 
 /**
@@ -12,6 +13,7 @@ import styles from './DeleteReviewDialog.module.css';
 export function DeleteReviewDialog({ repositoryId }: { repositoryId: Ulid }) {
     const [open, setOpen] = useState(false);
     const remove = useFetcher<ActionResult>();
+    const submitOnce = useSubmitOnce(remove.submit);
     const openButton = useRef<HTMLButtonElement>(null);
     const formId = useId();
     const busy = 'idle' !== remove.state;
@@ -36,7 +38,7 @@ export function DeleteReviewDialog({ repositoryId }: { repositoryId: Ulid }) {
                         { content: 'Delete review', buttonType: 'danger', type: 'submit', form: formId, loading: busy },
                     ]}
                 >
-                    <remove.Form method="post" id={formId} className={styles.form}>
+                    <remove.Form method="post" id={formId} className={styles.form} onSubmit={submitOnce}>
                         <input type="hidden" name="intent" value="delete" />
                         <input type="hidden" name="repositoryId" value={repositoryId} />
                         <p>The review is deleted with its requests, comments, linked commits, and the pending comments of every user. You cannot undo this.</p>

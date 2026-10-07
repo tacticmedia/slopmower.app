@@ -27,4 +27,14 @@ test.describe('PendingDrafts', () => {
         await expect(page).toHaveURL(review.fileUrl(SMALL_FILE, '#L9-L12'));
         await expect(page.locator('[slot="annotation-12"] [data-testid="draft"]')).toContainText('Extract the tax calculation.');
     });
+
+    test('A reply draft names its request while the filters hide the request', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        const request = review.seedLines(SMALL_FILE, 3, 3, 'Is strict_types needed here?');
+        review.seedDraft({ kind: 'reply', requestId: request.id, body: 'Yes, keep it.' });
+
+        await page.goto(`/reviews/${review.id}/requests?path=README.md`);
+
+        await expect(page.locator(PENDING_DRAFTS)).toContainText('Reply to Is strict_types needed here?');
+    });
 });

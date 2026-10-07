@@ -2,17 +2,19 @@ import { Button, FormControl, TextInput } from '@primer/react';
 import { useFetcher } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
 import { ActionErrorMessage } from '../../layout/ActionErrorMessage';
+import { useSubmitOnce } from '../../layout/useSubmitOnce';
 import styles from './RepositoryRoute.module.css';
 
 export function StartReviewForm({ defaultBranch }: { defaultBranch: string | null }) {
     const start = useFetcher<ActionResult>();
+    const submitOnce = useSubmitOnce(start.submit);
 
     return (
         <section aria-labelledby="start-review">
             <h2 id="start-review" className={styles.sectionTitle}>
                 Start a review
             </h2>
-            <start.Form method="post" className={styles.startForm} data-testid="start-review-form">
+            <start.Form method="post" className={styles.startForm} data-testid="start-review-form" onSubmit={submitOnce}>
                 <input type="hidden" name="intent" value="start" />
                 <FormControl>
                     <FormControl.Label>Ref</FormControl.Label>

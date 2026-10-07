@@ -1,6 +1,6 @@
 import { Button, Textarea } from '@primer/react';
 import { InlineMessage } from '@primer/react/experimental';
-import { type FormEvent, type Ref, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { type FormEvent, type KeyboardEvent, type Ref, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import styles from './CommentBox.module.css';
 
 /** About 2 s at 60 frames per second. */
@@ -30,7 +30,8 @@ type Props = {
 };
 
 /**
- * The text stays while the write runs and clears when it succeeds, so a failed write keeps it.
+ * The text stays while the write runs and clears when it succeeds, so a failed write keeps it. Ctrl+Enter or Cmd+Enter
+ * runs `onSubmit`, and Escape runs `onCancel`.
  */
 export function CommentBox({ label, labelVisible = false, submitLabel, onSubmit, alternative, onCancel, initialBody = '', error, busy, focusOnMount = false, ref }: Props) {
     const [body, setBody] = useState(initialBody);
@@ -71,9 +72,21 @@ export function CommentBox({ label, labelVisible = false, submitLabel, onSubmit,
         event.preventDefault();
         send(onSubmit);
     };
+    const pressKey = (event: KeyboardEvent<HTMLFormElement>): void => {
+        if (event.nativeEvent.isComposing) {
+            return;
+        }
+        if ('Enter' === event.key && (event.ctrlKey || event.metaKey)) {
+            event.preventDefault();
+            send(onSubmit);
+        } else if ('Escape' === event.key && undefined !== onCancel && !busy) {
+            event.preventDefault();
+            onCancel();
+        }
+    };
 
     return (
-        <form className={styles.box} onSubmit={submit} data-testid="comment-box">
+        <form className={styles.box} onSubmit={submit} onKeyDown={pressKey} data-testid="comment-box">
             {labelVisible && (
                 <div className={styles.header} aria-hidden="true" data-testid="comment-box-header">
                     {label}
