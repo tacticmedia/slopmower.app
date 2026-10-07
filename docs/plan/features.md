@@ -48,7 +48,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F30 | [Sign in after sign-out](F30-sign-in-after-sign-out.md) | Done 2026-10-08, replaced by F34, [report](reports/F30.md) | bd375ca | src 429 PHP / 28362 lines, 429 types; tests 289 PHP / 25747 lines; assets 155 TS / 8977 lines |
 | F31 | [Directory view reload](F31-directory-view-reload.md) | Done 2026-10-08, [report](reports/F31.md) | 87042d7 | src 432 PHP / 28529 lines, 432 types; tests 291 PHP / 25995 lines; assets 155 TS / 8982 lines; check 3m41s |
 | F32 | [Symbols for Java, C#, Ruby, Bash, Scala, Zig, and Lua](F32-symbols-for-more-languages.md) | Done 2026-10-08, [report](reports/F32.md) | c4cdf3e | src 435 PHP / 28740 lines, 435 types; tests 292 PHP / 26161 lines; assets 159 TS / 9201 lines; check 3m55s |
-| F33 | [Twig symbols](F33-twig-symbols.md) | Done 2026-10-08, [report](reports/F33.md) | | src 435 PHP / 28870 lines, 435 types; tests 293 PHP / 26238 lines; assets 159 TS / 9202 lines |
+| F33 | [Twig symbols](F33-twig-symbols.md) | Done 2026-10-08, [report](reports/F33.md) | e0363d4 | src 435 PHP / 28870 lines, 435 types; tests 293 PHP / 26238 lines; assets 159 TS / 9202 lines; check 3m58s |
 | F34 | [Double-submit CSRF on Twig forms](F34-double-submit-on-twig-forms.md) | Done 2026-10-08, [report](reports/F34.md) | 150b94b | src 434 PHP / 28715 lines, 434 types; tests 292 PHP / 26164 lines; assets 159 TS / 9201 lines |
 
 ## Candidates
