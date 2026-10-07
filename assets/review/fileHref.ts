@@ -5,6 +5,11 @@ export function fileHref(reviewId: string, path: string): string {
     return `/reviews/${encodeURIComponent(reviewId)}/files/${encodedPath(path)}`;
 }
 
+/** The blame view of a file, `/reviews/{id}/blame/{path}`. */
+export function blameHref(reviewId: string, path: string): string {
+    return `/reviews/${encodeURIComponent(reviewId)}/blame/${encodedPath(path)}`;
+}
+
 /** The shell path of a directory: the Code tab for the root, `/reviews/{id}/tree/{path}` for the others. */
 export function directoryHref(reviewId: string, dir: string): string {
     const review = `/reviews/${encodeURIComponent(reviewId)}`;

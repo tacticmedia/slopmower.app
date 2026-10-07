@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/blame.schema.json",
+  "title": "Blame",
+  "description": "The commit that last changed each line of a file, up to the review commit.",
+  "type": "object",
+  "required": ["reviewId", "commitSha", "path", "blobSha", "ignoreRevsFile", "ranges", "commits"],
+  "properties": {
+    "reviewId": {
+      "$ref": "common.schema.json#/$defs/Ulid"
+    },
+    "commitSha": {
+      "$ref": "common.schema.json#/$defs/CommitSha"
+    },
+    "path": {
+      "$ref": "common.schema.json#/$defs/RepoPath"
+    },
+    "blobSha": {
+      "$ref": "common.schema.json#/$defs/ObjectSha"
+    },
+    "ignoreRevsFile": {
+      "type": "boolean",
+      "description": "The commits that .git-blame-ignore-revs at the review commit names were ignored."
+    },
+    "ranges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/BlameRange"
+      },
+      "description": "Ascending and without gaps, from line 1 to the last line. Adjacent lines of one commit form one range."
+    },
+    "commits": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/BlameCommit"
+      },
+      "description": "Each commit of ranges once, in the order of its first range."
+    }
+  },
+  "$defs": {
+    "BlameRange": {
+      "type": "object",
+      "required": ["startLine", "endLine", "commitSha"],
+      "properties": {
+        "startLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "commitSha": {
+          "$ref": "common.schema.json#/$defs/CommitSha"
+        }
+      }
+    },
+    "BlameCommit": {
+      "type": "object",
+      "required": ["sha", "authorName", "authoredAt", "summary"],
+      "properties": {
+        "sha": {
+          "$ref": "common.schema.json#/$defs/CommitSha"
+        },
+        "authorName": {
+          "type": "string",
+          "description": "As the commit records it, without a mailmap."
+        },
+        "authoredAt": {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        "summary": {
+          "type": "string",
+          "description": "The first line of the commit message."
+        }
+      }
+    }
+  }
+}

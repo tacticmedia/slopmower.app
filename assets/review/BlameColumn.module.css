@@ -1,0 +1,62 @@
+/* As wide as GitHub's, and as high as the code beside it. */
+.column {
+    position: relative;
+    flex: none;
+    width: 350px;
+    border-right: var(--borderWidth-thin) solid var(--borderColor-default);
+}
+
+.block {
+    position: absolute;
+    inset-inline: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--base-size-8);
+    padding: 0 var(--base-size-8) 0 var(--base-size-16);
+    border-top: var(--borderWidth-thin) solid var(--borderColor-muted);
+    overflow: hidden;
+    font-size: var(--text-body-size-small);
+    line-height: 19px;
+}
+
+.age {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    left: var(--base-size-4);
+    width: var(--base-size-4);
+    border-radius: var(--borderRadius-small);
+}
+
+.date {
+    flex: none;
+    width: 7rem;
+    color: var(--fgColor-muted);
+    white-space: nowrap;
+}
+
+.author {
+    flex: none;
+    max-width: 7rem;
+    overflow: hidden;
+    color: var(--fgColor-muted);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.summary {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+@media (width < 768px) {
+    .column {
+        width: 12rem;
+    }
+
+    .author {
+        display: none;
+    }
+}

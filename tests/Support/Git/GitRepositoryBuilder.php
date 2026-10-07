@@ -51,18 +51,20 @@ final class GitRepositoryBuilder
     }
 
     /**
-     * @param array<string, string> $files Content by path
+     * @param array<string, string> $files  Content by path
+     * @param string|null           $author `Name <email>`, instead of the Test identity
+     * @param string|null           $date   The author date, for example `2026-01-02T03:04:05Z`
      *
      * @return string The new commit SHA
      */
-    public function commit(array $files = [], string $message = 'Change'): string
+    public function commit(array $files = [], string $message = 'Change', ?string $author = null, ?string $date = null): string
     {
         foreach ($files as $file => $content) {
             new Filesystem()->dumpFile("{$this->path}/{$file}", $content);
         }
 
         $this->git('add', '--all');
-        $this->git('commit', '--quiet', '--allow-empty', '--message='.$message);
+        $this->git('commit', '--quiet', '--allow-empty', '--message='.$message, ...(null === $author ? [] : ['--author='.$author]), ...(null === $date ? [] : ['--date='.$date]));
 
         return $this->revParse('HEAD');
     }

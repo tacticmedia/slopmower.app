@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Application\FetchRepository;
+use App\Application\Query\Blame;
 use App\Application\Query\BlobStream;
 use App\Application\Query\FileQuery;
 use App\Application\Query\TreeListing;
@@ -13,6 +14,7 @@ use App\Controller\Api\Input\TreeListingQuery;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Error\NotFound;
 use App\Domain\Git\BlobSha;
+use App\Domain\Git\CommitSha;
 use App\Domain\Git\RepoPath;
 use App\Entity\Review;
 use App\Git\GitReader;
@@ -28,7 +30,7 @@ use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * V6 to V8 of docs/specs/rest-api.md section 5: reads at the review commit.
+ * V6 to V8 and V17 of docs/specs/rest-api.md section 5: reads at the review commit.
  */
 #[Route('/api/v1/reviews/{reviewId}', name: 'api_review_')]
 final class CodeController extends AbstractController
@@ -37,6 +39,11 @@ final class CodeController extends AbstractController
     private const string FILE_ETAG_VERSION = 'v1';
 
     private const array FILE_CACHE_HEADERS = ['Cache-Control' => 'private, no-cache', 'Vary' => 'Authorization, Cookie'];
+
+    /** docs/specs/README.md section 6. Increase `v1` when the Blame representation changes. */
+    private const string BLAME_ETAG_VERSION = 'v1';
+
+    private const string IGNORE_REVS_FILE = '.git-blame-ignore-revs';
 
     public function __construct(
         private readonly FileQuery $files,
@@ -113,6 +120,58 @@ final class CodeController extends AbstractController
         $gitDir = $this->fetchRepository->readyClonePath($review->getRepository()->getId());
 
         return $blobs->response($gitDir, BlobSha::fromString($this->files->entry($gitDir, $review, $path)->objectId), $request);
+    }
+
+    #[Route('/blame', name: 'blame', methods: ['GET'])]
+    public function getBlame(
+        #[MapEntity(id: 'reviewId')] Review $review,
+        GitReader $reader,
+        Request $request,
+        #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)]
+        FilePathQuery $query,
+    ): Response {
+        $path = RepoPath::fromString((string) $query->path);
+        $gitDir = $this->fetchRepository->readyClonePath($review->getRepository()->getId());
+        $commit = $review->getCommitSha();
+        $entry = $this->files->entry($gitDir, $review, $path);
+        $headers = ['ETag' => 'W/"'.self::BLAME_ETAG_VERSION."-{$commit}-{$entry->objectId}\""] + self::FILE_CACHE_HEADERS;
+        $notModified = new Response(null, Response::HTTP_OK, $headers);
+
+        if ($notModified->isNotModified($request)) {
+            return $notModified;
+        }
+
+        if (!$this->files->get($gitDir, $review, $entry)->isRenderable()) {
+            throw InvalidInput::field('path', 'Must name a renderable file: not a symlink, not binary, and at most 1 MiB.');
+        }
+
+        $ignoredCommits = $this->ignoredCommits($reader, $gitDir, $commit);
+        ['ranges' => $ranges, 'commits' => $commits] = $reader->blame($gitDir, $commit, $path, $ignoredCommits);
+
+        return $this->json(new Blame($review->getId(), $commit, $path, BlobSha::fromString($entry->objectId), [] !== $ignoredCommits, $ranges, $commits), Response::HTTP_OK, $headers);
+    }
+
+    /**
+     * The full SHAs of `.git-blame-ignore-revs` at the commit, as GitHub applies them. git cuts a line at `#` and
+     * refuses any other text.
+     *
+     * @return list<string>
+     */
+    private function ignoredCommits(GitReader $reader, string $gitDir, CommitSha $commit): array
+    {
+        $entry = $reader->entryAt($gitDir, $commit, RepoPath::fromString(self::IGNORE_REVS_FILE));
+        $blob = null === $entry || !$entry->isRenderableFile() ? null : $reader->readBlob($gitDir, BlobSha::fromString($entry->objectId));
+        $commits = [];
+
+        foreach (explode("\n", $blob->bytes ?? '') as $line) {
+            $sha = strtolower(trim(explode('#', $line, 2)[0]));
+
+            if (1 === preg_match('/^([0-9a-f]{40}|[0-9a-f]{64})$/D', $sha)) {
+                $commits[] = $sha;
+            }
+        }
+
+        return $commits;
     }
 
     private static function isRepoPath(string $path): bool

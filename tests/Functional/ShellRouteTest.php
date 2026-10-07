@@ -38,7 +38,7 @@ final class ShellRouteTest extends WebTestCase
      */
     public static function shellPaths(): iterable
     {
-        foreach (['/', '/repositories', '/repositories/'.self::ID, '/reviews/'.self::ID, '/reviews/'.self::ID.'/files/src/Billing/Invoice.php', '/reviews/'.self::ID.'/tree/src/Billing', '/reviews/'.self::ID.'/requests', '/requests/'.self::ID, '/settings'] as $path) {
+        foreach (['/', '/repositories', '/repositories/'.self::ID, '/reviews/'.self::ID, '/reviews/'.self::ID.'/files/src/Billing/Invoice.php', '/reviews/'.self::ID.'/tree/src/Billing', '/reviews/'.self::ID.'/blame/src/Billing/Invoice.php', '/reviews/'.self::ID.'/requests', '/requests/'.self::ID, '/settings'] as $path) {
             yield $path => [$path];
         }
     }

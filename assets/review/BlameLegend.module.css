@@ -1,0 +1,18 @@
+.legend {
+    display: flex;
+    align-items: center;
+    gap: var(--base-size-8);
+    color: var(--fgColor-muted);
+    font-size: var(--text-body-size-small);
+}
+
+.swatches {
+    display: flex;
+    gap: 2px;
+}
+
+.swatch {
+    width: var(--base-size-8);
+    height: var(--base-size-8);
+    border-radius: 1px;
+}

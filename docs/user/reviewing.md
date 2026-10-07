@@ -158,6 +158,14 @@ When you scroll into the code, the toolbar stays at the top of the window, with 
 
 On a narrow screen, the tree is above the file and scrolls away with the page.
 
+## Blame
+
+Click **Blame** in the toolbar of a file to see who last changed each line, up to the commit of the review. **Code** goes back. The line in the address stays selected.
+
+A block at the left of the code covers the lines of one commit: the age of the commit, its author, and the first line of its message. Point at a block for the full date and the commit SHA. The colour bar shows the age, from light for old commits to dark for the last days, as the legend **Older** to **Newer** in the toolbar shows.
+
+When the repository has a `.git-blame-ignore-revs` file, the commits that it names are skipped, as on GitHub, and a note says so. The blame view has no comments: go back to **Code** to comment.
+
 ## Outdated requests
 
 A request is **Outdated** when its code changed on the default branch, or when Holistic Review cannot find the code there any more. The review view always shows the code at the review commit, so the request stays at its original place. The label tells you that the code on the default branch is different.

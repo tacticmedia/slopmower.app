@@ -1,0 +1,16 @@
+{
+  "reviewId": "01K6B3A1B2C3D4E5F6G7H8J9KM",
+  "commitSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091",
+  "path": "src/Billing/InvoiceTotals.php",
+  "blobSha": "3b18e512dba79e4c8300dd08aeb37f8e728b8dad",
+  "ignoreRevsFile": false,
+  "ranges": [
+    {"startLine": 1, "endLine": 37, "commitSha": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d"},
+    {"startLine": 38, "endLine": 49, "commitSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091"},
+    {"startLine": 50, "endLine": 74, "commitSha": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d"}
+  ],
+  "commits": [
+    {"sha": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d", "authorName": "Ada Lovelace", "authoredAt": "2026-03-02T09:14:05Z", "summary": "Add invoice totals"},
+    {"sha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091", "authorName": "Grace Hopper", "authoredAt": "2026-09-28T16:40:12Z", "summary": "Round tax per line"}
+  ]
+}

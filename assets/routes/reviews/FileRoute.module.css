@@ -21,3 +21,18 @@
     justify-content: center;
     padding: var(--base-size-32);
 }
+
+.fileSummary {
+    color: var(--fgColor-muted);
+    font-family: var(--fontStack-monospace);
+    font-size: var(--text-body-size-small);
+}
+
+.ignoreRevs {
+    margin: 0;
+    padding: var(--base-size-8) var(--base-size-16);
+    border-inline: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-bottom: var(--borderWidth-thin) solid var(--borderColor-default);
+    background-color: var(--bgColor-accent-muted);
+    font-size: var(--text-body-size-small);
+}

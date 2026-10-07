@@ -46,6 +46,7 @@ Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json). 
 | [V14](#v14-find-declarations) | GET | `/api/v1/reviews/{reviewId}/declarations?path=` | S, B | 200 | [`lists.schema.json#/$defs/DeclarationList`](schemas/lists.schema.json) |
 | [V15](#v15-carry-over-open-requests) | POST | `/api/v1/reviews/{reviewId}/carry-over` | S | 200 | [`carry-over-result.schema.json`](schemas/carry-over-result.schema.json) |
 | [V16](#v16-search-files-and-symbols) | GET | `/api/v1/reviews/{reviewId}/search?q=` | S, B | 200 | [`lists.schema.json#/$defs/SearchHitList`](schemas/lists.schema.json) |
+| [V17](#v17-get-the-blame-of-a-file) | GET | `/api/v1/reviews/{reviewId}/blame?path=` | S, B | 200 or 304 | [`blame.schema.json`](schemas/blame.schema.json) |
 | [Q1](rest-api-requests.md#q1-list-requests) | GET | `/api/v1/reviews/{reviewId}/requests` | S, B | 200 | [`lists.schema.json#/$defs/RequestPage`](schemas/lists.schema.json) |
 | [Q2](rest-api-requests.md#q2-open-a-request) | POST | `/api/v1/reviews/{reviewId}/requests` | S | 201 | [`request.schema.json`](schemas/request.schema.json) |
 | [Q3](rest-api-requests.md#q3-get-a-request) | GET | `/api/v1/requests/{requestId}` | S, B | 200 | [`request.schema.json`](schemas/request.schema.json) |
@@ -693,6 +694,45 @@ Example response to `?q=taxrate`, [fixtures/lists.search-hit-list.json](fixtures
     {"kind":"symbol","path":"src/Billing/Tax/TaxRate.php","fqn":"App\\Billing\\Tax\\TaxRate","symbolKind":"class","declarationStartLine":10},
     {"kind":"symbol","path":"src/Billing/InvoiceTotals.php","fqn":"App\\Billing\\InvoiceTotals::$taxRate","symbolKind":"property","declarationStartLine":12},
     {"kind":"file","path":"src/Billing/Tax/TaxRate.php"}
+  ]
+}
+```
+
+### V17 Get the blame of a file
+
+- **Request:** `GET /api/v1/reviews/{reviewId}/blame?path=`
+- **Authentication:** S, B
+- **Success:** 200 [`Blame`](schemas/blame.schema.json), or 304.
+- **Errors:**
+  - 404 `not_found`: no such path at the review commit;
+  - 422 `invalid_input`: the path is a directory or a submodule, or the file is not renderable, see [V7](#v7-get-file-metadata): a symlink, a binary file, or a file above 1 MiB;
+  - 409 `repository_unavailable`.
+
+Rules:
+
+- The server runs `git blame` with the review commit as the revision, see decision D59 in [architecture.md](../architecture.md). Each line names the commit that last changed it in the history of the review commit. git follows a renamed file.
+- `ranges` covers every line, from line 1 to the last line, in ascending order. Adjacent lines of one commit form one range.
+- `commits` holds each commit of `ranges` once, in the order of its first range. `authorName` is the author name as the commit records it, without a mailmap: a mailmap of the bare clone follows its `HEAD`, which a fetch moves. `summary` is the first line of the commit message. Invalid UTF-8 is replaced.
+- When `.git-blame-ignore-revs` exists at the root of the review commit, the server ignores the commits that it names, as GitHub does, and `ignoreRevsFile` is true. Only lines that are a full commit SHA count. Comments, blank lines, other text, and commits that the repository lacks are skipped. A file without such a line gives `ignoreRevsFile: false`.
+- Caching as for V7, with the ETag `W/"v1-<commitSha>-<blobSha>"`. See [README.md section 6](README.md#6-caching-and-etags).
+
+Example response, [fixtures/blame.php.json](fixtures/blame.php.json):
+
+```json
+{
+  "reviewId": "01K6B3A1B2C3D4E5F6G7H8J9KM",
+  "commitSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091",
+  "path": "src/Billing/InvoiceTotals.php",
+  "blobSha": "3b18e512dba79e4c8300dd08aeb37f8e728b8dad",
+  "ignoreRevsFile": false,
+  "ranges": [
+    {"startLine": 1, "endLine": 37, "commitSha": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d"},
+    {"startLine": 38, "endLine": 49, "commitSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091"},
+    {"startLine": 50, "endLine": 74, "commitSha": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d"}
+  ],
+  "commits": [
+    {"sha": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d", "authorName": "Ada Lovelace", "authoredAt": "2026-03-02T09:14:05Z", "summary": "Add invoice totals"},
+    {"sha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091", "authorName": "Grace Hopper", "authoredAt": "2026-09-28T16:40:12Z", "summary": "Round tax per line"}
   ]
 }
 ```

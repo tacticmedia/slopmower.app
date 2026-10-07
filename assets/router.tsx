@@ -14,7 +14,7 @@ import { carryOverSourcesLoader } from './routes/reviews/carryOverData';
 import { CodeLayout, codeLayoutLoader } from './routes/reviews/CodeLayout';
 import { declarationsLoader, shouldRevalidateDeclarations } from './routes/reviews/declarationsData';
 import { DirectoryRoute } from './routes/reviews/DirectoryRoute';
-import { fileAction, fileLoader } from './routes/reviews/fileData';
+import { blameLoader, fileAction, fileLoader } from './routes/reviews/fileData';
 import { ReviewLayout } from './routes/reviews/ReviewLayout';
 import { reviewAction, reviewLoader } from './routes/reviews/reviewData';
 import { searchLoader, shouldRevalidateSearch } from './routes/reviews/searchData';
@@ -57,6 +57,13 @@ export const router = createBrowserRouter([
                                         loader: fileLoader,
                                         action: fileAction,
                                         // The loader stays in the shell bundle and runs while the component chunk loads.
+                                        lazy: { Component: () => import('./routes/reviews/FileRoute').then(({ FileRoute }) => FileRoute) },
+                                        errorElement: <RouteError embedded />,
+                                    },
+                                    {
+                                        path: 'blame/*',
+                                        loader: blameLoader,
+                                        action: fileAction,
                                         lazy: { Component: () => import('./routes/reviews/FileRoute').then(({ FileRoute }) => FileRoute) },
                                         errorElement: <RouteError embedded />,
                                     },

@@ -6,10 +6,14 @@ import type { CodeAnnotation } from './annotations';
 import { characterColumn } from './characterColumn';
 import { type LineRange, lineRange } from './lineHash';
 import type { GestureRange } from './rangeSelection';
+import styles from './CodeFile.module.css';
 import { centredScrollTop, isBelowHeader, stickyHeaderPx } from './scrollTarget';
 import { HIGHLIGHTER_OPTIONS, POOL_OPTIONS, THEME } from './workerPool';
 
 export type Overflow = 'scroll' | 'wrap';
+
+/** Where the rows of a view with one height per row sit, from the top of the code. */
+export type LineGeometry = { firstLineTopPx: number; lineHeightPx: number };
 
 /** A V14 position: `column` is 1-based, in Unicode characters of the line. */
 export type NamePosition = { line: number; column: number };
@@ -34,6 +38,8 @@ export type CodeFileProps = {
     overflow: Overflow;
     /** The first line below the sticky header, after each scroll that changes it. */
     onTopLineChange?: (line: number) => void;
+    /** A column at the left of the code, for example the blame. It needs rows of one height: no annotations, no wrap. */
+    beside?: (geometry: LineGeometry | null) => ReactNode;
 };
 
 type FileViewOptions = FileOptions<undefined, undefined>;
@@ -92,6 +98,7 @@ const FileView = memo(function FileView({
     onNavigate,
     overflow,
     onTopLineChange,
+    beside,
 }: CodeFileProps) {
     const container = useRef<HTMLDivElement>(null);
     const rendered = useRef<{ node: HTMLElement; file: VirtualizedFile<undefined, undefined> } | null>(null);
@@ -105,6 +112,7 @@ const FileView = memo(function FileView({
     const measureTopLine = useRef<() => void>(() => undefined);
     const latestSelection = useRef(selection);
     const hoveredToken = useRef<HTMLElement | null>(null);
+    const [geometry, setGeometry] = useState<LineGeometry | null>(null);
     const commentable = null !== onComment;
     const navigable = null !== onNavigate;
 
@@ -209,6 +217,10 @@ const FileView = memo(function FileView({
             onGutterUtilityClick: commentable ? ({ start, end }: SelectedLineRange) => commentHandler.current?.({ start, end }) : undefined,
             onPostRender: (node, instance, phase) => {
                 rendered.current = 'unmount' !== phase && instance instanceof VirtualizedFile ? { node, file: instance } : null;
+                const first = rendered.current?.file.getLinePosition(1);
+                if (undefined !== first && first.height > 0) {
+                    setGeometry((previous) => (previous?.firstLineTopPx === first.top && previous.lineHeightPx === first.height ? previous : { firstLineTopPx: first.top, lineHeightPx: first.height }));
+                }
                 scrollWhenRendered();
                 measureTopLine.current();
             },
@@ -243,8 +255,9 @@ const FileView = memo(function FileView({
     }, [selection, scrollWhenRendered]);
 
     return (
-        <div ref={container}>
-            <File file={file} lineAnnotations={lineAnnotations} selectedLines={selectedLines} options={options} renderAnnotation={renderSlot} />
+        <div ref={container} className={undefined === beside ? undefined : styles.withBeside}>
+            {beside?.(geometry)}
+            <File file={file} lineAnnotations={lineAnnotations} selectedLines={selectedLines} options={options} renderAnnotation={renderSlot} className={styles.file} />
         </div>
     );
 });

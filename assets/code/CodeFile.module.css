@@ -1,0 +1,9 @@
+.withBeside {
+    display: flex;
+    align-items: stretch;
+}
+
+.file {
+    flex: 1;
+    min-width: 0;
+}

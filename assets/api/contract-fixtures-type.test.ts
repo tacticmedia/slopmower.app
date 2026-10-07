@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import apiTokenWithSecret from '../../docs/specs/fixtures/api-token.with-secret.json';
 import batchSubmissionSubmitted from '../../docs/specs/fixtures/batch-submission.submitted.json';
+import blamePhp from '../../docs/specs/fixtures/blame.php.json';
 import carryOverResultMixed from '../../docs/specs/fixtures/carry-over-result.mixed.json';
 import commitDiffModified from '../../docs/specs/fixtures/commit-diff.modified.json';
 import draftNewGeneralRequest from '../../docs/specs/fixtures/draft.new-general-request.json';
@@ -88,6 +89,7 @@ import updatesPageCursor from '../../docs/specs/fixtures/updates-page.cursor.jso
 import updatesPageFirstCall from '../../docs/specs/fixtures/updates-page.first-call.json';
 import type { ApiTokenWithSecret } from './types/api-token';
 import type { BatchSubmission } from './types/batch-submission';
+import type { Blame } from './types/blame';
 import type { CarryOverResult } from './types/carry-over-result';
 import type { CommitDiff } from './types/commit-diff';
 import type { Draft } from './types/draft';
@@ -155,6 +157,7 @@ type WidenedLiveUpdate<Type extends LiveUpdate['type']> = Widen<Extract<LiveUpda
 const checkedFixtures = {
     'api-token.with-secret.json': apiTokenWithSecret satisfies Widen<ApiTokenWithSecret>,
     'batch-submission.submitted.json': batchSubmissionSubmitted satisfies Widen<BatchSubmission>,
+    'blame.php.json': blamePhp satisfies Widen<Blame>,
     'carry-over-result.mixed.json': carryOverResultMixed satisfies Widen<CarryOverResult>,
     'commit-diff.modified.json': commitDiffModified satisfies Widen<CommitDiff>,
     'draft.new-general-request.json': draftNewGeneralRequest satisfies Widen<Draft>,

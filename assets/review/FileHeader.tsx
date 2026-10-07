@@ -21,6 +21,8 @@ type Props = {
     children?: ReactNode;
     /** Below the toolbar while the header is stuck. */
     stuckBelow?: ReactNode;
+    /** A row of the toolbar below the commands, which sticks with them. */
+    toolbarBelow?: ReactNode;
 };
 
 /** The height of the stuck row, which shows only while the header is stuck. */
@@ -32,7 +34,7 @@ const STUCK_ROW_PX = 44;
  * positioned box, so a change of its height never moves the code. The element itself has `display: contents`, so the
  * sticky part sticks for the whole height of the file section.
  */
-export function FileHeader({ reviewId, repositoryName, path, directory = false, planToApprove = false, summary, children, stuckBelow }: Props) {
+export function FileHeader({ reviewId, repositoryName, path, directory = false, planToApprove = false, summary, children, stuckBelow, toolbarBelow }: Props) {
     const sentinel = useRef<HTMLDivElement>(null);
     const toolbar = useRef<HTMLDivElement>(null);
     const stuck = useStuck(sentinel);
@@ -75,8 +77,11 @@ export function FileHeader({ reviewId, repositoryName, path, directory = false, 
                     )}
                     {hasToolbar && (
                         <div ref={toolbar} className={styles.toolbar} data-testid="file-toolbar">
-                            <div className={styles.summary}>{summary}</div>
-                            <div className={styles.actions}>{children}</div>
+                            <div className={styles.toolbarRow}>
+                                <div className={styles.summary}>{summary}</div>
+                                <div className={styles.actions}>{children}</div>
+                            </div>
+                            {toolbarBelow}
                         </div>
                     )}
                     {stuck && stuckBelow}

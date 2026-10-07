@@ -44,9 +44,7 @@
 
 .toolbar {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
     gap: var(--base-size-8);
     padding: var(--base-size-8) var(--base-size-16);
     border: var(--borderWidth-thin) solid var(--borderColor-default);
@@ -54,11 +52,19 @@
     background-color: var(--bgColor-muted);
 }
 
+.toolbarRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--base-size-8);
+}
+
 .summary {
+    display: flex;
     flex: none;
-    color: var(--fgColor-muted);
-    font-family: var(--fontStack-monospace);
-    font-size: var(--text-body-size-small);
+    align-items: center;
+    gap: var(--base-size-8);
 }
 
 /* Shares the row with the summary, and its controls wrap at the right. */

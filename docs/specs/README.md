@@ -11,7 +11,7 @@ This directory is the v1 contract of Holistic Review: the REST API, the MCP serv
 | [rest-api-requests.md](rest-api-requests.md) | REST requests, updates, drafts, API tokens, and the routes outside `/api/v1` |
 | [mcp.md](mcp.md) | MCP endpoint, server instructions, the 15 tools, error mapping, parity with REST |
 | [webhooks-and-live-updates.md](webhooks-and-live-updates.md) | GitHub webhooks, fetch triggers and post-fetch steps, Mercure live updates |
-| [schemas/](schemas/) | 31 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
+| [schemas/](schemas/) | 32 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
 | [fixtures/](fixtures/) | One realistic example per response shape, error code, live-update type, and request body. See [section 11](#11-fixtures). |
 
 ## 2. Conventions
@@ -110,6 +110,7 @@ Fixtures: one file per code, `fixtures/error.<code>.json` with `-` in place of `
 | `GET /reviews/{id}/raw`, `GET /repositories/{id}/blobs/{sha}` | `"<blobSha>"`, strong | `private, max-age=31536000, immutable` | When `If-None-Match` matches with the weak comparison, or is `*` |
 | `GET /reviews/{id}/file` | `W/"v1-<blobSha>"`. Increase `v1` when the representation changes. | `private, no-cache` | Same rule |
 | `GET /reviews/{id}/symbols` | `W/"v2-<blobSha>"`. Increase `v2` when the representation changes, also for a changed grammar or query of a language. | `private, no-cache` | Same rule |
+| `GET /reviews/{id}/blame` | `W/"v1-<commitSha>-<blobSha>"`, from the review commit and the file. Increase `v1` when the representation changes. | `private, no-cache` | Same rule |
 | Everything else | none | `no-store` | never |
 
 All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body and repeats `ETag` and `Cache-Control`.
@@ -180,6 +181,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Q9 file order, decision D51: `files` of `CommitDiff` lists the files that touch the anchor first, then the other files in the order of `git diff-tree`. It is the order that the server returns, so no client sees a change.
     - Plan requirement changes, decision D52: the endpoint Q18, the `Action` value `set_plan_requirement`, the `EventType` and `ThreadEntryType` values `request.plan_required` and `request.plan_waived`, and the input `PlanRequirementInput`. All are additive. `requireApproval` changes after the request opens, and the gate of D49 uses its current value.
     - Pull request unlinks, decision D53: the endpoint Q19 and the tool `unlink_pull_request`, the `Action` value `unlink_pull_request`, the `EventType` and `ThreadEntryType` value `pull_request.unlinked`, and `UnlinkPullRequestInput`. All are additive.
+    - Blame, decision D59: the endpoint V17 and the schema `Blame`. All are additive.
     - Quick open ranking, decision D54: V16 also matches a name by word starts, for example `CE` for `CommandExecutor`, ranks word starts between a name prefix and a name substring, and orders by the length of the name before the length of the path. The wire format does not change.
     - Symbols for more languages, decisions D56 and D57: V9, symbol anchors, and V16 also cover JavaScript, JSX, TypeScript, and TSX files. `language` takes their V7 values, the open set `SymbolKind` gets `struct`, `type`, `module`, and `macro`, and the V9 ETag has its own version `v2`. V14 stays PHP only.
 
@@ -217,6 +219,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [commit-diff.schema.json](schemas/commit-diff.schema.json) | `https://holistic-review.invalid/schemas/v1/commit-diff.schema.json` | Diff data of one linked commit, plus `CommitDiffFile` |
 | [tree-entry.schema.json](schemas/tree-entry.schema.json) | `https://holistic-review.invalid/schemas/v1/tree-entry.schema.json` | One entry of a tree listing |
 | [file-content.schema.json](schemas/file-content.schema.json) | `https://holistic-review.invalid/schemas/v1/file-content.schema.json` | File metadata at the review commit |
+| [blame.schema.json](schemas/blame.schema.json) | `https://holistic-review.invalid/schemas/v1/blame.schema.json` | The blame of a file at the review commit, plus `BlameRange` and `BlameCommit` |
 | [symbol.schema.json](schemas/symbol.schema.json) | `https://holistic-review.invalid/schemas/v1/symbol.schema.json` | One symbol of a file |
 | [declaration.schema.json](schemas/declaration.schema.json) | `https://holistic-review.invalid/schemas/v1/declaration.schema.json` | One declaration of a name at the review commit |
 | [search-hit.schema.json](schemas/search-hit.schema.json) | `https://holistic-review.invalid/schemas/v1/search-hit.schema.json` | One hit of a search at the review commit: `FileHit` or `SymbolHit` |
@@ -243,6 +246,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 |---|---|---|
 | [api-token.with-secret.json](fixtures/api-token.with-secret.json) | `api-token.schema.json#/$defs/ApiTokenWithSecret` | T2 |
 | [batch-submission.submitted.json](fixtures/batch-submission.submitted.json) | `batch-submission.schema.json` | D5 |
+| [blame.php.json](fixtures/blame.php.json) | `blame.schema.json` | V17 |
 | [carry-over-result.mixed.json](fixtures/carry-over-result.mixed.json) | `carry-over-result.schema.json` | V15 |
 | [commit-diff.modified.json](fixtures/commit-diff.modified.json) | `commit-diff.schema.json` | Q9 |
 | [draft.new-general-request.json](fixtures/draft.new-general-request.json) | `draft.schema.json` | D2 |
@@ -256,7 +260,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [error.invalid-input.json](fixtures/error.invalid-input.json) | `error.schema.json` | Q11, `mark_wont_do` |
 | [error.invalid-transition.json](fixtures/error.invalid-transition.json) | `error.schema.json` | Q5, `claim_request` |
 | [error.not-found.json](fixtures/error.not-found.json) | `error.schema.json` | Any invisible ID |
-| [error.repository-unavailable.json](fixtures/error.repository-unavailable.json) | `error.schema.json` | R5, V1, V6 to V9, V14, Q2, Q3, Q9, Q10 |
+| [error.repository-unavailable.json](fixtures/error.repository-unavailable.json) | `error.schema.json` | R5, V1, V6 to V9, V14, V17, Q2, Q3, Q9, Q10 |
 | [error.review-closed.json](fixtures/error.review-closed.json) | `error.schema.json` | Writes on a closed review |
 | [error.unauthorized.json](fixtures/error.unauthorized.json) | `error.schema.json` | Any endpoint, the MCP transport |
 | [file-content.php.json](fixtures/file-content.php.json) | `file-content.schema.json` | V7 |

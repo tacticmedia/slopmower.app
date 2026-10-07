@@ -613,7 +613,7 @@ The endpoint sets `revokedAt`. The row stays, so T1 lists the revoked token.
 
 | Method | Path | Authentication | Purpose |
 |---|---|---|---|
-| GET | `/`, `/repositories`, `/repositories/{id}`, `/reviews/{id}`, `/reviews/{id}/files/{path}`, `/reviews/{id}/tree/{path}`, `/reviews/{id}/requests`, `/requests/{id}`, `/settings` | Session, else a redirect to `/login` | Twig shell page for the React single-page application, with the Reprise entry tags. React Router 8.4.0 in Data Mode renders the screens. |
+| GET | `/`, `/repositories`, `/repositories/{id}`, `/reviews/{id}`, `/reviews/{id}/files/{path}`, `/reviews/{id}/tree/{path}`, `/reviews/{id}/blame/{path}`, `/reviews/{id}/requests`, `/requests/{id}`, `/settings` | Session, else a redirect to `/login` | Twig shell page for the React single-page application, with the Reprise entry tags. React Router 8.4.0 in Data Mode renders the screens. |
 | GET | `/login` | public | "Sign in with GitHub" when `GITHUB_APP_CLIENT_ID` is not empty. The local sign-in button when the local sign-in is on. With neither: "No sign-in method is configured." |
 | GET | `/connect/github` | public. It exists only when `GITHUB_APP_CLIENT_ID` is not empty. | HWIOAuthBundle redirect to GitHub, route `hwi_oauth_service_redirect` |
 | GET | `/login/check-github` | public. It exists only when `GITHUB_APP_CLIENT_ID` is not empty. | OAuth callback, which is also the callback URL of the GitHub App. Lists installations and repositories. Creates the tenant and the user at the first sign-in. |

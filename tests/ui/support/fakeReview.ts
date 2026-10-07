@@ -1,5 +1,6 @@
 import type { Actor } from '../../../assets/api/types/actor';
 import type { Anchor, AnchorInput } from '../../../assets/api/types/anchor';
+import type { Blame } from '../../../assets/api/types/blame';
 import type { CommitLink } from '../../../assets/api/types/commit-link';
 import type { ActorKind, Awaiting, Proposal, RequestStatus, Resolution, ThreadEntryType } from '../../../assets/api/types/common';
 import type { Draft } from '../../../assets/api/types/draft';
@@ -83,6 +84,8 @@ export class FakeReview {
     requests: Request[] = [];
     drafts: Draft[] = [];
     viewedPaths: string[] = [];
+    /** V17 by path. A renderable file without an entry has one commit for all its lines. */
+    readonly blames = new Map<string, Pick<Blame, 'ignoreRevsFile' | 'ranges' | 'commits'>>();
     deleted = false;
     readonly #files = new Map<string, StoredFile>();
     readonly #symbols: Record<string, CodeSymbol[]>;
@@ -372,6 +375,13 @@ export class FakeReview {
         return { ...base, kind: input.kind, range: input.range, symbol: null, snapshot: snapshot(file.lines, input.range) };
     }
 
+    #blame(content: FileContent, lineCount: number): Blame {
+        const commit = { sha: this.review.commitSha, authorName: 'Ada Lovelace', authoredAt: now(-30 * 86_400), summary: 'Add the file' };
+        const own = this.blames.get(content.path) ?? { ignoreRevsFile: false, ranges: 0 === lineCount ? [] : [{ startLine: 1, endLine: lineCount, commitSha: commit.sha }], commits: 0 === lineCount ? [] : [commit] };
+
+        return { reviewId: this.id, commitSha: this.review.commitSha, path: content.path, blobSha: content.blobSha, ...own };
+    }
+
     #tree(dir: string): TreeEntry[] {
         const prefix = '' === dir ? '' : `${dir}/`;
         const directories = new Set<string>();
@@ -436,6 +446,7 @@ export class FakeReview {
         }));
         api.on('GET', `${base}/file`, ours(({ query }) => this.#withFile(query, ({ content }) => json('file-content.schema.json', content))));
         api.on('GET', `${base}/raw`, ours(({ query }) => this.#withFile(query, ({ bytes }) => text(bytes))));
+        api.on('GET', `${base}/blame`, ours(({ query }) => this.#withFile(query, ({ content, lines }) => (content.renderable ? json('blame.schema.json', this.#blame(content, lines.length)) : apiError(422, 'invalid_input', 'Must name a renderable file.', { violations: [{ field: 'path', message: 'Must name a renderable file.' }] })))));
         api.on('GET', `${base}/symbols`, ours(({ query }) =>
             this.#withFile(query, ({ content }) => {
                 const language = SYMBOL_LANGUAGES.has(content.language) ? content.language : null;
