@@ -105,7 +105,7 @@ final class SymbolsApiTest extends WebTestCase
     {
         $review = $this->startReview();
         $uri = "/api/v1/reviews/{$review['id']}/symbols?path=src%2FBilling%2FInvoiceTotals.php";
-        $etag = 'W/"v4-'.$this->source->revParse('main:src/Billing/InvoiceTotals.php').'"';
+        $etag = 'W/"v5-'.$this->source->revParse('main:src/Billing/InvoiceTotals.php').'"';
 
         $first = self::apiRequest($this->client, 'GET', $uri);
         $notModified = self::apiRequest($this->client, 'GET', $uri, server: ['HTTP_IF_NONE_MATCH' => $etag]);
@@ -126,7 +126,7 @@ final class SymbolsApiTest extends WebTestCase
         $response = self::apiRequest($this->client, 'GET', "/api/v1/reviews/{$review['id']}/symbols?path=assets%2Ftotals.ts");
         $symbols = self::assertApiResponse($response, 200, 'lists.schema.json#/$defs/SymbolList');
 
-        self::assertSame('W/"v4-'.$this->source->revParse('main:assets/totals.ts').'"', $response->headers->get('ETag'));
+        self::assertSame('W/"v5-'.$this->source->revParse('main:assets/totals.ts').'"', $response->headers->get('ETag'));
         self::assertSame(['typescript', false], [$symbols['language'], $symbols['parseError']]);
         self::assertSame([
             ['kind' => 'class', 'fqn' => 'InvoiceTotals', 'name' => 'InvoiceTotals', 'parentFqn' => null, 'range' => ['startLine' => 1, 'endLine' => 8], 'declarationStartLine' => 4, 'docStartLine' => 1],
@@ -167,13 +167,30 @@ final class SymbolsApiTest extends WebTestCase
             $response = self::apiRequest($this->client, 'GET', "/api/v1/reviews/{$review['id']}/symbols?path=".rawurlencode($path));
             $symbols = self::assertApiResponse($response, 200, 'lists.schema.json#/$defs/SymbolList');
 
-            self::assertSame('W/"v4-'.$this->source->revParse("main:{$path}").'"', $response->headers->get('ETag'));
+            self::assertSame('W/"v5-'.$this->source->revParse("main:{$path}").'"', $response->headers->get('ETag'));
             self::assertSame([$language, false, $items], [
                 $symbols['language'],
                 $symbols['parseError'],
                 array_map(static fn (array $item): array => [$item['kind'], $item['fqn'], $item['parentFqn']], $symbols['items']),
             ]);
         }
+    }
+
+    #[TestDox('A Twig file gives language twig, its blocks and macros, and the ETag of V9')]
+    public function testTwigFileGivesItsSymbols(): void
+    {
+        $this->source->commit(['templates/invoice.html.twig' => "{## The page. #}\n{% block body %}\n    {{ _self.row(1)|money_format }}\n{% endblock %}\n\n{% macro row(cents) %}{{ cents }}{% endmacro %}\n"]);
+        $review = $this->startReview();
+
+        $response = self::apiRequest($this->client, 'GET', "/api/v1/reviews/{$review['id']}/symbols?path=templates%2Finvoice.html.twig");
+        $symbols = self::assertApiResponse($response, 200, 'lists.schema.json#/$defs/SymbolList');
+
+        self::assertSame('W/"v5-'.$this->source->revParse('main:templates/invoice.html.twig').'"', $response->headers->get('ETag'));
+        self::assertSame(['twig', false], [$symbols['language'], $symbols['parseError']]);
+        self::assertSame([
+            ['kind' => 'block', 'fqn' => 'body', 'name' => 'body', 'parentFqn' => null, 'range' => ['startLine' => 1, 'endLine' => 4], 'declarationStartLine' => 2, 'docStartLine' => 1],
+            ['kind' => 'function', 'fqn' => 'row()', 'name' => 'row', 'parentFqn' => null, 'range' => ['startLine' => 6, 'endLine' => 6], 'declarationStartLine' => 6, 'docStartLine' => null],
+        ], $symbols['items']);
     }
 
     #[TestDox('Identical bytes at a .js and a .ts path give each its own language, and one indexed_blob row')]

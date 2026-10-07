@@ -67,8 +67,8 @@ These two principles control all decisions.
 
 ### FR6 Anchors
 
-- Anchor types: line, line range, symbol, and file. A symbol is a class, interface, trait, enum, enum case, function, method, property, or constant, and in other languages also a struct, type, module, or macro.
-- Symbols are extracted for PHP with `nikic/php-parser`, and for JavaScript, JSX, TypeScript, TSX, Python, Go, Rust, Java, C#, Ruby, Bash, Scala, Zig, and Lua with tree-sitter (D56). A further language is a grammar, a query file, and a row in a language table.
+- Anchor types: line, line range, symbol, and file. A symbol is a class, interface, trait, enum, enum case, function, method, property, or constant, and in other languages also a struct, type, module, or macro, and in Twig a block.
+- Symbols are extracted for PHP with `nikic/php-parser`, for Twig with the Twig lexer (D60), and for JavaScript, JSX, TypeScript, TSX, Python, Go, Rust, Java, C#, Ruby, Bash, Scala, Zig, and Lua with tree-sitter (D56). A further language is a grammar, a query file, and a row in a language table.
 - Symbol selection feels like GitHub range selection. An action on a method selects the full method range, and the comment shows below the last line.
 - Each anchor stores enough data to find its code again after changes: path, line range, symbol FQN where applicable, content snapshot, and the SHA.
 - When re-anchoring fails, the request is flagged `orphaned`. A request is never dropped. The UI shows an outdated request as GitHub shows an outdated comment.

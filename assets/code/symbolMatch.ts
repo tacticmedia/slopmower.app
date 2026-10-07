@@ -50,7 +50,7 @@ export function symbolShortName({ fqn, name }: CodeSymbol): string {
 export const CLASS_LIKE_KINDS: ReadonlySet<string> = new Set(['class', 'interface', 'trait', 'enum', 'struct', 'module']);
 
 /** The kinds whose declaration line shows as a sticky scope line. */
-const SCOPE_KINDS: ReadonlySet<string> = new Set([...CLASS_LIKE_KINDS, 'function', 'method']);
+const SCOPE_KINDS: ReadonlySet<string> = new Set([...CLASS_LIKE_KINDS, 'function', 'method', 'block']);
 
 /**
  * The scopes that enclose `line` below their declaration line, outermost first, as GitHub's sticky lines show them.

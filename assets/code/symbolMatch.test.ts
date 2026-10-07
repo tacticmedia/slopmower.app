@@ -77,6 +77,13 @@ describe('EnclosingScopesTest', () => {
         expect(enclosingScopes(SYMBOLS, 60)).toEqual([CLASS]);
     });
 
+    it('Gives both Twig blocks of a line inside a nested block, outermost first', () => {
+        const body: CodeSymbol = { kind: 'block', fqn: 'body', name: 'body', parentFqn: null, range: { startLine: 10, endLine: 24 }, declarationStartLine: 13, docStartLine: 10 };
+        const lines: CodeSymbol = { ...body, fqn: 'lines', name: 'lines', range: { startLine: 16, endLine: 20 }, declarationStartLine: 16, docStartLine: null };
+
+        expect(enclosingScopes([lines, body], 18)).toEqual([body, lines]);
+    });
+
     it('Leaves out members that are not scopes', () => {
         const property: CodeSymbol = { ...TOTAL, kind: 'property', range: { startLine: 20, endLine: 30 }, declarationStartLine: 20 };
 

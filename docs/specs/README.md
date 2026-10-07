@@ -109,7 +109,7 @@ Fixtures: one file per code, `fixtures/error.<code>.json` with `-` in place of `
 |---|---|---|---|
 | `GET /reviews/{id}/raw`, `GET /repositories/{id}/blobs/{sha}` | `"<blobSha>"`, strong | `private, max-age=31536000, immutable` | When `If-None-Match` matches with the weak comparison, or is `*` |
 | `GET /reviews/{id}/file` | `W/"v2-<blobSha>"`. Increase `v2` when the representation changes, also for a new `language` value of a file name. | `private, no-cache` | Same rule |
-| `GET /reviews/{id}/symbols` | `W/"v4-<blobSha>"`. Increase `v4` when the representation changes, also for a changed grammar or query of a language. | `private, no-cache` | Same rule |
+| `GET /reviews/{id}/symbols` | `W/"v5-<blobSha>"`. Increase `v5` when the representation changes, also for a changed grammar or query of a language. | `private, no-cache` | Same rule |
 | `GET /reviews/{id}/blame` | `W/"v1-<commitSha>-<blobSha>"`, from the review commit and the file. Increase `v1` when the representation changes. | `private, no-cache` | Same rule |
 | Everything else | none | `no-store` | never |
 
@@ -184,6 +184,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Blame, decision D59: the endpoint V17 and the schema `Blame`. All are additive.
     - Quick open ranking, decision D54: V16 also matches a name by word starts, for example `CE` for `CommandExecutor`, ranks word starts between a name prefix and a name substring, and orders by the length of the name before the length of the path. The wire format does not change.
     - Symbols for more languages, decisions D56 and D57: V9, symbol anchors, and V16 also cover JavaScript, JSX, TypeScript, TSX, Python, Go, Rust, Java, C#, Ruby, Bash, Scala, Zig, and Lua files. `language` takes their V7 values, the open set `SymbolKind` gets `struct`, `type`, `module`, and `macro`, and the V9 ETag has its own version `v4`. V7 gives `scala`, `zig`, and `lua` for `.scala`, `.zig`, and `.lua` files, and its ETag is `v2`. V14 stays PHP only.
+    - Twig symbols, decision D60: V9, symbol anchors, and V16 also cover Twig files. `language` is `twig`, the open set `SymbolKind` gets `block`, and the V9 ETag is `v5`.
 
 ## 9. Contract tests
 

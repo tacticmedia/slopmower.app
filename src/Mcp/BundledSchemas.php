@@ -829,7 +829,7 @@ final class BundledSchemas
             'SymbolKind' => [
                 'anyOf' => [
                     [
-                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant', 'struct', 'type', 'module', 'macro'],
+                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant', 'struct', 'type', 'module', 'macro', 'block'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -1276,7 +1276,7 @@ final class BundledSchemas
             'SymbolKind' => [
                 'anyOf' => [
                     [
-                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant', 'struct', 'type', 'module', 'macro'],
+                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant', 'struct', 'type', 'module', 'macro', 'block'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -1848,7 +1848,7 @@ final class BundledSchemas
             'SymbolKind' => [
                 'anyOf' => [
                     [
-                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant', 'struct', 'type', 'module', 'macro'],
+                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant', 'struct', 'type', 'module', 'macro', 'block'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -2361,7 +2361,7 @@ final class BundledSchemas
             'SymbolKind' => [
                 'anyOf' => [
                     [
-                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant', 'struct', 'type', 'module', 'macro'],
+                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant', 'struct', 'type', 'module', 'macro', 'block'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -2806,7 +2806,7 @@ final class BundledSchemas
             'SymbolKind' => [
                 'anyOf' => [
                     [
-                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant', 'struct', 'type', 'module', 'macro'],
+                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant', 'struct', 'type', 'module', 'macro', 'block'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -3247,7 +3247,7 @@ final class BundledSchemas
             'SymbolKind' => [
                 'anyOf' => [
                     [
-                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant', 'struct', 'type', 'module', 'macro'],
+                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant', 'struct', 'type', 'module', 'macro', 'block'],
                     ],
                     ['type' => 'string'],
                 ],

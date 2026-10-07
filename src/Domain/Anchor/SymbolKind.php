@@ -20,4 +20,5 @@ enum SymbolKind: string
     case Type = 'type';
     case Module = 'module';
     case Macro = 'macro';
+    case Block = 'block';
 }

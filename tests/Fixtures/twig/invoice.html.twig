@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{% block title
+    invoice.number|money_format
+%}
+
+{#
+ # A plain comment is no documentation.
+ #}
+{## The invoice page. #}
+{# A plain comment between. #}
+{## It lists the lines. #}
+{% block body %}
+    <h1>{{ invoice.number }}</h1>
+    {% custom_tag invoice %}
+    {% block lines %}
+        {% for line in invoice.lines %}
+            {{ _self.row(line) }}
+        {% endfor %}
+    {% endblock lines %}
+    {% embed 'card.html.twig' %}
+        {% block lines %}Card{% endblock %}
+    {% endembed %}
+{% endblock %}
+
+{% macro row(line, currency = 'EUR') %}
+    <tr><td>{{ line.amount|money_format(currency) }}</td></tr>
+{% endmacro row %}

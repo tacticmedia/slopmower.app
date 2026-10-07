@@ -496,16 +496,16 @@ Vary: Authorization, Cookie
 
 - **Request:** `GET /api/v1/reviews/{reviewId}/symbols?path=`
 - **Authentication:** S, B
-- **Success:** 200 [`SymbolList`](schemas/lists.schema.json), or 304. The ETag is `W/"v4-<blobSha>"`, see [README section 6](README.md#6-caching-and-etags).
+- **Success:** 200 [`SymbolList`](schemas/lists.schema.json), or 304. The ETag is `W/"v5-<blobSha>"`, see [README section 6](README.md#6-caching-and-etags).
 - **Errors:** as [V7](#v7-get-file-metadata).
 
 Rules:
 
-- The server parses the files whose [V7](#v7-get-file-metadata) `language` is `php`, `javascript`, `jsx`, `typescript`, `tsx`, `python`, `go`, `rust`, `java`, `csharp`, `ruby`, `shellscript`, `scala`, `zig`, or `lua`, and returns that `language`. It reads the symbols from the `symbol` table by blob SHA. If the blob is not indexed yet, or is indexed for another language, the server parses it synchronously. It stores the result only for a blob that is not indexed. So this endpoint never waits for the index job.
+- The server parses the files whose [V7](#v7-get-file-metadata) `language` is `php`, `javascript`, `jsx`, `typescript`, `tsx`, `python`, `go`, `rust`, `java`, `csharp`, `ruby`, `shellscript`, `scala`, `zig`, `lua`, or `twig`, and returns that `language`. It reads the symbols from the `symbol` table by blob SHA. If the blob is not indexed yet, or is indexed for another language, the server parses it synchronously. It stores the result only for a blob that is not indexed. So this endpoint never waits for the index job.
 - Other files return `language: null` and `items: []`. A file of one of these languages that is not renderable, see [V7](#v7-get-file-metadata), returns its `language`, `parseError: false`, and `items: []`. The extension match ignores case.
 - A parse error returns `parseError: true` and `items: []`. A parse that takes more than 2 seconds is a parse error.
 - `range` includes the doc comment. See decision D7 in [architecture.md](../architecture.md). The FQN format of each language is in [architecture.md](../architecture.md#symbol-languages).
-- A failure of the symbol service answers 500 `internal_error` for a file that is not PHP. Nothing is stored.
+- A failure of the symbol service answers 500 `internal_error` for a file that is neither PHP nor Twig. Nothing is stored.
 - Items are sorted by `range.startLine`, then by `fqn`.
 
 Example response, [fixtures/lists.symbol-list.json](fixtures/lists.symbol-list.json):

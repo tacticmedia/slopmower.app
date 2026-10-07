@@ -52,7 +52,7 @@ type ThreadEntry = Request['thread'][number];
 const LANGUAGES: Record<string, string> = { php: 'php', md: 'markdown', ts: 'typescript' };
 
 /** The V7 languages that V9 parses. */
-const SYMBOL_LANGUAGES: ReadonlySet<string | null> = new Set(['php', 'javascript', 'jsx', 'typescript', 'tsx', 'python', 'go', 'rust', 'java', 'csharp', 'ruby', 'shellscript', 'scala', 'zig', 'lua']);
+const SYMBOL_LANGUAGES: ReadonlySet<string | null> = new Set(['php', 'javascript', 'jsx', 'typescript', 'tsx', 'python', 'go', 'rust', 'java', 'csharp', 'ruby', 'shellscript', 'scala', 'zig', 'lua', 'twig']);
 
 /** The `allowedActions` value of each command path of Q4, Q11 to Q13, Q15, Q16, and Q18. */
 const COMMAND_ACTIONS: Record<string, string> = {

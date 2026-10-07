@@ -77,6 +77,7 @@ export const SYMBOL_KINDS = [
     'type',
     'module',
     'macro',
+    'block',
 ] as const;
 export type KnownSymbolKind = (typeof SYMBOL_KINDS)[number];
 export type SymbolKind = OpenSet<KnownSymbolKind>;
