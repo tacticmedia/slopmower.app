@@ -94,6 +94,16 @@ final class SubmitBatchTest extends WebTestCase
         self::assertNull($submission['openedRequests'][0]['anchor']);
     }
 
+    #[TestDox('A draft with requireApproval opens a request that requires approval')]
+    public function testDraftOpensRequestThatRequiresApproval(): void
+    {
+        self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts", ['kind' => 'new_request', 'body' => 'Add a CSV export.', 'requireApproval' => true]), 201, 'draft.schema.json');
+
+        $submission = self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts/submit"), 201, 'batch-submission.schema.json');
+
+        self::assertSame([true], array_column($submission['openedRequests'], 'requireApproval'));
+    }
+
     #[TestDox('A draft created during a submission stays')]
     public function testDraftCreatedDuringSubmissionStays(): void
     {

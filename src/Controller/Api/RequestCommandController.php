@@ -6,12 +6,17 @@ namespace App\Controller\Api;
 
 use App\Application\Query\RequestQuery;
 use App\Application\RequestCommands;
+use App\Controller\Api\Input\ApproveProposalInput;
 use App\Controller\Api\Input\CommentInput;
 use App\Controller\Api\Input\OptionalNoteInput;
+use App\Controller\Api\Input\RejectProposalInput;
 use App\Controller\Api\Input\RequiredNoteInput;
 use App\Controller\Api\Input\WontDoInput;
 use App\Domain\Event\RecordedEvent;
+use App\Domain\Identity\EventId;
+use App\Domain\Request\Command\ApproveProposal;
 use App\Domain\Request\Command\MarkWontDo;
+use App\Domain\Request\Command\RejectProposal;
 use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
@@ -28,7 +33,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * Q4, Q6, and Q11 to Q13 of docs/specs/rest-api-requests.md section 3.
+ * Q4, Q6, Q11 to Q13, Q15, and Q16 of docs/specs/rest-api-requests.md section 3.
  */
 #[Route('/api/v1/requests/{requestId}', name: 'api_request_')]
 final class RequestCommandController extends AbstractController
@@ -89,6 +94,30 @@ final class RequestCommandController extends AbstractController
         \assert(null !== $input->note);
 
         return $this->result($request, $this->commands->reopen(new Reopen($request->getId(), $input->note), $this->currentActor->get()));
+    }
+
+    #[Route('/approve-proposal', name: 'approve_proposal', methods: ['POST'])]
+    #[IsGranted(User::ROLE, message: CurrentActor::SESSION_ONLY)]
+    public function approveProposal(
+        #[MapEntity(id: 'requestId')] ChangeRequest $request,
+        #[MapRequestPayload(acceptFormat: 'json')] ApproveProposalInput $input,
+    ): JsonResponse {
+        \assert(null !== $input->proposalEventId);
+        $command = new ApproveProposal($request->getId(), EventId::fromString($input->proposalEventId), $input->note);
+
+        return $this->result($request, $this->commands->approveProposal($command, $this->currentActor->get()));
+    }
+
+    #[Route('/reject-proposal', name: 'reject_proposal', methods: ['POST'])]
+    #[IsGranted(User::ROLE, message: CurrentActor::SESSION_ONLY)]
+    public function rejectProposal(
+        #[MapEntity(id: 'requestId')] ChangeRequest $request,
+        #[MapRequestPayload(acceptFormat: 'json')] RejectProposalInput $input,
+    ): JsonResponse {
+        \assert(null !== $input->proposalEventId && null !== $input->note);
+        $command = new RejectProposal($request->getId(), EventId::fromString($input->proposalEventId), $input->note);
+
+        return $this->result($request, $this->commands->rejectProposal($command, $this->currentActor->get()));
     }
 
     /**

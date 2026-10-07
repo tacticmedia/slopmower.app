@@ -20,6 +20,9 @@ use App\Domain\Event\EventType;
 use App\Domain\Event\RequestClaimedEvent;
 use App\Domain\Event\RequestCommentedEvent;
 use App\Domain\Event\RequestOpenedEvent;
+use App\Domain\Event\RequestProposalApprovedEvent;
+use App\Domain\Event\RequestProposalRejectedEvent;
+use App\Domain\Event\RequestProposedEvent;
 use App\Domain\Event\RequestReadyForReviewEvent;
 use App\Domain\Event\RequestReleasedEvent;
 use App\Domain\Event\RequestReopenedEvent;
@@ -34,9 +37,11 @@ use App\Domain\Git\RefName;
 use App\Domain\Git\RepoPath;
 use App\Domain\Identity\BatchId;
 use App\Domain\Identity\CommentId;
+use App\Domain\Identity\EventId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Request\CarriedFrom;
+use App\Domain\Request\ProposedDiff;
 use App\Tests\Support\Domain\EventFixtures;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -54,6 +59,7 @@ final class EventRoundTripTest extends KernelTestCase
     private const string COMMENT = '01K6C3C0MMENT0000000000001';
     private const string BATCH = '01K6B3P1Z8Y7X6W5V4T3S2R1Q0';
     private const string SOURCE_REVIEW = '01K6B3A1B2C3D4E5F6G7H8J9KM';
+    private const string PROPOSAL = '01K6C2EVT00000000000001862';
 
     #[TestDox('fromPayload(toPayload(event)) equals the event')]
     #[DataProvider('events')]
@@ -83,6 +89,15 @@ final class EventRoundTripTest extends KernelTestCase
         self::assertEquals(self::architectureExample(), EventType::RequestOpened->decode($payload));
     }
 
+    #[TestDox('A request.opened payload without requireApproval decodes with requireApproval false')]
+    public function testDecodesRequestOpenedWithoutRequireApproval(): void
+    {
+        $payload = self::eventFixturePayload('request.opened-general');
+        unset($payload['requireApproval']);
+
+        self::assertEquals(new RequestOpenedEvent(null, 'Add a full-screen focus mode.', null), EventType::RequestOpened->decode($payload));
+    }
+
     /**
      * @return iterable<string, array{string, DomainEvent}>
      */
@@ -98,7 +113,7 @@ final class EventRoundTripTest extends KernelTestCase
             null,
         )];
 
-        yield 'request.opened without an anchor' => ['request.opened-general', new RequestOpenedEvent(null, 'Add a full-screen focus mode.', null)];
+        yield 'request.opened without an anchor' => ['request.opened-general', new RequestOpenedEvent(null, 'Add a full-screen focus mode.', null, requireApproval: true)];
 
         yield 'request.opened with carriedFrom' => ['request.opened-carried', new RequestOpenedEvent(
             null,
@@ -136,6 +151,12 @@ final class EventRoundTripTest extends KernelTestCase
             EventType::RequestWontDo => new RequestWontDoEvent(WontDoReason::fromString('The PDF library API requires float amounts.')),
             EventType::RequestVerified => new RequestVerifiedEvent(null),
             EventType::RequestReopened => new RequestReopenedEvent('The tax line still uses float: 0.1 + 0.2 ≠ 0.3.'),
+            EventType::RequestProposed => new RequestProposedEvent(
+                'Extract `TaxRounding` and call it from `total()` and `tax()`.',
+                ProposedDiff::fromString("diff --git a/src/Billing/InvoiceTotals.php b/src/Billing/InvoiceTotals.php\n--- a/src/Billing/InvoiceTotals.php\n+++ b/src/Billing/InvoiceTotals.php\n@@ -40 +40 @@\n-        \$sum = 0.0;\n+        \$sum = Money::zero();\n"),
+            ),
+            EventType::RequestProposalApproved => new RequestProposalApprovedEvent(EventId::fromString(self::PROPOSAL), null),
+            EventType::RequestProposalRejected => new RequestProposalRejectedEvent(EventId::fromString(self::PROPOSAL), 'Put the export into `InvoiceTotals` itself. One class is enough.'),
             EventType::BatchSubmitted => new BatchSubmittedEvent(
                 BatchId::fromString(self::BATCH),
                 'First pass over billing.',

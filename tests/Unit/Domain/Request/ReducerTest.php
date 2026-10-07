@@ -25,6 +25,7 @@ use App\Domain\Request\RequestState;
 use App\Domain\Request\RequestStatus;
 use App\Domain\Review\ReviewSnapshot;
 use App\Tests\Support\Domain\RequestScenario;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -129,6 +130,61 @@ final class ReducerTest extends KernelTestCase
         self::assertSame([...$started, ...$closed], self::reviewFields($scenario->review()), 'review.closed');
     }
 
+    #[TestDox('A proposal is pending, then approved, rejected, or superseded, and a decision is a user message')]
+    public function testProposalLifecycle(): void
+    {
+        $scenario = RequestScenario::inState('in_progress');
+        $user = RequestScenario::user();
+
+        $first = self::proposalEventId($scenario);
+        self::assertSame([$first, 'pending'], self::proposal($scenario->state()));
+
+        $second = self::proposalEventId($scenario);
+        self::assertSame([$second, 'pending'], self::proposal($scenario->state()), 'superseded');
+
+        $scenario->run($scenario->validCommand('reject_proposal'), $user);
+        self::assertSame([$second, 'rejected'], self::proposal($scenario->state()));
+        self::assertSame($scenario->lastSeq(), $scenario->state()->lastUserCommentSeq);
+
+        $third = self::proposalEventId($scenario);
+        $scenario->run($scenario->validCommand('approve_proposal'), $user);
+        self::assertSame([$third, 'approved'], self::proposal($scenario->state()));
+        self::assertSame($scenario->lastSeq(), $scenario->state()->lastUserCommentSeq);
+
+        $scenario->run(new MarkReadyForReview($scenario->requestId(), 'Done.'), RequestScenario::claimingAgent());
+        self::assertSame([$third, 'approved'], self::proposal($scenario->state()), 'ready_for_review');
+    }
+
+    /**
+     * @param \Closure(RequestScenario): mixed $end
+     */
+    #[TestDox('$step sets the proposal to null')]
+    #[DataProvider('claimEnds')]
+    public function testClaimEndClearsTheProposal(string $step, \Closure $end): void
+    {
+        $scenario = RequestScenario::inState('proposal pending');
+
+        $end($scenario);
+
+        self::assertNull($scenario->state()->proposal);
+    }
+
+    /**
+     * @return iterable<string, array{string, \Closure(RequestScenario): mixed}>
+     */
+    public static function claimEnds(): iterable
+    {
+        $agent = RequestScenario::claimingAgent();
+
+        yield 'release' => ['request.released', static fn (RequestScenario $scenario) => $scenario->run(new Release($scenario->requestId()), $agent)];
+        yield 'wont_do' => ['request.wont_do', static fn (RequestScenario $scenario) => $scenario->run(new MarkWontDo($scenario->requestId(), RequestScenario::REASON), $agent)];
+        yield 'reopen' => ['request.reopened', static function (RequestScenario $scenario) use ($agent): void {
+            $scenario->run($scenario->validCommand('approve_proposal'), RequestScenario::user());
+            $scenario->run(new MarkReadyForReview($scenario->requestId(), 'Done.'), $agent);
+            $scenario->run(new Reopen($scenario->requestId(), 'Also cover the shipping totals.'), RequestScenario::user());
+        }];
+    }
+
     #[TestDox('A general request opens without an anchor')]
     public function testGeneralRequestOpensWithoutAnAnchor(): void
     {
@@ -152,6 +208,25 @@ final class ReducerTest extends KernelTestCase
 
         self::assertSame([self::LINKED => 'pending', self::OTHER => 'available'], self::fields($scenario->state())['links']);
         self::assertSame(RequestStatus::InProgress, $scenario->state()->status);
+    }
+
+    /**
+     * The claiming agent proposes. Returns the ID of the request.proposed event.
+     */
+    private static function proposalEventId(RequestScenario $scenario): string
+    {
+        $scenario->propose();
+        $proposal = $scenario->state()->proposal ?? throw new \LogicException('No proposal.');
+
+        return $proposal->eventId->toString();
+    }
+
+    /**
+     * @return array{string, string}|null
+     */
+    private static function proposal(RequestState $state): ?array
+    {
+        return null === $state->proposal ? null : [$state->proposal->eventId->toString(), $state->proposal->state->value];
     }
 
     private static function found(string $sha, RequestScenario $scenario): DecidedEvent

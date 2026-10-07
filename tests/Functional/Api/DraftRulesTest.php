@@ -112,6 +112,33 @@ final class DraftRulesTest extends WebTestCase
         self::assertSame([$patched], self::listDrafts($this->client, $this->reviewId));
     }
 
+    #[TestDox('D2 and D3 store requireApproval of a new request, and a PATCH without it keeps it')]
+    public function testDraftStoresRequireApproval(): void
+    {
+        $draft = self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts", ['kind' => 'new_request', 'body' => 'Add a CSV export.', 'requireApproval' => true]), 201, 'draft.schema.json');
+        self::assertTrue($draft['requireApproval']);
+
+        $kept = self::assertApiResponse(self::apiRequest($this->client, 'PATCH', "/api/v1/drafts/{$draft['id']}", ['body' => 'Add a CSV export of the totals.']), 200, 'draft.schema.json');
+        $changed = self::assertApiResponse(self::apiRequest($this->client, 'PATCH', "/api/v1/drafts/{$draft['id']}", ['body' => 'Add a CSV export of the totals.', 'requireApproval' => false]), 200, 'draft.schema.json');
+
+        self::assertSame([true, false], [$kept['requireApproval'], $changed['requireApproval']]);
+        self::assertSame([$changed], self::listDrafts($this->client, $this->reviewId));
+    }
+
+    #[TestDox('requireApproval on a reply draft gives 422 in D2 and D3')]
+    public function testReplyDraftRefusesRequireApproval(): void
+    {
+        $requestId = (string) self::openRequest($this->client, $this->reviewId)['id'];
+        $reply = self::createReplyDraft($this->client, $this->reviewId, $requestId);
+        self::assertFalse($reply['requireApproval']);
+
+        $created = self::assertApiError(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts", ['kind' => 'reply', 'requestId' => $requestId, 'body' => 'Plan first.', 'requireApproval' => true]), 422, 'invalid_input');
+        $updated = self::assertApiError(self::apiRequest($this->client, 'PATCH', "/api/v1/drafts/{$reply['id']}", ['body' => 'Plan first.', 'requireApproval' => true]), 422, 'invalid_input');
+
+        self::assertSame([['requireApproval'], ['requireApproval']], [array_column($created['details']['violations'] ?? [], 'field'), array_column($updated['details']['violations'] ?? [], 'field')]);
+        self::assertSame([$reply], self::listDrafts($this->client, $this->reviewId));
+    }
+
     #[TestDox("Another user's PATCH and DELETE of a draft give 404 not_found")]
     public function testOtherUsersDraftIsNotFound(): void
     {
@@ -157,7 +184,7 @@ final class DraftRulesTest extends WebTestCase
         $anchor = Anchor::of(AnchorKind::File, RepoPath::fromString('README.md'), $review->getCommitSha(), BlobSha::fromString('e965047ad7c57865823c7d992b1d046ea66edf78'), null, null, null);
 
         for ($i = 0; $i < $count; ++$i) {
-            $entityManager->persist(Draft::newRequest($user, $review, $anchor, "Draft {$i}.", Clock::get()->now()));
+            $entityManager->persist(Draft::newRequest($user, $review, $anchor, "Draft {$i}.", false, Clock::get()->now()));
         }
 
         $entityManager->flush();

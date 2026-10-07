@@ -41,6 +41,12 @@
       "maxLength": 65536,
       "description": "GitHub-flavoured Markdown with at least one non-whitespace character."
     },
+    "UnifiedDiff": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 65536,
+      "description": "Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `."
+    },
     "Cursor": {
       "type": "string",
       "minLength": 1,
@@ -88,6 +94,22 @@
     "OrphanReason": {
       "enum": ["file_deleted", "region_deleted", "ambiguous", "content_not_found"]
     },
+    "ProposalState": {
+      "enum": ["pending", "approved", "rejected"]
+    },
+    "Proposal": {
+      "type": "object",
+      "required": ["eventId", "state"],
+      "properties": {
+        "eventId": {
+          "$ref": "#/$defs/Ulid",
+          "description": "The request.proposed event."
+        },
+        "state": {
+          "$ref": "#/$defs/ProposalState"
+        }
+      }
+    },
     "SymbolKind": {
       "anyOf": [
         {
@@ -102,7 +124,7 @@
     "Action": {
       "anyOf": [
         {
-          "enum": ["reply", "claim", "release", "link_commits", "unlink_commit", "mark_ready_for_review", "mark_wont_do", "verify", "reopen"]
+          "enum": ["reply", "claim", "release", "link_commits", "unlink_commit", "mark_ready_for_review", "mark_wont_do", "verify", "reopen", "propose_solution", "approve_proposal", "reject_proposal"]
         },
         {
           "type": "string"
@@ -113,7 +135,7 @@
     "EventType": {
       "anyOf": [
         {
-          "enum": ["review.started", "review.closed", "request.opened", "request.commented", "request.claimed", "request.released", "commit.linked", "commit.unlinked", "commit.found", "request.ready_for_review", "request.wont_do", "request.verified", "request.reopened", "batch.submitted"]
+          "enum": ["review.started", "review.closed", "request.opened", "request.commented", "request.claimed", "request.released", "commit.linked", "commit.unlinked", "commit.found", "request.ready_for_review", "request.wont_do", "request.verified", "request.reopened", "request.proposed", "request.proposal_approved", "request.proposal_rejected", "batch.submitted"]
         },
         {
           "type": "string"
@@ -124,7 +146,7 @@
     "ThreadEntryType": {
       "anyOf": [
         {
-          "enum": ["request.opened", "request.commented", "request.claimed", "request.released", "commit.linked", "commit.unlinked", "commit.found", "request.ready_for_review", "request.wont_do", "request.verified", "request.reopened"]
+          "enum": ["request.opened", "request.commented", "request.claimed", "request.released", "commit.linked", "commit.unlinked", "commit.found", "request.ready_for_review", "request.wont_do", "request.verified", "request.reopened", "request.proposed", "request.proposal_approved", "request.proposal_rejected"]
         },
         {
           "type": "string"

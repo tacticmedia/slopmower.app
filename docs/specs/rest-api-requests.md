@@ -17,6 +17,9 @@ This file continues [rest-api.md](rest-api.md). That file has the conventions, t
 | won't do | [Q11](#q11-mark-wont-do) | `mark_wont_do` | agent, which must be the claiming agent when `in_progress`, or user | `open`, `reopened`, `in_progress` | `wont_do` | `request.wont_do` | 409 |
 | verify | [Q12](#q12-verify-a-request) | none | user | `ready_for_review`; `wont_do` set by an agent | `verified` | `request.verified` | 409 |
 | reopen | [Q13](#q13-reopen-a-request) | none | user | `ready_for_review`, `wont_do`, `verified` | `reopened` | `request.reopened` | 409 |
+| propose | [Q14](#q14-propose-a-solution) | `propose_solution` | the claiming agent | `in_progress` | unchanged | `request.proposed` | A new proposal replaces the current one |
+| approve proposal | [Q15](#q15-approve-a-proposal) | none | user | `in_progress` with a pending proposal | unchanged | `request.proposal_approved` | 409 |
+| reject proposal | [Q16](#q16-reject-a-proposal) | none | user | `in_progress` with a pending proposal | unchanged | `request.proposal_rejected` | 409 |
 
 Rules:
 
@@ -34,6 +37,14 @@ Rules:
 
 General requests: a request with `anchor: null` belongs to the whole review and names no file, line, or symbol. It has no capture, so `location` and `excerpt` are null, `outdated` stays null, and `touchesAnchor` is false. No file view shows it. Its lifecycle and `allowedActions` are the same as for a request with an anchor, and a `new_request` draft can be general.
 
+Proposals: the claiming agent proposes a solution in the thread, a Markdown plan with an optional unified diff, before it links commits.
+
+- `proposal` is the current proposal of the claim: `{eventId, state}` with the state `pending`, `approved`, or `rejected`, else null. A new proposal replaces the current one, whatever its state. Release, won't do, and reopen set it to null, so after a reopen the agent proposes again. `ready_for_review` and `verified` keep it.
+- `requireApproval` ("Ask for a plan first") is set when the request opens and does not change after that. A carried request keeps the value of its source.
+- The proposal gate is open when `proposal` is null or approved, and approved when `requireApproval` is true. `link_commits` and `mark_ready_for_review` need it. So a pending or rejected proposal always blocks them.
+- A decision names the proposal in `proposalEventId`. While a proposal is pending, another ID gives 422 `invalid_input`, so the user never approves a proposal that a newer one replaced. Without a pending proposal, the decision gets 409 `invalid_transition`.
+- A decision counts as a user message for `awaiting` rule 2, and a pending proposal waits for the user by rule 3.
+
 `allowedActions` for the caller. It is empty when the review is closed.
 
 | Action | Agent caller | User caller |
@@ -41,12 +52,15 @@ General requests: a request with `anchor: null` belongs to the whole review and 
 | `reply` | always | always |
 | `claim` | status `open` or `reopened` | never |
 | `release` | `in_progress` and claimed by the caller | `in_progress` |
-| `link_commits` | `in_progress` and claimed by the caller | never |
-| `unlink_commit` | as `link_commits`, and at least one link exists | never |
-| `mark_ready_for_review` | `in_progress` and claimed by the caller | never |
+| `link_commits` | `in_progress`, claimed by the caller, and the proposal gate is open | never |
+| `unlink_commit` | `in_progress`, claimed by the caller, and at least one link exists | never |
+| `mark_ready_for_review` | `in_progress`, claimed by the caller, and the proposal gate is open | never |
 | `mark_wont_do` | `open` or `reopened`, or `in_progress` claimed by the caller | `open`, `reopened`, `in_progress` |
 | `verify` | never | `ready_for_review`, or `wont_do` whose last `request.wont_do` actor is an agent |
 | `reopen` | never | `ready_for_review`, `wont_do`, `verified` |
+| `propose_solution` | `in_progress` and claimed by the caller | never |
+| `approve_proposal` | never | `in_progress` with a pending proposal |
+| `reject_proposal` | never | `in_progress` with a pending proposal |
 
 ## 2. Queries
 
@@ -76,8 +90,8 @@ Example response, [fixtures/lists.request-page.json](fixtures/lists.request-page
   "total": 2,
   "nextCursor": null,
   "items": [
-    {"id":"01K6B3P2A9QRSTVWXYZ0123456","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","status":"open","awaiting":"agent","resolution":null,"closed":false,"anchor":{"kind":"symbol","path":"src/Billing/InvoiceTotals.php","range":{"startLine":38,"endLine":49},"symbol":{"language":"php","kind":"method","fqn":"App\\Billing\\InvoiceTotals::total()"}},"summary":"Use `Money` instead of `float` for totals.","author":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"claimedBy":null,"claimedAt":null,"commentCount":0,"commitCount":0,"pendingCommitCount":0,"outdated":false,"createdAt":"2026-09-29T07:20:00Z","updatedAt":"2026-09-29T07:20:00Z","lastEventSeq":1830,"carriedFrom":null},
-    {"id":"01K6B3P2A9QRSTVWXYZ0123457","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","status":"open","awaiting":"agent","resolution":null,"closed":false,"anchor":{"kind":"range","path":"src/Billing/InvoiceTotals.php","range":{"startLine":52,"endLine":58},"symbol":null},"summary":"Extract the tax rounding into `TaxRounding`.","author":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"claimedBy":null,"claimedAt":null,"commentCount":1,"commitCount":0,"pendingCommitCount":0,"outdated":false,"createdAt":"2026-09-29T07:10:00Z","updatedAt":"2026-09-29T07:20:00Z","lastEventSeq":1831,"carriedFrom":null}
+    {"id":"01K6B3P2A9QRSTVWXYZ0123456","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","status":"open","awaiting":"agent","resolution":null,"closed":false,"anchor":{"kind":"symbol","path":"src/Billing/InvoiceTotals.php","range":{"startLine":38,"endLine":49},"symbol":{"language":"php","kind":"method","fqn":"App\\Billing\\InvoiceTotals::total()"}},"summary":"Use `Money` instead of `float` for totals.","author":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"claimedBy":null,"claimedAt":null,"commentCount":0,"commitCount":0,"pendingCommitCount":0,"outdated":false,"createdAt":"2026-09-29T07:20:00Z","updatedAt":"2026-09-29T07:20:00Z","lastEventSeq":1830,"carriedFrom":null,"requireApproval":false,"proposal":null},
+    {"id":"01K6B3P2A9QRSTVWXYZ0123457","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","status":"open","awaiting":"agent","resolution":null,"closed":false,"anchor":{"kind":"range","path":"src/Billing/InvoiceTotals.php","range":{"startLine":52,"endLine":58},"symbol":null},"summary":"Extract the tax rounding into `TaxRounding`.","author":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"claimedBy":null,"claimedAt":null,"commentCount":1,"commitCount":0,"pendingCommitCount":0,"outdated":false,"createdAt":"2026-09-29T07:10:00Z","updatedAt":"2026-09-29T07:20:00Z","lastEventSeq":1831,"carriedFrom":null,"requireApproval":false,"proposal":null}
   ]
 }
 ```
@@ -130,20 +144,22 @@ Example response for `GET /api/v1/requests/01K6B3P2A9QRSTVWXYZ0123456?at=a1b2c3d
   "updatedAt": "2026-09-29T07:45:00Z",
   "lastEventSeq": 1842,
   "carriedFrom": null,
+  "requireApproval": false,
+  "proposal": null,
   "body": "Use `Money` instead of `float` for totals.",
   "reviewState": "open",
   "reviewCommitSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091",
   "location": {"target":"requested","targetSha":"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678","status":"changed","path":"src/Billing/InvoiceTotals.php","range":{"startLine":38,"endLine":51},"confidence":1,"reason":null},
   "excerpt": null,
   "thread": [
-    {"seq":1830,"eventId":"01K6C2EVT00000000000001830","type":"request.opened","actor":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"occurredAt":"2026-09-29T07:20:00Z","body":"Use `Money` instead of `float` for totals.","commentId":null,"question":false,"batchId":"01K6B3P1Z8Y7X6W5V4T3S2R1Q0","commitSha":null,"statusAfter":"open"},
-    {"seq":1840,"eventId":"01K6C2EVT00000000000001840","type":"request.claimed","actor":{"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},"occurredAt":"2026-09-29T07:40:00Z","body":null,"commentId":null,"question":false,"batchId":null,"commitSha":null,"statusAfter":"in_progress"},
-    {"seq":1842,"eventId":"01K6C2EVT00000000000001842","type":"commit.linked","actor":{"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},"occurredAt":"2026-09-29T07:45:00Z","body":"One refactoring covers both.","commentId":null,"question":false,"batchId":null,"commitSha":"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678","statusAfter":"in_progress"}
+    {"seq":1830,"eventId":"01K6C2EVT00000000000001830","type":"request.opened","actor":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"occurredAt":"2026-09-29T07:20:00Z","body":"Use `Money` instead of `float` for totals.","diff":null,"commentId":null,"question":false,"batchId":"01K6B3P1Z8Y7X6W5V4T3S2R1Q0","commitSha":null,"statusAfter":"open"},
+    {"seq":1840,"eventId":"01K6C2EVT00000000000001840","type":"request.claimed","actor":{"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},"occurredAt":"2026-09-29T07:40:00Z","body":null,"diff":null,"commentId":null,"question":false,"batchId":null,"commitSha":null,"statusAfter":"in_progress"},
+    {"seq":1842,"eventId":"01K6C2EVT00000000000001842","type":"commit.linked","actor":{"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},"occurredAt":"2026-09-29T07:45:00Z","body":"One refactoring covers both.","diff":null,"commentId":null,"question":false,"batchId":null,"commitSha":"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678","statusAfter":"in_progress"}
   ],
   "commits": [
     {"commitSha":"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678","state":"available","linkedBy":{"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},"linkedAt":"2026-09-29T07:45:00Z","note":"One refactoring covers both.","foundAt":"2026-09-29T07:45:00Z","subject":"Use Money for invoice totals (01K6B3P2A9QRSTVWXYZ0123456)","committedAt":"2026-09-29T07:44:10Z","otherRequestIds":["01K6B3P2A9QRSTVWXYZ0123457"]}
   ],
-  "allowedActions": ["reply","release","link_commits","unlink_commit","mark_ready_for_review","mark_wont_do"]
+  "allowedActions": ["reply","release","link_commits","unlink_commit","mark_ready_for_review","mark_wont_do","propose_solution"]
 }
 ```
 
@@ -196,7 +212,7 @@ All command responses except Q2 and Q7 are [`RequestCommandResult`](schemas/requ
 
 - **Request:** `POST /api/v1/reviews/{reviewId}/requests`
 - **Authentication:** S
-- **Body:** [`OpenRequestInput`](schemas/inputs.schema.json), `{anchor?: AnchorInput|null, body}`.
+- **Body:** [`OpenRequestInput`](schemas/inputs.schema.json), `{anchor?: AnchorInput|null, body, requireApproval?}`. `requireApproval` defaults to false. Example with "Ask for a plan first": [fixtures/inputs.open-request-approval.json](fixtures/inputs.open-request-approval.json).
 - **Success:** 201 [`Request`](schemas/request.schema.json) in full, with `Location: /api/v1/requests/{id}`. Examples: [fixtures/request.opened-range.json](fixtures/request.opened-range.json), [fixtures/request.general.json](fixtures/request.general.json).
 - **Errors:**
   - 422 `invalid_input`: unknown path, range outside the file, FQN not found or ambiguous, kind and fields do not agree, or the file is not renderable or not valid UTF-8 for a `line`, `range`, or `symbol` anchor;
@@ -344,6 +360,32 @@ Example error, [fixtures/error.invalid-input.json](fixtures/error.invalid-input.
 - **Success:** 200 `RequestCommandResult`.
 - **Errors:** 409 `invalid_transition`, 409 `review_closed`.
 
+### Q14 Propose a solution
+
+- **Request:** `POST /api/v1/requests/{requestId}/propose`
+- **Authentication:** B
+- **Body:** [`ProposeSolutionInput`](schemas/inputs.schema.json), `{plan, diff?}`. `diff` is the output of `git diff` for the change, 1 to 9 files. Example: [fixtures/inputs.propose-solution.json](fixtures/inputs.propose-solution.json).
+- **Success:** 200 `RequestCommandResult` with one `request.proposed` event. Its `body` is the plan, and its `diff` the diff. Example: [fixtures/request-command-result.proposed.json](fixtures/request-command-result.proposed.json).
+- **Errors:** 422 `invalid_input`: a plan of whitespace only, or a diff that is not in git format, has more than 9 files, or is too long; 409 `invalid_transition`, 409 `review_closed`.
+
+The proposal replaces the current one, also an approved one. The request then waits for the user. Example of the request, read by the user: [fixtures/request.proposal-pending.json](fixtures/request.proposal-pending.json).
+
+### Q15 Approve a proposal
+
+- **Request:** `POST /api/v1/requests/{requestId}/approve-proposal`
+- **Authentication:** S
+- **Body:** [`ApproveProposalInput`](schemas/inputs.schema.json), `{proposalEventId, note?}`. Example: [fixtures/inputs.approve-proposal.json](fixtures/inputs.approve-proposal.json).
+- **Success:** 200 `RequestCommandResult` with one `request.proposal_approved` event. `proposal.state` becomes `approved`, and the request waits for the agent.
+- **Errors:** 422 `invalid_input`: `proposalEventId` is not the pending proposal; 409 `invalid_transition`: no proposal is pending; 409 `review_closed`.
+
+### Q16 Reject a proposal
+
+- **Request:** `POST /api/v1/requests/{requestId}/reject-proposal`
+- **Authentication:** S
+- **Body:** [`RejectProposalInput`](schemas/inputs.schema.json), `{proposalEventId, note}`. The note says what to change. Example: [fixtures/inputs.reject-proposal.json](fixtures/inputs.reject-proposal.json).
+- **Success:** 200 `RequestCommandResult` with one `request.proposal_rejected` event. `proposal.state` becomes `rejected`, and the request waits for the agent, which proposes again.
+- **Errors:** as [Q15](#q15-approve-a-proposal), and 422 `invalid_input` for a note of whitespace only.
+
 ## 4. Updates
 
 - **Request:** `GET /api/v1/reviews/{reviewId}/updates`, endpoint [V10](rest-api.md#v10-get-updates)
@@ -383,7 +425,7 @@ Example response for `cursor=1842`, [fixtures/updates-page.cursor.json](fixtures
   "hasMore": false,
   "awaitingTotal": 1,
   "requests": [
-    {"request":{"id":"01K6B3P2A9QRSTVWXYZ0123456","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","status":"in_progress","awaiting":"agent","resolution":null,"closed":false,"anchor":{"kind":"symbol","path":"src/Billing/InvoiceTotals.php","range":{"startLine":38,"endLine":49},"symbol":{"language":"php","kind":"method","fqn":"App\\Billing\\InvoiceTotals::total()"}},"summary":"Use `Money` instead of `float` for totals.","author":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"claimedBy":{"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},"claimedAt":"2026-09-29T07:40:00Z","commentCount":1,"commitCount":1,"pendingCommitCount":0,"outdated":false,"createdAt":"2026-09-29T07:20:00Z","updatedAt":"2026-09-29T07:50:00Z","lastEventSeq":1850,"carriedFrom":null},"newEvents":[{"seq":1850,"eventId":"01K6C2EVT00000000000001850","type":"request.commented","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","requestId":"01K6B3P2A9QRSTVWXYZ0123456","requestIds":["01K6B3P2A9QRSTVWXYZ0123456"],"actor":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"occurredAt":"2026-09-29T07:50:00Z","body":"Keep the old method as deprecated for one release.","commentId":"01K6C3C0MMENT0000000000002","question":false,"batchId":null,"commitSha":null,"statusAfter":"in_progress"}],"omittedEvents":0}
+    {"request":{"id":"01K6B3P2A9QRSTVWXYZ0123456","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","status":"in_progress","awaiting":"agent","resolution":null,"closed":false,"anchor":{"kind":"symbol","path":"src/Billing/InvoiceTotals.php","range":{"startLine":38,"endLine":49},"symbol":{"language":"php","kind":"method","fqn":"App\\Billing\\InvoiceTotals::total()"}},"summary":"Use `Money` instead of `float` for totals.","author":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"claimedBy":{"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},"claimedAt":"2026-09-29T07:40:00Z","commentCount":1,"commitCount":1,"pendingCommitCount":0,"outdated":false,"createdAt":"2026-09-29T07:20:00Z","updatedAt":"2026-09-29T07:50:00Z","lastEventSeq":1850,"carriedFrom":null,"requireApproval":false,"proposal":null},"newEvents":[{"seq":1850,"eventId":"01K6C2EVT00000000000001850","type":"request.commented","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","requestId":"01K6B3P2A9QRSTVWXYZ0123456","requestIds":["01K6B3P2A9QRSTVWXYZ0123456"],"actor":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"occurredAt":"2026-09-29T07:50:00Z","body":"Keep the old method as deprecated for one release.","diff":null,"commentId":"01K6C3C0MMENT0000000000002","question":false,"batchId":null,"commitSha":null,"statusAfter":"in_progress"}],"omittedEvents":0}
   ],
   "reviewEvents": []
 }
@@ -406,11 +448,11 @@ It also works on a closed review, so the user can delete drafts that are left.
 
 - **Request:** `POST /api/v1/reviews/{reviewId}/drafts`
 - **Authentication:** S
-- **Body:** [`CreateDraftInput`](schemas/inputs.schema.json), one of `{"kind":"new_request","anchor":AnchorInput,"body":"..."}`, the general form `{"kind":"new_request","anchor":null,"body":"..."}`, or `{"kind":"reply","requestId":"...","body":"..."}`. Examples: [fixtures/inputs.create-draft-new-request.json](fixtures/inputs.create-draft-new-request.json), [fixtures/inputs.create-draft-general-request.json](fixtures/inputs.create-draft-general-request.json), [fixtures/inputs.create-draft-reply.json](fixtures/inputs.create-draft-reply.json).
+- **Body:** [`CreateDraftInput`](schemas/inputs.schema.json), one of `{"kind":"new_request","anchor":AnchorInput,"body":"..."}`, the general form `{"kind":"new_request","anchor":null,"body":"..."}`, or `{"kind":"reply","requestId":"...","body":"..."}`. A `new_request` takes `requireApproval?`, default false, which the submission passes to the opened request. Examples: [fixtures/inputs.create-draft-new-request.json](fixtures/inputs.create-draft-new-request.json), [fixtures/inputs.create-draft-general-request.json](fixtures/inputs.create-draft-general-request.json), [fixtures/inputs.create-draft-reply.json](fixtures/inputs.create-draft-reply.json).
 - **Success:** 201 [`Draft`](schemas/draft.schema.json) with `Location: /api/v1/drafts/{id}`. Examples: [fixtures/draft.new-request.json](fixtures/draft.new-request.json), [fixtures/draft.new-general-request.json](fixtures/draft.new-general-request.json), [fixtures/draft.reply.json](fixtures/draft.reply.json).
 - **Errors:**
   - 404 `not_found`: the request is unknown;
-  - 422 `invalid_input`: anchor errors, or the request belongs to another review;
+  - 422 `invalid_input`: anchor errors, the request belongs to another review, or a reply with `requireApproval`;
   - 409 `review_closed`;
   - 409 `repository_unavailable`: the clone is gone, for a `new_request` draft with an anchor.
 
@@ -420,9 +462,9 @@ The server captures and validates the anchor at creation, as in [Q2](#q2-open-a-
 
 - **Request:** `PATCH /api/v1/drafts/{draftId}`
 - **Authentication:** S
-- **Body:** [`UpdateDraftInput`](schemas/inputs.schema.json), `{body}`. Example: [fixtures/inputs.update-draft.json](fixtures/inputs.update-draft.json).
+- **Body:** [`UpdateDraftInput`](schemas/inputs.schema.json), `{body, requireApproval?}`. An absent or null `requireApproval` keeps the value. Example: [fixtures/inputs.update-draft.json](fixtures/inputs.update-draft.json).
 - **Success:** 200 [`Draft`](schemas/draft.schema.json)
-- **Errors:** 409 `review_closed`.
+- **Errors:** 422 `invalid_input` for `requireApproval` on a reply draft; 409 `review_closed`.
 
 The anchor cannot change. To move a draft, delete it and create a new one.
 
@@ -458,7 +500,7 @@ Example response, [fixtures/batch-submission.submitted.json](fixtures/batch-subm
   "submittedAt": "2026-09-29T07:20:00Z",
   "seq": 1832,
   "openedRequests": [
-    {"id":"01K6B3P2A9QRSTVWXYZ0123456","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","status":"open","awaiting":"agent","resolution":null,"closed":false,"anchor":{"kind":"symbol","path":"src/Billing/InvoiceTotals.php","range":{"startLine":38,"endLine":49},"symbol":{"language":"php","kind":"method","fqn":"App\\Billing\\InvoiceTotals::total()"}},"summary":"Use `Money` instead of `float` for totals.","author":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"claimedBy":null,"claimedAt":null,"commentCount":0,"commitCount":0,"pendingCommitCount":0,"outdated":null,"createdAt":"2026-09-29T07:20:00Z","updatedAt":"2026-09-29T07:20:00Z","lastEventSeq":1830,"carriedFrom":null}
+    {"id":"01K6B3P2A9QRSTVWXYZ0123456","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","status":"open","awaiting":"agent","resolution":null,"closed":false,"anchor":{"kind":"symbol","path":"src/Billing/InvoiceTotals.php","range":{"startLine":38,"endLine":49},"symbol":{"language":"php","kind":"method","fqn":"App\\Billing\\InvoiceTotals::total()"}},"summary":"Use `Money` instead of `float` for totals.","author":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"claimedBy":null,"claimedAt":null,"commentCount":0,"commitCount":0,"pendingCommitCount":0,"outdated":null,"createdAt":"2026-09-29T07:20:00Z","updatedAt":"2026-09-29T07:20:00Z","lastEventSeq":1830,"carriedFrom":null,"requireApproval":false,"proposal":null}
   ],
   "replies": [
     {"requestId":"01K6B3P2A9QRSTVWXYZ0123457","commentId":"01K6C3C0MMENT0000000000001"}

@@ -34,7 +34,9 @@ final class VerticalSliceTest extends FullStackTestCase
         $this->openFile(FixtureRepositories::SMALL_FILE);
         $this->waitForHighlighting(9);
         $this->dragFromPlus(9, 12);
-        $this->addSingleComment($this->focusedCommentBoxBelow(12), self::COMMENT, '[slot="annotation-12"]');
+        $textarea = $this->focusedCommentBoxBelow(12);
+        $this->page->locator('[slot="annotation-12"] form[data-testid="comment-box"]')->getByRole('checkbox', ['name' => 'Ask for a plan first', 'exact' => true])->uncheck();
+        $this->addSingleComment($textarea, self::COMMENT, '[slot="annotation-12"]');
 
         $this->page->locator('header nav[aria-label="Main"]')->getByRole('link', ['name' => 'Settings', 'exact' => true])->click();
         $this->expect($this->page->locator('#api-tokens'))->toBeVisible();

@@ -12,6 +12,9 @@ use App\Domain\Event\CommitUnlinkedEvent;
 use App\Domain\Event\DomainEvent;
 use App\Domain\Event\RequestCommentedEvent;
 use App\Domain\Event\RequestOpenedEvent;
+use App\Domain\Event\RequestProposalApprovedEvent;
+use App\Domain\Event\RequestProposalRejectedEvent;
+use App\Domain\Event\RequestProposedEvent;
 use App\Domain\Event\RequestReadyForReviewEvent;
 use App\Domain\Event\RequestReleasedEvent;
 use App\Domain\Event\RequestReopenedEvent;
@@ -51,6 +54,7 @@ final class EventNormalizer implements NormalizerInterface, NormalizerAwareInter
             'actor' => $recorded->actor,
             'occurredAt' => $recorded->occurredAt,
             'body' => self::body($event),
+            'diff' => $event instanceof RequestProposedEvent ? $event->diff?->toString() : null,
             'commentId' => $event instanceof RequestCommentedEvent ? $event->commentId : null,
             'question' => $event instanceof RequestCommentedEvent && $event->question,
             'batchId' => match (true) {
@@ -89,7 +93,9 @@ final class EventNormalizer implements NormalizerInterface, NormalizerAwareInter
         return match (true) {
             $event instanceof RequestOpenedEvent, $event instanceof RequestCommentedEvent => $event->body,
             $event instanceof RequestReleasedEvent, $event instanceof RequestReadyForReviewEvent, $event instanceof RequestVerifiedEvent,
-            $event instanceof RequestReopenedEvent, $event instanceof CommitLinkedEvent, $event instanceof ReviewClosedEvent => $event->note,
+            $event instanceof RequestReopenedEvent, $event instanceof CommitLinkedEvent, $event instanceof ReviewClosedEvent,
+            $event instanceof RequestProposalApprovedEvent, $event instanceof RequestProposalRejectedEvent => $event->note,
+            $event instanceof RequestProposedEvent => $event->plan,
             $event instanceof RequestWontDoEvent => $event->reason->toString(),
             $event instanceof ReviewStartedEvent => $event->title,
             $event instanceof BatchSubmittedEvent => $event->summary,

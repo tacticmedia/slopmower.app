@@ -17,10 +17,13 @@ use App\Domain\Identity\BatchId;
 use App\Domain\Identity\CommentId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
+use App\Domain\Request\Command\ApproveProposal;
 use App\Domain\Request\Command\Claim;
 use App\Domain\Request\Command\LinkCommits;
 use App\Domain\Request\Command\MarkReadyForReview;
 use App\Domain\Request\Command\MarkWontDo;
+use App\Domain\Request\Command\ProposeSolution;
+use App\Domain\Request\Command\RejectProposal;
 use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
@@ -63,7 +66,7 @@ final class ProjectionConsistencyTest extends KernelTestCase
         self::assertSame(['available', $linkedAvailable['linked_at']], [$linkedAvailable['state'], $linkedAvailable['found_at']]);
 
         $connection->executeStatement("UPDATE review SET title = 'Tampered', last_event_seq = 0 WHERE tenant_id = ?", $tenant);
-        $connection->executeStatement("UPDATE change_request SET status = 'open', body = 'Tampered', awaiting = 'none', last_event_seq = 0 WHERE tenant_id = ?", $tenant);
+        $connection->executeStatement("UPDATE change_request SET status = 'open', body = 'Tampered', awaiting = 'none', last_event_seq = 0, require_approval = false, proposal_state = NULL WHERE tenant_id = ?", $tenant);
         $connection->executeStatement("UPDATE commit_link SET state = 'pending', found_at = NULL WHERE tenant_id = ?", $tenant);
         $connection->executeStatement('DELETE FROM comment WHERE tenant_id = ?', $tenant);
 
@@ -75,7 +78,8 @@ final class ProjectionConsistencyTest extends KernelTestCase
     }
 
     /**
-     * Claim, links (available, pending and unlinked, pending and found), ready, verify, reopen.
+     * Opened with requireApproval. Claim, a rejected and an approved proposal, links (available, pending and unlinked,
+     * pending and found), ready, verify, reopen.
      */
     private static function fixedRequest(ReviewId $reviewId): RequestId
     {
@@ -84,9 +88,14 @@ final class ProjectionConsistencyTest extends KernelTestCase
         $availableCommit = RequestScenario::commit(RequestScenario::LINKED_COMMIT);
         $wrongCommit = CommitSha::fromString(RequestScenario::OTHER_COMMIT);
         $foundCommit = CommitSha::fromString(self::FOUND_COMMIT);
-        $requestId = self::openRequest($reviewId);
+        $requestId = self::openRequest($reviewId, requireApproval: true);
+        $user = RequestScenario::user();
 
         $commands->claim(new Claim($requestId), $agent);
+        [$rejected] = $commands->propose(new ProposeSolution($requestId, 'Round per invoice.'), $agent);
+        $commands->rejectProposal(new RejectProposal($requestId, $rejected->id, 'Round per line.'), $user);
+        [$approved] = $commands->propose(new ProposeSolution($requestId, 'Round per line.', "diff --git a/src/Billing/InvoiceTotals.php b/src/Billing/InvoiceTotals.php\n"), $agent);
+        $commands->approveProposal(new ApproveProposal($requestId, $approved->id), $user);
         self::executor()->execute($reviewId, $agent, static fn (): array => [
             new DecidedEvent(new CommitLinkedEvent($availableCommit->commitSha, [$requestId], null, true, $availableCommit->subject, $availableCommit->committedAt)),
         ]);

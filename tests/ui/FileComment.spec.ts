@@ -24,8 +24,8 @@ test.describe('FileComment', () => {
         await commentOnFile(page, 'Use an SVG.');
 
         expect(api.bodies('POST', REQUESTS)).toEqual([
-            { anchor: { kind: 'file', path: SMALL_FILE }, body: 'Split this class.' },
-            { anchor: { kind: 'file', path: BINARY_FILE }, body: 'Use an SVG.' },
+            { anchor: { kind: 'file', path: SMALL_FILE }, body: 'Split this class.', requireApproval: true },
+            { anchor: { kind: 'file', path: BINARY_FILE }, body: 'Use an SVG.', requireApproval: true },
         ]);
         await page.reload();
         await waitForSavedThread(page, FILE_THREADS, 'Use an SVG.');
@@ -60,7 +60,7 @@ test.describe('FileComment', () => {
         await composer.press('ControlOrMeta+Enter');
 
         await waitForSavedThread(page, FILE_THREADS, 'Split this class.');
-        expect(api.bodies('POST', REQUESTS)).toEqual([{ anchor: { kind: 'file', path: SMALL_FILE }, body: 'Split this class.' }]);
+        expect(api.bodies('POST', REQUESTS)).toEqual([{ anchor: { kind: 'file', path: SMALL_FILE }, body: 'Split this class.', requireApproval: true }]);
     });
 
     test('A failed comment opens its box again with the text and the error', async ({ page, api }) => {
@@ -77,6 +77,6 @@ test.describe('FileComment', () => {
         await expect(page.locator(`${FILE_THREADS} [data-testid="comment-error"]`)).toBeVisible();
         await expect(composer).toHaveValue('Too late.');
         await expect(page.locator('[data-testid="thread"]')).toHaveCount(0);
-        expect(api.bodies('POST', REQUESTS)).toEqual([{ anchor: { kind: 'file', path: SMALL_FILE }, body: 'Too late.' }]);
+        expect(api.bodies('POST', REQUESTS)).toEqual([{ anchor: { kind: 'file', path: SMALL_FILE }, body: 'Too late.', requireApproval: true }]);
     });
 });

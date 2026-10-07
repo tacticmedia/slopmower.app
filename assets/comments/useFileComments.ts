@@ -17,6 +17,8 @@ export type Composer = {
     /** With `range`, the symbol that the comment anchors to. */
     symbol: CodeSymbol | null;
     initialBody: string;
+    /** The "Ask for a plan first" checkbox. */
+    requireApproval: boolean;
     error: string | null;
 };
 
@@ -32,7 +34,7 @@ type Options = {
     select(range: LineRange | null): void;
 };
 
-type Sent = { path: string; range: LineRange | null; symbol: CodeSymbol | null; body: string };
+type Sent = { path: string; range: LineRange | null; symbol: CodeSymbol | null; body: string; requireApproval: boolean };
 
 /**
  * The one comment box of a file, Q2, and D2. The new thread or pending comment shows at once; when the write fails,
@@ -52,7 +54,7 @@ export function useFileComments({ path, threads, drafts, caller, select }: Optio
         const error = fetcher.data?.error;
         if (undefined !== error) {
             opened.current += 1;
-            setComposer({ key: opened.current, path: sent.path, range: sent.range, symbol: sent.symbol, initialBody: sent.body, error });
+            setComposer({ key: opened.current, path: sent.path, range: sent.range, symbol: sent.symbol, initialBody: sent.body, requireApproval: sent.requireApproval, error });
         }
     }
 
@@ -69,7 +71,7 @@ export function useFileComments({ path, threads, drafts, caller, select }: Optio
         (range: LineRange | null, symbol: CodeSymbol | null = null): void => {
             if (!sending) {
                 opened.current += 1;
-                setComposer({ key: opened.current, path, range, symbol, initialBody: '', error: null });
+                setComposer({ key: opened.current, path, range, symbol, initialBody: '', requireApproval: true, error: null });
             }
         },
         [path, sending],
@@ -81,19 +83,20 @@ export function useFileComments({ path, threads, drafts, caller, select }: Optio
     }, [select]);
 
     const submit = useCallback(
-        (body: string, mode: SubmitMode): boolean => {
+        (body: string, mode: SubmitMode, requireApproval: boolean): boolean => {
             if (sending || null === shownComposer) {
                 return false;
             }
             const { range, symbol } = shownComposer;
             setComposer(null);
             select(null);
-            setSent({ path, range, symbol, body });
+            setSent({ path, range, symbol, body, requireApproval });
             const anchor = anchorInput(path, range, symbol?.fqn ?? null);
-            const intent: CommentIntent = 'draft' === mode ? { intent: 'draft', input: { kind: 'new_request', anchor, body } } : { intent: 'open', input: { anchor, body } };
+            const intent: CommentIntent =
+                'draft' === mode ? { intent: 'draft', input: { kind: 'new_request', anchor, body, requireApproval } } : { intent: 'open', input: { anchor, body, requireApproval } };
             startSending(async () => {
                 if ('draft' === mode) {
-                    addDraft(pendingDraft(range, body));
+                    addDraft(pendingDraft(range, body, requireApproval));
                 } else {
                     addThread(pendingThread(range, symbol?.fqn ?? null, body, caller));
                 }

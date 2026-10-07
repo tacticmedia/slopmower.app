@@ -6,11 +6,13 @@ namespace App\Controller\Api;
 
 use App\Application\Query\RequestQuery;
 use App\Application\RequestCommands;
+use App\Controller\Api\Input\ProposeSolutionInput;
 use App\Controller\Api\Input\RequiredNoteInput;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Git\CommitSha;
 use App\Domain\Request\Command\Claim;
 use App\Domain\Request\Command\MarkReadyForReview;
+use App\Domain\Request\Command\ProposeSolution;
 use App\Domain\Request\Command\UnlinkCommit;
 use App\Entity\ChangeRequest;
 use App\Security\AgentUser;
@@ -23,7 +25,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * Q5, Q8, and Q10 of docs/specs/rest-api-requests.md section 3: bearer only.
+ * Q5, Q8, Q10, and Q14 of docs/specs/rest-api-requests.md section 3: bearer only.
  */
 #[Route('/api/v1/requests/{requestId}', name: 'api_request_')]
 #[IsGranted(AgentUser::ROLE, message: CurrentActor::BEARER_ONLY)]
@@ -56,6 +58,16 @@ final class AgentRequestController extends AbstractController
         \assert(null !== $input->note);
 
         return $this->result($request, $this->commands->markReadyForReview(new MarkReadyForReview($request->getId(), $input->note), $this->currentActor->get()));
+    }
+
+    #[Route('/propose', name: 'propose', methods: ['POST'])]
+    public function propose(
+        #[MapEntity(id: 'requestId')] ChangeRequest $request,
+        #[MapRequestPayload(acceptFormat: 'json')] ProposeSolutionInput $input,
+    ): JsonResponse {
+        \assert(null !== $input->plan);
+
+        return $this->result($request, $this->commands->propose(new ProposeSolution($request->getId(), $input->plan, $input->diff), $this->currentActor->get()));
     }
 
     /**

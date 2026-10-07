@@ -6,7 +6,7 @@ namespace App\Domain\Request;
 
 /**
  * Rules 1 to 5 of architecture section 6. The first matching rule wins.
- * A thread message is a `request.commented` entry.
+ * A user message is a `request.commented` entry or a proposal decision.
  */
 final class AwaitingPolicy
 {
@@ -20,7 +20,7 @@ final class AwaitingPolicy
             return Awaiting::Agent;
         }
 
-        if ($state->lastAgentEventIsQuestion) {
+        if ($state->lastAgentEventIsQuestion || true === $state->proposal?->isPending()) {
             return Awaiting::User;
         }
 

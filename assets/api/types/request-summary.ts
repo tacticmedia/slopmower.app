@@ -1,6 +1,6 @@
 import type { Actor } from './actor';
 import type { AnchorSummary } from './anchor';
-import type { Awaiting, DateTime, EventSeq, RequestStatus, Resolution, Ulid } from './common';
+import type { Awaiting, DateTime, EventSeq, Proposal, RequestStatus, Resolution, Ulid } from './common';
 
 /** Only an in-progress request has a claim. */
 export type RequestClaim =
@@ -36,4 +36,7 @@ export type RequestSummary = {
     /** seq of the last entry of the request thread. */
     lastEventSeq: EventSeq;
     carriedFrom: CarriedFrom | null;
+    /** "Ask for a plan first": link and ready need an approved proposal. */
+    requireApproval: boolean;
+    proposal: Proposal | null;
 } & RequestClaim;

@@ -703,6 +703,17 @@ final class BundledSchemas
                     ['type' => 'null'],
                 ],
             ],
+            'Proposal' => [
+                'type' => 'object',
+                'required' => ['eventId', 'state'],
+                'properties' => [
+                    'eventId' => ['$ref' => '#/$defs/Ulid', 'description' => 'The request.proposed event.'],
+                    'state' => ['$ref' => '#/$defs/ProposalState'],
+                ],
+            ],
+            'ProposalState' => [
+                'enum' => ['pending', 'approved', 'rejected'],
+            ],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
@@ -710,7 +721,10 @@ final class BundledSchemas
             'RequestSummary' => [
                 'title' => 'RequestSummary',
                 'type' => 'object',
-                'required' => ['id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom'],
+                'required' => [
+                    'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
+                    'requireApproval', 'proposal',
+                ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
                     'reviewId' => ['$ref' => '#/$defs/Ulid'],
@@ -761,6 +775,14 @@ final class BundledSchemas
                             ['type' => 'null'],
                         ],
                         'description' => 'The source request that V15 carried over to this request. Null for any other request.',
+                    ],
+                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Fixed when the request opens.'],
+                    'proposal' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Proposal'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The current proposal of the claim. Null without one; release, won\'t do, and reopen set it to null.',
                     ],
                 ],
                 'allOf' => [
@@ -989,7 +1011,7 @@ final class BundledSchemas
                 'title' => 'Event',
                 'description' => 'An entry of the review event log as returned by get_updates, the updates endpoint, and command results.',
                 'type' => 'object',
-                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'commentId', 'question', 'batchId', 'commitSha', 'statusAfter'],
+                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'batchId', 'commitSha', 'statusAfter'],
                 'properties' => [
                     'seq' => ['$ref' => '#/$defs/EventSeq'],
                     'eventId' => ['$ref' => '#/$defs/Ulid'],
@@ -1013,6 +1035,13 @@ final class BundledSchemas
                     'body' => [
                         'type' => ['string', 'null'],
                         'description' => 'As ThreadEntry.body; plus review.started: title; review.closed: note; batch.submitted: summary.',
+                    ],
+                    'diff' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/UnifiedDiff'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'As ThreadEntry.diff.',
                     ],
                     'commentId' => [
                         'anyOf' => [
@@ -1047,7 +1076,7 @@ final class BundledSchemas
             'EventType' => [
                 'anyOf' => [
                     [
-                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'batch.submitted'],
+                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'batch.submitted'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -1110,6 +1139,17 @@ final class BundledSchemas
                     'endLine' => ['type' => 'integer', 'minimum' => 1],
                 ],
             ],
+            'Proposal' => [
+                'type' => 'object',
+                'required' => ['eventId', 'state'],
+                'properties' => [
+                    'eventId' => ['$ref' => '#/$defs/Ulid', 'description' => 'The request.proposed event.'],
+                    'state' => ['$ref' => '#/$defs/ProposalState'],
+                ],
+            ],
+            'ProposalState' => [
+                'enum' => ['pending', 'approved', 'rejected'],
+            ],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
@@ -1117,7 +1157,10 @@ final class BundledSchemas
             'RequestSummary' => [
                 'title' => 'RequestSummary',
                 'type' => 'object',
-                'required' => ['id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom'],
+                'required' => [
+                    'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
+                    'requireApproval', 'proposal',
+                ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
                     'reviewId' => ['$ref' => '#/$defs/Ulid'],
@@ -1168,6 +1211,14 @@ final class BundledSchemas
                             ['type' => 'null'],
                         ],
                         'description' => 'The source request that V15 carried over to this request. Null for any other request.',
+                    ],
+                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Fixed when the request opens.'],
+                    'proposal' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Proposal'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The current proposal of the claim. Null without one; release, won\'t do, and reopen set it to null.',
                     ],
                 ],
                 'allOf' => [
@@ -1230,6 +1281,7 @@ final class BundledSchemas
                 ],
             ],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'UnifiedDiff' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
             'UpdatedRequest' => [
                 'type' => 'object',
                 'required' => ['request', 'newEvents', 'omittedEvents'],
@@ -1252,7 +1304,7 @@ final class BundledSchemas
         'type' => 'object',
         'required' => [
             'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
-            'body', 'reviewState', 'reviewCommitSha', 'location', 'excerpt', 'thread', 'commits', 'allowedActions',
+            'requireApproval', 'proposal', 'body', 'reviewState', 'reviewCommitSha', 'location', 'excerpt', 'thread', 'commits', 'allowedActions',
         ],
         'properties' => [
             'id' => ['$ref' => '#/$defs/Ulid'],
@@ -1300,6 +1352,13 @@ final class BundledSchemas
             'carriedFrom' => [
                 'anyOf' => [
                     ['$ref' => '#/$defs/CarriedFrom'],
+                    ['type' => 'null'],
+                ],
+            ],
+            'requireApproval' => ['type' => 'boolean'],
+            'proposal' => [
+                'anyOf' => [
+                    ['$ref' => '#/$defs/Proposal'],
                     ['type' => 'null'],
                 ],
             ],
@@ -1377,7 +1436,7 @@ final class BundledSchemas
             'Action' => [
                 'anyOf' => [
                     [
-                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen'],
+                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -1747,6 +1806,17 @@ final class BundledSchemas
             'OrphanReason' => [
                 'enum' => ['file_deleted', 'region_deleted', 'ambiguous', 'content_not_found'],
             ],
+            'Proposal' => [
+                'type' => 'object',
+                'required' => ['eventId', 'state'],
+                'properties' => [
+                    'eventId' => ['$ref' => '#/$defs/Ulid', 'description' => 'The request.proposed event.'],
+                    'state' => ['$ref' => '#/$defs/ProposalState'],
+                ],
+            ],
+            'ProposalState' => [
+                'enum' => ['pending', 'approved', 'rejected'],
+            ],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
@@ -1779,7 +1849,7 @@ final class BundledSchemas
                 'title' => 'ThreadEntry',
                 'description' => 'One event in a request\'s timeline: comments, status changes, commit links.',
                 'type' => 'object',
-                'required' => ['seq', 'eventId', 'type', 'actor', 'occurredAt', 'body', 'commentId', 'question', 'batchId', 'commitSha', 'statusAfter'],
+                'required' => ['seq', 'eventId', 'type', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'batchId', 'commitSha', 'statusAfter'],
                 'properties' => [
                     'seq' => ['$ref' => '#/$defs/EventSeq'],
                     'eventId' => ['$ref' => '#/$defs/Ulid'],
@@ -1788,7 +1858,14 @@ final class BundledSchemas
                     'occurredAt' => ['$ref' => '#/$defs/DateTime'],
                     'body' => [
                         'type' => ['string', 'null'],
-                        'description' => 'opened: request body; commented: comment; released, ready_for_review, verified, reopened, commit.linked: note; wont_do: reason; else null.',
+                        'description' => 'opened: request body; commented: comment; proposed: plan; released, ready_for_review, verified, reopened, proposal_approved, proposal_rejected, commit.linked: note; wont_do: reason; else null.',
+                    ],
+                    'diff' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/UnifiedDiff'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'request.proposed only: the proposed change, when the agent attached one.',
                     ],
                     'commentId' => [
                         'anyOf' => [
@@ -1817,13 +1894,14 @@ final class BundledSchemas
             'ThreadEntryType' => [
                 'anyOf' => [
                     [
-                        'enum' => ['request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened'],
+                        'enum' => ['request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected'],
                     ],
                     ['type' => 'string'],
                 ],
                 'description' => 'Open set.',
             ],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'UnifiedDiff' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
         ],
     ];
 
@@ -1849,7 +1927,7 @@ final class BundledSchemas
             'Action' => [
                 'anyOf' => [
                     [
-                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen'],
+                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -1996,7 +2074,7 @@ final class BundledSchemas
                 'title' => 'Event',
                 'description' => 'An entry of the review event log as returned by get_updates, the updates endpoint, and command results.',
                 'type' => 'object',
-                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'commentId', 'question', 'batchId', 'commitSha', 'statusAfter'],
+                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'batchId', 'commitSha', 'statusAfter'],
                 'properties' => [
                     'seq' => ['$ref' => '#/$defs/EventSeq'],
                     'eventId' => ['$ref' => '#/$defs/Ulid'],
@@ -2020,6 +2098,13 @@ final class BundledSchemas
                     'body' => [
                         'type' => ['string', 'null'],
                         'description' => 'As ThreadEntry.body; plus review.started: title; review.closed: note; batch.submitted: summary.',
+                    ],
+                    'diff' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/UnifiedDiff'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'As ThreadEntry.diff.',
                     ],
                     'commentId' => [
                         'anyOf' => [
@@ -2054,7 +2139,7 @@ final class BundledSchemas
             'EventType' => [
                 'anyOf' => [
                     [
-                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'batch.submitted'],
+                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'batch.submitted'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -2117,6 +2202,17 @@ final class BundledSchemas
                     'endLine' => ['type' => 'integer', 'minimum' => 1],
                 ],
             ],
+            'Proposal' => [
+                'type' => 'object',
+                'required' => ['eventId', 'state'],
+                'properties' => [
+                    'eventId' => ['$ref' => '#/$defs/Ulid', 'description' => 'The request.proposed event.'],
+                    'state' => ['$ref' => '#/$defs/ProposalState'],
+                ],
+            ],
+            'ProposalState' => [
+                'enum' => ['pending', 'approved', 'rejected'],
+            ],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
@@ -2124,7 +2220,10 @@ final class BundledSchemas
             'RequestSummary' => [
                 'title' => 'RequestSummary',
                 'type' => 'object',
-                'required' => ['id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom'],
+                'required' => [
+                    'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
+                    'requireApproval', 'proposal',
+                ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
                     'reviewId' => ['$ref' => '#/$defs/Ulid'],
@@ -2175,6 +2274,14 @@ final class BundledSchemas
                             ['type' => 'null'],
                         ],
                         'description' => 'The source request that V15 carried over to this request. Null for any other request.',
+                    ],
+                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Fixed when the request opens.'],
+                    'proposal' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Proposal'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The current proposal of the claim. Null without one; release, won\'t do, and reopen set it to null.',
                     ],
                 ],
                 'allOf' => [
@@ -2234,6 +2341,7 @@ final class BundledSchemas
                 ],
             ],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'UnifiedDiff' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
         ],
     ];
 
@@ -2400,7 +2508,7 @@ final class BundledSchemas
                 'title' => 'Event',
                 'description' => 'An entry of the review event log as returned by get_updates, the updates endpoint, and command results.',
                 'type' => 'object',
-                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'commentId', 'question', 'batchId', 'commitSha', 'statusAfter'],
+                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'batchId', 'commitSha', 'statusAfter'],
                 'properties' => [
                     'seq' => ['$ref' => '#/$defs/EventSeq'],
                     'eventId' => ['$ref' => '#/$defs/Ulid'],
@@ -2424,6 +2532,13 @@ final class BundledSchemas
                     'body' => [
                         'type' => ['string', 'null'],
                         'description' => 'As ThreadEntry.body; plus review.started: title; review.closed: note; batch.submitted: summary.',
+                    ],
+                    'diff' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/UnifiedDiff'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'As ThreadEntry.diff.',
                     ],
                     'commentId' => [
                         'anyOf' => [
@@ -2458,7 +2573,7 @@ final class BundledSchemas
             'EventType' => [
                 'anyOf' => [
                     [
-                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'batch.submitted'],
+                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'batch.submitted'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -2521,6 +2636,17 @@ final class BundledSchemas
                     'endLine' => ['type' => 'integer', 'minimum' => 1],
                 ],
             ],
+            'Proposal' => [
+                'type' => 'object',
+                'required' => ['eventId', 'state'],
+                'properties' => [
+                    'eventId' => ['$ref' => '#/$defs/Ulid', 'description' => 'The request.proposed event.'],
+                    'state' => ['$ref' => '#/$defs/ProposalState'],
+                ],
+            ],
+            'ProposalState' => [
+                'enum' => ['pending', 'approved', 'rejected'],
+            ],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
@@ -2528,7 +2654,10 @@ final class BundledSchemas
             'RequestSummary' => [
                 'title' => 'RequestSummary',
                 'type' => 'object',
-                'required' => ['id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom'],
+                'required' => [
+                    'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
+                    'requireApproval', 'proposal',
+                ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
                     'reviewId' => ['$ref' => '#/$defs/Ulid'],
@@ -2579,6 +2708,14 @@ final class BundledSchemas
                             ['type' => 'null'],
                         ],
                         'description' => 'The source request that V15 carried over to this request. Null for any other request.',
+                    ],
+                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Fixed when the request opens.'],
+                    'proposal' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Proposal'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The current proposal of the claim. Null without one; release, won\'t do, and reopen set it to null.',
                     ],
                 ],
                 'allOf' => [
@@ -2638,6 +2775,7 @@ final class BundledSchemas
                 ],
             ],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'UnifiedDiff' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
         ],
     ];
 }

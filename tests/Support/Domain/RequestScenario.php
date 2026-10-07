@@ -23,11 +23,14 @@ use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Identity\TenantId;
 use App\Domain\Identity\UserId;
+use App\Domain\Request\Command\ApproveProposal;
 use App\Domain\Request\Command\Claim;
 use App\Domain\Request\Command\LinkCommits;
 use App\Domain\Request\Command\MarkReadyForReview;
 use App\Domain\Request\Command\MarkWontDo;
 use App\Domain\Request\Command\Open;
+use App\Domain\Request\Command\ProposeSolution;
+use App\Domain\Request\Command\RejectProposal;
 use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
@@ -48,13 +51,21 @@ use App\Domain\Review\ReviewSnapshot;
  */
 final class RequestScenario
 {
-    /** The states that the transition matrix covers, in its column order. */
-    public const array STATES = ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do by agent', 'wont_do by user'];
+    /**
+     * The states that the transition matrix covers, in its column order. The "proposal" states are in_progress with a
+     * proposal. The "plan" states are in_progress with requireApproval: without a proposal after a reopen, or approved.
+     */
+    public const array STATES = [
+        'open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do by agent', 'wont_do by user',
+        'proposal pending', 'proposal rejected', 'plan required', 'plan approved',
+    ];
     public const string LINKED_COMMIT = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678';
     public const string OTHER_COMMIT = 'e5f6a7b8c9d0e1f2a3b4c5d6e7f8091a2b3c4d5e';
     public const string REASON = 'The current rounding is required by the tax office.';
     private const string USER_ID = '01K6AZZ9Y8X7W6V5T4S3R2Q1P0';
     private const string REVIEW_COMMIT = '79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091';
+    private const string PLAN = 'Extract `TaxRounding` and call it from `total()` and `tax()`.';
+    private const string DIFF = "diff --git a/src/Billing/InvoiceTotals.php b/src/Billing/InvoiceTotals.php\n--- a/src/Billing/InvoiceTotals.php\n+++ b/src/Billing/InvoiceTotals.php\n@@ -40 +40 @@\n-        \$sum = 0.0;\n+        \$sum = Money::zero();\n";
 
     private readonly TenantId $tenantId;
     private readonly ReviewId $reviewId;
@@ -79,10 +90,16 @@ final class RequestScenario
     public static function inState(string $state, bool $linked = true): self
     {
         $scenario = new self();
-        $id = $scenario->open();
+        $planRequired = str_starts_with($state, 'plan ');
+        $id = $scenario->open($planRequired);
         $agent = self::claimingAgent();
 
         $scenario->run(new Claim($id), $agent);
+
+        if ($planRequired) {
+            $scenario->propose();
+            $scenario->run($scenario->validCommand('approve_proposal'), self::user());
+        }
 
         if ($linked) {
             $scenario->run(new LinkCommits(CommitSha::fromString(self::LINKED_COMMIT), [$id]), $agent, [self::commit(self::LINKED_COMMIT)]);
@@ -90,10 +107,17 @@ final class RequestScenario
 
         match ($state) {
             'open' => $scenario->run(new Release($id), $agent),
-            'in_progress' => [],
+            'in_progress', 'plan approved' => [],
             'ready_for_review', 'verified', 'reopened' => $scenario->run(new MarkReadyForReview($id, 'Extracted TaxRounding.'), $agent),
             'wont_do by agent' => $scenario->run(new MarkWontDo($id, self::REASON), $agent),
             'wont_do by user' => $scenario->run(new MarkWontDo($id, self::REASON), self::user()),
+            'proposal pending' => $scenario->propose(),
+            'proposal rejected' => [$scenario->propose(), $scenario->run($scenario->validCommand('reject_proposal'), self::user())],
+            'plan required' => [
+                $scenario->run(new MarkReadyForReview($id, 'Extracted TaxRounding.'), $agent),
+                $scenario->run(new Reopen($id, 'Also cover the shipping totals.'), self::user()),
+                $scenario->run(new Claim($id), $agent),
+            ],
             default => throw new \LogicException("Unknown state {$state}."),
         };
 
@@ -159,6 +183,7 @@ final class RequestScenario
         }
 
         $id = $this->requestId();
+        $proposalEventId = $this->state()->proposal->eventId ?? EventId::generate();
 
         return match ($command) {
             'reply' => new Reply($id, 'Should this also cover the shipping totals?'),
@@ -170,15 +195,28 @@ final class RequestScenario
             'mark_wont_do' => new MarkWontDo($id, self::REASON),
             'verify' => new Verify($id),
             'reopen' => new Reopen($id, 'Also cover the shipping totals.'),
+            'propose_solution' => new ProposeSolution($id, self::PLAN, self::DIFF),
+            'approve_proposal' => new ApproveProposal($id, $proposalEventId),
+            'reject_proposal' => new RejectProposal($id, $proposalEventId, 'Keep the rounding inside `InvoiceTotals`.'),
             default => throw new \LogicException("Unknown command {$command}."),
         };
     }
 
-    public function open(): RequestId
+    public function open(bool $requireApproval = false): RequestId
     {
-        $this->run($this->validCommand('open'), self::user());
+        $this->run(new Open($this->anchor(), 'Use `Money` instead of `float` for totals.', requireApproval: $requireApproval), self::user());
 
         return $this->requestId();
+    }
+
+    /**
+     * The claiming agent proposes for the current request.
+     *
+     * @return list<DecidedEvent>
+     */
+    public function propose(): array
+    {
+        return $this->run($this->validCommand('propose_solution'), self::claimingAgent());
     }
 
     /**

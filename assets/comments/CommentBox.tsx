@@ -1,4 +1,4 @@
-import { Button, Textarea } from '@primer/react';
+import { Button, Checkbox, FormControl, Textarea } from '@primer/react';
 import { InlineMessage } from '@primer/react/experimental';
 import { type FormEvent, type KeyboardEvent, type Ref, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import styles from './CommentBox.module.css';
@@ -17,10 +17,15 @@ type Props = {
     /** Shows `label` as the header of the box. */
     labelVisible?: boolean;
     submitLabel: string;
-    /** False when the submit was not accepted, for example while another write runs. */
-    onSubmit(body: string): boolean;
+    /**
+     * False when the submit was not accepted, for example while another write runs. `requireApproval` is the "Ask for a
+     * plan first" checkbox, false without it.
+     */
+    onSubmit(body: string, requireApproval: boolean): boolean;
     /** A second write of the same text, the primary button. */
-    alternative?: { label: string; onSubmit(body: string): boolean };
+    alternative?: { label: string; onSubmit(body: string, requireApproval: boolean): boolean };
+    /** Shows the "Ask for a plan first" checkbox of a new request, with this initial state. */
+    askForPlan?: boolean;
     onCancel?: () => void;
     initialBody?: string;
     error: string | null;
@@ -33,8 +38,9 @@ type Props = {
  * The text stays while the write runs and clears when it succeeds, so a failed write keeps it. Ctrl+Enter or Cmd+Enter
  * runs `onSubmit`, and Escape runs `onCancel`.
  */
-export function CommentBox({ label, labelVisible = false, submitLabel, onSubmit, alternative, onCancel, initialBody = '', error, busy, focusOnMount = false, ref }: Props) {
+export function CommentBox({ label, labelVisible = false, submitLabel, onSubmit, alternative, askForPlan, onCancel, initialBody = '', error, busy, focusOnMount = false, ref }: Props) {
     const [body, setBody] = useState(initialBody);
+    const [requireApproval, setRequireApproval] = useState(askForPlan ?? false);
     const [sent, setSent] = useState(false);
     const textarea = useRef<HTMLTextAreaElement>(null);
 
@@ -63,8 +69,8 @@ export function CommentBox({ label, labelVisible = false, submitLabel, onSubmit,
         }
     }, [focusOnMount]);
 
-    const send = (write: (text: string) => boolean): void => {
-        if ('' !== body.trim() && !busy && write(body)) {
+    const send = (write: (text: string, requireApproval: boolean) => boolean): void => {
+        if ('' !== body.trim() && !busy && write(body, requireApproval)) {
             setSent(true);
         }
     };
@@ -109,6 +115,12 @@ export function CommentBox({ label, labelVisible = false, submitLabel, onSubmit,
                 </InlineMessage>
             )}
             <div className={styles.actions}>
+                {undefined !== askForPlan && (
+                    <FormControl className={styles.askForPlan} disabled={busy}>
+                        <Checkbox checked={requireApproval} onChange={(event) => setRequireApproval(event.target.checked)} />
+                        <FormControl.Label>Ask for a plan first</FormControl.Label>
+                    </FormControl>
+                )}
                 {undefined !== onCancel && (
                     <Button onClick={onCancel} disabled={busy}>
                         Cancel

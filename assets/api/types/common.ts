@@ -9,6 +9,8 @@ export type RepoPath = string;
 /** RFC 3339, UTC, `Z` suffix. */
 export type DateTime = string;
 export type Markdown = string;
+/** A unified diff in git format with 1 to 9 files. */
+export type UnifiedDiff = string;
 export type Cursor = string;
 export type EventSeq = number;
 
@@ -48,6 +50,16 @@ export type LocationStatus = (typeof LOCATION_STATUSES)[number];
 export const ORPHAN_REASONS = ['file_deleted', 'region_deleted', 'ambiguous', 'content_not_found'] as const;
 export type OrphanReason = (typeof ORPHAN_REASONS)[number];
 
+export const PROPOSAL_STATES = ['pending', 'approved', 'rejected'] as const;
+export type ProposalState = (typeof PROPOSAL_STATES)[number];
+
+/** The current proposal of a claim. */
+export type Proposal = {
+    /** The request.proposed event. */
+    eventId: Ulid;
+    state: ProposalState;
+};
+
 export const SYMBOL_KINDS = [
     'class',
     'interface',
@@ -73,6 +85,9 @@ export const ACTIONS = [
     'mark_wont_do',
     'verify',
     'reopen',
+    'propose_solution',
+    'approve_proposal',
+    'reject_proposal',
 ] as const;
 export type KnownAction = (typeof ACTIONS)[number];
 export type Action = OpenSet<KnownAction>;
@@ -91,6 +106,9 @@ export const EVENT_TYPES = [
     'request.wont_do',
     'request.verified',
     'request.reopened',
+    'request.proposed',
+    'request.proposal_approved',
+    'request.proposal_rejected',
     'batch.submitted',
 ] as const;
 export type KnownEventType = (typeof EVENT_TYPES)[number];
@@ -108,6 +126,9 @@ export const THREAD_ENTRY_TYPES = [
     'request.wont_do',
     'request.verified',
     'request.reopened',
+    'request.proposed',
+    'request.proposal_approved',
+    'request.proposal_rejected',
 ] as const;
 export type KnownThreadEntryType = (typeof THREAD_ENTRY_TYPES)[number];
 export type ThreadEntryType = OpenSet<KnownThreadEntryType>;

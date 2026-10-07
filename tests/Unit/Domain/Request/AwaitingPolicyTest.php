@@ -32,6 +32,8 @@ final class AwaitingPolicyTest extends KernelTestCase
         yield 'verified' => [1, 'none', static fn (): RequestScenario => RequestScenario::inState('verified')];
         yield 'user reply after ready_for_review' => [2, 'agent', static fn (): RequestScenario => self::userReply(RequestScenario::inState('ready_for_review'))];
         yield 'agent question while in_progress' => [3, 'user', static fn (): RequestScenario => self::agentQuestion(RequestScenario::inState('in_progress'))];
+        yield 'pending proposal' => [3, 'user', static fn (): RequestScenario => RequestScenario::inState('proposal pending')];
+        yield 'proposal decision' => [2, 'agent', static fn (): RequestScenario => self::decision(RequestScenario::inState('proposal pending'), 'approve_proposal')];
         yield 'open' => [4, 'agent', static fn (): RequestScenario => RequestScenario::inState('open')];
         yield 'ready_for_review' => [5, 'user', static fn (): RequestScenario => RequestScenario::inState('ready_for_review')];
     }
@@ -53,6 +55,8 @@ final class AwaitingPolicyTest extends KernelTestCase
     {
         yield 'rule 1 over rule 2: user reply on verified' => ['none', static fn (): RequestScenario => self::userReply(RequestScenario::inState('verified'))];
         yield 'rule 2 over rule 3: user reply to a question' => ['agent', static fn (): RequestScenario => self::userReply(self::agentQuestion(RequestScenario::inState('in_progress')))];
+        yield 'rule 2 over rule 3: user reply to a pending proposal' => ['agent', static fn (): RequestScenario => self::userReply(RequestScenario::inState('proposal pending'))];
+        yield 'rule 2 over rule 3: proposal decision after an agent question' => ['agent', static fn (): RequestScenario => self::decision(self::agentQuestion(RequestScenario::inState('proposal pending')), 'reject_proposal')];
         yield 'rule 3 over rule 4: agent question on reopened' => ['user', static fn (): RequestScenario => self::agentQuestion(RequestScenario::inState('reopened'))];
         yield 'rule 2 over rule 5: user reply on an agent\'s wont_do' => ['agent', static fn (): RequestScenario => self::userReply(RequestScenario::inState('wont_do by agent'))];
     }
@@ -60,6 +64,13 @@ final class AwaitingPolicyTest extends KernelTestCase
     private static function userReply(RequestScenario $scenario): RequestScenario
     {
         $scenario->run(new Reply($scenario->requestId(), 'Please also cover the shipping totals.'), RequestScenario::user());
+
+        return $scenario;
+    }
+
+    private static function decision(RequestScenario $scenario, string $command): RequestScenario
+    {
+        $scenario->run($scenario->validCommand($command), RequestScenario::user());
 
         return $scenario;
     }

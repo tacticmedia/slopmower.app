@@ -5,6 +5,7 @@
   "anchor": null,
   "requestId": null,
   "body": "Wrap long lines in the code view.",
+  "requireApproval": false,
   "createdAt": "2026-09-29T07:16:00Z",
   "updatedAt": "2026-09-29T07:16:00Z"
 }

@@ -19,6 +19,7 @@ final readonly class RequestOpenedEvent implements DomainEvent
         public string $body,
         public ?BatchId $batchId,
         public ?CarriedFrom $carriedFrom = null,
+        public bool $requireApproval = false,
     ) {
     }
 
@@ -40,6 +41,7 @@ final readonly class RequestOpenedEvent implements DomainEvent
                 'reviewId' => $this->carriedFrom->reviewId->toString(),
                 'requestId' => $this->carriedFrom->requestId->toString(),
             ],
+            'requireApproval' => $this->requireApproval,
         ];
     }
 
@@ -54,6 +56,7 @@ final readonly class RequestOpenedEvent implements DomainEvent
             $reader->string('body'),
             $reader->nullableId('batchId', BatchId::class),
             null === $carriedFrom ? null : new CarriedFrom($carriedFrom->id('reviewId', ReviewId::class), $carriedFrom->id('requestId', RequestId::class)),
+            $reader->boolOr('requireApproval', false),
         );
     }
 }

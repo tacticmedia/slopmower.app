@@ -1,13 +1,11 @@
 import { Button } from '@primer/react';
 import { InlineMessage } from '@primer/react/experimental';
-import { type MouseEvent, useRef, useState, useTransition } from 'react';
-import { useFetcher } from 'react-router';
-import type { ActionResult } from '../api/actionResult';
 import type { Action } from '../api/types/common';
 import { BUTTON_LABELS, type RequestButton, requestButtons } from './allowedActions';
 import { NoteDialog, type NoteDialogSpec } from './NoteDialog';
 import type { RequestCommandIntent } from './requestIntent';
 import styles from './Requests.module.css';
+import { useRequestCommand } from './useRequestCommand';
 
 type DialogButton = Exclude<RequestButton, 'verify'>;
 
@@ -50,45 +48,11 @@ function dialogIntent(button: DialogButton, text: string): RequestCommandIntent 
 }
 
 /**
- * The buttons follow `allowedActions` of Q3. One command runs at a time; a dialog closes when its command succeeds.
- * The fetcher state does not change while the transition runs, so `busy` comes from the transition.
+ * The buttons follow `allowedActions` of Q3.
  */
 export function RequestActions({ allowedActions }: { allowedActions: readonly Action[] }) {
-    const fetcher = useFetcher<ActionResult>();
-    const [busy, startCommand] = useTransition();
-    const opener = useRef<HTMLElement | null>(null);
-    const [dialog, setDialog] = useState<DialogButton | null>(null);
-    const [sent, setSent] = useState<RequestButton | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const { busy, sent, error, dialog, opener, send, openDialog, closeDialog } = useRequestCommand<DialogButton>();
     const buttons = requestButtons(allowedActions);
-
-    if (null !== sent && !busy) {
-        setSent(null);
-        const failure = fetcher.data?.error ?? null;
-        setError(failure);
-        if (null === failure) {
-            setDialog(null);
-        }
-    }
-
-    const send = (intent: RequestCommandIntent): void => {
-        if (busy) {
-            return;
-        }
-        setSent(intent.intent);
-        setError(null);
-        startCommand(async () => {
-            await fetcher.submit(intent, { method: 'post', encType: 'application/json' });
-        });
-    };
-
-    const openDialog = (button: DialogButton, event: MouseEvent<HTMLButtonElement>): void => {
-        if (!busy) {
-            opener.current = event.currentTarget;
-            setError(null);
-            setDialog(button);
-        }
-    };
 
     if (0 === buttons.length) {
         return null;
@@ -121,10 +85,7 @@ export function RequestActions({ allowedActions }: { allowedActions: readonly Ac
                     busy={busy}
                     error={error}
                     onSubmit={(text) => send(dialogIntent(dialog, text))}
-                    onClose={() => {
-                        setDialog(null);
-                        setError(null);
-                    }}
+                    onClose={closeDialog}
                     returnFocusRef={opener}
                 />
             )}

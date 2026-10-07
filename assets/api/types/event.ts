@@ -1,5 +1,5 @@
 import type { Actor } from './actor';
-import type { CommitSha, DateTime, EventSeq, EventType, RequestStatus, Ulid } from './common';
+import type { CommitSha, DateTime, EventSeq, EventType, RequestStatus, Ulid, UnifiedDiff } from './common';
 
 export type Event = {
     seq: EventSeq;
@@ -13,6 +13,7 @@ export type Event = {
     actor: Actor;
     occurredAt: DateTime;
     body: string | null;
+    diff: UnifiedDiff | null;
     commentId: Ulid | null;
     question: boolean;
     batchId: Ulid | null;

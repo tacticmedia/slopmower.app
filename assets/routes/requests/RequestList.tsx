@@ -1,4 +1,4 @@
-import { Button, Checkbox, FormControl, Link, RelativeTime, SegmentedControl, TextInput } from '@primer/react';
+import { Button, Checkbox, FormControl, Label, Link, RelativeTime, SegmentedControl, TextInput } from '@primer/react';
 import { type Column, DataTable, Table } from '@primer/react/experimental';
 import { type FormEvent, useMemo } from 'react';
 import { Link as RouterLink, useLoaderData, useRouteLoaderData, useSearchParams } from 'react-router';
@@ -29,7 +29,7 @@ const NO_THREADS: readonly ThreadView[] = [];
  */
 function pendingDraftViews(reviewId: string, drafts: readonly Draft[], { items, hiddenReplySummaries }: RequestListData): DraftView[] {
     return drafts.map((draft) => {
-        const view = { key: draft.id, draftId: draft.id, body: draft.body };
+        const view = { key: draft.id, draftId: draft.id, body: draft.body, requireApproval: 'reply' === draft.kind ? null : draft.requireApproval };
 
         if ('reply' === draft.kind) {
             const summary = items.find(({ id }) => id === draft.requestId)?.summary ?? hiddenReplySummaries[draft.requestId];
@@ -72,6 +72,11 @@ function columns(reviewId: string): Column<RequestSummary>[] {
                 <span className={styles.labels}>
                     <StatusLabel status={request.status} />
                     <OutdatedLabel outdated={request.outdated} />
+                    {'pending' === request.proposal?.state && (
+                        <Label variant="attention" data-testid="plan-to-approve">
+                            Plan to approve
+                        </Label>
+                    )}
                 </span>
             ),
         },

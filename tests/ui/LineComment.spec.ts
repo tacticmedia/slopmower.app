@@ -12,7 +12,7 @@ test.describe('LineComment', () => {
         await dragFromPlus(page, 10, 10);
         await addSingleComment(page, await focusedCommentBoxBelow(page, 10), 'Use a named constant.', '[slot="annotation-10"]');
 
-        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/requests')).toEqual([{ anchor: { kind: 'line', path: SMALL_FILE, range: { startLine: 10, endLine: 10 } }, body: 'Use a named constant.' }]);
+        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/requests')).toEqual([{ anchor: { kind: 'line', path: SMALL_FILE, range: { startLine: 10, endLine: 10 } }, body: 'Use a named constant.', requireApproval: true }]);
         expect(await page.evaluate(() => location.hash), 'The submit clears the selection and its line hash.').toBe('');
 
         await page.reload();

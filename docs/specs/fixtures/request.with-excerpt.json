@@ -49,6 +49,8 @@
   "updatedAt": "2026-09-29T07:41:00Z",
   "lastEventSeq": 1841,
   "carriedFrom": null,
+  "requireApproval": false,
+  "proposal": null,
   "body": "Extract the tax rounding into `TaxRounding`.",
   "reviewState": "open",
   "reviewCommitSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091",
@@ -86,6 +88,7 @@
       },
       "occurredAt": "2026-09-29T07:10:00Z",
       "body": "Extract the tax rounding into `TaxRounding`.",
+      "diff": null,
       "commentId": null,
       "question": false,
       "batchId": null,
@@ -105,6 +108,7 @@
       },
       "occurredAt": "2026-09-29T07:20:00Z",
       "body": "Keep the rounding mode configurable.",
+      "diff": null,
       "commentId": "01K6C3C0MMENT0000000000001",
       "question": false,
       "batchId": "01K6B3P1Z8Y7X6W5V4T3S2R1Q0",
@@ -124,6 +128,7 @@
       },
       "occurredAt": "2026-09-29T07:41:00Z",
       "body": null,
+      "diff": null,
       "commentId": null,
       "question": false,
       "batchId": null,
@@ -132,5 +137,5 @@
     }
   ],
   "commits": [],
-  "allowedActions": ["reply", "release", "link_commits", "mark_ready_for_review", "mark_wont_do"]
+  "allowedActions": ["reply", "release", "link_commits", "mark_ready_for_review", "mark_wont_do", "propose_solution"]
 }

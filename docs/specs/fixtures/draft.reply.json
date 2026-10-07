@@ -5,6 +5,7 @@
   "anchor": null,
   "requestId": "01K6B3P2A9QRSTVWXYZ0123457",
   "body": "Keep the rounding mode configurable.",
+  "requireApproval": false,
   "createdAt": "2026-09-29T07:15:00Z",
   "updatedAt": "2026-09-29T07:15:00Z"
 }

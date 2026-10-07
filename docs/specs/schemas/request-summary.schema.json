@@ -3,7 +3,7 @@
   "$id": "https://holistic-review.invalid/schemas/v1/request-summary.schema.json",
   "title": "RequestSummary",
   "type": "object",
-  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq", "carriedFrom"],
+  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq", "carriedFrom", "requireApproval", "proposal"],
   "properties": {
     "id": {
       "$ref": "common.schema.json#/$defs/Ulid"
@@ -110,6 +110,21 @@
         }
       ],
       "description": "The source request that V15 carried over to this request. Null for any other request."
+    },
+    "requireApproval": {
+      "type": "boolean",
+      "description": "\"Ask for a plan first\": link_commits and mark_ready_for_review need an approved proposal. Fixed when the request opens."
+    },
+    "proposal": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Proposal"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The current proposal of the claim. Null without one; release, won't do, and reopen set it to null."
     }
   },
   "allOf": [

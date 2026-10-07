@@ -37,7 +37,9 @@
     "createdAt": "2026-09-29T07:20:00Z",
     "updatedAt": "2026-09-29T08:00:00Z",
     "lastEventSeq": 1852,
-    "carriedFrom": null
+    "carriedFrom": null,
+    "requireApproval": false,
+    "proposal": null
   },
   "allowedActions": ["reply"],
   "events": [
@@ -57,6 +59,7 @@
       },
       "occurredAt": "2026-09-29T08:00:00Z",
       "body": "Replaced `float` with `Money` in `total()` and `tax()`. Added rounding cases to `InvoiceTotalsTest`. `make test` passes.",
+      "diff": null,
       "commentId": null,
       "question": false,
       "batchId": null,

@@ -42,7 +42,7 @@ test.describe('KeyboardCommentOnLines', () => {
         await focusedCommentBoxBelow(page, 4);
         await keyboardComment(page, 'Merge these lines.', '[slot="annotation-4"]');
 
-        expect(api.bodies('POST', REQUESTS)).toEqual([{ anchor: { kind: 'range', path: SMALL_FILE, range: { startLine: 3, endLine: 4 } }, body: 'Merge these lines.' }]);
+        expect(api.bodies('POST', REQUESTS)).toEqual([{ anchor: { kind: 'range', path: SMALL_FILE, range: { startLine: 3, endLine: 4 } }, body: 'Merge these lines.', requireApproval: true }]);
     });
 
     test('The comment box has focus when it opens', async ({ page, api }) => {
@@ -64,7 +64,7 @@ test.describe('KeyboardCommentOnLines', () => {
         await expect(page.locator(`${FILE_THREADS} ${COMPOSER}`)).toBeFocused();
         await keyboardComment(page, 'Add a class docblock.', FILE_THREADS);
 
-        expect(api.bodies('POST', REQUESTS)).toEqual([{ anchor: { kind: 'file', path: SMALL_FILE }, body: 'Add a class docblock.' }]);
+        expect(api.bodies('POST', REQUESTS)).toEqual([{ anchor: { kind: 'file', path: SMALL_FILE }, body: 'Add a class docblock.', requireApproval: true }]);
     });
 
     /** The library adds the "+" only under the pointer or on the last selected line, so the keyboard reaches it only on a selection. */
@@ -83,8 +83,8 @@ test.describe('KeyboardCommentOnLines', () => {
 
         expect([rangeName, lineName]).toEqual(['Comment on lines 3 to 4', 'Comment on line 6']);
         expect(api.bodies('POST', REQUESTS)).toEqual([
-            { anchor: { kind: 'range', path: SMALL_FILE, range: { startLine: 3, endLine: 4 } }, body: 'Join these lines.' },
-            { anchor: { kind: 'line', path: SMALL_FILE, range: { startLine: 6, endLine: 6 } }, body: 'Remove this blank line.' },
+            { anchor: { kind: 'range', path: SMALL_FILE, range: { startLine: 3, endLine: 4 } }, body: 'Join these lines.', requireApproval: true },
+            { anchor: { kind: 'line', path: SMALL_FILE, range: { startLine: 6, endLine: 6 } }, body: 'Remove this blank line.', requireApproval: true },
         ]);
     });
 });

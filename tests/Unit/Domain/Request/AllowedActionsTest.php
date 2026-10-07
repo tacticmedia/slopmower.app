@@ -91,13 +91,18 @@ final class AllowedActionsTest extends KernelTestCase
     {
         $rows = [
             ['open', true, ['reply', 'mark_wont_do'], ['reply', 'claim', 'mark_wont_do'], ['reply', 'claim', 'mark_wont_do']],
-            ['in_progress', true, ['reply', 'release', 'mark_wont_do'], ['reply', 'release', 'link_commits', 'unlink_commit', 'mark_ready_for_review', 'mark_wont_do'], ['reply']],
-            ['in_progress', false, ['reply', 'release', 'mark_wont_do'], ['reply', 'release', 'link_commits', 'mark_ready_for_review', 'mark_wont_do'], ['reply']],
+            ['in_progress', true, ['reply', 'release', 'mark_wont_do'], ['reply', 'release', 'link_commits', 'unlink_commit', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], ['reply']],
+            ['in_progress', false, ['reply', 'release', 'mark_wont_do'], ['reply', 'release', 'link_commits', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], ['reply']],
             ['ready_for_review', true, ['reply', 'verify', 'reopen'], ['reply'], ['reply']],
             ['verified', true, ['reply', 'reopen'], ['reply'], ['reply']],
             ['reopened', true, ['reply', 'mark_wont_do'], ['reply', 'claim', 'mark_wont_do'], ['reply', 'claim', 'mark_wont_do']],
             ['wont_do by agent', true, ['reply', 'verify', 'reopen'], ['reply'], ['reply']],
             ['wont_do by user', true, ['reply', 'reopen'], ['reply'], ['reply']],
+            ['proposal pending', true, ['reply', 'release', 'mark_wont_do', 'approve_proposal', 'reject_proposal'], ['reply', 'release', 'unlink_commit', 'mark_wont_do', 'propose_solution'], ['reply']],
+            ['proposal pending', false, ['reply', 'release', 'mark_wont_do', 'approve_proposal', 'reject_proposal'], ['reply', 'release', 'mark_wont_do', 'propose_solution'], ['reply']],
+            ['proposal rejected', true, ['reply', 'release', 'mark_wont_do'], ['reply', 'release', 'unlink_commit', 'mark_wont_do', 'propose_solution'], ['reply']],
+            ['plan required', true, ['reply', 'release', 'mark_wont_do'], ['reply', 'release', 'unlink_commit', 'mark_wont_do', 'propose_solution'], ['reply']],
+            ['plan approved', true, ['reply', 'release', 'mark_wont_do'], ['reply', 'release', 'link_commits', 'unlink_commit', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], ['reply']],
         ];
 
         foreach ($rows as [$state, $linked, $user, $claimingAgent, $otherAgent]) {

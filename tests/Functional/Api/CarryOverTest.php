@@ -149,6 +149,18 @@ final class CarryOverTest extends WebTestCase
         self::assertSame([null, "Add a full-screen focus mode.\n\nIt hides the file tree.", 'open'], [$copy['anchor'], $copy['body'], $copy['status']]);
     }
 
+    #[TestDox('A carried request keeps requireApproval of its source')]
+    public function testCarriedRequestKeepsRequireApproval(): void
+    {
+        $planned = (string) self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->sourceReviewId}/requests", ['body' => 'Add a CSV export.', 'requireApproval' => true]), 201, 'request.schema.json')['id'];
+        $plain = $this->openSource(null, 'Wrap long lines.');
+        $targetId = $this->startTarget([]);
+
+        $items = $this->carryOver($targetId);
+
+        self::assertSame([true, false], [$this->carried($items[$planned], $targetId)['requireApproval'], $this->carried($items[$plain], $targetId)['requireApproval']]);
+    }
+
     #[TestDox('Sources in in_progress and ready_for_review are listed as not carried, with their status')]
     public function testClaimedAndReadySourcesAreNotCarried(): void
     {

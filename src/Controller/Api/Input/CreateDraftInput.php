@@ -31,6 +31,10 @@ final readonly class CreateDraftInput
         #[Assert\NotBlank(normalizer: 'trim')]
         #[Assert\Length(max: 65536)]
         public ?string $body = null,
+        #[Assert\When(expression: static function (self $input): bool {
+            return DraftKind::Reply === $input->kind;
+        }, constraints: [new Assert\IsNull()])]
+        public ?bool $requireApproval = null,
     ) {
     }
 }

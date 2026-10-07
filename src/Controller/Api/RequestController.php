@@ -63,7 +63,7 @@ final class RequestController extends AbstractController
         }
 
         $actor = $this->currentActor->get();
-        [$opened] = $commands->open($review->getId(), new Open($anchor, $input->body), $actor);
+        [$opened] = $commands->open($review->getId(), new Open($anchor, $input->body, requireApproval: $input->requireApproval ?? false), $actor);
         $requestId = $opened->requestId ?? throw new \LogicException('request.opened has a requestId.');
 
         return $this->json($this->requests->get($requestId, $actor), Response::HTTP_CREATED, ['Location' => $this->generateUrl('api_request_get', ['requestId' => $requestId])]);

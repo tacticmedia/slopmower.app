@@ -54,7 +54,7 @@ test.describe('LineWrap', () => {
         await addSingleComment(page, await focusedCommentBoxBelow(page, 4), 'Split the price list.', '[slot="annotation-4"]');
 
         expect(api.bodies('POST', '/api/v1/reviews/:reviewId/requests')).toEqual([
-            { anchor: { kind: 'range', path: LONG_LINE_FILE, range: { startLine: 3, endLine: 4 } }, body: 'Split the price list.' },
+            { anchor: { kind: 'range', path: LONG_LINE_FILE, range: { startLine: 3, endLine: 4 } }, body: 'Split the price list.', requireApproval: true },
         ]);
     });
 

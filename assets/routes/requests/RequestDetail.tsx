@@ -1,5 +1,5 @@
 import { CommentDiscussionIcon, FileDiffIcon } from '@primer/octicons-react';
-import { Banner, Heading, Link, RelativeTime, UnderlineNav } from '@primer/react';
+import { Banner, Heading, Label, Link, RelativeTime, UnderlineNav } from '@primer/react';
 import { useMemo } from 'react';
 import { Link as RouterLink, useLoaderData, useRouteLoaderData, useSearchParams } from 'react-router';
 import type { Actor } from '../../api/types/actor';
@@ -47,6 +47,11 @@ export function RequestDetail() {
                     <StatusLabel status={request.status} />
                     <OutdatedLabel outdated={request.outdated} />
                     <TurnLabel awaiting={request.awaiting} />
+                    {request.requireApproval && (
+                        <Label variant="accent" data-testid="plan-required">
+                            Plan required
+                        </Label>
+                    )}
                     <AnchorLink reviewId={request.reviewId} anchor={request.anchor} />
                     {null !== request.anchor && null !== request.anchor.symbol && (
                         <code className={shared.location} data-testid="anchor-symbol">
@@ -97,7 +102,7 @@ function Conversation({ request, caller }: { request: ReviewRequest; caller: Act
                 <h2 id="conversation" className={shared.sectionTitle}>
                     Conversation
                 </h2>
-                <ThreadBox key={request.id} thread={thread} caller={caller} showHeader={false} />
+                <ThreadBox key={request.id} thread={thread} caller={caller} showHeader={false} detail />
             </section>
             <CommitList commits={request.commits} />
         </>

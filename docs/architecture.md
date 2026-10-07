@@ -145,6 +145,9 @@ The spikes were joined into one end-to-end demonstration. A Symfony API, install
 | `LocationStatus` | enum: `exact`, `shifted`, `changed`, `orphaned` | Section 5.3 |
 | `OrphanReason` | enum: `file_deleted`, `region_deleted`, `ambiguous`, `content_not_found` | |
 | `Location` | `targetSha: CommitSha`, `status: LocationStatus`, `path: ?RepoPath`, `range: ?LineRange`, `confidence: float`, `reason: ?OrphanReason` | Computed and cached, not an event |
+| `ProposalState` | enum: `pending`, `approved`, `rejected` | Section 6 |
+| `Proposal` | `eventId: EventId` (the `request.proposed` event), `state: ProposalState` | The current proposal of a claim |
+| `ProposedDiff` | `string` | A unified diff in git format: 1 to 65,536 characters, 1 to 9 lines that start with `diff --git ` |
 
 ### Entities
 
@@ -158,10 +161,10 @@ Every entity except `Tenant` and `WebhookDelivery` carries `tenantId`.
 | `GitHubCandidate` | `id`, `tenantId`, `githubRepositoryId: int`, `installationId: int`, `accountLogin: string` (the account that the App is installed on), `owner: string`, `name: string`, `private: bool`, `defaultBranch: string`, `htmlUrl: string`, `listedAt`. A repository that the user can connect (R2): the sign-in replaces the rows, and the installation webhooks change them. |
 | `Repository` | `id`, `tenantId`, `source: RepositorySource`, `name: RepositoryName`, `githubInstallationId: ?int`, `githubRepositoryId: ?int`, `githubPrivate: ?bool`, `localDirectory: ?string`, `defaultBranch: ?string`, `defaultBranchHead: ?CommitSha`, `syncState: SyncState`, `fetchRequested: bool` (a queued fetch job has not started), `lastFetchedAt: ?DateTimeImmutable`, `lastError: ?string`, `access: active\|removed`, `createdAt`. A `github` repository sets `githubInstallationId` and `githubRepositoryId`. The installation ID is a plain column, not a foreign key, so it survives the deletion of the `GitHubInstallation` row. A `local` repository sets `localDirectory`. |
 | `Review` | `id`, `tenantId`, `repository: Repository`, `title: string`, `ref: string`, `commitSha: CommitSha`, `startedBy: Actor`, `indexState: pending\|running\|ready\|failed`, `createdAt`, `closedAt: ?DateTimeImmutable`, `closedBy: ?Actor`, `closeNote: ?string`, `state: ReviewState`, `lastEventSeq: int`, `filesTotal: ?int`, `filesDone: int`, `symbolsTotal: int`, `indexStartedAt: ?DateTimeImmutable`, `indexFinishedAt: ?DateTimeImmutable`, `indexError: ?string` |
-| `ChangeRequest` | `id`, `tenantId`, `review: Review`, `anchor: ?Anchor`, null for a general request, `body: string` (Markdown), `author: Actor`, `createdAt`, `status: RequestStatus`, `statusBeforeClaim: ?RequestStatus`, `claimedBy: ?Actor`, `claimedAt: ?DateTimeImmutable`, `awaiting: Awaiting`, `resolution: ?Resolution`, `wontDoBy: ?ActorKind`, `lastUserCommentSeq: ?int`, `lastAgentEventSeq: ?int`, `lastAgentEventIsQuestion: bool`, `lastEventSeq: int`, `updatedAt`, `outdated: ?bool` (not event data: the location recompute sets it, and a projection rebuild keeps it), `carriedFrom: ?{reviewId: ReviewId, requestId: RequestId}` (the source request of a carried request, without a foreign key, so it survives the deletion of the source review) |
+| `ChangeRequest` | `id`, `tenantId`, `review: Review`, `anchor: ?Anchor`, null for a general request, `body: string` (Markdown), `author: Actor`, `createdAt`, `status: RequestStatus`, `statusBeforeClaim: ?RequestStatus`, `claimedBy: ?Actor`, `claimedAt: ?DateTimeImmutable`, `awaiting: Awaiting`, `resolution: ?Resolution`, `wontDoBy: ?ActorKind`, `lastUserCommentSeq: ?int`, `lastAgentEventSeq: ?int`, `lastAgentEventIsQuestion: bool`, `lastEventSeq: int`, `updatedAt`, `outdated: ?bool` (not event data: the location recompute sets it, and a projection rebuild keeps it), `carriedFrom: ?{reviewId: ReviewId, requestId: RequestId}` (the source request of a carried request, without a foreign key, so it survives the deletion of the source review), `requireApproval: bool` ("Ask for a plan first", fixed when the request opens), `proposal: ?Proposal` (stored as `proposalEventId` and `proposalState`) |
 | `Comment` | `id`, `tenantId`, `request: ChangeRequest`, `author: Actor`, `body: string`, `question: bool`, `batchId: ?BatchId`, `createdAt` |
 | `CommitLink` | `tenantId`, `request: ChangeRequest`, `commitSha: CommitSha`, `state: CommitLinkState`, `linkedBy: Actor`, `linkedAt`, `foundAt: ?DateTimeImmutable`, `subject: ?string`, `committedAt: ?DateTimeImmutable`, `note: ?string`. `subject` and `committedAt` are set when `state` is `available`. Unique per request and commit. |
-| `Draft` | `id`, `tenantId`, `review: Review`, `user: User`, `kind: new_request\|reply`, `anchor: ?Anchor`, `request: ?ChangeRequest`, `body: string`, `createdAt`, `updatedAt` |
+| `Draft` | `id`, `tenantId`, `review: Review`, `user: User`, `kind: new_request\|reply`, `anchor: ?Anchor`, `request: ?ChangeRequest`, `body: string`, `requireApproval: bool` (always false for a reply), `createdAt`, `updatedAt` |
 | `ViewedFile` | `id`, `tenantId`, `review: Review`, `user: User`, `path: RepoPath`, `pathHash: string` (SHA-256 of the path, in the unique key) |
 | `ApiToken` | `id`, `tenantId`, `user: User`, `name: string` (the agent name), `repository: ?Repository` (null means all repositories of the tenant), `tokenHash: string` (SHA-256), `prefix: string` (for display), `createdAt`, `expiresAt: ?DateTimeImmutable`, `lastUsedAt: ?DateTimeImmutable`, `revokedAt: ?DateTimeImmutable` |
 
@@ -188,7 +191,7 @@ Table `review_event`, append-only:
 |---|---|
 | `review.started` | `title`, `ref`, `commitSha` |
 | `review.closed` | `note: ?string` |
-| `request.opened` | `anchor: ?Anchor`, null for a general request, `body`, `batchId: ?BatchId`, `carriedFrom: ?{reviewId, requestId}`, set only for a request that V15 carried over from another review |
+| `request.opened` | `anchor: ?Anchor`, null for a general request, `body`, `batchId: ?BatchId`, `carriedFrom: ?{reviewId, requestId}`, set only for a request that V15 carried over from another review, `requireApproval: bool`, read as false when missing |
 | `request.commented` | `commentId`, `body`, `question: bool`, `batchId: ?BatchId` |
 | `request.claimed` | none |
 | `request.released` | `note: ?string` |
@@ -199,6 +202,9 @@ Table `review_event`, append-only:
 | `request.wont_do` | `reason`, at least 20 characters |
 | `request.verified` | `note: ?string` |
 | `request.reopened` | `note` |
+| `request.proposed` | `plan` (Markdown), `diff: ?ProposedDiff` |
+| `request.proposal_approved` | `proposalEventId: EventId`, `note: ?string`. Actor `user`. |
+| `request.proposal_rejected` | `proposalEventId: EventId`, `note`. Actor `user`. |
 | `batch.submitted` | `batchId`, `summary: ?string`, `requestIds` (the opened and the commented requests), `commentIds` |
 
 Stored events are never rewritten. New payload fields are additive, and readers use a default for a missing field. Each type has an explicit codec. The API `Event` is a derived representation, not the stored payload. The `commit.*` payloads carry the git data of `CommitLink`, so a rebuild from the log needs no clone.
@@ -222,7 +228,8 @@ Example `request.opened` payload:
       "normalizedHash": "sha256:4cd0f94b186ef4903963fa0397ae6175cd9f82d31d4512d8e9b67a2b3a0142f9"
     }
   },
-  "carriedFrom": null
+  "carriedFrom": null,
+  "requireApproval": false
 }
 ```
 
@@ -448,23 +455,28 @@ stateDiagram-v2
 | `open` | none | `open` | User | Anchor, body | Anchor valid at the review commit |
 | `claim` | `open`, `reopened` | `in_progress` | Agent | None | A second claim by the same agent succeeds and changes nothing |
 | `release` | `in_progress` | Status before the claim | Claiming agent, or user ("Unassign") | Optional note | |
-| `link_commits` | `in_progress` | Unchanged | Claiming agent | Full commit SHA, 1 to 50 request IDs of one review, optional note | Every named request is claimed by the caller. One commit may cover several requests. The commit may still be missing from the server clone: its link is `pending`. Pairs that are already linked are skipped. |
+| `link_commits` | `in_progress` | Unchanged | Claiming agent | Full commit SHA, 1 to 50 request IDs of one review, optional note | Every named request is claimed by the caller, and its proposal gate is open. One commit may cover several requests. The commit may still be missing from the server clone: its link is `pending`. Pairs that are already linked are skipped. |
 | `unlink_commit` | `in_progress` | Unchanged | Claiming agent | Full commit SHA, request ID | |
-| `mark_ready_for_review` | `in_progress` | `ready_for_review` | Claiming agent | Note | Every linked commit must be `available`. The server fetches once. A `pending` link gives `commits_not_available`. Zero links are allowed, for a request that needs no code change. |
+| `mark_ready_for_review` | `in_progress` | `ready_for_review` | Claiming agent | Note | The proposal gate is open. Every linked commit must be `available`. The server fetches once. A `pending` link gives `commits_not_available`. Zero links are allowed, for a request that needs no code change. |
 | `mark_wont_do` | `open`, `reopened`, `in_progress` | `wont_do` | Agent (the claiming agent when `in_progress`), or user | Justification of 20 or more characters | The agent must give evidence |
 | `verify` | `ready_for_review`, or `wont_do` set by an agent | `verified` | User | Optional note | |
 | `reopen` | `ready_for_review`, `wont_do`, `verified` | `reopened` | User | Note | |
 | `reply` | Any | Unchanged | User or agent | Body; `question` flag for agents | |
+| `propose_solution` | `in_progress` | Unchanged | Claiming agent | Plan, optional unified diff | The diff is in git format, 1 to 9 files. A new proposal replaces the current one. |
+| `approve_proposal` | `in_progress` | Unchanged | User | ID of the proposal, optional note | The proposal is pending, and the ID names it |
+| `reject_proposal` | `in_progress` | Unchanged | User | ID of the proposal, note | As `approve_proposal` |
 
 A linked commit never changes the status. Only `mark_ready_for_review` says that the agent is finished. Two actors are the same when kind, `userId`, and `agentName` match, so a rotated token with the same name acts as the same agent.
+
+A proposal is a sub-state of `in_progress`, like a question: `proposal` is `{eventId, state}` with `ProposalState` `pending`, `approved`, or `rejected`, or null. Release, won't do, and reopen set it to null, because a proposal belongs to one claim. The proposal gate is open when `proposal` is null or approved, and approved when `requireApproval` is true. `requireApproval` is set when the request opens and does not change.
 
 `awaiting` is derived after each event. The first matching rule wins:
 
 | # | Rule | `awaiting` |
 |---|---|---|
 | 1 | `verified`, or `wont_do` set by the user | `none` |
-| 2 | The last thread message is from the user and is newer than the last agent event | `agent` |
-| 3 | The last agent event is a reply with `question: true` | `user` |
+| 2 | The last user message or proposal decision is newer than the last agent event | `agent` |
+| 3 | The last agent event is a reply with `question: true`, or a proposal is pending | `user` |
 | 4 | `open`, `reopened`, `in_progress` | `agent` |
 | 5 | `ready_for_review`, or `wont_do` set by an agent | `user` |
 
@@ -560,6 +572,7 @@ Error codes for all adapters. The body is `{"error": {"code", "message", "detail
 | `unlink_commit` | `commitSha` (full SHA), `requestId` | |
 | `mark_ready_for_review` | `id`, `note` | |
 | `mark_wont_do` | `id`, `reason` with `minLength: 20` | |
+| `propose_solution` | `id`, `plan`, `diff?` (unified diff, at most 9 files) | |
 
 All tools set `destructiveHint: false` and `openWorldHint: false`. Parameters are scalars, backed enums, and arrays of scalars, because the SDK does not support object parameters. Array parameters declare `items` through `#[Schema]`. A domain error becomes a `ToolCallException` with the Error JSON as text, so the result has `isError: true` and no `structuredContent`. Every other exception becomes `internal_error`. Input-schema violations give JSON-RPC error -32602 before the tool runs. `unauthorized` arrives as HTTP 401 on the transport, and `forbidden` never occurs in MCP.
 
@@ -584,7 +597,7 @@ Operator commands: rebuild projections, rebuild an index, purge a tenant. `app:s
 ### 7.7 Agent Skill and public documentation
 
 - The skill source is [docs/user/skill/SKILL.md](user/skill/SKILL.md). The application serves it raw at `GET /docs/skill/SKILL.md`. The developer installs it into `.claude/skills/holistic-review/SKILL.md` of the reviewed repository with one `curl` command. See D9 and D28.
-- The skill teaches the agent to identify the repository, to call `list_reviews` and ask the user when several reviews are open and none was named, to poll `get_updates(review, cursor)`, to answer or ask in threads, to claim before editing, to commit per request, to link commits with the full SHA, to push for GitHub sources, to commit on a branch for local sources, to justify every refusal with evidence, and to stop on `review_closed`.
+- The skill teaches the agent to identify the repository, to call `list_reviews` and ask the user when several reviews are open and none was named, to poll `get_updates(review, cursor)`, to answer or ask in threads, to claim before editing, to propose a plan first when the request asks for one, with a diff for a straightforward change, to commit per request, to link commits with the full SHA, to push for GitHub sources, to commit on a branch for local sources, to justify every refusal with evidence, and to stop on `review_closed`.
 - The public pages in `docs/user/*.md` render at `/docs/<slug>` through `twig/markdown-extra` with `league/commonmark`, configured to escape raw HTML and drop unsafe links. Slugs come from a whitelist built from the directory listing. No path comes from input.
 
 ## 8. Web UI
@@ -596,8 +609,8 @@ Operator commands: rebuild projections, rebuild an index, purge a tenant. `app:s
 | Sign in | "Sign in with GitHub". With local sign-in in `dev`, "Sign in as <login>". | Twig |
 | Repositories | Candidates from both sources: the repositories of the user's installations with "Configure on GitHub", and the directories under `APP_LOCAL_REPOSITORIES_DIR`. A notice when local repositories are off. Without a GitHub App, the GitHub section is hidden. Connect, clone status, "Refresh" to fetch at once, the reviews of a repository with "Show closed", "Start review" with a ref. A GitHub repository shows its owner, "Private" or "Public", and "View on GitHub". | Primer `DataTable`, `Label` |
 | Review | Header: title, ref, short SHA, the copyable review ID, the ready agent prompt "Work on Holistic Review <id>", "Quick open" with its shortcut Cmd+K or Ctrl+K, "Close review", and "Delete review". A read-only banner when the review is closed. The index progress. File tree at the review commit, which expands the directories above the open file. File header with "Go to declaration" for PHP files, "Wrap lines", "Comment on lines", "Symbols", "Comment on file", "Viewed", "Focus", and "Copy path". Without symbols, "Symbols" says why in a tooltip. Cmd-click on a name in a PHP file opens its declaration. Focus mode hides the headers and the banner, and the tree and the file each fill the window height and scroll on their own. The error of a file keeps "Focus" in focus mode. Code with inline threads, each with its lines and the FQN of a symbol anchor. "Finish your review (n)". | Primer `TreeView`, `ActionMenu`, `SelectPanel`, `FilteredActionList`, `Checkbox`, `Dialog`, `ProgressBar`; `@pierre/diffs` `CodeView` |
-| Requests | Filters: status, "Waiting for you" (`awaiting = user`), path, outdated. "New request" opens a general request, at once or as a draft of the pending review. "Pending drafts" lists every draft of the user from D1, labelled "General", with its path and lines, or with the request that it replies to, and linked to those lines or that request. | Primer `DataTable`, `SegmentedControl` |
-| Request detail | The anchor with the FQN of a symbol, and the snapshot between its dimmed context lines. The conversation with the agent, live. Linked commits with state, each linked to its section of the Changes tab, and a `FileDiff` per changed file. Above 20 files, a commit expands only the files that touch the anchor. A file loads its diff when it is expanded and near the window. "Resolve conversation", "Reopen", "Close as won't do", "Unassign". Read-only when the review is closed. | Primer parts; `@pierre/diffs` `FileDiff` |
+| Requests | Filters: status, "Waiting for you" (`awaiting = user`), path, outdated. "Plan to approve" marks a request with a pending proposal. "New request" opens a general request, at once or as a draft of the pending review, with "Ask for a plan first", checked by default. "Pending drafts" lists every draft of the user from D1, labelled "General", with its path and lines, or with the request that it replies to, and linked to those lines or that request. | Primer `DataTable`, `SegmentedControl` |
+| Request detail | The anchor with the FQN of a symbol, and the snapshot between its dimmed context lines. "Plan required" when `requireApproval` is true. The conversation with the agent, live. A proposal shows its plan, a `FileDiff` per file of its diff, "Download .diff", and "Approve" and "Request changes" while it is pending; an older one shows "Superseded" or "Withdrawn". Linked commits with state, each linked to its section of the Changes tab, and a `FileDiff` per changed file. Above 20 files, a commit expands only the files that touch the anchor. A file loads its diff when it is expanded and near the window. "Resolve conversation", "Reopen", "Close as won't do", "Unassign". Read-only when the review is closed. | Primer parts; `@pierre/diffs` `FileDiff` |
 | Settings | API tokens: create with name, scope, and optional expiry; the secret is shown once; revoke; last use; the `.mcp.json` snippet; links to `/docs` and to the skill install command. Delete repository data. Delete account. | Primer `DataTable`, `Dialog` |
 | Docs | The public pages at `/docs`, without sign-in | Twig |
 
@@ -617,6 +630,7 @@ Live updates: section 7.5. An agent reply shows in the open thread without a rel
 8. **Close the review.** "Close review" in the review header opens a Primer `Dialog` with an optional note. It warns when drafts exist, and it stays open until V4 answers. The review becomes read-only and leaves the default lists.
 9. **Navigate the code, decision D46.** Cmd-click on a name, or Ctrl-click outside macOS, asks V14 for its declarations. The hovered token is underlined while the key is held. "Go to declaration" in the file header takes a typed name. One target opens `path#L<declarationStartLine>` and selects only that line, so a large class is not highlighted whole. Several open a menu, and none show "No declaration in this commit". A jump pushes a history entry, and a click first writes its line into the current entry, so Back returns to that line.
 10. **Quick open, decision D48.** "Quick open" in the review header, or Cmd+K on macOS and Ctrl+K elsewhere, opens a dialog. The shortcut works in focus mode and stays off in a text field outside the dialog. The typed text asks V16 for files and symbols. The arrow keys choose a hit and Enter opens it: a file at its start, a symbol at `path#L<declarationStartLine>` with only that line selected, as in flow 9. Escape closes only the dialog. "Index in progress" shows while the result is partial, and "Index failed: hits may be missing" when the index of the review failed.
+11. **Approve a plan, decision D49.** Every comment box of a new request has "Ask for a plan first", checked by default. The agent claims the request and proposes a plan, with a diff for a straightforward change, then takes the next request. The proposal shows live in the conversation, and the request waits for the user. "Approve" lets the agent link commits and mark the request ready. "Request changes" with a note makes the agent propose again.
 
 Protection: `http.allowed_hosts` of the MCP transport, CSRF protection on session-authenticated writes, `react-markdown` for all Markdown in the UI, raw HTML escaped in the public docs, and git commands only through `symfony/process` argument arrays with validated SHAs and refs and `--end-of-options`. Git secrets travel only in environment variables. Trusted hosts and TLS in a hosted run are part of operations.
 
@@ -683,7 +697,7 @@ All PHP tests extend `KernelTestCase` or its subclasses. Unit tests do not boot 
 | Layer | Type | Base | What the tests prove |
 |---|---|---|---|
 | Value objects, state machine, `awaiting` rules, reducer | Unit | `KernelTestCase` without boot | Every status, command, and actor combination. Every `awaiting` rule. The closed-review rule. |
-| Event codecs | Unit | `KernelTestCase` without boot | All 14 event types round-trip. Wrong types are refused. Unknown fields are ignored, so an older release reads newer events. |
+| Event codecs | Unit | `KernelTestCase` without boot | All 17 event types round-trip. Wrong types are refused. Unknown fields are ignored, so an older release reads newer events. |
 | Hunk mapping, snapshot search, similarity | Unit | `KernelTestCase` without boot | Pure functions on line arrays |
 | Re-anchoring | Functional | `KernelTestCase` | F1 to F14 on real temporary git repositories built with `symfony/process` |
 | Symbol extraction and index job | Functional | `KernelTestCase` | PHP 8.5 fixtures give the expected tables. Indexed blobs are skipped. |
@@ -757,6 +771,7 @@ Static checks: PHPStan level 8 on `src/` and `tests/`, php-cs-fixer with `@Symfo
 | D46 | Code navigation | Resolution on demand: the additive endpoint V14 parses the file, resolves a static name at a position or a typed name with php-parser's `NameResolver`, and looks up its declarations by FQN among the indexed symbols of the review commit. No reference index. A method call on a variable needs type inference and gives no target. An index on `symbol (tenant_id, repository_id, fqn_sha256)`, the SHA-256 of the FQN, because a btree entry of a long multibyte FQN exceeds the PostgreSQL limit. No MCP tool, because agents read the code themselves. The UI: Cmd-click, Ctrl-click outside macOS, and "Go to declaration" in the file header as the keyboard path. A jump selects only the declaration line. |
 | D47 | Carry over open requests | The additive endpoint V15 copies the `open` and `reopened` requests of a source review into a target review of the same repository, re-anchored at the target review commit with `locate` of section 5.4 and captured as Q2 captures. `request.opened` gets the additive payload field `carriedFrom: {reviewId, requestId}`, which the codec reads as optional, so older events still decode (D37). A `changed` location adds a first comment that says so. An `orphaned` location of a file that still exists becomes a `file` anchor with the old snapshot in a first comment. An `orphaned` location without a file, and every other status, is not carried, and the result lists it with its reason. Idempotent per source request. The source review never changes. A closed target review is 422 `invalid_input`. No MCP tool, because agents never open requests. |
 | D48 | Quick open | The additive endpoint V16 matches a case-insensitive substring against the paths and the PHP symbol names of the review commit, ranked: equal name, name prefix, name substring, path substring, then shorter path. It reads `indexed_file` and `symbol` by blob with the existing indexes: no name index, which would meet the btree row-size limit of D46, because the query takes 2 to 7 ms on this repository. `partial: true` while the index is not ready. No MCP tool, because agents search the code themselves. The UI: "Quick open" in the review header and Cmd+K, Ctrl+K outside macOS, a Primer `Dialog` with `FilteredActionList`. |
+| D49 | Agent proposals | A request can require an approved plan: `requireApproval`, set when it opens through Q2, D2, or D5 and kept by a carry-over, and fixed afterwards. The claiming agent proposes with Q14 or `propose_solution`: a Markdown plan and an optional unified diff in git format of 1 to 9 files, stored in the `request.proposed` payload, so the server stores no files. The user approves with Q15 or rejects with Q16 and a note. Both name `proposalEventId`, and another ID than the pending proposal gives 422. No new status: `proposal: {eventId, state} \| null` is a sub-state of the claim, and release, won't do, and reopen clear it. The gate: `link_commits` and `mark_ready_for_review` need `proposal` null or approved, and approved when `requireApproval` holds; else `invalid_transition`, whose meaning widens to the proposal state. `awaiting` rule 2 counts a decision as a user message, and rule 3 matches a pending proposal. `request.opened` gets the payload field `requireApproval`, read as false when missing (D37). v1 is amended in place, as D45. No rollback after the first proposal event: an older build cannot decode the new event types. The UI renders the diff with `parsePatchFiles()` and `FileDiff` in `ProposalDiff` of `CommitDiff.tsx`, and "Download .diff" builds a Blob in the browser. |
 
 ## 12. Risks
 

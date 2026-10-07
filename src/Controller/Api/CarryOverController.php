@@ -225,7 +225,7 @@ final class CarryOverController extends AbstractController
                     continue;
                 }
 
-                $open = new Open($plan['anchor'], $source->getBody(), carriedFrom: new CarriedFrom($source->getReview()->getId(), $source->getId()));
+                $open = new Open($plan['anchor'], $source->getBody(), carriedFrom: new CarriedFrom($source->getReview()->getId(), $source->getId()), requireApproval: $source->requiresApproval());
                 $opened = RequestDecider::decide($open, [], $review, $actor)[0] ?? throw new \LogicException('Open decides one event.');
                 $requestId = $opened->requestId ?? throw new \LogicException('request.opened has a requestId.');
                 $carried[$id] = $requestId;

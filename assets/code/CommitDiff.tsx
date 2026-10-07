@@ -1,4 +1,4 @@
-import { type FileContents, type FileDiffOptions, parseDiffFromFile } from '@pierre/diffs';
+import { type FileContents, type FileDiffOptions, parseDiffFromFile, parsePatchFiles } from '@pierre/diffs';
 import { FileDiff, WorkerPoolContextProvider } from '@pierre/diffs/react';
 import { ChevronDownIcon, ChevronRightIcon } from '@primer/octicons-react';
 import { IconButton, Label, Spinner } from '@primer/react';
@@ -40,7 +40,7 @@ const DIFF_LINE_HEIGHT_PX = 20;
 const LOAD_AHEAD_MARGIN = '200px';
 
 /**
- * The only wrapper around `FileDiff`. A file loads its sides through R7 once it is expanded and near the window.
+ * A file of a linked commit loads its sides through R7 once it is expanded and near the window.
  */
 export const CommitDiff = memo(function CommitDiff({ repositoryId, files, overflow }: { repositoryId: string; files: readonly CommitDiffFile[]; overflow: Overflow }) {
     const collapsed = files.length > COLLAPSE_ABOVE_FILES;
@@ -49,6 +49,28 @@ export const CommitDiff = memo(function CommitDiff({ repositoryId, files, overfl
         <WorkerPoolContextProvider poolOptions={POOL_OPTIONS} highlighterOptions={HIGHLIGHTER_OPTIONS}>
             {files.map((file) => (
                 <FileChange key={`${file.oldPath ?? ''}:${file.path}`} repositoryId={repositoryId} file={file} overflow={overflow} initiallyExpanded={!collapsed || file.touchesAnchor} />
+            ))}
+        </WorkerPoolContextProvider>
+    );
+});
+
+/**
+ * A proposed unified diff, one `FileDiff` per file. The patch holds the changed lines, so nothing loads per file.
+ */
+export const ProposalDiff = memo(function ProposalDiff({ diff, cacheKey, overflow }: { diff: string; cacheKey: string; overflow: Overflow }) {
+    const files = useMemo(() => parsePatchFiles(diff, cacheKey).flatMap(({ files }) => files), [diff, cacheKey]);
+
+    return (
+        <WorkerPoolContextProvider poolOptions={POOL_OPTIONS} highlighterOptions={HIGHLIGHTER_OPTIONS}>
+            {files.map((file) => (
+                <section key={`${file.prevName ?? ''}:${file.name}`} className={styles.file} data-testid="proposal-diff-file" data-path={file.name} aria-label={file.name}>
+                    <header className={styles.header}>
+                        <h3 className={styles.path}>{undefined === file.prevName ? file.name : `${file.prevName} to ${file.name}`}</h3>
+                    </header>
+                    <div className={styles.body}>
+                        <FileDiff fileDiff={file} options={DIFF_OPTIONS[overflow]} />
+                    </div>
+                </section>
             ))}
         </WorkerPoolContextProvider>
     );

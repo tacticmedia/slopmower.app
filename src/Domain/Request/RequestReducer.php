@@ -12,11 +12,15 @@ use App\Domain\Event\RecordedEvent;
 use App\Domain\Event\RequestClaimedEvent;
 use App\Domain\Event\RequestCommentedEvent;
 use App\Domain\Event\RequestOpenedEvent;
+use App\Domain\Event\RequestProposalApprovedEvent;
+use App\Domain\Event\RequestProposalRejectedEvent;
+use App\Domain\Event\RequestProposedEvent;
 use App\Domain\Event\RequestReadyForReviewEvent;
 use App\Domain\Event\RequestReleasedEvent;
 use App\Domain\Event\RequestReopenedEvent;
 use App\Domain\Event\RequestVerifiedEvent;
 use App\Domain\Event\RequestWontDoEvent;
+use App\Domain\Identity\EventId;
 use App\Domain\Identity\RequestId;
 
 /**
@@ -53,6 +57,7 @@ final class RequestReducer
             $event instanceof RequestReleasedEvent => [
                 ...self::UNCLAIMED,
                 'status' => $state->statusBeforeClaim ?? throw new \LogicException('Only a claimed request is released.'),
+                'proposal' => null,
             ],
             $event instanceof CommitLinkedEvent => [
                 'links' => [...$state->links, new LinkedCommit($event->commitSha, $event->available ? CommitLinkState::Available : CommitLinkState::Pending)],
@@ -76,9 +81,13 @@ final class RequestReducer
                 'status' => RequestStatus::WontDo,
                 'wontDoBy' => $recorded->actor->kind,
                 'resolution' => Resolution::WontDo,
+                'proposal' => null,
             ],
             $event instanceof RequestVerifiedEvent => ['status' => RequestStatus::Verified, 'wontDoBy' => null],
-            $event instanceof RequestReopenedEvent => ['status' => RequestStatus::Reopened, 'wontDoBy' => null, 'resolution' => null],
+            $event instanceof RequestReopenedEvent => ['status' => RequestStatus::Reopened, 'wontDoBy' => null, 'resolution' => null, 'proposal' => null],
+            $event instanceof RequestProposedEvent => ['proposal' => new Proposal($recorded->id, ProposalState::Pending)],
+            $event instanceof RequestProposalApprovedEvent => ['proposal' => self::decided($state, $event->proposalEventId, ProposalState::Approved)],
+            $event instanceof RequestProposalRejectedEvent => ['proposal' => self::decided($state, $event->proposalEventId, ProposalState::Rejected)],
             default => null,
         };
 
@@ -117,7 +126,19 @@ final class RequestReducer
             lastEventSeq: $recorded->seq,
             updatedAt: $recorded->occurredAt,
             carriedFrom: $event->carriedFrom,
+            requireApproval: $event->requireApproval,
         )->with(self::tracking($recorded));
+    }
+
+    private static function decided(RequestState $state, EventId $proposalEventId, ProposalState $decision): Proposal
+    {
+        $proposal = $state->proposal;
+
+        if (null === $proposal || !$proposal->isPending() || !$proposal->eventId->equals($proposalEventId)) {
+            throw new \LogicException("The decision names {$proposalEventId}, which is not the pending proposal.");
+        }
+
+        return new Proposal($proposalEventId, $decision);
     }
 
     /**
@@ -128,11 +149,12 @@ final class RequestReducer
         $tracking = ['lastEventSeq' => $recorded->seq, 'updatedAt' => $recorded->occurredAt];
         $event = $recorded->event;
         $isComment = $event instanceof RequestCommentedEvent;
+        $isUserMessage = $isComment || $event instanceof RequestProposalApprovedEvent || $event instanceof RequestProposalRejectedEvent;
 
         if (ActorKind::Agent === $recorded->actor->kind) {
             $tracking['lastAgentEventSeq'] = $recorded->seq;
             $tracking['lastAgentEventIsQuestion'] = $isComment && $event->question;
-        } elseif (ActorKind::User === $recorded->actor->kind && $isComment) {
+        } elseif (ActorKind::User === $recorded->actor->kind && $isUserMessage) {
             $tracking['lastUserCommentSeq'] = $recorded->seq;
         }
 

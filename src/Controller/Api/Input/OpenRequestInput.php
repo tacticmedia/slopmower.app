@@ -20,6 +20,7 @@ final readonly class OpenRequestInput
         #[Assert\NotBlank(normalizer: 'trim')]
         #[Assert\Length(max: 65536)]
         public ?string $body = null,
+        public ?bool $requireApproval = null,
     ) {
     }
 }

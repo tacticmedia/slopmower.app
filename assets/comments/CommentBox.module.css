@@ -11,6 +11,12 @@
 
 .actions {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
     gap: var(--base-size-8);
+}
+
+.askForPlan {
+    margin-right: auto;
+    align-self: center;
 }

@@ -16,6 +16,8 @@ const COMMAND_PATHS: Record<RequestCommandIntent['intent'], string> = {
     reopen: 'reopen',
     mark_wont_do: 'wont-do',
     release: 'release',
+    approve_proposal: 'approve-proposal',
+    reject_proposal: 'reject-proposal',
 };
 
 /**

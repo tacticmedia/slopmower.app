@@ -59,6 +59,9 @@ Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json). 
 | [Q11](rest-api-requests.md#q11-mark-wont-do) | POST | `/api/v1/requests/{requestId}/wont-do` | S, B | 200 | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) |
 | [Q12](rest-api-requests.md#q12-verify-a-request) | POST | `/api/v1/requests/{requestId}/verify` | S | 200 | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) |
 | [Q13](rest-api-requests.md#q13-reopen-a-request) | POST | `/api/v1/requests/{requestId}/reopen` | S | 200 | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) |
+| [Q14](rest-api-requests.md#q14-propose-a-solution) | POST | `/api/v1/requests/{requestId}/propose` | B | 200 | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) |
+| [Q15](rest-api-requests.md#q15-approve-a-proposal) | POST | `/api/v1/requests/{requestId}/approve-proposal` | S | 200 | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) |
+| [Q16](rest-api-requests.md#q16-reject-a-proposal) | POST | `/api/v1/requests/{requestId}/reject-proposal` | S | 200 | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) |
 | [D1](rest-api-requests.md#d1-list-drafts) | GET | `/api/v1/reviews/{reviewId}/drafts` | S | 200 | [`lists.schema.json#/$defs/DraftList`](schemas/lists.schema.json) |
 | [D2](rest-api-requests.md#d2-create-a-draft) | POST | `/api/v1/reviews/{reviewId}/drafts` | S | 201 | [`draft.schema.json`](schemas/draft.schema.json) |
 | [D3](rest-api-requests.md#d3-update-a-draft) | PATCH | `/api/v1/drafts/{draftId}` | S | 200 | [`draft.schema.json`](schemas/draft.schema.json) |

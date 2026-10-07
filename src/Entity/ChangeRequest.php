@@ -9,11 +9,14 @@ use App\Doctrine\Type\AnchorType;
 use App\Domain\Actor\Actor;
 use App\Domain\Actor\ActorKind;
 use App\Domain\Anchor\Anchor;
+use App\Domain\Identity\EventId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Identity\TenantId;
 use App\Domain\Request\Awaiting;
 use App\Domain\Request\CarriedFrom;
+use App\Domain\Request\Proposal;
+use App\Domain\Request\ProposalState;
 use App\Domain\Request\RequestStatus;
 use App\Domain\Request\Resolution;
 use App\MessageHandler\RecomputeLocationsHandler;
@@ -98,15 +101,24 @@ class ChangeRequest implements TenantOwned
     #[ORM\Column(type: RequestId::class, nullable: true)]
     private ?RequestId $carriedFromRequestId = null;
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $requireApproval = false;
+
+    #[ORM\Column(type: EventId::class, nullable: true)]
+    private ?EventId $proposalEventId = null;
+
+    #[ORM\Column(nullable: true, enumType: ProposalState::class)]
+    private ?ProposalState $proposalState = null;
+
     /**
      * Sets the fields that request.opened fixes. {@see self::project()} sets the others.
      */
-    public function __construct(RequestId $id, Review $review, ?Anchor $anchor, string $body, Actor $author, \DateTimeImmutable $createdAt, ?CarriedFrom $carriedFrom = null)
+    public function __construct(RequestId $id, Review $review, ?Anchor $anchor, string $body, Actor $author, \DateTimeImmutable $createdAt, ?CarriedFrom $carriedFrom = null, bool $requireApproval = false)
     {
         $this->id = $id;
         $this->tenantId = $review->getTenantId();
         $this->review = $review;
-        $this->opened($anchor, $body, $author, $createdAt, $carriedFrom);
+        $this->opened($anchor, $body, $author, $createdAt, $carriedFrom, $requireApproval);
         $this->claimedBy = ActorEmbeddable::of(null);
         $this->updatedAt = $createdAt;
     }
@@ -114,7 +126,7 @@ class ChangeRequest implements TenantOwned
     /**
      * The projection rebuild recomputes an existing row in place.
      */
-    public function opened(?Anchor $anchor, string $body, Actor $author, \DateTimeImmutable $createdAt, ?CarriedFrom $carriedFrom = null): void
+    public function opened(?Anchor $anchor, string $body, Actor $author, \DateTimeImmutable $createdAt, ?CarriedFrom $carriedFrom = null, bool $requireApproval = false): void
     {
         $this->anchor = $anchor;
         $this->body = $body;
@@ -122,6 +134,7 @@ class ChangeRequest implements TenantOwned
         $this->createdAt = $createdAt;
         $this->carriedFromReviewId = $carriedFrom?->reviewId;
         $this->carriedFromRequestId = $carriedFrom?->requestId;
+        $this->requireApproval = $requireApproval;
     }
 
     public function project(
@@ -137,6 +150,7 @@ class ChangeRequest implements TenantOwned
         bool $lastAgentEventIsQuestion,
         int $lastEventSeq,
         \DateTimeImmutable $updatedAt,
+        ?Proposal $proposal,
     ): void {
         $this->status = $status;
         $this->statusBeforeClaim = $statusBeforeClaim;
@@ -150,6 +164,8 @@ class ChangeRequest implements TenantOwned
         $this->lastAgentEventIsQuestion = $lastAgentEventIsQuestion;
         $this->lastEventSeq = $lastEventSeq;
         $this->updatedAt = $updatedAt;
+        $this->proposalEventId = $proposal?->eventId;
+        $this->proposalState = $proposal?->state;
     }
 
     public function getId(): RequestId
@@ -271,5 +287,19 @@ class ChangeRequest implements TenantOwned
         }
 
         return new CarriedFrom($this->carriedFromReviewId, $this->carriedFromRequestId);
+    }
+
+    public function requiresApproval(): bool
+    {
+        return $this->requireApproval;
+    }
+
+    public function getProposal(): ?Proposal
+    {
+        if (null === $this->proposalEventId || null === $this->proposalState) {
+            return null;
+        }
+
+        return new Proposal($this->proposalEventId, $this->proposalState);
     }
 }

@@ -21,6 +21,6 @@ test.describe('KeyboardOnlyCommenting', () => {
         await expect(commentBoxHeader(page, 17)).toHaveText(`Comment on method ${ROUND_FQN}`);
         await keyboardComment(page, 'Round half to even.', '[slot="annotation-17"]');
 
-        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/requests')).toEqual([{ anchor: { kind: 'symbol', path: SYMBOL_FILE, symbol: { fqn: ROUND_FQN } }, body: 'Round half to even.' }]);
+        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/requests')).toEqual([{ anchor: { kind: 'symbol', path: SYMBOL_FILE, symbol: { fqn: ROUND_FQN } }, body: 'Round half to even.', requireApproval: true }]);
     });
 });

@@ -53,6 +53,8 @@
   "updatedAt": "2026-09-29T07:45:00Z",
   "lastEventSeq": 1842,
   "carriedFrom": null,
+  "requireApproval": false,
+  "proposal": null,
   "body": "Use `Money` instead of `float` for totals.",
   "reviewState": "open",
   "reviewCommitSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091",
@@ -83,6 +85,7 @@
       },
       "occurredAt": "2026-09-29T07:20:00Z",
       "body": "Use `Money` instead of `float` for totals.",
+      "diff": null,
       "commentId": null,
       "question": false,
       "batchId": "01K6B3P1Z8Y7X6W5V4T3S2R1Q0",
@@ -102,6 +105,7 @@
       },
       "occurredAt": "2026-09-29T07:40:00Z",
       "body": null,
+      "diff": null,
       "commentId": null,
       "question": false,
       "batchId": null,
@@ -121,6 +125,7 @@
       },
       "occurredAt": "2026-09-29T07:45:00Z",
       "body": "One refactoring covers both.",
+      "diff": null,
       "commentId": null,
       "question": false,
       "batchId": null,
@@ -147,5 +152,5 @@
       "otherRequestIds": ["01K6B3P2A9QRSTVWXYZ0123457"]
     }
   ],
-  "allowedActions": ["reply", "release", "link_commits", "unlink_commit", "mark_ready_for_review", "mark_wont_do"]
+  "allowedActions": ["reply", "release", "link_commits", "unlink_commit", "mark_ready_for_review", "mark_wont_do", "propose_solution"]
 }

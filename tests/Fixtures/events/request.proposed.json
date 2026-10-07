@@ -1,0 +1,1 @@
+{"plan":"Extract `TaxRounding` and call it from `total()` and `tax()`.","diff":"diff --git a/src/Billing/InvoiceTotals.php b/src/Billing/InvoiceTotals.php\n--- a/src/Billing/InvoiceTotals.php\n+++ b/src/Billing/InvoiceTotals.php\n@@ -40 +40 @@\n-        $sum = 0.0;\n+        $sum = Money::zero();\n"}

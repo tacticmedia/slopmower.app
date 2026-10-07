@@ -1,7 +1,19 @@
 import type { Actor } from './actor';
 import type { Anchor } from './anchor';
 import type { CommitLink } from './commit-link';
-import type { Action, Awaiting, CommitSha, DateTime, EventSeq, Markdown, RepoPath, Resolution, ReviewState, Ulid } from './common';
+import type {
+    Action,
+    Awaiting,
+    CommitSha,
+    DateTime,
+    EventSeq,
+    Markdown,
+    Proposal,
+    RepoPath,
+    Resolution,
+    ReviewState,
+    Ulid,
+} from './common';
 import type { Location } from './location';
 import type { CarriedFrom, RequestClaim } from './request-summary';
 import type { ThreadEntry } from './thread-entry';
@@ -36,6 +48,8 @@ export type Request = {
     updatedAt: DateTime;
     lastEventSeq: EventSeq;
     carriedFrom: CarriedFrom | null;
+    requireApproval: boolean;
+    proposal: Proposal | null;
     body: Markdown;
     reviewState: ReviewState;
     reviewCommitSha: CommitSha;

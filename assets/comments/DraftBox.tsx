@@ -48,12 +48,12 @@ export function DraftBox({ draft, editable }: Props) {
             await fetcher.submit(intent, { method: 'post', encType: 'application/json' });
         });
     };
-    const save = (body: string): boolean => {
+    const save = (body: string, requireApproval: boolean): boolean => {
         if (writing || null === draftId) {
             return false;
         }
         setSavedEdit(true);
-        submit({ intent: 'editDraft', draftId, input: { body } }, () => undefined);
+        submit({ intent: 'editDraft', draftId, input: null === draft.requireApproval ? { body } : { body, requireApproval } }, () => undefined);
 
         return true;
     };
@@ -98,6 +98,7 @@ export function DraftBox({ draft, editable }: Props) {
                         label="Edit pending comment"
                         submitLabel="Update comment"
                         onSubmit={save}
+                        askForPlan={draft.requireApproval ?? undefined}
                         onCancel={() => setEditing(false)}
                         initialBody={draft.body}
                         error={error}

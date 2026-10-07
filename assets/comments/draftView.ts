@@ -15,6 +15,8 @@ export type DraftView = {
     /** On the Requests tab: the drafted lines or the request of a reply. */
     href: string | null;
     body: string;
+    /** The "Ask for a plan first" choice of a new request. Null for a reply. */
+    requireApproval: boolean | null;
 };
 
 /**
@@ -27,7 +29,7 @@ export function fileDraftViews(drafts: readonly Draft[], path: string): DraftVie
         if ('new_request' === draft.kind && draft.anchor?.path === path) {
             const { range: anchorRange } = draft.anchor;
             const range = null === anchorRange ? null : { start: anchorRange.startLine, end: anchorRange.endLine };
-            views.push({ key: draft.id, draftId: draft.id, range, label: linesText(range), href: null, body: draft.body });
+            views.push({ key: draft.id, draftId: draft.id, range, label: linesText(range), href: null, body: draft.body, requireApproval: draft.requireApproval });
         }
     }
 
@@ -41,8 +43,8 @@ export function reviewLabel(drafts: readonly Draft[]): string {
 
 let pendingCount = 0;
 
-export function pendingDraft(range: LineRange | null, body: string): DraftView {
+export function pendingDraft(range: LineRange | null, body: string, requireApproval: boolean): DraftView {
     pendingCount += 1;
 
-    return { key: `pending-draft-${pendingCount}`, draftId: null, range, label: linesText(range), href: null, body };
+    return { key: `pending-draft-${pendingCount}`, draftId: null, range, label: linesText(range), href: null, body, requireApproval };
 }

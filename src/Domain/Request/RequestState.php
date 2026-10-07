@@ -39,12 +39,14 @@ final readonly class RequestState
         public int $lastEventSeq,
         public \DateTimeImmutable $updatedAt,
         public ?CarriedFrom $carriedFrom = null,
+        public bool $requireApproval = false,
+        public ?Proposal $proposal = null,
     ) {
         $this->assertConsistent();
     }
 
     /**
-     * @param array{status?: RequestStatus, statusBeforeClaim?: ?RequestStatus, claimedBy?: ?Actor, claimedAt?: ?\DateTimeImmutable, wontDoBy?: ?ActorKind, resolution?: ?Resolution, links?: list<LinkedCommit>, lastUserCommentSeq?: ?int, lastAgentEventSeq?: ?int, lastAgentEventIsQuestion?: bool, lastEventSeq?: int, updatedAt?: \DateTimeImmutable} $changes
+     * @param array{status?: RequestStatus, statusBeforeClaim?: ?RequestStatus, claimedBy?: ?Actor, claimedAt?: ?\DateTimeImmutable, wontDoBy?: ?ActorKind, resolution?: ?Resolution, links?: list<LinkedCommit>, lastUserCommentSeq?: ?int, lastAgentEventSeq?: ?int, lastAgentEventIsQuestion?: bool, lastEventSeq?: int, updatedAt?: \DateTimeImmutable, proposal?: ?Proposal} $changes
      */
     public function with(array $changes): self
     {
@@ -97,6 +99,14 @@ final readonly class RequestState
 
         if (!$resolutionFits) {
             throw new \LogicException("The resolution does not fit the status {$this->status->value}.");
+        }
+
+        if (null === $this->proposal) {
+            return;
+        }
+
+        if ($this->proposal->isPending() ? !$inProgress : !in_array($this->status, [RequestStatus::InProgress, RequestStatus::ReadyForReview, RequestStatus::Verified], true)) {
+            throw new \LogicException("A {$this->proposal->state->value} proposal does not fit the status {$this->status->value}.");
         }
     }
 }

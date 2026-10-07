@@ -46,7 +46,9 @@
       "createdAt": "2026-09-29T07:20:00Z",
       "updatedAt": "2026-09-29T07:45:00Z",
       "lastEventSeq": 1842,
-      "carriedFrom": null
+      "carriedFrom": null,
+      "requireApproval": false,
+      "proposal": null
     },
     {
       "id": "01K6B3P2A9QRSTVWXYZ0123457",
@@ -88,7 +90,9 @@
       "createdAt": "2026-09-29T07:10:00Z",
       "updatedAt": "2026-09-29T07:45:00Z",
       "lastEventSeq": 1842,
-      "carriedFrom": null
+      "carriedFrom": null,
+      "requireApproval": false,
+      "proposal": null
     }
   ],
   "events": [
@@ -108,6 +112,7 @@
       },
       "occurredAt": "2026-09-29T07:45:00Z",
       "body": "One refactoring covers both.",
+      "diff": null,
       "commentId": null,
       "question": false,
       "batchId": null,

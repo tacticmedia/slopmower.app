@@ -14,6 +14,9 @@ use App\Domain\Event\DecidedEvent;
 use App\Domain\Event\RequestClaimedEvent;
 use App\Domain\Event\RequestCommentedEvent;
 use App\Domain\Event\RequestOpenedEvent;
+use App\Domain\Event\RequestProposalApprovedEvent;
+use App\Domain\Event\RequestProposalRejectedEvent;
+use App\Domain\Event\RequestProposedEvent;
 use App\Domain\Event\RequestReadyForReviewEvent;
 use App\Domain\Event\RequestReleasedEvent;
 use App\Domain\Event\RequestReopenedEvent;
@@ -23,13 +26,17 @@ use App\Domain\Event\WontDoReason;
 use App\Domain\Git\CommitInfo;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\CommentId;
+use App\Domain\Identity\EventId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\UniqueIds;
+use App\Domain\Request\Command\ApproveProposal;
 use App\Domain\Request\Command\Claim;
 use App\Domain\Request\Command\LinkCommits;
 use App\Domain\Request\Command\MarkReadyForReview;
 use App\Domain\Request\Command\MarkWontDo;
 use App\Domain\Request\Command\Open;
+use App\Domain\Request\Command\ProposeSolution;
+use App\Domain\Request\Command\RejectProposal;
 use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
@@ -69,7 +76,7 @@ final class RequestDecider
         }
 
         if ($command instanceof Open) {
-            return [new DecidedEvent(new RequestOpenedEvent($command->anchor, $command->body, $command->batchId, $command->carriedFrom), RequestId::generate())];
+            return [new DecidedEvent(new RequestOpenedEvent($command->anchor, $command->body, $command->batchId, $command->carriedFrom, $command->requireApproval), RequestId::generate())];
         }
 
         $action = self::action($command);
@@ -107,6 +114,9 @@ final class RequestDecider
             $command instanceof MarkWontDo => new RequestWontDoEvent(WontDoReason::fromString($command->reason)),
             $command instanceof Verify => new RequestVerifiedEvent($command->note),
             $command instanceof Reopen => new RequestReopenedEvent($command->note),
+            $command instanceof ProposeSolution => new RequestProposedEvent($command->plan, null === $command->diff ? null : ProposedDiff::fromString($command->diff)),
+            $command instanceof ApproveProposal => new RequestProposalApprovedEvent($command->proposalEventId, $command->note),
+            $command instanceof RejectProposal => new RequestProposalRejectedEvent($command->proposalEventId, $command->note),
             default => throw new \LogicException('No event for '.$command::class.'.'),
         };
 
@@ -169,6 +179,12 @@ final class RequestDecider
                 : [],
             $command instanceof MarkReadyForReview, $command instanceof Reopen => self::textViolations('note', $command->note),
             $command instanceof MarkWontDo => self::reasonViolations($command->reason),
+            $command instanceof ProposeSolution => [...self::textViolations('plan', $command->plan), ...self::diffViolations($command->diff)],
+            $command instanceof ApproveProposal => self::proposalViolations($byId[$command->requestId->toString()], $command->proposalEventId),
+            $command instanceof RejectProposal => [
+                ...self::proposalViolations($byId[$command->requestId->toString()], $command->proposalEventId),
+                ...self::textViolations('note', $command->note),
+            ],
             default => [],
         };
     }
@@ -193,6 +209,38 @@ final class RequestDecider
         }
 
         return [];
+    }
+
+    /**
+     * @return list<array{field: string, message: string}>
+     */
+    private static function diffViolations(?string $diff): array
+    {
+        if (null === $diff) {
+            return [];
+        }
+
+        try {
+            ProposedDiff::fromString($diff);
+        } catch (InvalidInput $error) {
+            return $error->details()['violations'];
+        }
+
+        return [];
+    }
+
+    /**
+     * A decision on a proposal that a newer one replaced. Without a pending proposal, {@see AllowedActions} refuses.
+     *
+     * @return list<array{field: string, message: string}>
+     */
+    private static function proposalViolations(RequestState $state, EventId $proposalEventId): array
+    {
+        $proposal = $state->proposal;
+
+        return null !== $proposal && $proposal->isPending() && !$proposal->eventId->equals($proposalEventId)
+            ? [['field' => 'proposalEventId', 'message' => 'Is not the current proposal.']]
+            : [];
     }
 
     /**
@@ -229,6 +277,9 @@ final class RequestDecider
             $command instanceof MarkWontDo => Action::MarkWontDo,
             $command instanceof Verify => Action::Verify,
             $command instanceof Reopen => Action::Reopen,
+            $command instanceof ProposeSolution => Action::ProposeSolution,
+            $command instanceof ApproveProposal => Action::ApproveProposal,
+            $command instanceof RejectProposal => Action::RejectProposal,
             default => throw new \LogicException('No action for '.$command::class.'.'),
         };
     }

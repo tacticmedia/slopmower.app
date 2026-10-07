@@ -33,7 +33,9 @@
     "createdAt": "2026-09-29T07:10:00Z",
     "updatedAt": "2026-09-29T08:05:00Z",
     "lastEventSeq": 1853,
-    "carriedFrom": null
+    "carriedFrom": null,
+    "requireApproval": false,
+    "proposal": null
   },
   "allowedActions": ["reply", "claim", "mark_wont_do"],
   "events": [
@@ -53,6 +55,7 @@
       },
       "occurredAt": "2026-09-29T08:05:00Z",
       "body": "The fix needs a schema change. I stop here.",
+      "diff": null,
       "commentId": null,
       "question": false,
       "batchId": null,

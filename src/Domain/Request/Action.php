@@ -15,4 +15,7 @@ enum Action: string
     case MarkWontDo = 'mark_wont_do';
     case Verify = 'verify';
     case Reopen = 'reopen';
+    case ProposeSolution = 'propose_solution';
+    case ApproveProposal = 'approve_proposal';
+    case RejectProposal = 'reject_proposal';
 }

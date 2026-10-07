@@ -16,11 +16,14 @@ use App\Domain\Git\CommitInfo;
 use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
+use App\Domain\Request\Command\ApproveProposal;
 use App\Domain\Request\Command\Claim;
 use App\Domain\Request\Command\LinkCommits;
 use App\Domain\Request\Command\MarkReadyForReview;
 use App\Domain\Request\Command\MarkWontDo;
 use App\Domain\Request\Command\Open;
+use App\Domain\Request\Command\ProposeSolution;
+use App\Domain\Request\Command\RejectProposal;
 use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
@@ -201,6 +204,30 @@ final class RequestCommands
      * @return list<RecordedEvent>
      */
     public function reopen(Reopen $command, Actor $actor): array
+    {
+        return $this->run($this->reviewOf($command->requestId), $command, $actor);
+    }
+
+    /**
+     * @return list<RecordedEvent>
+     */
+    public function propose(ProposeSolution $command, Actor $actor): array
+    {
+        return $this->run($this->reviewOf($command->requestId), $command, $actor);
+    }
+
+    /**
+     * @return list<RecordedEvent>
+     */
+    public function approveProposal(ApproveProposal $command, Actor $actor): array
+    {
+        return $this->run($this->reviewOf($command->requestId), $command, $actor);
+    }
+
+    /**
+     * @return list<RecordedEvent>
+     */
+    public function rejectProposal(RejectProposal $command, Actor $actor): array
     {
         return $this->run($this->reviewOf($command->requestId), $command, $actor);
     }

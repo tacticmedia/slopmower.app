@@ -59,7 +59,7 @@ Skip these on a first pass: `src/Mcp/BundledSchemas.php`, `assets/api/types/`, `
 
 **Reviews.** A review is one feedback round on one repository at one pinned commit. The start resolves the ref to a full SHA, and that SHA never changes. A review stays open until a user closes it. A closed review is read-only (D27). Two open reviews of one repository are fully separate. Code: `Domain\Review`, `Application\ReviewCommands`, `Entity\Review`.
 
-**Change requests.** A request is one thread that asks for one change. Only a user opens a request. No MCP tool opens one, and `RequestDecider` refuses an `Open` from an agent. The six statuses are `open`, `in_progress`, `ready_for_review`, `wont_do`, `verified`, and `reopened`. An agent claims a request, replies, links commits, and marks it ready or won't do. The user verifies or reopens it. `awaiting` tells whose turn it is. The entity is `ChangeRequest`, and the table is `change_request`. Code: `Domain\Request`, `Application\RequestCommands`, `Entity\ChangeRequest`.
+**Change requests.** A request is one thread that asks for one change. Only a user opens a request. No MCP tool opens one, and `RequestDecider` refuses an `Open` from an agent. The six statuses are `open`, `in_progress`, `ready_for_review`, `wont_do`, `verified`, and `reopened`. An agent claims a request, replies, proposes a solution, links commits, and marks it ready or won't do. The user approves or rejects a proposal, and verifies or reopens the request. `awaiting` tells whose turn it is. The entity is `ChangeRequest`, and the table is `change_request`. Code: `Domain\Request`, `Application\RequestCommands`, `Entity\ChangeRequest`.
 
 **Commit links.** An agent links a full commit SHA to the requests that it holds. A link is `pending` until the server clone has the commit, then `available`. After a fetch, `ResolvePendingCommitLinks` writes one `commit.found` event per found commit and review with the system actor. `ready_for_review` needs all links to be available (D19). Code: `RequestCommands::linkCommits()`, `Application\ResolvePendingCommitLinks`, `Entity\CommitLink`.
 
@@ -80,14 +80,17 @@ Skip these on a first pass: `src/Mcp/BundledSchemas.php`, `assets/api/types/`, `
 | `open` | none | `open` | User |
 | `claim` | `open`, `reopened` | `in_progress` | Agent |
 | `release` | `in_progress` | The status before the claim | Holder, or user with "Unassign" |
-| `link_commits`, `unlink_commit` | `in_progress` | Unchanged | Holder |
-| `mark_ready_for_review` | `in_progress` | `ready_for_review` | Holder. All links must be available. |
+| `link_commits` | `in_progress` | Unchanged | Holder, with the proposal gate open |
+| `unlink_commit` | `in_progress` | Unchanged | Holder |
+| `mark_ready_for_review` | `in_progress` | `ready_for_review` | Holder, with the proposal gate open. All links must be available. |
 | `mark_wont_do` | `open`, `reopened`, `in_progress` | `wont_do` | Agent, the holder when `in_progress`, or user. The reason has 20 or more characters. |
 | `verify` | `ready_for_review`, or `wont_do` set by an agent | `verified` | User |
 | `reopen` | `ready_for_review`, `wont_do`, `verified` | `reopened` | User |
 | `reply` | Any | Unchanged | User or agent. An agent can set `question`. |
+| `propose_solution` | `in_progress` | Unchanged | Holder. A new proposal replaces the current one. |
+| `approve_proposal`, `reject_proposal` | `in_progress` with a pending proposal | Unchanged | User |
 
-A closed review allows no request command. Architecture section 6 has the full table and the `awaiting` rules, and `AllowedActions::permits()` is the same table in code, except `open`, which `RequestDecider` checks. The 14 event types are `review.started`, `review.closed`, `request.opened`, `request.commented`, `request.claimed`, `request.released`, `request.ready_for_review`, `request.wont_do`, `request.verified`, `request.reopened`, `commit.linked`, `commit.unlinked`, `commit.found`, and `batch.submitted`.
+A closed review allows no request command. Architecture section 6 has the full table and the `awaiting` rules, and `AllowedActions::permits()` is the same table in code, except `open`, which `RequestDecider` checks. The 17 event types are `review.started`, `review.closed`, `request.opened`, `request.commented`, `request.claimed`, `request.released`, `request.ready_for_review`, `request.wont_do`, `request.verified`, `request.reopened`, `request.proposed`, `request.proposal_approved`, `request.proposal_rejected`, `commit.linked`, `commit.unlinked`, `commit.found`, and `batch.submitted`.
 
 ### 2.3 What "anchoring" means
 
@@ -123,12 +126,14 @@ App\Anchoring          git and cache side: Locator, LocationCacheSql, CodeExcerp
 | Claim, holder | An agent claims a request and holds it while `in_progress`. A repeated claim by the holder writes no event. | `RequestDecider`, `RequestState::isClaimedBy()` |
 | Awaiting | Whose turn it is: `agent`, `user`, or `none`. Rules 1 to 5 of architecture section 6, first match wins. | `Domain\Request\AwaitingPolicy::evaluate()` |
 | Allowed actions | The actions the caller may take now. Empty on a closed review. | `Domain\Request\AllowedActions::for()` |
+| Proposal | The current plan of a claim, with an optional unified diff: `pending`, `approved`, or `rejected`. Release, won't do, and reopen clear it. The proposal gate is open when it is null or approved, and approved when the request asks for a plan first (D49). | `Domain\Request\Proposal`, `ProposedDiff`, `AllowedActions::permits()` |
+| Ask for a plan first | `requireApproval`: the request needs an approved proposal before `link_commits` and `mark_ready_for_review`. Set when the request opens, fixed afterwards. | `Domain\Request\RequestState::$requireApproval`, `assets/comments/CommentBox.tsx` |
 | Resolution | `fixed` after `ready_for_review`, `wont_do` after `wont_do`. `reopen` clears it. | `Domain\Request\Resolution` |
 | Commit link | A commit linked to a request, `pending` or `available` | `Entity\CommitLink`, `Domain\Request\LinkedCommit` |
 | `commit.found` | System event that makes pending links available after a fetch. No Domain decider writes it. | `Application\ResolvePendingCommitLinks::recordFound()` |
 | Availability | The commit in the clone that `link_commits` gives to the decider, so the link is `available` at once. Only `link_commits` passes it. | `RequestDecider::decide()` parameter `$availability` |
 | Actor | `user`, `agent`, or `system`. Two tokens of one user with the same name are the same agent. | `Domain\Actor\Actor`, `Security\CurrentActor::get()` |
-| Event | One `review_event` row. 14 types. Stored events are never rewritten. | `Domain\Event\EventType` |
+| Event | One `review_event` row. 17 types. Stored events are never rewritten. | `Domain\Event\EventType` |
 | `seq` | Gapless event number per tenant, from `tenant.event_seq` under `FOR UPDATE`. The `get_updates` cursor and the last segment of the Mercure ID of an `events` update. | `EventStore\EventStoreSql::lockTenant()` |
 | Decided or recorded event | `DecidedEvent` is a decider result. `RecordedEvent` is the stored event with ID, `seq`, actor, and time. | `Domain\Event\DecidedEvent`, `RecordedEvent` |
 | Decider | Pure static function: command and state give events, or a `DomainError` | `RequestDecider::decide()`, `ReviewDecider::decide()` |
@@ -166,10 +171,10 @@ A row counts the PHP files of its namespace and of the sub-namespaces without a 
 | Namespace | Files | Purpose | Key types | Dependencies |
 |---|---|---|---|---|
 | `App` | 1 | Kernel. Allows the `e2e` environment. Makes the HWIOAuth GitHub resource owner non-shared. | `Kernel` | FrameworkBundle |
-| `App\Domain\Request` | 14 | Request state machine: decide, fold, awaiting, allowed actions, and the errors `InvalidTransition` and `CommitsNotAvailable` of the decider | `RequestDecider`, `RequestReducer`, `RequestState`, `AllowedActions`, `AwaitingPolicy` | Domain only |
-| `App\Domain\Request\Command` | 11 | Input DTOs of the 10 request commands | `RequestCommand`, `Open`, `Claim`, `Reply`, `LinkCommits` | Domain only |
+| `App\Domain\Request` | 17 | Request state machine: decide, fold, awaiting, allowed actions, and the errors `InvalidTransition` and `CommitsNotAvailable` of the decider | `RequestDecider`, `RequestReducer`, `RequestState`, `AllowedActions`, `AwaitingPolicy` | Domain only |
+| `App\Domain\Request\Command` | 14 | Input DTOs of the 13 request commands | `RequestCommand`, `Open`, `Claim`, `Reply`, `LinkCommits` | Domain only |
 | `App\Domain\Review` | 7 | Review start and close, with the same decider and reducer shape | `ReviewDecider`, `ReviewReducer`, `ReviewSnapshot` | Domain only |
-| `App\Domain\Event` | 19 | The 14 event types, the two envelopes, and `WontDoReason`, a payload value | `DomainEvent`, `EventType`, `DecidedEvent`, `RecordedEvent` | Domain only |
+| `App\Domain\Event` | 22 | The 17 event types, the two envelopes, and `WontDoReason`, a payload value | `DomainEvent`, `EventType`, `DecidedEvent`, `RecordedEvent` | Domain only |
 | `App\Domain\Event\Codec` | 5 | Stored JSON format of payloads (D37). The shared normalizers also use `AnchorCodec` and `TimeCodec`. | `PayloadReader`, `AnchorCodec`, `PayloadJson`, `TimeCodec` | Domain only |
 | `App\Domain\Anchor` | 7 | Anchor value object and capture rules | `Anchor`, `ContentSnapshot`, `SnapshotCapture`, `LineRange` | Domain only |
 | `App\Domain\Matching` | 9 | Pure re-anchoring algorithms on line arrays | `UnifiedZeroDiffParser`, `RangeMapper`, `SnapshotMatcher`, `BestWindow` | Domain only |
@@ -198,10 +203,10 @@ A row counts the PHP files of its namespace and of the sub-namespaces without a 
 | `App\Live` | 4 | Mercure publish, IDs only | `LivePublisher`, `LiveTopics`, `PublishCommittedEvents` | Application\Event, Domain, EventStore |
 | `App\Controller` | 6 | Shell routes, sign-in pages, `/docs`, `/healthz`, `/github/installed`, e2e sign-in | `ShellController`, `DocsController`, `SecurityController` | Docs, Entity, Repository, Security, Tenancy |
 | `App\Controller\Api` | 22 | REST adapter: one action per spec endpoint, with the reads and the logic that no other caller shares | `RequestController`, `RequestCommandController`, `AgentRequestController`, `ReviewController` | Anchoring, Application, Application\Query, Controller\Api\Input, Domain, Entity, EventStore, Git, GitHub, Http, Index, Live, Message, Projection, Repository, Security, Source, Tenancy |
-| `App\Controller\Api\Input` | 29 | Request DTOs for `#[MapRequestPayload]` and `#[MapQueryString]` | `AnchorInput`, `RequestListQuery`, `LinkCommitsInput` | Application\Query, Domain, Entity, Http |
+| `App\Controller\Api\Input` | 32 | Request DTOs for `#[MapRequestPayload]` and `#[MapQueryString]` | `AnchorInput`, `RequestListQuery`, `LinkCommitsInput` | Application\Query, Domain, Entity, Http |
 | `App\Http` | 7 | The `/api/v1` pipeline: error body, CSRF, body size, headers, cursor, and `QueryInput`, the marker of a query DTO | `ApiExceptionListener`, `ApiCsrfListener`, `Cursor` | Domain |
 | `App\Serializer\Normalizer` | 16 | The value normalizers, and one normalizer per schema whose response class cannot be schema-shaped, shared by REST and MCP (D37) | `RequestNormalizer`, `RequestSummaryNormalizer`, `EventNormalizer` | Application, Application\Query, Domain, Entity, Git, Repository, Source |
-| `App\Mcp` | 4 | The 12 MCP tools of `specs/mcp.md` section 4 as methods of one class, two session decorators, generated output schemas | `McpTools`, `SessionLockedMcpController`, `TokenBoundSessionStore` | Application, Application\Query, Controller\Api\Input, Domain, Repository, Security |
+| `App\Mcp` | 4 | The 13 MCP tools of `specs/mcp.md` section 4 as methods of one class, two session decorators, generated output schemas | `McpTools`, `SessionLockedMcpController`, `TokenBoundSessionStore` | Application, Application\Query, Controller\Api\Input, Domain, Repository, Security |
 | `App\Docs` | 2 | Serves `docs/user` and the schemas through a lookup in a directory listing (D28) | `DocsCatalog`, `DocsLinkRewriter` | Finder, CommonMark |
 | `App\Command` | 4 | `app:projections:rebuild`, `app:index:rebuild`, `app:tenant:purge`, `app:schema:bundle` | `RebuildProjectionsCommand`, `BundleSchemasCommand` | Domain, Entity, EventStore, Index, Message, MessageHandler, Repository, Tenancy |
 
@@ -212,10 +217,10 @@ A row counts the PHP files of its namespace and of the sub-namespaces without a 
 | `assets/app.tsx`, `router.tsx`, `layout/` | 9 | Entry, the one data router, `RootLayout` with the live hook (D29), `usePreference` for per-browser UI preferences, `useSubmitOnce` for write forms |
 | `assets/api/` | 32 | `fetch` client with the CSRF header, `ApiError`, TypeScript types written from the schemas |
 | `assets/routes/` | 30 | Screens. Loaders read and actions write. Most actions branch on an `intent` field. |
-| `assets/code/` | 9 | `CodeFile` and `CommitDiff`, the only wrappers around the pinned `@pierre/diffs` (D1), and their shared `workerPool` options |
+| `assets/code/` | 9 | `CodeFile` and `CommitDiff`, the only wrappers around the pinned `@pierre/diffs` (D1): `CommitDiff.tsx` also exports `ProposalDiff`. Their shared `workerPool` options. |
 | `assets/comments/` | 11 | Threads, drafts, comment box, `useOptimistic` updates |
 | `assets/live/` | 2 | `LiveSubscription`, the one Mercure subscription, and `EventPositions` |
-| `assets/requests/`, `review/`, `settings/` | 48 | Presentational components and pure helpers |
+| `assets/requests/`, `review/`, `settings/` | 50 | Presentational components and pure helpers |
 
 ### 3.3 Dependency picture
 
@@ -326,11 +331,11 @@ An agent cannot open a request. A user opens one through `RequestController::ope
 
 | Suite | Location | Tool and base | What it proves | Run |
 |---|---|---|---|---|
-| Unit | `tests/Unit/`, 61 classes | PHPUnit, `KernelTestCase` without boot | Value objects, the transition matrix, `awaiting` rules, event codecs, pure anchoring algorithms. `Conventions/` holds the meta-tests, for example domain purity, 800-line limit, no container mocks, TestDox on every test (D44). | `docker compose exec php bin/phpunit --testsuite unit` |
-| Functional | `tests/Functional/`, 155 classes | `KernelTestCase` and `WebTestCase` on `app_test`, real git repositories in temporary directories, `MockHttpClient` for GitHub | Event store and projections, re-anchoring cases F1 to F14, tenant isolation, REST and MCP contracts against the schemas, webhooks, deletion, the headless slice | `make test` runs unit and functional |
+| Unit | `tests/Unit/`, 62 classes | PHPUnit, `KernelTestCase` without boot | Value objects, the transition matrix, `awaiting` rules, event codecs, pure anchoring algorithms. `Conventions/` holds the meta-tests, for example domain purity, 800-line limit, no container mocks, TestDox on every test (D44). | `docker compose exec php bin/phpunit --testsuite unit` |
+| Functional | `tests/Functional/`, 158 classes | `KernelTestCase` and `WebTestCase` on `app_test`, real git repositories in temporary directories, `MockHttpClient` for GitHub | Event store and projections, re-anchoring cases F1 to F14, tenant isolation, REST and MCP contracts against the schemas, webhooks, deletion, the headless slice | `make test` runs unit and functional |
 | Front-end unit | `assets/**/*.test.ts`, 20 files | Vitest | Pure TypeScript: live subscription, helpers, enum arrays and fixtures against the schemas | `make front` |
-| UI | `tests/ui/*.spec.ts`, 37 specs | Playwright Test on the host, against the SPA built by `tests/ui/vite.config.ts` | Screen flows with no PHP, database, or git. `tests/ui/support/mockApi.ts` answers `/api/v1`, and each mocked body validates against the schemas. A fake `EventSource` sends live updates. | `make ui` |
-| Full-stack E2E | `tests/E2E/`, 6 classes | `FullStackTestCase` in `tests/Support/E2E/` with playwright-php, against the `e2e` site on port 8081 and `app_e2e` | Sign-in, the vertical slice through browser and MCP, a live agent reply, account deletion, a scoped token | `make e2e` |
+| UI | `tests/ui/*.spec.ts`, 40 specs | Playwright Test on the host, against the SPA built by `tests/ui/vite.config.ts` | Screen flows with no PHP, database, or git. `tests/ui/support/mockApi.ts` answers `/api/v1`, and each mocked body validates against the schemas. A fake `EventSource` sends live updates. | `make ui` |
+| Full-stack E2E | `tests/E2E/`, 7 classes | `FullStackTestCase` in `tests/Support/E2E/` with playwright-php, against the `e2e` site on port 8081 and `app_e2e` | Sign-in, the vertical slice through browser and MCP, a live agent reply, account deletion, a scoped token | `make e2e` |
 
 Run `make db-test` once and after each migration. `make check` runs all gates. One PHP test: `docker compose exec php bin/phpunit --filter StartReviewTest`. One UI spec: `npx playwright test tests/ui/LineComment.spec.ts`. One Vitest file: `npx vitest run assets/live/useLiveRevalidation.test.ts`. Shared PHP fixtures and helpers are in `tests/Support/`.
 
@@ -340,9 +345,9 @@ Run `make db-test` once and after each migration. `make check` runs all gates. O
 
 | Area | Size | Verdict | Evidence, and a simpler shape |
 |---|---|---|---|
-| Event log, deciders, reducers, projectors | `Domain\Request`, `Domain\Event` with sub-namespaces, `EventStore`, `Projection`: about 2,800 lines | Forced by D3, D37, architecture section 6, and the domain purity rule of D44 | 14 event classes for 14 types, explicit codecs, and a transition test with 192 cases. The cost: one request exists as events, `RequestState`, `ChangeRequest`, and a view DTO. A new request field touches `RequestState`, `RequestReducer`, `ChangeRequest`, and `RequestStateMapper`. The purity rule covers all of `src/Domain` (S07, D44): it keeps the deciders, reducers, event codecs, and matching algorithms testable without the kernel, and the other Domain namespaces are pure at no cost. |
-| `src/Mcp/BundledSchemas.php` | 2,472 lines | Forced by `specs/mcp.md` section 3 | `#[McpTool(outputSchema:)]` takes only constant expressions. `app:schema:bundle` generates the file, and `BundledSchemasUpToDateTest` checks it. |
-| MCP tools next to REST actions | `Mcp\McpTools`: 12 tool methods, 422 lines | Done. The rest is forced by architecture section 7.1 and D20. | Done in S09. `Mcp\McpTools` holds the 12 tools, one `#[McpTool]` method each, and the error mapping. Each tool delegates to one query or one `RequestCommands` method. A command that returns its events goes through `requestCommand()`, and `link_commits` goes through `run()`, because it returns `LinkCommitsResult`. The bundle registers every `#[McpTool]` method of a service, and the method order is the `tools/list` order. Remains: `get_updates`, `list_requests`, and `list_reviews` also resolve the review or repository first, so `not_found` comes first, as in REST. |
+| Event log, deciders, reducers, projectors | `Domain\Request`, `Domain\Event` with sub-namespaces, `EventStore`, `Projection`: about 2,800 lines | Forced by D3, D37, architecture section 6, and the domain purity rule of D44 | 17 event classes for 17 types, explicit codecs, and a transition test with 399 cases. The cost: one request exists as events, `RequestState`, `ChangeRequest`, and a view DTO. A new request field touches `RequestState`, `RequestReducer`, `ChangeRequest`, and `RequestStateMapper`. The purity rule covers all of `src/Domain` (S07, D44): it keeps the deciders, reducers, event codecs, and matching algorithms testable without the kernel, and the other Domain namespaces are pure at no cost. |
+| `src/Mcp/BundledSchemas.php` | 2,781 lines | Forced by `specs/mcp.md` section 3 | `#[McpTool(outputSchema:)]` takes only constant expressions. `app:schema:bundle` generates the file, and `BundledSchemasUpToDateTest` checks it. |
+| MCP tools next to REST actions | `Mcp\McpTools`: 13 tool methods, 444 lines | Done. The rest is forced by architecture section 7.1 and D20. | Done in S09. `Mcp\McpTools` holds the 13 tools, one `#[McpTool]` method each, and the error mapping. Each tool delegates to one query or one `RequestCommands` method. A command that returns its events goes through `requestCommand()`, and `link_commits` goes through `run()`, because it returns `LinkCommitsResult`. The bundle registers every `#[McpTool]` method of a service, and the method order is the `tools/list` order. Remains: `get_updates`, `list_requests`, and `list_reviews` also resolve the review or repository first, so `not_found` comes first, as in REST. |
 | Normalizers and view DTOs | 16 normalizers with 1,091 lines, 31 DTO and enum files in `Application\Query` with 848 lines | Done. The rest is forced by D37 and architecture section 7.2. | Done in S08 with the rule of section 5. Schema-shaped classes are, for example, `RequestCommandResult`, `UpdatesPage`, `IndexStatus`, `LocationView`, and `CodeExcerpt`. Remains: the view classes that wrap an entity and add a few fields, because a schema-shaped copy repeats every field, and `RequestView` and `ThreadEntry`, which merge other schemas. |
 | `Application\FetchRepository` | `FetchRepository`: 212 lines, 9 constructor parameters. `ServerClone`: 188 lines, 12 constructor parameters. | Done. The lock and sync rules are forced by D24 and D39. | Done in S05. `FetchRepository` queues clones and fetches, fetches within 60 s, removes access, and checks that a clone is ready. `ServerClone` clones and fetches from the source, with the GitHub token request and the local discovery. `RepositorySyncHandler` runs the clone and fetch jobs, `DeletionHandler` the clone deletion and the tenant purge, and `RepositoryLock::acquire()` waits for the lock for all of them. Both sources build one `Source\FetchCommand`. An interface with a picker in `App\Source` is not smaller, because only `ServerClone` picks. Remains: the 12 constructor parameters of `ServerClone`, which the two sources need. |
 | Re-anchoring | 4 namespaces, about 1,300 lines | Done. Forced by architecture sections 5.4 and 5.5 and plan M28. | Done in S06. The pure algorithms are in `App\Domain\Matching`, and `App\Anchoring` holds the git and cache side. `Locator` is the only production caller of `Domain\Matching`, and the split lets the algorithms run in unit tests without git. The value types `ExactMatch`, `FuzzyMatch`, and `MappedRange` stay, because a fold gives an array shape or a second similarity run, and `Hunk` holds the boundary rules of `RangeMapper`. |

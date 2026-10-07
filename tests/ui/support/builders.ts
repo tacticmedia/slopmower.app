@@ -4,7 +4,7 @@ import type { AgentActor, UserActor } from '../../../assets/api/types/actor';
 import type { Anchor, ContentSnapshot, LineRange } from '../../../assets/api/types/anchor';
 import type { ApiToken, ApiTokenWithSecret } from '../../../assets/api/types/api-token';
 import type { CommitLink } from '../../../assets/api/types/commit-link';
-import type { Action, ActorKind, RequestStatus, ThreadEntryType } from '../../../assets/api/types/common';
+import type { Action, ActorKind, Proposal, RequestStatus, ThreadEntryType } from '../../../assets/api/types/common';
 import type { CommitDiff, CommitDiffFile } from '../../../assets/api/types/commit-diff';
 import type { Declaration } from '../../../assets/api/types/declaration';
 import type { ErrorBody, ErrorDetails } from '../../../assets/api/types/error';
@@ -136,6 +136,7 @@ export function threadEntry(seq: number, type: ThreadEntryType, actor: ThreadEnt
         actor,
         occurredAt: now(),
         body,
+        diff: null,
         commentId: 'request.commented' === type ? newId() : null,
         question: false,
         batchId: null,
@@ -145,7 +146,7 @@ export function threadEntry(seq: number, type: ThreadEntryType, actor: ThreadEnt
 }
 
 /** `request.opened-range.json` of another anchor and body, or `request.general.json` without an anchor, opened by the user. */
-export function request(review: Review, anchor: Anchor | null, body: string, seq: number): Request {
+export function request(review: Review, anchor: Anchor | null, body: string, seq: number, requireApproval = false): Request {
     const base = fixture<Request>(null === anchor ? 'request.general.json' : 'request.opened-range.json');
     const createdAt = now();
 
@@ -161,6 +162,7 @@ export function request(review: Review, anchor: Anchor | null, body: string, seq
         createdAt,
         updatedAt: createdAt,
         lastEventSeq: seq,
+        requireApproval,
         reviewState: review.state,
         reviewCommitSha: review.commitSha,
         location: null === anchor ? null : { target: 'default_branch', targetSha: review.commitSha, status: 'exact', path: anchor.path, range: anchor.range, confidence: 1, reason: null },
@@ -175,7 +177,7 @@ function summaryText(body: string): string {
 }
 
 /** The `allowedActions` of a user caller on an open review: docs/specs/rest-api-requests.md section 1. */
-export function userActions(status: RequestStatus, wontDoBy: ActorKind | null = null): Action[] {
+export function userActions(status: RequestStatus, wontDoBy: ActorKind | null = null, proposal: Proposal | null = null): Action[] {
     const actions: Action[] = ['reply'];
     if ('in_progress' === status) {
         actions.push('release');
@@ -188,6 +190,9 @@ export function userActions(status: RequestStatus, wontDoBy: ActorKind | null = 
     }
     if ('ready_for_review' === status || 'wont_do' === status || 'verified' === status) {
         actions.push('reopen');
+    }
+    if ('in_progress' === status && 'pending' === proposal?.state) {
+        actions.push('approve_proposal', 'reject_proposal');
     }
 
     return actions;
@@ -217,6 +222,8 @@ export function requestSummary(request: Request): RequestSummary {
         updatedAt: request.updatedAt,
         lastEventSeq: request.lastEventSeq,
         carriedFrom: request.carriedFrom,
+        requireApproval: request.requireApproval,
+        proposal: request.proposal,
     } as RequestSummary;
 }
 

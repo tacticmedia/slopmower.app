@@ -1,10 +1,11 @@
 import { HubotIcon, KebabHorizontalIcon, PersonIcon } from '@primer/octicons-react';
 import { ActionList, ActionMenu, Avatar, IconButton, Label, Link, RelativeTime } from '@primer/react';
-import { lazy, Suspense, useOptimistic, useRef, useTransition } from 'react';
+import { lazy, type ReactNode, Suspense, useOptimistic, useRef, useTransition } from 'react';
 import { Link as RouterLink, useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
 import type { Actor } from '../api/types/actor';
 import { OutdatedLabel } from '../requests/OutdatedLabel';
+import { ProposalEntry } from '../requests/ProposalEntry';
 import { StatusLabel } from '../requests/StatusLabel';
 import { CommentBox, type CommentBoxHandle } from './CommentBox';
 import type { CommentIntent } from './commentIntent';
@@ -22,6 +23,9 @@ const CAPTIONS: Record<string, string> = {
     'request.wont_do': "closed this as won't do",
     'request.verified': 'resolved this conversation',
     'request.reopened': 'reopened this',
+    'request.proposed': 'proposed a solution',
+    'request.proposal_approved': 'approved the proposal',
+    'request.proposal_rejected': 'requested changes',
 };
 
 type Props = {
@@ -30,12 +34,14 @@ type Props = {
     caller: Actor;
     /** False where the page shows the status and the lines already. */
     showHeader?: boolean;
+    /** On the request detail: proposal diffs and decisions. Elsewhere a proposal links to the request detail. */
+    detail?: boolean;
 };
 
 /**
  * Decision D2. A reply shows at once and disappears again if Q4 fails.
  */
-export function ThreadBox({ thread, caller, showHeader = true }: Props) {
+export function ThreadBox({ thread, caller, showHeader = true, detail = false }: Props) {
     const fetcher = useFetcher<ActionResult>();
     const [replying, startReply] = useTransition();
     const [comments, addComment] = useOptimistic(thread.comments, (current: CommentView[], added: CommentView) => [...current, added]);
@@ -78,9 +84,15 @@ export function ThreadBox({ thread, caller, showHeader = true }: Props) {
                 </p>
             )}
             <ol className={styles.comments}>
-                {comments.map((comment) => (
-                    <ThreadComment key={comment.key} comment={comment} onQuote={thread.replyable ? () => replyBox.current?.quote(comment.body) : null} />
-                ))}
+                {comments.map((comment) => {
+                    const { body, proposal } = comment;
+
+                    return (
+                        <ThreadComment key={comment.key} comment={comment} onQuote={thread.replyable && null !== body ? () => replyBox.current?.quote(body) : null}>
+                            {null !== proposal && <ProposalEntry proposal={proposal} requestId={requestId} decidable={thread.decidable} detail={detail} />}
+                        </ThreadComment>
+                    );
+                })}
             </ol>
             {thread.replyable && (
                 <div className={styles.reply}>
@@ -91,7 +103,7 @@ export function ThreadBox({ thread, caller, showHeader = true }: Props) {
     );
 }
 
-function ThreadComment({ comment, onQuote }: { comment: CommentView; onQuote: (() => void) | null }) {
+function ThreadComment({ comment, onQuote, children }: { comment: CommentView; onQuote: (() => void) | null; children?: ReactNode }) {
     const { author } = comment;
     const caption = CAPTIONS[comment.type];
 
@@ -117,9 +129,12 @@ function ThreadComment({ comment, onQuote }: { comment: CommentView; onQuote: ((
                     </ActionMenu>
                 )}
             </div>
-            <Suspense fallback={<p className={styles.plain}>{comment.body}</p>}>
-                <MarkdownBody markdown={comment.body} />
-            </Suspense>
+            {null !== comment.body && (
+                <Suspense fallback={<p className={styles.plain}>{comment.body}</p>}>
+                    <MarkdownBody markdown={comment.body} />
+                </Suspense>
+            )}
+            {children}
         </li>
     );
 }

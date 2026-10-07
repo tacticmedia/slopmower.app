@@ -14,6 +14,9 @@ namespace App\Tests\Support\CrossTenant;
  */
 final class CrossTenantCases
 {
+    /** No event of the other tenant: the request ID in the path answers not_found first. */
+    private const string PROPOSAL_EVENT_ID = '01K6C2EVT00000000000001862';
+
     /**
      * @return array<string, array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null, bearer?: true, query?: array<string, string>}>
      */
@@ -52,11 +55,14 @@ final class CrossTenantCases
             'api_request_unlink_commit' => ['method' => 'DELETE', 'path' => '/api/v1/requests/{requestId}/commits/{commitSha}', 'body' => null, 'status' => 200, 'schema' => 'request-command-result.schema.json', 'bearer' => true],
             'api_request_commit_diff' => ['method' => 'GET', 'path' => '/api/v1/requests/{requestId}/commits/{commitSha}', 'body' => null, 'status' => 200, 'schema' => 'commit-diff.schema.json'],
             'api_request_ready' => ['method' => 'POST', 'path' => '/api/v1/requests/{requestId}/ready', 'body' => ['note' => 'Extracted TaxRounding.'], 'status' => 200, 'schema' => 'request-command-result.schema.json', 'bearer' => true],
+            'api_request_propose' => ['method' => 'POST', 'path' => '/api/v1/requests/{requestId}/propose', 'body' => ['plan' => 'Extract `TaxRounding`.'], 'status' => 200, 'schema' => 'request-command-result.schema.json', 'bearer' => true],
             'api_commit_link_create' => ['method' => 'POST', 'path' => '/api/v1/commit-links', 'body' => ['commitSha' => '79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091', 'requestIds' => ['{requestId}']], 'status' => 200, 'schema' => 'link-commits-result.schema.json', 'bearer' => true],
             'api_request_release' => ['method' => 'POST', 'path' => '/api/v1/requests/{requestId}/release', 'body' => null, 'status' => 200, 'schema' => 'request-command-result.schema.json'],
             'api_request_wont_do' => ['method' => 'POST', 'path' => '/api/v1/requests/{requestId}/wont-do', 'body' => ['reason' => 'The totals already use integer cents.'], 'status' => 200, 'schema' => 'request-command-result.schema.json'],
             'api_request_verify' => ['method' => 'POST', 'path' => '/api/v1/requests/{requestId}/verify', 'body' => null, 'status' => 200, 'schema' => 'request-command-result.schema.json'],
             'api_request_reopen' => ['method' => 'POST', 'path' => '/api/v1/requests/{requestId}/reopen', 'body' => ['note' => 'Still loses cents.'], 'status' => 200, 'schema' => 'request-command-result.schema.json'],
+            'api_request_approve_proposal' => ['method' => 'POST', 'path' => '/api/v1/requests/{requestId}/approve-proposal', 'body' => ['proposalEventId' => self::PROPOSAL_EVENT_ID], 'status' => 200, 'schema' => 'request-command-result.schema.json'],
+            'api_request_reject_proposal' => ['method' => 'POST', 'path' => '/api/v1/requests/{requestId}/reject-proposal', 'body' => ['proposalEventId' => self::PROPOSAL_EVENT_ID, 'note' => 'One class is enough.'], 'status' => 200, 'schema' => 'request-command-result.schema.json'],
             'api_draft_list' => ['method' => 'GET', 'path' => '/api/v1/reviews/{reviewId}/drafts', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/DraftList'],
             'api_draft_create' => ['method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/drafts', 'body' => ['kind' => 'new_request', 'anchor' => ['kind' => 'file', 'path' => 'README.md'], 'body' => 'Use `Money`.'], 'status' => 201, 'schema' => 'draft.schema.json'],
             'api_draft_update' => ['method' => 'PATCH', 'path' => '/api/v1/drafts/{draftId}', 'body' => ['body' => 'Use `Money` for taxes too.'], 'status' => 200, 'schema' => 'draft.schema.json'],

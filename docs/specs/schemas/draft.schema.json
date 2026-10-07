@@ -3,7 +3,7 @@
   "$id": "https://holistic-review.invalid/schemas/v1/draft.schema.json",
   "title": "Draft",
   "type": "object",
-  "required": ["id", "reviewId", "kind", "anchor", "requestId", "body", "createdAt", "updatedAt"],
+  "required": ["id", "reviewId", "kind", "anchor", "requestId", "body", "requireApproval", "createdAt", "updatedAt"],
   "properties": {
     "id": {
       "$ref": "common.schema.json#/$defs/Ulid"
@@ -38,6 +38,10 @@
     "body": {
       "$ref": "common.schema.json#/$defs/Markdown"
     },
+    "requireApproval": {
+      "type": "boolean",
+      "description": "new_request: the request opens with requireApproval. Always false for a reply."
+    },
     "createdAt": {
       "$ref": "common.schema.json#/$defs/DateTime"
     },
@@ -68,6 +72,9 @@
           },
           "requestId": {
             "$ref": "common.schema.json#/$defs/Ulid"
+          },
+          "requireApproval": {
+            "const": false
           }
         }
       }

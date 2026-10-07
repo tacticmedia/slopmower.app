@@ -4,7 +4,7 @@
   "title": "Event",
   "description": "An entry of the review event log as returned by get_updates, the updates endpoint, and command results.",
   "type": "object",
-  "required": ["seq", "eventId", "type", "reviewId", "requestId", "requestIds", "actor", "occurredAt", "body", "commentId", "question", "batchId", "commitSha", "statusAfter"],
+  "required": ["seq", "eventId", "type", "reviewId", "requestId", "requestIds", "actor", "occurredAt", "body", "diff", "commentId", "question", "batchId", "commitSha", "statusAfter"],
   "properties": {
     "seq": {
       "$ref": "common.schema.json#/$defs/EventSeq"
@@ -46,6 +46,17 @@
     "body": {
       "type": ["string", "null"],
       "description": "As ThreadEntry.body; plus review.started: title; review.closed: note; batch.submitted: summary."
+    },
+    "diff": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/UnifiedDiff"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "As ThreadEntry.diff."
     },
     "commentId": {
       "anyOf": [

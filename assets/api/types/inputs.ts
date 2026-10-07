@@ -1,6 +1,6 @@
 import type { AnchorInput } from './anchor';
 import type { TokenName } from './api-token';
-import type { CommitSha, DateTime, Markdown, RepoPath, Ulid } from './common';
+import type { CommitSha, DateTime, Markdown, RepoPath, Ulid, UnifiedDiff } from './common';
 import type { LocalDirectory } from './repository';
 
 export type ConnectRepositoryInput =
@@ -26,6 +26,8 @@ export type OpenRequestInput = {
     /** Absent or null opens a general request. */
     anchor?: AnchorInput | null;
     body: Markdown;
+    /** "Ask for a plan first". Default false. */
+    requireApproval?: boolean | null;
 };
 
 export type CommentInput = {
@@ -47,6 +49,22 @@ export type WontDoInput = {
     reason: string;
 };
 
+export type ProposeSolutionInput = {
+    plan: Markdown;
+    diff?: UnifiedDiff | null;
+};
+
+export type ApproveProposalInput = {
+    /** Request.proposal.eventId. */
+    proposalEventId: Ulid;
+    note?: string | null;
+};
+
+export type RejectProposalInput = {
+    proposalEventId: Ulid;
+    note: Markdown;
+};
+
 export type LinkCommitsInput = {
     commitSha: CommitSha;
     requestIds: Ulid[];
@@ -54,11 +72,13 @@ export type LinkCommitsInput = {
 };
 
 export type CreateDraftInput =
-    | { kind: 'new_request'; anchor?: AnchorInput | null; requestId?: null; body: Markdown }
-    | { kind: 'reply'; anchor?: null; requestId: Ulid; body: Markdown };
+    | { kind: 'new_request'; anchor?: AnchorInput | null; requestId?: null; body: Markdown; requireApproval?: boolean | null }
+    | { kind: 'reply'; anchor?: null; requestId: Ulid; body: Markdown; requireApproval?: null };
 
 export type UpdateDraftInput = {
     body: Markdown;
+    /** new_request drafts only. Absent or null keeps the value. */
+    requireApproval?: boolean | null;
 };
 
 export type SubmitDraftsInput = {

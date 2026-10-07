@@ -155,6 +155,7 @@ final class McpRestParityTest extends WebTestCase
         [$doneByMcp, $doneByRest] = [$this->openFileRequest(), $this->openFileRequest()];
         [$releasedByMcp, $releasedByRest] = [$this->openFileRequest(), $this->openFileRequest()];
         $note = 'Extracted TaxRounding.';
+        $proposal = ['plan' => 'Extract `TaxRounding`.', 'diff' => "diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n@@ -1 +1 @@\n-Billing\n+Billing with `Money`\n"];
         $writes = [
             [$doneByMcp, $doneByRest, 'claim_request', ['id' => $doneByMcp], 'POST', 'claim', null],
             [$doneByMcp, $doneByRest, 'reply_to_request', ['id' => $doneByMcp, 'body' => 'Rounding too?', 'question' => true], 'POST', 'comments', ['body' => 'Rounding too?', 'question' => true]],
@@ -162,6 +163,7 @@ final class McpRestParityTest extends WebTestCase
             [$doneByMcp, $doneByRest, 'unlink_commit', ['commitSha' => $commit, 'requestId' => $doneByMcp], 'DELETE', "commits/{$commit}", null],
             [$doneByMcp, $doneByRest, 'mark_ready_for_review', ['id' => $doneByMcp, 'note' => $note], 'POST', 'ready', ['note' => $note]],
             [$releasedByMcp, $releasedByRest, 'claim_request', ['id' => $releasedByMcp], 'POST', 'claim', null],
+            [$releasedByMcp, $releasedByRest, 'propose_solution', ['id' => $releasedByMcp, ...$proposal], 'POST', 'propose', $proposal],
             [$releasedByMcp, $releasedByRest, 'release_request', ['id' => $releasedByMcp, 'note' => 'I stop here.'], 'POST', 'release', ['note' => 'I stop here.']],
             [$releasedByMcp, $releasedByRest, 'mark_wont_do', ['id' => $releasedByMcp, 'reason' => self::WONT_DO_REASON], 'POST', 'wont-do', ['reason' => self::WONT_DO_REASON]],
         ];

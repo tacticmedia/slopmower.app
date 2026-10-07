@@ -39,9 +39,11 @@
     "createdAt": "2026-09-29T07:10:00Z",
     "updatedAt": "2026-09-29T07:46:00Z",
     "lastEventSeq": 1844,
-    "carriedFrom": null
+    "carriedFrom": null,
+    "requireApproval": false,
+    "proposal": null
   },
-  "allowedActions": ["reply", "release", "link_commits", "unlink_commit", "mark_ready_for_review", "mark_wont_do"],
+  "allowedActions": ["reply", "release", "link_commits", "unlink_commit", "mark_ready_for_review", "mark_wont_do", "propose_solution"],
   "events": [
     {
       "seq": 1844,
@@ -59,6 +61,7 @@
       },
       "occurredAt": "2026-09-29T07:46:00Z",
       "body": "Should `TaxRounding` also cover the shipping totals?",
+      "diff": null,
       "commentId": "01K6C3C0MMENT0000000000003",
       "question": true,
       "batchId": null,

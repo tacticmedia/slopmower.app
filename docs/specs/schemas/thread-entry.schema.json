@@ -4,7 +4,7 @@
   "title": "ThreadEntry",
   "description": "One event in a request's timeline: comments, status changes, commit links.",
   "type": "object",
-  "required": ["seq", "eventId", "type", "actor", "occurredAt", "body", "commentId", "question", "batchId", "commitSha", "statusAfter"],
+  "required": ["seq", "eventId", "type", "actor", "occurredAt", "body", "diff", "commentId", "question", "batchId", "commitSha", "statusAfter"],
   "properties": {
     "seq": {
       "$ref": "common.schema.json#/$defs/EventSeq"
@@ -23,7 +23,18 @@
     },
     "body": {
       "type": ["string", "null"],
-      "description": "opened: request body; commented: comment; released, ready_for_review, verified, reopened, commit.linked: note; wont_do: reason; else null."
+      "description": "opened: request body; commented: comment; proposed: plan; released, ready_for_review, verified, reopened, proposal_approved, proposal_rejected, commit.linked: note; wont_do: reason; else null."
+    },
+    "diff": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/UnifiedDiff"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "request.proposed only: the proposed change, when the agent attached one."
     },
     "commentId": {
       "anyOf": [

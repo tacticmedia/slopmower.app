@@ -6,6 +6,7 @@ namespace App\Entity;
 
 use App\Doctrine\Type\AnchorType;
 use App\Domain\Anchor\Anchor;
+use App\Domain\Error\InvalidInput;
 use App\Domain\Identity\DraftId;
 use App\Domain\Identity\TenantId;
 use App\Repository\DraftRepository;
@@ -48,13 +49,17 @@ class Draft implements TenantOwned
     #[ORM\Column(type: Types::TEXT)]
     private string $body;
 
+    /** Always false for a reply. */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $requireApproval;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
-    private function __construct(User $user, Review $review, ?Anchor $anchor, ?ChangeRequest $request, string $body, \DateTimeImmutable $now)
+    private function __construct(User $user, Review $review, ?Anchor $anchor, ?ChangeRequest $request, string $body, bool $requireApproval, \DateTimeImmutable $now)
     {
         if (!$review->getTenantId()->equals($user->getTenantId())) {
             throw new \LogicException('The review belongs to another tenant.');
@@ -68,6 +73,7 @@ class Draft implements TenantOwned
         $this->anchor = $anchor;
         $this->request = $request;
         $this->body = $body;
+        $this->requireApproval = $requireApproval;
         $this->createdAt = self::storedTime($now);
         $this->updatedAt = $this->createdAt;
     }
@@ -75,19 +81,29 @@ class Draft implements TenantOwned
     /**
      * @param Anchor|null $anchor Captured at the review commit. Null for a general request.
      */
-    public static function newRequest(User $user, Review $review, ?Anchor $anchor, string $body, \DateTimeImmutable $now): self
+    public static function newRequest(User $user, Review $review, ?Anchor $anchor, string $body, bool $requireApproval, \DateTimeImmutable $now): self
     {
-        return new self($user, $review, $anchor, null, $body, $now);
+        return new self($user, $review, $anchor, null, $body, $requireApproval, $now);
     }
 
     public static function reply(User $user, ChangeRequest $request, string $body, \DateTimeImmutable $now): self
     {
-        return new self($user, $request->getReview(), null, $request, $body, $now);
+        return new self($user, $request->getReview(), null, $request, $body, false, $now);
     }
 
-    public function edit(string $body, \DateTimeImmutable $now): void
+    /**
+     * @param bool|null $requireApproval Null keeps the value
+     *
+     * @throws InvalidInput For a reply that gets a requireApproval
+     */
+    public function edit(string $body, ?bool $requireApproval, \DateTimeImmutable $now): void
     {
+        if (null !== $requireApproval && DraftKind::Reply === $this->kind) {
+            throw InvalidInput::field('requireApproval', 'Only a new request asks for a plan first.');
+        }
+
         $this->body = $body;
+        $this->requireApproval = $requireApproval ?? $this->requireApproval;
         $this->updatedAt = self::storedTime($now);
     }
 
@@ -135,6 +151,11 @@ class Draft implements TenantOwned
     public function getBody(): string
     {
         return $this->body;
+    }
+
+    public function requiresApproval(): bool
+    {
+        return $this->requireApproval;
     }
 
     public function getCreatedAt(): \DateTimeImmutable

@@ -90,11 +90,13 @@ These two principles control all decisions.
 - Each state change is an event with actor, timestamp, and optional text. Replies are events too.
 - The allowed transitions per actor are in [architecture.md](architecture.md), section 6. The states map to GitHub concepts where possible, for example `verified` is "Resolve conversation".
 - An agent that marks a request `wont_do` gives evidence that the user can check. The user then verifies or reopens it.
+- "Ask for a plan first" (`requireApproval`), set when the request opens: the agent links no commit and marks nothing ready before the user approves a proposal. A pending or rejected proposal always blocks both.
 
 ### FR8 The agent conversation
 
 - The agent discusses a request with the user in the request's thread, before or instead of doing the work.
 - The agent can ask a question. The request then waits for the user and shows under "Waiting for you". The user's reply hands the turn back to the agent.
+- The agent can propose a solution in the thread: a plan, and for a straightforward change a unified diff. The request waits for the user, who approves it or requests changes with a note. Either decision hands the turn back to the agent. A new proposal replaces the current one.
 - The agent finds new work and new replies by polling. It keeps a cursor per review and asks for everything after it. The server never pushes to the agent.
 - When several reviews of a repository are open and the user named none, the agent asks the user which one to work on.
 
@@ -110,7 +112,7 @@ These two principles control all decisions.
 
 - A web UI that follows Principle B.
 - Screens: repositories from both sources, the file tree at the pinned SHA, the file view with inline threads, the list of requests with filters for status, "Waiting for you", path, and outdated, the request detail with the conversation and the linked commits, and settings.
-- Actions: comment on a line, range, symbol, or file; open a general request with "New request" on the list of requests; reply; verify with "Resolve conversation"; reopen with a note; close as won't do; unassign a stale claim.
+- Actions: comment on a line, range, symbol, or file, with the "Ask for a plan first" checkbox, checked by default; open a general request with "New request" on the list of requests; reply; approve a proposal with "Approve", or reject it with "Request changes" and a note; verify with "Resolve conversation"; reopen with a note; close as won't do; unassign a stale claim.
 - A pending review: drafts that the user submits as one batch. The agent sees nothing before the submission. The list of requests also lists the pending drafts.
 - Per-file "Viewed" marks that stay for the whole review.
 - Live updates: an agent reply shows in the open view without a reload.
@@ -130,7 +132,7 @@ These two principles control all decisions.
 - An MCP server over Streamable HTTP, built with the official PHP SDK `mcp/sdk` and the official Symfony integration `symfony/mcp-bundle`, as Principle A requires.
 - A REST API with the same operations and the same JSON, for agents without MCP. There is no agent CLI.
 - Both interfaces use one application service layer. No logic is duplicated.
-- Operations: list repositories, list reviews, list requests with filters, get updates since a cursor, get one request with its current code context, claim, release, reply, link and unlink commits, mark ready for review, and mark won't do. The contracts are in [specs/](specs/README.md).
+- Operations: list repositories, list reviews, list requests with filters, get updates since a cursor, get one request with its current code context, claim, release, reply, propose a solution, link and unlink commits, mark ready for review, and mark won't do. The contracts are in [specs/](specs/README.md).
 - An Agent Skill in `SKILL.md` teaches the agent the workflow: find the review, list what waits, claim, fix, test, commit, link, and mark ready.
 
 ### FR13 API tokens

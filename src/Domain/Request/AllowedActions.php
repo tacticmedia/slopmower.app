@@ -34,16 +34,20 @@ final class AllowedActions
         $status = $state->status;
         $inProgress = RequestStatus::InProgress === $status;
         $openOrReopened = RequestStatus::Open === $status || RequestStatus::Reopened === $status;
+        $proposal = $state->proposal;
+        $proposalGateOpen = null === $proposal ? !$state->requireApproval : ProposalState::Approved === $proposal->state;
 
         return match ($action) {
             Action::Reply => $isAgent || $isUser,
             Action::Claim => $isAgent && $openOrReopened,
             Action::Release => $holds || ($isUser && $inProgress),
-            Action::LinkCommits, Action::MarkReadyForReview => $holds,
+            Action::LinkCommits, Action::MarkReadyForReview => $holds && $proposalGateOpen,
             Action::UnlinkCommit => $holds && [] !== $state->links,
             Action::MarkWontDo => ($isAgent && ($openOrReopened || $holds)) || ($isUser && ($openOrReopened || $inProgress)),
             Action::Verify => $isUser && (RequestStatus::ReadyForReview === $status || (RequestStatus::WontDo === $status && ActorKind::Agent === $state->wontDoBy)),
             Action::Reopen => $isUser && in_array($status, [RequestStatus::ReadyForReview, RequestStatus::WontDo, RequestStatus::Verified], true),
+            Action::ProposeSolution => $holds,
+            Action::ApproveProposal, Action::RejectProposal => $isUser && $inProgress && true === $proposal?->isPending(),
         };
     }
 }

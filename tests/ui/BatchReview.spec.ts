@@ -53,8 +53,8 @@ test.describe('BatchReview', () => {
         await expect(page.locator(FINISH)).toHaveCount(0);
         await expect(page.locator('[data-testid="pending-label"]')).toHaveCount(0);
         expect(api.bodies('POST', DRAFTS)).toEqual([
-            { kind: 'new_request', anchor: { kind: 'file', path: SMALL_FILE }, body: 'Split this class.' },
-            { kind: 'new_request', anchor: { kind: 'line', path: SMALL_FILE, range: { startLine: 10, endLine: 10 } }, body: 'Use a named constant.' },
+            { kind: 'new_request', anchor: { kind: 'file', path: SMALL_FILE }, body: 'Split this class.', requireApproval: true },
+            { kind: 'new_request', anchor: { kind: 'line', path: SMALL_FILE, range: { startLine: 10, endLine: 10 } }, body: 'Use a named constant.', requireApproval: true },
         ]);
         expect(api.bodies('POST', `${DRAFTS}/submit`)).toEqual([{ summary: 'First pass.' }]);
     });
@@ -77,7 +77,7 @@ test.describe('BatchReview', () => {
         await chooseDraftAction(page, 'Delete me.', 'Delete');
         await expect(page.locator(FINISH)).toContainText('1');
 
-        expect(api.callsTo('PATCH', '/api/v1/drafts/:draftId').map(({ params, body }) => [params.draftId, body])).toEqual([[edited?.id, { body: 'Split this class in two.' }]]);
+        expect(api.callsTo('PATCH', '/api/v1/drafts/:draftId').map(({ params, body }) => [params.draftId, body])).toEqual([[edited?.id, { body: 'Split this class in two.', requireApproval: true }]]);
         expect(api.callsTo('DELETE', '/api/v1/drafts/:draftId').map(({ params }) => params.draftId)).toEqual([deleted?.id]);
         await expect(page.locator(SAVED_DRAFT)).toHaveCount(1);
     });

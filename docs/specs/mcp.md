@@ -47,10 +47,11 @@ Holistic Review stores change requests that the user wrote while reviewing this 
 2. list_reviews(repository) returns the open reviews. Work on the one the user named; if several are open and none was named, ask.
 3. get_updates(review) without a cursor returns what waits for you. Keep the returned cursor and pass it in the next call; if hasMore is true, call again at once.
 4. For each request with awaiting "agent", reopened ones first: get_request, then reply_to_request (question: true when you need an answer, then move on), or claim_request before you edit code.
-5. Commit per request, then link_commits with the full SHA and every request that the commit covers. GitHub repositories: push before mark_ready_for_review. Local repositories: committing is enough.
-6. Finish with mark_ready_for_review (what changed, how you tested it), or mark_wont_do with evidence the user can check, or release_request if you stop.
+5. When requireApproval is true, or the request is unclear or large, propose_solution after the claim and take the next request. The decision comes back through get_updates. Link no commit before proposal.state is approved; on "rejected", read the note and propose again.
+6. Commit per request, then link_commits with the full SHA and every request that the commit covers. GitHub repositories: push before mark_ready_for_review. Local repositories: committing is enough.
+7. Finish with mark_ready_for_review (what changed, how you tested it), or mark_wont_do with evidence the user can check, or release_request if you stop.
 
-Never verify, reopen, or create requests. Errors are isError results whose text is {"error":{"code","message","details"}}. On invalid_transition call get_request and read allowedActions. On review_closed stop working on that review.
+Never verify, reopen, create requests, or decide on proposals. Errors are isError results whose text is {"error":{"code","message","details"}}. On invalid_transition call get_request and read allowedActions and proposal. On review_closed stop working on that review.
 ```
 
 ## 3. Conventions
@@ -86,6 +87,7 @@ The `inputSchema` blocks below are what the SDK 0.8.1 `SchemaGenerator` generate
 | [`unlink_commit`](#410-unlink_commit) | Unlink commit | false | false | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) | [Q8](rest-api-requests.md#q8-unlink-a-commit) |
 | [`mark_ready_for_review`](#411-mark_ready_for_review) | Mark ready for review | false | false | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) | [Q10](rest-api-requests.md#q10-mark-ready-for-review) |
 | [`mark_wont_do`](#412-mark_wont_do) | Mark won't do | false | false | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) | [Q11](rest-api-requests.md#q11-mark-wont-do) |
+| [`propose_solution`](#413-propose_solution) | Propose solution | false | false | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) | [Q14](rest-api-requests.md#q14-propose-a-solution) |
 
 Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 
@@ -468,6 +470,38 @@ public function markWontDo(#[Schema(pattern: self::ULID)] string $id, #[Schema(m
 - **Errors:** `not_found`, `review_closed`, `invalid_transition`, `invalid_input` for fewer than 20 characters after trimming.
 - **Example:** arguments as in [fixtures/inputs.wont-do.json](fixtures/inputs.wont-do.json) plus `id`. The result has the shape of [fixtures/request-command-result.ready.json](fixtures/request-command-result.ready.json) with status `wont_do`, `awaiting: user`, and one `request.wont_do` event.
 
+### 4.13 `propose_solution`
+
+- **Title:** `Propose solution`
+- **Description:**
+
+```text
+Propose how you will solve a request that you hold, before you link commits. Required when the request has requireApproval true; also useful when the request is unclear or large. A new proposal replaces the current one. The user approves it or requests changes: the decision comes back through get_updates, and get_request shows it in proposal.state. Until the user approves, link_commits and mark_ready_for_review fail with invalid_transition.
+```
+
+```php
+/**
+ * @param string  $id   Request ID
+ * @param string  $plan Markdown plan: what you will change, and why
+ * @param ?string $diff Optional unified diff of the change from `git diff`, at most 9 files
+ */
+#[McpTool(name: 'propose_solution', title: 'Propose solution', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false), outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT)]
+public function proposeSolution(#[Schema(pattern: self::ULID)] string $id, #[Schema(minLength: 1, maxLength: 65536)] string $plan, #[Schema(minLength: 1, maxLength: 65536)] ?string $diff = null): array
+```
+
+```json
+{"type":"object","properties":{
+ "id":{"type":"string","description":"Request ID","pattern":"^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"},
+ "plan":{"type":"string","description":"Markdown plan: what you will change, and why","minLength":1,"maxLength":65536},
+ "diff":{"type":["null","string"],"description":"Optional unified diff of the change from `git diff`, at most 9 files","default":null,"minLength":1,"maxLength":65536}},
+ "required":["id","plan"]}
+```
+
+- **Output:** [`request-command-result.schema.json`](schemas/request-command-result.schema.json).
+- **Behaviour:** REST Q14. The user approves with Q15 or requests changes with Q16. These decisions have no tool.
+- **Errors:** `not_found`, `review_closed`, `invalid_transition`, `invalid_input` for a plan of whitespace only or a diff that is not a git diff of 1 to 9 files.
+- **Example:** arguments as in [fixtures/inputs.propose-solution.json](fixtures/inputs.propose-solution.json) plus `id` give [fixtures/request-command-result.proposed.json](fixtures/request-command-result.proposed.json).
+
 ## 5. Error codes in MCP
 
 | Code | Delivered as | Agent action |
@@ -475,7 +509,7 @@ public function markWontDo(#[Schema(pattern: self::ULID)] string $id, #[Schema(m
 | `unauthorized` | HTTP 401 on the transport, never a tool result | Tell the user to check `HOLISTIC_REVIEW_TOKEN` |
 | `not_found` | isError | Check the ID or name, then list again. Repositories outside the token scope also answer `not_found`. |
 | `invalid_input` | isError. Schema violations come as JSON-RPC -32602. | Fix the input |
-| `invalid_transition` | isError | `get_request`, then read `allowedActions` and `details.claimedBy` |
+| `invalid_transition` | isError | `get_request`, then read `allowedActions`, `proposal`, and `details.claimedBy` |
 | `review_closed` | isError | Stop working on that review |
 | `commits_not_available` | isError | Push, or commit for local repositories, then call `mark_ready_for_review` again |
 | `commit_not_found` | isError | Push the commit, or leave out `at` |
@@ -499,6 +533,7 @@ public function markWontDo(#[Schema(pattern: self::ULID)] string $id, #[Schema(m
 | `unlink_commit` | `DELETE /api/v1/requests/{id}/commits/{sha}` |
 | `mark_ready_for_review` | `POST /api/v1/requests/{id}/ready` |
 | `mark_wont_do` | `POST /api/v1/requests/{id}/wont-do` |
+| `propose_solution` | `POST /api/v1/requests/{id}/propose` |
 
 `McpRestParityTest` compares the MCP and REST payloads of every tool: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, and every write tool.
 
@@ -514,8 +549,8 @@ The response. The members `"...": "..."` stand for the rest of [fixtures/request
 
 ```json
 {"jsonrpc":"2.0","id":4,"result":{
- "content":[{"type":"text","text":"{\"request\":{\"id\":\"01K6B3P2A9QRSTVWXYZ0123456\",\"status\":\"in_progress\",\"...\":\"...\"},\"allowedActions\":[\"reply\",\"release\",\"link_commits\",\"mark_ready_for_review\",\"mark_wont_do\"],\"events\":[{\"seq\":1840,\"type\":\"request.claimed\",\"...\":\"...\"}]}"}],
- "structuredContent":{"request":{"id":"01K6B3P2A9QRSTVWXYZ0123456","status":"in_progress","awaiting":"agent","...":"..."},"allowedActions":["reply","release","link_commits","mark_ready_for_review","mark_wont_do"],"events":[{"seq":1840,"type":"request.claimed","...":"..."}]},
+ "content":[{"type":"text","text":"{\"request\":{\"id\":\"01K6B3P2A9QRSTVWXYZ0123456\",\"status\":\"in_progress\",\"...\":\"...\"},\"allowedActions\":[\"reply\",\"release\",\"link_commits\",\"mark_ready_for_review\",\"mark_wont_do\",\"propose_solution\"],\"events\":[{\"seq\":1840,\"type\":\"request.claimed\",\"...\":\"...\"}]}"}],
+ "structuredContent":{"request":{"id":"01K6B3P2A9QRSTVWXYZ0123456","status":"in_progress","awaiting":"agent","...":"..."},"allowedActions":["reply","release","link_commits","mark_ready_for_review","mark_wont_do","propose_solution"],"events":[{"seq":1840,"type":"request.claimed","...":"..."}]},
  "isError":false}}
 ```
 

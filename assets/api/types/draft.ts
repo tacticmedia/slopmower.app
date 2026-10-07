@@ -10,6 +10,8 @@ export type Draft = {
     id: Ulid;
     reviewId: Ulid;
     body: Markdown;
+    /** Always false for a reply. */
+    requireApproval: boolean;
     createdAt: DateTime;
     updatedAt: DateTime;
 } & KindFields;

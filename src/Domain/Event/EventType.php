@@ -21,6 +21,9 @@ enum EventType: string
     case RequestWontDo = 'request.wont_do';
     case RequestVerified = 'request.verified';
     case RequestReopened = 'request.reopened';
+    case RequestProposed = 'request.proposed';
+    case RequestProposalApproved = 'request.proposal_approved';
+    case RequestProposalRejected = 'request.proposal_rejected';
     case BatchSubmitted = 'batch.submitted';
 
     /**
@@ -42,6 +45,9 @@ enum EventType: string
             self::RequestWontDo => RequestWontDoEvent::class,
             self::RequestVerified => RequestVerifiedEvent::class,
             self::RequestReopened => RequestReopenedEvent::class,
+            self::RequestProposed => RequestProposedEvent::class,
+            self::RequestProposalApproved => RequestProposalApprovedEvent::class,
+            self::RequestProposalRejected => RequestProposalRejectedEvent::class,
             self::BatchSubmitted => BatchSubmittedEvent::class,
         };
     }

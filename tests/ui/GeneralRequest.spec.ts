@@ -24,7 +24,7 @@ test.describe('GeneralRequest', () => {
         const row = page.locator(REQUEST_ROWS).filter({ hasText: 'Add a full-screen focus mode.' });
         await expect(row.locator('[data-testid="general-request"]')).toHaveText('General');
         await expect(page.locator(NEW_REQUEST_BOX)).toHaveCount(0);
-        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/requests')).toEqual([{ anchor: null, body: 'Add a full-screen focus mode.' }]);
+        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/requests')).toEqual([{ anchor: null, body: 'Add a full-screen focus mode.', requireApproval: true }]);
     });
 
     test('A closed review has no New request button', async ({ page, api }) => {
@@ -54,6 +54,6 @@ test.describe('GeneralRequest', () => {
 
         await expect(page.locator(REQUEST_ROWS).filter({ hasText: 'Wrap long lines.' }).locator('[data-testid="general-request"]')).toHaveText('General');
         await expect(page.locator(PENDING_DRAFTS)).toHaveCount(0);
-        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/drafts')).toEqual([{ kind: 'new_request', anchor: null, body: 'Wrap long lines.' }]);
+        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/drafts')).toEqual([{ kind: 'new_request', anchor: null, body: 'Wrap long lines.', requireApproval: true }]);
     });
 });

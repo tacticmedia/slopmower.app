@@ -31,6 +31,7 @@ final class McpCrossTenantCases
             'unlink_commit' => [['commitSha' => self::COMMIT_SHA, 'requestId' => '{requestId}']],
             'mark_ready_for_review' => [['id' => '{requestId}', 'note' => 'Done.']],
             'mark_wont_do' => [['id' => '{requestId}', 'reason' => 'The totals already use integer cents.']],
+            'propose_solution' => [['id' => '{requestId}', 'plan' => 'Extract `TaxRounding`.']],
         ];
     }
 }

@@ -47,9 +47,9 @@ trait CommandFixtures
         return $reviewId;
     }
 
-    private static function openRequest(ReviewId $reviewId): RequestId
+    private static function openRequest(ReviewId $reviewId, bool $requireApproval = false): RequestId
     {
-        $command = new Open(new RequestScenario()->anchor(), 'Use `Money` instead of `float` for totals.');
+        $command = new Open(new RequestScenario()->anchor(), 'Use `Money` instead of `float` for totals.', requireApproval: $requireApproval);
         [$opened] = self::requestCommands()->open($reviewId, $command, RequestScenario::user());
 
         return $opened->requestId ?? self::fail('request.opened has no requestId.');

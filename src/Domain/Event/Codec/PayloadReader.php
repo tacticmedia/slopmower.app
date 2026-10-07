@@ -11,9 +11,9 @@ use App\Domain\Identity\Identifier;
  * Typed reads from decoded stored JSON. Decision D37: every event type and stored value has an explicit codec,
  * without Serializer and without reflection, so the stored format cannot drift.
  *
- * A missing nullable field reads as null. Any other missing field, a wrong type, or a value that a domain rule
- * rejects throws a CorruptPayload that names the field. Unknown fields are ignored, so an older release reads newer
- * payloads.
+ * A missing nullable field reads as null, and a missing field with a default as that default. Any other missing
+ * field, a wrong type, or a value that a domain rule rejects throws a CorruptPayload that names the field. Unknown
+ * fields are ignored, so an older release reads newer payloads.
  */
 final readonly class PayloadReader
 {
@@ -53,6 +53,11 @@ final readonly class PayloadReader
         $value = $this->required($key);
 
         return is_bool($value) ? $value : throw $this->violation($key, 'Must be a boolean.');
+    }
+
+    public function boolOr(string $key, bool $default): bool
+    {
+        return array_key_exists($key, $this->data) ? $this->bool($key) : $default;
     }
 
     public function int(string $key): int

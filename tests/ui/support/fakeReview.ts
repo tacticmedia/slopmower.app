@@ -1,10 +1,23 @@
 import type { Actor } from '../../../assets/api/types/actor';
 import type { Anchor, AnchorInput } from '../../../assets/api/types/anchor';
 import type { CommitLink } from '../../../assets/api/types/commit-link';
-import type { ActorKind, Awaiting, RequestStatus, Resolution, ThreadEntryType } from '../../../assets/api/types/common';
+import type { ActorKind, Awaiting, Proposal, RequestStatus, Resolution, ThreadEntryType } from '../../../assets/api/types/common';
 import type { Draft } from '../../../assets/api/types/draft';
 import type { FileContent } from '../../../assets/api/types/file-content';
-import type { CloseReviewInput, CommentInput, CreateDraftInput, OpenRequestInput, OptionalNoteInput, RequiredNoteInput, SubmitDraftsInput, UpdateDraftInput, ViewedFileInput, WontDoInput } from '../../../assets/api/types/inputs';
+import type {
+    ApproveProposalInput,
+    CloseReviewInput,
+    CommentInput,
+    CreateDraftInput,
+    OpenRequestInput,
+    OptionalNoteInput,
+    RejectProposalInput,
+    RequiredNoteInput,
+    SubmitDraftsInput,
+    UpdateDraftInput,
+    ViewedFileInput,
+    WontDoInput,
+} from '../../../assets/api/types/inputs';
 import type { Request } from '../../../assets/api/types/request';
 import type { Review } from '../../../assets/api/types/review';
 import type { Symbol as CodeSymbol } from '../../../assets/api/types/symbol';
@@ -30,31 +43,31 @@ type Tracking = {
     lastAgentEventIsQuestion: boolean;
 };
 
-type Transition = { status?: RequestStatus; resolution?: Resolution | null };
+type Transition = { status?: RequestStatus; resolution?: Resolution | null; proposal?: Proposal | null };
 
 type ThreadEntry = Request['thread'][number];
 
 const LANGUAGES: Record<string, string> = { php: 'php', md: 'markdown' };
 
-/** The `allowedActions` value of each command path of Q4 and Q11 to Q13. */
-const COMMAND_ACTIONS: Record<string, string> = { comments: 'reply', 'wont-do': 'mark_wont_do' };
+/** The `allowedActions` value of each command path of Q4, Q11 to Q13, Q15, and Q16. */
+const COMMAND_ACTIONS: Record<string, string> = { comments: 'reply', 'wont-do': 'mark_wont_do', 'approve-proposal': 'approve_proposal', 'reject-proposal': 'reject_proposal' };
 
-/** Rules 1 to 5 of architecture section 6, as `AwaitingPolicy` applies them. */
-function awaitingOf(status: RequestStatus, closed: boolean, tracking: Tracking): Awaiting {
+/** Rules 1 to 5 of architecture section 6, as `AwaitingPolicy` applies them. A proposal decision is a user message. */
+function awaitingOf(status: RequestStatus, closed: boolean, tracking: Tracking, proposal: Proposal | null): Awaiting {
     if (closed) {
         return 'none';
     }
     if (null !== tracking.lastUserCommentSeq && tracking.lastUserCommentSeq > (tracking.lastAgentEventSeq ?? 0)) {
         return 'agent';
     }
-    if (tracking.lastAgentEventIsQuestion) {
+    if (tracking.lastAgentEventIsQuestion || 'pending' === proposal?.state) {
         return 'user';
     }
 
     return 'ready_for_review' === status || 'wont_do' === status ? 'user' : 'agent';
 }
 
-/** One review of the docs/specs REST API in memory: V3, V4, V6 to V9, V11 to V13, Q1 to Q4, Q6, Q11 to Q13, and D1 to D5, for the user of `me.local-user.json`. */
+/** One review of the docs/specs REST API in memory: V3, V4, V6 to V9, V11 to V13, Q1 to Q4, Q6, Q11 to Q13, Q15, Q16, and D1 to D5, for the user of `me.local-user.json`. */
 export class FakeReview {
     review: Review;
     requests: Request[] = [];
@@ -94,6 +107,10 @@ export class FakeReview {
         return this.#openRequest({ kind: 'symbol', path, symbol: { fqn } }, body);
     }
 
+    seedGeneral(body: string, requireApproval = false): Request {
+        return this.#openRequest(null, body, null, requireApproval);
+    }
+
     /** A D2 draft, as if the user had written it earlier. */
     seedDraft(input: CreateDraftInput): Draft {
         return this.#createDraft(input);
@@ -121,6 +138,14 @@ export class FakeReview {
         this.#apply(id, { ...this.#entry('request.commented', AGENT, body, this.find(id).status), question: true });
     }
 
+    /** A new proposal replaces the current one. */
+    agentProposes(id: string, plan: string, diff: string | null = null): ThreadEntry {
+        const entry = { ...this.#entry('request.proposed', AGENT, plan, 'in_progress'), diff };
+        this.#apply(id, entry, { proposal: { eventId: entry.eventId, state: 'pending' } });
+
+        return entry;
+    }
+
     /** A location recompute after a default-branch commit changed the anchored lines. */
     markOutdated(id: string, targetSha: string): void {
         const current = this.find(id);
@@ -146,14 +171,14 @@ export class FakeReview {
 
     /** The request as Q3 shows it to the user now. */
     #present(request: Request): Request {
-        const allowedActions = 'closed' === this.review.state ? [] : userActions(request.status, this.#trackingOf(request.id).wontDoBy);
+        const allowedActions = 'closed' === this.review.state ? [] : userActions(request.status, this.#trackingOf(request.id).wontDoBy, request.proposal);
 
         return { ...request, reviewState: this.review.state, allowedActions };
     }
 
-    #openRequest(input: AnchorInput | null, body: string, batchId: string | null = null): Request {
+    #openRequest(input: AnchorInput | null, body: string, batchId: string | null = null, requireApproval = false): Request {
         const seq = ++this.#seq;
-        const opened = openedRequest(this.review, null === input ? null : this.#anchor(input), body, seq);
+        const opened = openedRequest(this.review, null === input ? null : this.#anchor(input), body, seq, requireApproval);
         const [entry] = opened.thread;
         const request = undefined === entry ? opened : { ...opened, thread: [{ ...entry, batchId }] };
         this.requests.push(request);
@@ -173,7 +198,7 @@ export class FakeReview {
 
     /**
      * Appends the thread entry and applies the transition as `RequestReducer` does. `claimedBy` lives only in
-     * `in_progress`; `closed` and `awaiting` are derived.
+     * `in_progress`; `closed` and `awaiting` are derived. Release, won't do, and reopen set the proposal to null.
      */
     #apply(id: string, entry: ThreadEntry, transition: Transition = {}): Request {
         const current = this.find(id);
@@ -186,17 +211,20 @@ export class FakeReview {
         if ('agent' === entry.actor.kind) {
             tracking.lastAgentEventSeq = entry.seq;
             tracking.lastAgentEventIsQuestion = 'request.commented' === entry.type && entry.question;
-        } else if ('user' === entry.actor.kind && 'request.commented' === entry.type) {
+        } else if ('user' === entry.actor.kind && ['request.commented', 'request.proposal_approved', 'request.proposal_rejected'].includes(entry.type)) {
             tracking.lastUserCommentSeq = entry.seq;
         }
         const closed = 'verified' === status || ('wont_do' === status && 'user' === tracking.wontDoBy);
+        const proposalEnds = ['request.released', 'request.wont_do', 'request.reopened'].includes(entry.type);
+        const proposal = proposalEnds ? null : undefined === transition.proposal ? current.proposal : transition.proposal;
         const claim = 'in_progress' === status ? { claimedBy: current.claimedBy ?? entry.actor, claimedAt: current.claimedAt ?? entry.occurredAt } : { claimedBy: null, claimedAt: null };
         const next = {
             ...current,
             ...claim,
             status,
             closed,
-            awaiting: awaitingOf(status, closed, tracking),
+            proposal,
+            awaiting: awaitingOf(status, closed, tracking, proposal),
             resolution: undefined === transition.resolution ? current.resolution : transition.resolution,
             commentCount: current.commentCount + ('request.commented' === entry.type ? 1 : 0),
             thread: [...current.thread, entry],
@@ -225,6 +253,16 @@ export class FakeReview {
             }
             case 'verify':
                 return this.#apply(id, this.#entry('request.verified', USER, (input as OptionalNoteInput).note ?? null, 'verified'), { status: 'verified' });
+            case 'approve-proposal': {
+                const { proposalEventId, note } = input as ApproveProposalInput;
+
+                return this.#apply(id, this.#entry('request.proposal_approved', USER, note ?? null, status), { proposal: { eventId: proposalEventId, state: 'approved' } });
+            }
+            case 'reject-proposal': {
+                const { proposalEventId, note } = input as RejectProposalInput;
+
+                return this.#apply(id, this.#entry('request.proposal_rejected', USER, note, status), { proposal: { eventId: proposalEventId, state: 'rejected' } });
+            }
             default:
                 throw new Error(`The fake knows no command ${command}.`);
         }
@@ -375,9 +413,9 @@ export class FakeReview {
             }),
         ));
         api.on('POST', `${base}/requests`, ours(({ body }) => {
-            const { anchor, body: comment } = body as OpenRequestInput;
+            const { anchor, body: comment, requireApproval } = body as OpenRequestInput;
 
-            return this.#closedError() ?? json('request.schema.json', this.#present(this.#openRequest(anchor ?? null, comment)), 201);
+            return this.#closedError() ?? json('request.schema.json', this.#present(this.#openRequest(anchor ?? null, comment, null, requireApproval ?? false)), 201);
         }));
         api.on('POST', `${base}/drafts`, ours(({ body }) => this.#closedError() ?? json('draft.schema.json', this.#createDraft(body as CreateDraftInput), 201)));
         api.on('POST', `${base}/drafts/submit`, ours(({ body }) => this.#closedError() ?? this.#submitDrafts(body as SubmitDraftsInput)));
@@ -401,7 +439,11 @@ export class FakeReview {
                 if (null !== closed) {
                     return closed;
                 }
-                const updated = { ...draft, body: (call.body as UpdateDraftInput).body, updatedAt: now() };
+                const { body, requireApproval } = call.body as UpdateDraftInput;
+                if (null != requireApproval && 'reply' === draft.kind) {
+                    return apiError(422, 'invalid_input', 'Only a new request asks for a plan first.', { violations: [{ field: 'requireApproval', message: 'Only a new request asks for a plan first.' }] });
+                }
+                const updated = { ...draft, body, requireApproval: requireApproval ?? draft.requireApproval, updatedAt: now() };
                 this.drafts = this.drafts.map((known) => (known.id === draft.id ? updated : known));
 
                 return json('draft.schema.json', updated);
@@ -431,6 +473,10 @@ export class FakeReview {
             }
             const current = this.#present(this.find(requestId));
             const action = COMMAND_ACTIONS[command] ?? command;
+            const decision = body as Partial<ApproveProposalInput>;
+            if ('pending' === current.proposal?.state && ['approve-proposal', 'reject-proposal'].includes(command) && decision.proposalEventId !== current.proposal.eventId) {
+                return apiError(422, 'invalid_input', 'Is not the current proposal.', { violations: [{ field: 'proposalEventId', message: 'Is not the current proposal.' }] });
+            }
 
             if (!current.allowedActions.includes(action)) {
                 return (
@@ -467,7 +513,7 @@ export class FakeReview {
 
     #createDraft(input: CreateDraftInput): Draft {
         const createdAt = now();
-        const base = { id: newId(), reviewId: this.id, body: input.body, createdAt, updatedAt: createdAt };
+        const base = { id: newId(), reviewId: this.id, body: input.body, requireApproval: 'new_request' === input.kind && true === input.requireApproval, createdAt, updatedAt: createdAt };
         let draft: Draft;
         if ('reply' === input.kind) {
             draft = { ...base, kind: 'reply', anchor: null, requestId: this.find(input.requestId).id };
@@ -489,7 +535,7 @@ export class FakeReview {
             throw new Error('The fake submits new-request drafts only.');
         }
         const batchId = newId();
-        const opened = this.drafts.map((draft) => this.#openRequest(this.#draftAnchors.get(draft.id) ?? null, draft.body, batchId));
+        const opened = this.drafts.map((draft) => this.#openRequest(this.#draftAnchors.get(draft.id) ?? null, draft.body, batchId, draft.requireApproval));
         this.drafts = [];
 
         return json('batch-submission.schema.json', { batchId, reviewId: this.id, summary: input.summary ?? null, submittedAt: now(), seq: ++this.#seq, openedRequests: opened.map(requestSummary), replies: [] }, 201);

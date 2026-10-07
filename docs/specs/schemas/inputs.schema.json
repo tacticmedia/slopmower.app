@@ -114,6 +114,11 @@
         },
         "body": {
           "$ref": "common.schema.json#/$defs/Markdown"
+        },
+        "requireApproval": {
+          "type": ["boolean", "null"],
+          "default": false,
+          "description": "\"Ask for a plan first\". Fixed when the request opens."
         }
       }
     },
@@ -158,6 +163,53 @@
           "minLength": 20,
           "maxLength": 65536,
           "description": "20 or more characters after trimming."
+        }
+      }
+    },
+    "ProposeSolutionInput": {
+      "type": "object",
+      "required": ["plan"],
+      "properties": {
+        "plan": {
+          "$ref": "common.schema.json#/$defs/Markdown"
+        },
+        "diff": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/UnifiedDiff"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ApproveProposalInput": {
+      "type": "object",
+      "required": ["proposalEventId"],
+      "properties": {
+        "proposalEventId": {
+          "$ref": "common.schema.json#/$defs/Ulid",
+          "description": "Request.proposal.eventId, so a newer proposal is never approved by mistake."
+        },
+        "note": {
+          "type": ["string", "null"],
+          "maxLength": 65536
+        }
+      }
+    },
+    "RejectProposalInput": {
+      "type": "object",
+      "required": ["proposalEventId", "note"],
+      "properties": {
+        "proposalEventId": {
+          "$ref": "common.schema.json#/$defs/Ulid",
+          "description": "Request.proposal.eventId."
+        },
+        "note": {
+          "$ref": "common.schema.json#/$defs/Markdown",
+          "description": "The changes that the user asks for."
         }
       }
     },
@@ -213,6 +265,11 @@
         },
         "body": {
           "$ref": "common.schema.json#/$defs/Markdown"
+        },
+        "requireApproval": {
+          "type": ["boolean", "null"],
+          "default": false,
+          "description": "new_request only. Absent or null: false."
         }
       },
       "allOf": [
@@ -248,6 +305,9 @@
               },
               "anchor": {
                 "type": "null"
+              },
+              "requireApproval": {
+                "type": "null"
               }
             }
           }
@@ -260,6 +320,10 @@
       "properties": {
         "body": {
           "$ref": "common.schema.json#/$defs/Markdown"
+        },
+        "requireApproval": {
+          "type": ["boolean", "null"],
+          "description": "new_request drafts only; a reply draft answers 422. Absent or null keeps the value."
         }
       }
     },

@@ -34,6 +34,7 @@ final class DraftNormalizer implements NormalizerInterface, NormalizerAwareInter
             'anchor' => null === $anchor ? null : AnchorCodec::encode($anchor),
             'requestId' => $data->getRequest()?->getId(),
             'body' => $data->getBody(),
+            'requireApproval' => $data->requiresApproval(),
             'createdAt' => $data->getCreatedAt(),
             'updatedAt' => $data->getUpdatedAt(),
         ], $format, $context);

@@ -26,6 +26,7 @@ trait McpAssertions
         'unlink_commit' => 'request-command-result.schema.json',
         'mark_ready_for_review' => 'request-command-result.schema.json',
         'mark_wont_do' => 'request-command-result.schema.json',
+        'propose_solution' => 'request-command-result.schema.json',
     ];
 
     /**

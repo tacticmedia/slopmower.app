@@ -34,6 +34,7 @@ use App\Domain\Request\Command\Claim;
 use App\Domain\Request\Command\LinkCommits;
 use App\Domain\Request\Command\MarkReadyForReview;
 use App\Domain\Request\Command\MarkWontDo;
+use App\Domain\Request\Command\ProposeSolution;
 use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\UnlinkCommit;
@@ -307,6 +308,27 @@ final class McpTools
     public function markWontDo(#[Schema(pattern: self::ULID)] string $id, #[Schema(minLength: 20, maxLength: 65536)] string $reason): array
     {
         return $this->requestCommand('mark_wont_do', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->markWontDo(new MarkWontDo($requestId, $reason), $actor));
+    }
+
+    /**
+     * Section 4.13: REST Q14. The decider checks the diff format.
+     *
+     * @param string  $id   Request ID
+     * @param string  $plan Markdown plan: what you will change, and why
+     * @param ?string $diff Optional unified diff of the change from `git diff`, at most 9 files
+     *
+     * @return array<string, mixed>
+     */
+    #[McpTool(
+        name: 'propose_solution',
+        title: 'Propose solution',
+        description: 'Propose how you will solve a request that you hold, before you link commits. Required when the request has requireApproval true; also useful when the request is unclear or large. A new proposal replaces the current one. The user approves it or requests changes: the decision comes back through get_updates, and get_request shows it in proposal.state. Until the user approves, link_commits and mark_ready_for_review fail with invalid_transition.',
+        annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
+        outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT,
+    )]
+    public function proposeSolution(#[Schema(pattern: self::ULID)] string $id, #[Schema(minLength: 1, maxLength: 65536)] string $plan, #[Schema(minLength: 1, maxLength: 65536)] ?string $diff = null): array
+    {
+        return $this->requestCommand('propose_solution', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->propose(new ProposeSolution($requestId, $plan, $diff), $actor));
     }
 
     /**

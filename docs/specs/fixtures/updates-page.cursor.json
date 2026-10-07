@@ -50,7 +50,9 @@
         "createdAt": "2026-09-29T07:20:00Z",
         "updatedAt": "2026-09-29T07:50:00Z",
         "lastEventSeq": 1850,
-        "carriedFrom": null
+        "carriedFrom": null,
+        "requireApproval": false,
+        "proposal": null
       },
       "newEvents": [
         {
@@ -69,6 +71,7 @@
           },
           "occurredAt": "2026-09-29T07:50:00Z",
           "body": "Keep the old method as deprecated for one release.",
+          "diff": null,
           "commentId": "01K6C3C0MMENT0000000000002",
           "question": false,
           "batchId": null,

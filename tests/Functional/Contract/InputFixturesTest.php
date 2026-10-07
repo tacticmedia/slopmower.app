@@ -24,8 +24,8 @@ use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 
 /**
  * Sends each request body fixture of docs/specs/README.md section 11 to its endpoint. The fixture IDs stand for rows
- * of the test: the review repository, the review, a first request, and a second request. `{targetReviewId}` is a
- * second review of the repository.
+ * of the test: the review repository, the review, a first request, a second request, and the proposal of the agent on
+ * the first request. `{targetReviewId}` is a second review of the repository.
  */
 final class InputFixturesTest extends WebTestCase
 {
@@ -53,13 +53,17 @@ final class InputFixturesTest extends WebTestCase
 
     private const string FIXTURE_SECOND_REQUEST_ID = '01K6B3P2A9QRSTVWXYZ0123457';
 
+    private const string FIXTURE_PROPOSAL_EVENT_ID = '01K6C2EVT00000000000001862';
+
     private const string RESULT = 'request-command-result.schema.json';
 
     /**
      * Per fixture: its schema, the endpoint, the success status and schema, whether an agent token calls, the fixture
-     * requests that the agent claims first, and whether a draft must exist.
+     * requests that the agent claims first, whether a draft must exist, and whether the agent proposes on the first
+     * request.
      */
     private const array CASES = [
+        'inputs.approve-proposal.json' => ['schema' => 'inputs.schema.json#/$defs/ApproveProposalInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/approve-proposal', 'status' => 200, 'response' => self::RESULT, 'claimed' => [self::FIXTURE_REQUEST_ID], 'proposed' => true],
         'inputs.carry-over.json' => ['schema' => 'inputs.schema.json#/$defs/CarryOverInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{targetReviewId}/carry-over', 'status' => 200, 'response' => 'carry-over-result.schema.json'],
         'inputs.close-review.json' => ['schema' => 'inputs.schema.json#/$defs/CloseReviewInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/close', 'status' => 200, 'response' => 'review.schema.json'],
         'inputs.comment.json' => ['schema' => 'inputs.schema.json#/$defs/CommentInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/comments', 'status' => 201, 'response' => self::RESULT, 'bearer' => true],
@@ -71,8 +75,11 @@ final class InputFixturesTest extends WebTestCase
         'inputs.create-token.json' => ['schema' => 'inputs.schema.json#/$defs/CreateTokenInput', 'method' => 'POST', 'path' => '/api/v1/tokens', 'status' => 201, 'response' => 'api-token.schema.json#/$defs/ApiTokenWithSecret'],
         'inputs.link-commits.json' => ['schema' => 'inputs.schema.json#/$defs/LinkCommitsInput', 'method' => 'POST', 'path' => '/api/v1/commit-links', 'status' => 200, 'response' => 'link-commits-result.schema.json', 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID, self::FIXTURE_SECOND_REQUEST_ID]],
         'inputs.open-general-request.json' => ['schema' => 'inputs.schema.json#/$defs/OpenRequestInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/requests', 'status' => 201, 'response' => 'request.schema.json'],
+        'inputs.open-request-approval.json' => ['schema' => 'inputs.schema.json#/$defs/OpenRequestInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/requests', 'status' => 201, 'response' => 'request.schema.json'],
         'inputs.open-request.json' => ['schema' => 'inputs.schema.json#/$defs/OpenRequestInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/requests', 'status' => 201, 'response' => 'request.schema.json'],
+        'inputs.propose-solution.json' => ['schema' => 'inputs.schema.json#/$defs/ProposeSolutionInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/propose', 'status' => 200, 'response' => self::RESULT, 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID]],
         'inputs.ready.json' => ['schema' => 'inputs.schema.json#/$defs/RequiredNoteInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/ready', 'status' => 200, 'response' => self::RESULT, 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID]],
+        'inputs.reject-proposal.json' => ['schema' => 'inputs.schema.json#/$defs/RejectProposalInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/reject-proposal', 'status' => 200, 'response' => self::RESULT, 'claimed' => [self::FIXTURE_REQUEST_ID], 'proposed' => true],
         'inputs.release.json' => ['schema' => 'inputs.schema.json#/$defs/OptionalNoteInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/release', 'status' => 200, 'response' => self::RESULT, 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID]],
         'inputs.start-review.json' => ['schema' => 'inputs.schema.json#/$defs/StartReviewInput', 'method' => 'POST', 'path' => '/api/v1/repositories/{repositoryId}/reviews', 'status' => 201, 'response' => 'review.schema.json'],
         'inputs.submit-drafts.json' => ['schema' => 'inputs.schema.json#/$defs/SubmitDraftsInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/drafts/submit', 'status' => 201, 'response' => 'batch-submission.schema.json', 'draft' => true],
@@ -82,7 +89,7 @@ final class InputFixturesTest extends WebTestCase
     ];
 
     /**
-     * @param array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true} $case
+     * @param array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true} $case
      */
     #[TestDox('Every request body fixture of docs/specs is accepted by its endpoint')]
     #[DataProvider('fixtures')]
@@ -113,6 +120,11 @@ final class InputFixturesTest extends WebTestCase
             self::agentRequest($client, $secret, 'POST', "/api/v1/requests/{$ids[$fixtureId]}/claim");
         }
 
+        if (isset($case['proposed'])) {
+            $proposed = self::agentRequest($client, $secret, 'POST', "/api/v1/requests/{$ids[self::FIXTURE_REQUEST_ID]}/propose", ['plan' => 'Extract `TaxRounding`.']);
+            $ids[self::FIXTURE_PROPOSAL_EVENT_ID] = (string) $proposed['request']['proposal']['eventId'];
+        }
+
         $body = json_decode($json, true, flags: \JSON_THROW_ON_ERROR);
         self::assertIsArray($body);
         array_walk_recursive($body, static function (mixed &$value) use ($ids): void {
@@ -132,7 +144,7 @@ final class InputFixturesTest extends WebTestCase
     }
 
     /**
-     * @return iterable<string, array{string, array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true}}>
+     * @return iterable<string, array{string, array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true}}>
      */
     public static function fixtures(): iterable
     {

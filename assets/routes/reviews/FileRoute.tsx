@@ -201,7 +201,7 @@ type ComposerBoxProps = {
     composer: Composer;
     /** "Start a review" or "Add review comment". */
     reviewLabel: string;
-    onSubmit(body: string, mode: SubmitMode): boolean;
+    onSubmit(body: string, mode: SubmitMode, requireApproval: boolean): boolean;
     onCancel(): void;
 };
 
@@ -212,8 +212,9 @@ function ComposerBox({ composer, reviewLabel, onSubmit, onCancel }: ComposerBoxP
             label={composerLabel(composer)}
             labelVisible
             submitLabel="Add single comment"
-            onSubmit={(body) => onSubmit(body, 'single')}
-            alternative={{ label: reviewLabel, onSubmit: (body) => onSubmit(body, 'draft') }}
+            onSubmit={(body, requireApproval) => onSubmit(body, 'single', requireApproval)}
+            alternative={{ label: reviewLabel, onSubmit: (body, requireApproval) => onSubmit(body, 'draft', requireApproval) }}
+            askForPlan={composer.requireApproval}
             onCancel={onCancel}
             initialBody={composer.initialBody}
             error={composer.error}
