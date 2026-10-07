@@ -27,4 +27,24 @@ final class SignInTest extends FullStackTestCase
         self::assertSame('jan', $me['user']['login']);
         self::assertSame([true], self::sessionsHoldSecurityToken());
     }
+
+    #[TestDox('After the double-submit sign-out, a Twig form with the stateless CSRF placeholder passes the check')]
+    public function testTwigFormAfterSignOutPassesTheCsrfCheck(): void
+    {
+        $this->signInAs('jan');
+        $this->visit('/');
+        $this->page->getByRole('button', ['name' => 'Sign out'])->click();
+        $this->page->waitForURL(self::BASE_URI.'/login');
+
+        // The e2e site has no CSRF-checked Twig form, because local sign-in exists only in dev.
+        $this->visit('/docs');
+        // requestSubmit() dispatches the submit event, as a click on the submit button does.
+        $this->page->evaluate(<<<'JS'
+            document.body.insertAdjacentHTML('beforeend', '<form id="probe" method="post" action="/logout"><input type="hidden" name="_csrf_token" value="csrf-token"></form>');
+            document.getElementById('probe').requestSubmit();
+            JS);
+
+        $this->page->waitForURL(self::BASE_URI.'/login');
+        $this->expect($this->page->locator('h1'))->toContainText('Sign in to Holistic Review');
+    }
 }

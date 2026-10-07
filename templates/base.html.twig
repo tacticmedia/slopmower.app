@@ -5,6 +5,27 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{% block title %}Holistic Review{% endblock %}</title>
         <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
+        {# The double-submit CSRF proof of Twig forms (D61). The React client sends its own, assets/api/client.ts. #}
+        <script>
+            document.addEventListener('submit', (event) => {
+                const field = event.target.querySelector('input[name="_csrf_token"]');
+                if (null === field) {
+                    return;
+                }
+                // The stateless placeholder is the cookie name. A session token is longer and stays as it is.
+                if (undefined === field.dataset.csrfCookie) {
+                    if (!/^[-_a-zA-Z0-9]{4,22}$/.test(field.value)) {
+                        return;
+                    }
+                    field.dataset.csrfCookie = field.value;
+                }
+                const cookie = field.dataset.csrfCookie;
+                const token = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(18)))).replaceAll('+', '-').replaceAll('/', '_');
+                const secure = 'https:' === location.protocol;
+                document.cookie = `${secure ? '__Host-' : ''}${cookie}_${token}=${cookie}; path=/; samesite=strict${secure ? '; secure' : ''}`;
+                field.value = token;
+            }, true);
+        </script>
         {% block stylesheets %}
         {% endblock %}
 

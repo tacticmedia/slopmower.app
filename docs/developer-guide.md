@@ -194,7 +194,7 @@ A row counts the PHP files of its namespace and of the sub-namespaces without a 
 | `App\Repository` | 19 | 16 ORM repositories plus `DeletionSql` and `ViewedFileSql`: fresh reads, conditional state updates, deletes. The sign-in finders of `UserRepository` throw `TenantBeingDeleted`. | `RepositoryRepository`, `ReviewEventRepository`, `DeletionSql` | Domain, Entity |
 | `App\Doctrine` | 8 | DBAL types for value objects, jsonb DQL functions, `ActorEmbeddable` | `IdentifierType`, `StringValueType`, `AnchorType`, `JsonbContains` | Domain |
 | `App\Tenancy` | 6 | Fail-closed tenant context and the two SQL filters | `TenantContext`, `TenantSqlFilter`, `TenantFilter`, `RepositoryScopeSqlFilter` | Domain, Entity |
-| `App\Security` | 15 | Session sign-in, bearer tokens, principal to `Actor` | `ApiTokenHandler`, `AgentUser`, `CurrentActor`, `TenantUserProvider` | Domain, Entity, Http, Repository, Tenancy |
+| `App\Security` | 14 | Session sign-in, bearer tokens, principal to `Actor` | `ApiTokenHandler`, `AgentUser`, `CurrentActor`, `TenantUserProvider` | Domain, Entity, Http, Repository, Tenancy |
 | `App\Git` | 17 | The only code that runs git. Server clone reads and writes, and the schema-shaped `BlameRange` and `BlameCommit` of V17. | `GitRunner`, `GitReader`, `BareClone`, `PinRefs`, `RepositoryLock` | Domain |
 | `App\Source` | 4 | Local discovery and the fetch command of each source | `LocalRepositoryDiscovery`, `FetchCommand` | Domain, Git |
 | `App\GitHub` | 6 | GitHub App: JWT, installation tokens, API payloads | `InstallationTokenProvider`, `GitHubApp` | Entity |

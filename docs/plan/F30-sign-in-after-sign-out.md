@@ -16,7 +16,7 @@ After "Sign out", the user signs in again in the same browser without "Invalid C
 ## Decisions
 
 - Prefer a `LogoutEvent` listener that removes the request attribute `csrf-token` after the session is invalidated, so the new session starts without the strategies of the old one. Check the order of the logout listeners and of `SameOriginCsrfListener` in the installed Symfony before the change.
-- A double-submit token on the login form also avoids the refusal, but the next sign-out would record the same history again. Use it only if the listener does not work, and record why in the report.
+- A double-submit token on the login form also avoids the refusal, and a recorded double-submit does no harm when every form sends one. F34 replaced the listener with it, because the listener misses a session that loses its user without a logout.
 
 ## Depends on
 

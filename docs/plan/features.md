@@ -45,10 +45,11 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F27 | [Symbols through tree-sitter](F27-symbols-through-tree-sitter.md) | Done 2026-10-08, [report](reports/F27.md) | 7b801a7 | src 432 PHP / 28528 lines, 432 types; tests 291 PHP / 25994 lines; assets 155 TS / 8982 lines; check 3m29s |
 | F28 | [RDS authentication](F28-rds-authentication.md) | Done 2026-10-08, [report](reports/F28.md) | a551ec9 | src 428 PHP / 28337 lines, 428 types; tests 289 PHP / 25730 lines; assets 155 TS / 8977 lines |
 | F29 | [Symbols for Python, Go, and Rust](F29-symbols-for-python-go-rust.md) | Done 2026-10-08, [report](reports/F29.md) | 429e2f4 | src 435 PHP / 28733 lines, 435 types; tests 292 PHP / 26147 lines; assets 159 TS / 9201 lines; check 3m3s |
-| F30 | [Sign in after sign-out](F30-sign-in-after-sign-out.md) | Done 2026-10-08, [report](reports/F30.md) | bd375ca | src 429 PHP / 28362 lines, 429 types; tests 289 PHP / 25747 lines; assets 155 TS / 8977 lines |
+| F30 | [Sign in after sign-out](F30-sign-in-after-sign-out.md) | Done 2026-10-08, replaced by F34, [report](reports/F30.md) | bd375ca | src 429 PHP / 28362 lines, 429 types; tests 289 PHP / 25747 lines; assets 155 TS / 8977 lines |
 | F31 | [Directory view reload](F31-directory-view-reload.md) | Done 2026-10-08, [report](reports/F31.md) | 87042d7 | src 432 PHP / 28529 lines, 432 types; tests 291 PHP / 25995 lines; assets 155 TS / 8982 lines; check 3m41s |
 | F32 | [Symbols for Java, C#, Ruby, Bash, Scala, Zig, and Lua](F32-symbols-for-more-languages.md) | Done 2026-10-08, [report](reports/F32.md) | c4cdf3e | src 435 PHP / 28740 lines, 435 types; tests 292 PHP / 26161 lines; assets 159 TS / 9201 lines; check 3m55s |
 | F33 | [Twig symbols](F33-twig-symbols.md) | In progress (2026-10-08) | | |
+| F34 | [Double-submit CSRF on Twig forms](F34-double-submit-on-twig-forms.md) | Done 2026-10-08, [report](reports/F34.md) | | src 434 PHP / 28715 lines, 434 types; tests 292 PHP / 26164 lines; assets 159 TS / 9201 lines |
 
 ## Candidates
 
@@ -94,7 +95,7 @@ Decisions or actions that only Jan can take. Each comes from a report or a revie
   - `@pierre/diffs` blank-view bug: `finalizeRender()` compares files by identity, but `cacheKey` elsewhere. Unchanged in 1.5.2, the pinned and latest version (F18). `CodeFile.tsx` keeps the file object, so the app is not affected.
   - playwright-php 1.5.0: there is no `allTextContents()`, and `filter(['has'])` takes CSS only.
   - Symfony: a `_failure_path` that starts with "http" but is not a URL becomes a route name, and the GitHub callback answers 500.
-  - Symfony 8.1: `SameOriginCsrfListener` writes the CSRF strategies of the logout request, those of the old session included, into the session that logout starts. A same-origin form in that session then fails the CSRF check. `ResetCsrfStrategyListener` works around it (F30).
+  - Symfony 8.1: `SameOriginCsrfListener` writes the CSRF strategies of the logout request, those of the old session included, into the session that logout starts. The new session then refuses a same-origin form that sends no double-submit token. F34 makes every form send one, so the app is not affected.
   - tree-sitter-zig (`@tree-sitter-grammars/tree-sitter-zig` 1.1.2, also on master): `_container_members` uses `repeat1`, so an empty `struct {}`, `enum {}`, `union {}`, or `opaque {}` is a syntax error, and such a Zig file has no symbols (F32).
 - **GitHub App:** when a real App exists, record real API responses and webhook deliveries for the fixtures. Confirm the by-ID fetch of pending SHAs and the listing of a suspended installation. Set `GITHUB_APP_WEBHOOK_SECRET` in the vault, and the webhook content type to JSON.
 - **phpstan-doctrine:** it finds a type descriptor by DBAL type class, not by type name. So `IdentifierType` and `StringValueType`, which serve several value classes, fall back to `mixed` in DQL result shapes. The fix needs either two new `phpstanApi` ignores, which the definition of done forbids, or an upstream change. F08 item 6 is left open for it.
