@@ -829,7 +829,7 @@ final class BundledSchemas
             'SymbolKind' => [
                 'anyOf' => [
                     [
-                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant'],
+                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant', 'struct', 'type', 'module', 'macro'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -839,7 +839,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => ['language', 'kind', 'fqn'],
                 'properties' => [
-                    'language' => ['type' => 'string', 'minLength' => 1, 'description' => '\'php\' in v1.'],
+                    'language' => ['type' => 'string', 'minLength' => 1, 'description' => 'The `language` of V9, for example \'php\' or \'typescript\'. Open set.'],
                     'kind' => ['$ref' => '#/$defs/SymbolKind'],
                     'fqn' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 1024],
                 ],
@@ -1276,7 +1276,7 @@ final class BundledSchemas
             'SymbolKind' => [
                 'anyOf' => [
                     [
-                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant'],
+                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant', 'struct', 'type', 'module', 'macro'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -1286,7 +1286,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => ['language', 'kind', 'fqn'],
                 'properties' => [
-                    'language' => ['type' => 'string', 'minLength' => 1, 'description' => '\'php\' in v1.'],
+                    'language' => ['type' => 'string', 'minLength' => 1, 'description' => 'The `language` of V9, for example \'php\' or \'typescript\'. Open set.'],
                     'kind' => ['$ref' => '#/$defs/SymbolKind'],
                     'fqn' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 1024],
                 ],
@@ -1848,7 +1848,7 @@ final class BundledSchemas
             'SymbolKind' => [
                 'anyOf' => [
                     [
-                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant'],
+                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant', 'struct', 'type', 'module', 'macro'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -1858,7 +1858,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => ['language', 'kind', 'fqn'],
                 'properties' => [
-                    'language' => ['type' => 'string', 'minLength' => 1, 'description' => '\'php\' in v1.'],
+                    'language' => ['type' => 'string', 'minLength' => 1, 'description' => 'The `language` of V9, for example \'php\' or \'typescript\'. Open set.'],
                     'kind' => ['$ref' => '#/$defs/SymbolKind'],
                     'fqn' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 1024],
                 ],
@@ -2361,7 +2361,7 @@ final class BundledSchemas
             'SymbolKind' => [
                 'anyOf' => [
                     [
-                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant'],
+                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant', 'struct', 'type', 'module', 'macro'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -2371,7 +2371,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => ['language', 'kind', 'fqn'],
                 'properties' => [
-                    'language' => ['type' => 'string', 'minLength' => 1, 'description' => '\'php\' in v1.'],
+                    'language' => ['type' => 'string', 'minLength' => 1, 'description' => 'The `language` of V9, for example \'php\' or \'typescript\'. Open set.'],
                     'kind' => ['$ref' => '#/$defs/SymbolKind'],
                     'fqn' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 1024],
                 ],
@@ -2806,7 +2806,7 @@ final class BundledSchemas
             'SymbolKind' => [
                 'anyOf' => [
                     [
-                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant'],
+                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant', 'struct', 'type', 'module', 'macro'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -2816,7 +2816,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => ['language', 'kind', 'fqn'],
                 'properties' => [
-                    'language' => ['type' => 'string', 'minLength' => 1, 'description' => '\'php\' in v1.'],
+                    'language' => ['type' => 'string', 'minLength' => 1, 'description' => 'The `language` of V9, for example \'php\' or \'typescript\'. Open set.'],
                     'kind' => ['$ref' => '#/$defs/SymbolKind'],
                     'fqn' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 1024],
                 ],
@@ -3247,7 +3247,7 @@ final class BundledSchemas
             'SymbolKind' => [
                 'anyOf' => [
                     [
-                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant'],
+                        'enum' => ['class', 'interface', 'trait', 'enum', 'function', 'method', 'property', 'class_constant', 'enum_case', 'constant', 'struct', 'type', 'module', 'macro'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -3257,7 +3257,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => ['language', 'kind', 'fqn'],
                 'properties' => [
-                    'language' => ['type' => 'string', 'minLength' => 1, 'description' => '\'php\' in v1.'],
+                    'language' => ['type' => 'string', 'minLength' => 1, 'description' => 'The `language` of V9, for example \'php\' or \'typescript\'. Open set.'],
                     'kind' => ['$ref' => '#/$defs/SymbolKind'],
                     'fqn' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 1024],
                 ],

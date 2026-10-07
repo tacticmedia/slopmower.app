@@ -74,6 +74,20 @@ final class IndexReviewHandlerTest extends KernelTestCase
         self::assertSame(3, self::rowCount('indexed_blob'));
     }
 
+    #[TestDox('A commit with PHP and TypeScript files stores the symbols of both')]
+    public function testPhpAndTypeScriptFilesStoreTheirSymbols(): void
+    {
+        $this->source->commit(['src/Shared.php' => self::CLASS_WITH_METHOD, 'assets/shared.ts' => "export class Shared {\n    run(): void {}\n}\n"]);
+
+        $reviewId = $this->startIndexedReview();
+
+        self::assertSame(
+            [['php', 'Shared'], ['php', 'Shared::run()'], ['typescript', 'Shared'], ['typescript', 'Shared.run()']],
+            self::connection()->fetchAllNumeric('SELECT parsed.language, stored.fqn FROM symbol stored JOIN indexed_blob parsed ON parsed.blob_sha = stored.blob_sha ORDER BY parsed.language, stored.fqn'),
+        );
+        self::assertSame(4, self::indexStatus($reviewId)->symbolsTotal);
+    }
+
     #[TestDox('Two reviews at one commit share the indexed files')]
     public function testReviewsAtOneCommitShareTheIndexedFiles(): void
     {
@@ -102,8 +116,8 @@ final class IndexReviewHandlerTest extends KernelTestCase
         // The writer that loses the race on one blob row stores no symbols for it, and stores the other blob of its batch.
         $extractor = new PhpSymbolExtractor();
         self::getContainer()->get(IndexSql::class)->insertBlobs($this->repository->getTenantId(), $this->repository->getId(), [
-            $blobSha => $extractor->extract(self::CLASS_WITH_METHOD),
-            str_repeat('a', 40) => $extractor->extract("<?php\n\nfunction other(): void\n{\n}\n"),
+            $blobSha => $extractor->extract('php', self::CLASS_WITH_METHOD),
+            str_repeat('a', 40) => $extractor->extract('php', "<?php\n\nfunction other(): void\n{\n}\n"),
         ]);
 
         self::assertSame([2, 2, 3], [self::rowCount('indexed_file'), self::rowCount('indexed_blob'), self::rowCount('symbol')]);

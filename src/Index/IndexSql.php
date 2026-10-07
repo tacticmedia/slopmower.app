@@ -27,7 +27,7 @@ final class IndexSql
 {
     private const string LOCK_REPOSITORY = "SELECT id FROM repository WHERE tenant_id = :tenantId AND id = :repositoryId AND access = 'active' FOR KEY SHARE";
     private const string INSERT_FILES = 'INSERT INTO indexed_file (tenant_id, repository_id, commit_sha, path_sha256, path, blob_sha, mode, size_bytes) VALUES ';
-    private const string INSERT_BLOBS = 'INSERT INTO indexed_blob (tenant_id, repository_id, blob_sha, parse_error) VALUES ';
+    private const string INSERT_BLOBS = 'INSERT INTO indexed_blob (tenant_id, repository_id, blob_sha, language, parse_error) VALUES ';
     private const string INSERT_SYMBOLS = 'INSERT INTO symbol (tenant_id, repository_id, blob_sha, kind, fqn, fqn_sha256, name, parent_fqn, start_line, end_line, declaration_start_line, doc_start_line) VALUES ';
     private const string ON_CONFLICT = ' ON CONFLICT DO NOTHING';
     private const string RETURNING_BLOB_SHA = ' RETURNING blob_sha';
@@ -39,11 +39,13 @@ final class IndexSql
         )
         GROUP BY indexed.blob_sha
         SQL;
+    /** V14 resolves PHP names, so a file-local FQN of another language is no declaration. */
     private const string DECLARATIONS = <<<'SQL'
         SELECT listed.path, stored.fqn, stored.kind, stored.start_line, stored.end_line, stored.declaration_start_line FROM symbol stored
+        JOIN indexed_blob parsed ON parsed.tenant_id = stored.tenant_id AND parsed.repository_id = stored.repository_id AND parsed.blob_sha = stored.blob_sha
         JOIN indexed_file listed ON listed.tenant_id = stored.tenant_id AND listed.repository_id = stored.repository_id AND listed.blob_sha = stored.blob_sha
         WHERE stored.tenant_id = :tenantId AND stored.repository_id = :repositoryId AND stored.fqn_sha256 IN (:fqnSha256s) AND stored.fqn IN (:fqns)
-        AND listed.commit_sha = :commitSha
+        AND listed.commit_sha = :commitSha AND parsed.language = 'php'
         SQL;
     /**
      * The V16 candidates. `name` is the last path segment of a file, the short name of a symbol. Mode 160000 is a
@@ -92,9 +94,10 @@ final class IndexSql
     }
 
     /**
-     * The blob rows and their symbols commit together. A blob that another writer stored keeps its symbols.
+     * The blob rows and their symbols commit together. A blob that another writer stored keeps its symbols and its
+     * language.
      *
-     * @param array<string, SymbolTable> $tables By blob SHA
+     * @param array<string, SymbolTable> $tables By blob SHA, each with a language
      */
     public function insertBlobs(TenantId $tenantId, RepositoryId $repositoryId, array $tables): void
     {
@@ -114,7 +117,7 @@ final class IndexSql
 
             foreach (array_chunk($tables, self::ROWS_PER_STATEMENT, true) as $chunk) {
                 $rows = array_map(static fn (string $blobSha, SymbolTable $table): array => [
-                    $tenantId->toRfc4122(), $repositoryId->toRfc4122(), $blobSha, $table->parseError,
+                    $tenantId->toRfc4122(), $repositoryId->toRfc4122(), $blobSha, $table->language ?? throw new \LogicException('A table without a language is not stored.'), $table->parseError,
                 ], array_keys($chunk), $chunk);
                 $values = array_merge(...$rows);
                 $types = array_map(static fn (bool|string $value): ParameterType => \is_bool($value) ? ParameterType::BOOLEAN : ParameterType::STRING, $values);

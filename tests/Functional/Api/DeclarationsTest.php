@@ -37,6 +37,8 @@ final class DeclarationsTest extends WebTestCase
         'src/functions.php' => "<?php\n\nfunction round_half_up(int \$value): int\n{\n    return \$value;\n}\n",
         'src/Billing/Money.php' => "<?php\n\nnamespace App\\Billing;\n\nfinal class Money\n{\n}\n",
         'lib/Money.php' => "<?php\n\nnamespace App\\Billing;\n\nfinal class Money\n{\n}\n",
+        'src/Foo.php' => "<?php\n\nfinal class Foo\n{\n}\n",
+        'assets/Foo.ts' => "export class Foo {}\n",
     ];
 
     private KernelBrowser $client;
@@ -83,6 +85,14 @@ final class DeclarationsTest extends WebTestCase
         $items = $this->declarations(['name' => 'Money'])['items'];
 
         self::assertSame([['lib/Money.php', 'App\Billing\Money'], ['src/Billing/Money.php', 'App\Billing\Money']], array_map(static fn (array $item): array => [$item['path'], $item['fqn']], $items));
+    }
+
+    #[TestDox('A TypeScript class with the FQN of a PHP class is no declaration')]
+    public function testTypeScriptClassIsNoDeclaration(): void
+    {
+        $items = $this->declarations(['name' => '\\Foo'])['items'];
+
+        self::assertSame([['src/Foo.php', 'Foo']], array_map(static fn (array $item): array => [$item['path'], $item['fqn']], $items));
     }
 
     #[TestDox('A long multibyte FQN is indexed and resolves')]

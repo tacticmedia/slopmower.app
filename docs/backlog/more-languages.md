@@ -1,31 +1,25 @@
-# Symbol anchors for more languages
+# Symbol anchors for Python, Go, and Rust
 
-Status: backlog. The proof of concept extracts symbols for PHP only, with `nikic/php-parser`.
+Status: backlog, scheduled as [F29](../plan/F29-symbols-for-python-go-rust.md). PHP, JavaScript, JSX, TypeScript, and TSX have symbols. Architecture section 4, [Symbol languages](../architecture.md#symbol-languages), describes the engine.
 
 ## Why
 
-- Most PHP projects also contain JavaScript or TypeScript, templates, and configuration. Symbol anchors make comments on those files follow the code when it moves.
+- Repositories mix languages. Symbol anchors make comments on Python, Go, and Rust code follow the code when it moves.
 - `SymbolRef.language` and `SymbolKind` are open sets in the v1 contract, so new languages are additive.
 
 ## What
 
-- Evaluate tree-sitter. The phase 1 research in [stack-findings.md](../architecture/stack-findings.md) found no maintained PHP binding. The two options are:
-  - the tree-sitter CLI through `symfony/process`;
-  - a small Node sidecar with `web-tree-sitter`.
-- Check the current versions of the CLI, `web-tree-sitter`, and each grammar before the work starts. The phase 1 values are in the stack findings.
-- Use the `tags.scm` definition queries of each grammar to find classes, functions, and methods, and map them to `SymbolKind`.
-- Add an extractor interface with one implementation per language, `PhpSymbolExtractor` included, and let `BlobSymbols` pick the extractor through a tagged iterator. The index job keeps skipping blobs that are already indexed.
-- Start with JavaScript and TypeScript.
-- The symbol range rule stays: from the doc comment, if there is one, to the last line of the node.
+- Per language: a grammar package in `symbols/package.json`, a query `symbols/queries/<language>.scm`, a row in `symbols/src/languages.ts`, its id in `TreeSitterSymbolExtractor::LANGUAGES`, and a fixture test. `FileLanguage` already maps `py`, `go`, and `rs`.
+- Check the current versions of the grammars, and that web-tree-sitter loads their wasm files, before the work starts.
+- Go and Rust declare methods outside their type: a Go receiver and a Rust `impl` name the parent, so the queries need a capture for it.
 
 ## Acceptance criteria
 
 1. Fixture files per language give the expected symbol tables, with FQNs and ranges.
 2. The Symbols menu lists the symbols of a supported file, and an exact range selection becomes a symbol anchor.
-3. A symbol anchor in a supported language re-anchors by FQN, as architecture section 5.4 describes for PHP.
-4. A syntax error gives `parseError: true`, no symbols, and no error, as for PHP (REST V9).
-5. The index job stays within the runtime of the PHP extractor for files of the same size, within a factor that the evaluation records.
+3. A symbol anchor in a supported language re-anchors by FQN, as architecture section 5.4 describes.
+4. A syntax error gives `parseError: true`, no symbols, and no error.
 
 ## Dependencies
 
-- M26 symbol index and M27 symbol anchors.
+- The symbols service of D56.

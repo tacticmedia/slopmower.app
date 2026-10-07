@@ -19,6 +19,29 @@ describe('SymbolItemsTest', () => {
         expect(symbolItems([CLASS, ROUND, HELPER], 'round(').groups).toEqual([{ id: CLASS.fqn, symbols: [ROUND] }]);
     });
 
+    it('A struct and a module head their groups', () => {
+        const module = symbol('module', 'billing', 'billing', null, 1);
+        const round = symbol('function', 'billing::round()', 'round', 'billing', 2);
+        const line = symbol('struct', 'Line', 'Line', null, 10);
+        const amount = symbol('property', 'Line::amount', 'amount', 'Line', 11);
+
+        expect(symbolItems([module, round, line, amount], '').groups).toEqual([
+            { id: 'billing', symbols: [module, round] },
+            { id: 'Line', symbols: [line, amount] },
+        ]);
+    });
+
+    it('A class in a namespace heads its own group', () => {
+        const namespace = symbol('module', 'Billing', 'Billing', null, 1);
+        const invoice = symbol('class', 'Billing.Invoice', 'Invoice', 'Billing', 2);
+        const total = symbol('method', 'Billing.Invoice.total()', 'total', 'Billing.Invoice', 3);
+
+        expect(symbolItems([namespace, invoice, total], '').groups).toEqual([
+            { id: 'Billing', symbols: [namespace] },
+            { id: 'Billing.Invoice', symbols: [invoice, total] },
+        ]);
+    });
+
     it('Shows at most the first matches and counts all of them', () => {
         const constants = Array.from({ length: MAX_SHOWN_SYMBOLS + 5 }, (_, index) => symbol('constant', `LINE_${index}`, `LINE_${index}`, null, index + 1));
 

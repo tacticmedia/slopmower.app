@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Index;
 
-use App\Domain\Git\RepoPath;
 use PhpParser\Error;
 use PhpParser\NameContext;
 use PhpParser\Node;
@@ -25,7 +24,7 @@ use PhpParser\ParserFactory;
  * FQNs: `Ns\Type`, `Ns\Type::method()`, `Ns\Type::$property`, `Ns\Type::CONSTANT`,
  * `Ns\Enum::Case`, `Ns\function()`, `Ns\CONSTANT`. Promoted constructor parameters are properties.
  */
-final class PhpSymbolExtractor
+final class PhpSymbolExtractor implements SymbolExtractor
 {
     private readonly Parser $parser;
 
@@ -34,27 +33,21 @@ final class PhpSymbolExtractor
         $this->parser = new ParserFactory()->createForNewestSupportedVersion();
     }
 
-    public function language(): string
+    public function languages(): array
     {
-        return 'php';
-    }
-
-    public function supports(RepoPath $path): bool
-    {
-        return str_ends_with(strtolower($path->toString()), '.php');
+        return ['php'];
     }
 
     /**
-     * A syntax error gives `parseError` and no symbols. The NameResolver also throws a parse error, for example for a
-     * duplicate `use` alias.
+     * The NameResolver also throws a parse error, for example for a duplicate `use` alias.
      */
-    public function extract(string $source): SymbolTable
+    public function extract(string $language, string $source): SymbolTable
     {
         $collector = new PhpSymbolCollector();
 
         return $this->traverse($source, new NameResolver(), $collector)
-            ? new SymbolTable($this->language(), false, $collector->symbols())
-            : new SymbolTable($this->language(), true, []);
+            ? new SymbolTable($language, false, $collector->symbols())
+            : new SymbolTable($language, true, []);
     }
 
     /**

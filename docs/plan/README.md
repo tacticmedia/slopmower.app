@@ -152,7 +152,7 @@ PHP, Composer, the console, and PHPUnit run in the `php` container. `make` wraps
 | Command | Does |
 |---|---|
 | `make help` | Lists the targets. The default target. |
-| `make up` | `docker compose up -d --wait --build`: services `php`, `worker`, `database` |
+| `make up` | `docker compose up -d --wait --build`: services `php`, `worker`, `symbols`, `database` |
 | `make down` | `docker compose down`, without `--volumes` |
 | `make sh` | Shell in the `php` container |
 | `make worker-restart` | `bin/console messenger:stop-workers`. Compose restarts the worker with the new code. Run it after a PHP change that the worker uses. |
@@ -168,7 +168,7 @@ PHP, Composer, the console, and PHPUnit run in the `php` container. `make` wraps
 | `make cs` | `vendor/bin/php-cs-fixer fix --dry-run --diff` |
 | `make cs-fix` | `vendor/bin/php-cs-fixer fix` |
 | `make lint` | `lint:container`, `lint:yaml config`, `lint:twig templates`, `doctrine:schema:validate --env=test` |
-| `make front` | `npm run typecheck && npm test` on the host when `package.json` exists |
+| `make front` | On the host when `package.json` exists: `npm ci --prefix symbols --ignore-scripts` when `symbols/node_modules` is missing, then `npm run typecheck && npm test` |
 | `make ui` | On the host when `package.json` exists: `npx playwright install chromium` (returns at once when the browser is present), then `npm run test:ui`: Playwright against the mocked API, on `UI_PORT` |
 | `make check` | `cs`, `stan`, `lint`, `test`, `front`, `ui`, `e2e` |
 
@@ -201,6 +201,7 @@ The host ports 8000 and 5432 are the defaults of `HTTP_PORT` and `DATABASE_PORT`
 | `APP_CACHE_DIR` | Compose `worker` service | `var/cache/worker`: the worker's own cache directory. Cache pools, and so the `messenger:stop-workers` signal, stay shared in `APP_SHARE_DIR`. |
 | `MERCURE_URL`, `MERCURE_PUBLIC_URL`, `MERCURE_JWT_SECRET` | `.env` files. Also `MERCURE_URL` in the compose `worker` service, because the hub runs in the `php` container, and `MERCURE_JWT_SECRET` in the compose `php` service, because Caddy reads only the container environment. | Hub URL for the publisher, hub URL for the browser, JWT secret |
 | `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_SLUG` | Empty in `.env`, real values in `.env.local`, fake values in `.env.test` and `.env.e2e` | GitHub App identity, from M32 on. Empty means that no GitHub App is configured. |
+| `SYMBOLS_URL` | `.env`, default `http://symbols:3000` | Base URL of the `symbols` service for the scoped client `symbols.client` (D56). Every deployment runs the service and sets it. A test points it at a closed port, `http://symbols:9`, to stand for a service that is down. |
 | `GITHUB_GIT_BASE_URL` | `.env`, default `https://github.com` | Base URL for GitHub clone and fetch, from M33 on. Tests point it at a local bare repository. The token extraheader stays bound to `https://github.com`, so another base URL never receives the token. |
 | `GITHUB_APP_CLIENT_SECRET`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET` | Secrets vault or `.env.local`, fake values in `.env.test` | GitHub App credentials: the client secret from M32 on, the private key from M33 on, the webhook secret from M34 on. Read with `%env(default::<NAME>)%`, not with a default in `.env`, because a non-empty `.env` value wins over the vault. |
 | `PLAYWRIGHT_BROWSERS_PATH` | `Dockerfile` | `/ms-playwright`, on the `playwright_browsers` volume. `vendor/bin/playwright-install` installs Chromium there. |
@@ -303,6 +304,7 @@ Suite markers: **U** unit, **F** functional, **E** full-stack E2E, **V** Vitest,
 - Every test method has `#[TestDox]`: one short sentence about behaviour.
 - Never mock the container. No `getContainer()->set()`, no service replacement.
   - GitHub HTTP goes through the `github.client` scoped client, mocked in `test` with responses in `tests/Fixtures/github/`. The global HTTP client is not mocked, so Mercure publishes are not caught.
+  - `symbols.client` is not mocked: functional tests call the `symbols` service of the compose stack.
   - Time goes through `ClockSensitiveTrait`.
 - Test every feature the way a caller uses it: HTTP for controllers, a service call for services, JSON-RPC for MCP, a Playwright UI test for JavaScript behaviour, and an E2E test for a flow across the browser, PHP, and the database.
 - Tests validate every REST response and every MCP `structuredContent` against the docs/specs schemas, through the `JsonApiAssertions` trait.
@@ -353,7 +355,7 @@ The session writes it into `reports/MNN.md`:
 
 ## Verified versions
 
-Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07. `composer.lock`, `package-lock.json`, and the images hold these versions.
+Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08. `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
 
 | Package | Version | Source |
 |---|---|---|
@@ -389,6 +391,8 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 | `@primer/behaviors` | 1.11.0, the version that `@primer/react` installs, for `isEditableElement()` and `isMacOS()` | https://www.npmjs.com/package/@primer/behaviors |
 | `react-markdown`, `remark-gfm`, `vitest` | 10.1.0, 4.0.1, 5.0.2 | https://www.npmjs.com/package/react-markdown |
 | `@playwright/test`, `ajv`, `ajv-formats`, `@types/node` | 1.63.0, 8.20.0, 3.0.1, 24.19.1 | https://www.npmjs.com/package/@playwright/test |
+| `web-tree-sitter`, `tree-sitter-javascript`, `tree-sitter-typescript` | 0.27.0, 0.25.0, 0.23.2, exact pins in `symbols/package.json`. web-tree-sitter 0.27.0 loads grammars of ABI 13 to 15, and tree-sitter-typescript 0.23.2 is ABI 14. Install with `--ignore-scripts`: the install scripts of the grammars compile Node bindings, which need Python and a C compiler. | https://www.npmjs.com/package/web-tree-sitter |
+| Node.js in the `symbols` image | 24.21.0 from `node:24-trixie-slim`. It runs the TypeScript sources directly, with type stripping. | `node --version` in the `symbols` container |
 
 ## Known gotchas
 

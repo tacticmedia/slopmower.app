@@ -21,6 +21,7 @@
 .github/
 docs/
 node_modules/
+symbols/node_modules/
 public/build/
 public/build-e2e/
 public/bundles/

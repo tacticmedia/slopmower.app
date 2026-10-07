@@ -12,7 +12,8 @@ use App\Repository\IndexedBlobRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * Marks a parsed blob, also one without symbols, so it is parsed once. {@see IndexSql} writes the rows.
+ * Marks a parsed blob, also one without symbols, so it is parsed once. The symbol rows of the blob belong to `language`,
+ * the {@see \App\Index\FileLanguage} of the path that was parsed first. {@see IndexSql} writes the rows.
  */
 #[ORM\Entity(repositoryClass: IndexedBlobRepository::class, readOnly: true)]
 class IndexedBlob implements TenantOwned
@@ -29,12 +30,20 @@ class IndexedBlob implements TenantOwned
     #[ORM\Column(type: BlobSha::class)]
     private BlobSha $blobSha;
 
+    #[ORM\Column(length: 32)]
+    private string $language;
+
     #[ORM\Column]
     private bool $parseError;
 
     public function getTenantId(): TenantId
     {
         return $this->tenantId;
+    }
+
+    public function getLanguage(): string
+    {
+        return $this->language;
     }
 
     public function hasParseError(): bool

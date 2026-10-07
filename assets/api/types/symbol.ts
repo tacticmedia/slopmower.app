@@ -6,7 +6,7 @@ export type Symbol = {
     fqn: string;
     /** Short name, for example `total`. */
     name: string;
-    /** Enclosing class-like symbol of a member. */
+    /** FQN of the nearest enclosing container: a class, interface, trait, enum, struct, or module. Null at the top level of the file. */
     parentFqn: string | null;
     /** The anchor range: from the doc comment, if any, to the last line of the node. */
     range: LineRange;

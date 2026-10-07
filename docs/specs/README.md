@@ -108,7 +108,8 @@ Fixtures: one file per code, `fixtures/error.<code>.json` with `-` in place of `
 | Endpoint | ETag | Cache-Control | 304 |
 |---|---|---|---|
 | `GET /reviews/{id}/raw`, `GET /repositories/{id}/blobs/{sha}` | `"<blobSha>"`, strong | `private, max-age=31536000, immutable` | When `If-None-Match` matches with the weak comparison, or is `*` |
-| `GET /reviews/{id}/file`, `GET /reviews/{id}/symbols` | `W/"v1-<blobSha>"`. Increase `v1` when the representation changes. | `private, no-cache` | Same rule |
+| `GET /reviews/{id}/file` | `W/"v1-<blobSha>"`. Increase `v1` when the representation changes. | `private, no-cache` | Same rule |
+| `GET /reviews/{id}/symbols` | `W/"v2-<blobSha>"`. Increase `v2` when the representation changes, also for a changed grammar or query of a language. | `private, no-cache` | Same rule |
 | Everything else | none | `no-store` | never |
 
 All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body and repeats `ETag` and `Cache-Control`.
@@ -180,6 +181,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Plan requirement changes, decision D52: the endpoint Q18, the `Action` value `set_plan_requirement`, the `EventType` and `ThreadEntryType` values `request.plan_required` and `request.plan_waived`, and the input `PlanRequirementInput`. All are additive. `requireApproval` changes after the request opens, and the gate of D49 uses its current value.
     - Pull request unlinks, decision D53: the endpoint Q19 and the tool `unlink_pull_request`, the `Action` value `unlink_pull_request`, the `EventType` and `ThreadEntryType` value `pull_request.unlinked`, and `UnlinkPullRequestInput`. All are additive.
     - Quick open ranking, decision D54: V16 also matches a name by word starts, for example `CE` for `CommandExecutor`, ranks word starts between a name prefix and a name substring, and orders by the length of the name before the length of the path. The wire format does not change.
+    - Symbols for more languages, decisions D56 and D57: V9, symbol anchors, and V16 also cover JavaScript, JSX, TypeScript, and TSX files. `language` takes their V7 values, the open set `SymbolKind` gets `struct`, `type`, `module`, and `macro`, and the V9 ETag has its own version `v2`. V14 stays PHP only.
 
 ## 9. Contract tests
 
@@ -215,7 +217,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [commit-diff.schema.json](schemas/commit-diff.schema.json) | `https://holistic-review.invalid/schemas/v1/commit-diff.schema.json` | Diff data of one linked commit, plus `CommitDiffFile` |
 | [tree-entry.schema.json](schemas/tree-entry.schema.json) | `https://holistic-review.invalid/schemas/v1/tree-entry.schema.json` | One entry of a tree listing |
 | [file-content.schema.json](schemas/file-content.schema.json) | `https://holistic-review.invalid/schemas/v1/file-content.schema.json` | File metadata at the review commit |
-| [symbol.schema.json](schemas/symbol.schema.json) | `https://holistic-review.invalid/schemas/v1/symbol.schema.json` | One PHP symbol of a file |
+| [symbol.schema.json](schemas/symbol.schema.json) | `https://holistic-review.invalid/schemas/v1/symbol.schema.json` | One symbol of a file |
 | [declaration.schema.json](schemas/declaration.schema.json) | `https://holistic-review.invalid/schemas/v1/declaration.schema.json` | One declaration of a name at the review commit |
 | [search-hit.schema.json](schemas/search-hit.schema.json) | `https://holistic-review.invalid/schemas/v1/search-hit.schema.json` | One hit of a search at the review commit: `FileHit` or `SymbolHit` |
 | [draft.schema.json](schemas/draft.schema.json) | `https://holistic-review.invalid/schemas/v1/draft.schema.json` | A draft of the pending batch |

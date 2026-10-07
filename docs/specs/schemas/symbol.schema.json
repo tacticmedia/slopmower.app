@@ -20,7 +20,7 @@
     },
     "parentFqn": {
       "type": ["string", "null"],
-      "description": "Enclosing class-like symbol of a member."
+      "description": "FQN of the nearest enclosing container: a class, interface, trait, enum, struct, or module. Null at the top level of the file."
     },
     "range": {
       "$ref": "anchor.schema.json#/$defs/LineRange",

@@ -16,4 +16,8 @@ enum SymbolKind: string
     case ClassConstant = 'class_constant';
     case EnumCase = 'enum_case';
     case Constant = 'constant';
+    case Struct = 'struct';
+    case Type = 'type';
+    case Module = 'module';
+    case Macro = 'macro';
 }

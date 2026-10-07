@@ -15,17 +15,17 @@ final class FileSizeLimitTest extends KernelTestCase
     /** Generated files, relative to the project root. */
     private const array EXEMPT_FILES = ['src/Mcp/BundledSchemas.php'];
 
-    #[TestDox('No hand-written PHP, TypeScript, or CSS file in src, tests, or assets has more than 800 lines')]
+    #[TestDox('No hand-written PHP, TypeScript, or CSS file in src, tests, assets, or symbols has more than 800 lines')]
     public function testNoSourceFileExceedsTheLineLimit(): void
     {
         $projectDir = dirname(__DIR__, 3);
         $directories = array_filter(
-            ["{$projectDir}/src", "{$projectDir}/tests", "{$projectDir}/assets"],
+            ["{$projectDir}/src", "{$projectDir}/tests", "{$projectDir}/assets", "{$projectDir}/symbols"],
             is_dir(...),
         );
         $lineCountsOfOversizedFiles = [];
 
-        foreach (Finder::create()->files()->in($directories)->name(['*.php', '*.ts', '*.tsx', '*.css']) as $file) {
+        foreach (Finder::create()->files()->in($directories)->exclude('node_modules')->name(['*.php', '*.ts', '*.tsx', '*.css']) as $file) {
             $contents = $file->getContents();
             $lineCount = substr_count($contents, "\n") + ('' === $contents || str_ends_with($contents, "\n") ? 0 : 1);
 

@@ -24,6 +24,7 @@
 /public/build/
 ###< symfony/reprise ###
 /public/build-e2e/
+/symbols/node_modules/
 /public/entrypoints.json
 /public/manifest.json
 /test-failures/

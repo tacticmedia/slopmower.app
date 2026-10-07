@@ -11,6 +11,7 @@ use App\Tests\Support\Contract\JsonApiAssertions;
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Environment\EnvironmentVariables;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
+use App\Tests\Support\Git\GitRepositoryBuilder;
 use App\Tests\Support\Messenger\QueuedMessages;
 use App\Tests\Support\Source\LocalSources;
 use Doctrine\DBAL\Connection;
@@ -66,14 +67,34 @@ final class SymbolAnchorTest extends WebTestCase
 
         PHP;
 
+    private const string TOTALS_TS_PATH = 'assets/totals.ts';
+
+    private const string TOTALS_TS_FQN = 'InvoiceTotals.total()';
+
+    /** `total()` has the lines 2 to 7 with its doc comment. */
+    private const string TOTALS_TS = <<<'TS'
+        export class InvoiceTotals {
+            /**
+             * Sum of all lines.
+             */
+            total(): number {
+                return 0;
+            }
+        }
+
+        TS;
+
     private KernelBrowser $client;
 
     private string $reviewId;
 
+    private GitRepositoryBuilder $source;
+
     protected function setUp(): void
     {
         $this->useTemporaryLocalSources();
-        $this->newSource()->commit([self::INVOICE_TOTALS => self::TOTALS, 'src/platform.php' => self::PLATFORM]);
+        $this->source = $this->newSource();
+        $this->source->commit([self::INVOICE_TOTALS => self::TOTALS, 'src/platform.php' => self::PLATFORM, self::TOTALS_TS_PATH => self::TOTALS_TS]);
         $this->client = static::createClient();
         self::signIn($this->client);
         $this->reviewId = self::startCodeReview($this->client);
@@ -89,6 +110,28 @@ final class SymbolAnchorTest extends WebTestCase
 
         self::assertSame(['symbol', ['startLine' => 7, 'endLine' => 13], ['language' => 'php', 'kind' => 'method', 'fqn' => self::TOTAL_FQN]], [$anchor['kind'], $anchor['range'], $anchor['symbol']]);
         self::assertSame(['    /**', 7], [$anchor['snapshot']['lines'][0], $anchor['snapshot']['lineCount']]);
+    }
+
+    #[TestDox('A TypeScript method becomes a symbol anchor with its language')]
+    public function testTypeScriptMethodBecomesASymbolAnchor(): void
+    {
+        $opened = self::openRequest($this->client, $this->reviewId, ['kind' => 'symbol', 'path' => self::TOTALS_TS_PATH, 'symbol' => ['fqn' => self::TOTALS_TS_FQN]]);
+
+        self::assertSame(
+            ['symbol', ['startLine' => 2, 'endLine' => 7], ['language' => 'typescript', 'kind' => 'method', 'fqn' => self::TOTALS_TS_FQN]],
+            [$opened['anchor']['kind'], $opened['anchor']['range'], $opened['anchor']['symbol']],
+        );
+    }
+
+    #[TestDox('With the symbols service down, Q3 of a TypeScript symbol anchor at a changed blob gives 500 and caches no location')]
+    public function testServiceDownFailsQ3AndCachesNothing(): void
+    {
+        $opened = self::openRequest($this->client, $this->reviewId, ['kind' => 'symbol', 'path' => self::TOTALS_TS_PATH, 'symbol' => ['fqn' => self::TOTALS_TS_FQN]]);
+        $later = $this->source->commit([self::TOTALS_TS_PATH => "// Totals.\n".self::TOTALS_TS]);
+        $this->setEnvironmentVariable('SYMBOLS_URL', 'http://symbols:9');
+
+        self::assertApiError(self::apiRequest($this->client, 'GET', "/api/v1/requests/{$opened['id']}?at={$later}"), 500, 'internal_error');
+        self::assertSame(0, (int) self::getContainer()->get(Connection::class)->fetchOne('SELECT COUNT(*) FROM location_cache_entry WHERE target_sha = ?', [$later]));
     }
 
     #[TestDox('An unknown FQN gives 422 invalid_input')]

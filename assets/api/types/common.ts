@@ -73,6 +73,10 @@ export const SYMBOL_KINDS = [
     'class_constant',
     'enum_case',
     'constant',
+    'struct',
+    'type',
+    'module',
+    'macro',
 ] as const;
 export type KnownSymbolKind = (typeof SYMBOL_KINDS)[number];
 export type SymbolKind = OpenSet<KnownSymbolKind>;

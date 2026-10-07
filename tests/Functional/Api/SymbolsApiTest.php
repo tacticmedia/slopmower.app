@@ -31,6 +31,8 @@ final class SymbolsApiTest extends WebTestCase
 
     private const string TOTALS = "<?php\n\nnamespace App\\Billing;\n\nfinal class InvoiceTotals\n{\n    /**\n     * Sum of all lines.\n     */\n    public function total(): int\n    {\n        return 0;\n    }\n}\n";
 
+    private const string TOTALS_TS = "/**\n * Sums invoice lines.\n */\nexport class InvoiceTotals {\n    total(): number {\n        return 0;\n    }\n}\n";
+
     private KernelBrowser $client;
 
     private GitRepositoryBuilder $source;
@@ -103,7 +105,7 @@ final class SymbolsApiTest extends WebTestCase
     {
         $review = $this->startReview();
         $uri = "/api/v1/reviews/{$review['id']}/symbols?path=src%2FBilling%2FInvoiceTotals.php";
-        $etag = 'W/"v1-'.$this->source->revParse('main:src/Billing/InvoiceTotals.php').'"';
+        $etag = 'W/"v2-'.$this->source->revParse('main:src/Billing/InvoiceTotals.php').'"';
 
         $first = self::apiRequest($this->client, 'GET', $uri);
         $notModified = self::apiRequest($this->client, 'GET', $uri, server: ['HTTP_IF_NONE_MATCH' => $etag]);
@@ -113,6 +115,47 @@ final class SymbolsApiTest extends WebTestCase
             self::assertSame($etag, $response->headers->get('ETag'));
             self::assertSame('no-cache, private', $response->headers->get('Cache-Control'));
         }
+    }
+
+    #[TestDox('A TypeScript file gives its language, its symbols, and the ETag of V9')]
+    public function testTypeScriptFileGivesItsSymbols(): void
+    {
+        $this->source->commit(['assets/totals.ts' => self::TOTALS_TS]);
+        $review = $this->startReview();
+
+        $response = self::apiRequest($this->client, 'GET', "/api/v1/reviews/{$review['id']}/symbols?path=assets%2Ftotals.ts");
+        $symbols = self::assertApiResponse($response, 200, 'lists.schema.json#/$defs/SymbolList');
+
+        self::assertSame('W/"v2-'.$this->source->revParse('main:assets/totals.ts').'"', $response->headers->get('ETag'));
+        self::assertSame(['typescript', false], [$symbols['language'], $symbols['parseError']]);
+        self::assertSame([
+            ['kind' => 'class', 'fqn' => 'InvoiceTotals', 'name' => 'InvoiceTotals', 'parentFqn' => null, 'range' => ['startLine' => 1, 'endLine' => 8], 'declarationStartLine' => 4, 'docStartLine' => 1],
+            ['kind' => 'method', 'fqn' => 'InvoiceTotals.total()', 'name' => 'total', 'parentFqn' => 'InvoiceTotals', 'range' => ['startLine' => 5, 'endLine' => 7], 'declarationStartLine' => 5, 'docStartLine' => null],
+        ], $symbols['items']);
+    }
+
+    #[TestDox('Identical bytes at a .js and a .ts path give each its own language, and one indexed_blob row')]
+    public function testIdenticalBytesInTwoLanguagesGiveTwoAnswers(): void
+    {
+        $this->source->commit(['assets/a.js' => "export function a() {}\n", 'assets/a.ts' => "export function a() {}\n"]);
+        $review = $this->startReview();
+
+        $languages = array_map(fn (string $path): mixed => $this->symbols($review, $path)['language'], ['assets/a.js', 'assets/a.ts', 'assets/a.js']);
+
+        self::assertSame(['javascript', 'typescript', 'javascript'], $languages);
+        self::assertSame([['language' => 'javascript']], self::getContainer()->get(Connection::class)->fetchAllAssociative('SELECT language FROM indexed_blob WHERE blob_sha = ?', [$this->source->revParse('main:assets/a.ts')]));
+    }
+
+    #[TestDox('With the symbols service down, a TypeScript file gives 500 and stores nothing, and a PHP file still works')]
+    public function testServiceDownFailsOnlyTheFilesOfTheService(): void
+    {
+        $this->source->commit(['assets/totals.ts' => self::TOTALS_TS]);
+        $review = $this->startReview();
+        $this->setEnvironmentVariable('SYMBOLS_URL', 'http://symbols:9');
+
+        self::assertApiError(self::apiRequest($this->client, 'GET', "/api/v1/reviews/{$review['id']}/symbols?path=assets%2Ftotals.ts"), 500, 'internal_error');
+        self::assertSame(0, (int) self::getContainer()->get(Connection::class)->fetchOne('SELECT COUNT(*) FROM indexed_blob'));
+        self::assertSame('php', $this->symbols($review, 'src/Billing/InvoiceTotals.php')['language']);
     }
 
     #[TestDox('The index endpoint returns the IndexStatus')]

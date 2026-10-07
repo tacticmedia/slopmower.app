@@ -147,7 +147,7 @@
         "language": {
           "type": "string",
           "minLength": 1,
-          "description": "'php' in v1."
+          "description": "The `language` of V9, for example 'php' or 'typescript'. Open set."
         },
         "kind": {
           "$ref": "common.schema.json#/$defs/SymbolKind"

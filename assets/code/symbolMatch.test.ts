@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Symbol as CodeSymbol } from '../api/types/symbol';
-import { enclosingScopes, matchingSymbol } from './symbolMatch';
+import { enclosingScopes, matchingSymbol, symbolShortName } from './symbolMatch';
 
 const TOTAL: CodeSymbol = {
     kind: 'method',
@@ -53,6 +53,17 @@ describe('SymbolMatchTest', () => {
         const first: CodeSymbol = { ...TOTAL, kind: 'property', fqn: 'App\\Billing\\InvoiceTotals::$a', name: 'a', range: { startLine: 12, endLine: 12 }, declarationStartLine: 12, docStartLine: null };
 
         expect(matchingSymbol([first, { ...first, fqn: 'App\\Billing\\InvoiceTotals::$b', name: 'b' }], { start: 12, end: 12 })).toBeNull();
+    });
+});
+
+describe('SymbolShortNameTest', () => {
+    it('Takes the end of the FQN from the name, with the $ of a PHP property', () => {
+        const property: CodeSymbol = { ...TOTAL, kind: 'property', fqn: 'App\\Billing\\InvoiceTotals::$taxRate', name: 'taxRate' };
+        const typeScript: CodeSymbol = { ...TOTAL, fqn: 'InvoiceTotals.total()', parentFqn: 'InvoiceTotals' };
+        const typeScriptProperty: CodeSymbol = { ...typeScript, kind: 'property', fqn: 'InvoiceTotals.taxRate', name: 'taxRate' };
+        const macro: CodeSymbol = { ...TOTAL, kind: 'macro', fqn: 'billing::format_cents!', name: 'format_cents', parentFqn: 'billing' };
+
+        expect([TOTAL, property, typeScript, typeScriptProperty, macro].map(symbolShortName)).toEqual(['total()', '$taxRate', 'total()', 'taxRate', 'format_cents!']);
     });
 });
 

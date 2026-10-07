@@ -13,6 +13,7 @@ use App\Domain\Git\BlobSha;
 use App\Domain\Git\RepoPath;
 use App\Entity\Review;
 use App\Git\GitReader;
+use App\Index\FileLanguage;
 use App\Index\IndexSql;
 use App\Index\PhpSymbolExtractor;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
@@ -40,7 +41,7 @@ final class DeclarationController extends AbstractController
     ): JsonResponse {
         $path = RepoPath::fromString((string) $query->path);
 
-        if (!$extractor->supports($path)) {
+        if ('php' !== FileLanguage::of($path)) {
             throw InvalidInput::field('path', 'Must name a PHP file, *.php.');
         }
 

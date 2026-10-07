@@ -6,6 +6,24 @@ FROM dunglas/frankenphp:1.12.7-php8.5-trixie AS frankenphp_upstream
 
 FROM node:24-trixie-slim AS node_upstream
 
+FROM node_upstream AS symbols
+
+WORKDIR /srv/symbols
+
+COPY --link symbols/package.json symbols/package-lock.json ./
+
+# The install scripts of the grammars compile Node bindings, which the service does not load.
+RUN npm ci --ignore-scripts --no-audit --no-fund && rm -rf /root/.npm
+
+COPY --link symbols/src src
+COPY --link symbols/queries queries
+
+USER node
+
+EXPOSE 3000
+
+CMD ["node", "src/server.ts"]
+
 FROM frankenphp_upstream AS frankenphp_base
 
 SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]

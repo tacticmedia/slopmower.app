@@ -5,64 +5,18 @@ declare(strict_types=1);
 namespace App\Serializer\Normalizer;
 
 use App\Application\Query\FileContent;
+use App\Index\FileLanguage;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareTrait;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
 /**
- * file-content.schema.json. `language` is an open set of highlighting language names, chosen by file name.
+ * file-content.schema.json.
  */
 final class FileContentNormalizer implements NormalizerInterface, NormalizerAwareInterface
 {
     use NormalizerAwareTrait;
-
-    private const array LANGUAGE_BY_FILE_NAME = [
-        'dockerfile' => 'docker',
-        'makefile' => 'make',
-    ];
-
-    private const array LANGUAGE_BY_EXTENSION = [
-        'php' => 'php',
-        'twig' => 'twig',
-        'js' => 'javascript',
-        'mjs' => 'javascript',
-        'cjs' => 'javascript',
-        'jsx' => 'jsx',
-        'ts' => 'typescript',
-        'mts' => 'typescript',
-        'cts' => 'typescript',
-        'tsx' => 'tsx',
-        'json' => 'json',
-        'md' => 'markdown',
-        'markdown' => 'markdown',
-        'yaml' => 'yaml',
-        'yml' => 'yaml',
-        'xml' => 'xml',
-        'html' => 'html',
-        'htm' => 'html',
-        'css' => 'css',
-        'scss' => 'scss',
-        'sql' => 'sql',
-        'sh' => 'shellscript',
-        'bash' => 'shellscript',
-        'py' => 'python',
-        'rb' => 'ruby',
-        'go' => 'go',
-        'rs' => 'rust',
-        'java' => 'java',
-        'kt' => 'kotlin',
-        'c' => 'c',
-        'h' => 'c',
-        'cpp' => 'cpp',
-        'hpp' => 'cpp',
-        'cs' => 'csharp',
-        'toml' => 'toml',
-        'ini' => 'ini',
-        'vue' => 'vue',
-        'graphql' => 'graphql',
-        'diff' => 'diff',
-    ];
 
     public function __construct(private readonly UrlGeneratorInterface $urlGenerator)
     {
@@ -85,7 +39,7 @@ final class FileContentNormalizer implements NormalizerInterface, NormalizerAwar
             'mode' => $data->mode,
             'type' => $data->symlink ? 'symlink' : 'file',
             'sizeBytes' => $data->sizeBytes,
-            'language' => self::language($data->path->toString()),
+            'language' => FileLanguage::of($data->path),
             'binary' => $data->binary,
             'tooLarge' => $data->isTooLarge(),
             'renderable' => $data->isRenderable(),
@@ -109,13 +63,5 @@ final class FileContentNormalizer implements NormalizerInterface, NormalizerAwar
     public function getSupportedTypes(?string $format): array
     {
         return [FileContent::class => true];
-    }
-
-    private static function language(string $path): ?string
-    {
-        $fileName = strtolower(basename($path));
-        $dot = strrpos($fileName, '.');
-
-        return self::LANGUAGE_BY_FILE_NAME[$fileName] ?? (false === $dot ? null : self::LANGUAGE_BY_EXTENSION[substr($fileName, $dot + 1)] ?? null);
     }
 }

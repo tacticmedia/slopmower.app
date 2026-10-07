@@ -67,8 +67,8 @@ These two principles control all decisions.
 
 ### FR6 Anchors
 
-- Anchor types: line, line range, symbol, and file. A symbol is a class, interface, trait, enum, enum case, function, method, property, or constant.
-- Symbols are extracted for PHP with `nikic/php-parser`. The design allows more languages later.
+- Anchor types: line, line range, symbol, and file. A symbol is a class, interface, trait, enum, enum case, function, method, property, or constant, and in other languages also a struct, type, module, or macro.
+- Symbols are extracted for PHP with `nikic/php-parser`, and for JavaScript, JSX, TypeScript, and TSX with tree-sitter (D56). A further language is a grammar, a query file, and a row in a language table.
 - Symbol selection feels like GitHub range selection. An action on a method selects the full method range, and the comment shows below the last line.
 - Each anchor stores enough data to find its code again after changes: path, line range, symbol FQN where applicable, content snapshot, and the SHA.
 - When re-anchoring fails, the request is flagged `orphaned`. A request is never dropped. The UI shows an outdated request as GitHub shows an outdated comment.
@@ -166,7 +166,7 @@ These two principles control all decisions.
 | Operations: production hosting, TLS, backups, monitoring, and CI | The operator's work. The documentation covers only the local development environment. |
 | Usage limits and rate limiting | [usage-limits.md](backlog/usage-limits.md) |
 | Database hardening: row-level security and separate database roles | [database-hardening.md](backlog/database-hardening.md) |
-| Symbol anchors for languages other than PHP | [more-languages.md](backlog/more-languages.md) |
+| Symbol anchors for Python, Go, and Rust | [more-languages.md](backlog/more-languages.md) |
 | Sync to GitHub or GitLab | Kept possible as a later export |
 
 The full list of deferred work is in the [backlog](backlog/README.md).

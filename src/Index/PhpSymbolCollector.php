@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace App\Index;
 
-use App\Domain\Anchor\LineRange;
 use App\Domain\Anchor\SymbolKind;
-use App\Domain\Anchor\SymbolRef;
 use PhpParser\Node;
 use PhpParser\Node\Stmt;
 use PhpParser\NodeVisitor;
@@ -109,19 +107,19 @@ final class PhpSymbolCollector extends NodeVisitorAbstract
     }
 
     /**
-     * Leaves out a symbol whose FQN JSON cannot carry or symbol.schema.json refuses.
+     * Leaves out a symbol that {@see ExtractedSymbol::storable()} refuses.
      *
      * @param Node $node Its lines include the attributes. Each item of a statement with several items gets the lines of the statement.
      */
     private function add(SymbolKind $kind, string $fqn, string $name, ?string $parentFqn, Node $node): void
     {
-        if (!mb_check_encoding($fqn, 'UTF-8') || mb_strlen($fqn) > SymbolRef::MAX_FQN_CHARACTERS) {
-            return;
-        }
-
         $declarationStartLine = $node->getStartLine();
         $docStartLine = $node->getDocComment()?->getStartLine();
-        $range = LineRange::of(min($docStartLine ?? $declarationStartLine, $declarationStartLine), $node->getEndLine());
-        $this->symbols[] = new ExtractedSymbol($kind, $fqn, $name, $parentFqn, $range, $declarationStartLine, $docStartLine);
+        $startLine = min($docStartLine ?? $declarationStartLine, $declarationStartLine);
+        $symbol = ExtractedSymbol::storable($kind, $fqn, $name, $parentFqn, $startLine, $node->getEndLine(), $declarationStartLine, $docStartLine);
+
+        if (null !== $symbol) {
+            $this->symbols[] = $symbol;
+        }
     }
 }

@@ -146,7 +146,8 @@
           "$ref": "common.schema.json#/$defs/ObjectSha"
         },
         "language": {
-          "type": ["string", "null"]
+          "type": ["string", "null"],
+          "description": "The language of the symbol extractor, a V7 language such as 'php' or 'typescript'. Null when no extractor supports the file. Open set."
         },
         "parseError": {
           "type": "boolean"

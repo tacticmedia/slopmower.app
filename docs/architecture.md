@@ -130,8 +130,8 @@ The spikes were joined into one end-to-end demonstration. A Symfony API, install
 | `RepoPath` | `string` | Relative, `/` separators, at most 4096 characters, no leading `/` or `-`, no empty, `.` or `..` segment, no NUL byte |
 | `PullRequestUrl` | `string` | `https`, at most 2,048 characters, no whitespace. For a GitHub repository, `https://github.com/{owner}/{name}/pull/{number}` of the review's repository, compared case-insensitively and stored with the repository name as connected. |
 | `LineRange` | `startLine: int`, `endLine: int` | `1 <= startLine <= endLine` |
-| `SymbolKind` | enum: `class`, `interface`, `trait`, `enum`, `function`, `method`, `property`, `class_constant`, `enum_case`, `constant` | |
-| `SymbolRef` | `language: string`, `kind: SymbolKind`, `fqn: string` | `language` is `php` in the proof of concept. FQN example: `App\Billing\InvoiceTotals::total()` |
+| `SymbolKind` | enum: `class`, `interface`, `trait`, `enum`, `function`, `method`, `property`, `class_constant`, `enum_case`, `constant`, `struct`, `type`, `module`, `macro` | Open set (D57) |
+| `SymbolRef` | `language: string`, `kind: SymbolKind`, `fqn: string` | `language` is the V9 language of the file, an open set. FQN examples: `App\Billing\InvoiceTotals::total()`, `InvoiceTotals.total()`. See [Symbol languages](#symbol-languages). |
 | `AnchorKind` | enum: `line`, `range`, `symbol`, `file` | |
 | `ContentSnapshot` | `lines: list<string>`, `truncated: bool`, `lineCount: int`, `before: list<string>`, `after: list<string>`, `normalizedHash: string` | Section 5.1 |
 | `Anchor` | `kind: AnchorKind`, `path: RepoPath`, `commitSha: CommitSha`, `blobSha: BlobSha`, `range: ?LineRange`, `symbol: ?SymbolRef`, `snapshot: ?ContentSnapshot` | `range` and `snapshot` are null only for `file`. `symbol` is set only for `symbol`. |
@@ -313,10 +313,29 @@ Fetch triggers:
 ### Reading code and the index
 
 - **Reading code.** No import step. The server reads the pinned commit from its clone: `git ls-tree` for directories, one `git cat-file --batch` process for content, the blob SHA as `ETag`. The phase 1 demonstration proved this chain with a clone of nikic/FastRoute. See section 2.
-- **Index.** A Messenger job at review start writes the path list of the commit into `indexed_file`, with the columns `tenantId`, `repositoryId`, `commitSha`, `pathSha256`, `path`, `blobSha`, `mode`, and `sizeBytes`. It writes the PHP symbols of each blob into `symbol`, with the columns `id`, `tenantId`, `repositoryId`, `blobSha`, `kind`, `fqn`, `fqnSha256`, `name`, `parentFqn`, `startLine`, `endLine`, `declarationStartLine`, and `docStartLine`. `indexed_blob` marks each parsed blob, with `parseError`, so blobs without symbols are also skipped. The index belongs to a commit of a repository, not to a review, because it is code data. Reviews of the same commit share it. `nikic/php-parser` needs 22 ms for a 3,534-line file. The UI shows the progress.
-- **Code navigation.** V14 parses one file on demand, resolves the clicked or typed name with php-parser's `NameResolver`, and looks up its declarations in `symbol` by the SHA-256 of the FQN, then by the FQN, joined with the `indexed_file` rows of the review commit. The index holds the hash, because a btree entry of a long multibyte FQN exceeds the PostgreSQL limit. There is no reference index (D46).
-- **Quick open.** V16 finds the paths of `indexed_file` and the symbol names of `symbol` of the review commit that contain a text or match it by word starts, case-insensitively. SQL selects the candidates, and `Index\SearchRank` ranks them in PHP. It uses the existing indexes and no name index: on this repository, 1,432 files and 5,152 symbols, the query takes 2 to 4 ms and the ranking up to 3 ms (D48, D54).
+- **Index.** A Messenger job at review start writes the path list of the commit into `indexed_file`, with the columns `tenantId`, `repositoryId`, `commitSha`, `pathSha256`, `path`, `blobSha`, `mode`, and `sizeBytes`. It writes the symbols of each blob into `symbol`, with the columns `id`, `tenantId`, `repositoryId`, `blobSha`, `kind`, `fqn`, `fqnSha256`, `name`, `parentFqn`, `startLine`, `endLine`, `declarationStartLine`, and `docStartLine`. `indexed_blob` marks each parsed blob, with `language` and `parseError`, so blobs without symbols are also skipped. The extractor follows the V7 language of the path, see [Symbol languages](#symbol-languages). A blob at paths of two languages keeps the rows of its first parse, and `BlobSymbols::of()` parses it for the other language without storing the result. The index belongs to a commit of a repository, not to a review, because it is code data. Reviews of the same commit share it. `nikic/php-parser` needs 22 ms for a 3,534-line file. The UI shows the progress.
+- **Code navigation.** V14 parses one file on demand, resolves the clicked or typed name with php-parser's `NameResolver`, and looks up its declarations among the PHP rows of `symbol` by the SHA-256 of the FQN, then by the FQN, joined with the `indexed_file` rows of the review commit. The index holds the hash, because a btree entry of a long multibyte FQN exceeds the PostgreSQL limit. There is no reference index (D46).
+- **Quick open.** V16 finds the paths of `indexed_file` and the symbol names of `symbol`, in every language, of the review commit that contain a text or match it by word starts, case-insensitively. SQL selects the candidates, and `Index\SearchRank` ranks them in PHP. It uses the existing indexes and no name index: on this repository, 1,432 files and 5,152 symbols, the query takes 2 to 4 ms and the ranking up to 3 ms (D48, D54).
 - **Limits.** Files above 1 MiB (1,048,576 bytes) and binary files show no code but take file comments. The proof of concept has no limit on repository size or counts. See [usage-limits.md](backlog/usage-limits.md).
+
+### Symbol languages
+
+`BlobSymbols` picks the `SymbolExtractor` whose `languages()` contain the V7 language of the path, `FileLanguage::of()`. `PhpSymbolExtractor` parses PHP with `nikic/php-parser` in the PHP process. `TreeSitterSymbolExtractor` sends the other languages to the `symbols` service, web-tree-sitter on Node 24, through the scoped client `symbols.client` (D56):
+
+- `POST /v1/symbols?language=<id>` with the raw blob as `application/octet-stream`. 200 `{parseError, symbols: [{kind, fqn, name, parentFqn, startLine, endLine, declarationStartLine, docStartLine}]}`, 422 for an unknown language, 413 above 1 MiB. `GET /healthz` answers 200.
+- A language of the service is a grammar package in `symbols/package.json`, a query `symbols/queries/<query>.scm`, and a row in `symbols/src/languages.ts`. The captures of a query are `SymbolKind` values on the declaration and `@name` on its name. When several patterns capture one name, the first pattern wins. The row holds the separator, the wrapper and attribute node types, the node types whose descendants are no symbols, and the doc comment pattern.
+- `jsx` uses the JavaScript grammar. `tsx` uses the TSX grammar with the TypeScript query.
+- A tree with an error, or a parse over 2 s, gives `parseError` and no symbols. The service deletes each tree after use.
+- A transport error or an error status of the service throws: nothing is stored, and the request that needs the symbols answers 500. PHP files do not depend on the service.
+- `ExtractedSymbol::storable()` is the row guard of both extractors: valid UTF-8, no NUL, `fqn`, `name`, and `parentFqn` within 1,024 characters, and an FQN that contains `name`. A row that fails it is left out.
+
+FQNs are local to the file (D57). They use the separator of the language, and functions and methods end with `()`. `parentFqn` is the nearest enclosing container: a class, interface, trait, enum, struct, or module. Declarations in function bodies are skipped. D7 holds: the range starts at the doc comment. The declaration starts at the outermost wrapper, such as `export` or `declare`, and includes decorators and attributes. A node that ends at column 0 ends on the line before.
+
+| Language | Kinds and FQN examples | Doc comment |
+|---|---|---|
+| PHP (`php`) | class, interface, trait, and enum `Ns\Type`; method `Ns\Type::m()`; property `Ns\Type::$p`, also a promoted constructor parameter; class constant `Ns\Type::C`; enum case `Ns\Enum::Case`; function `Ns\f()`; constant `Ns\C` | `/** */` |
+| JavaScript (`javascript`, `jsx`) | class `A`; method `A.m()`; property `A.x` and `A.#x`; function `f()`; a top-level `const f = () =>` or `function` expression as function `f()`; another top-level `const` as constant `X` | `/** */` |
+| TypeScript (`typescript`, `tsx`) | as JavaScript, plus interface `I` with method `I.m()` and property `I.p`; type `T`; enum `E` with enum case `E.A`; namespace and `declare module 'm'` as module `N` with `N.A`. Overload signatures right before an implementation with the same FQN join its range. | `/** */` |
 
 ### Sign-in and sessions
 
@@ -340,7 +359,7 @@ All anchors are captured at the review commit, which never changes. A general re
 |---|---|
 | `file` | `path`, `commitSha`, `blobSha` |
 | `line`, `range` | As `file`, plus `range` and `snapshot` |
-| `symbol` | As `range`, plus `symbol`. The range comes from `nikic/php-parser` and includes the doc comment (D7). |
+| `symbol` | As `range`, plus `symbol`. The range comes from the extractor of the language and includes the doc comment (D7). |
 
 Snapshot rules: normalize each line to LF line endings with no trailing whitespace. `lines` holds up to 200 lines, else the first 100 and the last 100 with `truncated: true`. `before` and `after` hold up to 3 context lines each.
 
@@ -429,7 +448,7 @@ searchOtherFiles(anchor, targetSha):
 | F9 | Duplicate code, equal distance | `orphaned`, `ambiguous`. We do not guess. |
 | F10 | Trivial snapshot, such as `}` | No content search, diff mapping only |
 | F11 | Whitespace or line-ending change | `exact` or `shifted`, because the comparison is normalized |
-| F12 | PHP syntax error at the target | No symbol table. Line steps run instead. |
+| F12 | Syntax error at the target, or a parse over 2 s in the `symbols` service | No symbol table. Line steps run instead. A failure of the `symbols` service is no parse error: the request answers 500 and caches no location. |
 | F13 | Symbol renamed | FQN not found. Line steps give `changed` or `orphaned`. |
 | F14 | Target commit not in the server clone | One fetch, then error `commit_not_found` |
 
@@ -525,7 +544,7 @@ Web UI and REST API      MCP over HTTP      Webhook consumer      Messenger hand
                                         |
              Domain: value objects, events, reducer, state machine, anchor matching
                                         |
-             Ports: Doctrine repositories, the `github.client` HTTP client, BareClone, GitReader, PhpSymbolExtractor, LivePublisher
+             Ports: Doctrine repositories, the `github.client` and `symbols.client` HTTP clients, BareClone, GitReader, the SymbolExtractors, LivePublisher
 ```
 
 - Adapters map input and normalize the result. Logic that several adapters share is in an application service. Logic with one caller stays in its adapter. A `kernel.request` listener and a Messenger middleware set the tenant context. MCP and REST return the same JSON.
@@ -683,6 +702,7 @@ These documents cover only the local development environment. Operations belong 
 |---|---|---|
 | `php` | FrankenPHP 1.12.7 with the built-in Mercure hub | The `dev` application at `http://localhost:8000` over HTTP, in worker mode. The `e2e` site on `:8081` in the same container, in classic mode, for the full-stack E2E tests. |
 | `worker` | `messenger:consume async` | Same image and volumes as `php`. Its own cache directory, `APP_CACHE_DIR=var/cache/worker`, so a rebuild of the `php` container's cache does not remove files that it loads. |
+| `symbols` | Node 24 with web-tree-sitter, the `symbols` stage of the Dockerfile | The symbol extraction of JavaScript and TypeScript (D56), on port 3000 inside the network. Compose mounts `symbols/src` and `symbols/queries` read-only and runs `node --watch`. `php` starts after its health check passes. |
 | `database` | `postgres:18-alpine` | The data volume mounts `/var/lib/postgresql`. One database role. |
 
 - **Volumes:** the database, the tenant data, and the host directory that `LOCAL_REPOSITORIES_HOST_DIR` names. That directory is mounted read-only at `/repositories`, and the application reads `APP_LOCAL_REPOSITORIES_DIR=/repositories`. When `APP_LOCAL_REPOSITORIES_DIR` is empty, local sources are off.
@@ -712,7 +732,7 @@ All PHP tests extend `KernelTestCase` or its subclasses. Unit tests do not boot 
 | Event codecs | Unit | `KernelTestCase` without boot | All 18 event types round-trip. Wrong types are refused. Unknown fields are ignored, so an older release reads newer events. |
 | Hunk mapping, snapshot search, similarity | Unit | `KernelTestCase` without boot | Pure functions on line arrays |
 | Re-anchoring | Functional | `KernelTestCase` | F1 to F14 on real temporary git repositories built with `symfony/process` |
-| Symbol extraction and index job | Functional | `KernelTestCase` | PHP 8.5 fixtures give the expected tables. Indexed blobs are skipped. |
+| Symbol extraction and index job | Functional, and Vitest in `symbols/` | `KernelTestCase` | PHP 8.5 fixtures give the expected tables, and so do the JavaScript, JSX, TypeScript, and TSX fixtures in Vitest. Indexed blobs are skipped. The PHP tests call the `symbols` service of the compose stack, because the test environment does not mock `symbols.client`. A closed port in `SYMBOLS_URL` stands for a service that is down. |
 | Event store and projections | Functional | `KernelTestCase` on PostgreSQL | Per-tenant sequence without gaps under two concurrent writers. Rebuilt projections equal live ones. |
 | Tenant isolation | Functional | `WebTestCase` | Two tenants. Every REST route and MCP tool with the other tenant's IDs gives 404. No tenant context means no query. Every raw SQL statement on a tenant table names its tenant column. |
 | Local source | Functional | `KernelTestCase` | Discovery lists normal and bare repositories only. Connect clones over `file://`. Path tricks give `invalid_input` and write nothing. The source bytes and mtimes do not change after a fetch. A new source commit becomes available after one fetch. |
@@ -745,7 +765,7 @@ Static checks: PHPStan level 8 on `src/` and `tests/`, php-cs-fixer with `@Symfo
 | D8 | Agent scope | Agent tools work per review. `list_reviews(repository)` finds the open reviews. `list_requests` and `get_updates` take `review`. The agent asks the user when several reviews are open and none was named. |
 | D9 | Skill location | `.claude/skills/holistic-review/SKILL.md` in the developer's repository. A plugin is a backlog item: [skill-plugin.md](backlog/skill-plugin.md). |
 | D10 | Skeleton packages | Keep Doctrine, Messenger, Security, Twig. Add Mercure, Webhook, and HWIOAuthBundle. Remove Mailer, Notifier, Turbo, Stimulus, and AssetMapper. Form stays, because HWIOAuthBundle requires it. |
-| D11 | Hosting | Docker Compose: FrankenPHP in worker mode, Messenger worker, PostgreSQL |
+| D11 | Hosting | Docker Compose: FrankenPHP in worker mode, Messenger worker, PostgreSQL, and the `symbols` service (D56) |
 | D12 | Live UI updates | Mercure through FrankenPHP's built-in hub |
 | D13 | Agent identity | The API token's user, with the token name as agent name |
 | D14 | Names | Product "Holistic Review", MCP server `holistic-review` |
@@ -767,7 +787,7 @@ Static checks: PHPStan level 8 on `src/` and `tests/`, php-cs-fixer with `@Symfo
 | D30 | Token scope | Name as agent name. Scope: all repositories of the tenant, or one repository. Optional expiry. Secret `hr_` and 32 random bytes in base64url, shown once, stored as SHA-256. Revocable, last use shown. |
 | D31 | Keyboard access | "Comment on lines", "Symbols", and "Comment on file" in the file header. The "+" of a selection has a name and takes Enter and Space. The library's gutter is not changed. Keyboard-only tests in the UI suite. |
 | D32 | Usage limits | None in the proof of concept. Proposal: [usage-limits.md](backlog/usage-limits.md). |
-| D33 | Container tooling | PHP, Composer, the console, and PHPUnit run in the `php` container through `make`. npm and Vite run on the host. Only `make e2e` runs npm in the `php` container, to pin the playwright-php server. M00 and the M01 baseline use host PHP and Composer. The host needs no PHP after that. |
+| D33 | Container tooling | PHP, Composer, the console, and PHPUnit run in the `php` container through `make`. npm and Vite run on the host. Only `make e2e` runs npm in the `php` container, to pin the playwright-php server. The `symbols` image installs its own packages, and `make front` installs them on the host for `tsc` and Vitest. M00 and the M01 baseline use host PHP and Composer. The host needs no PHP after that. |
 | D34 | `e2e` environment | A fourth kernel environment, `e2e`, serves the site of the full-stack E2E tests on `:8081` in the `php` container. It uses classic mode, native sessions in files, `sync://` Messenger, its own Mercure hub, and its own database `app_e2e`, which the E2E tests seed from the PHPUnit process. It needs real sessions, because the mock session storage of `test` cannot keep a browser session. |
 | D35 | Package installs | Each package is installed in the milestone that first uses it, so each step stays small and reviewable. `extra.symfony.docker` is `false` from M01 on, so recipes, for example Mercure, add no compose services. The compose files are maintained by hand. |
 | D36 | Test databases | Tests reset the database by truncation, through the `ResetDatabase` trait, because the E2E and concurrency tests need committed rows |

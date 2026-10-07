@@ -71,6 +71,52 @@ final class LocatorSymbolAndTargetCasesTest extends KernelTestCase
 
     private const string EDITED_BODY = '$sum += $line * 2;';
 
+    private const string TOTALS_TS = 'assets/totals.ts';
+
+    /** `total()` has the lines 2 to 12 with its doc comment. */
+    private const string TOTALS_TS_SOURCE = <<<'TS'
+        export class InvoiceTotals {
+            /**
+             * Sum of all lines.
+             */
+            total(): number {
+                let sum = 0;
+                for (const line of this.lines) {
+                    sum += line;
+                }
+
+                return sum;
+            }
+
+            tax(): number {
+                return 0;
+            }
+        }
+
+        TS;
+
+    /** `tax()` moved above `total()`, whose loop body changed. `total()` has the lines 6 to 16. */
+    private const string TOTALS_TS_MOVED = <<<'TS'
+        export class InvoiceTotals {
+            tax(): number {
+                return 0;
+            }
+
+            /**
+             * Sum of all lines.
+             */
+            total(): number {
+                let sum = 0;
+                for (const line of this.lines) {
+                    sum += line * 2;
+                }
+
+                return sum;
+            }
+        }
+
+        TS;
+
     /** 11 of 12 lines kept: 2 * 11 / (12 + 12). */
     private const float ONE_LINE_EDITED = 22 / 24;
 
@@ -81,6 +127,17 @@ final class LocatorSymbolAndTargetCasesTest extends KernelTestCase
         $target = $this->commitAndFetch([self::TOTALS => self::edit("<?php\n\ndeclare(strict_types=1);", self::EDITED_BODY)]);
 
         self::assertSame(self::expected('changed', self::TOTALS, [9, 20]), self::actual($this->locate($this->totalAnchor($base), $target)));
+    }
+
+    #[TestDox('A TypeScript method found by its FQN after it moved gives its range at the target')]
+    public function testTypeScriptMethodFoundByItsFqnAfterItMoved(): void
+    {
+        $base = $this->cloneSource([self::TOTALS_TS => self::TOTALS_TS_SOURCE]);
+        $target = $this->commitAndFetch([self::TOTALS_TS => self::TOTALS_TS_MOVED]);
+        $anchor = $this->rangeAnchor($base, self::TOTALS_TS, 2, 12, SymbolRef::of('typescript', SymbolKind::Method, 'InvoiceTotals.total()'));
+
+        // The symbol step gives confidence 1, where the line steps would give the line similarity.
+        self::assertSame(self::expected('changed', self::TOTALS_TS, [6, 16]), self::actual($this->locate($anchor, $target)));
     }
 
     #[TestDox('F12: a PHP syntax error at the target falls back to the line steps')]

@@ -27,7 +27,7 @@ The comment box receives the focus. Type your comment. Comments use GitHub-flavo
 
 If a comment cannot be saved, its box opens again with your text, the error, and the selected lines.
 
-Symbols are available for PHP files. A symbol range includes the doc comment above the symbol. When a file has no symbols, or they could not be loaded, **Symbols** is unavailable, and its tooltip says why.
+Symbols are available for PHP, JavaScript, JSX, TypeScript, and TSX files. A symbol range includes the doc comment above the symbol, and the decorators or attributes of its declaration. In JavaScript and TypeScript, a symbol name joins the names of its class, interface, or namespace with `.`, for example `InvoiceTotals.total()`. When a file has no symbols, or they could not be loaded, **Symbols** is unavailable, and its tooltip says why.
 
 ## Open a general request
 
@@ -126,7 +126,7 @@ The browser's Back button returns to the line that you clicked. A method call on
 
 Click **Quick open** in the review header, or press Cmd+K (Ctrl+K outside macOS), and type a part of a file path or of a symbol name. You can also type the starts of the words of a name: `CE` or `ComEx` finds `CommandExecutor`, and `ReqDec` finds `RequestDecider`. A word starts after a character such as `_` or `.`, at a capital letter after a lower-case letter or a digit, and at the last capital letter before a lower-case letter, so `HTTPClient` has the words `HTTP` and `Client`. Case does not matter.
 
-The list shows the files and the PHP symbols of the review commit that match your text. A name equal to your text comes first, then names that start with it, then names whose word starts match it, then names that contain it, then paths that contain it. Within each group, shorter names come first, then shorter paths.
+The list shows the files and the symbols of the review commit that match your text. A name equal to your text comes first, then names that start with it, then names whose word starts match it, then names that contain it, then paths that contain it. Within each group, shorter names come first, then shorter paths.
 
 - Move through the list with the arrow keys and press Enter, or click a hit.
 - A file opens at its start. A symbol opens its file at the first line of its declaration, below any doc comment, and that line is selected.
@@ -154,7 +154,7 @@ Without an open file, the tab shows the root directory as a table: the name, the
 
 Above a file, each part of the path links to its directory, and **Copy path** copies the path. The toolbar shows the number of lines and the size, the file commands, **Raw**, which opens the file as plain text, and buttons that copy and download the whole file.
 
-When you scroll into the code, the toolbar stays at the top of the window, with the path and **Top** above it. **Top** goes back to the top of the page. In a PHP file, the declaration lines of the class and the function around the top line stay below the toolbar. Click one to go to it.
+When you scroll into the code, the toolbar stays at the top of the window, with the path and **Top** above it. **Top** goes back to the top of the page. In a file with symbols, the declaration lines of the class, the module, and the function around the top line stay below the toolbar. Click one to go to it.
 
 On a narrow screen, the tree is above the file and scrolls away with the page.
 

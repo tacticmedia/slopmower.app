@@ -62,7 +62,7 @@ final class PhpSymbolExtractorTest extends KernelTestCase
     #[TestDox('A syntax error gives an empty list')]
     public function testSyntaxErrorGivesAnEmptyList(): void
     {
-        $table = new PhpSymbolExtractor()->extract("<?php\n\nfinal class InvoiceTotals\n{\n    public function total(): int\n    {\n");
+        $table = new PhpSymbolExtractor()->extract('php', "<?php\n\nfinal class InvoiceTotals\n{\n    public function total(): int\n    {\n");
 
         self::assertSame(['php', true, []], [$table->language, $table->parseError, $table->symbols]);
     }
@@ -70,14 +70,14 @@ final class PhpSymbolExtractorTest extends KernelTestCase
     #[TestDox('A duplicate use alias gives a parse error')]
     public function testDuplicateUseAliasGivesAParseError(): void
     {
-        $table = new PhpSymbolExtractor()->extract("<?php\n\nnamespace App;\n\nuse App\\Money\\Amount;\nuse App\\Tax\\Amount;\n\nfinal class InvoiceTotals\n{\n}\n");
+        $table = new PhpSymbolExtractor()->extract('php', "<?php\n\nnamespace App;\n\nuse App\\Money\\Amount;\nuse App\\Tax\\Amount;\n\nfinal class InvoiceTotals\n{\n}\n");
 
         self::assertSame(['php', true, []], [$table->language, $table->parseError, $table->symbols]);
     }
 
     private static function extract(string $fixture): SymbolTable
     {
-        $table = new PhpSymbolExtractor()->extract((string) file_get_contents(dirname(__DIR__, 2)."/Fixtures/php/{$fixture}"));
+        $table = new PhpSymbolExtractor()->extract('php', (string) file_get_contents(dirname(__DIR__, 2)."/Fixtures/php/{$fixture}"));
         self::assertSame(['php', false], [$table->language, $table->parseError]);
 
         return $table;

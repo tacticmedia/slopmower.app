@@ -12,7 +12,7 @@ PACKAGE_JSON   = $(wildcard package.json)
 help: ## List the targets
 	@grep -hE '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "%-16s %s\n", $$1, $$2}'
 
-up: ## Build the images and start php, worker, and database
+up: ## Build the images and start php, worker, symbols, and database
 	$(DOCKER_COMPOSE) up -d --wait --build
 
 down: ## Stop the stack, keep the volumes
@@ -79,8 +79,9 @@ lint: ## Container, YAML, Twig, and schema checks
 	$(CONSOLE) lint:twig templates
 	$(CONSOLE) doctrine:schema:validate --env=test
 
-front: ## TypeScript and Vitest on the host
+front: ## TypeScript and Vitest on the host, with the packages of symbols
 ifneq ($(PACKAGE_JSON),)
+	test -d symbols/node_modules || npm ci --prefix symbols --ignore-scripts --no-audit --no-fund
 	npm run typecheck && npm test
 endif
 

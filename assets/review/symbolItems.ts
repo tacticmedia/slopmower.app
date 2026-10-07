@@ -1,10 +1,8 @@
 import type { Symbol as CodeSymbol } from '../api/types/symbol';
-import { symbolShortName } from '../code/symbolMatch';
+import { CLASS_LIKE_KINDS, symbolShortName } from '../code/symbolMatch';
 
 /** More options make the menu slow to open. The filter reaches the rest. */
 export const MAX_SHOWN_SYMBOLS = 200;
-
-const CLASS_LIKE_KINDS: ReadonlySet<string> = new Set(['class', 'interface', 'trait', 'enum']);
 
 /** The group of the functions and constants outside a class-like. */
 export const TOP_LEVEL_GROUP = '';
@@ -28,7 +26,7 @@ export function symbolItems(symbols: readonly CodeSymbol[], filter: string): Sym
     const groups = new Map<string, CodeSymbol[]>();
 
     for (const symbol of matches.slice(0, MAX_SHOWN_SYMBOLS)) {
-        const id = symbol.parentFqn ?? (CLASS_LIKE_KINDS.has(symbol.kind) ? symbol.fqn : TOP_LEVEL_GROUP);
+        const id = CLASS_LIKE_KINDS.has(symbol.kind) ? symbol.fqn : (symbol.parentFqn ?? TOP_LEVEL_GROUP);
         const group = groups.get(id);
 
         if (undefined === group) {

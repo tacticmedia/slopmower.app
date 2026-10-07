@@ -48,7 +48,10 @@ type Transition = { status?: RequestStatus; resolution?: Resolution | null; prop
 
 type ThreadEntry = Request['thread'][number];
 
-const LANGUAGES: Record<string, string> = { php: 'php', md: 'markdown' };
+const LANGUAGES: Record<string, string> = { php: 'php', md: 'markdown', ts: 'typescript' };
+
+/** The V7 languages that V9 parses. */
+const SYMBOL_LANGUAGES: ReadonlySet<string | null> = new Set(['php', 'javascript', 'jsx', 'typescript', 'tsx']);
 
 /** The `allowedActions` value of each command path of Q4, Q11 to Q13, Q15, Q16, and Q18. */
 const COMMAND_ACTIONS: Record<string, string> = {
@@ -358,11 +361,12 @@ export class FakeReview {
         }
         if ('symbol' === input.kind) {
             const symbol = this.#symbols[input.path]?.find(({ fqn }) => fqn === input.symbol.fqn);
-            if (undefined === symbol) {
+            const language = file.content.language;
+            if (undefined === symbol || null === language) {
                 throw new Error(`The file ${input.path} has no symbol ${input.symbol.fqn}.`);
             }
 
-            return { ...base, kind: 'symbol', range: symbol.range, symbol: { language: 'php', kind: symbol.kind, fqn: symbol.fqn }, snapshot: snapshot(file.lines, symbol.range) };
+            return { ...base, kind: 'symbol', range: symbol.range, symbol: { language, kind: symbol.kind, fqn: symbol.fqn }, snapshot: snapshot(file.lines, symbol.range) };
         }
 
         return { ...base, kind: input.kind, range: input.range, symbol: null, snapshot: snapshot(file.lines, input.range) };
@@ -434,9 +438,9 @@ export class FakeReview {
         api.on('GET', `${base}/raw`, ours(({ query }) => this.#withFile(query, ({ bytes }) => text(bytes))));
         api.on('GET', `${base}/symbols`, ours(({ query }) =>
             this.#withFile(query, ({ content }) => {
-                const php = 'php' === content.language;
+                const language = SYMBOL_LANGUAGES.has(content.language) ? content.language : null;
 
-                return json('lists.schema.json#/$defs/SymbolList', { reviewId: this.id, path: content.path, blobSha: content.blobSha, language: php ? 'php' : null, parseError: false, items: php ? (this.#symbols[content.path] ?? []) : [] });
+                return json('lists.schema.json#/$defs/SymbolList', { reviewId: this.id, path: content.path, blobSha: content.blobSha, language, parseError: false, items: null === language ? [] : (this.#symbols[content.path] ?? []) });
             }),
         ));
         api.on('POST', `${base}/requests`, ours(({ body }) => {

@@ -18,6 +18,6 @@ export default defineConfig(({ mode }) => ({
         format: 'es',
     },
     test: {
-        include: ['assets/**/*.test.ts'],
+        include: ['assets/**/*.test.ts', 'symbols/**/*.test.ts'],
     },
 }));

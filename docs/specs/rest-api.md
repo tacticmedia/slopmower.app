@@ -495,15 +495,16 @@ Vary: Authorization, Cookie
 
 - **Request:** `GET /api/v1/reviews/{reviewId}/symbols?path=`
 - **Authentication:** S, B
-- **Success:** 200 [`SymbolList`](schemas/lists.schema.json), or 304.
+- **Success:** 200 [`SymbolList`](schemas/lists.schema.json), or 304. The ETag is `W/"v2-<blobSha>"`, see [README section 6](README.md#6-caching-and-etags).
 - **Errors:** as [V7](#v7-get-file-metadata).
 
 Rules:
 
-- The server parses PHP files, `*.php`. It reads the symbols from the `symbol` table by blob SHA. If the blob is not indexed yet, the server parses it synchronously and stores the result. So this endpoint never waits for the index job.
-- Other files return `language: null` and `items: []`. A `*.php` file that is not renderable, see [V7](#v7-get-file-metadata), returns `language: "php"`, `parseError: false`, and `items: []`. The extension match ignores case.
-- A parse error returns `parseError: true` and `items: []`.
-- `range` includes the doc comment. See decision D7 in [architecture.md](../architecture.md).
+- The server parses the files whose [V7](#v7-get-file-metadata) `language` is `php`, `javascript`, `jsx`, `typescript`, or `tsx`, and returns that `language`. It reads the symbols from the `symbol` table by blob SHA. If the blob is not indexed yet, or is indexed for another language, the server parses it synchronously. It stores the result only for a blob that is not indexed. So this endpoint never waits for the index job.
+- Other files return `language: null` and `items: []`. A file of one of these languages that is not renderable, see [V7](#v7-get-file-metadata), returns its `language`, `parseError: false`, and `items: []`. The extension match ignores case.
+- A parse error returns `parseError: true` and `items: []`. A parse that takes more than 2 seconds is a parse error.
+- `range` includes the doc comment. See decision D7 in [architecture.md](../architecture.md). The FQN format of each language is in [architecture.md](../architecture.md#symbol-languages).
+- A failure of the symbol service answers 500 `internal_error` for a file that is not PHP. Nothing is stored.
 - Items are sorted by `range.startLine`, then by `fqn`.
 
 Example response, [fixtures/lists.symbol-list.json](fixtures/lists.symbol-list.json):
@@ -604,7 +605,7 @@ Rules:
   - A name without `::` matches a class-like, a function, and a constant.
   - In `Type::member`, the class part resolves as a class name. `member()` matches a method, `$member` a property, and `member` a method, a class constant, or an enum case.
 - An unqualified function or constant name that no `use` imports resolves in the namespace of the file first, then in the global namespace, as PHP falls back at run time.
-- The targets are the declarations of the resolved names among the symbols of the review commit, see [V9](#v9-list-symbols). FQNs compare exactly, also in case.
+- The targets are the declarations of the resolved names among the PHP symbols of the review commit, see [V9](#v9-list-symbols). FQNs compare exactly, also in case.
 - While the index job runs, see [V5](#v5-get-the-index-status), a file that the job has not parsed yet gives no targets.
 - A name without a declaration in the commit, for example a vendor class that is not committed, gives `items: []`. So do a file that is not renderable, see [V7](#v7-get-file-metadata), a file that does not parse, and a position without a name.
 - `range` and `declarationStartLine` are those of the symbol in V9. `range` starts at the doc comment, if any. `declarationStartLine` is the first line of the declaration, attributes included, and the UI jumps to it.
@@ -666,11 +667,11 @@ The endpoint copies the open requests of the source review into the target revie
 
 Rules:
 
-- The server reads the index of the review commit, see [V5](#v5-get-the-index-status): the paths of `indexed_file` and the PHP symbols of their blobs. It does not read the clone.
+- The server reads the index of the review commit, see [V5](#v5-get-the-index-status): the paths of `indexed_file` and the symbols of their blobs, in every language of [V9](#v9-list-symbols). It does not read the clone.
 - The words of a name are split at every character that is not a letter or a digit, before an upper-case letter that follows a lower-case letter or a digit, and before an upper-case letter that follows an upper-case letter and precedes a lower-case letter. So `HTTPClient` has the words `HTTP` and `Client`.
 - A name matches `q` by word starts when `q` is a sequence of non-empty prefixes of its words, in word order, with words skipped where needed. `CE` and `ComEx` match `CommandExecutor`, `tax` matches `InvoiceTax`, and `ce` does not match `Service`. A `q` with a character that is not a letter or a digit matches no name by word starts.
 - A file hit is a file or a symlink whose path contains `q`, or whose name matches `q` by word starts. The name of a file is the last segment of its path. Submodules give no hit.
-- A symbol hit is a symbol whose name contains `q` or matches it by word starts. The name is the short name of [V9](#v9-list-symbols), for example `total` for `App\Billing\InvoiceTotals::total()`.
+- A symbol hit is a symbol whose name contains `q` or matches it by word starts. The name is the short name of [V9](#v9-list-symbols), for example `total` for `App\Billing\InvoiceTotals::total()` or for `InvoiceTotals.total()`.
 - The match ignores case. `q` has no wildcards.
 - Order:
   1. by the name: equal to `q`, then starting with `q`, then matching `q` by word starts, then containing `q`, then a file whose path contains `q` and whose name matches neither way;

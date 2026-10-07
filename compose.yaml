@@ -19,6 +19,8 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      symbols:
+        condition: service_healthy
     environment:
       SERVER_NAME: ':80'
       HTTP_PORT: ${HTTP_PORT:-8000}
@@ -49,6 +51,23 @@ services:
     # The upstream image checks the Caddy admin endpoint, which the worker does not run.
     healthcheck:
       disable: true
+
+  symbols:
+    build:
+      context: .
+      target: symbols
+    restart: unless-stopped
+    command: ["node", "--watch-path=src", "--watch-path=queries", "src/server.ts"]
+    volumes:
+      - ./symbols/src:/srv/symbols/src:ro
+      - ./symbols/queries:/srv/symbols/queries:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/healthz').then((response) => process.exit(response.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+      start_interval: 1s
 
   database:
     image: postgres:${POSTGRES_VERSION:-18}-alpine
