@@ -52,6 +52,7 @@
   "createdAt": "2026-09-29T07:20:00Z",
   "updatedAt": "2026-09-29T07:45:00Z",
   "lastEventSeq": 1842,
+  "carriedFrom": null,
   "body": "Use `Money` instead of `float` for totals.",
   "reviewState": "open",
   "reviewCommitSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091",

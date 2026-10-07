@@ -87,6 +87,16 @@
         }
       }
     },
+    "CarryOverInput": {
+      "type": "object",
+      "required": ["fromReviewId"],
+      "properties": {
+        "fromReviewId": {
+          "$ref": "common.schema.json#/$defs/Ulid",
+          "description": "The source review: another review of the same repository."
+        }
+      }
+    },
     "OpenRequestInput": {
       "type": "object",
       "required": ["body"],

@@ -44,6 +44,7 @@ Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json). 
 | [V12](#v12-mark-a-file-as-viewed) | PUT | `/api/v1/reviews/{reviewId}/viewed-files` | S | 200 | [`lists.schema.json#/$defs/ViewedFiles`](schemas/lists.schema.json) |
 | [V13](#v13-delete-a-review) | DELETE | `/api/v1/reviews/{reviewId}` | S | 204 | none |
 | [V14](#v14-find-declarations) | GET | `/api/v1/reviews/{reviewId}/declarations?path=` | S, B | 200 | [`lists.schema.json#/$defs/DeclarationList`](schemas/lists.schema.json) |
+| [V15](#v15-carry-over-open-requests) | POST | `/api/v1/reviews/{reviewId}/carry-over` | S | 200 | [`carry-over-result.schema.json`](schemas/carry-over-result.schema.json) |
 | [V16](#v16-search-files-and-symbols) | GET | `/api/v1/reviews/{reviewId}/search?q=` | S, B | 200 | [`lists.schema.json#/$defs/SearchHitList`](schemas/lists.schema.json) |
 | [Q1](rest-api-requests.md#q1-list-requests) | GET | `/api/v1/reviews/{reviewId}/requests` | S, B | 200 | [`lists.schema.json#/$defs/RequestPage`](schemas/lists.schema.json) |
 | [Q2](rest-api-requests.md#q2-open-a-request) | POST | `/api/v1/reviews/{reviewId}/requests` | S | 201 | [`request.schema.json`](schemas/request.schema.json) |
@@ -374,7 +375,7 @@ One transaction:
 
 After the close:
 
-- Every write on the review or its requests gets 409 `review_closed`. That covers commands, comments, new requests, viewed files, and the draft operations create, update, and submit.
+- Every write on the review or its requests gets 409 `review_closed`. That covers commands, comments, new requests, viewed files, and the draft operations create, update, and submit. A carry-over into the review ([V15](#v15-carry-over-open-requests)) gets 422 `invalid_input` instead.
 - Reads and draft deletion still work.
 - Claims stay as they are.
 - Reopening a closed review is not possible. It is a backlog item.
@@ -613,6 +614,37 @@ Example response to `?path=src%2FBilling%2FInvoiceTotals.php&line=12&column=24`,
   ]
 }
 ```
+
+### V15 Carry over open requests
+
+- **Request:** `POST /api/v1/reviews/{reviewId}/carry-over`
+- **Authentication:** S
+- **Body:** [`CarryOverInput`](schemas/inputs.schema.json), `{"fromReviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM"}`. Example: [fixtures/inputs.carry-over.json](fixtures/inputs.carry-over.json).
+- **Success:** 200 [`CarryOverResult`](schemas/carry-over-result.schema.json). Example: [fixtures/carry-over-result.mixed.json](fixtures/carry-over-result.mixed.json).
+- **Errors:**
+  - 404 `not_found`: the caller cannot see the review `fromReviewId`;
+  - 422 `invalid_input`: `fromReviewId` is the review itself or a review of another repository, or the review `{reviewId}` is closed;
+  - 409 `repository_unavailable`: a source request has an anchor, and the clone is not ready.
+
+The endpoint copies the open requests of the source review into the target review `{reviewId}`, at the target review commit. The web UI calls it after [V1](#v1-start-a-review). It also works later on any open review.
+
+- The source review can be open or closed. The call changes neither it nor its requests.
+- `items` holds one item per request of the source review, sorted by `id`. `source` is the source request.
+- A source request with status `open` or `reopened` is carried. Any other status gives `not_carried`, with the status as `reason`: an `in_progress` request must be released first, and requests that wait for the user or are closed stay.
+- A source request that has a carried copy in the target review gives `already_carried` with the `requestId` of that copy. A repeated call writes nothing for it.
+- The server locates each anchor at the target review commit with `locate` of [architecture.md](../architecture.md) section 5.4, then captures the new anchor at the target review commit as [Q2](rest-api-requests.md#q2-open-a-request) does. `location` is the status of that location.
+
+| Location | New anchor | First comment |
+|---|---|---|
+| `exact`, `shifted` | The same kind, at the located path and range, with a new snapshot | None |
+| `changed` | The same kind, at the located path and range, with a new snapshot | The code changed between the two review commits |
+| `orphaned`, and the file still exists, also after a rename | A `file` anchor on that path | The code of the old snapshot, with its commit, path, and lines |
+| `orphaned`, and the file is gone | None: `not_carried`, with the orphan reason as `reason` | None |
+
+- "The same kind": a `file` anchor stays a `file` anchor. A `line` or `range` anchor becomes `line` for one located line and `range` for more. A `symbol` anchor stays `symbol` when its FQN names exactly one symbol of the file at the target review commit, else it becomes `line` or `range` at the located range. When the capture fails, for example because the file is no longer valid UTF-8, the request gets the `file` anchor and the comment of an orphaned location.
+- A general request carries as a general request, with `location` null.
+- One transaction under the tenant lock writes, per carried request, `request.opened` with the source body, the new anchor, `batchId` null, and `carriedFrom`, followed by `request.commented` with the first comment, if any. Both have the caller as actor. A carried request starts as `open`. Then one `events` live update follows.
+- [Q3](rest-api-requests.md#q3-get-a-request) and every `RequestSummary` show `carriedFrom` of a carried request: the `reviewId` and `requestId` of its source.
 
 ### V16 Search files and symbols
 

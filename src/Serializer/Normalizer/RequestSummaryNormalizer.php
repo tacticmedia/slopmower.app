@@ -53,6 +53,7 @@ final class RequestSummaryNormalizer implements NormalizerInterface, NormalizerA
             'createdAt' => $state->createdAt,
             'updatedAt' => $state->updatedAt,
             'lastEventSeq' => $state->lastEventSeq,
+            'carriedFrom' => null === $state->carriedFrom ? null : ['reviewId' => $state->carriedFrom->reviewId, 'requestId' => $state->carriedFrom->requestId],
         ], $format, $context);
         \assert(\is_array($normalized));
 

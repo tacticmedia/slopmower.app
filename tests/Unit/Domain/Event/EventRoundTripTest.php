@@ -35,6 +35,8 @@ use App\Domain\Git\RepoPath;
 use App\Domain\Identity\BatchId;
 use App\Domain\Identity\CommentId;
 use App\Domain\Identity\RequestId;
+use App\Domain\Identity\ReviewId;
+use App\Domain\Request\CarriedFrom;
 use App\Tests\Support\Domain\EventFixtures;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -51,6 +53,7 @@ final class EventRoundTripTest extends KernelTestCase
     private const string REQUEST_B = '01K6B3P2A9QRSTVWXYZ0123457';
     private const string COMMENT = '01K6C3C0MMENT0000000000001';
     private const string BATCH = '01K6B3P1Z8Y7X6W5V4T3S2R1Q0';
+    private const string SOURCE_REVIEW = '01K6B3A1B2C3D4E5F6G7H8J9KM';
 
     #[TestDox('fromPayload(toPayload(event)) equals the event')]
     #[DataProvider('events')]
@@ -71,6 +74,15 @@ final class EventRoundTripTest extends KernelTestCase
         self::assertSame($json, PayloadJson::encode($event->toPayload()));
     }
 
+    #[TestDox('A request.opened payload without carriedFrom decodes with carriedFrom null')]
+    public function testDecodesRequestOpenedWithoutCarriedFrom(): void
+    {
+        $payload = self::eventFixturePayload('request.opened');
+        unset($payload['carriedFrom']);
+
+        self::assertEquals(self::architectureExample(), EventType::RequestOpened->decode($payload));
+    }
+
     /**
      * @return iterable<string, array{string, DomainEvent}>
      */
@@ -87,6 +99,13 @@ final class EventRoundTripTest extends KernelTestCase
         )];
 
         yield 'request.opened without an anchor' => ['request.opened-general', new RequestOpenedEvent(null, 'Add a full-screen focus mode.', null)];
+
+        yield 'request.opened with carriedFrom' => ['request.opened-carried', new RequestOpenedEvent(
+            null,
+            'Extract the tax rounding into `TaxRounding`.',
+            null,
+            new CarriedFrom(ReviewId::fromString(self::SOURCE_REVIEW), RequestId::fromString(self::REQUEST_B)),
+        )];
     }
 
     private static function example(EventType $type): DomainEvent

@@ -42,7 +42,8 @@
       "outdated": null,
       "createdAt": "2026-09-29T07:20:00Z",
       "updatedAt": "2026-09-29T07:20:00Z",
-      "lastEventSeq": 1830
+      "lastEventSeq": 1830,
+      "carriedFrom": null
     }
   ],
   "replies": [

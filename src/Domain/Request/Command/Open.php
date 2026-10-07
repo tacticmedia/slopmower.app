@@ -6,6 +6,7 @@ namespace App\Domain\Request\Command;
 
 use App\Domain\Anchor\Anchor;
 use App\Domain\Identity\BatchId;
+use App\Domain\Request\CarriedFrom;
 
 final readonly class Open implements RequestCommand
 {
@@ -16,6 +17,7 @@ final readonly class Open implements RequestCommand
         public ?Anchor $anchor,
         public string $body,
         public ?BatchId $batchId = null,
+        public ?CarriedFrom $carriedFrom = null,
     ) {
     }
 

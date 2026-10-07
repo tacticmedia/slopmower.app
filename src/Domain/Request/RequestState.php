@@ -38,6 +38,7 @@ final readonly class RequestState
         public bool $lastAgentEventIsQuestion,
         public int $lastEventSeq,
         public \DateTimeImmutable $updatedAt,
+        public ?CarriedFrom $carriedFrom = null,
     ) {
         $this->assertConsistent();
     }

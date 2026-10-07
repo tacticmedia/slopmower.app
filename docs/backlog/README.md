@@ -8,7 +8,6 @@ Work outside the proof of concept. Each item has the sections Why, What, Accepta
 | [Usage limits and rate limiting](usage-limits.md) | Per-tenant limits for repositories, open reviews, requests, and clone size, and API and MCP rate limits with Symfony RateLimiter |
 | [MCP OAuth](mcp-oauth.md) | OAuth for the MCP server, so that agents connect without a copied token |
 | [Reopen a closed review](review-reopen.md) | Reopen a closed review and make it writable again |
-| [Carry over open requests](request-carry-over.md) | Move open requests of an older review to a new review, re-anchored at the new commit |
 | [More languages](more-languages.md) | Symbol anchors for languages other than PHP, with tree-sitter |
 | [Suggested changes](suggested-changes.md) | Proposed replacement lines in a comment, as on GitHub |
 | [Several users per tenant](multiple-users-per-tenant.md) | Invite members into a tenant and share its reviews |

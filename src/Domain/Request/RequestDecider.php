@@ -69,7 +69,7 @@ final class RequestDecider
         }
 
         if ($command instanceof Open) {
-            return [new DecidedEvent(new RequestOpenedEvent($command->anchor, $command->body, $command->batchId), RequestId::generate())];
+            return [new DecidedEvent(new RequestOpenedEvent($command->anchor, $command->body, $command->batchId, $command->carriedFrom), RequestId::generate())];
         }
 
         $action = self::action($command);

@@ -3,7 +3,7 @@ import type { Anchor } from './anchor';
 import type { CommitLink } from './commit-link';
 import type { Action, Awaiting, CommitSha, DateTime, EventSeq, Markdown, RepoPath, Resolution, ReviewState, Ulid } from './common';
 import type { Location } from './location';
-import type { RequestClaim } from './request-summary';
+import type { CarriedFrom, RequestClaim } from './request-summary';
 import type { ThreadEntry } from './thread-entry';
 
 export type CodeExcerpt = {
@@ -35,6 +35,7 @@ export type Request = {
     createdAt: DateTime;
     updatedAt: DateTime;
     lastEventSeq: EventSeq;
+    carriedFrom: CarriedFrom | null;
     body: Markdown;
     reviewState: ReviewState;
     reviewCommitSha: CommitSha;

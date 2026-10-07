@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { API_TOKEN_SCOPES, API_TOKEN_STATES } from './types/api-token';
+import { CARRY_OVER_OUTCOMES } from './types/carry-over-result';
 import { COMMIT_DIFF_FILE_STATUSES } from './types/commit-diff';
 import {
     ACTIONS,
@@ -58,6 +59,7 @@ const ENUM_ARRAYS: [schemaFileName: string, jsonPointer: string, tsArray: readon
     ['location.schema.json', '/properties/target/enum', LOCATION_TARGETS],
     ['repository.schema.json', '/$defs/Sync/properties/state/enum', SYNC_STATES],
     ['commit-diff.schema.json', '/$defs/CommitDiffFile/properties/status/enum', COMMIT_DIFF_FILE_STATUSES],
+    ['carry-over-result.schema.json', '/$defs/CarryOverOutcome/enum', CARRY_OVER_OUTCOMES],
     ['tree-entry.schema.json', '/properties/type/enum', TREE_ENTRY_TYPES],
     ['file-content.schema.json', '/properties/type/enum', FILE_CONTENT_TYPES],
     ['draft.schema.json', '/properties/kind/enum', DRAFT_KINDS],

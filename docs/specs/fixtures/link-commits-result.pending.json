@@ -41,7 +41,8 @@
       "outdated": false,
       "createdAt": "2026-09-29T07:10:00Z",
       "updatedAt": "2026-09-29T07:58:00Z",
-      "lastEventSeq": 1851
+      "lastEventSeq": 1851,
+      "carriedFrom": null
     }
   ],
   "events": [

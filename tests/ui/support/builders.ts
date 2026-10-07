@@ -216,6 +216,7 @@ export function requestSummary(request: Request): RequestSummary {
         createdAt: request.createdAt,
         updatedAt: request.updatedAt,
         lastEventSeq: request.lastEventSeq,
+        carriedFrom: request.carriedFrom,
     } as RequestSummary;
 }
 

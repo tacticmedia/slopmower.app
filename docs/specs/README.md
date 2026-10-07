@@ -11,7 +11,7 @@ This directory is the v1 contract of Holistic Review: the REST API, the MCP serv
 | [rest-api-requests.md](rest-api-requests.md) | REST requests, updates, drafts, API tokens, and the routes outside `/api/v1` |
 | [mcp.md](mcp.md) | MCP endpoint, server instructions, the 12 tools, error mapping, parity with REST |
 | [webhooks-and-live-updates.md](webhooks-and-live-updates.md) | GitHub webhooks, fetch triggers and post-fetch steps, Mercure live updates |
-| [schemas/](schemas/) | 29 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
+| [schemas/](schemas/) | 30 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
 | [fixtures/](fixtures/) | One realistic example per response shape, error code, live-update type, and request body. See [section 11](#11-fixtures). |
 
 ## 2. Conventions
@@ -147,7 +147,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
    - changing a type, format, or nullability. Making a non-null field nullable is breaking.
    - a new required input;
    - tighter validation;
-   - new values in **closed** sets: `RequestStatus`, `Awaiting`, `Resolution`, `AnchorKind`, `ActorKind`, `CommitLinkState`, `LocationStatus`, `OrphanReason`, `RepositorySource`, `RepositoryAccess`, `ReviewState`, `IndexState`, `sync.state`, token `scope` and `state`, commit file `status`, tree entry `type`;
+   - new values in **closed** sets: `RequestStatus`, `Awaiting`, `Resolution`, `AnchorKind`, `ActorKind`, `CommitLinkState`, `LocationStatus`, `OrphanReason`, `RepositorySource`, `RepositoryAccess`, `ReviewState`, `IndexState`, `CarryOverOutcome`, `sync.state`, token `scope` and `state`, commit file `status`, tree entry `type`;
    - a different HTTP status or error code for an existing situation;
    - changed defaults, sort orders, or pagination style;
    - a changed meaning of an existing field.
@@ -199,7 +199,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [repository.schema.json](schemas/repository.schema.json) | `https://holistic-review.invalid/schemas/v1/repository.schema.json` | Repository, plus `LocalDirectory` and `Sync` |
 | [repository-candidate.schema.json](schemas/repository-candidate.schema.json) | `https://holistic-review.invalid/schemas/v1/repository-candidate.schema.json` | A repository that the user can connect |
 | [review.schema.json](schemas/review.schema.json) | `https://holistic-review.invalid/schemas/v1/review.schema.json` | Review, plus `IndexStatus` and `RequestCounts` |
-| [request-summary.schema.json](schemas/request-summary.schema.json) | `https://holistic-review.invalid/schemas/v1/request-summary.schema.json` | RequestSummary for lists and command results. `anchor` is null for a general request. |
+| [request-summary.schema.json](schemas/request-summary.schema.json) | `https://holistic-review.invalid/schemas/v1/request-summary.schema.json` | RequestSummary for lists and command results, plus `CarriedFrom`. `anchor` is null for a general request. |
 | [request.schema.json](schemas/request.schema.json) | `https://holistic-review.invalid/schemas/v1/request.schema.json` | Request in full, plus `CodeExcerpt`. A general request has `anchor`, `location`, `excerpt`, and `outdated` null. |
 | [thread-entry.schema.json](schemas/thread-entry.schema.json) | `https://holistic-review.invalid/schemas/v1/thread-entry.schema.json` | One entry of a request thread |
 | [event.schema.json](schemas/event.schema.json) | `https://holistic-review.invalid/schemas/v1/event.schema.json` | One event of the review event log |
@@ -212,6 +212,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [search-hit.schema.json](schemas/search-hit.schema.json) | `https://holistic-review.invalid/schemas/v1/search-hit.schema.json` | One hit of a search at the review commit: `FileHit` or `SymbolHit` |
 | [draft.schema.json](schemas/draft.schema.json) | `https://holistic-review.invalid/schemas/v1/draft.schema.json` | A draft of the pending batch |
 | [batch-submission.schema.json](schemas/batch-submission.schema.json) | `https://holistic-review.invalid/schemas/v1/batch-submission.schema.json` | Result of a batch submission |
+| [carry-over-result.schema.json](schemas/carry-over-result.schema.json) | `https://holistic-review.invalid/schemas/v1/carry-over-result.schema.json` | Result of a carry-over, plus `CarryOverItem` and `CarryOverOutcome` |
 | [api-token.schema.json](schemas/api-token.schema.json) | `https://holistic-review.invalid/schemas/v1/api-token.schema.json` | ApiToken, plus `TokenName` and `ApiTokenWithSecret` |
 | [updates-page.schema.json](schemas/updates-page.schema.json) | `https://holistic-review.invalid/schemas/v1/updates-page.schema.json` | Result of the updates endpoint and `get_updates`, plus `UpdatedRequest` |
 | [request-command-result.schema.json](schemas/request-command-result.schema.json) | `https://holistic-review.invalid/schemas/v1/request-command-result.schema.json` | Result of a request command |
@@ -231,6 +232,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 |---|---|---|
 | [api-token.with-secret.json](fixtures/api-token.with-secret.json) | `api-token.schema.json#/$defs/ApiTokenWithSecret` | T2 |
 | [batch-submission.submitted.json](fixtures/batch-submission.submitted.json) | `batch-submission.schema.json` | D5 |
+| [carry-over-result.mixed.json](fixtures/carry-over-result.mixed.json) | `carry-over-result.schema.json` | V15 |
 | [commit-diff.modified.json](fixtures/commit-diff.modified.json) | `commit-diff.schema.json` | Q9 |
 | [draft.new-general-request.json](fixtures/draft.new-general-request.json) | `draft.schema.json` | D2 |
 | [draft.new-request.json](fixtures/draft.new-request.json) | `draft.schema.json` | D2, D3 |
@@ -247,6 +249,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [error.review-closed.json](fixtures/error.review-closed.json) | `error.schema.json` | Writes on a closed review |
 | [error.unauthorized.json](fixtures/error.unauthorized.json) | `error.schema.json` | Any endpoint, the MCP transport |
 | [file-content.php.json](fixtures/file-content.php.json) | `file-content.schema.json` | V7 |
+| [inputs.carry-over.json](fixtures/inputs.carry-over.json) | `inputs.schema.json#/$defs/CarryOverInput` | V15 |
 | [inputs.close-review.json](fixtures/inputs.close-review.json) | `inputs.schema.json#/$defs/CloseReviewInput` | V4 |
 | [inputs.comment.json](fixtures/inputs.comment.json) | `inputs.schema.json#/$defs/CommentInput` | Q4 |
 | [inputs.connect-github.json](fixtures/inputs.connect-github.json) | `inputs.schema.json#/$defs/ConnectRepositoryInput` | R3 |
@@ -294,6 +297,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [request-command-result.question.json](fixtures/request-command-result.question.json) | `request-command-result.schema.json` | Q4, `reply_to_request` |
 | [request-command-result.ready.json](fixtures/request-command-result.ready.json) | `request-command-result.schema.json` | Q10, `mark_ready_for_review` |
 | [request-command-result.release.json](fixtures/request-command-result.release.json) | `request-command-result.schema.json` | Q6, `release_request` |
+| [request.carried.json](fixtures/request.carried.json) | `request.schema.json` | Q3 of a carried request, `get_request` |
 | [request.general.json](fixtures/request.general.json) | `request.schema.json` | Q2, Q3, `get_request` |
 | [request.in-progress.json](fixtures/request.in-progress.json) | `request.schema.json` | Q3 with `at`, `get_request` |
 | [request.opened-range.json](fixtures/request.opened-range.json) | `request.schema.json` | Q2 |

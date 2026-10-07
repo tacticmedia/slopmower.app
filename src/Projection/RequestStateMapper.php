@@ -50,6 +50,7 @@ final class RequestStateMapper
             lastAgentEventIsQuestion: $request->isLastAgentEventQuestion(),
             lastEventSeq: $request->getLastEventSeq(),
             updatedAt: $request->getUpdatedAt(),
+            carriedFrom: $request->getCarriedFrom(),
         );
     }
 
@@ -59,7 +60,7 @@ final class RequestStateMapper
             throw new \LogicException("The request {$state->id} belongs to another review.");
         }
 
-        $request = new ChangeRequest($state->id, $review, $state->anchor, $state->body, $state->author, $state->createdAt);
+        $request = new ChangeRequest($state->id, $review, $state->anchor, $state->body, $state->author, $state->createdAt, $state->carriedFrom);
         self::update($request, $state);
 
         return $request;

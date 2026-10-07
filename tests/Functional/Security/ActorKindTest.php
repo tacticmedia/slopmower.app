@@ -68,6 +68,7 @@ final class ActorKindTest extends WebTestCase
         yield 'V11' => ['GET', '/api/v1/reviews/{reviewId}/viewed-files'];
         yield 'V12' => ['PUT', '/api/v1/reviews/{reviewId}/viewed-files'];
         yield 'V13' => ['DELETE', '/api/v1/reviews/{reviewId}'];
+        yield 'V15' => ['POST', '/api/v1/reviews/{reviewId}/carry-over'];
         yield 'Q2' => ['POST', '/api/v1/reviews/{reviewId}/requests'];
         yield 'Q12' => ['POST', '/api/v1/requests/{requestId}/verify'];
         yield 'Q13' => ['POST', '/api/v1/requests/{requestId}/reopen'];

@@ -42,7 +42,8 @@
     "outdated": false,
     "createdAt": "2026-09-29T07:20:00Z",
     "updatedAt": "2026-09-29T07:40:00Z",
-    "lastEventSeq": 1840
+    "lastEventSeq": 1840,
+    "carriedFrom": null
   },
   "allowedActions": ["reply", "release", "link_commits", "mark_ready_for_review", "mark_wont_do"],
   "events": [

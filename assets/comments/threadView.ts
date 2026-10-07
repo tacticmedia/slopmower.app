@@ -1,6 +1,7 @@
 import type { Actor } from '../api/types/actor';
 import type { DateTime, RequestStatus, ThreadEntryType, Ulid } from '../api/types/common';
 import type { Request as ReviewRequest } from '../api/types/request';
+import type { CarriedFrom } from '../api/types/request-summary';
 import type { LineRange } from '../code/lineHash';
 
 /** A thread entry with a body. */
@@ -27,6 +28,7 @@ export type ThreadView = {
     symbol: string | null;
     comments: CommentView[];
     replyable: boolean;
+    carriedFrom: CarriedFrom | null;
 };
 
 /**
@@ -51,6 +53,7 @@ export function threadView(request: ReviewRequest): ThreadView {
         symbol: request.anchor?.symbol?.fqn ?? null,
         comments,
         replyable: request.allowedActions.includes('reply'),
+        carriedFrom: request.carriedFrom,
     };
 }
 
@@ -65,7 +68,7 @@ export function pendingComment(type: ThreadEntryType, body: string, author: Acto
 export function pendingThread(range: LineRange | null, symbol: string | null, body: string, author: Actor): ThreadView {
     const opened = pendingComment('request.opened', body, author);
 
-    return { key: opened.key, requestId: null, status: 'open', outdated: null, range, symbol, comments: [opened], replyable: false };
+    return { key: opened.key, requestId: null, status: 'open', outdated: null, range, symbol, comments: [opened], replyable: false, carriedFrom: null };
 }
 
 export function linesText(range: LineRange | null): string {

@@ -48,6 +48,7 @@
   "createdAt": "2026-09-29T07:10:00Z",
   "updatedAt": "2026-09-29T07:41:00Z",
   "lastEventSeq": 1841,
+  "carriedFrom": null,
   "body": "Extract the tax rounding into `TaxRounding`.",
   "reviewState": "open",
   "reviewCommitSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091",

@@ -25,7 +25,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F07 | [Front-end bugs and UX fixes](F07-front-end-bugs-and-ux-fixes.md) | Done 2026-10-07, [report](reports/F07.md) | a7cb072 | src 385 PHP / 25339 lines, 385 types; tests 271 PHP / 23316 lines; assets 137 TS / 7276 lines; check 2m43s |
 | F08 | [Code-quality leftovers](F08-code-quality-leftovers.md) | Done 2026-10-07, [report](reports/F08.md) | 7241b94 | src 390 PHP / 25441 lines, 390 types; tests 274 PHP / 23692 lines; assets 137 TS / 7276 lines; check 2m48s |
 | F09 | [Dev environment and docs issues](F09-dev-environment-and-docs-issues.md) | Done 2026-10-07, [report](reports/F09.md) | f9bef5b | src 385 PHP / 25339 lines, 385 types; tests 271 PHP / 23316 lines; assets 136 TS / 7036 lines; check 3m18s |
-| F10 | [Carry over open requests](F10-carry-over-open-requests.md) | In progress | | |
+| F10 | [Carry over open requests](F10-carry-over-open-requests.md) | Done 2026-10-07, [report](reports/F10.md) | | src 401 PHP / 26168 lines, 401 types; tests 276 PHP / 24142 lines; assets 142 TS / 7626 lines |
 | F11 | [Quick open](F11-quick-open.md) | Done 2026-10-07, [report](reports/F11.md) | 22b8596 | src 395 PHP / 25608 lines, 395 types; tests 275 PHP / 23794 lines; assets 140 TS / 7465 lines; check 2m43s |
 | F12 | [Index job memory](F12-index-job-memory.md) | In progress | | |
 

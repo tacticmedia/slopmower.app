@@ -1,0 +1,107 @@
+{
+  "id": "01K6D4S0A1B2C3D4E5F6G7H8J9",
+  "reviewId": "01K6D4R7V2W3X4Y5Z6A7B8C9D0",
+  "repositoryId": "01K6B2Z0R3P0S1T2V3W4X5Y6Z7",
+  "status": "open",
+  "awaiting": "agent",
+  "resolution": null,
+  "closed": false,
+  "anchor": {
+    "kind": "range",
+    "path": "src/Billing/InvoiceTotals.php",
+    "commitSha": "c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f7",
+    "blobSha": "5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f80",
+    "range": {
+      "startLine": 55,
+      "endLine": 62
+    },
+    "symbol": null,
+    "snapshot": {
+      "lines": ["    {", "        $tax = $this->total()->multiply($this->taxRate);", "        $cents = $tax->cents();", "        $rounded = round($cents, 0, PHP_ROUND_HALF_EVEN);", "", "        return Money::ofCents((int) $rounded);", "    }", ""],
+      "truncated": false,
+      "lineCount": 8,
+      "before": ["    }", "", "    public function tax(): Money"],
+      "after": ["    public function lines(): array", "    {", "        return $this->lines;"],
+      "normalizedHash": "sha256:6b1f0c2d9e4a7b3c5d8e1f2a4b6c9d0e3f5a7b8c1d2e4f6a8b9c0d1e3f5a7b9c"
+    }
+  },
+  "summary": "Extract the tax rounding into `TaxRounding`.",
+  "author": {
+    "kind": "user",
+    "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+    "agentName": null,
+    "name": "janklan",
+    "avatarUrl": "https://avatars.githubusercontent.com/u/1?v=4"
+  },
+  "claimedBy": null,
+  "claimedAt": null,
+  "commentCount": 1,
+  "commitCount": 0,
+  "pendingCommitCount": 0,
+  "outdated": false,
+  "createdAt": "2026-10-02T09:00:00Z",
+  "updatedAt": "2026-10-02T09:00:00Z",
+  "lastEventSeq": 1902,
+  "carriedFrom": {
+    "reviewId": "01K6B3A1B2C3D4E5F6G7H8J9KM",
+    "requestId": "01K6B3P2A9QRSTVWXYZ0123457"
+  },
+  "body": "Extract the tax rounding into `TaxRounding`.",
+  "reviewState": "open",
+  "reviewCommitSha": "c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f7",
+  "location": {
+    "target": "default_branch",
+    "targetSha": "c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f7",
+    "status": "exact",
+    "path": "src/Billing/InvoiceTotals.php",
+    "range": {
+      "startLine": 55,
+      "endLine": 62
+    },
+    "confidence": 1,
+    "reason": null
+  },
+  "excerpt": null,
+  "thread": [
+    {
+      "seq": 1901,
+      "eventId": "01K6D4EVT00000000000001901",
+      "type": "request.opened",
+      "actor": {
+        "kind": "user",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "agentName": null,
+        "name": "janklan",
+        "avatarUrl": "https://avatars.githubusercontent.com/u/1?v=4"
+      },
+      "occurredAt": "2026-10-02T09:00:00Z",
+      "body": "Extract the tax rounding into `TaxRounding`.",
+      "commentId": null,
+      "question": false,
+      "batchId": null,
+      "commitSha": null,
+      "statusAfter": "open"
+    },
+    {
+      "seq": 1902,
+      "eventId": "01K6D4EVT00000000000001902",
+      "type": "request.commented",
+      "actor": {
+        "kind": "user",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "agentName": null,
+        "name": "janklan",
+        "avatarUrl": "https://avatars.githubusercontent.com/u/1?v=4"
+      },
+      "occurredAt": "2026-10-02T09:00:00Z",
+      "body": "The code of this request changed between the source review commit `79f8595a4c1e` and this review commit `c4d5e6f70819`.",
+      "commentId": "01K6D4C0MMENT0000000000001",
+      "question": false,
+      "batchId": null,
+      "commitSha": null,
+      "statusAfter": "open"
+    }
+  ],
+  "commits": [],
+  "allowedActions": ["reply", "mark_wont_do"]
+}

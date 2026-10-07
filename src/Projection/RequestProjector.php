@@ -84,7 +84,7 @@ final class RequestProjector
             return;
         }
 
-        $request->opened($state->anchor, $state->body, $state->author, $state->createdAt);
+        $request->opened($state->anchor, $state->body, $state->author, $state->createdAt, $state->carriedFrom);
         RequestStateMapper::update($request, $state);
     }
 

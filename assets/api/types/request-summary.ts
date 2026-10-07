@@ -7,6 +7,12 @@ export type RequestClaim =
     | { status: 'in_progress'; claimedBy: Actor; claimedAt: DateTime }
     | { status: Exclude<RequestStatus, 'in_progress'>; claimedBy: null; claimedAt: null };
 
+/** The source request of a request that V15 carried over. */
+export type CarriedFrom = {
+    reviewId: Ulid;
+    requestId: Ulid;
+};
+
 export type RequestSummary = {
     id: Ulid;
     reviewId: Ulid;
@@ -29,4 +35,5 @@ export type RequestSummary = {
     updatedAt: DateTime;
     /** seq of the last entry of the request thread. */
     lastEventSeq: EventSeq;
+    carriedFrom: CarriedFrom | null;
 } & RequestClaim;

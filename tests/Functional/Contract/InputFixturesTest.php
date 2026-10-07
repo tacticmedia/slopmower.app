@@ -24,7 +24,8 @@ use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 
 /**
  * Sends each request body fixture of docs/specs/README.md section 11 to its endpoint. The fixture IDs stand for rows
- * of the test: the review repository, a first request, and a second request.
+ * of the test: the review repository, the review, a first request, and a second request. `{targetReviewId}` is a
+ * second review of the repository.
  */
 final class InputFixturesTest extends WebTestCase
 {
@@ -46,6 +47,8 @@ final class InputFixturesTest extends WebTestCase
 
     private const string FIXTURE_REPOSITORY_ID = '01K6B2Z0R3P0S1T2V3W4X5Y6Z7';
 
+    private const string FIXTURE_REVIEW_ID = '01K6B3A1B2C3D4E5F6G7H8J9KM';
+
     private const string FIXTURE_REQUEST_ID = '01K6B3P2A9QRSTVWXYZ0123456';
 
     private const string FIXTURE_SECOND_REQUEST_ID = '01K6B3P2A9QRSTVWXYZ0123457';
@@ -57,6 +60,7 @@ final class InputFixturesTest extends WebTestCase
      * requests that the agent claims first, and whether a draft must exist.
      */
     private const array CASES = [
+        'inputs.carry-over.json' => ['schema' => 'inputs.schema.json#/$defs/CarryOverInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{targetReviewId}/carry-over', 'status' => 200, 'response' => 'carry-over-result.schema.json'],
         'inputs.close-review.json' => ['schema' => 'inputs.schema.json#/$defs/CloseReviewInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/close', 'status' => 200, 'response' => 'review.schema.json'],
         'inputs.comment.json' => ['schema' => 'inputs.schema.json#/$defs/CommentInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/comments', 'status' => 201, 'response' => self::RESULT, 'bearer' => true],
         'inputs.connect-github.json' => ['schema' => 'inputs.schema.json#/$defs/ConnectRepositoryInput', 'method' => 'POST', 'path' => '/api/v1/repositories', 'status' => 201, 'response' => 'repository.schema.json'],
@@ -99,6 +103,7 @@ final class InputFixturesTest extends WebTestCase
         $reviewId = (string) self::startReviewThroughApi($client, $repositoryId)['id'];
         $ids = [
             self::FIXTURE_REPOSITORY_ID => $repositoryId,
+            self::FIXTURE_REVIEW_ID => $reviewId,
             self::FIXTURE_REQUEST_ID => (string) self::openRequest($client, $reviewId)['id'],
             self::FIXTURE_SECOND_REQUEST_ID => (string) self::openRequest($client, $reviewId)['id'],
         ];
@@ -118,6 +123,7 @@ final class InputFixturesTest extends WebTestCase
             '{repositoryId}' => $repositoryId,
             '{requestId}' => $ids[self::FIXTURE_REQUEST_ID],
             '{draftId}' => isset($case['draft']) ? (string) self::createDraft($client, $reviewId)['id'] : '',
+            '{targetReviewId}' => str_contains($case['path'], '{targetReviewId}') ? (string) self::startReviewThroughApi($client, $repositoryId)['id'] : '',
         ]);
 
         $response = isset($case['bearer']) ? self::bearerRequest($client, $secret, $case['method'], $uri, $body) : self::apiRequest($client, $case['method'], $uri, $body);

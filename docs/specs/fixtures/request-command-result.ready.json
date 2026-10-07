@@ -36,7 +36,8 @@
     "outdated": false,
     "createdAt": "2026-09-29T07:20:00Z",
     "updatedAt": "2026-09-29T08:00:00Z",
-    "lastEventSeq": 1852
+    "lastEventSeq": 1852,
+    "carriedFrom": null
   },
   "allowedActions": ["reply"],
   "events": [

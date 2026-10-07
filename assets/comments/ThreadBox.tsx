@@ -1,7 +1,7 @@
 import { HubotIcon, KebabHorizontalIcon, PersonIcon } from '@primer/octicons-react';
-import { ActionList, ActionMenu, Avatar, IconButton, Label, RelativeTime } from '@primer/react';
+import { ActionList, ActionMenu, Avatar, IconButton, Label, Link, RelativeTime } from '@primer/react';
 import { lazy, Suspense, useOptimistic, useRef, useTransition } from 'react';
-import { useFetcher } from 'react-router';
+import { Link as RouterLink, useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
 import type { Actor } from '../api/types/actor';
 import { OutdatedLabel } from '../requests/OutdatedLabel';
@@ -68,6 +68,14 @@ export function ThreadBox({ thread, caller, showHeader = true }: Props) {
                         </code>
                     )}
                 </header>
+            )}
+            {null !== thread.carriedFrom && (
+                <p className={styles.carriedFrom} data-testid="carried-from">
+                    Carried from the{' '}
+                    <Link as={RouterLink} to={`/requests/${thread.carriedFrom.requestId}`}>
+                        source request
+                    </Link>
+                </p>
             )}
             <ol className={styles.comments}>
                 {comments.map((comment) => (

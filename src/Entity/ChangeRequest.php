@@ -10,8 +10,10 @@ use App\Domain\Actor\Actor;
 use App\Domain\Actor\ActorKind;
 use App\Domain\Anchor\Anchor;
 use App\Domain\Identity\RequestId;
+use App\Domain\Identity\ReviewId;
 use App\Domain\Identity\TenantId;
 use App\Domain\Request\Awaiting;
+use App\Domain\Request\CarriedFrom;
 use App\Domain\Request\RequestStatus;
 use App\Domain\Request\Resolution;
 use App\MessageHandler\RecomputeLocationsHandler;
@@ -89,15 +91,22 @@ class ChangeRequest implements TenantOwned
     #[ORM\Column(nullable: true)]
     private ?bool $outdated = null;
 
+    /** No foreign key, so a carried request outlives the deletion of its source review. */
+    #[ORM\Column(type: ReviewId::class, nullable: true)]
+    private ?ReviewId $carriedFromReviewId = null;
+
+    #[ORM\Column(type: RequestId::class, nullable: true)]
+    private ?RequestId $carriedFromRequestId = null;
+
     /**
      * Sets the fields that request.opened fixes. {@see self::project()} sets the others.
      */
-    public function __construct(RequestId $id, Review $review, ?Anchor $anchor, string $body, Actor $author, \DateTimeImmutable $createdAt)
+    public function __construct(RequestId $id, Review $review, ?Anchor $anchor, string $body, Actor $author, \DateTimeImmutable $createdAt, ?CarriedFrom $carriedFrom = null)
     {
         $this->id = $id;
         $this->tenantId = $review->getTenantId();
         $this->review = $review;
-        $this->opened($anchor, $body, $author, $createdAt);
+        $this->opened($anchor, $body, $author, $createdAt, $carriedFrom);
         $this->claimedBy = ActorEmbeddable::of(null);
         $this->updatedAt = $createdAt;
     }
@@ -105,12 +114,14 @@ class ChangeRequest implements TenantOwned
     /**
      * The projection rebuild recomputes an existing row in place.
      */
-    public function opened(?Anchor $anchor, string $body, Actor $author, \DateTimeImmutable $createdAt): void
+    public function opened(?Anchor $anchor, string $body, Actor $author, \DateTimeImmutable $createdAt, ?CarriedFrom $carriedFrom = null): void
     {
         $this->anchor = $anchor;
         $this->body = $body;
         $this->author = ActorEmbeddable::of($author);
         $this->createdAt = $createdAt;
+        $this->carriedFromReviewId = $carriedFrom?->reviewId;
+        $this->carriedFromRequestId = $carriedFrom?->requestId;
     }
 
     public function project(
@@ -251,5 +262,14 @@ class ChangeRequest implements TenantOwned
     public function recordOutdated(?bool $outdated): void
     {
         $this->outdated = $outdated;
+    }
+
+    public function getCarriedFrom(): ?CarriedFrom
+    {
+        if (null === $this->carriedFromReviewId || null === $this->carriedFromRequestId) {
+            return null;
+        }
+
+        return new CarriedFrom($this->carriedFromReviewId, $this->carriedFromRequestId);
     }
 }

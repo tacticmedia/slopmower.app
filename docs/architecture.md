@@ -158,7 +158,7 @@ Every entity except `Tenant` and `WebhookDelivery` carries `tenantId`.
 | `GitHubCandidate` | `id`, `tenantId`, `githubRepositoryId: int`, `installationId: int`, `accountLogin: string` (the account that the App is installed on), `owner: string`, `name: string`, `private: bool`, `defaultBranch: string`, `htmlUrl: string`, `listedAt`. A repository that the user can connect (R2): the sign-in replaces the rows, and the installation webhooks change them. |
 | `Repository` | `id`, `tenantId`, `source: RepositorySource`, `name: RepositoryName`, `githubInstallationId: ?int`, `githubRepositoryId: ?int`, `githubPrivate: ?bool`, `localDirectory: ?string`, `defaultBranch: ?string`, `defaultBranchHead: ?CommitSha`, `syncState: SyncState`, `fetchRequested: bool` (a queued fetch job has not started), `lastFetchedAt: ?DateTimeImmutable`, `lastError: ?string`, `access: active\|removed`, `createdAt`. A `github` repository sets `githubInstallationId` and `githubRepositoryId`. The installation ID is a plain column, not a foreign key, so it survives the deletion of the `GitHubInstallation` row. A `local` repository sets `localDirectory`. |
 | `Review` | `id`, `tenantId`, `repository: Repository`, `title: string`, `ref: string`, `commitSha: CommitSha`, `startedBy: Actor`, `indexState: pending\|running\|ready\|failed`, `createdAt`, `closedAt: ?DateTimeImmutable`, `closedBy: ?Actor`, `closeNote: ?string`, `state: ReviewState`, `lastEventSeq: int`, `filesTotal: ?int`, `filesDone: int`, `symbolsTotal: int`, `indexStartedAt: ?DateTimeImmutable`, `indexFinishedAt: ?DateTimeImmutable`, `indexError: ?string` |
-| `ChangeRequest` | `id`, `tenantId`, `review: Review`, `anchor: ?Anchor`, null for a general request, `body: string` (Markdown), `author: Actor`, `createdAt`, `status: RequestStatus`, `statusBeforeClaim: ?RequestStatus`, `claimedBy: ?Actor`, `claimedAt: ?DateTimeImmutable`, `awaiting: Awaiting`, `resolution: ?Resolution`, `wontDoBy: ?ActorKind`, `lastUserCommentSeq: ?int`, `lastAgentEventSeq: ?int`, `lastAgentEventIsQuestion: bool`, `lastEventSeq: int`, `updatedAt`, `outdated: ?bool` (not event data: the location recompute sets it, and a projection rebuild keeps it) |
+| `ChangeRequest` | `id`, `tenantId`, `review: Review`, `anchor: ?Anchor`, null for a general request, `body: string` (Markdown), `author: Actor`, `createdAt`, `status: RequestStatus`, `statusBeforeClaim: ?RequestStatus`, `claimedBy: ?Actor`, `claimedAt: ?DateTimeImmutable`, `awaiting: Awaiting`, `resolution: ?Resolution`, `wontDoBy: ?ActorKind`, `lastUserCommentSeq: ?int`, `lastAgentEventSeq: ?int`, `lastAgentEventIsQuestion: bool`, `lastEventSeq: int`, `updatedAt`, `outdated: ?bool` (not event data: the location recompute sets it, and a projection rebuild keeps it), `carriedFrom: ?{reviewId: ReviewId, requestId: RequestId}` (the source request of a carried request, without a foreign key, so it survives the deletion of the source review) |
 | `Comment` | `id`, `tenantId`, `request: ChangeRequest`, `author: Actor`, `body: string`, `question: bool`, `batchId: ?BatchId`, `createdAt` |
 | `CommitLink` | `tenantId`, `request: ChangeRequest`, `commitSha: CommitSha`, `state: CommitLinkState`, `linkedBy: Actor`, `linkedAt`, `foundAt: ?DateTimeImmutable`, `subject: ?string`, `committedAt: ?DateTimeImmutable`, `note: ?string`. `subject` and `committedAt` are set when `state` is `available`. Unique per request and commit. |
 | `Draft` | `id`, `tenantId`, `review: Review`, `user: User`, `kind: new_request\|reply`, `anchor: ?Anchor`, `request: ?ChangeRequest`, `body: string`, `createdAt`, `updatedAt` |
@@ -188,7 +188,7 @@ Table `review_event`, append-only:
 |---|---|
 | `review.started` | `title`, `ref`, `commitSha` |
 | `review.closed` | `note: ?string` |
-| `request.opened` | `anchor: ?Anchor`, null for a general request, `body`, `batchId: ?BatchId` |
+| `request.opened` | `anchor: ?Anchor`, null for a general request, `body`, `batchId: ?BatchId`, `carriedFrom: ?{reviewId, requestId}`, set only for a request that V15 carried over from another review |
 | `request.commented` | `commentId`, `body`, `question: bool`, `batchId: ?BatchId` |
 | `request.claimed` | none |
 | `request.released` | `note: ?string` |
@@ -221,7 +221,8 @@ Example `request.opened` payload:
       "truncated": false, "lineCount": 12, "before": ["    }", "", ""], "after": ["", "    public function tax(): float", "    {"],
       "normalizedHash": "sha256:4cd0f94b186ef4903963fa0397ae6175cd9f82d31d4512d8e9b67a2b3a0142f9"
     }
-  }
+  },
+  "carriedFrom": null
 }
 ```
 
@@ -476,7 +477,7 @@ Derived fields: `closed` is true for `verified` and for `wont_do` set by the use
 | `start` | none | `open` | User | Optional `ref` (default: the default branch), optional `title` | Resolves the ref to a SHA in the server clone, writes the review pin, writes `review.started`, queues the index job |
 | `close` | `open` | `closed` | User | Optional note | Writes `review.closed`, sets `closedAt`, `closedBy`, and `closeNote`, deletes the user's drafts of the review |
 
-A closed review is read-only. Every write on it or on its requests fails with `review_closed`: commands, comments, new requests, draft creation, draft updates, draft submission, and viewed files. Reads, draft deletion, and review deletion (V13) still work. Claims stay as they are. `allowedActions` is empty. Lists hide closed reviews unless the caller asks for them. Reopening a closed review is a backlog item: [review-reopen.md](backlog/review-reopen.md).
+A closed review is read-only. Every write on it or on its requests fails with `review_closed`: commands, comments, new requests, draft creation, draft updates, draft submission, and viewed files. A carry-over (V15) into a closed review answers 422 `invalid_input` instead (D47). Reads, draft deletion, and review deletion (V13) still work. Claims stay as they are. `allowedActions` is empty. Lists hide closed reviews unless the caller asks for them. Reopening a closed review is a backlog item: [review-reopen.md](backlog/review-reopen.md).
 
 | Ours | GitHub concept |
 |---|---|
@@ -568,7 +569,7 @@ The agent polls `get_updates` with the last cursor, for example through Claude C
 
 The web UI and agents without MCP use the same services under `/api/v1`. The UI authenticates with its session and the stateless CSRF token ID `api`. Agents authenticate with the bearer token. The JSON is the same as in MCP.
 
-The endpoint groups are account, repositories, reviews and code, requests, drafts, and tokens. The index with every method, path, authentication mode, and schema is in [rest-api.md](specs/rest-api.md). Routes outside `/api/v1`: the Twig shell pages of the React application, the sign-in routes, `/docs` and `/docs/<slug>`, `/docs/skill/SKILL.md`, `/docs/schemas/v1/<name>.schema.json`, `/github/installed`, `/healthz`, `/_mcp`, `POST /webhook/github`, and the Mercure hub at `/.well-known/mercure`.
+The endpoint groups are account, repositories, reviews and code, requests, drafts, and tokens. The index with every method, path, authentication mode, and schema is in [rest-api.md](specs/rest-api.md). V15 carries the open requests of a review over to another review of the same repository, re-anchored at its commit. It has no MCP tool, because agents never open requests. Routes outside `/api/v1`: the Twig shell pages of the React application, the sign-in routes, `/docs` and `/docs/<slug>`, `/docs/skill/SKILL.md`, `/docs/schemas/v1/<name>.schema.json`, `/github/installed`, `/healthz`, `/_mcp`, `POST /webhook/github`, and the Mercure hub at `/.well-known/mercure`.
 
 ### 7.5 Webhooks and live updates
 
@@ -754,6 +755,7 @@ Static checks: PHPStan level 8 on `src/` and `tests/`, php-cs-fixer with `@Symfo
 | D44 | Convention tests | Meta-tests enforce the test rules, the file-size rule, and the purity of `src/Domain`, so the rules hold without review effort. Purity keeps the deciders, reducers, event codecs, and matching algorithms testable without the kernel. |
 | D45 | General requests | `anchor: null` marks a request that belongs to the whole review. `AnchorKind` does not change. v1 is amended in place, without a v2, because its only clients are the web UI and the bundled skill: [specs README](specs/README.md#8-versioning-and-compatibility) section 8, item 10. No rollback is possible once a general request exists: an older build cannot decode its `request.opened` event, and the migration's `down()` fails on the null anchor. |
 | D46 | Code navigation | Resolution on demand: the additive endpoint V14 parses the file, resolves a static name at a position or a typed name with php-parser's `NameResolver`, and looks up its declarations by FQN among the indexed symbols of the review commit. No reference index. A method call on a variable needs type inference and gives no target. An index on `symbol (tenant_id, repository_id, fqn_sha256)`, the SHA-256 of the FQN, because a btree entry of a long multibyte FQN exceeds the PostgreSQL limit. No MCP tool, because agents read the code themselves. The UI: Cmd-click, Ctrl-click outside macOS, and "Go to declaration" in the file header as the keyboard path. A jump selects only the declaration line. |
+| D47 | Carry over open requests | The additive endpoint V15 copies the `open` and `reopened` requests of a source review into a target review of the same repository, re-anchored at the target review commit with `locate` of section 5.4 and captured as Q2 captures. `request.opened` gets the additive payload field `carriedFrom: {reviewId, requestId}`, which the codec reads as optional, so older events still decode (D37). A `changed` location adds a first comment that says so. An `orphaned` location of a file that still exists becomes a `file` anchor with the old snapshot in a first comment. An `orphaned` location without a file, and every other status, is not carried, and the result lists it with its reason. Idempotent per source request. The source review never changes. A closed target review is 422 `invalid_input`. No MCP tool, because agents never open requests. |
 | D48 | Quick open | The additive endpoint V16 matches a case-insensitive substring against the paths and the PHP symbol names of the review commit, ranked: equal name, name prefix, name substring, path substring, then shorter path. It reads `indexed_file` and `symbol` by blob with the existing indexes: no name index, which would meet the btree row-size limit of D46, because the query takes 2 to 7 ms on this repository. `partial: true` while the index is not ready. No MCP tool, because agents search the code themselves. The UI: "Quick open" in the review header and Cmd+K, Ctrl+K outside macOS, a Primer `Dialog` with `FilteredActionList`. |
 
 ## 12. Risks

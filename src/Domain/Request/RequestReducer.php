@@ -116,6 +116,7 @@ final class RequestReducer
             lastAgentEventIsQuestion: false,
             lastEventSeq: $recorded->seq,
             updatedAt: $recorded->occurredAt,
+            carriedFrom: $event->carriedFrom,
         )->with(self::tracking($recorded));
     }
 

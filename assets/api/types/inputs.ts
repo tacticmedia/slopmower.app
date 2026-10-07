@@ -17,6 +17,11 @@ export type CloseReviewInput = {
     note?: string | null;
 };
 
+export type CarryOverInput = {
+    /** Another review of the same repository. */
+    fromReviewId: Ulid;
+};
+
 export type OpenRequestInput = {
     /** Absent or null opens a general request. */
     anchor?: AnchorInput | null;

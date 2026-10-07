@@ -604,6 +604,14 @@ final class BundledSchemas
             'Awaiting' => [
                 'enum' => ['agent', 'user', 'none'],
             ],
+            'CarriedFrom' => [
+                'type' => 'object',
+                'required' => ['reviewId', 'requestId'],
+                'properties' => [
+                    'reviewId' => ['$ref' => '#/$defs/Ulid'],
+                    'requestId' => ['$ref' => '#/$defs/Ulid'],
+                ],
+            ],
             'ContentSnapshot' => [
                 'type' => 'object',
                 'required' => ['lines', 'truncated', 'lineCount', 'before', 'after', 'normalizedHash'],
@@ -702,7 +710,7 @@ final class BundledSchemas
             'RequestSummary' => [
                 'title' => 'RequestSummary',
                 'type' => 'object',
-                'required' => ['id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq'],
+                'required' => ['id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom'],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
                     'reviewId' => ['$ref' => '#/$defs/Ulid'],
@@ -747,6 +755,13 @@ final class BundledSchemas
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
                     'lastEventSeq' => ['$ref' => '#/$defs/EventSeq', 'description' => 'seq of the last entry of the request\'s thread.'],
+                    'carriedFrom' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/CarriedFrom'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The source request that V15 carried over to this request. Null for any other request.',
+                    ],
                 ],
                 'allOf' => [
                     [
@@ -935,6 +950,14 @@ final class BundledSchemas
             'Awaiting' => [
                 'enum' => ['agent', 'user', 'none'],
             ],
+            'CarriedFrom' => [
+                'type' => 'object',
+                'required' => ['reviewId', 'requestId'],
+                'properties' => [
+                    'reviewId' => ['$ref' => '#/$defs/Ulid'],
+                    'requestId' => ['$ref' => '#/$defs/Ulid'],
+                ],
+            ],
             'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'ContentSnapshot' => [
                 'type' => 'object',
@@ -1094,7 +1117,7 @@ final class BundledSchemas
             'RequestSummary' => [
                 'title' => 'RequestSummary',
                 'type' => 'object',
-                'required' => ['id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq'],
+                'required' => ['id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom'],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
                     'reviewId' => ['$ref' => '#/$defs/Ulid'],
@@ -1139,6 +1162,13 @@ final class BundledSchemas
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
                     'lastEventSeq' => ['$ref' => '#/$defs/EventSeq', 'description' => 'seq of the last entry of the request\'s thread.'],
+                    'carriedFrom' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/CarriedFrom'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The source request that V15 carried over to this request. Null for any other request.',
+                    ],
                 ],
                 'allOf' => [
                     [
@@ -1221,8 +1251,8 @@ final class BundledSchemas
         'description' => 'A request in full. Same fields as RequestSummary, with the full anchor and more.',
         'type' => 'object',
         'required' => [
-            'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'body',
-            'reviewState', 'reviewCommitSha', 'location', 'excerpt', 'thread', 'commits', 'allowedActions',
+            'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
+            'body', 'reviewState', 'reviewCommitSha', 'location', 'excerpt', 'thread', 'commits', 'allowedActions',
         ],
         'properties' => [
             'id' => ['$ref' => '#/$defs/Ulid'],
@@ -1267,6 +1297,12 @@ final class BundledSchemas
             'createdAt' => ['$ref' => '#/$defs/DateTime'],
             'updatedAt' => ['$ref' => '#/$defs/DateTime'],
             'lastEventSeq' => ['$ref' => '#/$defs/EventSeq'],
+            'carriedFrom' => [
+                'anyOf' => [
+                    ['$ref' => '#/$defs/CarriedFrom'],
+                    ['type' => 'null'],
+                ],
+            ],
             'body' => ['$ref' => '#/$defs/Markdown'],
             'reviewState' => ['$ref' => '#/$defs/ReviewState'],
             'reviewCommitSha' => ['$ref' => '#/$defs/CommitSha'],
@@ -1458,6 +1494,14 @@ final class BundledSchemas
             ],
             'Awaiting' => [
                 'enum' => ['agent', 'user', 'none'],
+            ],
+            'CarriedFrom' => [
+                'type' => 'object',
+                'required' => ['reviewId', 'requestId'],
+                'properties' => [
+                    'reviewId' => ['$ref' => '#/$defs/Ulid'],
+                    'requestId' => ['$ref' => '#/$defs/Ulid'],
+                ],
             ],
             'CodeExcerpt' => [
                 'type' => 'object',
@@ -1913,6 +1957,14 @@ final class BundledSchemas
             'Awaiting' => [
                 'enum' => ['agent', 'user', 'none'],
             ],
+            'CarriedFrom' => [
+                'type' => 'object',
+                'required' => ['reviewId', 'requestId'],
+                'properties' => [
+                    'reviewId' => ['$ref' => '#/$defs/Ulid'],
+                    'requestId' => ['$ref' => '#/$defs/Ulid'],
+                ],
+            ],
             'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'ContentSnapshot' => [
                 'type' => 'object',
@@ -2072,7 +2124,7 @@ final class BundledSchemas
             'RequestSummary' => [
                 'title' => 'RequestSummary',
                 'type' => 'object',
-                'required' => ['id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq'],
+                'required' => ['id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom'],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
                     'reviewId' => ['$ref' => '#/$defs/Ulid'],
@@ -2117,6 +2169,13 @@ final class BundledSchemas
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
                     'lastEventSeq' => ['$ref' => '#/$defs/EventSeq', 'description' => 'seq of the last entry of the request\'s thread.'],
+                    'carriedFrom' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/CarriedFrom'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The source request that V15 carried over to this request. Null for any other request.',
+                    ],
                 ],
                 'allOf' => [
                     [
@@ -2299,6 +2358,14 @@ final class BundledSchemas
             'Awaiting' => [
                 'enum' => ['agent', 'user', 'none'],
             ],
+            'CarriedFrom' => [
+                'type' => 'object',
+                'required' => ['reviewId', 'requestId'],
+                'properties' => [
+                    'reviewId' => ['$ref' => '#/$defs/Ulid'],
+                    'requestId' => ['$ref' => '#/$defs/Ulid'],
+                ],
+            ],
             'CommitLinkState' => [
                 'enum' => ['pending', 'available'],
             ],
@@ -2461,7 +2528,7 @@ final class BundledSchemas
             'RequestSummary' => [
                 'title' => 'RequestSummary',
                 'type' => 'object',
-                'required' => ['id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq'],
+                'required' => ['id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom'],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
                     'reviewId' => ['$ref' => '#/$defs/Ulid'],
@@ -2506,6 +2573,13 @@ final class BundledSchemas
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
                     'lastEventSeq' => ['$ref' => '#/$defs/EventSeq', 'description' => 'seq of the last entry of the request\'s thread.'],
+                    'carriedFrom' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/CarriedFrom'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The source request that V15 carried over to this request. Null for any other request.',
+                    ],
                 ],
                 'allOf' => [
                     [

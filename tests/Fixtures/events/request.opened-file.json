@@ -1,1 +1,1 @@
-{"batchId":null,"body":"Do not commit the lock file changes.","anchor":{"kind":"file","path":"composer.lock","commitSha":"79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091","blobSha":"8c3e2a1f0b9d8c7e6f5a4b3c2d1e0f9a8b7c6d5e","range":null,"symbol":null,"snapshot":null}}
+{"batchId":null,"body":"Do not commit the lock file changes.","anchor":{"kind":"file","path":"composer.lock","commitSha":"79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091","blobSha":"8c3e2a1f0b9d8c7e6f5a4b3c2d1e0f9a8b7c6d5e","range":null,"symbol":null,"snapshot":null},"carriedFrom":null}

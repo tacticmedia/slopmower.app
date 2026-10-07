@@ -4,7 +4,7 @@
   "title": "Request",
   "description": "A request in full. Same fields as RequestSummary, with the full anchor and more.",
   "type": "object",
-  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq", "body", "reviewState", "reviewCommitSha", "location", "excerpt", "thread", "commits", "allowedActions"],
+  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq", "carriedFrom", "body", "reviewState", "reviewCommitSha", "location", "excerpt", "thread", "commits", "allowedActions"],
   "properties": {
     "id": {
       "$ref": "common.schema.json#/$defs/Ulid"
@@ -96,6 +96,16 @@
     },
     "lastEventSeq": {
       "$ref": "common.schema.json#/$defs/EventSeq"
+    },
+    "carriedFrom": {
+      "anyOf": [
+        {
+          "$ref": "request-summary.schema.json#/$defs/CarriedFrom"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "body": {
       "$ref": "common.schema.json#/$defs/Markdown"

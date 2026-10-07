@@ -75,6 +75,21 @@ final class Locator
     }
 
     /**
+     * The path of the anchor file at the target commit, after a rename. An orphaned location has no path, so this
+     * tells whether its file still exists.
+     *
+     * @return RepoPath|null Null when the file is gone
+     *
+     * @throws GitFailed
+     */
+    public function mappedPath(Repository $repository, Anchor $anchor, CommitSha $targetSha): ?RepoPath
+    {
+        $entry = $this->mappedEntry($this->gitDir($repository), $anchor, $targetSha);
+
+        return null === $entry ? null : RepoPath::fromString($entry->path);
+    }
+
+    /**
      * The located lines with $contextLines on each side. A location without a range, of a file anchor, shows the file.
      *
      * @return CodeExcerpt|null Null for an orphaned location, an empty file, and a file that is not renderable or not UTF-8

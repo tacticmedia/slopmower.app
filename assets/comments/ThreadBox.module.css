@@ -74,3 +74,11 @@
     padding: var(--base-size-12);
     border-top: var(--borderWidth-thin) solid var(--borderColor-muted);
 }
+
+.carriedFrom {
+    margin: 0;
+    padding: var(--base-size-8) var(--base-size-12);
+    border-bottom: var(--borderWidth-thin) solid var(--borderColor-muted);
+    color: var(--fgColor-muted);
+    font-size: var(--text-body-size-small);
+}

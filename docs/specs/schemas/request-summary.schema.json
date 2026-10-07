@@ -3,7 +3,7 @@
   "$id": "https://holistic-review.invalid/schemas/v1/request-summary.schema.json",
   "title": "RequestSummary",
   "type": "object",
-  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq"],
+  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq", "carriedFrom"],
   "properties": {
     "id": {
       "$ref": "common.schema.json#/$defs/Ulid"
@@ -99,6 +99,17 @@
     "lastEventSeq": {
       "$ref": "common.schema.json#/$defs/EventSeq",
       "description": "seq of the last entry of the request's thread."
+    },
+    "carriedFrom": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CarriedFrom"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The source request that V15 carried over to this request. Null for any other request."
     }
   },
   "allOf": [
@@ -148,5 +159,19 @@
         }
       }
     }
-  ]
+  ],
+  "$defs": {
+    "CarriedFrom": {
+      "type": "object",
+      "required": ["reviewId", "requestId"],
+      "properties": {
+        "reviewId": {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        "requestId": {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        }
+      }
+    }
+  }
 }

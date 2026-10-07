@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import apiTokenWithSecret from '../../docs/specs/fixtures/api-token.with-secret.json';
 import batchSubmissionSubmitted from '../../docs/specs/fixtures/batch-submission.submitted.json';
+import carryOverResultMixed from '../../docs/specs/fixtures/carry-over-result.mixed.json';
 import commitDiffModified from '../../docs/specs/fixtures/commit-diff.modified.json';
 import draftNewGeneralRequest from '../../docs/specs/fixtures/draft.new-general-request.json';
 import draftNewRequest from '../../docs/specs/fixtures/draft.new-request.json';
@@ -17,6 +18,7 @@ import errorRepositoryUnavailable from '../../docs/specs/fixtures/error.reposito
 import errorReviewClosed from '../../docs/specs/fixtures/error.review-closed.json';
 import errorUnauthorized from '../../docs/specs/fixtures/error.unauthorized.json';
 import fileContentPhp from '../../docs/specs/fixtures/file-content.php.json';
+import inputsCarryOver from '../../docs/specs/fixtures/inputs.carry-over.json';
 import inputsCloseReview from '../../docs/specs/fixtures/inputs.close-review.json';
 import inputsComment from '../../docs/specs/fixtures/inputs.comment.json';
 import inputsConnectGithub from '../../docs/specs/fixtures/inputs.connect-github.json';
@@ -64,6 +66,7 @@ import requestCommandResultClaim from '../../docs/specs/fixtures/request-command
 import requestCommandResultQuestion from '../../docs/specs/fixtures/request-command-result.question.json';
 import requestCommandResultReady from '../../docs/specs/fixtures/request-command-result.ready.json';
 import requestCommandResultRelease from '../../docs/specs/fixtures/request-command-result.release.json';
+import requestCarried from '../../docs/specs/fixtures/request.carried.json';
 import requestGeneral from '../../docs/specs/fixtures/request.general.json';
 import requestInProgress from '../../docs/specs/fixtures/request.in-progress.json';
 import requestOpenedRange from '../../docs/specs/fixtures/request.opened-range.json';
@@ -75,11 +78,13 @@ import updatesPageCursor from '../../docs/specs/fixtures/updates-page.cursor.jso
 import updatesPageFirstCall from '../../docs/specs/fixtures/updates-page.first-call.json';
 import type { ApiTokenWithSecret } from './types/api-token';
 import type { BatchSubmission } from './types/batch-submission';
+import type { CarryOverResult } from './types/carry-over-result';
 import type { CommitDiff } from './types/commit-diff';
 import type { Draft } from './types/draft';
 import type { ErrorBody } from './types/error';
 import type { FileContent } from './types/file-content';
 import type {
+    CarryOverInput,
     CloseReviewInput,
     CommentInput,
     ConnectRepositoryInput,
@@ -133,6 +138,7 @@ type WidenedLiveUpdate<Type extends LiveUpdate['type']> = Widen<Extract<LiveUpda
 const checkedFixtures = {
     'api-token.with-secret.json': apiTokenWithSecret satisfies Widen<ApiTokenWithSecret>,
     'batch-submission.submitted.json': batchSubmissionSubmitted satisfies Widen<BatchSubmission>,
+    'carry-over-result.mixed.json': carryOverResultMixed satisfies Widen<CarryOverResult>,
     'commit-diff.modified.json': commitDiffModified satisfies Widen<CommitDiff>,
     'draft.new-general-request.json': draftNewGeneralRequest satisfies Widen<Draft>,
     'draft.new-request.json': draftNewRequest satisfies Widen<Draft>,
@@ -149,6 +155,7 @@ const checkedFixtures = {
     'error.review-closed.json': errorReviewClosed satisfies Widen<ErrorBody>,
     'error.unauthorized.json': errorUnauthorized satisfies Widen<ErrorBody>,
     'file-content.php.json': fileContentPhp satisfies Widen<FileContent>,
+    'inputs.carry-over.json': inputsCarryOver satisfies Widen<CarryOverInput>,
     'inputs.close-review.json': inputsCloseReview satisfies Widen<CloseReviewInput>,
     'inputs.comment.json': inputsComment satisfies Widen<CommentInput>,
     'inputs.connect-github.json': inputsConnectGithub satisfies Widen<ConnectRepositoryInput>,
@@ -196,6 +203,7 @@ const checkedFixtures = {
     'request-command-result.question.json': requestCommandResultQuestion satisfies Widen<RequestCommandResult>,
     'request-command-result.ready.json': requestCommandResultReady satisfies Widen<RequestCommandResult>,
     'request-command-result.release.json': requestCommandResultRelease satisfies Widen<RequestCommandResult>,
+    'request.carried.json': requestCarried satisfies Widen<Request>,
     'request.general.json': requestGeneral satisfies Widen<Request>,
     'request.in-progress.json': requestInProgress satisfies Widen<Request>,
     'request.opened-range.json': requestOpenedRange satisfies Widen<Request>,

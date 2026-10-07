@@ -42,6 +42,7 @@ final class CrossTenantCases
             'api_review_tree' => ['method' => 'GET', 'path' => '/api/v1/reviews/{reviewId}/tree', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/TreeListing'],
             'api_review_file' => ['method' => 'GET', 'path' => '/api/v1/reviews/{reviewId}/file', 'body' => null, 'status' => 200, 'schema' => 'file-content.schema.json'],
             'api_review_raw' => ['method' => 'GET', 'path' => '/api/v1/reviews/{reviewId}/raw', 'body' => null, 'status' => 200, 'schema' => null],
+            'api_review_carry_over' => ['method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/carry-over', 'body' => ['fromReviewId' => '{reviewId}'], 'status' => 200, 'schema' => 'carry-over-result.schema.json'],
             'api_review_updates' => ['method' => 'GET', 'path' => '/api/v1/reviews/{reviewId}/updates', 'body' => null, 'status' => 200, 'schema' => 'updates-page.schema.json'],
             'api_request_list' => ['method' => 'GET', 'path' => '/api/v1/reviews/{reviewId}/requests', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/RequestPage'],
             'api_request_open' => ['method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/requests', 'body' => ['anchor' => ['kind' => 'file', 'path' => 'README.md'], 'body' => 'Use `Money`.'], 'status' => 201, 'schema' => 'request.schema.json'],

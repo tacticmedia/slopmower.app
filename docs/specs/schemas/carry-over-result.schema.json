@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holistic-review.invalid/schemas/v1/carry-over-result.schema.json",
+  "title": "CarryOverResult",
+  "description": "Result of V15: one item per request of the source review.",
+  "type": "object",
+  "required": ["reviewId", "fromReviewId", "items"],
+  "properties": {
+    "reviewId": {
+      "$ref": "common.schema.json#/$defs/Ulid",
+      "description": "The target review."
+    },
+    "fromReviewId": {
+      "$ref": "common.schema.json#/$defs/Ulid",
+      "description": "The source review."
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/CarryOverItem"
+      },
+      "description": "Sorted by the source request id."
+    }
+  },
+  "$defs": {
+    "CarryOverItem": {
+      "type": "object",
+      "required": ["source", "outcome", "requestId", "location", "reason"],
+      "properties": {
+        "source": {
+          "$ref": "request-summary.schema.json",
+          "description": "The source request. The call does not change it."
+        },
+        "outcome": {
+          "$ref": "#/$defs/CarryOverOutcome"
+        },
+        "requestId": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Ulid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The carried request in the target review. Null when not carried."
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/LocationStatus"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The location of the source anchor at the target review commit, when this call located it. Null for a general request, and for a request that this call did not locate."
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/RequestStatus"
+            },
+            {
+              "$ref": "common.schema.json#/$defs/OrphanReason"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "not_carried only: the status of the source request, or the orphan reason of its location."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["outcome"],
+            "properties": {
+              "outcome": {
+                "const": "not_carried"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "requestId": {
+                "type": "null"
+              },
+              "reason": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/RequestStatus"
+                  },
+                  {
+                    "$ref": "common.schema.json#/$defs/OrphanReason"
+                  }
+                ]
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "requestId": {
+                "$ref": "common.schema.json#/$defs/Ulid"
+              },
+              "reason": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "CarryOverOutcome": {
+      "enum": ["carried", "already_carried", "not_carried"],
+      "description": "carried: this call opened the request. already_carried: an earlier call carried it. not_carried: it stays in the source review only."
+    }
+  }
+}
