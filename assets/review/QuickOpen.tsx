@@ -1,4 +1,4 @@
-import { isEditableElement, isMacOS } from '@primer/behaviors/utils';
+import { isEditableElement } from '@primer/behaviors/utils';
 import { CodeIcon, FileIcon, SearchIcon } from '@primer/octicons-react';
 import { Button, Dialog, type SelectPanelItemInput } from '@primer/react';
 import { FilteredActionList, FilteredActionListLoadingTypes, KeybindingHint } from '@primer/react/experimental';
@@ -8,17 +8,14 @@ import type { IndexState } from '../api/types/common';
 import type { SearchHit } from '../api/types/search-hit';
 import { formatLineHash, lineRange } from '../code/lineHash';
 import { symbolKindLabel } from '../code/symbolMatch';
+import { ariaKeyShortcuts, hintKeys, isPressed, type ModShortcut } from '../layout/modShortcut';
 import { type SearchResult, useSearch } from '../routes/reviews/searchData';
 import { fileHref } from './fileHref';
 import styles from './QuickOpen.module.css';
 
 type Props = { reviewId: string; indexState: IndexState };
 
-function isShortcut(event: KeyboardEvent): boolean {
-    const modifier = isMacOS() ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
-
-    return modifier && !event.altKey && !event.shiftKey && 'k' === event.key.toLowerCase();
-}
+const SHORTCUT: ModShortcut = { key: 'K', shift: false };
 
 /**
  * The button and the shortcut open the dialog. The shortcut is off in a text field outside the dialog, where the
@@ -30,7 +27,7 @@ export function QuickOpen({ reviewId, indexState }: Props) {
     useEffect(() => {
         const toggle = (event: KeyboardEvent): void => {
             // The dialog is modal: while it is open, the focused field is its own.
-            if (isShortcut(event) && (open || !isEditableElement(event.composedPath()[0] ?? null))) {
+            if (isPressed(SHORTCUT, event) && (open || !isEditableElement(event.composedPath()[0] ?? null))) {
                 event.preventDefault();
                 setOpen(!open);
             }
@@ -42,7 +39,7 @@ export function QuickOpen({ reviewId, indexState }: Props) {
 
     return (
         <>
-            <Button leadingVisual={SearchIcon} trailingVisual={<KeybindingHint keys="Mod+k" />} aria-keyshortcuts={isMacOS() ? 'Meta+K' : 'Control+K'} onClick={() => setOpen(true)}>
+            <Button leadingVisual={SearchIcon} trailingVisual={<KeybindingHint keys={hintKeys(SHORTCUT)} />} aria-keyshortcuts={ariaKeyShortcuts(SHORTCUT)} onClick={() => setOpen(true)}>
                 Quick open
             </Button>
             {open && <QuickOpenDialog reviewId={reviewId} indexState={indexState} onClose={() => setOpen(false)} />}

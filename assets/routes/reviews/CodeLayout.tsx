@@ -1,5 +1,3 @@
-import { CheckIcon } from '@primer/octicons-react';
-import { Button } from '@primer/react';
 import { useMemo } from 'react';
 import { type LoaderFunctionArgs, Outlet, useLoaderData, useParams, useRouteLoaderData } from 'react-router';
 import type { TreeListing } from '../../api/types/lists';
@@ -8,7 +6,7 @@ import { FileTree } from '../../review/FileTree';
 import { encodedRouteParam } from '../encodedRouteParam';
 import styles from './CodeLayout.module.css';
 import type { ReviewData } from './reviewData';
-import { useFocusMode } from './ReviewLayout';
+import { FocusToggle, useFocusMode } from './ReviewLayout';
 import { listDirectory } from './treeData';
 
 export function codeLayoutLoader({ request, params }: LoaderFunctionArgs): Promise<TreeListing> {
@@ -44,16 +42,12 @@ export function NoFileSelected() {
  * Focus toggle.
  */
 export function CodeRouteError() {
-    const { focus, setFocus } = useFocusMode();
+    const { focus } = useFocusMode();
 
     return (
         <div className={styles.error}>
             <RouteError embedded />
-            {focus && (
-                <Button size="small" aria-pressed leadingVisual={CheckIcon} onClick={() => setFocus(false)}>
-                    Focus
-                </Button>
-            )}
+            {focus && <FocusToggle />}
         </div>
     );
 }

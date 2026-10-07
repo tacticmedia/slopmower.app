@@ -1,8 +1,11 @@
-import { CodeIcon, CommentDiscussionIcon } from '@primer/octicons-react';
-import { Banner, Heading, Link, RelativeTime, UnderlineNav } from '@primer/react';
+import { isEditableElement } from '@primer/behaviors/utils';
+import { CheckIcon, CodeIcon, CommentDiscussionIcon } from '@primer/octicons-react';
+import { Banner, Button, Heading, Link, RelativeTime, UnderlineNav } from '@primer/react';
+import { KeybindingHint } from '@primer/react/experimental';
 import { useEffect, useMemo } from 'react';
 import { Outlet, Link as RouterLink, useLoaderData, useMatch, useOutletContext } from 'react-router';
 import type { Review } from '../../api/types/review';
+import { ariaKeyShortcuts, hintKeys, isPressed, type ModShortcut } from '../../layout/modShortcut';
 import { usePreference } from '../../layout/usePreference';
 import { AgentPromptSnippet } from '../../review/AgentPromptSnippet';
 import { CarryOverDialog } from '../../review/CarryOverDialog';
@@ -21,6 +24,25 @@ export type FocusMode = { focus: boolean; setFocus(on: boolean): void };
 
 export function useFocusMode(): FocusMode {
     return useOutletContext<FocusMode>();
+}
+
+const FOCUS_SHORTCUT: ModShortcut = { key: 'Enter', shift: true };
+
+export function FocusToggle() {
+    const { focus, setFocus } = useFocusMode();
+
+    return (
+        <Button
+            size="small"
+            aria-pressed={focus}
+            leadingVisual={focus ? CheckIcon : undefined}
+            trailingVisual={<KeybindingHint keys={hintKeys(FOCUS_SHORTCUT)} size="small" />}
+            aria-keyshortcuts={ariaKeyShortcuts(FOCUS_SHORTCUT)}
+            onClick={() => setFocus(!focus)}
+        >
+            Focus
+        </Button>
+    );
 }
 
 function ClosedBanner({ review }: { review: Extract<Review, { state: 'closed' }> }) {
@@ -84,6 +106,26 @@ export function ReviewLayout() {
 
         return () => window.removeEventListener('keydown', leave);
     }, [focus, setFocus]);
+
+    useEffect(() => {
+        if (!fileOpen) {
+            return;
+        }
+        const toggle = (event: KeyboardEvent): void => {
+            const target = event.composedPath()[0] ?? null;
+            // A dialog can belong to the review header, which focus mode hides.
+            const inDialog = target instanceof Element && null !== target.closest('[role="dialog"]');
+            if (isPressed(FOCUS_SHORTCUT, event) && !isEditableElement(target) && !inDialog) {
+                event.preventDefault();
+                event.stopPropagation();
+                setFocus(!focus);
+            }
+        };
+        // In the capture phase: a tree item takes Enter with any modifier and stops its propagation.
+        window.addEventListener('keydown', toggle, true);
+
+        return () => window.removeEventListener('keydown', toggle, true);
+    }, [fileOpen, focus, setFocus]);
 
     return (
         <div className={styles.page} data-focus-mode={focus ? '' : undefined}>

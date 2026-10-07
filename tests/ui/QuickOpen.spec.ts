@@ -93,7 +93,7 @@ test.describe('QuickOpen', () => {
     test('In focus mode, Cmd+K opens Quick open, and Escape closes only the dialog', async ({ page, api }) => {
         const review = reviewWithHits(api, [TAX_RATE_FILE]);
         await openFile(page, review, SMALL_FILE);
-        const focusToggle = page.locator('[data-testid="file-header"]').getByRole('button', { name: 'Focus', exact: true });
+        const focusToggle = page.locator('[data-testid="file-header"]').getByRole('button', { name: 'Focus' });
         await focusToggle.click();
         await expect(page.getByRole('heading', { level: 1 })).toBeHidden();
 

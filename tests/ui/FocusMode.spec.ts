@@ -8,8 +8,11 @@ import { expect, test } from './support/test';
 /** Enough root files to make the tree taller than the window. */
 const ROOT_FILES = 60;
 
+const SHORTCUT = 'ControlOrMeta+Shift+Enter';
+
+/** The name also holds the keys of the shortcut. */
 function focusToggle(page: Page): Locator {
-    return page.locator('[data-testid="file-header"]').getByRole('button', { name: 'Focus', exact: true });
+    return page.locator('[data-testid="file-header"]').getByRole('button', { name: 'Focus' });
 }
 
 /** With `closed`, also the closed banner. */
@@ -100,7 +103,7 @@ test.describe('FocusMode', () => {
         await openFile(page, review, SMALL_FILE);
         await focusToggle(page).click();
         const reviewNavigation = page.getByRole('navigation', { name: 'Review' });
-        const errorToggle = page.getByRole('button', { name: 'Focus', exact: true });
+        const errorToggle = page.getByRole('button', { name: 'Focus' });
         await expect(reviewNavigation).toBeHidden();
 
         await page.goto(review.fileUrl('src/Missing.php'));
@@ -112,6 +115,70 @@ test.describe('FocusMode', () => {
         await errorToggle.click();
 
         await expect(reviewNavigation).toBeVisible();
+    });
+
+    test('The shortcut turns focus mode on and off', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        await openFile(page, review, SMALL_FILE);
+
+        await page.keyboard.press(SHORTCUT);
+        await expectFocusMode(page, true);
+
+        await page.keyboard.press(SHORTCUT);
+        await expectFocusMode(page, false);
+    });
+
+    test('The shortcut works while a file in the tree has the focus', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        await openFile(page, review, SMALL_FILE);
+        const readme = page.locator('[data-testid="file-tree"] [data-path="README.md"]');
+        await readme.click();
+        await expect(page.locator('[data-testid="file-header"]')).toContainText('README.md');
+        await expect(readme).toBeFocused();
+
+        await page.keyboard.press(SHORTCUT);
+
+        await expectFocusMode(page, true);
+    });
+
+    test('The shortcut in a dialog does nothing', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        await openFile(page, review, SMALL_FILE);
+        await page.getByRole('button', { name: 'Close review' }).click();
+        await page.getByRole('dialog', { name: 'Close review' }).getByRole('button', { name: 'Cancel' }).focus();
+
+        await page.keyboard.press(SHORTCUT);
+
+        // The dialog title is a level 1 heading too.
+        await expect(focusToggle(page)).toHaveAttribute('aria-pressed', 'false');
+        await expect(page.getByRole('navigation', { name: 'Review' })).toBeVisible();
+    });
+
+    test('The shortcut in a comment box does nothing', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        await openFile(page, review, SMALL_FILE);
+        await page.getByRole('button', { name: 'Comment on file' }).click();
+        const composer = page.locator(`${FILE_THREADS} ${COMPOSER}`);
+        await expect(composer).toBeFocused();
+        await page.keyboard.type('Draft');
+
+        await page.keyboard.press(SHORTCUT);
+
+        await expectFocusMode(page, false);
+        // The comment box sends only on the shortcut without Shift.
+        await expect(composer).toHaveValue('Draft');
+    });
+
+    test('The shortcut on the review page without an open file does nothing', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        await page.goto(`/reviews/${review.id}`);
+        await expect(page.getByText('Select a file in the tree.')).toBeVisible();
+
+        await page.keyboard.press(SHORTCUT);
+        await page.locator('[data-testid="file-tree"] [data-path="README.md"]').click();
+
+        await expect(page.locator('[data-testid="file-header"]')).toContainText('README.md');
+        await expectFocusMode(page, false);
     });
 
     test('Escape in the Symbols menu closes only the menu', async ({ page, api }) => {

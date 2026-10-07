@@ -23,7 +23,7 @@ test.describe('LargeFile', () => {
                 if (wrap) {
                     await expect(page.locator(`${CODE_HOST} pre[data-overflow="wrap"]`)).toHaveCount(1);
                 }
-                await expect(page.getByRole('button', { name: 'Focus', exact: true })).toHaveAttribute('aria-pressed', String(focus));
+                await expect(page.getByRole('button', { name: 'Focus' })).toHaveAttribute('aria-pressed', String(focus));
 
                 const line = page.locator(`${CODE_HOST} [data-line="3000"][data-selected-line]`);
                 await expect(line).toContainText('LINE_3000');

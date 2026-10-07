@@ -38,7 +38,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F20 | [Unlink a pull request](F20-unlink-a-pull-request.md) | Not started | | |
 | F21 | [File view fills the window](F21-file-view-fills-the-window.md) | Not started | | |
 | F22 | [Quick open ranking](F22-quick-open-ranking.md) | In progress | | |
-| F23 | [Focus mode shortcut](F23-focus-mode-shortcut.md) | In progress | | |
+| F23 | [Focus mode shortcut](F23-focus-mode-shortcut.md) | Done 2026-10-07, [report](reports/F23.md) | | src 419 PHP / 27834 lines, 419 types; tests 284 PHP / 25239 lines; assets 149 TS / 8268 lines |
 
 ## Candidates
 

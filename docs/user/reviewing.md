@@ -140,7 +140,9 @@ Select **Viewed** in the file header when you are finished with a file. The file
 
 ## Focus mode
 
-Click **Focus** in the file header to show only the file tree and the file. They fill the window, and each scrolls on its own. To leave, click **Focus** again or press Escape. Escape in a comment box does not leave focus mode.
+Click **Focus** in the file header, or press Cmd+Shift+Enter (Ctrl+Shift+Enter outside macOS), to show only the file tree and the file. They fill the window, and each scrolls on its own. To leave, click **Focus** or press the shortcut again, or press Escape.
+
+The shortcut works only while a file is open. It does nothing while you type in a comment box or another text field, or in a dialog. Escape in a comment box does not leave focus mode.
 
 Focus mode stays on when you open another file or reload the page. The choice is saved in your browser. On a narrow screen, focus mode only hides the headers.
 

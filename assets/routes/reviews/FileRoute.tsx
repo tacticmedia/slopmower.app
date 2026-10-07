@@ -26,7 +26,7 @@ import { useGoToDeclaration } from './declarationsData';
 import type { FileView } from './fileData';
 import styles from './FileRoute.module.css';
 import type { ReviewData } from './reviewData';
-import { useFocusMode } from './ReviewLayout';
+import { FocusToggle, useFocusMode } from './ReviewLayout';
 import { useFileSymbols } from './symbolsData';
 import { useLineSelection } from './useLineSelection';
 
@@ -43,7 +43,7 @@ export function FileRoute() {
     const { content, text, threads } = useLoaderData<FileView>();
     const { caller } = loaded(useRouteLoaderData<Me>('root'), 'root');
     const { review, drafts, viewedPaths } = loaded(useRouteLoaderData<ReviewData>('review'), 'review');
-    const { focus, setFocus } = useFocusMode();
+    const { focus } = useFocusMode();
     const fileDrafts = useMemo(() => fileDraftViews(drafts, content.path), [drafts, content.path]);
     const selection = useLineSelection(content.path, content.lineCount);
     const comments = useFileComments({ path: content.path, threads, drafts: fileDrafts, caller, select: selection.select });
@@ -94,9 +94,7 @@ export function FileRoute() {
                     </Button>
                 )}
                 <ViewedCheckbox path={content.path} viewed={viewedPaths.includes(content.path)} disabled={!commentable} />
-                <Button size="small" aria-pressed={focus} leadingVisual={focus ? CheckIcon : undefined} onClick={() => setFocus(!focus)}>
-                    Focus
-                </Button>
+                <FocusToggle />
             </FileHeader>
             {(fileThreads.length > 0 || filePendingDrafts.length > 0 || null !== fileComposer) && (
                 <div className={styles.fileThreads} data-testid="file-threads">
