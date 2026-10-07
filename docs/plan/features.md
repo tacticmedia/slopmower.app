@@ -30,11 +30,11 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F12 | [Index job memory](F12-index-job-memory.md) | Done 2026-10-07, [report](reports/F12.md) | 20cf30d | src 401 PHP / 26212 lines, 401 types; tests 277 PHP / 24268 lines; assets 142 TS / 7626 lines; check 2m36s |
 | F13 | [Agent proposals](F13-agent-proposals.md) | Done 2026-10-07, [report](reports/F13.md) | dca8362 | src 413 PHP / 26933 lines, 413 types; tests 280 PHP / 24818 lines; assets 144 TS / 7963 lines; check 3m11s |
 | F14 | [Pull request links](F14-pull-request-links.md) | Done 2026-10-07, [report](reports/F14.md) | dc0b5ee | src 419 PHP / 27809 lines, 419 types; tests 282 PHP / 25115 lines; assets 145 TS / 8014 lines; check 3m5s |
-| F15 | [Proposal follow-ups](F15-proposal-follow-ups.md) | Done 2026-10-07, [report](reports/F15.md) | | src 419 PHP / 27834 lines, 419 types; tests 283 PHP / 25157 lines; assets 146 TS / 8052 lines |
+| F15 | [Proposal follow-ups](F15-proposal-follow-ups.md) | Done 2026-10-07, [report](reports/F15.md) | a57e1f6 | src 419 PHP / 27834 lines, 419 types; tests 283 PHP / 25157 lines; assets 146 TS / 8052 lines; check 3m42s |
 | F16 | [Carry over on an open review](F16-carry-over-on-an-open-review.md) | In progress | | |
 | F17 | [Project Mate tools](F17-project-mate-tools.md) | In progress | | |
 | F18 | [Known issues](F18-known-issues.md) | In progress | | |
-| F19 | [Change the plan requirement](F19-change-the-plan-requirement.md) | Not started, after F15 | | |
+| F19 | [Change the plan requirement](F19-change-the-plan-requirement.md) | In progress | | |
 | F20 | [Unlink a pull request](F20-unlink-a-pull-request.md) | Not started | | |
 | F21 | [File view fills the window](F21-file-view-fills-the-window.md) | Not started | | |
 | F22 | [Quick open ranking](F22-quick-open-ranking.md) | In progress | | |
