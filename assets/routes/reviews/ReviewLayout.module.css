@@ -55,3 +55,9 @@
 .page[data-focus-mode] > .closed {
     display: none;
 }
+
+@media (width > 768px) {
+    .page[data-file-view] {
+        flex: auto;
+    }
+}

@@ -24,7 +24,7 @@ export function CodeLayout() {
     const focusMode = useFocusMode();
 
     return (
-        <div className={focusMode.focus ? `${styles.layout} ${styles.focus}` : styles.layout}>
+        <div className={styles.layout}>
             <aside className={styles.tree}>
                 <FileTree reviewId={reviewId} entries={items} currentPath={currentPath} viewed={viewed} />
             </aside>

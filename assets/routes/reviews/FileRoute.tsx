@@ -26,7 +26,7 @@ import { useGoToDeclaration } from './declarationsData';
 import type { FileView } from './fileData';
 import styles from './FileRoute.module.css';
 import type { ReviewData } from './reviewData';
-import { FocusToggle, useFocusMode } from './ReviewLayout';
+import { FocusToggle } from './ReviewLayout';
 import { useFileSymbols } from './symbolsData';
 import { useLineSelection } from './useLineSelection';
 
@@ -43,7 +43,6 @@ export function FileRoute() {
     const { content, text, threads } = useLoaderData<FileView>();
     const { caller } = loaded(useRouteLoaderData<Me>('root'), 'root');
     const { review, drafts, viewedPaths } = loaded(useRouteLoaderData<ReviewData>('review'), 'review');
-    const { focus } = useFocusMode();
     const fileDrafts = useMemo(() => fileDraftViews(drafts, content.path), [drafts, content.path]);
     const selection = useLineSelection(content.path, content.lineCount);
     const comments = useFileComments({ path: content.path, threads, drafts: fileDrafts, caller, select: selection.select });
@@ -78,7 +77,7 @@ export function FileRoute() {
     );
 
     return (
-        <section className={focus ? `${styles.file} ${styles.focus}` : styles.file} aria-label={content.path}>
+        <section className={styles.file} aria-label={content.path}>
             <FileHeader path={content.path} planToApprove={threads.some((thread) => thread.proposalPending)}>
                 {navigable && <GoToDeclaration key={content.path} outcome={goTo.outcome} onSubmit={goTo.named} onChoose={(target) => void goTo.go(target)} onDismiss={goTo.dismiss} />}
                 {null !== text && (

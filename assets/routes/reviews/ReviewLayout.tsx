@@ -128,7 +128,7 @@ export function ReviewLayout() {
     }, [fileOpen, focus, setFocus]);
 
     return (
-        <div className={styles.page} data-focus-mode={focus ? '' : undefined}>
+        <div className={styles.page} data-file-view={fileOpen ? '' : undefined} data-focus-mode={focus ? '' : undefined}>
             <header className={styles.header}>
                 <div className={styles.titleRow}>
                     <div className={styles.titleText}>

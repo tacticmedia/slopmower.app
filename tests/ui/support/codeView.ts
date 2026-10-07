@@ -40,11 +40,18 @@ export async function waitForHighlighting(page: Page, line: number): Promise<voi
 
 /** Hovers the line number, then presses the "+" that the hover shows and releases it over `releaseLine`. */
 export async function dragFromPlus(page: Page, pressLine: number, releaseLine: number): Promise<void> {
-    await lineNumber(page, pressLine).hover();
+    const number = lineNumber(page, pressLine);
+    // The view ignores the pointer for 120 ms after each scroll. A hover that scrolls loses the line, and with it the "+".
+    await number.evaluate(async (element) => {
+        element.scrollIntoView({ block: 'center' });
+        // The scroll event comes with the next frame.
+        await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    });
+    await expect.poll(() => receivesPointer(number)).toBe(true);
+    await number.hover();
     const plus = page.locator(`${CODE_HOST} [data-utility-button]`);
     await expect(plus).toHaveCount(1);
     await plus.hover();
-    // The view ignores the pointer for 120 ms after each scroll, and the hover can scroll.
     await expect.poll(() => receivesPointer(plus)).toBe(true);
     await page.mouse.down();
     await lineNumber(page, releaseLine).hover();

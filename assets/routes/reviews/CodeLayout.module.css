@@ -31,15 +31,21 @@
     }
 }
 
+/* ReviewLayout sets data-file-view and data-focus-mode. */
 @media (width > 768px) {
-    .focus {
-        height: 100vh;
+    [data-file-view] > .layout {
+        flex: 1 0 20rem;
+        /* Not auto: the automatic minimum is the height of the whole tree. */
+        min-height: 20rem;
         grid-template-rows: minmax(0, 1fr);
         align-items: stretch;
-        padding: var(--base-size-8);
     }
 
-    .focus .tree {
+    [data-file-view] > .layout > .tree {
         max-height: none;
+    }
+
+    [data-focus-mode] > .layout {
+        padding: var(--base-size-8);
     }
 }

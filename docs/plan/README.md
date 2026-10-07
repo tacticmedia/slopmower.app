@@ -434,7 +434,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 
 ### Mocked UI suite
 
-- The code view turns off pointer events on its rows during a scroll and for 120 ms after it. A press right after a scroll lands on the container: `dragFromPlus()` waits until the "+" receives the pointer.
+- The code view turns off pointer events on its rows during a scroll and for 120 ms after it. A press right after a scroll lands on the container: `dragFromPlus()` centers the line number, then waits until the line number and the "+" receive the pointer.
 - A Playwright context denies clipboard writes. A test of a copy button grants `clipboard-read` and `clipboard-write`.
 - `page.route` cannot stream a response, so `EventSource` is replaced by `addInitScript`.
 - `context.route` also intercepts the imports of the `@pierre/diffs` worker. `page.route` is enough for `/api/v1`.
