@@ -18,6 +18,7 @@ use App\Domain\Request\Command\Open;
 use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
+use App\Domain\Request\Command\SetPlanRequirement;
 use App\Domain\Request\Command\UnlinkCommit;
 use App\Domain\Request\Command\Verify;
 use App\Domain\Request\PullRequestUrl;
@@ -56,7 +57,7 @@ final class ReducerTest extends KernelTestCase
         $expected = [
             'status' => 'open', 'statusBeforeClaim' => null, 'claimedBy' => null, 'claimedAt' => null, 'wontDoBy' => null,
             'resolution' => null, 'links' => [], 'pullRequestUrls' => [], 'lastUserCommentSeq' => null, 'lastAgentEventSeq' => null,
-            'lastAgentEventIsQuestion' => false, 'lastEventSeq' => 2, 'updatedAt' => '07:02',
+            'lastAgentEventIsQuestion' => false, 'lastEventSeq' => 2, 'updatedAt' => '07:02', 'requireApproval' => false,
         ];
         self::assertSame($expected, self::fields($scenario->state()));
 
@@ -101,13 +102,21 @@ final class ReducerTest extends KernelTestCase
                 static fn () => $scenario->run(new Reopen($id, 'Please do it.'), $user),
                 ['status' => 'reopened', 'wontDoBy' => null, 'resolution' => null],
             ],
+            'request.plan_required, without user tracking' => [
+                static fn () => $scenario->run(new SetPlanRequirement($id, true), $user),
+                ['requireApproval' => true],
+            ],
+            'request.plan_waived, without user tracking' => [
+                static fn () => $scenario->run(new SetPlanRequirement($id, false), $user),
+                ['requireApproval' => false],
+            ],
             'request.claimed from reopened' => [
                 static fn () => $scenario->run(new Claim($id), $agent),
-                ['status' => 'in_progress', 'statusBeforeClaim' => 'reopened', 'claimedBy' => 'claude-code laptop', 'claimedAt' => '07:13', 'lastAgentEventSeq' => 13],
+                ['status' => 'in_progress', 'statusBeforeClaim' => 'reopened', 'claimedBy' => 'claude-code laptop', 'claimedAt' => '07:15', 'lastAgentEventSeq' => 15],
             ],
             'request.ready_for_review' => [
                 static fn () => $scenario->run(new MarkReadyForReview($id, 'Done.'), $agent),
-                ['status' => 'ready_for_review', 'statusBeforeClaim' => null, 'claimedBy' => null, 'claimedAt' => null, 'resolution' => 'fixed', 'lastAgentEventSeq' => 14],
+                ['status' => 'ready_for_review', 'statusBeforeClaim' => null, 'claimedBy' => null, 'claimedAt' => null, 'resolution' => 'fixed', 'lastAgentEventSeq' => 16],
             ],
             'pull_request.linked, without agent tracking' => [
                 static fn () => $scenario->run($scenario->validCommand('link_pull_request'), $agent),
@@ -283,6 +292,7 @@ final class ReducerTest extends KernelTestCase
             'lastAgentEventIsQuestion' => $state->lastAgentEventIsQuestion,
             'lastEventSeq' => $state->lastEventSeq,
             'updatedAt' => $state->updatedAt->format('H:i'),
+            'requireApproval' => $state->requireApproval,
         ];
     }
 }

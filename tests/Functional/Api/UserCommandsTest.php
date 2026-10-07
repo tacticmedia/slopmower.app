@@ -56,7 +56,7 @@ final class UserCommandsTest extends WebTestCase
 
         $error = self::assertApiError(self::apiRequest($this->client, 'POST', "/api/v1/requests/{$requestId}/verify"), 409, 'invalid_transition');
 
-        self::assertSame(['requestId' => $requestId, 'action' => 'verify', 'status' => 'open', 'claimedBy' => null, 'allowedActions' => ['reply', 'mark_wont_do']], $error['details']);
+        self::assertSame(['requestId' => $requestId, 'action' => 'verify', 'status' => 'open', 'claimedBy' => null, 'allowedActions' => ['reply', 'mark_wont_do', 'set_plan_requirement']], $error['details']);
     }
 
     #[TestDox('Reopen needs a note')]

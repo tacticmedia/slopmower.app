@@ -27,6 +27,7 @@ use App\Domain\Request\Command\RejectProposal;
 use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
+use App\Domain\Request\Command\SetPlanRequirement;
 use App\Domain\Request\Command\UnlinkCommit;
 use App\Domain\Request\Command\Verify;
 use App\Domain\Review\Command\CloseReview;
@@ -79,7 +80,7 @@ final class ProjectionConsistencyTest extends KernelTestCase
 
     /**
      * Opened with requireApproval. Claim, a rejected and an approved proposal, links (available, pending and unlinked,
-     * pending and found), a pull request link, ready, verify, reopen.
+     * pending and found), a pull request link, ready, verify, reopen, and the plan waived.
      */
     private static function fixedRequest(ReviewId $reviewId): RequestId
     {
@@ -109,12 +110,13 @@ final class ProjectionConsistencyTest extends KernelTestCase
         $commands->markReadyForReview(new MarkReadyForReview($requestId, 'Extracted TaxRounding.'), $agent);
         $commands->verify(new Verify($requestId), RequestScenario::user());
         $commands->reopen(new Reopen($requestId, 'Also cover the shipping totals.'), RequestScenario::user());
+        $commands->setPlanRequirement(new SetPlanRequirement($requestId, false), $user);
 
         return $requestId;
     }
 
     /**
-     * A question, a reply, claim, release, and wont_do by the agent.
+     * A question, a reply, the plan required, claim, release, and wont_do by the agent.
      */
     private static function declinedRequest(ReviewId $reviewId, RequestId $fixed): RequestId
     {
@@ -124,6 +126,7 @@ final class ProjectionConsistencyTest extends KernelTestCase
 
         $commands->reply(new Reply($requestId, 'Should this cover the shipping totals?', true), $agent);
         $commands->reply(new Reply($requestId, 'Yes, see '.$fixed.'.'), RequestScenario::user());
+        $commands->setPlanRequirement(new SetPlanRequirement($requestId, true), RequestScenario::user());
         $commands->claim(new Claim($requestId), $agent);
         $commands->release(new Release($requestId, 'Needs a decision first.'), $agent);
         $commands->markWontDo(new MarkWontDo($requestId, RequestScenario::REASON), $agent);

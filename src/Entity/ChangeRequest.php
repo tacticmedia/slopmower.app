@@ -118,12 +118,12 @@ class ChangeRequest implements TenantOwned
     /**
      * Sets the fields that request.opened fixes. {@see self::project()} sets the others.
      */
-    public function __construct(RequestId $id, Review $review, ?Anchor $anchor, string $body, Actor $author, \DateTimeImmutable $createdAt, ?CarriedFrom $carriedFrom = null, bool $requireApproval = false)
+    public function __construct(RequestId $id, Review $review, ?Anchor $anchor, string $body, Actor $author, \DateTimeImmutable $createdAt, ?CarriedFrom $carriedFrom = null)
     {
         $this->id = $id;
         $this->tenantId = $review->getTenantId();
         $this->review = $review;
-        $this->opened($anchor, $body, $author, $createdAt, $carriedFrom, $requireApproval);
+        $this->opened($anchor, $body, $author, $createdAt, $carriedFrom);
         $this->claimedBy = ActorEmbeddable::of(null);
         $this->updatedAt = $createdAt;
     }
@@ -131,7 +131,7 @@ class ChangeRequest implements TenantOwned
     /**
      * The projection rebuild recomputes an existing row in place.
      */
-    public function opened(?Anchor $anchor, string $body, Actor $author, \DateTimeImmutable $createdAt, ?CarriedFrom $carriedFrom = null, bool $requireApproval = false): void
+    public function opened(?Anchor $anchor, string $body, Actor $author, \DateTimeImmutable $createdAt, ?CarriedFrom $carriedFrom = null): void
     {
         $this->anchor = $anchor;
         $this->body = $body;
@@ -139,7 +139,6 @@ class ChangeRequest implements TenantOwned
         $this->createdAt = $createdAt;
         $this->carriedFromReviewId = $carriedFrom?->reviewId;
         $this->carriedFromRequestId = $carriedFrom?->requestId;
-        $this->requireApproval = $requireApproval;
     }
 
     /**
@@ -158,6 +157,7 @@ class ChangeRequest implements TenantOwned
         bool $lastAgentEventIsQuestion,
         int $lastEventSeq,
         \DateTimeImmutable $updatedAt,
+        bool $requireApproval,
         ?Proposal $proposal,
         array $pullRequestUrls,
     ): void {
@@ -173,6 +173,7 @@ class ChangeRequest implements TenantOwned
         $this->lastAgentEventIsQuestion = $lastAgentEventIsQuestion;
         $this->lastEventSeq = $lastEventSeq;
         $this->updatedAt = $updatedAt;
+        $this->requireApproval = $requireApproval;
         $this->proposalEventId = $proposal?->eventId;
         $this->proposalState = $proposal?->state;
         $this->pullRequestUrls = array_map(static fn (PullRequestUrl $url): string => $url->toString(), $pullRequestUrls);

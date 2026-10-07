@@ -188,10 +188,11 @@ function summaryText(body: string): string {
 /** The `allowedActions` of a user caller on an open review: docs/specs/rest-api-requests.md section 1. */
 export function userActions(status: RequestStatus, wontDoBy: ActorKind | null = null, proposal: Proposal | null = null): Action[] {
     const actions: Action[] = ['reply'];
+    const unfinished = 'open' === status || 'reopened' === status || 'in_progress' === status;
     if ('in_progress' === status) {
         actions.push('release');
     }
-    if ('open' === status || 'reopened' === status || 'in_progress' === status) {
+    if (unfinished) {
         actions.push('mark_wont_do');
     }
     if ('ready_for_review' === status || ('wont_do' === status && 'agent' === wontDoBy)) {
@@ -202,6 +203,9 @@ export function userActions(status: RequestStatus, wontDoBy: ActorKind | null = 
     }
     if ('in_progress' === status && 'pending' === proposal?.state) {
         actions.push('approve_proposal', 'reject_proposal');
+    }
+    if (unfinished) {
+        actions.push('set_plan_requirement');
     }
 
     return actions;

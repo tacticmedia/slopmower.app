@@ -776,7 +776,7 @@ final class BundledSchemas
                         ],
                         'description' => 'The source request that V15 carried over to this request. Null for any other request.',
                     ],
-                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Fixed when the request opens.'],
+                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18.'],
                     'proposal' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/Proposal'],
@@ -1083,7 +1083,7 @@ final class BundledSchemas
             'EventType' => [
                 'anyOf' => [
                     [
-                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'batch.submitted'],
+                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived', 'batch.submitted'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -1220,7 +1220,7 @@ final class BundledSchemas
                         ],
                         'description' => 'The source request that V15 carried over to this request. Null for any other request.',
                     ],
-                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Fixed when the request opens.'],
+                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18.'],
                     'proposal' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/Proposal'],
@@ -1450,7 +1450,7 @@ final class BundledSchemas
             'Action' => [
                 'anyOf' => [
                     [
-                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal'],
+                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal', 'set_plan_requirement'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -1916,7 +1916,7 @@ final class BundledSchemas
             'ThreadEntryType' => [
                 'anyOf' => [
                     [
-                        'enum' => ['request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected'],
+                        'enum' => ['request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -1949,7 +1949,7 @@ final class BundledSchemas
             'Action' => [
                 'anyOf' => [
                     [
-                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal'],
+                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal', 'set_plan_requirement'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -2168,7 +2168,7 @@ final class BundledSchemas
             'EventType' => [
                 'anyOf' => [
                     [
-                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'batch.submitted'],
+                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived', 'batch.submitted'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -2305,7 +2305,7 @@ final class BundledSchemas
                         ],
                         'description' => 'The source request that V15 carried over to this request. Null for any other request.',
                     ],
-                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Fixed when the request opens.'],
+                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18.'],
                     'proposal' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/Proposal'],
@@ -2610,7 +2610,7 @@ final class BundledSchemas
             'EventType' => [
                 'anyOf' => [
                     [
-                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'batch.submitted'],
+                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived', 'batch.submitted'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -2747,7 +2747,7 @@ final class BundledSchemas
                         ],
                         'description' => 'The source request that V15 carried over to this request. Null for any other request.',
                     ],
-                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Fixed when the request opens.'],
+                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18.'],
                     'proposal' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/Proposal'],
@@ -3048,7 +3048,7 @@ final class BundledSchemas
             'EventType' => [
                 'anyOf' => [
                     [
-                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'batch.submitted'],
+                        'enum' => ['review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived', 'batch.submitted'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -3185,7 +3185,7 @@ final class BundledSchemas
                         ],
                         'description' => 'The source request that V15 carried over to this request. Null for any other request.',
                     ],
-                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Fixed when the request opens.'],
+                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18.'],
                     'proposal' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/Proposal'],

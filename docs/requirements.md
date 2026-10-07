@@ -90,7 +90,7 @@ These two principles control all decisions.
 - Each state change is an event with actor, timestamp, and optional text. Replies are events too.
 - The allowed transitions per actor are in [architecture.md](architecture.md), section 6. The states map to GitHub concepts where possible, for example `verified` is "Resolve conversation".
 - An agent that marks a request `wont_do` gives evidence that the user can check. The user then verifies or reopens it.
-- "Ask for a plan first" (`requireApproval`), set when the request opens: the agent links no commit and marks nothing ready before the user approves a proposal. A pending or rejected proposal always blocks both.
+- "Ask for a plan first" (`requireApproval`), set when the request opens: the agent links no commit and marks nothing ready before the user approves a proposal. A pending or rejected proposal always blocks both. The user switches it on or off while the request is `open`, `reopened`, or `in_progress`, and the agent's next link or ready follows the new value.
 
 ### FR8 The agent conversation
 
@@ -114,7 +114,7 @@ These two principles control all decisions.
 
 - A web UI that follows Principle B.
 - Screens: repositories from both sources, the file tree at the pinned SHA, the file view with inline threads, the list of requests with filters for status, "Waiting for you", path, and outdated, the request detail with the conversation and the linked commits, and settings.
-- Actions: comment on a line, range, symbol, or file, with the "Ask for a plan first" checkbox, checked by default; open a general request with "New request" on the list of requests; reply; approve a proposal with "Approve", or reject it with "Request changes" and a note; verify with "Resolve conversation"; reopen with a note; close as won't do; unassign a stale claim.
+- Actions: comment on a line, range, symbol, or file, with the "Ask for a plan first" checkbox, checked by default; open a general request with "New request" on the list of requests; reply; approve a proposal with "Approve", or reject it with "Request changes" and a note; switch the plan requirement of an unfinished request with "Ask for a plan first" or "Don't ask for a plan"; verify with "Resolve conversation"; reopen with a note; close as won't do; unassign a stale claim.
 - A pending review: drafts that the user submits as one batch. The agent sees nothing before the submission. The list of requests also lists the pending drafts.
 - Per-file "Viewed" marks that stay for the whole review.
 - Live updates: an agent reply shows in the open view without a reload.

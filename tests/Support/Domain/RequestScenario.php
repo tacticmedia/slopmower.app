@@ -38,6 +38,7 @@ use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\RequestCommand;
+use App\Domain\Request\Command\SetPlanRequirement;
 use App\Domain\Request\Command\UnlinkCommit;
 use App\Domain\Request\Command\Verify;
 use App\Domain\Request\RequestDecider;
@@ -179,7 +180,8 @@ final class RequestScenario
     }
 
     /**
-     * A command with valid input for the current request, named by its action, or "open".
+     * A command with valid input for the current request, named by its action, or "open". set_plan_requirement switches
+     * the current value.
      */
     public function validCommand(string $command): RequestCommand
     {
@@ -204,6 +206,7 @@ final class RequestScenario
             'propose_solution' => new ProposeSolution($id, self::PLAN, self::DIFF),
             'approve_proposal' => new ApproveProposal($id, $proposalEventId),
             'reject_proposal' => new RejectProposal($id, $proposalEventId, 'Keep the rounding inside `InvoiceTotals`.'),
+            'set_plan_requirement' => new SetPlanRequirement($id, !$this->state()->requireApproval),
             default => throw new \LogicException("Unknown command {$command}."),
         };
     }

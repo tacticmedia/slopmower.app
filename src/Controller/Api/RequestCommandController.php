@@ -9,6 +9,7 @@ use App\Application\RequestCommands;
 use App\Controller\Api\Input\ApproveProposalInput;
 use App\Controller\Api\Input\CommentInput;
 use App\Controller\Api\Input\OptionalNoteInput;
+use App\Controller\Api\Input\PlanRequirementInput;
 use App\Controller\Api\Input\RejectProposalInput;
 use App\Controller\Api\Input\RequiredNoteInput;
 use App\Controller\Api\Input\WontDoInput;
@@ -20,6 +21,7 @@ use App\Domain\Request\Command\RejectProposal;
 use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
+use App\Domain\Request\Command\SetPlanRequirement;
 use App\Domain\Request\Command\Verify;
 use App\Entity\ChangeRequest;
 use App\Entity\User;
@@ -33,7 +35,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * Q4, Q6, Q11 to Q13, Q15, and Q16 of docs/specs/rest-api-requests.md section 3.
+ * Q4, Q6, Q11 to Q13, Q15, Q16, and Q18 of docs/specs/rest-api-requests.md section 3.
  */
 #[Route('/api/v1/requests/{requestId}', name: 'api_request_')]
 final class RequestCommandController extends AbstractController
@@ -118,6 +120,18 @@ final class RequestCommandController extends AbstractController
         $command = new RejectProposal($request->getId(), EventId::fromString($input->proposalEventId), $input->note);
 
         return $this->result($request, $this->commands->rejectProposal($command, $this->currentActor->get()));
+    }
+
+    #[Route('/plan-requirement', name: 'plan_requirement', methods: ['POST'])]
+    #[IsGranted(User::ROLE, message: CurrentActor::SESSION_ONLY)]
+    public function setPlanRequirement(
+        #[MapEntity(id: 'requestId')] ChangeRequest $request,
+        #[MapRequestPayload(acceptFormat: 'json')] PlanRequirementInput $input,
+    ): JsonResponse {
+        \assert(null !== $input->requireApproval);
+        $command = new SetPlanRequirement($request->getId(), $input->requireApproval);
+
+        return $this->result($request, $this->commands->setPlanRequirement($command, $this->currentActor->get()));
     }
 
     /**

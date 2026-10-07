@@ -91,6 +91,7 @@ export const ACTIONS = [
     'propose_solution',
     'approve_proposal',
     'reject_proposal',
+    'set_plan_requirement',
 ] as const;
 export type KnownAction = (typeof ACTIONS)[number];
 export type Action = OpenSet<KnownAction>;
@@ -113,6 +114,8 @@ export const EVENT_TYPES = [
     'request.proposed',
     'request.proposal_approved',
     'request.proposal_rejected',
+    'request.plan_required',
+    'request.plan_waived',
     'batch.submitted',
 ] as const;
 export type KnownEventType = (typeof EVENT_TYPES)[number];
@@ -134,6 +137,8 @@ export const THREAD_ENTRY_TYPES = [
     'request.proposed',
     'request.proposal_approved',
     'request.proposal_rejected',
+    'request.plan_required',
+    'request.plan_waived',
 ] as const;
 export type KnownThreadEntryType = (typeof THREAD_ENTRY_TYPES)[number];
 export type ThreadEntryType = OpenSet<KnownThreadEntryType>;

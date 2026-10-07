@@ -30,6 +30,7 @@ use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\RequestCommand;
+use App\Domain\Request\Command\SetPlanRequirement;
 use App\Domain\Request\Command\UnlinkCommit;
 use App\Domain\Request\Command\Verify;
 use App\Domain\Request\CommitLinkState;
@@ -249,6 +250,14 @@ final class RequestCommands
      * @return list<RecordedEvent>
      */
     public function rejectProposal(RejectProposal $command, Actor $actor): array
+    {
+        return $this->run($this->reviewOf($command->requestId), $command, $actor);
+    }
+
+    /**
+     * @return list<RecordedEvent> Empty when the value does not change
+     */
+    public function setPlanRequirement(SetPlanRequirement $command, Actor $actor): array
     {
         return $this->run($this->reviewOf($command->requestId), $command, $actor);
     }

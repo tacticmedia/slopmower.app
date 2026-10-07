@@ -13,6 +13,8 @@ use App\Domain\Event\RecordedEvent;
 use App\Domain\Event\RequestClaimedEvent;
 use App\Domain\Event\RequestCommentedEvent;
 use App\Domain\Event\RequestOpenedEvent;
+use App\Domain\Event\RequestPlanRequiredEvent;
+use App\Domain\Event\RequestPlanWaivedEvent;
 use App\Domain\Event\RequestProposalApprovedEvent;
 use App\Domain\Event\RequestProposalRejectedEvent;
 use App\Domain\Event\RequestProposedEvent;
@@ -90,6 +92,8 @@ final class RequestReducer
             $event instanceof RequestProposedEvent => ['proposal' => new Proposal($recorded->id, ProposalState::Pending)],
             $event instanceof RequestProposalApprovedEvent => ['proposal' => self::decided($state, $event->proposalEventId, ProposalState::Approved)],
             $event instanceof RequestProposalRejectedEvent => ['proposal' => self::decided($state, $event->proposalEventId, ProposalState::Rejected)],
+            $event instanceof RequestPlanRequiredEvent => ['requireApproval' => true],
+            $event instanceof RequestPlanWaivedEvent => ['requireApproval' => false],
             default => null,
         };
 

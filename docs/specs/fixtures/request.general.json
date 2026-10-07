@@ -57,5 +57,5 @@
   ],
   "commits": [],
   "pullRequestUrls": [],
-  "allowedActions": ["reply", "mark_wont_do"]
+  "allowedActions": ["reply", "mark_wont_do", "set_plan_requirement"]
 }

@@ -12,8 +12,8 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 /**
  * Architecture section 6 and docs/specs/rest-api-requests.md section 1. Each state has one available link, and the claiming agent
  * holds the in_progress request. Inputs are valid: link_commits names a new commit, unlink_commit the linked one,
- * link_pull_request a pull request of the review's GitHub repository, and a proposal decision the current proposal,
- * or a new ID when none is pending.
+ * link_pull_request a pull request of the review's GitHub repository, a proposal decision the current proposal,
+ * or a new ID when none is pending, and set_plan_requirement the other value.
  */
 final class TransitionMatrixTest extends KernelTestCase
 {
@@ -31,6 +31,8 @@ final class TransitionMatrixTest extends KernelTestCase
     private const string PROPOSED = 'request.proposed';
     private const string APPROVED = 'request.proposal_approved';
     private const string REJECTED = 'request.proposal_rejected';
+    private const string PLAN_REQUIRED = 'request.plan_required';
+    private const string PLAN_WAIVED = 'request.plan_waived';
 
     /**
      * Columns: open, in_progress, ready_for_review, verified, reopened, wont_do by agent, wont_do by user, then the
@@ -99,6 +101,11 @@ final class TransitionMatrixTest extends KernelTestCase
         ],
         'reject_proposal' => [
             'user' => [self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::REJECTED, self::T, self::T, self::T],
+            'claiming agent' => [self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T],
+            'another agent' => [self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T],
+        ],
+        'set_plan_requirement' => [
+            'user' => [self::PLAN_REQUIRED, self::PLAN_REQUIRED, self::T, self::T, self::PLAN_REQUIRED, self::T, self::T, self::PLAN_REQUIRED, self::PLAN_REQUIRED, self::PLAN_WAIVED, self::PLAN_WAIVED],
             'claiming agent' => [self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T],
             'another agent' => [self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T, self::T],
         ],

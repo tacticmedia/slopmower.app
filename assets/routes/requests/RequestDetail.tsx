@@ -84,7 +84,7 @@ export function RequestDetail() {
                         </ul>
                     </div>
                 )}
-                <RequestActions key={request.id} allowedActions={request.allowedActions} />
+                <RequestActions key={request.id} allowedActions={request.allowedActions} requireApproval={request.requireApproval} />
             </header>
             {'closed' === request.reviewState && (
                 <Banner variant="warning" title="This review is closed and read-only" data-testid="review-closed" description="The request can be read, but not changed." />

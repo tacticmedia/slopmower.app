@@ -117,7 +117,7 @@ final class OpenRequestTest extends WebTestCase
             'status' => 'open', 'awaiting' => 'agent', 'resolution' => null, 'closed' => false, 'author' => $author,
             'claimedBy' => null, 'claimedAt' => null, 'commentCount' => 0, 'commitCount' => 0, 'pendingCommitCount' => 0, 'outdated' => null,
             'createdAt' => '2026-09-29T07:10:00Z', 'updatedAt' => '2026-09-29T07:10:00Z', 'reviewState' => 'open', 'location' => $location, 'excerpt' => null,
-            'commits' => [], 'allowedActions' => ['reply', 'mark_wont_do'],
+            'commits' => [], 'allowedActions' => ['reply', 'mark_wont_do', 'set_plan_requirement'],
         ];
         self::assertSame($expected, array_intersect_key($opened, $expected));
         self::assertSame(

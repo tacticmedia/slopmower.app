@@ -14,13 +14,13 @@ export type ProposalView = {
     state: ProposalState | 'superseded' | 'withdrawn';
 };
 
-/** A thread entry with a body, a diff, a pull request, or an approval. */
+/** A thread entry with a body, a diff, or a pull request, or an entry of {@link BODILESS_TYPES}. */
 export type CommentView = {
     key: string;
     type: ThreadEntryType;
     author: Actor;
     occurredAt: DateTime;
-    /** Null only for an approval or a pull request link without a note. */
+    /** Null for an entry of {@link BODILESS_TYPES} or a pull request link without a note. */
     body: string | null;
     pullRequestUrl: PullRequestUrl | null;
     question: boolean;
@@ -47,15 +47,18 @@ export type ThreadView = {
     carriedFrom: CarriedFrom | null;
 };
 
+/** Entries that show without a body, a diff, or a pull request: their caption says what happened. */
+const BODILESS_TYPES: readonly ThreadEntryType[] = ['request.proposal_approved', 'request.plan_required', 'request.plan_waived'];
+
 /**
- * Entries without a body, a diff, or a pull request, such as a claim, are left out. An approval without a note stays.
+ * Entries without a body, a diff, or a pull request, such as a claim, are left out, except {@link BODILESS_TYPES}.
  */
 export function threadView(request: ReviewRequest): ThreadView {
     const range = request.anchor?.range ?? null;
     const comments: CommentView[] = [];
 
     for (const [index, entry] of request.thread.entries()) {
-        if (null !== entry.body || null !== entry.diff || null !== entry.pullRequestUrl || 'request.proposal_approved' === entry.type) {
+        if (null !== entry.body || null !== entry.diff || null !== entry.pullRequestUrl || BODILESS_TYPES.includes(entry.type)) {
             comments.push({
                 key: entry.eventId,
                 type: entry.type,

@@ -65,6 +65,10 @@ export type RejectProposalInput = {
     note: Markdown;
 };
 
+export type PlanRequirementInput = {
+    requireApproval: boolean;
+};
+
 export type LinkCommitsInput = {
     commitSha: CommitSha;
     requestIds: Ulid[];

@@ -15,6 +15,8 @@ use App\Domain\Event\PullRequestLinkedEvent;
 use App\Domain\Event\RequestClaimedEvent;
 use App\Domain\Event\RequestCommentedEvent;
 use App\Domain\Event\RequestOpenedEvent;
+use App\Domain\Event\RequestPlanRequiredEvent;
+use App\Domain\Event\RequestPlanWaivedEvent;
 use App\Domain\Event\RequestProposalApprovedEvent;
 use App\Domain\Event\RequestProposalRejectedEvent;
 use App\Domain\Event\RequestProposedEvent;
@@ -43,6 +45,7 @@ use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\RequestCommand;
+use App\Domain\Request\Command\SetPlanRequirement;
 use App\Domain\Request\Command\UnlinkCommit;
 use App\Domain\Request\Command\Verify;
 use App\Domain\Review\ReviewSnapshot;
@@ -111,6 +114,10 @@ final class RequestDecider
             self::assertCommitsAvailable($state);
         }
 
+        if ($command instanceof SetPlanRequirement && $command->requireApproval === $state->requireApproval) {
+            return [];
+        }
+
         $event = match (true) {
             $command instanceof Reply => new RequestCommentedEvent(CommentId::generate(), $command->body, $command->question, $command->batchId),
             $command instanceof Claim => new RequestClaimedEvent(),
@@ -123,6 +130,7 @@ final class RequestDecider
             $command instanceof ProposeSolution => new RequestProposedEvent($command->plan, null === $command->diff ? null : ProposedDiff::fromString($command->diff)),
             $command instanceof ApproveProposal => new RequestProposalApprovedEvent($command->proposalEventId, $command->note),
             $command instanceof RejectProposal => new RequestProposalRejectedEvent($command->proposalEventId, $command->note),
+            $command instanceof SetPlanRequirement => $command->requireApproval ? new RequestPlanRequiredEvent() : new RequestPlanWaivedEvent(),
             default => throw new \LogicException('No event for '.$command::class.'.'),
         };
 
@@ -306,6 +314,7 @@ final class RequestDecider
             $command instanceof ProposeSolution => Action::ProposeSolution,
             $command instanceof ApproveProposal => Action::ApproveProposal,
             $command instanceof RejectProposal => Action::RejectProposal,
+            $command instanceof SetPlanRequirement => Action::SetPlanRequirement,
             default => throw new \LogicException('No action for '.$command::class.'.'),
         };
     }

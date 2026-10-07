@@ -177,6 +177,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Agent proposals, decision D49: `link_commits` and `mark_ready_for_review` are refused while a proposal is pending or rejected, and while `requireApproval` holds without an approved proposal. `awaiting` rule 2 counts a proposal decision as a user message, and rule 3 also matches a pending proposal. `request.opened` has the payload field `requireApproval`, read as false when missing. New: the actions `propose_solution`, `approve_proposal`, and `reject_proposal`, three event and thread entry types, the closed set `ProposalState` on the new property `proposal`, and `diff` in `Event` and `ThreadEntry`.
     - Pull request links, decision D50: the endpoint Q17 and the tool `link_pull_request`, the `Action` value `link_pull_request`, the `EventType` and `ThreadEntryType` value `pull_request.linked`, `Request.pullRequestUrls`, and `pullRequestUrl` in `ThreadEntry` and `Event`. All are additive. On an `in_progress` request, the gate of D49 applies to `link_pull_request` as to `link_commits`.
     - Q9 file order, decision D51: `files` of `CommitDiff` lists the files that touch the anchor first, then the other files in the order of `git diff-tree`. It is the order that the server returns, so no client sees a change.
+    - Plan requirement changes, decision D52: the endpoint Q18, the `Action` value `set_plan_requirement`, the `EventType` and `ThreadEntryType` values `request.plan_required` and `request.plan_waived`, and the input `PlanRequirementInput`. All are additive. `requireApproval` changes after the request opens, and the gate of D49 uses its current value.
 
 ## 9. Contract tests
 
@@ -270,6 +271,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.open-general-request.json](fixtures/inputs.open-general-request.json) | `inputs.schema.json#/$defs/OpenRequestInput` | Q2 |
 | [inputs.open-request-approval.json](fixtures/inputs.open-request-approval.json) | `inputs.schema.json#/$defs/OpenRequestInput` | Q2 with "Ask for a plan first" |
 | [inputs.open-request.json](fixtures/inputs.open-request.json) | `inputs.schema.json#/$defs/OpenRequestInput` | Q2 |
+| [inputs.plan-requirement.json](fixtures/inputs.plan-requirement.json) | `inputs.schema.json#/$defs/PlanRequirementInput` | Q18 |
 | [inputs.propose-solution.json](fixtures/inputs.propose-solution.json) | `inputs.schema.json#/$defs/ProposeSolutionInput` | Q14, `propose_solution` |
 | [inputs.ready.json](fixtures/inputs.ready.json) | `inputs.schema.json#/$defs/RequiredNoteInput` | Q10, Q13 |
 | [inputs.reject-proposal.json](fixtures/inputs.reject-proposal.json) | `inputs.schema.json#/$defs/RejectProposalInput` | Q16 |

@@ -113,7 +113,7 @@
     },
     "requireApproval": {
       "type": "boolean",
-      "description": "\"Ask for a plan first\": link_commits and mark_ready_for_review need an approved proposal. Fixed when the request opens."
+      "description": "\"Ask for a plan first\": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18."
     },
     "proposal": {
       "anyOf": [

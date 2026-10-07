@@ -65,9 +65,9 @@ final class EntityRoundTripTest extends KernelTestCase
         $review = self::newReview($tenantId);
         $review->project(new ReviewSnapshot($review->getId(), $review->getTitle(), $review->getRef(), $review->getCommitSha(), $review->getStartedBy(), $review->getCreatedAt(), $time, RequestScenario::user(), 'Shipped in 2.4'), 9);
         $claimed = self::newRequest($review, self::symbolAnchor());
-        $claimed->project(RequestStatus::InProgress, RequestStatus::Reopened, $agent, $time, null, null, Awaiting::Agent, 7, 6, true, 8, $time, new Proposal(EventId::generate(), ProposalState::Pending), [PullRequestUrl::fromString(RequestScenario::PULL_REQUEST)]);
+        $claimed->project(RequestStatus::InProgress, RequestStatus::Reopened, $agent, $time, null, null, Awaiting::Agent, 7, 6, true, 8, $time, true, new Proposal(EventId::generate(), ProposalState::Pending), [PullRequestUrl::fromString(RequestScenario::PULL_REQUEST)]);
         $wontDo = self::newRequest($review, self::symbolAnchor());
-        $wontDo->project(RequestStatus::WontDo, null, null, null, ActorKind::Agent, Resolution::WontDo, Awaiting::User, null, 5, false, 5, $time, null, []);
+        $wontDo->project(RequestStatus::WontDo, null, null, null, ActorKind::Agent, Resolution::WontDo, Awaiting::User, null, 5, false, 5, $time, false, null, []);
         $comment = new Comment(CommentId::generate(), $claimed, $agent, 'Should this also cover the shipping totals?', true, BatchId::generate(), $time);
         $pending = new CommitLink($claimed, CommitSha::fromString(RequestScenario::OTHER_COMMIT), $agent, $time, 'Extracted TaxRounding.');
         $available = new CommitLink($claimed, CommitSha::fromString(RequestScenario::LINKED_COMMIT), $agent, $time, null);

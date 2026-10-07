@@ -11,6 +11,7 @@ import type {
     CreateDraftInput,
     OpenRequestInput,
     OptionalNoteInput,
+    PlanRequirementInput,
     RejectProposalInput,
     RequiredNoteInput,
     SubmitDraftsInput,
@@ -43,14 +44,20 @@ type Tracking = {
     lastAgentEventIsQuestion: boolean;
 };
 
-type Transition = { status?: RequestStatus; resolution?: Resolution | null; proposal?: Proposal | null };
+type Transition = { status?: RequestStatus; resolution?: Resolution | null; proposal?: Proposal | null; requireApproval?: boolean };
 
 type ThreadEntry = Request['thread'][number];
 
 const LANGUAGES: Record<string, string> = { php: 'php', md: 'markdown' };
 
-/** The `allowedActions` value of each command path of Q4, Q11 to Q13, Q15, and Q16. */
-const COMMAND_ACTIONS: Record<string, string> = { comments: 'reply', 'wont-do': 'mark_wont_do', 'approve-proposal': 'approve_proposal', 'reject-proposal': 'reject_proposal' };
+/** The `allowedActions` value of each command path of Q4, Q11 to Q13, Q15, Q16, and Q18. */
+const COMMAND_ACTIONS: Record<string, string> = {
+    comments: 'reply',
+    'wont-do': 'mark_wont_do',
+    'approve-proposal': 'approve_proposal',
+    'reject-proposal': 'reject_proposal',
+    'plan-requirement': 'set_plan_requirement',
+};
 
 /** Rules 1 to 5 of architecture section 6, as `AwaitingPolicy` applies them. A proposal decision is a user message. */
 function awaitingOf(status: RequestStatus, closed: boolean, tracking: Tracking, proposal: Proposal | null): Awaiting {
@@ -67,7 +74,7 @@ function awaitingOf(status: RequestStatus, closed: boolean, tracking: Tracking, 
     return 'ready_for_review' === status || 'wont_do' === status ? 'user' : 'agent';
 }
 
-/** One review of the docs/specs REST API in memory: V3, V4, V6 to V9, V11 to V13, Q1 to Q4, Q6, Q11 to Q13, Q15, Q16, and D1 to D5, for the user of `me.local-user.json`. */
+/** One review of the docs/specs REST API in memory: V3, V4, V6 to V9, V11 to V13, Q1 to Q4, Q6, Q11 to Q13, Q15, Q16, Q18, and D1 to D5, for the user of `me.local-user.json`. */
 export class FakeReview {
     review: Review;
     requests: Request[] = [];
@@ -232,6 +239,7 @@ export class FakeReview {
             proposal,
             awaiting: awaitingOf(status, closed, tracking, proposal),
             resolution: undefined === transition.resolution ? current.resolution : transition.resolution,
+            requireApproval: transition.requireApproval ?? current.requireApproval,
             commentCount: current.commentCount + ('request.commented' === entry.type ? 1 : 0),
             thread: [...current.thread, entry],
             updatedAt: entry.occurredAt,
@@ -268,6 +276,14 @@ export class FakeReview {
                 const { proposalEventId, note } = input as RejectProposalInput;
 
                 return this.#apply(id, this.#entry('request.proposal_rejected', USER, note, status), { proposal: { eventId: proposalEventId, state: 'rejected' } });
+            }
+            case 'plan-requirement': {
+                const { requireApproval } = input as PlanRequirementInput;
+                if (requireApproval === this.find(id).requireApproval) {
+                    throw new Error('The fake changes the plan requirement only to the other value.');
+                }
+
+                return this.#apply(id, this.#entry(requireApproval ? 'request.plan_required' : 'request.plan_waived', USER, null, status), { requireApproval });
             }
             default:
                 throw new Error(`The fake knows no command ${command}.`);

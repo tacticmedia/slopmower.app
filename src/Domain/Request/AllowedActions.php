@@ -48,6 +48,7 @@ final class AllowedActions
             Action::Reopen => $isUser && in_array($status, [RequestStatus::ReadyForReview, RequestStatus::WontDo, RequestStatus::Verified], true),
             Action::ProposeSolution => $holds,
             Action::ApproveProposal, Action::RejectProposal => $isUser && $inProgress && true === $state->proposal?->isPending(),
+            Action::SetPlanRequirement => $isUser && ($openOrReopened || $inProgress),
         };
     }
 }

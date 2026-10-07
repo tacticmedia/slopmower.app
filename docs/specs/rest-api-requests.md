@@ -21,6 +21,7 @@ This file continues [rest-api.md](rest-api.md). That file has the conventions, t
 | propose | [Q14](#q14-propose-a-solution) | `propose_solution` | the claiming agent | `in_progress` | unchanged | `request.proposed` | A new proposal replaces the current one |
 | approve proposal | [Q15](#q15-approve-a-proposal) | none | user | `in_progress` with a pending proposal | unchanged | `request.proposal_approved` | 409 |
 | reject proposal | [Q16](#q16-reject-a-proposal) | none | user | `in_progress` with a pending proposal | unchanged | `request.proposal_rejected` | 409 |
+| plan requirement | [Q18](#q18-change-the-plan-requirement) | none | user | `open`, `reopened`, `in_progress` | unchanged | `request.plan_required` or `request.plan_waived` | The current value: 200, no event, `events: []` |
 
 Rules:
 
@@ -41,7 +42,7 @@ General requests: a request with `anchor: null` belongs to the whole review and 
 Proposals: the claiming agent proposes a solution in the thread, a Markdown plan with an optional unified diff, before it links commits.
 
 - `proposal` is the current proposal of the claim: `{eventId, state}` with the state `pending`, `approved`, or `rejected`, else null. A new proposal replaces the current one, whatever its state. Release, won't do, and reopen set it to null, so after a reopen the agent proposes again. `ready_for_review` and `verified` keep it.
-- `requireApproval` ("Ask for a plan first") is set when the request opens and does not change after that. A carried request keeps the value of its source.
+- `requireApproval` ("Ask for a plan first") is set when the request opens. The user changes it with [Q18](#q18-change-the-plan-requirement) while the request is `open`, `reopened`, or `in_progress`. A carried request keeps the value of its source.
 - The proposal gate is open when `proposal` is null or approved, and approved when `requireApproval` is true. `link_commits` and `mark_ready_for_review` need it, and so does `link_pull_request` on an `in_progress` request. So a pending or rejected proposal always blocks them.
 - A decision names the proposal in `proposalEventId`. While a proposal is pending, another ID gives 422 `invalid_input`, so the user never approves a proposal that a newer one replaced. Without a pending proposal, the decision gets 409 `invalid_transition`.
 - A decision counts as a user message for `awaiting` rule 2, and a pending proposal waits for the user by rule 3.
@@ -63,6 +64,7 @@ Proposals: the claiming agent proposes a solution in the thread, a Markdown plan
 | `propose_solution` | `in_progress` and claimed by the caller | never |
 | `approve_proposal` | never | `in_progress` with a pending proposal |
 | `reject_proposal` | never | `in_progress` with a pending proposal |
+| `set_plan_requirement` | never | `open`, `reopened`, `in_progress` |
 
 ## 2. Queries
 
@@ -411,6 +413,16 @@ Example body, [fixtures/inputs.link-pull-request.json](fixtures/inputs.link-pull
 ```json
 {"url":"https://github.com/acme/billing/pull/42","requestIds":["01K6B3P2A9QRSTVWXYZ0123456","01K6B3P2A9QRSTVWXYZ0123457"],"note":"One pull request for both requests."}
 ```
+
+### Q18 Change the plan requirement
+
+- **Request:** `POST /api/v1/requests/{requestId}/plan-requirement`
+- **Authentication:** S
+- **Body:** [`PlanRequirementInput`](schemas/inputs.schema.json), `{requireApproval}`. Example: [fixtures/inputs.plan-requirement.json](fixtures/inputs.plan-requirement.json).
+- **Success:** 200 `RequestCommandResult` with one `request.plan_required` event when `requireApproval` becomes true, or one `request.plan_waived` event when it becomes false. Both have `body` null. The current value writes no event and gives `events: []`.
+- **Errors:** 409 `invalid_transition`: the request is `ready_for_review`, `wont_do`, or `verified`; 409 `review_closed`.
+
+The proposal gate uses the new value at once. On an `in_progress` request without an approved proposal, `true` refuses `link_commits`, `mark_ready_for_review`, and `link_pull_request` until the user approves a proposal. `false` opens the gate when `proposal` is null. A pending or rejected proposal still blocks. The two events are no user message for `awaiting` rule 2, so they never hand the turn to the agent. The agent reads `requireApproval` in `get_request`, and the message of a refused command says that the request asks for a plan first. No MCP tool changes the value.
 
 ## 4. Updates
 

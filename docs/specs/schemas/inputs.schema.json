@@ -118,7 +118,7 @@
         "requireApproval": {
           "type": ["boolean", "null"],
           "default": false,
-          "description": "\"Ask for a plan first\". Fixed when the request opens."
+          "description": "\"Ask for a plan first\". Q18 changes it later."
         }
       }
     },
@@ -210,6 +210,16 @@
         "note": {
           "$ref": "common.schema.json#/$defs/Markdown",
           "description": "The changes that the user asks for."
+        }
+      }
+    },
+    "PlanRequirementInput": {
+      "type": "object",
+      "required": ["requireApproval"],
+      "properties": {
+        "requireApproval": {
+          "type": "boolean",
+          "description": "The new value of \"Ask for a plan first\"."
         }
       }
     },

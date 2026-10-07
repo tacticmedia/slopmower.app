@@ -1,13 +1,15 @@
 import { Button } from '@primer/react';
 import { InlineMessage } from '@primer/react/experimental';
 import type { Action } from '../api/types/common';
-import { BUTTON_LABELS, type RequestButton, requestButtons } from './allowedActions';
+import { buttonLabel, type RequestButton, requestButtons } from './allowedActions';
 import { NoteDialog, type NoteDialogSpec } from './NoteDialog';
 import type { RequestCommandIntent } from './requestIntent';
 import styles from './Requests.module.css';
 import { useRequestCommand } from './useRequestCommand';
 
-type DialogButton = Exclude<RequestButton, 'verify'>;
+type OneClickButton = 'verify' | 'set_plan_requirement';
+
+type DialogButton = Exclude<RequestButton, OneClickButton>;
 
 const DIALOGS: Record<DialogButton, NoteDialogSpec> = {
     reopen: {
@@ -36,6 +38,10 @@ const DIALOGS: Record<DialogButton, NoteDialogSpec> = {
     },
 };
 
+function oneClickIntent(button: OneClickButton, requireApproval: boolean): RequestCommandIntent {
+    return 'verify' === button ? { intent: 'verify', input: {} } : { intent: 'set_plan_requirement', input: { requireApproval: !requireApproval } };
+}
+
 function dialogIntent(button: DialogButton, text: string): RequestCommandIntent {
     switch (button) {
         case 'reopen':
@@ -50,7 +56,7 @@ function dialogIntent(button: DialogButton, text: string): RequestCommandIntent 
 /**
  * The buttons follow `allowedActions` of Q3.
  */
-export function RequestActions({ allowedActions }: { allowedActions: readonly Action[] }) {
+export function RequestActions({ allowedActions, requireApproval }: { allowedActions: readonly Action[]; requireApproval: boolean }) {
     const { busy, sent, error, dialog, opener, send, openDialog, closeDialog } = useRequestCommand<DialogButton>();
     const buttons = requestButtons(allowedActions);
 
@@ -62,13 +68,19 @@ export function RequestActions({ allowedActions }: { allowedActions: readonly Ac
         <div className={styles.requestActions} data-testid="request-actions">
             <div className={styles.buttons}>
                 {buttons.map((button) =>
-                    'verify' === button ? (
-                        <Button key={button} variant="primary" onClick={() => send({ intent: 'verify', input: {} })} loading={'verify' === sent} disabled={busy}>
-                            {BUTTON_LABELS[button]}
+                    'verify' === button || 'set_plan_requirement' === button ? (
+                        <Button
+                            key={button}
+                            variant={'verify' === button ? 'primary' : 'default'}
+                            onClick={() => send(oneClickIntent(button, requireApproval))}
+                            loading={button === sent}
+                            disabled={busy}
+                        >
+                            {buttonLabel(button, requireApproval)}
                         </Button>
                     ) : (
                         <Button key={button} onClick={(event) => openDialog(button, event)} disabled={busy}>
-                            {BUTTON_LABELS[button]}
+                            {buttonLabel(button, requireApproval)}
                         </Button>
                     ),
                 )}

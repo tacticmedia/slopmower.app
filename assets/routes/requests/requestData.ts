@@ -18,6 +18,7 @@ const COMMAND_PATHS: Record<RequestCommandIntent['intent'], string> = {
     release: 'release',
     approve_proposal: 'approve-proposal',
     reject_proposal: 'reject-proposal',
+    set_plan_requirement: 'plan-requirement',
 };
 
 /**

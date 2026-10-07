@@ -65,7 +65,9 @@ New replies from the agent show in the open request without a reload.
 
 ## Ask for a plan first
 
-Every comment box of a new request has the checkbox **Ask for a plan first**. It is checked by default. You cannot change it after the request is open. The request shows **Plan required**.
+Every comment box of a new request has the checkbox **Ask for a plan first**. It is checked by default. The request shows **Plan required**.
+
+To change it later, for example when a small request turns out to be risky, open the request and click **Ask for a plan first** or **Don't ask for a plan**. This works while the request is open, reopened, or in progress. The thread shows the change. When you switch it on while the agent works and no proposal is approved, the agent links no commit until you approve one.
 
 With the checkbox, the agent proposes a solution before it commits: a plan, and for a straightforward change a diff. An agent can also propose on any other request, for example when the request is unclear. **Plan to approve** shows while a proposal waits for you: in the list of requests, on the thread in the code, and in the file header of a file with such a thread.
 

@@ -33,6 +33,7 @@ import inputsLinkPullRequest from '../../docs/specs/fixtures/inputs.link-pull-re
 import inputsOpenGeneralRequest from '../../docs/specs/fixtures/inputs.open-general-request.json';
 import inputsOpenRequestApproval from '../../docs/specs/fixtures/inputs.open-request-approval.json';
 import inputsOpenRequest from '../../docs/specs/fixtures/inputs.open-request.json';
+import inputsPlanRequirement from '../../docs/specs/fixtures/inputs.plan-requirement.json';
 import inputsProposeSolution from '../../docs/specs/fixtures/inputs.propose-solution.json';
 import inputsReady from '../../docs/specs/fixtures/inputs.ready.json';
 import inputsRejectProposal from '../../docs/specs/fixtures/inputs.reject-proposal.json';
@@ -103,6 +104,7 @@ import type {
     LinkPullRequestInput,
     OpenRequestInput,
     OptionalNoteInput,
+    PlanRequirementInput,
     ProposeSolutionInput,
     RejectProposalInput,
     RequiredNoteInput,
@@ -183,6 +185,7 @@ const checkedFixtures = {
     'inputs.open-general-request.json': inputsOpenGeneralRequest satisfies Widen<OpenRequestInput>,
     'inputs.open-request-approval.json': inputsOpenRequestApproval satisfies Widen<OpenRequestInput>,
     'inputs.open-request.json': inputsOpenRequest satisfies Widen<OpenRequestInput>,
+    'inputs.plan-requirement.json': inputsPlanRequirement satisfies Widen<PlanRequirementInput>,
     'inputs.propose-solution.json': inputsProposeSolution satisfies Widen<ProposeSolutionInput>,
     'inputs.ready.json': inputsReady satisfies Widen<RequiredNoteInput>,
     'inputs.reject-proposal.json': inputsRejectProposal satisfies Widen<RejectProposalInput>,

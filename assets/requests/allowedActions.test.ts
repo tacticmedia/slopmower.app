@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { BUTTON_LABELS, requestButtons } from './allowedActions';
+import { buttonLabel, requestButtons } from './allowedActions';
 
 describe('AllowedActionsMappingTest', () => {
     it('Maps each allowed action to its button and ignores unknown actions', () => {
-        const labels = (actions: string[]): string[] => requestButtons(actions).map((button) => BUTTON_LABELS[button]);
+        const labels = (actions: string[]): string[] => requestButtons(actions).map((button) => buttonLabel(button, false));
 
         expect(labels(['release', 'reply', 'mark_wont_do', 'claim', 'link_commits', 'reopen', 'escalate', 'verify'])).toEqual([
             'Resolve conversation',

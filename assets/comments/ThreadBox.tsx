@@ -16,7 +16,7 @@ import { type CommentView, linesText, pendingComment, type ThreadView } from './
 // A separate chunk, so the Markdown libraries stay out of the bundles that import this box.
 const MarkdownBody = lazy(() => import('./MarkdownBody').then(({ MarkdownBody }) => ({ default: MarkdownBody })));
 
-/** What a thread entry with a body or a pull request did, after the author name. */
+/** What a thread entry did, after the author name. */
 const CAPTIONS: Record<string, string> = {
     'commit.linked': 'linked a commit',
     'pull_request.linked': 'linked a pull request',
@@ -28,6 +28,8 @@ const CAPTIONS: Record<string, string> = {
     'request.proposed': 'proposed a solution',
     'request.proposal_approved': 'approved the proposal',
     'request.proposal_rejected': 'requested changes',
+    'request.plan_required': 'asked for a plan first',
+    'request.plan_waived': 'no longer asks for a plan',
 };
 
 type Props = {
