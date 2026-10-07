@@ -45,7 +45,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F27 | [Symbols through tree-sitter](F27-symbols-through-tree-sitter.md) | Not started | | |
 | F28 | [RDS authentication](F28-rds-authentication.md) | Done 2026-10-08, [report](reports/F28.md) | a551ec9 | src 428 PHP / 28337 lines, 428 types; tests 289 PHP / 25730 lines; assets 155 TS / 8977 lines |
 | F29 | [Symbols for Python, Go, and Rust](F29-symbols-for-python-go-rust.md) | Not started, after F27 | | |
-| F30 | [Sign in after sign-out](F30-sign-in-after-sign-out.md) | Done 2026-10-08, [report](reports/F30.md) | | src 429 PHP / 28362 lines, 429 types; tests 289 PHP / 25747 lines; assets 155 TS / 8977 lines |
+| F30 | [Sign in after sign-out](F30-sign-in-after-sign-out.md) | Done 2026-10-08, [report](reports/F30.md) | bd375ca | src 429 PHP / 28362 lines, 429 types; tests 289 PHP / 25747 lines; assets 155 TS / 8977 lines |
 
 ## Candidates
 
