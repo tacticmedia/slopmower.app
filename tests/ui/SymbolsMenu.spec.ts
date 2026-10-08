@@ -50,6 +50,6 @@ test.describe('SymbolsMenu', () => {
 
         await expect(page.getByRole('option')).toHaveText([/^InvoiceTotals/, /^total\(\)/, /^formatCents\(\)/]);
         await expect(page.getByRole('group', { name: 'InvoiceTotals' }).getByRole('option')).toHaveText([/^InvoiceTotals/, /^total\(\)/]);
-        await expect(page.getByRole('group', { name: 'Functions and constants' }).getByRole('option')).toHaveText([/^formatCents\(\)/]);
+        await expect(page.getByRole('group', { name: 'Top level' }).getByRole('option')).toHaveText([/^formatCents\(\)/]);
     });
 });

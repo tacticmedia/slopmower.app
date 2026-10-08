@@ -43,7 +43,7 @@ export function SymbolsMenu({ symbols, failed, onChoose }: Props) {
         [groups, duplicates, onChoose],
     );
     const groupMetadata = useMemo(
-        () => groups.map(({ id }) => ({ groupId: id, header: { title: TOP_LEVEL_GROUP === id ? 'Functions and constants' : id, variant: 'subtle' as const } })),
+        () => groups.map(({ id }) => ({ groupId: id, header: { title: TOP_LEVEL_GROUP === id ? 'Top level' : id, variant: 'subtle' as const } })),
         [groups],
     );
 

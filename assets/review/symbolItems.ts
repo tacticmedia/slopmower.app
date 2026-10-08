@@ -4,7 +4,7 @@ import { CLASS_LIKE_KINDS, symbolShortName } from '../code/symbolMatch';
 /** More options make the menu slow to open. The filter reaches the rest. */
 export const MAX_SHOWN_SYMBOLS = 200;
 
-/** The group of the functions and constants outside a class-like. */
+/** The group of the symbols without a container, "Top level" in the menu. */
 export const TOP_LEVEL_GROUP = '';
 
 export type SymbolGroup = { id: string; symbols: CodeSymbol[] };
