@@ -15,7 +15,7 @@ The service extracts the symbols of every [symbol language](architecture.md#symb
 | Build tools | None. |
 | Memory | About 150 MB resident after start, with the 14 languages loaded. |
 | Disk | About 260 MB for `symbols/node_modules`. |
-| Port | TCP 3000, from `PORT` in `symbols/src/server.ts`. No environment variable changes it. |
+| Address | `127.0.0.1:3000` by default. `SYMBOLS_HOST` and `SYMBOLS_PORT` change it, see [Run](#run). |
 
 ### Install
 
@@ -33,15 +33,22 @@ npm ci --ignore-scripts --no-audit --no-fund
 node symbols/src/server.ts
 ```
 
-The service finds its grammars and queries relative to `src/server.ts`, so the working directory has no effect. `npm start` in `symbols/` runs the same command under an npm parent process. Run `node` directly, so that the process manager supervises and signals the service process itself.
+The service finds its grammars and queries relative to `src/server.ts`, so the working directory has no effect. `npm start` in `symbols/` adds an npm parent process. Run `node` directly, so that the process manager supervises and signals the service process itself.
+
+| Variable | Default | Value |
+|---|---|---|
+| `SYMBOLS_HOST` | `127.0.0.1` | The address to listen on. `0.0.0.0` or `::` listens on all interfaces. |
+| `SYMBOLS_PORT` | `3000` | The TCP port. |
+
+An empty value means the default. The `symbols` image sets `SYMBOLS_HOST=0.0.0.0`.
 
 Configure the process manager, for example a systemd unit, as follows:
 
 - Run the service as an unprivileged user. The user needs read access to `symbols/` only. The service writes no files.
-- Restart the service when it stops. It stops with exit code 1 when port 3000 is in use (`EADDRINUSE`), or when a grammar does not load.
+- Restart the service when it stops. It stops with exit code 1 when its port is in use (`EADDRINUSE`), when `SYMBOLS_PORT` is no valid port (`ERR_SOCKET_BAD_PORT`), or when a grammar does not load.
 - Stop it with `SIGTERM` or `SIGINT`. The server then accepts no new connections, and it stops when the open requests end.
 - Start the web server and the worker after the service is healthy. The service loads all grammars before it listens, so the first 200 from `/healthz` means that it is ready. Compose waits for the same check.
-- Collect stdout and stderr. The service writes one line at start with its languages, and a stack trace for each failed extraction.
+- Collect stdout and stderr. The service writes one line at start with its address and its languages, and a stack trace for each failed extraction.
 
 Check the service:
 
@@ -54,7 +61,7 @@ The first command gives `{"status":"ok"}`. The second gives `"parseError":false`
 
 ### Network access
 
-The service listens on all interfaces, `::` and on most systems also `0.0.0.0`. It has no authentication. Block TCP port 3000 for all clients but the hosts of the web server and the worker, with a firewall or a security group.
+The service has no authentication. With the default `SYMBOLS_HOST`, only processes on the same host reach it. When the web server or the worker runs on another host, set `SYMBOLS_HOST` to an address that they reach, and block the port for all other clients with a firewall or a security group.
 
 ### Configure the application
 
@@ -62,8 +69,8 @@ Set `SYMBOLS_URL` for every PHP process: the web server and each Messenger worke
 
 | Where the service runs | `SYMBOLS_URL` |
 |---|---|
-| On the host of the PHP process | `http://127.0.0.1:3000` |
-| On another host | `http://<host>:3000` |
+| On the host of the PHP process | `http://127.0.0.1:<SYMBOLS_PORT>` |
+| On another host | `http://<host>:<SYMBOLS_PORT>` |
 
 - The `.env` default `http://symbols:3000` resolves only in the Compose network.
 - Give the scheme, the host, and the port only. The client requests the absolute path `/v1/symbols`, so it drops a path in `SYMBOLS_URL`. With `http://proxy/symbols/`, the request goes to `http://proxy/v1/symbols`. A reverse proxy must serve the service at its root path.

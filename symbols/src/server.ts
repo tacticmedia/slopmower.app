@@ -1,8 +1,13 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { extract } from './extract.ts';
 import { loadLanguages } from './languages.ts';
 
-const PORT = 3000;
+/** The `symbols` image sets `0.0.0.0`. */
+const HOST = process.env.SYMBOLS_HOST || '127.0.0.1';
+
+/** Node refuses an invalid port, so the service stops. */
+const PORT = Number(process.env.SYMBOLS_PORT || 3000);
 
 /** The V7 limit of a renderable file. */
 const MAX_BLOB_BYTES = 1_048_576;
@@ -85,4 +90,8 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
     process.on(signal, () => server.close());
 }
 
-server.listen(PORT, () => console.log(`Listening on port ${PORT}: ${[...languages.keys()].join(', ')}.`));
+server.listen(PORT, HOST, () => {
+    const { address, family, port } = server.address() as AddressInfo;
+    const host = 'IPv6' === family ? `[${address}]` : address;
+    console.log(`Listening on ${host}:${port}: ${[...languages.keys()].join(', ')}.`);
+});

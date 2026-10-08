@@ -20,6 +20,8 @@ COPY --link symbols/queries queries
 
 USER node
 
+ENV SYMBOLS_HOST=0.0.0.0
+
 EXPOSE 3000
 
 CMD ["node", "src/server.ts"]
