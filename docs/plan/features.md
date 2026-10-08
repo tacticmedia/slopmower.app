@@ -52,7 +52,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F34 | [Double-submit CSRF on Twig forms](F34-double-submit-on-twig-forms.md) | Done 2026-10-08, [report](reports/F34.md) | 150b94b | src 434 PHP / 28715 lines, 434 types; tests 292 PHP / 26164 lines; assets 159 TS / 9201 lines |
 | F35 | [Top-level group label](F35-top-level-group-label.md) | Done 2026-10-08, [report](reports/F35.md) | d8bd49d | src 435 PHP / 28870 lines, 435 types; tests 293 PHP / 26238 lines; assets 159 TS / 9202 lines; check 3m38s |
 | F36 | [QA pipeline](F36-qa-pipeline.md) | Done 2026-10-08, [report](reports/F36.md) | bb166d4 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26294 lines; assets 159 TS / 9202 lines; check 3m36s |
-| F37 | [Symbols service address](F37-symbols-service-address.md) | In progress (2026-10-08) | | |
+| F37 | [Symbols service address](F37-symbols-service-address.md) | Done 2026-10-08, [report](reports/F37.md) | fd40975 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26294 lines; assets 159 TS / 9202 lines |
 
 ## Candidates
 
