@@ -393,4 +393,5 @@ Run `make db-test` once and after each migration. `make check` runs all gates. O
 | Work outside the proof of concept | [backlog/README.md](backlog/README.md) |
 | User documentation and the Agent Skill | [user/index.md](user/index.md), [user/skill/SKILL.md](user/skill/SKILL.md) |
 | Run the app and the checks | [README.md](../README.md) |
+| Deployment outside Docker Compose: the `symbols` service | [deployment.md](deployment.md) |
 | Symfony conventions | [AGENTS.md](../AGENTS.md) |
