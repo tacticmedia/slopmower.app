@@ -50,7 +50,8 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F32 | [Symbols for Java, C#, Ruby, Bash, Scala, Zig, and Lua](F32-symbols-for-more-languages.md) | Done 2026-10-08, [report](reports/F32.md) | c4cdf3e | src 435 PHP / 28740 lines, 435 types; tests 292 PHP / 26161 lines; assets 159 TS / 9201 lines; check 3m55s |
 | F33 | [Twig symbols](F33-twig-symbols.md) | Done 2026-10-08, [report](reports/F33.md) | e0363d4 | src 435 PHP / 28870 lines, 435 types; tests 293 PHP / 26238 lines; assets 159 TS / 9202 lines; check 3m58s |
 | F34 | [Double-submit CSRF on Twig forms](F34-double-submit-on-twig-forms.md) | Done 2026-10-08, [report](reports/F34.md) | 150b94b | src 434 PHP / 28715 lines, 434 types; tests 292 PHP / 26164 lines; assets 159 TS / 9201 lines |
-| F35 | [Top-level group label](F35-top-level-group-label.md) | Done 2026-10-08, [report](reports/F35.md) | | src 435 PHP / 28870 lines, 435 types; tests 293 PHP / 26238 lines; assets 159 TS / 9202 lines; check 3m38s |
+| F35 | [Top-level group label](F35-top-level-group-label.md) | Done 2026-10-08, [report](reports/F35.md) | d8bd49d | src 435 PHP / 28870 lines, 435 types; tests 293 PHP / 26238 lines; assets 159 TS / 9202 lines; check 3m38s |
+| F36 | [QA pipeline](F36-qa-pipeline.md) | In progress (2026-10-08) | | |
 
 ## Candidates
 
