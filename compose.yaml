@@ -26,6 +26,8 @@ services:
       HTTP_PORT: ${HTTP_PORT:-8000}
       MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET}
       APP_LOCAL_SIGN_IN: ${APP_LOCAL_SIGN_IN:-}
+      # Unset unless the shell sets it. The QA workflow sets it, so its Composer cache step sees what the entrypoint downloads.
+      COMPOSER_CACHE_DIR:
     ports:
       - 127.0.0.1:${HTTP_PORT:-8000}:80
     healthcheck:

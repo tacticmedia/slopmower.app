@@ -13,4 +13,3 @@ Work outside the proof of concept. Each item has the sections Why, What, Accepta
 | [Skill plugin](skill-plugin.md) | Distribute the skill and the MCP configuration as a Claude Code plugin |
 | [Shared MCP session store](mcp-session-store.md) | MCP sessions in PostgreSQL, for more than one `php` container |
 | [DynamoDB sessions](dynamodb-sessions.md) | Browser sessions in DynamoDB, for more than one `php` container |
-| [Quality-assurance pipeline](qa-pipeline.md) | GitHub Actions workflow that runs every test suite, linter, static analyzer, and audit on each push and pull request |

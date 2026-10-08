@@ -1,4 +1,5 @@
 # Per-checkout ports, for example `export HTTP_PORT=8101`, `export DATABASE_PORT=5501`, and `export UI_PORT=4101` in a worktree.
+# `export ACT_HTTP_PORT=...`, `ACT_DATABASE_PORT`, and `ACT_UI_PORT` override the ports of make act in .github/act.env.
 -include .env.make.local
 
 DOCKER_COMPOSE = docker compose
@@ -7,7 +8,7 @@ CONSOLE        = $(PHP) bin/console
 PACKAGE_JSON   = $(wildcard package.json)
 
 .DEFAULT_GOAL = help
-.PHONY: help up down sh worker-restart console composer mate migration db-reset db-test test e2e stan cs cs-fix lint front ui check
+.PHONY: help up down sh worker-restart console composer mate migration db-reset db-test test e2e stan cs cs-fix lint front ui act check
 
 help: ## List the targets
 	@grep -hE '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "%-16s %s\n", $$1, $$2}'
@@ -96,4 +97,22 @@ ifneq ($(PACKAGE_JSON),)
 	npm run test:ui
 endif
 
-check: cs stan lint test front ui e2e ## Every quality gate
+act: ## .github/workflows/qa.yml with act, in var/act/workspace, on its own compose project and ports
+	bin/act-run
+	mkdir -p $(ACT_VERIFIED) && touch $(ACT_VERIFIED)/$(ACT_HASH)
+
+# The files that define the workflow, the stack, or a gate.
+ACT_INPUTS = $(wildcard .github/workflows/*) .actrc .github/act.env bin/act-run \
+	Makefile compose.yaml compose.override.yaml Dockerfile $(shell find docker -type f) \
+	phpunit.dist.xml phpstan.dist.neon .php-cs-fixer.dist.php playwright.config.ts vite.config.ts $(wildcard tsconfig*.json) \
+	package.json package-lock.json symbols/package.json symbols/package-lock.json composer.json composer.lock \
+	.env.test .env.e2e
+
+# In the git directory that every worktree shares, so a checkout whose ACT_INPUTS a green make act has seen skips act.
+ACT_VERIFIED = $(shell git rev-parse --git-common-dir)/act-verified
+ACT_HASH = $(shell for file in $(ACT_INPUTS); do echo "$$file"; cat "$$file"; done | git hash-object --stdin)
+
+check: cs stan lint test front ui e2e ## Every quality gate, then make act when no green make act has seen these ACT_INPUTS
+ifeq ($(CI)$(ACT),)
+	@test -e $(ACT_VERIFIED)/$(ACT_HASH) || $(MAKE) act
+endif

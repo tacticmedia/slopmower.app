@@ -163,7 +163,7 @@ These two principles control all decisions.
 |---|---|
 | Teams and several users per tenant | [multiple-users-per-tenant.md](backlog/multiple-users-per-tenant.md) |
 | Billing | Not planned |
-| Operations: production hosting, TLS, backups, monitoring, and CI | The operator's work. The documentation covers only the local development environment. |
+| Operations: production hosting, TLS, backups, and monitoring | The operator's work. The documentation covers only the local development environment and the QA workflow. |
 | Usage limits and rate limiting | [usage-limits.md](backlog/usage-limits.md) |
 | Database hardening: row-level security and separate database roles | [database-hardening.md](backlog/database-hardening.md) |
 | Sync to GitHub or GitLab | Kept possible as a later export |

@@ -1,6 +1,6 @@
 # F36 QA pipeline
 
-Workflow, conventions, and status: [feature track](features.md). Jan asked on 2026-10-08 for a complete QA pipeline on GitHub Actions that runs every quality check and every test. It must be verified locally with nektos/act, and that verification is part of the local QA. It runs whenever a test or QA mechanism changes. This feature implements the backlog item [qa-pipeline.md](../backlog/qa-pipeline.md).
+Workflow, conventions, and status: [feature track](features.md). Jan asked on 2026-10-08 for a complete QA pipeline on GitHub Actions that runs every quality check and every test. It must be verified locally with nektos/act, and that verification is part of the local QA. It runs whenever a test or QA mechanism changes. This feature implements the backlog item "Quality-assurance pipeline".
 
 ## Goal
 
@@ -56,7 +56,7 @@ D62 in [architecture section 11](../architecture.md#11-decisions).
   - The compose project of the job has its own name and its own ports (`ACT_HTTP_PORT`, `ACT_DATABASE_PORT`, `ACT_UI_PORT` with defaults, overridable in `.env.make.local`). It never touches the developer stack.
   - After the run, `make act` removes that compose project with its volumes. Each run starts from an empty database, as on GitHub.
   - The committed `.actrc` holds the flags that every local run needs.
-- **Trigger:** `make check` depends on a stamp, `var/act/verified`. It depends on the files that define the workflow, the stack, or a gate:
+- **Trigger:** `make check` runs `make act` unless a green `make act` has seen the current content of the files that define the workflow, the stack, or a gate:
   - `.github/workflows/*`, `.actrc`, and the env file of `act`;
   - `Makefile`, `compose.yaml`, `compose.override.yaml`, `Dockerfile`, and `docker/`;
   - `phpunit.dist.xml`, `phpstan.dist.neon`, and the php-cs-fixer configuration;
@@ -64,7 +64,7 @@ D62 in [architecture section 11](../architecture.md#11-decisions).
   - `package.json`, `package-lock.json`, `symbols/package.json`, `symbols/package-lock.json`, `composer.json`, and `composer.lock`;
   - `.env.test` and `.env.e2e`.
 
-  When one of them is newer than the stamp, `make check` runs `make act` and touches the stamp only on success. In CI and under `act`, the `check` target never starts `act` (`CI` or `ACT` is set). The workflow calls the gate targets, not `check`.
+  A green `make act` records the hash of their names and content in `.git/act-verified/`, which every worktree shares, so a checkout with the same files skips `act`. A second `make act` waits for the first. In CI and under `act`, the `check` target never starts `act` (`CI` or `ACT` is set). The workflow calls the gate targets, not `check`.
 
 ## Depends on
 
@@ -98,7 +98,7 @@ M01, M34b, M34c. F27 (the `symbols` service in the stack).
 
 1. **Local, `act`:** `make act` runs the whole workflow green on this machine, with the developer stack still running and untouched before and after. `docker compose ps` shows the same containers, and `curl -s localhost:8000/login` shows "Sign in as jan".
 2. **Each gate fails the run:** for each gate, a deliberate failure in `var/act/workspace/` fails the `act` run at that gate, and the other gates still report. One temporary failure per gate type is enough: a cs violation, a PHPStan error, a failing PHPUnit test, a failing Vitest test, a failing UI spec, a failing E2E test, and an invalid `composer.json`. None of these failures is committed.
-3. **Trigger:** after a green `make act`, `make check` does not run `act` again. After `touch phpunit.dist.xml`, it does. Under `CI=true`, it never does.
+3. **Trigger:** after a green `make act`, `make check` does not run `act` again, also in another worktree with the same files. After a change to the content of `phpunit.dist.xml`, it does. Under `CI=true`, it never does.
 4. **Artifacts:** a failed `act` run stores the failure files in `var/act/artifacts/`.
 5. **No second definition:** every gate step of `qa.yml` is a `make` target or an audit command.
 

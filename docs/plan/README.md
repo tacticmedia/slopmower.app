@@ -170,7 +170,8 @@ PHP, Composer, the console, and PHPUnit run in the `php` container. `make` wraps
 | `make lint` | `lint:container`, `lint:yaml config`, `lint:twig templates`, `doctrine:schema:validate --env=test` |
 | `make front` | On the host when `package.json` exists: `npm ci --prefix symbols --ignore-scripts` when `symbols/package-lock.json` is newer than the installed packages, then `npm run typecheck && npm test` |
 | `make ui` | On the host when `package.json` exists: `npx playwright install chromium` (returns at once when the browser is present), then `npm run test:ui`: Playwright against the mocked API, on `UI_PORT` |
-| `make check` | `cs`, `stan`, `lint`, `test`, `front`, `ui`, `e2e` |
+| `make act` | `bin/act-run`: copies the working tree without ignored files into `var/act/workspace/`, so the run installs `vendor/` and `node_modules/` as on GitHub, and runs `.github/workflows/qa.yml` with act. The job runs the compose project `holistic-review-act` on the ports of `.github/act.env`. `make act` removes that project with its volumes before and after the run. Artifacts go to `var/act/artifacts/`. The action and cache servers of act keep their default directories under `~/.cache/`. One act run per Docker daemon at a time. |
+| `make check` | `cs`, `stan`, `lint`, `test`, `front`, `ui`, `e2e`, then `make act` when no green `make act` has seen the current content of `ACT_INPUTS`. A green `make act` records the hash of that content in `.git/act-verified/`, shared by every worktree. With `CI` or `ACT` set, `make check` never runs act. |
 
 For verbose PHPUnit output, use `--debug`. Never use `-v` or `--verbose`. Example: `docker compose exec php bin/phpunit --debug --filter StartReviewTest`.
 
@@ -191,6 +192,8 @@ The host ports 8000 and 5432 are the defaults of `HTTP_PORT` and `DATABASE_PORT`
 |---|---|---|
 | `HTTP_PORT`, `DATABASE_PORT` | `.env.make.local` (git-ignored), read by the `Makefile` | Host ports of `php` and `database`. Default 8000 and 5432. A second checkout, for example a git worktree, sets its own ports. Each line needs `export`, for example `export HTTP_PORT=8101`, or make does not pass it to compose. |
 | `UI_PORT` | `.env.make.local`, exported by the `Makefile`, read by `playwright.config.ts` | Port of the `vite preview` server of the UI suite. Default 4173. A second checkout sets its own, for example `export UI_PORT=4101`. |
+| `ACT_HTTP_PORT`, `ACT_DATABASE_PORT`, `ACT_UI_PORT` | `.env.make.local`, read by `bin/act-run` | Override `HTTP_PORT`, `DATABASE_PORT`, and `UI_PORT` of the `make act` job. Defaults 8290, 5490, and 4290 in `.github/act.env`, which act reads in place of `.env`. |
+| `COMPOSER_CACHE_DIR` | `.github/workflows/qa.yml`, passed through by the compose `php` service | `/app/var/composer-cache` in the workflow, so that its cache step saves what the entrypoint downloads. Unset elsewhere. |
 | `LOCAL_REPOSITORIES_HOST_DIR` | Host shell | Host directory that compose mounts read-only at `/repositories`. Default `./var/local-repositories`. |
 | `APP_LOCAL_REPOSITORIES_DIR` | `.env` files | Empty in `.env`, which means that local repositories are off. `/repositories` in `.env.dev`, `var/test/local-repositories` in `.env.test` and `.env.e2e`. It is an instance feature: every tenant of the instance may connect the repositories under it. |
 | `APP_LOCAL_SIGN_IN` | Host shell, passed through compose | Login of the one local user. Honoured only when `APP_ENV=dev`. |
@@ -310,6 +313,7 @@ Suite markers: **U** unit, **F** functional, **E** full-stack E2E, **V** Vitest,
 - Tests validate every REST response and every MCP `structuredContent` against the docs/specs schemas, through the `JsonApiAssertions` trait.
 - Every new `/api/v1` route and every new MCP tool gets a cross-tenant case. The inventory tests fail otherwise.
 - Do not test behaviour that the framework guarantees. Test our code and how it uses the framework.
+- CI runs `.github/workflows/qa.yml` (D62). Each gate is a `make` target in `check` and one step `run: make <target>` in the workflow, with the `if:` of the other gate steps, never a second command. `QaWorkflowTest` checks both. A new file that defines a gate goes into `ACT_INPUTS` of the `Makefile`, so that `make check` runs `make act` after it changes.
 
 ## Definition of done
 
@@ -323,7 +327,8 @@ Every milestone:
    - `doctrine:schema:validate`;
    - the unit and functional suites;
    - `tsc` in strict mode, Vitest, and the UI suite;
-   - the E2E suite.
+   - the E2E suite;
+   - `make act`, when a file of `ACT_INPUTS` changed since the last green run.
 3. Schema changes have generated migrations, applied to the dev and test databases.
 4. Responses validate against docs/specs, and every new route and tool has a cross-tenant case.
 5. The exact pins hold: `mcp/sdk` 0.8.1, `symfony/mcp-bundle` 0.14.1, `symfony/reprise` 1.3.0, `@symfony/reprise` 1.3.0, `@pierre/diffs` 1.5.2.
@@ -431,6 +436,15 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 - **One database role.** Do not add init scripts under `/docker-entrypoint-initdb.d/`. A second role needs the facts in [database-hardening.md](../backlog/database-hardening.md).
 - **Image build context.** `.dockerignore` excludes `docs/` and every `*.md` file. `DocsCatalog` reads `docs/user/` and `docs/specs/schemas/` at run time, so a production stage that copies the source must include both, or `/docs` answers 500.
 - **Worker cache.** The compose `worker` sets `APP_CACHE_DIR=var/cache/worker`, so it builds its own container in `var/cache/worker/dev`. A rebuild of `var/cache/dev` by the `php` container removes container files that a worker on the shared cache still loads, and such a worker dies with its message delivered until the 15-minute redelivery.
+
+### CI and act
+
+- **Host path.** `act --bind` mounts the working directory at its host path, so the compose bind mount `.:/app` of the job resolves on the host daemon. That is why `make act` binds a copy in `var/act/workspace/` and never the checkout.
+- **One run per daemon.** act names the job container after the workflow and the job, `act-QA-qa-<hash>`, and removes a container with that name before it starts. `bin/act-run` refuses to start while that container runs.
+- **Root on a Linux runner.** The `php` container writes into the bind mount as root, and Docker creates a missing bind-mount source, for example `var/local-repositories`, as root. The workflow creates `var/` first, so that the host-side `make ui` can write `var/ui/`. Docker Desktop on macOS maps the owner, so `make act` does not show this.
+- **Composer schema.** Composer checks `composer.json` against its schema at every load. A schema error fails `composer audit` and every other Composer command, not only `composer validate`.
+- **act caches.** act clones every action of the workflow into `~/.cache/act`, also an action whose step it skips. Its cache server speaks the v1 cache API, which `actions/cache` uses while `ACTIONS_CACHE_SERVICE_V2` is unset.
+- **act artifacts.** The artifact server of act 0.2.89 accepts `actions/upload-artifact` up to v5.0.0. v6.0.0 bundles `@azure/storage-blob` 12.29, whose upload request fails the signature check of act with "Error unauthorized". v7 also sends the field `mime_type`, which act refuses. The workflow pins v5.0.0, so the step that runs on GitHub is the step that `make act` verifies.
 
 ### PHPStan level 8
 

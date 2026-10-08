@@ -51,7 +51,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F33 | [Twig symbols](F33-twig-symbols.md) | Done 2026-10-08, [report](reports/F33.md) | e0363d4 | src 435 PHP / 28870 lines, 435 types; tests 293 PHP / 26238 lines; assets 159 TS / 9202 lines; check 3m58s |
 | F34 | [Double-submit CSRF on Twig forms](F34-double-submit-on-twig-forms.md) | Done 2026-10-08, [report](reports/F34.md) | 150b94b | src 434 PHP / 28715 lines, 434 types; tests 292 PHP / 26164 lines; assets 159 TS / 9201 lines |
 | F35 | [Top-level group label](F35-top-level-group-label.md) | Done 2026-10-08, [report](reports/F35.md) | d8bd49d | src 435 PHP / 28870 lines, 435 types; tests 293 PHP / 26238 lines; assets 159 TS / 9202 lines; check 3m38s |
-| F36 | [QA pipeline](F36-qa-pipeline.md) | In progress (2026-10-08) | | |
+| F36 | [QA pipeline](F36-qa-pipeline.md) | Done 2026-10-08, [report](reports/F36.md) | | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26294 lines; assets 159 TS / 9202 lines |
 
 ## Candidates
 
@@ -88,6 +88,10 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
   - Twig: scheduled as F33, with the Twig lexer in PHP.
   - No usable `.wasm`: Kotlin, Swift, GraphQL, SQL, Markdown, and Vue ship none. Dart (1.0.0, 2023) and Twig (0.8.2) ship one that web-tree-sitter 0.27 refuses. Each needs a wasm build of its own. The npm name `tree-sitter-r` is a security placeholder.
 
+- **CI maintenance.** Dependabot for the pinned action SHAs of `qa.yml`; a `concurrency` group that cancels a superseded run of the same ref; `actions/upload-artifact` v7 once act accepts it (act 0.2.89 refuses v6 and v7). From F36.
+- **Entrypoint and a stale lock.** With an out-of-date `composer.lock`, the first `composer install` of the entrypoint fails in its `post-install-cmd` `composer normalize`, the container restarts, and the next start skips the install because `vendor/` is not empty, so `make up --wait` passes or fails by timing. The entrypoint could fail clearly, or `composer normalize` could run only on `update`. From F36.
+- **make act on a Linux host.** The containers write root-owned files into `var/act/workspace/`, and the next `bin/act-run` cannot delete them. Docker Desktop on macOS maps the owner. From F36.
+
 ## For Jan
 
 Decisions or actions that only Jan can take. Each comes from a report or a review, and each was checked on 2026-10-07.
@@ -99,5 +103,6 @@ Decisions or actions that only Jan can take. Each comes from a report or a revie
   - Symfony: a `_failure_path` that starts with "http" but is not a URL becomes a route name, and the GitHub callback answers 500.
   - Symfony 8.1: `SameOriginCsrfListener` writes the CSRF strategies of the logout request, those of the old session included, into the session that logout starts. The new session then refuses a same-origin form that sends no double-submit token. F34 makes every form send one, so the app is not affected.
   - tree-sitter-zig (`@tree-sitter-grammars/tree-sitter-zig` 1.1.2, also on master): `_container_members` uses `repeat1`, so an empty `struct {}`, `enum {}`, `union {}`, or `opaque {}` is a syntax error, and such a Zig file has no symbols (F32).
+- **First GitHub Actions run:** after the push of F36, check the steps that act cannot show: the Buildx and bake layer cache, the GitHub cache service, the artifact upload, and the ownership of `var/` on the runner. Then require the workflow `QA` on `main` with branch protection.
 - **GitHub App:** when a real App exists, record real API responses and webhook deliveries for the fixtures. Confirm the by-ID fetch of pending SHAs and the listing of a suspended installation. Set `GITHUB_APP_WEBHOOK_SECRET` in the vault, and the webhook content type to JSON.
 - **phpstan-doctrine:** it finds a type descriptor by DBAL type class, not by type name. So `IdentifierType` and `StringValueType`, which serve several value classes, fall back to `mixed` in DQL result shapes. The fix needs either two new `phpstanApi` ignores, which the definition of done forbids, or an upstream change. F08 item 6 is left open for it.

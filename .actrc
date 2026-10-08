@@ -1,0 +1,5 @@
+# Flags of every act run of this repository. make act adds the artifact path and the port overrides.
+-P ubuntu-24.04=catthehacker/ubuntu:act-24.04
+--bind
+--env-file .github/act.env
+--rm

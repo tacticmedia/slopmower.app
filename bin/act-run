@@ -1,0 +1,48 @@
+#!/bin/sh
+# make act: .github/workflows/qa.yml with act, on a copy of the working tree in var/act/workspace (D62).
+set -eu
+
+cd "$(dirname "$0")/.."
+act_dir=$PWD/var/act
+workspace=$act_dir/workspace
+project=$(sed -n 's/^COMPOSE_PROJECT_NAME=//p' .github/act.env)
+
+case "$project" in
+	*-act) ;;
+	*) echo "bin/act-run: COMPOSE_PROJECT_NAME in .github/act.env must end in -act, not '$project'." >&2; exit 1 ;;
+esac
+
+# act names the job container after the workflow and the job, so a second run would remove the container of the first.
+# Waits for another checkout's run, at most as long as the job timeout of qa.yml.
+waited_seconds=0
+while running=$(docker ps --quiet --filter 'name=^act-QA-qa-') && [ -n "$running" ]; do
+	if [ "$waited_seconds" -ge 3600 ]; then
+		echo "bin/act-run: container $running of another act run still exists after an hour. Remove it if no act runs." >&2
+		exit 1
+	fi
+	[ "$waited_seconds" -gt 0 ] || echo "bin/act-run: waiting for the act run in container $running." >&2
+	sleep 15
+	waited_seconds=$((waited_seconds + 15))
+done
+
+mkdir -p "$workspace"
+# Like a fresh checkout on GitHub: nothing that git ignores, so the run installs vendor/ and node_modules/ itself.
+git ls-files --others --ignored --exclude-standard --directory | sed 's|^|/|' > "$act_dir/ignored"
+rsync -a --delete --delete-excluded --exclude=/.git --exclude-from="$act_dir/ignored" ./ "$workspace/"
+rm -rf "$act_dir/artifacts"
+
+remove_stack() {
+	docker compose --project-directory "$workspace" --project-name "$project" down --volumes --remove-orphans
+}
+remove_stack
+trap remove_stack EXIT
+trap 'exit 130' INT TERM
+
+cd "$workspace"
+act_status=0
+act push --workflows .github/workflows/qa.yml \
+	--artifact-server-path "$act_dir/artifacts" \
+	${ACT_HTTP_PORT:+--env HTTP_PORT=$ACT_HTTP_PORT} \
+	${ACT_DATABASE_PORT:+--env DATABASE_PORT=$ACT_DATABASE_PORT} \
+	${ACT_UI_PORT:+--env UI_PORT=$ACT_UI_PORT} || act_status=$?
+exit "$act_status"

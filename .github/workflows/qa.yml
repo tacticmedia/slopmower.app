@@ -1,0 +1,120 @@
+# Every gate of `make check`, plus the Composer and npm checks (D62). `make act` runs it locally.
+name: QA
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      # Inside the php container, on the bind mount of the checkout, so that the Composer cache step sees it.
+      COMPOSER_CACHE_DIR: /app/var/composer-cache
+    steps:
+      # act binds the working directory: npm ci in the developer checkout would replace its node_modules.
+      - name: Refuse act outside make act
+        if: ${{ env.ACT }}
+        run: |
+          case "$GITHUB_WORKSPACE" in
+            */var/act/workspace) ;;
+            *) echo '::error::Run make act.'; exit 1 ;;
+          esac
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            symbols/package-lock.json
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Playwright browsers cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.playwright.outputs.version }}
+
+      - name: Chromium system packages
+        run: npx playwright install-deps chromium
+
+      - name: Composer cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: var/composer-cache
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Docker Buildx
+        if: ${{ !env.ACT }}
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      # Fills the cache of the Buildx builder, which the build of make up then uses. worker builds the php target.
+      - name: Docker layer cache
+        if: ${{ !env.ACT }}
+        uses: docker/bake-action@018cb6412ab401ebaa809aa5f85966b74628600f # v7.4.0
+        with:
+          source: .
+          files: compose.yaml
+          targets: php,symbols
+          set: |
+            php.cache-from=type=gha,scope=php
+            php.cache-to=type=gha,scope=php,mode=max
+            symbols.cache-from=type=gha,scope=symbols
+            symbols.cache-to=type=gha,scope=symbols,mode=max
+
+      # The php container runs as root, and Docker creates a missing bind-mount source as root. make ui writes into var/.
+      - name: var/ for the runner user
+        run: mkdir -p var
+
+      # The gates and the failure files need a run of make up, also a failed one. A failed guard or setup step skips make up.
+      - id: up
+        run: make up
+      - run: make db-test
+
+      - run: make cs
+        if: ${{ !cancelled() && steps.up.outcome != 'skipped' }}
+      - run: make stan
+        if: ${{ !cancelled() && steps.up.outcome != 'skipped' }}
+      - run: make lint
+        if: ${{ !cancelled() && steps.up.outcome != 'skipped' }}
+      - run: make test
+        if: ${{ !cancelled() && steps.up.outcome != 'skipped' }}
+      - run: make front
+        if: ${{ !cancelled() && steps.up.outcome != 'skipped' }}
+      - run: make ui
+        if: ${{ !cancelled() && steps.up.outcome != 'skipped' }}
+      - run: make e2e
+        if: ${{ !cancelled() && steps.up.outcome != 'skipped' }}
+      - run: make composer c="validate --no-check-publish"
+        if: ${{ !cancelled() && steps.up.outcome != 'skipped' }}
+      - run: make composer c="audit"
+        if: ${{ !cancelled() && steps.up.outcome != 'skipped' }}
+      - run: npm audit
+        if: ${{ !cancelled() && steps.up.outcome != 'skipped' }}
+      - run: npm audit --prefix symbols
+        if: ${{ !cancelled() && steps.up.outcome != 'skipped' }}
+
+      # The newest version that the artifact server of act 0.2.89 accepts. v6 and v7 fail the upload under act.
+      - name: Failure files
+        if: ${{ failure() && steps.up.outcome != 'skipped' }}
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: failures
+          path: |
+            test-failures/
+            var/ui/test-results/
+            var/log/
+          if-no-files-found: ignore

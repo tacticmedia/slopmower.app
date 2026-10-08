@@ -28,6 +28,7 @@ A port other than 8000: see [Port overrides](#port-overrides-and-saved-variables
 - Docker Desktop with Docker Compose v2 or later: the `docker compose` command.
 - `git` and `make`.
 - Node.js 24 with npm. npm builds the front-end assets on the host (`npm run build`, or `npm run dev` for hot reload). Everything else runs in containers: FrankenPHP serves the app, the API, MCP, and the built-in Mercure hub in worker mode; a second container runs the Messenger worker; PostgreSQL holds the data.
+- For `make act`: [act](https://github.com/nektos/act) 0.2.89 or later and `rsync`. `make check` runs `make act` after a change to the workflow, the stack, or a gate. See [Run the checks](#run-the-checks).
 - Optional: Claude Code or another agent that can use an HTTP MCP server.
 
 ## Start Holistic Review
@@ -114,10 +115,22 @@ make check
 | `make front` | `tsc` and Vitest, on the host |
 | `make ui` | Playwright UI suite against a mocked API, on the host, port `UI_PORT`, default 4173 |
 | `make e2e` | Full-stack suite: Playwright in the `php` container against the e2e site on port 8081 inside the container |
+| `make act` | The GitHub Actions workflow, locally. Only when a file of the workflow, the stack, or a gate is newer than the last green run. |
 
 One test: `docker compose exec php bin/phpunit --filter StartReviewTest`. Add `--debug` for more output. `make help` lists all targets.
 
-No CI runs these gates yet. See [Quality-assurance pipeline](docs/backlog/qa-pipeline.md).
+### GitHub Actions
+
+The workflow [`.github/workflows/qa.yml`](.github/workflows/qa.yml) runs on every push and every pull request. It starts the stack with `make up` and `make db-test` on a clean runner, then runs each gate as its `make` target, plus `composer validate`, `composer audit`, and `npm audit` for both lock files. Each gate also runs after a failed gate, so one run reports all of them. A failed run keeps `test-failures/`, `var/ui/test-results/`, and `var/log/` as the artifact `failures`.
+
+`make act` runs the same workflow on your computer with act:
+
+- It copies the working tree without the git-ignored files into `var/act/workspace/`. As on GitHub, the run installs `vendor/` and `node_modules/` itself.
+- The job uses its own compose project, `holistic-review-act`, on the ports 8290, 5490, and 4290. Your stack keeps running. After the run, `make act` removes that project with its volumes.
+- The failure files go to `var/act/artifacts/`. The caches stay in the default directories of act under `~/.cache/`.
+- Only one act run of the workflow can run on a Docker daemon at a time.
+
+`make check` runs `make act` last when no green `make act` has seen the current content of the files in `ACT_INPUTS` of the `Makefile`. A green `make act` records the hash of that content in `.git/act-verified/`, which every worktree of the repository shares. With `CI` or `ACT` set, `make check` never runs act. Run act only through `make act`: the workflow refuses a run outside `var/act/workspace/`.
 
 ## Port overrides and saved variables
 
@@ -136,6 +149,7 @@ export APP_LOCAL_SIGN_IN=jan
 | `HTTP_PORT` | 8000 | Host port of the app, the MCP server, and the Mercure hub |
 | `DATABASE_PORT` | 5432 | Host port of PostgreSQL |
 | `UI_PORT` | 4173 | Port of the preview server of `make ui` |
+| `ACT_HTTP_PORT`, `ACT_DATABASE_PORT`, `ACT_UI_PORT` | 8290, 5490, 4290 | The same ports for the stack of `make act`. The defaults are in `.github/act.env`. |
 | `LOCAL_REPOSITORIES_HOST_DIR` | `./var/local-repositories` | Host directory that Docker mounts read-only at `/repositories` |
 | `APP_LOCAL_SIGN_IN` | empty | Login of the local user. Empty means no local sign-in. |
 
@@ -151,5 +165,6 @@ The file uses make syntax: write `$(HOME)`, not `$HOME`, and no quotes. With ano
 | Clones, fetches, or the symbol index use old PHP code | The Messenger worker does not restart by itself. Run `make worker-restart` after a PHP change that a background job uses. The FrankenPHP worker that serves the web requests restarts by itself when a file under `src/`, `config/`, or `templates/` changes, and when `npm run build` or `npm run dev` writes `public/entrypoints.json`. |
 | **Local directories** says "The local repositories directory contains no git repository." | `LOCAL_REPOSITORIES_HOST_DIR` was not set at the last `make up`, so Docker mounted `./var/local-repositories`. Or the directory has no git repository as a direct child. Set the variable and run `make up` again. |
 | The sign-in page says "No sign-in method is configured." | `APP_LOCAL_SIGN_IN` was not set at the last `make up`. Set it and run `make up` again. |
+| `make act` says "waiting for the act run in container ..." | Another checkout runs `make act`, and this run starts after it. After an hour it stops waiting. If no act process runs, an earlier run was killed: remove that container with `docker rm -f <container>`. |
 
 For more, read `var/log/dev.log` and the web profiler at http://localhost:8000/_profiler.
