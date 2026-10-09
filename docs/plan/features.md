@@ -53,7 +53,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F35 | [Top-level group label](F35-top-level-group-label.md) | Done 2026-10-08, [report](reports/F35.md) | d8bd49d | src 435 PHP / 28870 lines, 435 types; tests 293 PHP / 26238 lines; assets 159 TS / 9202 lines; check 3m38s |
 | F36 | [QA pipeline](F36-qa-pipeline.md) | Done 2026-10-08, [report](reports/F36.md) | bb166d4 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26294 lines; assets 159 TS / 9202 lines; check 3m36s |
 | F37 | [Symbols service address](F37-symbols-service-address.md) | Done 2026-10-08, [report](reports/F37.md) | fd40975 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26294 lines; assets 159 TS / 9202 lines |
-| F38 | [Database connection parameters](F38-database-connection-parameters.md) | In progress | | |
+| F38 | [Database connection parameters](F38-database-connection-parameters.md) | Done 2026-10-09, [report](reports/F38.md) | c9f6b34 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26343 lines; assets 159 TS / 9202 lines; check 2m54s |
 
 ## Candidates
 
