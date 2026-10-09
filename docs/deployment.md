@@ -2,6 +2,8 @@
 
 Docker Compose runs PostgreSQL and the `symbols` service in development. A deployment without Compose must connect the application to its database, and install, run, and connect the `symbols` service.
 
+[`.env.prod.dist`](../.env.prod.dist) lists every variable whose `.env` default is wrong in production, with example values. Symfony never loads it.
+
 ## Database connection
 
 Set these variables for every PHP process: the web server, each Messenger worker, and each console command (D63). The Doctrine connection, the Messenger queue, and the locks all use them.
