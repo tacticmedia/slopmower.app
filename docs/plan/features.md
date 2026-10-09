@@ -53,6 +53,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F35 | [Top-level group label](F35-top-level-group-label.md) | Done 2026-10-08, [report](reports/F35.md) | d8bd49d | src 435 PHP / 28870 lines, 435 types; tests 293 PHP / 26238 lines; assets 159 TS / 9202 lines; check 3m38s |
 | F36 | [QA pipeline](F36-qa-pipeline.md) | Done 2026-10-08, [report](reports/F36.md) | bb166d4 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26294 lines; assets 159 TS / 9202 lines; check 3m36s |
 | F37 | [Symbols service address](F37-symbols-service-address.md) | Done 2026-10-08, [report](reports/F37.md) | fd40975 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26294 lines; assets 159 TS / 9202 lines |
+| F38 | [Database connection parameters](F38-database-connection-parameters.md) | In progress | | |
 
 ## Candidates
 
@@ -72,7 +73,6 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **"Finish review" in the stuck header.** The review header scrolls away in the code browser, and the stuck row of the file header could show "Finish your review" while drafts exist. From F25.
 - **"Blame prior to change".** GitHub's blame block links to the blame of the parent commit at the path the file had there. It needs V17 at an ancestor of the review commit and the text of the file there, and a view that leaves the pinned commit. From F26.
 - **Blame avatars, commit links, and contributors.** GitHub shows the author avatar, links the summary to the commit page, and counts the contributors of the file. A local repository has no avatars and no commit page. From F26.
-- **Database parameters instead of `DATABASE_URL`.** In the master-password mode of `tacticmedia/rds-auth-bundle`, the deployment injects the raw password, and a raw RDS master password can contain `%`, `#`, and `?`, which break a URL. Separate variables for the host, the port, the database name, the user, the password, and the server version avoid the encoding. From F28.
 - **Pull request links after a repository rename.** A GitHub URL is stored in the canonical form of the repository name as connected (F14). After the repository is renamed on GitHub, a link under the old name no longer matches `link_pull_request` or `unlink_pull_request`. From the F20 report.
 - **Index version per language.** Stored symbols are keyed by blob, so a changed grammar or query of the `symbols` service leaves old rows until `app:index:rebuild --reparse`. A version per language on `indexed_blob` would re-parse stale rows on demand. A review indexed before its language was added also has none of its symbols in quick open until `app:index:rebuild` runs for that review, one review per call. From F27 and F33.
 - **Go to declaration for more languages.** V14 resolves PHP names only. Other languages need their own name resolution: imports, modules, and packages. From F27.
