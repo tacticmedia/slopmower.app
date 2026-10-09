@@ -733,6 +733,7 @@ These documents cover only the local development environment and the QA workflow
 | Setup URL | `https://<host>/github/installed` |
 | Request user authorization (OAuth) during installation | Off. With it on, GitHub skips the Setup URL and sends the user to the Callback URL without the `state` that the sign-in checks (D23). |
 | Webhook secret | The value of `GITHUB_APP_WEBHOOK_SECRET`. With an empty secret the server refuses every delivery with 403. |
+| Where it can be installed | "Only on this account": only the owner account can install the App, and for an App of an organization only its members can authorize it. "Any account": every GitHub user can install and authorize it. The first sign-in creates a tenant, and the server has no allowlist (candidate "Sign-in allowlist" in [features.md](plan/features.md#candidates)). |
 | Configuration | `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_SLUG`, and in the secrets vault `GITHUB_APP_CLIENT_SECRET`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET` |
 
 Tokens: the server signs a JWT with RS256, `iat` 60 seconds in the past, a lifetime of at most 10 minutes, and the client ID as issuer. It exchanges the JWT at `POST /app/installations/{id}/access_tokens` for a token that lasts 1 hour. The user token from sign-in lasts 8 hours. It lists the user's installations and repositories with `GET /user/installations` and `GET /user/installations/{id}/repositories`. The server does not store the user token. It lists again at each sign-in and marks repositories that the user can no longer access as `removed`.
