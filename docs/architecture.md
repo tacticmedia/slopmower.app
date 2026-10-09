@@ -726,10 +726,13 @@ These documents cover only the local development environment and the QA workflow
 | Setting | Value |
 |---|---|
 | Repository permissions | Contents: read-only. Metadata: read-only, which GitHub requires. |
+| Account permissions | None. Sign-in reads `GET /user`. HWIOAuthBundle also requests `GET /user/emails`, and sign-in continues after the 403 of GitHub. |
 | Webhook URL | `https://<host>/webhook/github` |
 | Webhook events | `push` and `repository`. GitHub sends `installation` and `installation_repositories` to every GitHub App without a subscription. |
 | Callback URL | `https://<host>/login/check-github`, the HWIOAuthBundle check path. Web flow with the `state` check. HWIOAuthBundle sends no PKCE. |
 | Setup URL | `https://<host>/github/installed` |
+| Request user authorization (OAuth) during installation | Off. With it on, GitHub skips the Setup URL and sends the user to the Callback URL without the `state` that the sign-in checks (D23). |
+| Webhook secret | The value of `GITHUB_APP_WEBHOOK_SECRET`. With an empty secret the server refuses every delivery with 403. |
 | Configuration | `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_SLUG`, and in the secrets vault `GITHUB_APP_CLIENT_SECRET`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET` |
 
 Tokens: the server signs a JWT with RS256, `iat` 60 seconds in the past, a lifetime of at most 10 minutes, and the client ID as issuer. It exchanges the JWT at `POST /app/installations/{id}/access_tokens` for a token that lasts 1 hour. The user token from sign-in lasts 8 hours. It lists the user's installations and repositories with `GET /user/installations` and `GET /user/installations/{id}/repositories`. The server does not store the user token. It lists again at each sign-in and marks repositories that the user can no longer access as `removed`.
