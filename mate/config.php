@@ -7,10 +7,9 @@ declare(strict_types=1);
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Tools\DsnParser;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
-use function Symfony\Component\DependencyInjection\Loader\Configurator\expr;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\env;
 
 return static function (ContainerConfigurator $container): void {
     $container->parameters()
@@ -23,7 +22,7 @@ return static function (ContainerConfigurator $container): void {
         // and extensions may behave differently. Set to null to disable the check.
         ->set('mate.php_version', '8.5')
 
-        // Loads <project>/.env and .env.local. The php container has no DATABASE_URL.
+        // Loads <project>/.env and .env.local. The php container has no DATABASE_* variables.
         ->set('mate.env_file', '.env')
     ;
 
@@ -34,12 +33,15 @@ return static function (ContainerConfigurator $container): void {
 
         // Do not register the tool classes here: Mate registers them as public services first, and a redefinition makes them private.
 
-        // Public: Mate does not dump its container, so the expression below gets this service at run time.
-        ->set('mate.dsn_parser', DsnParser::class)
-            ->public()
-            ->args([['postgresql' => 'pdo_pgsql']])
         ->set(Connection::class)
             ->factory(DriverManager::getConnection(...))
-            ->args([expr("service('mate.dsn_parser').parse(env('DATABASE_URL'))")])
+            ->args([[
+                'driver' => 'pdo_pgsql',
+                'host' => env('DATABASE_HOST'),
+                'port' => env('DATABASE_PORT')->int(),
+                'dbname' => env('DATABASE_NAME'),
+                'user' => env('DATABASE_USER'),
+                'password' => env('DATABASE_PASSWORD'),
+            ]])
     ;
 };

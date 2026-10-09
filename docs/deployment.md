@@ -1,6 +1,24 @@
 # Deployment outside Docker Compose
 
-Docker Compose runs the `symbols` service in development. A deployment without Compose must install the service, run it, and connect the application to it.
+Docker Compose runs PostgreSQL and the `symbols` service in development. A deployment without Compose must connect the application to its database, and install, run, and connect the `symbols` service.
+
+## Database connection
+
+Set these variables for every PHP process: the web server, each Messenger worker, and each console command (D63). The Doctrine connection, the Messenger queue, and the locks all use them.
+
+| Variable | Value |
+|---|---|
+| `DATABASE_HOST` | Host name of PostgreSQL, for example the RDS endpoint |
+| `DATABASE_PORT` | TCP port, usually `5432` |
+| `DATABASE_NAME` | Database name |
+| `DATABASE_USER` | Database user. IAM authentication replaces it. |
+| `DATABASE_PASSWORD` | The raw password, not URL-encoded. IAM authentication replaces it. |
+| `DATABASE_SERVER_VERSION` | PostgreSQL major version, for example `18` |
+| `DATABASE_SSLMODE` | A libpq `sslmode`, for example `verify-full`. Empty omits it: libpq uses `prefer`, and IAM authentication uses `require`. |
+
+- In a `.env` file, put the password in single quotes. Dotenv keeps `$` and `\` literal there, and an RDS password cannot contain `'`.
+- `sslmode=verify-full` needs the RDS certificate bundle. Set `PGSSLROOTCERT` to its path in the environment of the PHP process. libpq reads it.
+- On Amazon RDS, `AWS_REGION` with `RDS_IAM_USERNAME` selects IAM token authentication, and `AWS_REGION` with `RDS_SECRET_ARN` reads the master password from Secrets Manager after a rotation (D58). The [bundle documentation](https://github.com/tacticmedia/rds-auth-bundle/blob/main/docs/configuration.md) lists the AWS prerequisites.
 
 ## Symbols service
 

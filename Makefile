@@ -1,5 +1,5 @@
-# Per-checkout ports, for example `export HTTP_PORT=8101`, `export DATABASE_PORT=5501`, and `export UI_PORT=4101` in a worktree.
-# `export ACT_HTTP_PORT=...`, `ACT_DATABASE_PORT`, and `ACT_UI_PORT` override the ports of make act in .github/act.env.
+# Per-checkout ports, for example `export HTTP_PORT=8101`, `export DATABASE_PUBLISHED_PORT=5501`, and `export UI_PORT=4101` in a worktree.
+# `export ACT_HTTP_PORT=...`, `ACT_DATABASE_PUBLISHED_PORT`, and `ACT_UI_PORT` override the ports of make act in .github/act.env.
 -include .env.make.local
 
 DOCKER_COMPOSE = docker compose

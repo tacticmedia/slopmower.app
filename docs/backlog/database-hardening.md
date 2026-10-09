@@ -79,11 +79,13 @@ The first sign-in generates the new tenant ID, sets the tenant context to it, an
 
 ### Connections
 
-| Environment variable | Role | Doctrine connection |
+| Environment variables | Role | Doctrine connection |
 |---|---|---|
-| `DATABASE_URL` | `holistic_owner` | `migrations`, selected by `doctrine_migrations.connection: migrations` |
-| `DATABASE_RUNTIME_URL` | `holistic_app` | `default`, used by the ORM |
-| `DATABASE_MAINTENANCE_URL` | `holistic_maintenance` | `maintenance`, used by review and repository deletion, the purge job, and the rebuild |
+| `DATABASE_USER`, `DATABASE_PASSWORD` | `holistic_owner` | `migrations`, selected by `doctrine_migrations.connection: migrations` |
+| `DATABASE_RUNTIME_USER`, `DATABASE_RUNTIME_PASSWORD` | `holistic_app` | `default`, used by the ORM, the Messenger queue, and the locks |
+| `DATABASE_MAINTENANCE_USER`, `DATABASE_MAINTENANCE_PASSWORD` | `holistic_maintenance` | `maintenance`, used by review and repository deletion, the purge job, and the rebuild |
+
+All connections share `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_SERVER_VERSION`, and `DATABASE_SSLMODE` (D63). The RDS bundle option `iam_username` is one user for every connection, so IAM authentication with three roles needs a user per connection in `tacticmedia/rds-auth-bundle`.
 
 ### Tenant context in the database: `SET LOCAL app.tenant_id`
 

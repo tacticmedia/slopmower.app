@@ -2,13 +2,17 @@ doctrine:
     dbal:
         default_connection: default
         connections:
+            # No resolve: processor, so a raw password reaches the driver unchanged (D63).
             default:
-                url: '%env(resolve:DATABASE_URL)%'
-                profiling_collect_backtrace: '%kernel.debug%'
-                dbname_suffix: '%app.database_suffix%'
-            # The advisory locks of config/packages/lock.yaml, in a database session of their own (D39, D58).
-            lock:
-                url: '%env(resolve:DATABASE_URL)%'
+                driver: pdo_pgsql
+                host: '%env(DATABASE_HOST)%'
+                port: '%env(int:DATABASE_PORT)%'
+                dbname: '%env(DATABASE_NAME)%'
+                user: '%env(DATABASE_USER)%'
+                password: '%env(DATABASE_PASSWORD)%'
+                server_version: '%env(DATABASE_SERVER_VERSION)%'
+                charset: utf8
+                sslmode: '%env(default::DATABASE_SSLMODE)%'
                 profiling_collect_backtrace: '%kernel.debug%'
                 dbname_suffix: '%app.database_suffix%'
         types:

@@ -28,4 +28,4 @@ Both tools wrap their result under an `untrusted_data` key alongside a `_securit
 
 ### Environment files
 
-Mate loads `.env` and `.env.local` to get `DATABASE_URL`. Thus `symfony-dotenv-check` reports a key that `.env.dev` overrides as `ambient_override`: the Mate process holds the `.env` value, not the `.env.dev` value.
+Mate loads `.env` and `.env.local` to get the `DATABASE_*` connection variables. Thus `symfony-dotenv-check` reports a key that `.env.dev` overrides as `ambient_override`: the Mate process holds the `.env` value, not the `.env.dev` value.

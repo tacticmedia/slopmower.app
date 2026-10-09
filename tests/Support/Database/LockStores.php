@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Tests\Support\Database;
 
 use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Tools\DsnParser;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\Lock\Store\DoctrineDbalPostgreSqlStore;
 
@@ -16,9 +15,15 @@ final class LockStores
      */
     public static function inAnotherSession(ContainerInterface $container): DoctrineDbalPostgreSqlStore
     {
-        $lockConnection = $container->get('doctrine.dbal.lock_connection');
-        $params = new DsnParser(['postgresql' => 'pdo_pgsql'])->parse((string) $_SERVER['DATABASE_URL']);
+        $applicationConnection = $container->get('doctrine.dbal.default_connection');
 
-        return new DoctrineDbalPostgreSqlStore(DriverManager::getConnection([...$params, 'dbname' => (string) $lockConnection->getDatabase()]));
+        return new DoctrineDbalPostgreSqlStore(DriverManager::getConnection([
+            'driver' => 'pdo_pgsql',
+            'host' => (string) $_SERVER['DATABASE_HOST'],
+            'port' => (int) $_SERVER['DATABASE_PORT'],
+            'dbname' => (string) $applicationConnection->getDatabase(),
+            'user' => (string) $_SERVER['DATABASE_USER'],
+            'password' => (string) $_SERVER['DATABASE_PASSWORD'],
+        ]));
     }
 }

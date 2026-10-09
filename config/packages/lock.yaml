@@ -1,11 +1,12 @@
-# PostgreSQL advisory locks (D39) on a DoctrineBundle connection, so the RDS authentication middleware wraps it (D58).
+# PostgreSQL advisory locks (D39) on the connection default, so the RDS authentication middleware wraps them (D58, D63).
+# They share the session of the ORM: an aborted transaction refuses pg_advisory_unlock until its rollback.
 # framework.lock cannot build this store: StoreFactory turns a DBAL Connection into the table-based DoctrineDbalStore.
 framework:
     lock: false
 
 services:
     Symfony\Component\Lock\Store\DoctrineDbalPostgreSqlStore:
-        arguments: ['@doctrine.dbal.lock_connection']
+        arguments: ['@doctrine.dbal.default_connection']
 
     Symfony\Component\Lock\LockFactory:
         arguments: ['@Symfony\Component\Lock\Store\DoctrineDbalPostgreSqlStore']

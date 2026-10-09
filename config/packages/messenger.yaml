@@ -3,13 +3,13 @@ framework:
         failure_transport: failed
 
         transports:
-            # https://symfony.com/doc/current/messenger.html#transport-configuration
+            # The DoctrineBundle connection, so the RDS authentication middleware wraps the queue (D63). The migrations own the table.
             async:
-                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                dsn: 'doctrine://default?auto_setup=0'
                 retry_strategy:
                     max_retries: 3
                     multiplier: 2
-            failed: 'doctrine://default?queue_name=failed'
+            failed: 'doctrine://default?queue_name=failed&auto_setup=0'
 
         default_bus: messenger.bus.default
 

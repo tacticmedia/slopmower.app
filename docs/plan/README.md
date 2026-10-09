@@ -177,7 +177,7 @@ For verbose PHPUnit output, use `--debug`. Never use `-v` or `--verbose`. Exampl
 
 ## URLs and environment variables
 
-The host ports 8000 and 5432 are the defaults of `HTTP_PORT` and `DATABASE_PORT`.
+The host ports 8000 and 5432 are the defaults of `HTTP_PORT` and `DATABASE_PUBLISHED_PORT`.
 
 | What | Where |
 |---|---|
@@ -190,9 +190,9 @@ The host ports 8000 and 5432 are the defaults of `HTTP_PORT` and `DATABASE_PORT`
 
 | Variable | Set in | Meaning |
 |---|---|---|
-| `HTTP_PORT`, `DATABASE_PORT` | `.env.make.local` (git-ignored), read by the `Makefile` | Host ports of `php` and `database`. Default 8000 and 5432. A second checkout, for example a git worktree, sets its own ports. Each line needs `export`, for example `export HTTP_PORT=8101`, or make does not pass it to compose. |
+| `HTTP_PORT`, `DATABASE_PUBLISHED_PORT` | `.env.make.local` (git-ignored), read by the `Makefile` | Host ports of `php` and `database`. Default 8000 and 5432. A second checkout, for example a git worktree, sets its own ports. Each line needs `export`, for example `export HTTP_PORT=8101`, or make does not pass it to compose. |
 | `UI_PORT` | `.env.make.local`, exported by the `Makefile`, read by `playwright.config.ts` | Port of the `vite preview` server of the UI suite. Default 4173. A second checkout sets its own, for example `export UI_PORT=4101`. |
-| `ACT_HTTP_PORT`, `ACT_DATABASE_PORT`, `ACT_UI_PORT` | `.env.make.local`, read by `bin/act-run` | Override `HTTP_PORT`, `DATABASE_PORT`, and `UI_PORT` of the `make act` job. Defaults 8290, 5490, and 4290 in `.github/act.env`, which act reads in place of `.env`. |
+| `ACT_HTTP_PORT`, `ACT_DATABASE_PUBLISHED_PORT`, `ACT_UI_PORT` | `.env.make.local`, read by `bin/act-run` | Override `HTTP_PORT`, `DATABASE_PUBLISHED_PORT`, and `UI_PORT` of the `make act` job. Defaults 8290, 5490, and 4290 in `.github/act.env`, which act reads in place of `.env`. |
 | `COMPOSER_CACHE_DIR` | `.github/workflows/qa.yml`, passed through by the compose `php` service | `/app/var/composer-cache` in the workflow, so that its cache step saves what the entrypoint downloads. Unset elsewhere. |
 | `LOCAL_REPOSITORIES_HOST_DIR` | Host shell | Host directory that compose mounts read-only at `/repositories`. Default `./var/local-repositories`. |
 | `APP_LOCAL_REPOSITORIES_DIR` | `.env` files | Empty in `.env`, which means that local repositories are off. `/repositories` in `.env.dev`, `var/test/local-repositories` in `.env.test` and `.env.e2e`. It is an instance feature: every tenant of the instance may connect the repositories under it. |
@@ -200,7 +200,8 @@ The host ports 8000 and 5432 are the defaults of `HTTP_PORT` and `DATABASE_PORT`
 | `APP_TENANT_DATA_DIR` | `.env` files | Root of the tenant files, for example the clones: the `<data>/tenants` directory of docs/specs. `/srv/tenants` in `.env.dev`, on the `tenant_data` volume. `var/test/tenants` in `.env.test` and `.env.e2e`. |
 | `DEFAULT_URI` | `.env` | Base of the Mercure topics, from M24 on. Not the base of the links in `/api/v1/me`, which come from the request. |
 | `APP_PUBLIC_HOST` | `.env` | Host that the MCP transport accepts, from M15 on |
-| `AWS_REGION`, `RDS_IAM_USERNAME`, `RDS_SECRET_ARN` | Empty in `.env`. The deployment sets them. | Database credentials through `tacticmedia/rds-auth-bundle` (D58). `AWS_REGION` with `RDS_IAM_USERNAME`: IAM token authentication. `AWS_REGION` with `RDS_SECRET_ARN`: the master password from Secrets Manager after a rotation. Empty: the credentials of `DATABASE_URL` pass through. |
+| `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_SERVER_VERSION`, `DATABASE_SSLMODE` | `.env`, with the values of the compose database. The deployment sets them. | Parameters of the Doctrine connection `default` (D63), with no URL encoding. `DATABASE_PORT` is the port inside the compose network, not the host port. Empty `DATABASE_SSLMODE`: DBAL omits `sslmode`. `dbname_suffix` adds `_test` or `_e2e` to `DATABASE_NAME`. |
+| `AWS_REGION`, `RDS_IAM_USERNAME`, `RDS_SECRET_ARN` | Empty in `.env`. The deployment sets them. | Database credentials through `tacticmedia/rds-auth-bundle` (D58). `AWS_REGION` with `RDS_IAM_USERNAME`: IAM token authentication. `AWS_REGION` with `RDS_SECRET_ARN`: the master password from Secrets Manager after a rotation. Empty: `DATABASE_USER` and `DATABASE_PASSWORD` pass through. |
 | `APP_CACHE_DIR` | Compose `worker` service | `var/cache/worker`: the worker's own cache directory. Cache pools, and so the `messenger:stop-workers` signal, stay shared in `APP_SHARE_DIR`. |
 | `MERCURE_URL`, `MERCURE_PUBLIC_URL`, `MERCURE_JWT_SECRET` | `.env` files. Also `MERCURE_URL` in the compose `worker` service, because the hub runs in the `php` container, and `MERCURE_JWT_SECRET` in the compose `php` service, because Caddy reads only the container environment. | Hub URL for the publisher, hub URL for the browser, JWT secret |
 | `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_SLUG` | Empty in `.env`, real values in `.env.local`, fake values in `.env.test` and `.env.e2e` | GitHub App identity, from M32 on. Empty means that no GitHub App is configured. |
@@ -484,6 +485,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 - **Environment-specific firewalls.** Do not rely on merging a security firewall across `when@<environment>` blocks. Keep the authenticators in the base firewall and guard them in code.
 - **Bearer requests and sessions.** A stateful firewall writes every authenticated token into the session in `ContextListener::onKernelResponse`. Bearer requests therefore use their own stateless firewall `api_bearer`. See M14.
 - **Failed flush.** A failed flush closes the entity manager. Code that goes on, for example after a unique key violation, calls `ManagerRegistry::resetManager()`, which resets the injected `EntityManagerInterface` in place.
+- **Advisory locks and transactions.** The lock store shares the database session of the ORM (D63). An aborted transaction refuses `pg_advisory_unlock` until its rollback, so release a lock only after the transaction inside it has ended. `CommandExecutor`, `transactional()`, and `wrapInTransaction()` roll back before they rethrow.
 - **Messenger deduplication.** Do not use `DeduplicateStamp` with the advisory-lock store. An advisory lock belongs to one database session, so the worker cannot release a lock that the web process took.
 - **Live-update payloads.** They carry IDs only. Never put a `RequestSummary`, a `Review`, or other data into a Mercure update.
 - **Doctrine profiler in the worker.** In debug mode (`dev`, `test`), DoctrineBundle's `DebugMiddleware` keeps every statement of one Messenger message, with its parameters and a backtrace, until the message ends. A job that writes per item grows with each statement, so it writes in batches. See F12.

@@ -138,7 +138,7 @@ The `Makefile` reads the git-ignored file `.env.make.local`. Each line needs `ex
 
 ```make
 export HTTP_PORT=8001
-export DATABASE_PORT=5433
+export DATABASE_PUBLISHED_PORT=5433
 export UI_PORT=4174
 export LOCAL_REPOSITORIES_HOST_DIR=$(HOME)/dev
 export APP_LOCAL_SIGN_IN=jan
@@ -147,9 +147,9 @@ export APP_LOCAL_SIGN_IN=jan
 | Variable | Default | Meaning |
 |---|---|---|
 | `HTTP_PORT` | 8000 | Host port of the app, the MCP server, and the Mercure hub |
-| `DATABASE_PORT` | 5432 | Host port of PostgreSQL |
+| `DATABASE_PUBLISHED_PORT` | 5432 | Host port of PostgreSQL. The app connects to `database:5432` in the compose network. |
 | `UI_PORT` | 4173 | Port of the preview server of `make ui` |
-| `ACT_HTTP_PORT`, `ACT_DATABASE_PORT`, `ACT_UI_PORT` | 8290, 5490, 4290 | The same ports for the stack of `make act`. The defaults are in `.github/act.env`. |
+| `ACT_HTTP_PORT`, `ACT_DATABASE_PUBLISHED_PORT`, `ACT_UI_PORT` | 8290, 5490, 4290 | The same ports for the stack of `make act`. The defaults are in `.github/act.env`. |
 | `LOCAL_REPOSITORIES_HOST_DIR` | `./var/local-repositories` | Host directory that Docker mounts read-only at `/repositories` |
 | `APP_LOCAL_SIGN_IN` | empty | Login of the local user. Empty means no local sign-in. |
 
@@ -159,7 +159,7 @@ The file uses make syntax: write `$(HOME)`, not `$HOME`, and no quotes. With ano
 
 | Problem | Cause and fix |
 |---|---|
-| `make up` fails with a port error for 8000 or 5432 | Another program or another stack uses the port. Set `HTTP_PORT` or `DATABASE_PORT` in `.env.make.local`, then run `make up` again. |
+| `make up` fails with a port error for 8000 or 5432 | Another program or another stack uses the port. Set `HTTP_PORT` or `DATABASE_PUBLISHED_PORT` in `.env.make.local`, then run `make up` again. |
 | A page answers 500: "Could not find the entrypoints file `/app/public/entrypoints.json`. Did the assets get built?" | The web interface is not built. Run `npm ci` and `npm run build`, or keep `npm run dev` running. |
 | A page is blank after you stopped `npm run dev` | `public/entrypoints.json` still points to the dev server. Run `npm run build`. |
 | Clones, fetches, or the symbol index use old PHP code | The Messenger worker does not restart by itself. Run `make worker-restart` after a PHP change that a background job uses. The FrankenPHP worker that serves the web requests restarts by itself when a file under `src/`, `config/`, or `templates/` changes, and when `npm run build` or `npm run dev` writes `public/entrypoints.json`. |

@@ -43,6 +43,6 @@ act_status=0
 act push --workflows .github/workflows/qa.yml \
 	--artifact-server-path "$act_dir/artifacts" \
 	${ACT_HTTP_PORT:+--env HTTP_PORT=$ACT_HTTP_PORT} \
-	${ACT_DATABASE_PORT:+--env DATABASE_PORT=$ACT_DATABASE_PORT} \
+	${ACT_DATABASE_PUBLISHED_PORT:+--env DATABASE_PUBLISHED_PORT=$ACT_DATABASE_PUBLISHED_PORT} \
 	${ACT_UI_PORT:+--env UI_PORT=$ACT_UI_PORT} || act_status=$?
 exit "$act_status"
