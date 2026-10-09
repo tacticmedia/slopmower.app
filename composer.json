@@ -54,7 +54,7 @@
         "symfony/web-link": "~8.1.0",
         "symfony/webhook": "~8.1.0",
         "symfony/yaml": "~8.1.0",
-        "tacticmedia/rds-auth-bundle": "^1.1",
+        "tacticmedia/rds-auth-bundle": "^1.2",
         "twig/extra-bundle": "^2.12 || ^3.0",
         "twig/markdown-extra": "^3.29.0",
         "twig/twig": "^2.12 || ^3.0"

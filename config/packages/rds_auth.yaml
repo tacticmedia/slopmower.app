@@ -1,0 +1,2 @@
+rds_auth:
+    cache_pool: rds_credentials.cache

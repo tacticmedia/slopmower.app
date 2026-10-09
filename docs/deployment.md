@@ -18,6 +18,7 @@ Set these variables for every PHP process: the web server, each Messenger worker
 
 - In a `.env` file, put the password in single quotes. Dotenv keeps `$` and `\` literal there, and an RDS password cannot contain `'`.
 - `sslmode=verify-full` needs the RDS certificate bundle. Set `PGSSLROOTCERT` to its path in the environment of the PHP process. libpq reads it.
+- The accepted credential lives unencrypted in the cache pool `rds_credentials.cache`, under `var/share/<environment>/pools/app`: an IAM token for 10 minutes, the master password until the next rotation (D58). Keep that directory on local storage, readable only by the PHP user, and shared by the web server and every worker of the host.
 - On Amazon RDS, `AWS_REGION` with `RDS_IAM_USERNAME` selects IAM token authentication, and `AWS_REGION` with `RDS_SECRET_ARN` reads the master password from Secrets Manager after a rotation (D58). The [bundle documentation](https://github.com/tacticmedia/rds-auth-bundle/blob/main/docs/configuration.md) lists the AWS prerequisites.
 
 ## Symbols service

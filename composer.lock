@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "80d492ba5f76bdb3c0a77cb393cae73f",
+    "content-hash": "24d33b9627d742897bcc02b6cdf381fd",
     "packages": [
         {
             "name": "async-aws/core",
@@ -9953,25 +9953,26 @@
         },
         {
             "name": "tacticmedia/rds-auth-bundle",
-            "version": "1.1.2",
+            "version": "1.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/tacticmedia/rds-auth-bundle.git",
-                "reference": "8be7bb180a1a0547f91104e66213a78f2d183464"
+                "reference": "ba4aa96469fbcee56c969e2316bccda4188be3a7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/tacticmedia/rds-auth-bundle/zipball/8be7bb180a1a0547f91104e66213a78f2d183464",
-                "reference": "8be7bb180a1a0547f91104e66213a78f2d183464",
+                "url": "https://api.github.com/repos/tacticmedia/rds-auth-bundle/zipball/ba4aa96469fbcee56c969e2316bccda4188be3a7",
+                "reference": "ba4aa96469fbcee56c969e2316bccda4188be3a7",
                 "shasum": ""
             },
             "require": {
                 "doctrine/doctrine-bundle": "^2.13 || ^3.0",
                 "php": ">=8.3",
+                "psr/cache": "^2.0 || ^3.0",
                 "symfony/config": "^6.4 || ^7.4 || ^8.0",
-                "symfony/dependency-injection": "^6.4 || ^7.4 || ^8.0",
+                "symfony/dependency-injection": "^6.4.4 || ^7.4 || ^8.0",
                 "symfony/http-kernel": "^6.4 || ^7.4 || ^8.0",
-                "tacticmedia/rds-auth-middleware": "^1.1"
+                "tacticmedia/rds-auth-middleware": "^1.2"
             },
             "require-dev": {
                 "async-aws/async-aws-bundle": "^1.17",
@@ -9984,7 +9985,8 @@
                 "phpunit/phpunit": "^12.5 || ^13.3",
                 "rector/rector": "^2.5.2",
                 "roave/security-advisories": "dev-latest",
-                "symfony/framework-bundle": "^6.4 || ^7.4 || ^8.0"
+                "symfony/framework-bundle": "^6.4 || ^7.4 || ^8.0",
+                "symfony/polyfill-uuid": "^1.13.1"
             },
             "suggest": {
                 "async-aws/async-aws-bundle": "Its async_aws.config.region serves as the region fallback when AWS_REGION is not set"
@@ -10011,22 +10013,22 @@
             ],
             "support": {
                 "issues": "https://github.com/tacticmedia/rds-auth-bundle/issues",
-                "source": "https://github.com/tacticmedia/rds-auth-bundle/tree/1.1.2"
+                "source": "https://github.com/tacticmedia/rds-auth-bundle/tree/1.2.0"
             },
-            "time": "2026-08-18T01:34:32+00:00"
+            "time": "2026-10-09T04:32:36+00:00"
         },
         {
             "name": "tacticmedia/rds-auth-middleware",
-            "version": "1.1.3",
+            "version": "1.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/tacticmedia/rds-auth-middleware.git",
-                "reference": "2a059f30ca194697840a511692db7694bc107244"
+                "reference": "7a9f5866c81e371e0b2a54d7fad71feb2c51c873"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/tacticmedia/rds-auth-middleware/zipball/2a059f30ca194697840a511692db7694bc107244",
-                "reference": "2a059f30ca194697840a511692db7694bc107244",
+                "url": "https://api.github.com/repos/tacticmedia/rds-auth-middleware/zipball/7a9f5866c81e371e0b2a54d7fad71feb2c51c873",
+                "reference": "7a9f5866c81e371e0b2a54d7fad71feb2c51c873",
                 "shasum": ""
             },
             "require": {
@@ -10073,9 +10075,9 @@
             ],
             "support": {
                 "issues": "https://github.com/tacticmedia/rds-auth-middleware/issues",
-                "source": "https://github.com/tacticmedia/rds-auth-middleware/tree/1.1.3"
+                "source": "https://github.com/tacticmedia/rds-auth-middleware/tree/1.2.0"
             },
-            "time": "2026-08-18T01:35:19+00:00"
+            "time": "2026-10-09T04:30:57+00:00"
         },
         {
             "name": "twig/extra-bundle",

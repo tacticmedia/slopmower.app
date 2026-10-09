@@ -1,2 +1,7 @@
 framework:
-    cache: ~
+    cache:
+        pools:
+            # The accepted RDS credentials (D58), apart from application data. On disk, so the worker reuses what the
+            # web process cached: every CLI process has its own APCu segment.
+            rds_credentials.cache:
+                adapter: cache.adapter.filesystem
