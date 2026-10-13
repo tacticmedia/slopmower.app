@@ -63,6 +63,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F45 | [Database error details](F45-database-error-details.md) | Done 2026-10-14, [report](reports/F45.md) | 2b316e0 | src 478 PHP / 32295 lines, 478 types; tests 318 PHP / 28993 lines; assets 163 TS / 9460 lines; check 4m12s |
 | F46 | [RDS auth bundle 1.2](F46-rds-auth-bundle-1-2.md) | Done 2026-10-09, [report](reports/F46.md) | a039aa7 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26343 lines; assets 159 TS / 9202 lines; check 9m51s |
 | F47 | [Product name Slopmower](F47-product-name-slopmower.md) | Done 2026-10-13, [report](reports/F47.md) | 91b4995 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26343 lines; assets 159 TS / 9202 lines; check 8m34s |
+| F48 | [Agent suggestions](F48-agent-suggestions.md) | In progress (2026-10-13) | | |
 
 ## Candidates
 
@@ -112,6 +113,10 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **Retention job logs.** The F44 jobs log nothing. The purge of the queue `failed` also deletes failed deletion and tenant purge jobs after 30 days, without a log line. Messenger logs each of them at `critical` when it fails, so the failure is in the prod log once. A record at `error` with the count, and the ID and class of each deleted message, would show what the purge removed. From the F44 review.
 - **Legal links in the app.** Link the privacy policy, the terms, and the support page from the app shell, for example in Settings or a footer, and from the docs layout. Today only the sign-in page and the docs index link them. From the F43 report.
 - **Marketplace record after account deletion.** The tenant purge keeps the `marketplace_account` record of the personal GitHub account, so the account ID and the plan stay until GitHub reports that the plan ended. The sign-in reads the plan again, so the purge could delete the record of the personal account when no other tenant uses it. The F43 privacy policy states the current behaviour. From the F43 review.
+- **Bulk triage of suggestions.** Accept or dismiss many agent suggestions at once. From F48.
+- **Suggested diff on a suggestion.** A suggestion with a diff, before the claim. The agent proposes a diff after the claim with `propose_solution`. From F48.
+- **Edit a suggestion before accepting.** The user replies in the thread instead. From F48.
+- **MCP triage tools.** Tools to accept or dismiss a suggestion or to close a review. Verify and reopen have none either. From F48.
 
 ## For Jan
 
