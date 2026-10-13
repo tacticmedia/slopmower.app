@@ -54,8 +54,8 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F36 | [QA pipeline](F36-qa-pipeline.md) | Done 2026-10-08, [report](reports/F36.md) | bb166d4 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26294 lines; assets 159 TS / 9202 lines; check 3m36s |
 | F37 | [Symbols service address](F37-symbols-service-address.md) | Done 2026-10-08, [report](reports/F37.md) | fd40975 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26294 lines; assets 159 TS / 9202 lines |
 | F38 | [Database connection parameters](F38-database-connection-parameters.md) | Done 2026-10-09, [report](reports/F38.md) | c9f6b34 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26343 lines; assets 159 TS / 9202 lines; check 2m54s |
-| F39 | [Usage limits](F39-usage-limits.md) | Planned | | |
-| F40 | [Pull request state](F40-pull-request-state.md) | Planned | | |
+| F39 | [Usage limits](F39-usage-limits.md) | In progress (2026-10-13) | | |
+| F40 | [Pull request state](F40-pull-request-state.md) | In progress (2026-10-13) | | |
 | F41 | [Check run](F41-check-run.md) | Planned | | |
 | F42 | [Marketplace plans](F42-marketplace-plans.md) | Planned | | |
 | F43 | [Legal and support pages](F43-legal-and-support-pages.md) | Planned | | |
@@ -134,5 +134,5 @@ Decisions or actions that only Jan can take. Each comes from a report or a revie
     7. **Plans.** Launch with the free plan. Add the flat-rate paid plans, monthly and yearly, after about 100 installations, when publisher verification is done. A published plan cannot be edited, only replaced.
     8. **Test.** Buy on the draft listing, which charges nothing. Use "Apply Pending Change" for downgrades and cancellations.
     9. **Submit.** Accept the Marketplace Developer Agreement and submit the listing for review. For paid plans, request listing verification and financial onboarding.
-- **Legal and support pages (F43):** supply the storage country and the support email, and write or approve the privacy policy and the terms of service.
+- **Legal and support pages (F43):** supply the legal entity name and address, the storage country and the hosting provider, the governing law, and the support and privacy email. Approve the privacy policy, the terms of service, and the cookie notice. The text addresses a global audience, so a legal review is recommended.
 - **phpstan-doctrine:** it finds a type descriptor by DBAL type class, not by type name. So `IdentifierType` and `StringValueType`, which serve several value classes, fall back to `mixed` in DQL result shapes. The fix needs either two new `phpstanApi` ignores, which the definition of done forbids, or an upstream change. F08 item 6 is left open for it.
