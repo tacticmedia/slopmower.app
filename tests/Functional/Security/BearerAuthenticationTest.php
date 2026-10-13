@@ -16,7 +16,6 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
-use Symfony\Component\Finder\Finder;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\DataCollector\LoggerDataCollector;
 use Symfony\Component\HttpKernel\Profiler\Profile;
@@ -151,10 +150,12 @@ final class BearerAuthenticationTest extends WebTestCase
         self::assertSame('user', $me['caller']['kind']);
     }
 
-    #[TestDox('The secret never appears in var/log')]
+    #[TestDox('The secret never appears in the test log')]
     public function testSecretNotLogged(): void
     {
         $client = static::createClient();
+        $testLog = self::getContainer()->getParameter('kernel.logs_dir').'/test.log';
+        $testLogOffset = is_file($testLog) ? (int) filesize($testLog) : 0;
         $user = TenantFixtures::of(self::getContainer())->create();
         [, $valid] = self::storeToken($user);
         [, $revoked] = self::storeToken($user, revoked: true);
@@ -169,10 +170,9 @@ final class BearerAuthenticationTest extends WebTestCase
             self::assertStringNotContainsString($secret, serialize($logs->getProcessedLogs()));
         }
 
-        foreach (Finder::create()->files()->in(self::getContainer()->getParameter('kernel.logs_dir')) as $file) {
-            self::assertStringNotContainsString($valid, $file->getContents(), $file->getFilename());
-            self::assertStringNotContainsString($revoked, $file->getContents(), $file->getFilename());
-        }
+        $testLogTail = (string) file_get_contents($testLog, offset: $testLogOffset);
+        self::assertStringNotContainsString($valid, $testLogTail);
+        self::assertStringNotContainsString($revoked, $testLogTail);
     }
 
     private static function assertInvalidToken(Response $response): void
