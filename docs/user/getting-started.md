@@ -28,7 +28,9 @@ To add or remove repositories later, click **Configure on GitHub** again. When y
 
 Slopmower makes its own copy of the repository. The status under **Connected repositories** shows the progress. When the status is **Ready**, you can start a review.
 
-Your plan limits the number of connected repositories and open reviews, and the size of the copies. **Settings** shows the use and the limit of each item. A copy that is larger than a size limit fails, and the status names the limit.
+Your plan limits the number of connected repositories and open reviews, and the size of the copies. **Settings** shows your plan, and the use and the limit of each item. A copy that is larger than a size limit fails, and the status names the limit.
+
+Without a paid plan, you have the free plan. To get higher limits, buy a plan for your GitHub account or for an organization on the Slopmower page of GitHub Marketplace. **Settings** links to it. GitHub installs the App and sends you back to Slopmower, where you sign in again. You get the highest plan of your GitHub account and of the accounts where the App is installed. When you cancel the plan of your own GitHub account, GitHub keeps the App installed. If the App is no longer installed on any account that you use with Slopmower 30 days after the cancellation, and you have not bought a plan again, Slopmower deletes your account and all its data.
 
 ## 4. Start a review
 

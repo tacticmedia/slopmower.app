@@ -47,10 +47,11 @@ D65 in [architecture section 11](../architecture.md#11-decisions), and:
 - **Reconciliation.** At each sign-in, `GET /marketplace_listing/accounts/{id}` with the App JWT, for the user account and for each installation account. The answer replaces the record, and a 404 deletes it. So a lost delivery is repaired at the next sign-in. `GitHubInstallation` and `AccountPayload` get the account ID.
 - **Plans.** A parameter maps each Marketplace plan ID to a plan key, a rank, and its F39 limit values, with environment variables. The free plan is also the plan of an account without a record. An unknown plan ID counts as the free plan and logs an error.
 - **Plan of a tenant.** The plan with the highest rank among the user account and the installation accounts of the tenant. No record gives the free plan.
-- **Data after a cancellation.** `cancelled` of a user account queues a job delayed by 30 days. The job reads the plan again. When the account has no plan and the tenant has no installation on that account, the job starts the tenant purge of M31. A new purchase or installation in the 30 days stops it.
+- **Data after a cancellation.** `cancelled` of a user account queues a job delayed by 30 days. The job reads the plan again. When GitHub answers 404 for the account and the tenant has no installation left, of any account, the job starts the tenant purge of M31. A new purchase or installation in the 30 days stops it. A failed plan read keeps the tenant, and the job retries.
 - **Settings.** Specs first: `Me` gets `plan` with the plan name, the trial end, and the pending change. Settings shows the plan, the use and limits of F39, and a link to the listing, from the parameter `GITHUB_MARKETPLACE_URL`.
 - **Setup URL after a purchase.** `/github/installed` (`GitHubInstalledController`) needs a signed-in user, so `LoginRedirectEntryPoint` sends a new buyer to the sign-in page first. After the sign-in, the saved target path opens `/github/installed`, which lists the installations again. F42 tests this path and keeps it.
 - **No payment code.** Slopmower sells nothing outside the Marketplace (D65).
+- **Review decisions, 2026-10-13.** The purge needs a 404 and no installation of any account. "No installation on that account" purged a user who cancelled the own plan and still works through an organization installation. The installation count runs under the tenant row lock of the purge. `APP_PAID_PLANS` refuses two paid plans with one rank, because the plan of a tenant would then depend on the row order.
 
 ## Depends on
 
@@ -76,7 +77,7 @@ F39: the limits that a plan sets.
 
 ## Acceptance tests
 
-- **F** `MarketplaceWebhookTest`: `purchased` stores the plan of the account, `changed` replaces it, `pending_change` stores the pending plan, `pending_change_cancelled` clears it, `cancelled` deletes the record, and a duplicate delivery changes nothing.
+- **F** `MarketplaceWebhookTest`: `purchased` stores the plan of the account, `changed` replaces it, `pending_change` stores the pending plan, `pending_change_cancelled` clears it, and `cancelled` deletes the record. `DuplicateDeliveryTest` covers a duplicate delivery, because the consumer drops a recorded delivery ID before it routes the event.
 - **F** `TenantPlanTest`: the highest rank among the user account and the installation accounts; no record gives the free plan; an unknown plan ID gives the free plan and logs an error; a paid plan raises an F39 limit.
 - **F** `MarketplaceReconciliationTest`: at sign-in, a recorded answer replaces the record, and a 404 deletes it.
 - **F** `CancelledAccountPurgeTest`: the delayed job purges a tenant whose account cancelled and has no installation left, and does nothing after a new purchase.

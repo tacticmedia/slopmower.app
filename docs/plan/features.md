@@ -57,7 +57,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F39 | [Usage limits](F39-usage-limits.md) | Done 2026-10-13, [report](reports/F39.md) | 23b9c8e | src 453 PHP / 30275 lines, 453 types; tests 306 PHP / 27476 lines; assets 161 TS / 9361 lines; check 3m54s |
 | F40 | [Pull request state](F40-pull-request-state.md) | Done 2026-10-13, [report](reports/F40.md) | 2e5de64 | src 445 PHP / 29648 lines, 445 types; tests 298 PHP / 26788 lines; assets 160 TS / 9265 lines; check 3m29s |
 | F41 | [Check run](F41-check-run.md) | Done 2026-10-13, [report](reports/F41.md) | 902c7ae | src 460 PHP / 31416 lines, 460 types; tests 310 PHP / 28323 lines; assets 162 TS / 9406 lines; check 4m34s |
-| F42 | [Marketplace plans](F42-marketplace-plans.md) | In progress (2026-10-13) | | |
+| F42 | [Marketplace plans](F42-marketplace-plans.md) | Done 2026-10-14, [report](reports/F42.md) | | src 472 PHP / 32129 lines, 472 types; tests 315 PHP / 28756 lines; assets 163 TS / 9460 lines |
 | F43 | [Legal and support pages](F43-legal-and-support-pages.md) | In progress (2026-10-13) | | |
 | F44 | [Retention jobs](F44-retention-jobs.md) | In progress (2026-10-13) | | |
 | F46 | [RDS auth bundle 1.2](F46-rds-auth-bundle-1-2.md) | Done 2026-10-09, [report](reports/F46.md) | a039aa7 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26343 lines; assets 159 TS / 9202 lines; check 9m51s |

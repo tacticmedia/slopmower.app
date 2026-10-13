@@ -69,7 +69,7 @@ final class GitHubInstallationHandler
             $installation = $this->installations->findOneBy(['installationId' => $job->installationId]);
 
             if (null === $installation) {
-                $this->entityManager->persist(new GitHubInstallation($tenantId, $job->installationId, $job->accountLogin, $job->accountType, $job->suspendedAt, $job->permissions));
+                $this->entityManager->persist(new GitHubInstallation($tenantId, $job->installationId, $job->accountId, $job->accountLogin, $job->accountType, $job->suspendedAt, $job->permissions));
             } else {
                 $installation->recordPermissions($job->permissions);
             }

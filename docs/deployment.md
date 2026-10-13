@@ -25,7 +25,7 @@ Set these variables for every PHP process: the web server, each Messenger worker
 
 ## Usage and rate limits
 
-The [usage limits](specs/README.md#usage-limits) are the values of the free plan, which every tenant has. The [rate limits](specs/README.md#rate-limits) are values of the instance. The `.env` defaults apply when a variable is not set.
+The [usage limits](specs/README.md#usage-limits) are the values of the [plan of the tenant](specs/webhooks-and-live-updates.md#marketplace-plans). A tenant without a GitHub Marketplace plan has the free plan. The [rate limits](specs/README.md#rate-limits) are values of the instance. The `.env` defaults apply when a variable is not set.
 
 | Variable | Default | Value |
 |---|---|---|
@@ -34,12 +34,23 @@ The [usage limits](specs/README.md#usage-limits) are the values of the free plan
 | `APP_PLAN_FREE_REQUESTS_PER_REVIEW` | `1000` | Requests per review. `0` or empty: off. |
 | `APP_PLAN_FREE_REPOSITORY_SIZE_MIB` | `2048` | Size of one clone in MiB. `0` or empty: off. |
 | `APP_PLAN_FREE_TENANT_STORAGE_MIB` | `10240` | Size of all clones of a tenant in MiB. `0` or empty: off. |
+| `APP_PLAN_FREE_MARKETPLACE_PLAN_ID` | empty | The Marketplace plan ID of the free plan of the listing. Empty: the listing has no free plan. |
+| `APP_PAID_PLANS` | empty | The paid plans, a JSON object by plan key. Empty: no paid plans. See below. |
+| `GITHUB_MARKETPLACE_URL` | empty | The listing, for example `https://github.com/marketplace/slopmower`, which Settings links. Empty: no link. |
 | `APP_RATE_LIMIT_API_TOKEN_PER_MINUTE` | `300` | Calls per API token, at least 1 |
 | `APP_RATE_LIMIT_API_USER_PER_MINUTE` | `1200` | Calls per user, at least 1 |
 | `APP_RATE_LIMIT_MCP_HTTP_PER_MINUTE` | `600` | HTTP requests to `/_mcp` per API token, at least 1 |
 | `APP_RATE_LIMIT_SYNC_FETCH_PER_MINUTE` | `10` | Synchronous fetches per repository, at least 1 |
 | `APP_RATE_LIMIT_REVIEW_START_PER_HOUR` | `30` | Review starts per tenant, at least 1 |
 
+- Each paid plan in `APP_PAID_PLANS` has the keys `name`, `marketplace_plan_id`, `rank` of at least 1, and the five limits of the free plan in lower case without the prefix, with `0` for off. The plan of a tenant is the plan with the highest rank among its GitHub accounts. A wrong entry fails every request that reads a plan, and the error names the entry.
+
+  ```sh
+  APP_PAID_PLANS='{"pro": {"name": "Pro", "marketplace_plan_id": 1313, "rank": 1, "repositories": 100, "open_reviews": 100, "requests_per_review": 5000, "repository_size_mib": 4096, "tenant_storage_mib": 51200}}'
+  ```
+
+- The plan IDs come from `GET /marketplace_listing/plans` with the App JWT. A Marketplace plan that `APP_PAID_PLANS` does not map counts as the free plan and logs an error, so add a new plan of the listing here before it is published.
+- The Marketplace listing sends its own webhook. Set it to `https://<host>/webhook/github`, content type JSON, the secret `GITHUB_APP_WEBHOOK_SECRET`, and Active.
 - The rate limiter state is in the table `cache_items` of the database, so every web server and worker shares it.
 - A clone gets its size at its next clone or fetch. Until then it counts as 0 bytes.
 

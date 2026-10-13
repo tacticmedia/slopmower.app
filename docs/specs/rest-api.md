@@ -99,6 +99,7 @@ The response holds:
 - the signed-in user and the tenant;
 - the calling actor, and the token for a bearer call;
 - the server features: `localRepositories`, and `githubApp`. `githubApp` is null when the GitHub App is not configured or the user signed in locally.
+- `plan`: the [plan of the tenant](webhooks-and-live-updates.md#marketplace-plans) with its name, the end of a free trial, a pending downgrade or cancellation, and the GitHub Marketplace listing. `listingUrl` is null when the instance has no listing.
 - `usage`: the use of the tenant and the limit of its plan for each [usage limit](README.md#usage-limits). A token scoped to one repository also gets the use of the whole tenant.
 - the links `mcpUrl`, `docsUrl`, and `skillUrl`.
 
@@ -113,7 +114,8 @@ Example response for a bearer call, [fixtures/me.agent.json](fixtures/me.agent.j
   "caller": {"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},
   "token": {"id":"01K6C0T0KEN0000000000000AB","name":"claude-code laptop","scope":"repository","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","repositoryName":"acme/billing","prefix":"sm_KXidQQ","state":"active","createdAt":"2026-09-29T07:00:00Z","expiresAt":null,"lastUsedAt":"2026-09-29T07:30:00Z","revokedAt":null},
   "features": {"localRepositories":true,"githubApp":{"slug":"slopmower","installUrl":"https://github.com/apps/slopmower/installations/new"}},
-  "usage": [{"limit":"repositories","max":25,"current":3},{"limit":"open_reviews","max":20,"current":2},{"limit":"requests_per_review","max":1000,"current":14},{"limit":"repository_size","max":2147483648,"current":48234496},{"limit":"tenant_storage","max":10737418240,"current":61865984}],
+  "plan": {"name":"Pro","trialEndsAt":"2026-10-13T00:00:00Z","pendingChange":{"name":"Team","effectiveAt":"2026-11-13T00:00:00Z"},"listingUrl":"https://github.com/marketplace/slopmower"},
+  "usage": [{"limit":"repositories","max":100,"current":3},{"limit":"open_reviews","max":100,"current":2},{"limit":"requests_per_review","max":5000,"current":14},{"limit":"repository_size","max":4294967296,"current":48234496},{"limit":"tenant_storage","max":53687091200,"current":61865984}],
   "links": {"mcpUrl":"https://slopmower.example/_mcp","docsUrl":"https://slopmower.example/docs","skillUrl":"https://slopmower.example/docs/skill/SKILL.md"}
 }
 ```

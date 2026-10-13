@@ -100,7 +100,7 @@ final class InstallationWebhookTest extends WebTestCase
         self::deliverFixture($client, 'installation.created');
         self::runQueuedMessages();
         $routedJobs = array_filter([...self::asyncTransport()->getSent()], static fn (Envelope $envelope): bool => $envelope->getMessage() instanceof GitHubInstallationCreatedJob);
-        self::getContainer()->get(MessageBusInterface::class)->dispatch(new GitHubInstallationCreatedJob(5554, 'octocat', GitHubAccountType::User, null, ['contents' => 'read', 'metadata' => 'read']), [new TenantStamp($sender)]);
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new GitHubInstallationCreatedJob(5554, 1, 'octocat', GitHubAccountType::User, null, ['contents' => 'read', 'metadata' => 'read']), [new TenantStamp($sender)]);
         self::runQueuedMessages();
 
         self::assertSame([], $routedJobs);

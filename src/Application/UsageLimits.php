@@ -9,26 +9,17 @@ use App\Domain\Error\LimitExceeded;
 use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Identity\TenantId;
+use App\Domain\Usage\Plan;
 use App\Domain\Usage\UsageLimit;
 use App\Repository\UsageSql;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
- * The usage limits of docs/specs/README.md section "Usage limits", with the values of the plan of the tenant. Every
- * tenant has the free plan.
+ * The usage limits of docs/specs/README.md section "Usage limits", with the values of the plan of the tenant.
  */
 final class UsageLimits
 {
-    private const string PLAN = 'free';
-
-    private const int BYTES_PER_MIB = 1_048_576;
-
-    /**
-     * @param array<string, array{repositories: int, open_reviews: int, requests_per_review: int, repository_size_mib: int, tenant_storage_mib: int}> $plans
-     */
     public function __construct(
-        #[Autowire(param: 'app.plans')]
-        private readonly array $plans,
+        private readonly Plans $plans,
         private readonly UsageSql $usage,
     ) {
     }
@@ -38,10 +29,11 @@ final class UsageLimits
      */
     public function usage(TenantId $tenantId): array
     {
+        $plan = $this->plans->ofTenant($tenantId)->plan;
         $use = $this->usage->tenantUse($tenantId);
 
         return array_map(
-            fn (UsageLimit $limit): LimitUsage => new LimitUsage($limit, $this->max($limit), $use[$limit->value] ?? throw new \LogicException("No use of {$limit->value}.")),
+            static fn (UsageLimit $limit): LimitUsage => new LimitUsage($limit, $plan->max($limit), $use[$limit->value] ?? throw new \LogicException("No use of {$limit->value}.")),
             UsageLimit::cases(),
         );
     }
@@ -51,7 +43,7 @@ final class UsageLimits
      */
     public function checkNewRepository(TenantId $tenantId): void
     {
-        $this->checkAdded(UsageLimit::Repositories, $this->usage->repositories($tenantId), 1);
+        self::checkAdded($this->plans->ofTenant($tenantId)->plan, UsageLimit::Repositories, $this->usage->repositories($tenantId), 1);
     }
 
     /**
@@ -59,7 +51,7 @@ final class UsageLimits
      */
     public function checkNewReview(TenantId $tenantId): void
     {
-        $this->checkAdded(UsageLimit::OpenReviews, $this->usage->openReviews($tenantId), 1);
+        self::checkAdded($this->plans->ofTenant($tenantId)->plan, UsageLimit::OpenReviews, $this->usage->openReviews($tenantId), 1);
     }
 
     /**
@@ -68,7 +60,7 @@ final class UsageLimits
     public function checkNewRequests(TenantId $tenantId, ReviewId $reviewId, int $count): void
     {
         if ($count > 0) {
-            $this->checkAdded(UsageLimit::RequestsPerReview, $this->usage->requestsOfReview($tenantId, $reviewId), $count);
+            self::checkAdded($this->plans->ofTenant($tenantId)->plan, UsageLimit::RequestsPerReview, $this->usage->requestsOfReview($tenantId, $reviewId), $count);
         }
     }
 
@@ -77,16 +69,17 @@ final class UsageLimits
      */
     public function checkCloneSize(TenantId $tenantId, RepositoryId $repositoryId, int $sizeBytes): void
     {
-        $this->checkTotal(UsageLimit::RepositorySize, $sizeBytes);
-        $this->checkTotal(UsageLimit::TenantStorage, $this->usage->otherClonesBytes($tenantId, $repositoryId) + $sizeBytes);
+        $plan = $this->plans->ofTenant($tenantId)->plan;
+        self::checkTotal($plan, UsageLimit::RepositorySize, $sizeBytes);
+        self::checkTotal($plan, UsageLimit::TenantStorage, $this->usage->otherClonesBytes($tenantId, $repositoryId) + $sizeBytes);
     }
 
     /**
      * @throws LimitExceeded
      */
-    private function checkAdded(UsageLimit $limit, int $current, int $added): void
+    private static function checkAdded(Plan $plan, UsageLimit $limit, int $current, int $added): void
     {
-        $max = $this->max($limit);
+        $max = $plan->max($limit);
 
         if (null !== $max && $current + $added > $max) {
             throw new LimitExceeded($limit, $max, $current);
@@ -96,29 +89,12 @@ final class UsageLimits
     /**
      * @throws LimitExceeded
      */
-    private function checkTotal(UsageLimit $limit, int $total): void
+    private static function checkTotal(Plan $plan, UsageLimit $limit, int $total): void
     {
-        $max = $this->max($limit);
+        $max = $plan->max($limit);
 
         if (null !== $max && $total > $max) {
             throw new LimitExceeded($limit, $max, $total);
         }
-    }
-
-    /**
-     * @return int|null Null when the limit is off. Bytes for the size limits.
-     */
-    private function max(UsageLimit $limit): ?int
-    {
-        $plan = $this->plans[self::PLAN] ?? throw new \LogicException('The parameter app.plans has no free plan.');
-        $max = match ($limit) {
-            UsageLimit::Repositories => $plan['repositories'],
-            UsageLimit::OpenReviews => $plan['open_reviews'],
-            UsageLimit::RequestsPerReview => $plan['requests_per_review'],
-            UsageLimit::RepositorySize => $plan['repository_size_mib'] * self::BYTES_PER_MIB,
-            UsageLimit::TenantStorage => $plan['tenant_storage_mib'] * self::BYTES_PER_MIB,
-        };
-
-        return $max > 0 ? $max : null;
     }
 }

@@ -56,8 +56,11 @@ final class DeletionHandler
     /**
      * The rows first, under the tenant row lock, then each clone under its repository lock, then the tenant directory.
      * A repeated run deletes what is left, also without the tenant row.
+     *
+     * @param (\Closure(): bool)|null $keep Runs under the tenant row lock, so a write that holds the lock has committed. True
+     *                                      deletes nothing.
      */
-    public function purge(TenantId $tenantId): void
+    public function purge(TenantId $tenantId, ?\Closure $keep = null): void
     {
         [$tenant, $repositoryIds] = $this->tenantFilter->suspend(fn (): array => [
             $this->tenants->find($tenantId),
@@ -65,7 +68,18 @@ final class DeletionHandler
         ]);
 
         if ($tenant instanceof Tenant) {
-            $this->executor->delete($tenantId, fn () => $this->deletion->deleteTenant($tenantId));
+            $kept = false;
+            $this->executor->delete($tenantId, function () use ($tenantId, $keep, &$kept): void {
+                $kept = null !== $keep && $keep();
+
+                if (!$kept) {
+                    $this->deletion->deleteTenant($tenantId);
+                }
+            });
+
+            if ($kept) {
+                return;
+            }
         } else {
             $this->deletion->deleteTenant($tenantId);
         }

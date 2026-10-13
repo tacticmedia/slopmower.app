@@ -5,6 +5,7 @@ import { useLoaderData, useRouteLoaderData } from 'react-router';
 import type { Me } from '../../api/types/me';
 import { CreateTokenDialog } from '../../settings/CreateTokenDialog';
 import { DeleteAccountDialog } from '../../settings/DeleteAccountDialog';
+import { PlanSummary } from '../../settings/PlanSummary';
 import { RepositoryDataTable } from '../../settings/RepositoryDataTable';
 import styles from '../../settings/Settings.module.css';
 import { SkillInstall } from '../../settings/SkillInstall';
@@ -39,6 +40,7 @@ export function SettingsRoute() {
                 <TokenTable tokens={tokens} labelledBy="api-tokens" describedBy="api-tokens-subtitle" />
             </Table.Container>
             <SkillInstall skillUrl={me.links.skillUrl} />
+            <PlanSummary plan={me.plan} />
             <div className={styles.pageSection}>
                 <Table.Container>
                     <Table.Title as="h2" id="usage">

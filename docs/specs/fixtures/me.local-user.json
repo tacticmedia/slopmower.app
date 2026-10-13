@@ -19,6 +19,12 @@
     "localRepositories": true,
     "githubApp": null
   },
+  "plan": {
+    "name": "Free",
+    "trialEndsAt": null,
+    "pendingChange": null,
+    "listingUrl": null
+  },
   "usage": [
     {
       "limit": "repositories",

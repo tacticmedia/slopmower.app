@@ -10,6 +10,7 @@ namespace App\GitHub\Payload;
 final readonly class AccountPayload
 {
     public function __construct(
+        public int $id,
         public string $login,
     ) {
     }

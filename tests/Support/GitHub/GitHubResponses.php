@@ -12,7 +12,8 @@ use Symfony\Component\HttpClient\Response\MockResponse;
  * bearer token in JWT form and a token limited to one repository and one permission set of
  * {@see self::TOKEN_FIXTURE_BY_PERMISSIONS}, as the jobs ask for it. A repository read answers only the
  * `contents: read` token, and a pull request read only the `pull_requests: read` token. The check run calls answer only
- * the `checks: write` token, and {@see self::checkRunCalls()} keeps them.
+ * the `checks: write` token, and {@see self::checkRunCalls()} keeps them. The Marketplace account read answers only the
+ * App JWT.
  */
 final class GitHubResponses
 {
@@ -71,6 +72,16 @@ final class GitHubResponses
         'repos/acme/billing/pulls/42' => 'pull-request-acme-billing-42',
     ];
 
+    /**
+     * `GET /marketplace_listing/accounts/{account_id}`, built from the REST description of GitHub, because no listing
+     * exists yet. Any other account answers 404. octocat has Pro on a free trial, with a pending change to Team. The
+     * account 5 fails.
+     */
+    private const array MARKETPLACE_ACCOUNT_FIXTURES = [
+        1 => 'marketplace-account-1',
+        5 => 'server-error',
+    ];
+
     /** @var array<string, array<string, string>> Paths below the API by user token */
     private const array LISTING_FIXTURES_BY_ACCESS_TOKEN = [
         self::ACCESS_TOKEN => self::LISTING,
@@ -104,6 +115,9 @@ final class GitHubResponses
             1 === preg_match('~^(POST|PATCH) https://api\.github\.com/repos/[^/]+/[^/]+/check-runs(/\d+)?$~', $request) => $this->checkRunFixture($method, $url, $options),
             str_starts_with($request, 'GET '.self::API.'repos/') => self::INSTALLATION_TOKEN === self::bearerToken($options)
                 ? self::REPOSITORY_FIXTURES[substr($url, \strlen(self::API))] ?? 'repository-not-found'
+                : 'user-unauthorized',
+            1 === preg_match('~^GET https://api\.github\.com/marketplace_listing/accounts/(\d+)$~', $request, $account) => self::isAppJwt($options)
+                ? self::MARKETPLACE_ACCOUNT_FIXTURES[(int) $account[1]] ?? 'marketplace-account-not-found'
                 : 'user-unauthorized',
             default => null,
         } ?? throw new \LogicException("No recorded GitHub response for {$method} {$url}.");
@@ -145,7 +159,7 @@ final class GitHubResponses
      */
     private static function installationTokenFixture(array $options): string
     {
-        $isAppJwt = 1 === preg_match('/^[\w-]+\.[\w-]+\.[\w-]+$/', self::bearerToken($options));
+        $isAppJwt = self::isAppJwt($options);
         $body = \is_string($options['body'] ?? null) ? json_decode($options['body'], true) : null;
         $isLimited = \is_array($body)
             && ['permissions', 'repository_ids'] === array_keys(self::sorted($body))
@@ -153,6 +167,14 @@ final class GitHubResponses
         $fixture = $isAppJwt && $isLimited ? array_search($body['permissions'], self::TOKEN_FIXTURE_BY_PERMISSIONS, true) : false;
 
         return \is_string($fixture) ? $fixture : 'installation-token-invalid';
+    }
+
+    /**
+     * @param array{normalized_headers?: array<string, list<string>>} $options
+     */
+    private static function isAppJwt(array $options): bool
+    {
+        return 1 === preg_match('/^[\w-]+\.[\w-]+\.[\w-]+$/', self::bearerToken($options));
     }
 
     /**

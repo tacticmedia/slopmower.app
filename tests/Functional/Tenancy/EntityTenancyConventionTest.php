@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Tenancy;
 
 use App\Domain\Identity\TenantId;
+use App\Entity\MarketplaceAccount;
 use App\Entity\Tenant;
 use App\Entity\TenantOwned;
 use App\Entity\WebhookDelivery;
@@ -14,7 +15,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class EntityTenancyConventionTest extends KernelTestCase
 {
-    private const array EXCEPTIONS = [Tenant::class, WebhookDelivery::class];
+    private const array EXCEPTIONS = [Tenant::class, WebhookDelivery::class, MarketplaceAccount::class];
 
     #[TestDox('Every entity except the listed exceptions implements TenantOwned and maps a non-null tenant_id')]
     public function testEveryEntityIsTenantScoped(): void

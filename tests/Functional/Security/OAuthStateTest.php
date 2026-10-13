@@ -67,6 +67,8 @@ final class OAuthStateTest extends WebTestCase
                 'GET https://api.github.com/user/installations?per_page=100',
                 'GET https://api.github.com/user/installations/5551/repositories?per_page=100',
                 'GET https://api.github.com/user/installations/5552/repositories?per_page=100',
+                'GET https://api.github.com/marketplace_listing/accounts/1',
+                'GET https://api.github.com/marketplace_listing/accounts/9919',
             ],
             self::gitHubRequests($client),
         );

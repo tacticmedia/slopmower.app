@@ -64,7 +64,7 @@ final class RepositoryScopeSqlFilterTest extends KernelTestCase
         self::entityManager()->persist(new PullRequest($gitHub, 42));
 
         foreach ([5551, 5552] as $installationId) {
-            self::entityManager()->persist(new GitHubInstallation($tenantId, $installationId, 'acme', GitHubAccountType::Organization, null, ['contents' => 'read', 'metadata' => 'read']));
+            self::entityManager()->persist(new GitHubInstallation($tenantId, $installationId, 9919, 'acme', GitHubAccountType::Organization, null, ['contents' => 'read', 'metadata' => 'read']));
         }
 
         foreach (['acme/billing' => 812345, 'acme/shipping' => 812399] as $name => $githubRepositoryId) {

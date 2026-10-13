@@ -118,7 +118,7 @@ Each call consumes one token of every limiter that applies to it. The limits are
 
 ### Usage limits
 
-The plan of the tenant sets each usage limit. Every tenant has the free plan. A limit with the value 0 is off.
+The [plan of the tenant](webhooks-and-live-updates.md#marketplace-plans) sets each usage limit. A tenant without a GitHub Marketplace plan has the free plan. The instance sets the values of each plan, and the table gives the defaults of the free plan. A limit with the value 0 is off.
 
 | `limit` | Use, `current` | Free plan | Checked at |
 |---|---|---|---|
@@ -272,7 +272,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [request-command-result.schema.json](schemas/request-command-result.schema.json) | `https://slopmower.invalid/schemas/v1/request-command-result.schema.json` | Result of a request command |
 | [link-commits-result.schema.json](schemas/link-commits-result.schema.json) | `https://slopmower.invalid/schemas/v1/link-commits-result.schema.json` | Result of `link_commits` |
 | [link-pull-request-result.schema.json](schemas/link-pull-request-result.schema.json) | `https://slopmower.invalid/schemas/v1/link-pull-request-result.schema.json` | Result of `link_pull_request` |
-| [me.schema.json](schemas/me.schema.json) | `https://slopmower.invalid/schemas/v1/me.schema.json` | The caller, the tenant, the features, and the links |
+| [me.schema.json](schemas/me.schema.json) | `https://slopmower.invalid/schemas/v1/me.schema.json` | The caller, the tenant, the features, the plan, the usage, and the links, plus `TenantPlan` and `LimitUsage` |
 | [lists.schema.json](schemas/lists.schema.json) | `https://slopmower.invalid/schemas/v1/lists.schema.json` | `$defs` only: every page and list, and `MercureAuthorization` |
 | [inputs.schema.json](schemas/inputs.schema.json) | `https://slopmower.invalid/schemas/v1/inputs.schema.json` | `$defs` only: every REST request body |
 | [live-update.schema.json](schemas/live-update.schema.json) | `https://slopmower.invalid/schemas/v1/live-update.schema.json` | Data of one Mercure update, IDs only |

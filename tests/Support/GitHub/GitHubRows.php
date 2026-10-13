@@ -26,9 +26,9 @@ trait GitHubRows
      *
      * @param array<string, string> $permissions
      */
-    private static function storeInstallation(TenantId $tenantId, int $installationId = 5551, string $accountLogin = 'acme', ?\DateTimeImmutable $suspendedAt = null, array $permissions = ['contents' => 'read', 'metadata' => 'read']): void
+    private static function storeInstallation(TenantId $tenantId, int $installationId = 5551, string $accountLogin = 'acme', ?\DateTimeImmutable $suspendedAt = null, array $permissions = ['contents' => 'read', 'metadata' => 'read'], int $accountId = 9919): void
     {
-        self::storeRow(new GitHubInstallation($tenantId, $installationId, $accountLogin, GitHubAccountType::Organization, $suspendedAt, $permissions));
+        self::storeRow(new GitHubInstallation($tenantId, $installationId, $accountId, $accountLogin, GitHubAccountType::Organization, $suspendedAt, $permissions));
     }
 
     /**

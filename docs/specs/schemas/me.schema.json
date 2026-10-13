@@ -3,7 +3,7 @@
   "$id": "https://slopmower.invalid/schemas/v1/me.schema.json",
   "title": "Me",
   "type": "object",
-  "required": ["user", "tenantId", "caller", "token", "features", "usage", "links"],
+  "required": ["user", "tenantId", "caller", "token", "features", "plan", "usage", "links"],
   "properties": {
     "user": {
       "type": "object",
@@ -73,6 +73,9 @@
         }
       }
     },
+    "plan": {
+      "$ref": "#/$defs/TenantPlan"
+    },
     "usage": {
       "type": "array",
       "description": "The use and the limit of each usage limit of the tenant, in the order of UsageLimit.",
@@ -100,6 +103,54 @@
     }
   },
   "$defs": {
+    "TenantPlan": {
+      "type": "object",
+      "description": "The plan whose limits the tenant has: the plan with the highest rank among the GitHub accounts of the user and of the installations of the tenant. An account without a Marketplace plan has the free plan.",
+      "required": ["name", "trialEndsAt", "pendingChange", "listingUrl"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trialEndsAt": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/DateTime"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The end of the free trial of the plan, null without a trial."
+        },
+        "pendingChange": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "description": "A downgrade or a cancellation that GitHub applies at the end of the billing cycle. A cancellation changes to the free plan.",
+              "required": ["name", "effectiveAt"],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "effectiveAt": {
+                  "$ref": "common.schema.json#/$defs/DateTime"
+                }
+              }
+            }
+          ]
+        },
+        "listingUrl": {
+          "type": ["string", "null"],
+          "format": "uri",
+          "description": "The GitHub Marketplace listing, where the user changes the plan. Null when the instance has no listing."
+        }
+      }
+    },
     "LimitUsage": {
       "type": "object",
       "required": ["limit", "max", "current"],

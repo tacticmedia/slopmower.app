@@ -31,6 +31,10 @@ class GitHubInstallation implements TenantOwned
     #[ORM\Column(type: Types::BIGINT)]
     private int $installationId;
 
+    /** Null when no listing or webhook has given the account ID of the row. */
+    #[ORM\Column(type: Types::BIGINT, nullable: true)]
+    private ?int $accountId;
+
     #[ORM\Column]
     private string $accountLogin;
 
@@ -47,11 +51,12 @@ class GitHubInstallation implements TenantOwned
     /**
      * @param array<string, string> $permissions
      */
-    public function __construct(TenantId $tenantId, int $installationId, string $accountLogin, GitHubAccountType $accountType, ?\DateTimeImmutable $suspendedAt, array $permissions)
+    public function __construct(TenantId $tenantId, int $installationId, int $accountId, string $accountLogin, GitHubAccountType $accountType, ?\DateTimeImmutable $suspendedAt, array $permissions)
     {
         $this->id = GitHubInstallationId::generate();
         $this->tenantId = $tenantId;
         $this->installationId = $installationId;
+        $this->accountId = $accountId;
         $this->accountLogin = $accountLogin;
         $this->accountType = $accountType;
         $this->suspendedAt = $suspendedAt;
@@ -61,6 +66,11 @@ class GitHubInstallation implements TenantOwned
     public function getTenantId(): TenantId
     {
         return $this->tenantId;
+    }
+
+    public function getAccountId(): ?int
+    {
+        return $this->accountId;
     }
 
     public function isSuspended(): bool

@@ -1,6 +1,6 @@
 import type { Actor } from './actor';
 import type { ApiToken } from './api-token';
-import type { Ulid, UsageLimit } from './common';
+import type { DateTime, Ulid, UsageLimit } from './common';
 
 export const SIGN_IN_METHODS = ['github', 'local'] as const;
 export type SignInMethod = (typeof SIGN_IN_METHODS)[number];
@@ -11,6 +11,16 @@ export type LimitUsage = {
     max: number | null;
     /** For `requests_per_review` the largest open review, for `repository_size` the largest clone. */
     current: number;
+};
+
+export type TenantPlan = {
+    name: string;
+    /** Null without a free trial. */
+    trialEndsAt: DateTime | null;
+    /** A downgrade or a cancellation at the end of the billing cycle. A cancellation changes to the free plan. */
+    pendingChange: { name: string; effectiveAt: DateTime } | null;
+    /** The GitHub Marketplace listing. Null when the instance has none. */
+    listingUrl: string | null;
 };
 
 export type Me = {
@@ -28,6 +38,7 @@ export type Me = {
         localRepositories: boolean;
         githubApp: { slug: string; installUrl: string } | null;
     };
+    plan: TenantPlan;
     usage: LimitUsage[];
     links: {
         mcpUrl: string;

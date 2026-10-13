@@ -15,6 +15,7 @@ final readonly class GitHubInstallationCreatedJob
      */
     public function __construct(
         public int $installationId,
+        public int $accountId,
         public string $accountLogin,
         public GitHubAccountType $accountType,
         public ?\DateTimeImmutable $suspendedAt,

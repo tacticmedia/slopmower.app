@@ -55,8 +55,8 @@ final class MeEndpointTest extends WebTestCase
                     'skillUrl' => 'http://slopmower.example:8443/docs/skill/SKILL.md',
                 ],
             ],
-            // UsageTest covers usage.
-            array_diff_key($me, ['usage' => true]),
+            // TenantPlanTest covers plan, and UsageTest covers usage.
+            array_diff_key($me, ['plan' => true, 'usage' => true]),
         );
     }
 

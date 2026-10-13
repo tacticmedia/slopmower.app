@@ -34,7 +34,8 @@ These two principles control all decisions.
 - Slopmower is a hosted, multi-tenant web application.
 - A tenant is one developer account and all its data. A tenant never sees the data of another tenant.
 - The proof of concept has one user per tenant. `User` and `Tenant` are separate, so that a tenant can get more users later.
-- Each tenant has the usage limits of its plan: connected repositories, open reviews, requests per review, and the size of its clones. Rate limits protect the instance from too many calls. [docs/specs/README.md section 4](specs/README.md#usage-limits) specifies both, and Settings shows the use and the limits.
+- Each tenant has the usage limits of its plan: connected repositories, open reviews, requests per review, and the size of its clones. Rate limits protect the instance from too many calls. [docs/specs/README.md section 4](specs/README.md#usage-limits) specifies both, and Settings shows the plan, the use, and the limits.
+- A GitHub account buys a plan on the GitHub Marketplace listing of the App. The plan of a tenant is the highest plan of the user's GitHub account and of the accounts of its installations. Without a plan, a tenant has the free plan ([Marketplace plans](specs/webhooks-and-live-updates.md#marketplace-plans)).
 
 ### FR2 Sign-in
 
@@ -163,7 +164,7 @@ These two principles control all decisions.
 | Non-goal | Where it is kept |
 |---|---|
 | Teams and several users per tenant | [multiple-users-per-tenant.md](backlog/multiple-users-per-tenant.md) |
-| Billing | GitHub Marketplace plans: [F42](plan/F42-marketplace-plans.md) |
+| Payment code, and billing outside the GitHub Marketplace | Billing goes through GitHub Marketplace plans only: D65 in [architecture section 11](architecture.md#11-decisions), [F42](plan/F42-marketplace-plans.md) |
 | Operations: production hosting, TLS, backups, and monitoring | The operator's work. The documentation covers only the local development environment and the QA workflow. |
 | Database hardening: row-level security and separate database roles | [database-hardening.md](backlog/database-hardening.md) |
 | Sync to GitHub or GitLab | Kept possible as a later export |

@@ -15,6 +15,8 @@ use App\Entity\GitHubAccountType;
 use App\Entity\SignInMethod;
 use App\Entity\TenantOwned;
 use App\GitHub\Payload\InstallationPayload;
+use App\GitHub\Payload\MarketplacePurchaseAction;
+use App\GitHub\Payload\MarketplacePurchasePayload;
 use App\GitHub\Payload\PullRequestPayload;
 use App\GitHub\Payload\RepositoryPayload;
 use App\Message\CheckRunJob;
@@ -27,6 +29,8 @@ use App\Message\GitHubPushJob;
 use App\Message\GitHubRepositoriesAddedJob;
 use App\Message\GitHubRepositoriesRemovedJob;
 use App\Message\GitHubRepositoryUpdatedJob;
+use App\Message\MarketplaceCancellationJob;
+use App\Message\MarketplacePurchaseJob;
 use App\Message\NeutralCheckRunJob;
 use App\Messenger\TenantStamp;
 use App\Repository\GitHubCandidateRepository;
@@ -39,8 +43,10 @@ use App\Tenancy\TenantFilter;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Symfony\Component\RemoteEvent\Attribute\AsRemoteEventConsumer;
 use Symfony\Component\RemoteEvent\Consumer\ConsumerInterface;
 use Symfony\Component\RemoteEvent\RemoteEvent;
@@ -50,7 +56,7 @@ use Symfony\Component\Uid\Ulid;
 
 /**
  * Routes a verified delivery to one job per tenant, docs/specs/webhooks-and-live-updates.md section 1. It reads across
- * tenants and writes no tenant row. The jobs run under the tenant of their TenantStamp.
+ * tenants and writes no tenant row. The jobs run under the tenant of their TenantStamp. A job for no tenant gets none.
  */
 #[AsRemoteEventConsumer('github')]
 final class GitHubWebhookConsumer implements ConsumerInterface
@@ -83,7 +89,7 @@ final class GitHubWebhookConsumer implements ConsumerInterface
         }
 
         foreach ($this->tenantJobs($event) as [$tenantId, $job]) {
-            $this->bus->dispatch($job, [new TenantStamp($tenantId)]);
+            $this->bus->dispatch($job, null === $tenantId ? [] : [new TenantStamp($tenantId)]);
         }
 
         $this->deliveries->record($event->getId(), $this->clock->now());
@@ -92,14 +98,14 @@ final class GitHubWebhookConsumer implements ConsumerInterface
     /**
      * A tenant that is being deleted gets no job.
      *
-     * @return list<array{TenantId, object}>
+     * @return list<array{TenantId|null, object}>
      */
     private function tenantJobs(RemoteEvent $event): array
     {
         try {
             return $this->tenantFilter->suspend(fn (): array => array_values(array_filter(
                 $this->route($event->getName(), $event->getPayload()),
-                fn (array $tenantJob): bool => $this->tenants->isActive($tenantJob[0]),
+                fn (array $tenantJob): bool => null === $tenantJob[0] || $this->tenants->isActive($tenantJob[0]),
             )));
         } catch (SerializerException $invalid) {
             throw self::malformed('an object of an unexpected shape', $invalid);
@@ -112,7 +118,7 @@ final class GitHubWebhookConsumer implements ConsumerInterface
     /**
      * @param array<mixed> $payload
      *
-     * @return list<array{TenantId, object}>
+     * @return list<array{TenantId|null, object}>
      */
     private function route(string $name, array $payload): array
     {
@@ -130,6 +136,7 @@ final class GitHubWebhookConsumer implements ConsumerInterface
             'github.pull_request' => $this->pullRequest($action, $payload),
             'github.check_run' => 'rerequested' === $action ? $this->checkRunRerequested($payload) : [],
             'github.github_app_authorization' => $this->authorization($action, $payload),
+            'github.marketplace_purchase' => $this->marketplacePurchase($action, $payload),
             default => [],
         };
     }
@@ -203,7 +210,7 @@ final class GitHubWebhookConsumer implements ConsumerInterface
 
         $installation = $this->denormalizer->denormalize($payload['installation'], InstallationPayload::class);
 
-        return [[$user->getTenantId(), new GitHubInstallationCreatedJob($installation->id, $installation->account->login, $accountType, $installation->suspendedAt, $installation->permissions)]];
+        return [[$user->getTenantId(), new GitHubInstallationCreatedJob($installation->id, $installation->account->id, $installation->account->login, $accountType, $installation->suspendedAt, $installation->permissions)]];
     }
 
     /**
@@ -370,6 +377,35 @@ final class GitHubWebhookConsumer implements ConsumerInterface
         }
 
         return [];
+    }
+
+    /**
+     * The record job, and for `cancelled` of a user account the cancellation job of the tenant of that user.
+     *
+     * @param array<mixed> $payload
+     *
+     * @return list<array{TenantId|null, object}>
+     */
+    private function marketplacePurchase(mixed $action, array $payload): array
+    {
+        $action = \is_string($action) ? MarketplacePurchaseAction::tryFrom($action) : null;
+
+        if (null === $action) {
+            return [];
+        }
+
+        $accountId = self::int($payload, 'marketplace_purchase', 'account', 'id');
+        $purchase = $this->denormalizer->denormalize($payload['marketplace_purchase'], MarketplacePurchasePayload::class);
+        $jobs = [[null, new MarketplacePurchaseJob($accountId, $action, $purchase, $this->denormalizer->denormalize($payload['effective_date'] ?? null, \DateTimeImmutable::class))]];
+        $user = MarketplacePurchaseAction::Cancelled === $action && 'User' === self::value($payload, 'marketplace_purchase', 'account', 'type')
+            ? $this->users->findOneBy(['githubUserId' => $accountId])
+            : null;
+
+        if (null !== $user) {
+            $jobs[] = [$user->getTenantId(), Envelope::wrap(new MarketplaceCancellationJob($accountId), [DelayStamp::delayFor(new \DateInterval(MarketplaceCancellationJob::DELAY))])];
+        }
+
+        return $jobs;
     }
 
     /**

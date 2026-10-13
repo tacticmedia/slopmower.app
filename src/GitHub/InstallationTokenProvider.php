@@ -88,11 +88,11 @@ final class InstallationTokenProvider
     }
 
     /**
-     * GitHub takes the client ID as issuer.
+     * The App JWT, for the endpoints that authenticate the App itself. GitHub takes the client ID as issuer.
      *
      * @throws GitHubRequestFailed Without a usable App identity or key
      */
-    private function appJwt(): string
+    public function appJwt(): string
     {
         if ('' === $this->clientId || null === $this->privateKeyPem || '' === $this->privateKeyPem) {
             throw new GitHubRequestFailed('The GitHub App client ID or private key is not configured.');

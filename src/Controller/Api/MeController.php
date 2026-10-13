@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
+use App\Application\Plans;
 use App\Application\UsageLimits;
 use App\Entity\User;
 use App\GitHub\GitHubApp;
@@ -30,15 +31,18 @@ final class MeController extends AbstractController
         UserRepository $users,
         ApiTokenRepository $tokens,
         GitHubApp $gitHubApp,
+        Plans $plans,
         UsageLimits $usageLimits,
         Request $request,
         #[Autowire(env: 'APP_LOCAL_REPOSITORIES_DIR')] string $localRepositoriesDir,
+        #[Autowire(env: 'GITHUB_MARKETPLACE_URL')] string $marketplaceUrl,
     ): JsonResponse {
         $user = $caller instanceof AgentUser ? $users->find($caller->userId) : $caller;
         $token = $caller instanceof AgentUser ? $tokens->find($caller->tokenId) : null;
         \assert(null !== $user);
         $actor = $currentActor->get();
         $userId = $user->getId();
+        $plan = $plans->ofTenant($user->getTenantId());
 
         return $this->json([
             'user' => [
@@ -60,6 +64,12 @@ final class MeController extends AbstractController
             'features' => [
                 'localRepositories' => '' !== $localRepositoriesDir,
                 'githubApp' => $gitHubApp->featuresFor($user),
+            ],
+            'plan' => [
+                'name' => $plan->plan->name,
+                'trialEndsAt' => $plan->trialEndsAt,
+                'pendingChange' => null === $plan->pendingPlan ? null : ['name' => $plan->pendingPlan->name, 'effectiveAt' => $plan->pendingEffectiveAt],
+                'listingUrl' => '' === $marketplaceUrl ? null : $marketplaceUrl,
             ],
             'usage' => $usageLimits->usage($user->getTenantId()),
             'links' => [

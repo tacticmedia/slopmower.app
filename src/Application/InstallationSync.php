@@ -57,6 +57,7 @@ final class InstallationSync
         private readonly FetchRepository $fetchRepository,
         private readonly TenantContext $tenantContext,
         private readonly GitHubRepositoriesLock $repositoriesLock,
+        private readonly MarketplaceSync $marketplace,
         private readonly EventDispatcherInterface $dispatcher,
         private readonly ClockInterface $clock,
         private readonly LoggerInterface $logger,
@@ -77,7 +78,7 @@ final class InstallationSync
     /**
      * Replaces the installations and candidates of the tenant. A connected repository that the listing lacks loses its
      * access, and one that lost it earlier loses a clone that is left. A failed or partial listing, and a tenant that is
-     * being deleted, change nothing.
+     * being deleted, change nothing. Then reads the Marketplace plans of the user account and the installation accounts.
      */
     public function sync(User $user, #[\SensitiveParameter] string $userToken): void
     {
@@ -105,6 +106,25 @@ final class InstallationSync
 
         foreach ($renamed as $repository) {
             $this->dispatcher->dispatch(new RepositoryChanged($tenantId, $repository->getId()));
+        }
+
+        $accountIds = [$user->getGithubUserId(), ...array_map(static fn (GitHubInstallation $installation): ?int => $installation->getAccountId(), $installations)];
+        $this->syncMarketplaceAccounts(array_unique(array_filter($accountIds, is_int(...))));
+    }
+
+    /**
+     * A failed read keeps the record, and the next sign-in reads it again.
+     *
+     * @param array<int> $accountIds
+     */
+    private function syncMarketplaceAccounts(array $accountIds): void
+    {
+        foreach ($accountIds as $accountId) {
+            try {
+                $this->marketplace->syncAccount($accountId);
+            } catch (GitHubRequestFailed $failure) {
+                $this->logger->warning('The Marketplace plan of GitHub account {accountId} could not be read.', ['accountId' => $accountId, 'exception' => $failure]);
+            }
         }
     }
 
@@ -184,7 +204,7 @@ final class InstallationSync
             }
 
             $installation = $this->denormalizer->denormalize($item, InstallationPayload::class);
-            $installations[] = new GitHubInstallation($tenantId, $installation->id, $installation->account->login, $targetType, $installation->suspendedAt, $installation->permissions);
+            $installations[] = new GitHubInstallation($tenantId, $installation->id, $installation->account->id, $installation->account->login, $targetType, $installation->suspendedAt, $installation->permissions);
 
             foreach ($this->items("user/installations/{$installation->id}/repositories", 'repositories', $userToken) as $repositoryItem) {
                 $repository = $this->denormalizer->denormalize($repositoryItem, RepositoryPayload::class);
