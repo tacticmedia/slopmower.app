@@ -35,6 +35,8 @@ final class GitHubFetchSecretTest extends KernelTestCase
     public function testTokenLeaksNowhere(): void
     {
         $this->useLocalGitHub();
+        $testLog = self::getContainer()->getParameter('kernel.logs_dir').'/test.log';
+        $testLogOffset = is_file($testLog) ? (int) filesize($testLog) : 0;
         $gitTrace = $this->temporaryDirectory().'/git-trace.log';
         // Git writes the argv of each git process, its subprocesses included, to this file.
         $this->setEnvironmentVariable('GIT_TRACE', $gitTrace);
@@ -64,6 +66,7 @@ final class GitHubFetchSecretTest extends KernelTestCase
             'argv' => (string) file_get_contents($gitTrace),
             'lastError' => (string) $failure->getLastError(),
             'logs and exception messages' => $logs,
+            'test log' => (string) file_get_contents($testLog, offset: $testLogOffset),
         ];
 
         foreach ($places as $place => $content) {
@@ -72,8 +75,7 @@ final class GitHubFetchSecretTest extends KernelTestCase
             }
         }
 
-        $logsDirectory = self::getContainer()->getParameter('kernel.logs_dir');
-        self::assertSame('', self::filesContaining([$this->tenantDataDirectory, $this->gitHubDirectory, $logsDirectory], array_values($leaks)), 'These files hold the token.');
+        self::assertSame('', self::filesContaining([$this->tenantDataDirectory, $this->gitHubDirectory], array_values($leaks)), 'These files hold the token.');
     }
 
     #[TestDox('A fetch through the base-URL override from a local bare repository works')]
