@@ -24,6 +24,8 @@ use App\Domain\Event\RequestProposedEvent;
 use App\Domain\Event\RequestReadyForReviewEvent;
 use App\Domain\Event\RequestReleasedEvent;
 use App\Domain\Event\RequestReopenedEvent;
+use App\Domain\Event\RequestSuggestionAcceptedEvent;
+use App\Domain\Event\RequestSuggestionDismissedEvent;
 use App\Domain\Event\RequestVerifiedEvent;
 use App\Domain\Event\RequestWontDoEvent;
 use App\Domain\Event\WontDoReason;
@@ -34,8 +36,10 @@ use App\Domain\Identity\EventId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\UniqueIds;
 use App\Domain\Repository\RepositorySource;
+use App\Domain\Request\Command\AcceptSuggestion;
 use App\Domain\Request\Command\ApproveProposal;
 use App\Domain\Request\Command\Claim;
+use App\Domain\Request\Command\DismissSuggestion;
 use App\Domain\Request\Command\LinkCommits;
 use App\Domain\Request\Command\LinkPullRequest;
 use App\Domain\Request\Command\MarkReadyForReview;
@@ -48,6 +52,7 @@ use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\RequestCommand;
 use App\Domain\Request\Command\SetPlanRequirement;
+use App\Domain\Request\Command\Suggest;
 use App\Domain\Request\Command\UnlinkCommit;
 use App\Domain\Request\Command\UnlinkPullRequest;
 use App\Domain\Request\Command\Verify;
@@ -59,21 +64,23 @@ use App\Domain\Review\ReviewSnapshot;
  */
 final class RequestDecider
 {
+    public const int MAX_PENDING_SUGGESTIONS = 500;
     private const int MAX_LINKED_REQUESTS = 50;
 
     /**
-     * @param list<RequestState> $states       The state of each request that the command names
-     * @param list<CommitInfo>   $availability For link_commits: the commit, when the server clone has it
+     * @param list<RequestState> $states             The state of each request that the command names
+     * @param list<CommitInfo>   $availability       For link_commits: the commit, when the server clone has it
+     * @param int                $pendingSuggestions For suggest: the pending suggestions of the review, read in the transaction of the write
      *
      * @return list<DecidedEvent> Empty when the command changes nothing
      *
      * @throws InvalidInput|ReviewClosed|InvalidTransition|CommitsNotAvailable
      */
-    public static function decide(RequestCommand $command, array $states, ReviewSnapshot $review, Actor $actor, array $availability = []): array
+    public static function decide(RequestCommand $command, array $states, ReviewSnapshot $review, Actor $actor, array $availability = [], int $pendingSuggestions = 0): array
     {
         self::guard($command, $review, $actor);
         $byId = self::index($command, $states);
-        $violations = self::violations($command, $byId, $review, $actor);
+        $violations = self::violations($command, $byId, $review, $actor, $pendingSuggestions);
 
         if ([] !== $violations) {
             throw new InvalidInput($violations);
@@ -85,6 +92,10 @@ final class RequestDecider
 
         if ($command instanceof Open) {
             return [new DecidedEvent(new RequestOpenedEvent($command->anchor, $command->body, $command->batchId, $command->carriedFrom, $command->requireApproval), RequestId::generate())];
+        }
+
+        if ($command instanceof Suggest) {
+            return [new DecidedEvent(new RequestOpenedEvent($command->anchor, $command->body, null), RequestId::generate())];
         }
 
         $action = self::action($command);
@@ -135,6 +146,8 @@ final class RequestDecider
             $command instanceof ApproveProposal => new RequestProposalApprovedEvent($command->proposalEventId, $command->note),
             $command instanceof RejectProposal => new RequestProposalRejectedEvent($command->proposalEventId, $command->note),
             $command instanceof SetPlanRequirement => $command->requireApproval ? new RequestPlanRequiredEvent() : new RequestPlanWaivedEvent(),
+            $command instanceof AcceptSuggestion => new RequestSuggestionAcceptedEvent($command->requireApproval ?? $state->requireApproval),
+            $command instanceof DismissSuggestion => new RequestSuggestionDismissedEvent($command->note),
             default => throw new \LogicException('No event for '.$command::class.'.'),
         };
 
@@ -151,7 +164,13 @@ final class RequestDecider
             throw new \LogicException('Only a user opens a request.');
         }
 
-        if ($command instanceof Open && null !== $command->anchor && !$command->anchor->commitSha->equals($review->commitSha)) {
+        if ($command instanceof Suggest && ActorKind::Agent !== $actor->kind) {
+            throw new \LogicException('Only an agent suggests a request.');
+        }
+
+        $anchor = $command instanceof Open || $command instanceof Suggest ? $command->anchor : null;
+
+        if (null !== $anchor && !$anchor->commitSha->equals($review->commitSha)) {
             throw new \LogicException('The anchor is not at the review commit.');
         }
     }
@@ -183,10 +202,16 @@ final class RequestDecider
      *
      * @return list<array{field: string, message: string}>
      */
-    private static function violations(RequestCommand $command, array $byId, ReviewSnapshot $review, Actor $actor): array
+    private static function violations(RequestCommand $command, array $byId, ReviewSnapshot $review, Actor $actor, int $pendingSuggestions): array
     {
         return match (true) {
             $command instanceof Open => self::textViolations('body', $command->body),
+            $command instanceof Suggest => [
+                ...self::textViolations('body', $command->body),
+                ...($pendingSuggestions >= self::MAX_PENDING_SUGGESTIONS
+                    ? [['field' => '', 'message' => 'A review has at most 500 pending suggestions. Wait until the user accepts or dismisses some.']]
+                    : []),
+            ],
             $command instanceof Reply => [
                 ...self::textViolations('body', $command->body),
                 ...($command->question && ActorKind::User === $actor->kind ? [['field' => 'question', 'message' => 'Only an agent asks a question.']] : []),
@@ -362,15 +387,29 @@ final class RequestDecider
             $command instanceof ApproveProposal => Action::ApproveProposal,
             $command instanceof RejectProposal => Action::RejectProposal,
             $command instanceof SetPlanRequirement => Action::SetPlanRequirement,
+            $command instanceof AcceptSuggestion => Action::AcceptSuggestion,
+            $command instanceof DismissSuggestion => Action::DismissSuggestion,
             default => throw new \LogicException('No action for '.$command::class.'.'),
         };
     }
 
     /**
-     * Ends the invalid_transition message when the closed proposal gate, not the status, refuses the holder.
+     * Ends the invalid_transition message when a pending suggestion or the closed proposal gate, not the status, refuses
+     * the action.
      */
     private static function closedGateReason(Action $action, RequestState $state, Actor $actor): ?string
     {
+        $refusedBySuggestion = $state->suggestionPending() && match ($action) {
+            Action::Claim => ActorKind::Agent === $actor->kind,
+            Action::MarkWontDo => true,
+            Action::SetPlanRequirement => ActorKind::User === $actor->kind,
+            default => false,
+        };
+
+        if ($refusedBySuggestion) {
+            return 'the suggestion waits for the user to accept or dismiss it';
+        }
+
         if (!in_array($action, [Action::LinkCommits, Action::MarkReadyForReview, Action::LinkPullRequest], true) || !$state->isClaimedBy($actor) || $state->proposalGateOpen()) {
             return null;
         }

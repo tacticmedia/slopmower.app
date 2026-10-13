@@ -50,6 +50,7 @@
   "lastEventSeq": 1841,
   "carriedFrom": null,
   "requireApproval": false,
+  "suggestion": null,
   "proposal": null,
   "body": "Extract the tax rounding into `TaxRounding`.",
   "reviewState": "open",

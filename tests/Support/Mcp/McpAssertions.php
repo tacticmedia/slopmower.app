@@ -29,6 +29,8 @@ trait McpAssertions
         'mark_ready_for_review' => 'request-command-result.schema.json',
         'mark_wont_do' => 'request-command-result.schema.json',
         'propose_solution' => 'request-command-result.schema.json',
+        'start_review' => 'review.schema.json',
+        'suggest_request' => 'request-command-result.schema.json',
     ];
 
     /**

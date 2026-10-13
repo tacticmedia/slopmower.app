@@ -6,7 +6,7 @@ namespace App\Domain\Request;
 
 /**
  * Rules 1 to 5 of architecture section 6. The first matching rule wins.
- * A user message is a `request.commented` entry or a proposal decision.
+ * A user message is a `request.commented` entry, a proposal decision, or a suggestion accept.
  */
 final class AwaitingPolicy
 {
@@ -20,7 +20,7 @@ final class AwaitingPolicy
             return Awaiting::Agent;
         }
 
-        if ($state->lastAgentEventIsQuestion || true === $state->proposal?->isPending()) {
+        if ($state->lastAgentEventIsQuestion || true === $state->proposal?->isPending() || $state->suggestionPending()) {
             return Awaiting::User;
         }
 

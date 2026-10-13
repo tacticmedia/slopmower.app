@@ -9,6 +9,8 @@ import { PlanToApproveLabel } from '../requests/PlanToApproveLabel';
 import { ProposalEntry } from '../requests/ProposalEntry';
 import { PullRequestStateLabel } from '../requests/PullRequestStateLabel';
 import { StatusLabel } from '../requests/StatusLabel';
+import { SuggestionActions } from '../requests/SuggestionActions';
+import { SuggestionLabel } from '../requests/SuggestionLabel';
 import { CommentBox, type CommentBoxHandle } from './CommentBox';
 import type { CommentIntent } from './commentIntent';
 import styles from './ThreadBox.module.css';
@@ -32,6 +34,8 @@ const CAPTIONS: Record<string, string> = {
     'request.proposal_rejected': 'requested changes',
     'request.plan_required': 'asked for a plan first',
     'request.plan_waived': 'no longer asks for a plan',
+    'request.suggestion_accepted': 'accepted the suggestion',
+    'request.suggestion_dismissed': 'dismissed the suggestion',
 };
 
 type Props = {
@@ -40,7 +44,7 @@ type Props = {
     caller: Actor;
     /** False where the page shows the status and the lines already. */
     showHeader?: boolean;
-    /** On the request detail: proposal diffs and decisions. Elsewhere a proposal links to the request detail. */
+    /** On the request detail: proposal diffs and decisions. Elsewhere a proposal links to the request detail, and the suggestion decisions show in the thread. */
     detail?: boolean;
 };
 
@@ -74,6 +78,7 @@ export function ThreadBox({ thread, caller, showHeader = true, detail = false }:
                     <StatusLabel status={thread.status} />
                     <OutdatedLabel outdated={thread.outdated} />
                     <PlanToApproveLabel pending={thread.proposalPending} />
+                    <SuggestionLabel pending={'pending' === thread.suggestion} />
                     <span className={styles.lines}>{linesText(thread.range)}</span>
                     {null !== thread.symbol && (
                         <code className={styles.symbol} data-testid="thread-symbol">
@@ -95,12 +100,22 @@ export function ThreadBox({ thread, caller, showHeader = true, detail = false }:
                     const { body, proposal } = comment;
 
                     return (
-                        <ThreadComment key={comment.key} comment={comment} onQuote={thread.replyable && null !== body ? () => replyBox.current?.quote(body) : null}>
+                        <ThreadComment
+                            key={comment.key}
+                            comment={comment}
+                            caption={'request.opened' === comment.type && null !== thread.suggestion ? 'suggested' : CAPTIONS[comment.type]}
+                            onQuote={thread.replyable && null !== body ? () => replyBox.current?.quote(body) : null}
+                        >
                             {null !== proposal && <ProposalEntry proposal={proposal} requestId={requestId} decidable={thread.decidable} detail={detail} />}
                         </ThreadComment>
                     );
                 })}
             </ol>
+            {!detail && null !== requestId && thread.suggestionButtons.length > 0 && (
+                <div className={styles.decision}>
+                    <SuggestionActions requestId={requestId} buttons={thread.suggestionButtons} />
+                </div>
+            )}
             {thread.replyable && (
                 <div className={styles.reply}>
                     <CommentBox ref={replyBox} label="Reply" submitLabel="Reply" onSubmit={reply} error={replying ? null : (fetcher.data?.error ?? null)} busy={replying} />
@@ -110,9 +125,8 @@ export function ThreadBox({ thread, caller, showHeader = true, detail = false }:
     );
 }
 
-function ThreadComment({ comment, onQuote, children }: { comment: CommentView; onQuote: (() => void) | null; children?: ReactNode }) {
+function ThreadComment({ comment, caption, onQuote, children }: { comment: CommentView; caption: string | undefined; onQuote: (() => void) | null; children?: ReactNode }) {
     const { author, pullRequestUrl } = comment;
-    const caption = CAPTIONS[comment.type];
 
     return (
         <li className={styles.comment} data-testid="thread-comment" aria-busy={comment.pending}>

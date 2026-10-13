@@ -19,6 +19,8 @@ const COMMAND_PATHS: Record<RequestCommandIntent['intent'], string> = {
     approve_proposal: 'approve-proposal',
     reject_proposal: 'reject-proposal',
     set_plan_requirement: 'plan-requirement',
+    accept_suggestion: 'accept-suggestion',
+    dismiss_suggestion: 'dismiss-suggestion',
 };
 
 /**
@@ -30,6 +32,8 @@ export type RequestFilters = {
     /** Q1 rejects a leading slash. */
     path: string;
     outdated: boolean;
+    /** `suggestion=pending`. */
+    suggestions: boolean;
 };
 
 export function requestFilters(search: URLSearchParams): RequestFilters {
@@ -40,6 +44,7 @@ export function requestFilters(search: URLSearchParams): RequestFilters {
         waitingForYou: 'user' === search.get('awaiting'),
         path: (search.get('path') ?? '').replace(/^\/+/, ''),
         outdated: 'true' === search.get('outdated'),
+        suggestions: 'pending' === search.get('suggestion'),
     };
 }
 
@@ -53,7 +58,7 @@ export type RequestListData = RequestPage & {
  * Most recently updated first, so the agent's latest work is on top.
  */
 export async function requestListLoader({ request, params }: LoaderFunctionArgs): Promise<RequestListData> {
-    const { status, waitingForYou, path, outdated } = requestFilters(new URL(request.url).searchParams);
+    const { status, waitingForYou, path, outdated, suggestions } = requestFilters(new URL(request.url).searchParams);
     const query = new URLSearchParams({ sort: 'updated', limit: String(REQUEST_PAGE_LIMIT) });
     if (null !== status) {
         query.set('status', status);
@@ -67,8 +72,11 @@ export async function requestListLoader({ request, params }: LoaderFunctionArgs)
     if (outdated) {
         query.set('outdated', 'true');
     }
+    if (suggestions) {
+        query.set('suggestion', 'pending');
+    }
     const review = `/api/v1/reviews/${encodedRouteParam(params, 'reviewId')}`;
-    const filtered = null !== status || waitingForYou || '' !== path || outdated;
+    const filtered = null !== status || waitingForYou || '' !== path || outdated || suggestions;
     const [page, drafts] = await Promise.all([
         apiGetAllPages<RequestPage>(`${review}/requests?${query.toString()}`, request.signal),
         filtered ? apiGet<DraftList>(`${review}/drafts`, request.signal) : null,

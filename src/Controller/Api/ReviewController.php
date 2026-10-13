@@ -38,7 +38,6 @@ final class ReviewController extends AbstractController
     }
 
     #[Route('/api/v1/repositories/{repositoryId}/reviews', name: 'start', methods: ['POST'])]
-    #[IsGranted(User::ROLE, message: CurrentActor::SESSION_ONLY)]
     public function start(
         #[MapEntity(id: 'repositoryId')] Repository $repository,
         #[MapRequestPayload(acceptFormat: 'json')] StartReviewInput $input = new StartReviewInput(),

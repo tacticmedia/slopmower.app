@@ -9,6 +9,7 @@ use App\Application\Query\RequestSort;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Request\Awaiting;
 use App\Domain\Request\RequestStatus;
+use App\Domain\Request\SuggestionState;
 use App\Http\QueryInput;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -27,6 +28,7 @@ final readonly class RequestListQuery implements QueryInput
         #[Assert\Regex(pattern: '/^(?!\/)[^\x00]*$/D', message: 'Must not start with "/" or hold a NUL byte.')]
         public ?string $path = null,
         public ?bool $outdated = null,
+        public ?SuggestionState $suggestion = null,
         public RequestSort $sort = RequestSort::Created,
         #[Assert\Range(min: 1, max: 200)]
         public int $limit = 50,
@@ -45,6 +47,7 @@ final readonly class RequestListQuery implements QueryInput
             self::values($this->awaiting, Awaiting::class, 'awaiting'),
             $this->path,
             $this->outdated,
+            $this->suggestion,
             $this->sort,
         );
     }

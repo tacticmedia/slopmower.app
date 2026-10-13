@@ -22,6 +22,8 @@ use App\Domain\Event\RequestProposedEvent;
 use App\Domain\Event\RequestReadyForReviewEvent;
 use App\Domain\Event\RequestReleasedEvent;
 use App\Domain\Event\RequestReopenedEvent;
+use App\Domain\Event\RequestSuggestionAcceptedEvent;
+use App\Domain\Event\RequestSuggestionDismissedEvent;
 use App\Domain\Event\RequestVerifiedEvent;
 use App\Domain\Event\RequestWontDoEvent;
 use App\Domain\Identity\EventId;
@@ -92,12 +94,25 @@ final class RequestReducer
                 'proposal' => null,
             ],
             $event instanceof RequestVerifiedEvent => ['status' => RequestStatus::Verified, 'wontDoBy' => null],
-            $event instanceof RequestReopenedEvent => ['status' => RequestStatus::Reopened, 'wontDoBy' => null, 'resolution' => null, 'proposal' => null],
+            $event instanceof RequestReopenedEvent => [
+                'status' => RequestStatus::Reopened,
+                'wontDoBy' => null,
+                'resolution' => null,
+                'proposal' => null,
+                'suggestion' => SuggestionState::Dismissed === $state->suggestion ? SuggestionState::Accepted : $state->suggestion,
+            ],
             $event instanceof RequestProposedEvent => ['proposal' => new Proposal($recorded->id, ProposalState::Pending)],
             $event instanceof RequestProposalApprovedEvent => ['proposal' => self::decided($state, $event->proposalEventId, ProposalState::Approved)],
             $event instanceof RequestProposalRejectedEvent => ['proposal' => self::decided($state, $event->proposalEventId, ProposalState::Rejected)],
             $event instanceof RequestPlanRequiredEvent => ['requireApproval' => true],
             $event instanceof RequestPlanWaivedEvent => ['requireApproval' => false],
+            $event instanceof RequestSuggestionAcceptedEvent => ['suggestion' => SuggestionState::Accepted, 'requireApproval' => $event->requireApproval],
+            $event instanceof RequestSuggestionDismissedEvent => [
+                'status' => RequestStatus::WontDo,
+                'wontDoBy' => $recorded->actor->kind,
+                'resolution' => Resolution::WontDo,
+                'suggestion' => SuggestionState::Dismissed,
+            ],
             default => null,
         };
 
@@ -142,6 +157,7 @@ final class RequestReducer
             updatedAt: $recorded->occurredAt,
             carriedFrom: $event->carriedFrom,
             requireApproval: $event->requireApproval,
+            suggestion: ActorKind::Agent === $recorded->actor->kind ? SuggestionState::Pending : null,
         )->with(self::tracking($recorded));
     }
 
@@ -166,7 +182,10 @@ final class RequestReducer
         $tracking = ['lastEventSeq' => $recorded->seq, 'updatedAt' => $recorded->occurredAt];
         $event = $recorded->event;
         $isComment = $event instanceof RequestCommentedEvent;
-        $isUserMessage = $isComment || $event instanceof RequestProposalApprovedEvent || $event instanceof RequestProposalRejectedEvent;
+        $isUserMessage = $isComment
+            || $event instanceof RequestProposalApprovedEvent
+            || $event instanceof RequestProposalRejectedEvent
+            || $event instanceof RequestSuggestionAcceptedEvent;
 
         if ($event instanceof PullRequestLinkedEvent || $event instanceof PullRequestUnlinkedEvent) {
             return $tracking;

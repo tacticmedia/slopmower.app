@@ -39,6 +39,7 @@
     "lastEventSeq": 1852,
     "carriedFrom": null,
     "requireApproval": false,
+    "suggestion": null,
     "proposal": null
   },
   "allowedActions": ["reply", "link_pull_request"],

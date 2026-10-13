@@ -79,7 +79,8 @@
     margin-left: auto;
 }
 
-.reply {
+.reply,
+.decision {
     padding: var(--base-size-12);
     border-top: var(--borderWidth-thin) solid var(--borderColor-muted);
 }

@@ -19,8 +19,10 @@ use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Repository\RepositorySource;
+use App\Domain\Request\Command\AcceptSuggestion;
 use App\Domain\Request\Command\ApproveProposal;
 use App\Domain\Request\Command\Claim;
+use App\Domain\Request\Command\DismissSuggestion;
 use App\Domain\Request\Command\LinkCommits;
 use App\Domain\Request\Command\LinkPullRequest;
 use App\Domain\Request\Command\MarkReadyForReview;
@@ -33,6 +35,7 @@ use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\RequestCommand;
 use App\Domain\Request\Command\SetPlanRequirement;
+use App\Domain\Request\Command\Suggest;
 use App\Domain\Request\Command\UnlinkCommit;
 use App\Domain\Request\Command\UnlinkPullRequest;
 use App\Domain\Request\Command\Verify;
@@ -86,6 +89,16 @@ final class RequestCommands
      * @throws LimitExceeded The requests of the review
      */
     public function open(ReviewId $reviewId, Open $command, Actor $actor): array
+    {
+        return $this->run($reviewId, $command, $actor, openedRequests: 1);
+    }
+
+    /**
+     * @return list<RecordedEvent>
+     *
+     * @throws LimitExceeded The requests of the review
+     */
+    public function suggest(ReviewId $reviewId, Suggest $command, Actor $actor): array
     {
         return $this->run($reviewId, $command, $actor, openedRequests: 1);
     }
@@ -292,6 +305,22 @@ final class RequestCommands
     }
 
     /**
+     * @return list<RecordedEvent>
+     */
+    public function acceptSuggestion(AcceptSuggestion $command, Actor $actor): array
+    {
+        return $this->run($this->reviewOf($command->requestId), $command, $actor);
+    }
+
+    /**
+     * @return list<RecordedEvent>
+     */
+    public function dismissSuggestion(DismissSuggestion $command, Actor $actor): array
+    {
+        return $this->run($this->reviewOf($command->requestId), $command, $actor);
+    }
+
+    /**
      * @param list<CommitInfo> $availability
      *
      * @return list<RecordedEvent>
@@ -301,7 +330,8 @@ final class RequestCommands
         return $this->executor->execute($reviewId, $actor, function () use ($reviewId, $command, $actor, $availability, $openedRequests): array {
             $review = $this->reviews->findFresh($reviewId) ?? throw new NotFound();
             $states = array_map($this->state(...), $command->requestIds());
-            $events = RequestDecider::decide($command, $states, $review->toSnapshot(), $actor, $availability);
+            $pendingSuggestions = $command instanceof Suggest ? $this->requests->countPendingSuggestions($reviewId) : 0;
+            $events = RequestDecider::decide($command, $states, $review->toSnapshot(), $actor, $availability, $pendingSuggestions);
             $this->usageLimits->checkNewRequests($review->getTenantId(), $reviewId, $openedRequests);
 
             return $events;

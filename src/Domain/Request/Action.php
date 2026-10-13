@@ -21,4 +21,6 @@ enum Action: string
     case ApproveProposal = 'approve_proposal';
     case RejectProposal = 'reject_proposal';
     case SetPlanRequirement = 'set_plan_requirement';
+    case AcceptSuggestion = 'accept_suggestion';
+    case DismissSuggestion = 'dismiss_suggestion';
 }

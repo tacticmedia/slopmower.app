@@ -122,6 +122,26 @@
         }
       }
     },
+    "SuggestRequestInput": {
+      "type": "object",
+      "required": ["body"],
+      "properties": {
+        "anchor": {
+          "anyOf": [
+            {
+              "$ref": "anchor.schema.json#/$defs/AnchorInput"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Absent or null suggests a general request."
+        },
+        "body": {
+          "$ref": "common.schema.json#/$defs/Markdown"
+        }
+      }
+    },
     "CommentInput": {
       "type": "object",
       "required": ["body"],
@@ -230,6 +250,24 @@
         "requireApproval": {
           "type": "boolean",
           "description": "The new value of \"Ask for a plan first\"."
+        }
+      }
+    },
+    "AcceptSuggestionInput": {
+      "type": "object",
+      "properties": {
+        "requireApproval": {
+          "type": ["boolean", "null"],
+          "description": "\"Ask for a plan first\". Absent or null keeps the value."
+        }
+      }
+    },
+    "DismissSuggestionInput": {
+      "type": "object",
+      "properties": {
+        "note": {
+          "type": ["string", "null"],
+          "maxLength": 65536
         }
       }
     },

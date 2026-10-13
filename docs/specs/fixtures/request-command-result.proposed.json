@@ -33,6 +33,7 @@
     "lastEventSeq": 1862,
     "carriedFrom": null,
     "requireApproval": true,
+    "suggestion": null,
     "proposal": {
       "eventId": "01K6C2EVT00000000000001862",
       "state": "pending"

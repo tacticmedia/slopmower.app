@@ -20,6 +20,7 @@ use App\Domain\Request\ProposalState;
 use App\Domain\Request\PullRequestUrl;
 use App\Domain\Request\RequestStatus;
 use App\Domain\Request\Resolution;
+use App\Domain\Request\SuggestionState;
 use App\MessageHandler\RecomputeLocationsHandler;
 use App\Projection\RequestStateMapper;
 use App\Repository\ChangeRequestRepository;
@@ -115,6 +116,9 @@ class ChangeRequest implements TenantOwned
     #[ORM\Column(nullable: true, enumType: ProposalState::class)]
     private ?ProposalState $proposalState = null;
 
+    #[ORM\Column(nullable: true, enumType: SuggestionState::class)]
+    private ?SuggestionState $suggestionState = null;
+
     /**
      * Sets the fields that request.opened fixes. {@see self::project()} sets the others.
      */
@@ -159,6 +163,7 @@ class ChangeRequest implements TenantOwned
         \DateTimeImmutable $updatedAt,
         bool $requireApproval,
         ?Proposal $proposal,
+        ?SuggestionState $suggestionState,
         array $pullRequestUrls,
     ): void {
         $this->status = $status;
@@ -176,6 +181,7 @@ class ChangeRequest implements TenantOwned
         $this->requireApproval = $requireApproval;
         $this->proposalEventId = $proposal?->eventId;
         $this->proposalState = $proposal?->state;
+        $this->suggestionState = $suggestionState;
         $this->pullRequestUrls = array_map(static fn (PullRequestUrl $url): string => $url->toString(), $pullRequestUrls);
     }
 
@@ -320,5 +326,10 @@ class ChangeRequest implements TenantOwned
         }
 
         return new Proposal($this->proposalEventId, $this->proposalState);
+    }
+
+    public function getSuggestionState(): ?SuggestionState
+    {
+        return $this->suggestionState;
     }
 }

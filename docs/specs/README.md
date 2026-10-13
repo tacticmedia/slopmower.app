@@ -9,7 +9,7 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 | [README.md](README.md) | Conventions, authentication, errors, pagination, caching, repository sources, versioning, schema and fixture index |
 | [rest-api.md](rest-api.md) | REST endpoint index, account, repositories, reviews and code |
 | [rest-api-requests.md](rest-api-requests.md) | REST requests, updates, drafts, API tokens, and the routes outside `/api/v1` |
-| [mcp.md](mcp.md) | MCP endpoint, server instructions, the 15 tools, error mapping, parity with REST |
+| [mcp.md](mcp.md) | MCP endpoint, server instructions, the 17 tools, error mapping, parity with REST |
 | [webhooks-and-live-updates.md](webhooks-and-live-updates.md) | GitHub webhooks, fetch triggers and post-fetch steps, Mercure live updates |
 | [schemas/](schemas/) | 32 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
 | [fixtures/](fixtures/) | One realistic example per response shape, error code, live-update type, and request body. See [section 11](#11-fixtures). |
@@ -43,6 +43,7 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 | `ref` | 1 to 255 characters |
 | pull request `url` | `https`, at most 2,048 characters, no whitespace. For a GitHub repository, `https://github.com/{owner}/{name}/pull/{number}` of the review's repository, compared case-insensitively. The server stores such a URL with the repository name as connected. A local repository accepts any such URL as written. |
 | token `name` | 1 to 64 characters, pattern in [api-token.schema.json](schemas/api-token.schema.json) |
+| pending suggestions | At most 500 per review. One more gets 422 `invalid_input`. |
 
 ## 3. Authentication, actors, and scope
 
@@ -124,7 +125,7 @@ The [plan of the tenant](webhooks-and-live-updates.md#marketplace-plans) sets ea
 |---|---|---|---|
 | `repositories` | Connected repositories of the tenant | 25 | [R3](rest-api.md#r3-connect-a-repository) of a new repository |
 | `open_reviews` | Open reviews of the tenant | 20 | [V1](rest-api.md#v1-start-a-review) |
-| `requests_per_review` | Requests of the review | 1,000 | [Q2](rest-api-requests.md#q2-open-a-request), [D5](rest-api-requests.md#d5-submit-drafts) for its `new_request` drafts, and [V15](rest-api.md#v15-carry-over-open-requests) for the carried requests |
+| `requests_per_review` | Requests of the review | 1,000 | [Q2](rest-api-requests.md#q2-open-a-request), [Q20](rest-api-requests.md#q20-suggest-a-request), [D5](rest-api-requests.md#d5-submit-drafts) for its `new_request` drafts, and [V15](rest-api.md#v15-carry-over-open-requests) for the carried requests |
 | `repository_size` | Bytes of one clone: `size` plus `size-pack` of `git count-objects -v`, because git keeps a fetch of fewer than 100 objects loose | 2 GiB | Clone and fetch |
 | `tenant_storage` | Bytes of all clones of the tenant | 10 GiB | Clone and fetch |
 
@@ -188,7 +189,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
    - changing a type, format, or nullability. Making a non-null field nullable is breaking.
    - a new required input;
    - tighter validation;
-   - new values in **closed** sets: `RequestStatus`, `Awaiting`, `Resolution`, `AnchorKind`, `ActorKind`, `CommitLinkState`, `LocationStatus`, `OrphanReason`, `ProposalState`, `PullRequestState`, `RepositorySource`, `RepositoryAccess`, `ReviewState`, `IndexState`, `CarryOverOutcome`, `sync.state`, token `scope` and `state`, commit file `status`, tree entry `type`;
+   - new values in **closed** sets: `RequestStatus`, `Awaiting`, `Resolution`, `AnchorKind`, `ActorKind`, `CommitLinkState`, `LocationStatus`, `OrphanReason`, `ProposalState`, `PullRequestState`, `SuggestionState`, `RepositorySource`, `RepositoryAccess`, `ReviewState`, `IndexState`, `CarryOverOutcome`, `sync.state`, token `scope` and `state`, commit file `status`, tree entry `type`;
    - a different HTTP status or error code for an existing situation;
    - changed defaults, sort orders, or pagination style;
    - a changed meaning of an existing field.
@@ -225,6 +226,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Pull request state, decision D64: `Request.pullRequests` with the closed set `PullRequestState`, and the live update type `pull_request`. All are additive. For a GitHub repository, `link_pull_request` and `unlink_pull_request` match a linked pull request by its number, so a link under an earlier name of the repository still matches after a rename, and `unlink_pull_request` also takes the URL as linked. The server reads the state of a linked GitHub pull request.
     - Check of every pull request, decision D64: the endpoint R8, the input `CheckEveryPullRequestInput`, and `github.checkEveryPullRequest` in `Repository`. All are additive.
     - Product name, decision D14: the MCP server name, `serverInfo.name`, the skill name, the Bearer realm, the pin refs, the live update ID, and the schema `$id` base use `slopmower`. Token secrets start with `sm_`.
+    - Agent suggestions, decision D72: the endpoints Q20, Q21, and Q22, the tools `start_review` and `suggest_request`, the `Action` values `accept_suggestion` and `dismiss_suggestion`, the `EventType` and `ThreadEntryType` values `request.suggestion_accepted` and `request.suggestion_dismissed`, the inputs `SuggestRequestInput`, `AcceptSuggestionInput`, and `DismissSuggestionInput`, the closed set `SuggestionState` on the new property `suggestion`, and the filter `suggestion` of Q1 and `list_requests`. All are additive. V1 also accepts `B`. A `request.opened` with an agent actor opens a suggestion with the same payload, and one with a user actor gives `suggestion: null`, so stored events need no change. While a suggestion is pending, `claim`, `mark_wont_do`, and `set_plan_requirement` are refused, `awaiting` rule 3 matches it, and rule 2 counts an accept as a user message. V15 does not carry a pending suggestion.
 
 ## 9. Contract tests
 
@@ -252,8 +254,8 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [repository.schema.json](schemas/repository.schema.json) | `https://slopmower.invalid/schemas/v1/repository.schema.json` | Repository, plus `LocalDirectory` and `Sync` |
 | [repository-candidate.schema.json](schemas/repository-candidate.schema.json) | `https://slopmower.invalid/schemas/v1/repository-candidate.schema.json` | A repository that the user can connect |
 | [review.schema.json](schemas/review.schema.json) | `https://slopmower.invalid/schemas/v1/review.schema.json` | Review, plus `IndexStatus` and `RequestCounts` |
-| [request-summary.schema.json](schemas/request-summary.schema.json) | `https://slopmower.invalid/schemas/v1/request-summary.schema.json` | RequestSummary for lists and command results, plus `CarriedFrom`. `anchor` is null for a general request. |
-| [request.schema.json](schemas/request.schema.json) | `https://slopmower.invalid/schemas/v1/request.schema.json` | Request in full, plus `PullRequest` and `CodeExcerpt`. A general request has `anchor`, `location`, `excerpt`, and `outdated` null. |
+| [request-summary.schema.json](schemas/request-summary.schema.json) | `https://slopmower.invalid/schemas/v1/request-summary.schema.json` | RequestSummary for lists and command results, plus `CarriedFrom`. `anchor` is null for a general request, and `suggestion` is null for a request of the user. |
+| [request.schema.json](schemas/request.schema.json) | `https://slopmower.invalid/schemas/v1/request.schema.json` | Request in full, plus `PullRequest` and `CodeExcerpt`. A general request has `anchor`, `location`, `excerpt`, and `outdated` null. A request of the user has `suggestion` null. |
 | [thread-entry.schema.json](schemas/thread-entry.schema.json) | `https://slopmower.invalid/schemas/v1/thread-entry.schema.json` | One entry of a request thread |
 | [event.schema.json](schemas/event.schema.json) | `https://slopmower.invalid/schemas/v1/event.schema.json` | One event of the review event log |
 | [commit-link.schema.json](schemas/commit-link.schema.json) | `https://slopmower.invalid/schemas/v1/commit-link.schema.json` | A commit linked to a request |
@@ -280,7 +282,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 ## 11. Fixtures
 
 - A fixture is a complete, realistic document. Its name is `<schema>.<case>.json`, where `<schema>` is the base name of its schema file.
-- Most fixtures tell one story: the user reviews `acme/billing` at commit `79f8595a4c1e`, opens two requests, and the agent `claude-code laptop` works on them. The others show a closed review, other token states, and a local sign-in.
+- Most fixtures tell one story: the user reviews `acme/billing` at commit `79f8595a4c1e`, opens two requests, and the agent `claude-code laptop` works on them and suggests one more. The others show a closed review, other token states, and a local sign-in.
 - Every fixture must validate against the schema in the table. Every inline JSON example in these specification files that names a fixture must equal that fixture.
 
 | Fixture | Schema | Used by |
@@ -293,20 +295,21 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [draft.new-general-request.json](fixtures/draft.new-general-request.json) | `draft.schema.json` | D2 |
 | [draft.new-request.json](fixtures/draft.new-request.json) | `draft.schema.json` | D2, D3 |
 | [draft.reply.json](fixtures/draft.reply.json) | `draft.schema.json` | D2, D3 |
-| [error.commit-not-found.json](fixtures/error.commit-not-found.json) | `error.schema.json` | V1, Q3, `get_request` |
+| [error.commit-not-found.json](fixtures/error.commit-not-found.json) | `error.schema.json` | V1, Q3, `get_request`, `start_review` |
 | [error.commits-not-available.json](fixtures/error.commits-not-available.json) | `error.schema.json` | Q9, Q10, `mark_ready_for_review` |
 | [error.forbidden.json](fixtures/error.forbidden.json) | `error.schema.json` | Any `S`-only endpoint called with a token |
 | [error.internal-error.json](fixtures/error.internal-error.json) | `error.schema.json` | Any endpoint and tool |
 | [error.invalid-input-method.json](fixtures/error.invalid-input-method.json) | `error.schema.json` | Any path with a wrong method, 405 |
 | [error.invalid-input.json](fixtures/error.invalid-input.json) | `error.schema.json` | Q11, `mark_wont_do` |
 | [error.invalid-transition.json](fixtures/error.invalid-transition.json) | `error.schema.json` | Q5, `claim_request` |
-| [error.limit-exceeded.json](fixtures/error.limit-exceeded.json) | `error.schema.json` | R3, V1, V15, Q2, D5 |
+| [error.limit-exceeded.json](fixtures/error.limit-exceeded.json) | `error.schema.json` | R3, V1, V15, Q2, Q20, D5 |
 | [error.not-found.json](fixtures/error.not-found.json) | `error.schema.json` | Any invisible ID |
 | [error.rate-limited.json](fixtures/error.rate-limited.json) | `error.schema.json` | Any endpoint and tool, the MCP transport |
-| [error.repository-unavailable.json](fixtures/error.repository-unavailable.json) | `error.schema.json` | R5, V1, V6 to V9, V14, V17, Q2, Q3, Q9, Q10 |
+| [error.repository-unavailable.json](fixtures/error.repository-unavailable.json) | `error.schema.json` | R5, V1, V6 to V9, V14, V17, Q2, Q3, Q9, Q10, Q20 |
 | [error.review-closed.json](fixtures/error.review-closed.json) | `error.schema.json` | Writes on a closed review |
 | [error.unauthorized.json](fixtures/error.unauthorized.json) | `error.schema.json` | Any endpoint, the MCP transport |
 | [file-content.php.json](fixtures/file-content.php.json) | `file-content.schema.json` | V7 |
+| [inputs.accept-suggestion.json](fixtures/inputs.accept-suggestion.json) | `inputs.schema.json#/$defs/AcceptSuggestionInput` | Q21 |
 | [inputs.approve-proposal.json](fixtures/inputs.approve-proposal.json) | `inputs.schema.json#/$defs/ApproveProposalInput` | Q15 |
 | [inputs.carry-over.json](fixtures/inputs.carry-over.json) | `inputs.schema.json#/$defs/CarryOverInput` | V15 |
 | [inputs.close-review.json](fixtures/inputs.close-review.json) | `inputs.schema.json#/$defs/CloseReviewInput` | V4 |
@@ -317,6 +320,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.create-draft-new-request.json](fixtures/inputs.create-draft-new-request.json) | `inputs.schema.json#/$defs/CreateDraftInput` | D2 |
 | [inputs.create-draft-reply.json](fixtures/inputs.create-draft-reply.json) | `inputs.schema.json#/$defs/CreateDraftInput` | D2 |
 | [inputs.create-token.json](fixtures/inputs.create-token.json) | `inputs.schema.json#/$defs/CreateTokenInput` | T2 |
+| [inputs.dismiss-suggestion.json](fixtures/inputs.dismiss-suggestion.json) | `inputs.schema.json#/$defs/DismissSuggestionInput` | Q22 |
 | [inputs.link-commits.json](fixtures/inputs.link-commits.json) | `inputs.schema.json#/$defs/LinkCommitsInput` | Q7 |
 | [inputs.link-pull-request.json](fixtures/inputs.link-pull-request.json) | `inputs.schema.json#/$defs/LinkPullRequestInput` | Q17 |
 | [inputs.open-general-request.json](fixtures/inputs.open-general-request.json) | `inputs.schema.json#/$defs/OpenRequestInput` | Q2 |
@@ -329,6 +333,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.release.json](fixtures/inputs.release.json) | `inputs.schema.json#/$defs/OptionalNoteInput` | Q6, Q12 |
 | [inputs.start-review.json](fixtures/inputs.start-review.json) | `inputs.schema.json#/$defs/StartReviewInput` | V1 |
 | [inputs.submit-drafts.json](fixtures/inputs.submit-drafts.json) | `inputs.schema.json#/$defs/SubmitDraftsInput` | D5 |
+| [inputs.suggest-request.json](fixtures/inputs.suggest-request.json) | `inputs.schema.json#/$defs/SuggestRequestInput` | Q20, `suggest_request` |
 | [inputs.unlink-pull-request.json](fixtures/inputs.unlink-pull-request.json) | `inputs.schema.json#/$defs/UnlinkPullRequestInput` | Q19 |
 | [inputs.update-draft.json](fixtures/inputs.update-draft.json) | `inputs.schema.json#/$defs/UpdateDraftInput` | D3 |
 | [inputs.viewed-file.json](fixtures/inputs.viewed-file.json) | `inputs.schema.json#/$defs/ViewedFileInput` | V12 |
@@ -365,15 +370,17 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [request-command-result.question.json](fixtures/request-command-result.question.json) | `request-command-result.schema.json` | Q4, `reply_to_request` |
 | [request-command-result.ready.json](fixtures/request-command-result.ready.json) | `request-command-result.schema.json` | Q10, `mark_ready_for_review` |
 | [request-command-result.release.json](fixtures/request-command-result.release.json) | `request-command-result.schema.json` | Q6, `release_request` |
+| [request-command-result.suggested.json](fixtures/request-command-result.suggested.json) | `request-command-result.schema.json` | Q20, `suggest_request` |
 | [request.carried.json](fixtures/request.carried.json) | `request.schema.json` | Q3 of a carried request, `get_request` |
 | [request.general.json](fixtures/request.general.json) | `request.schema.json` | Q2, Q3, `get_request` |
 | [request.in-progress.json](fixtures/request.in-progress.json) | `request.schema.json` | Q3 with `at`, `get_request` |
 | [request.opened-range.json](fixtures/request.opened-range.json) | `request.schema.json` | Q2 |
 | [request.proposal-pending.json](fixtures/request.proposal-pending.json) | `request.schema.json` | Q3 of a request with a pending proposal, read by the user |
 | [request.pull-request.json](fixtures/request.pull-request.json) | `request.schema.json` | Q3 with `at` of a request with a linked pull request, `get_request` |
+| [request.suggestion-pending.json](fixtures/request.suggestion-pending.json) | `request.schema.json` | Q3 of a pending suggestion, read by the user |
 | [request.with-excerpt.json](fixtures/request.with-excerpt.json) | `request.schema.json` | Q3 with `context`, `get_request` |
 | [review.closed.json](fixtures/review.closed.json) | `review.schema.json` | V3, V4 |
 | [review.index-status.json](fixtures/review.index-status.json) | `review.schema.json#/$defs/IndexStatus` | V5 |
-| [review.open.json](fixtures/review.open.json) | `review.schema.json` | V1, V3 |
+| [review.open.json](fixtures/review.open.json) | `review.schema.json` | V1, V3, `start_review` |
 | [updates-page.cursor.json](fixtures/updates-page.cursor.json) | `updates-page.schema.json` | V10 with a cursor, `get_updates` |
 | [updates-page.first-call.json](fixtures/updates-page.first-call.json) | `updates-page.schema.json` | V10 without a cursor, `get_updates` |

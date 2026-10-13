@@ -1,9 +1,10 @@
 import type { Actor } from '../api/types/actor';
-import type { DateTime, EventSeq, Proposal, ProposalState, PullRequestState, PullRequestUrl, RequestStatus, ThreadEntryType, Ulid, UnifiedDiff } from '../api/types/common';
+import type { DateTime, EventSeq, Proposal, ProposalState, PullRequestState, PullRequestUrl, RequestStatus, SuggestionState, ThreadEntryType, Ulid, UnifiedDiff } from '../api/types/common';
 import type { Request as ReviewRequest } from '../api/types/request';
 import type { ThreadEntry } from '../api/types/thread-entry';
 import type { CarriedFrom } from '../api/types/request-summary';
 import type { LineRange } from '../code/lineHash';
+import { type SuggestionButton, suggestionButtons } from '../requests/allowedActions';
 
 /** A `request.proposed` entry and what became of it. */
 export type ProposalView = {
@@ -46,11 +47,15 @@ export type ThreadView = {
     /** The caller may approve or reject the pending proposal. */
     decidable: boolean;
     proposalPending: boolean;
+    /** Null for a request of the user. */
+    suggestion: SuggestionState | null;
+    /** The decisions on the pending suggestion that the caller may take. */
+    suggestionButtons: SuggestionButton[];
     carriedFrom: CarriedFrom | null;
 };
 
 /** Entries that show without a body, a diff, or a pull request: their caption says what happened. */
-const BODILESS_TYPES: readonly ThreadEntryType[] = ['request.proposal_approved', 'request.plan_required', 'request.plan_waived'];
+const BODILESS_TYPES: readonly ThreadEntryType[] = ['request.proposal_approved', 'request.plan_required', 'request.plan_waived', 'request.suggestion_accepted', 'request.suggestion_dismissed'];
 
 /**
  * Entries without a body, a diff, or a pull request, such as a claim, are left out, except {@link BODILESS_TYPES}.
@@ -87,6 +92,8 @@ export function threadView(request: ReviewRequest): ThreadView {
         replyable: request.allowedActions.includes('reply'),
         decidable: request.allowedActions.includes('approve_proposal'),
         proposalPending: 'pending' === request.proposal?.state,
+        suggestion: request.suggestion,
+        suggestionButtons: suggestionButtons(request.allowedActions),
         carriedFrom: request.carriedFrom,
     };
 }
@@ -126,7 +133,21 @@ export function pendingComment(type: ThreadEntryType, body: string, author: Acto
 export function pendingThread(range: LineRange | null, symbol: string | null, body: string, author: Actor): ThreadView {
     const opened = pendingComment('request.opened', body, author);
 
-    return { key: opened.key, requestId: null, status: 'open', outdated: null, range, symbol, comments: [opened], replyable: false, decidable: false, proposalPending: false, carriedFrom: null };
+    return {
+        key: opened.key,
+        requestId: null,
+        status: 'open',
+        outdated: null,
+        range,
+        symbol,
+        comments: [opened],
+        replyable: false,
+        decidable: false,
+        proposalPending: false,
+        suggestion: null,
+        suggestionButtons: [],
+        carriedFrom: null,
+    };
 }
 
 export function linesText(range: LineRange | null): string {

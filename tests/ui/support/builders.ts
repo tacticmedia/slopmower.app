@@ -5,7 +5,7 @@ import type { Anchor, ContentSnapshot, LineRange } from '../../../assets/api/typ
 import type { ApiToken, ApiTokenWithSecret } from '../../../assets/api/types/api-token';
 import type { CarryOverResult } from '../../../assets/api/types/carry-over-result';
 import type { CommitLink } from '../../../assets/api/types/commit-link';
-import type { Action, ActorKind, Proposal, RequestStatus, ThreadEntryType } from '../../../assets/api/types/common';
+import type { Action, ActorKind, Proposal, RequestStatus, SuggestionState, ThreadEntryType } from '../../../assets/api/types/common';
 import type { CommitDiff, CommitDiffFile } from '../../../assets/api/types/commit-diff';
 import type { Declaration } from '../../../assets/api/types/declaration';
 import type { ErrorBody, ErrorDetails } from '../../../assets/api/types/error';
@@ -186,13 +186,14 @@ function summaryText(body: string): string {
 }
 
 /** The `allowedActions` of a user caller on an open review: docs/specs/rest-api-requests.md section 1. */
-export function userActions(status: RequestStatus, wontDoBy: ActorKind | null = null, proposal: Proposal | null = null): Action[] {
+export function userActions(status: RequestStatus, wontDoBy: ActorKind | null = null, proposal: Proposal | null = null, suggestion: SuggestionState | null = null): Action[] {
     const actions: Action[] = ['reply'];
+    const suggestionPending = 'pending' === suggestion;
     const unfinished = 'open' === status || 'reopened' === status || 'in_progress' === status;
     if ('in_progress' === status) {
         actions.push('release');
     }
-    if (unfinished) {
+    if (unfinished && !suggestionPending) {
         actions.push('mark_wont_do');
     }
     if ('ready_for_review' === status || ('wont_do' === status && 'agent' === wontDoBy)) {
@@ -204,8 +205,11 @@ export function userActions(status: RequestStatus, wontDoBy: ActorKind | null = 
     if ('in_progress' === status && 'pending' === proposal?.state) {
         actions.push('approve_proposal', 'reject_proposal');
     }
-    if (unfinished) {
+    if (unfinished && !suggestionPending) {
         actions.push('set_plan_requirement');
+    }
+    if (suggestionPending) {
+        actions.push('accept_suggestion', 'dismiss_suggestion');
     }
 
     return actions;
@@ -236,6 +240,7 @@ export function requestSummary(request: Request): RequestSummary {
         lastEventSeq: request.lastEventSeq,
         carriedFrom: request.carriedFrom,
         requireApproval: request.requireApproval,
+        suggestion: request.suggestion,
         proposal: request.proposal,
     } as RequestSummary;
 }

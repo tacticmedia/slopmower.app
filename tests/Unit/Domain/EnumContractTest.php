@@ -21,6 +21,7 @@ use App\Domain\Request\Awaiting;
 use App\Domain\Request\CommitLinkState;
 use App\Domain\Request\RequestStatus;
 use App\Domain\Request\Resolution;
+use App\Domain\Request\SuggestionState;
 use App\Domain\Review\IndexState;
 use App\Domain\Review\ReviewState;
 use App\Domain\Usage\UsageLimit;
@@ -60,7 +61,7 @@ final class EnumContractTest extends KernelTestCase
         $closedSets = [
             RepositorySource::class, RepositoryAccess::class, ReviewState::class, IndexState::class, RequestStatus::class,
             Awaiting::class, Resolution::class, AnchorKind::class, ActorKind::class, CommitLinkState::class,
-            LocationStatus::class, OrphanReason::class,
+            LocationStatus::class, OrphanReason::class, SuggestionState::class,
         ];
 
         foreach ($closedSets as $enum) {

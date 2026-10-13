@@ -11,7 +11,9 @@ use App\Domain\Event\DecidedEvent;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\BatchId;
 use App\Domain\Repository\RepositoryName;
+use App\Domain\Request\Command\AcceptSuggestion;
 use App\Domain\Request\Command\Claim;
+use App\Domain\Request\Command\DismissSuggestion;
 use App\Domain\Request\Command\LinkCommits;
 use App\Domain\Request\Command\MarkReadyForReview;
 use App\Domain\Request\Command\MarkWontDo;
@@ -60,6 +62,7 @@ final class ReducerTest extends KernelTestCase
             'status' => 'open', 'statusBeforeClaim' => null, 'claimedBy' => null, 'claimedAt' => null, 'wontDoBy' => null,
             'resolution' => null, 'links' => [], 'pullRequestUrls' => [], 'lastUserCommentSeq' => null, 'lastAgentEventSeq' => null,
             'lastAgentEventIsQuestion' => false, 'lastEventSeq' => 2, 'updatedAt' => '07:02', 'requireApproval' => false,
+            'suggestion' => null,
         ];
         self::assertSame($expected, self::fields($scenario->state()));
 
@@ -205,6 +208,50 @@ final class ReducerTest extends KernelTestCase
         }];
     }
 
+    /**
+     * @param \Closure(RequestScenario): mixed $steps
+     * @param array<string, mixed>             $expected
+     */
+    #[TestDox('$step sets the suggestion fields')]
+    #[DataProvider('suggestionSteps')]
+    public function testSuggestionLifecycle(string $step, \Closure $steps, array $expected): void
+    {
+        $scenario = RequestScenario::inState('suggestion pending');
+
+        $steps($scenario);
+
+        $fields = self::fields($scenario->state());
+        self::assertSame($expected, array_intersect_key($fields, $expected));
+    }
+
+    /**
+     * @return iterable<string, array{string, \Closure(RequestScenario): mixed, array<string, mixed>}>
+     */
+    public static function suggestionSteps(): iterable
+    {
+        $user = RequestScenario::user();
+        $pending = ['status' => 'open', 'wontDoBy' => null, 'resolution' => null, 'lastUserCommentSeq' => null, 'lastAgentEventSeq' => 2, 'requireApproval' => false, 'suggestion' => 'pending'];
+        $dismiss = static fn (RequestScenario $scenario) => $scenario->run(new DismissSuggestion($scenario->requestId(), 'Out of scope.'), $user);
+
+        yield 'suggest' => ['A suggestion by an agent', static fn (RequestScenario $scenario) => null, $pending];
+        yield 'accept with requireApproval' => [
+            'request.suggestion_accepted with requireApproval',
+            static fn (RequestScenario $scenario) => $scenario->run(new AcceptSuggestion($scenario->requestId(), true), $user),
+            [...$pending, 'lastUserCommentSeq' => 3, 'requireApproval' => true, 'suggestion' => 'accepted'],
+        ];
+        yield 'accept without requireApproval' => [
+            'request.suggestion_accepted without requireApproval',
+            static fn (RequestScenario $scenario) => $scenario->run(new AcceptSuggestion($scenario->requestId()), $user),
+            [...$pending, 'lastUserCommentSeq' => 3, 'suggestion' => 'accepted'],
+        ];
+        yield 'dismiss' => ['request.suggestion_dismissed', $dismiss, [...$pending, 'status' => 'wont_do', 'wontDoBy' => 'user', 'resolution' => 'wont_do', 'suggestion' => 'dismissed']];
+        yield 'reopen after dismiss' => [
+            'request.reopened after a dismiss',
+            static fn (RequestScenario $scenario) => [$dismiss($scenario), $scenario->run(new Reopen($scenario->requestId(), 'Round per line after all.'), $user)],
+            [...$pending, 'status' => 'reopened', 'suggestion' => 'accepted'],
+        ];
+    }
+
     #[TestDox('A general request opens without an anchor')]
     public function testGeneralRequestOpensWithoutAnAnchor(): void
     {
@@ -299,6 +346,7 @@ final class ReducerTest extends KernelTestCase
             'lastEventSeq' => $state->lastEventSeq,
             'updatedAt' => $state->updatedAt->format('H:i'),
             'requireApproval' => $state->requireApproval,
+            'suggestion' => $state->suggestion?->value,
         ];
     }
 }

@@ -35,6 +35,7 @@
     "lastEventSeq": 1853,
     "carriedFrom": null,
     "requireApproval": false,
+    "suggestion": null,
     "proposal": null
   },
   "allowedActions": ["reply", "claim", "mark_wont_do"],

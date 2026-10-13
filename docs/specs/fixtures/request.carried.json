@@ -47,6 +47,7 @@
     "requestId": "01K6B3P2A9QRSTVWXYZ0123457"
   },
   "requireApproval": false,
+  "suggestion": null,
   "proposal": null,
   "body": "Extract the tax rounding into `TaxRounding`.",
   "reviewState": "open",

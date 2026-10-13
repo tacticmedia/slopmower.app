@@ -1,4 +1,13 @@
-import type { ApproveProposalInput, OptionalNoteInput, PlanRequirementInput, RejectProposalInput, RequiredNoteInput, WontDoInput } from '../api/types/inputs';
+import type {
+    AcceptSuggestionInput,
+    ApproveProposalInput,
+    DismissSuggestionInput,
+    OptionalNoteInput,
+    PlanRequirementInput,
+    RejectProposalInput,
+    RequiredNoteInput,
+    WontDoInput,
+} from '../api/types/inputs';
 import type { CommentIntent } from '../comments/commentIntent';
 
 /**
@@ -11,7 +20,9 @@ export type RequestCommandIntent =
     | { intent: 'release'; input: OptionalNoteInput }
     | { intent: 'approve_proposal'; input: ApproveProposalInput }
     | { intent: 'reject_proposal'; input: RejectProposalInput }
-    | { intent: 'set_plan_requirement'; input: PlanRequirementInput };
+    | { intent: 'set_plan_requirement'; input: PlanRequirementInput }
+    | { intent: 'accept_suggestion'; input: AcceptSuggestionInput }
+    | { intent: 'dismiss_suggestion'; input: DismissSuggestionInput };
 
 /** A `ThreadBox` reply submits the `reply` intent of {@link CommentIntent}. */
 export type RequestIntent = RequestCommandIntent | Extract<CommentIntent, { intent: 'reply' }>;

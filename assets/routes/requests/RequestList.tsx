@@ -17,6 +17,7 @@ import { NewRequestBox } from '../../requests/NewRequestBox';
 import { OutdatedLabel } from '../../requests/OutdatedLabel';
 import { PlanToApproveLabel } from '../../requests/PlanToApproveLabel';
 import { StatusLabel } from '../../requests/StatusLabel';
+import { SuggestionLabel } from '../../requests/SuggestionLabel';
 import { STATUS_TEXT } from '../../requests/statusText';
 import { TurnLabel } from '../../requests/TurnLabel';
 import type { ReviewData } from '../reviews/reviewData';
@@ -74,6 +75,7 @@ function columns(reviewId: string): Column<RequestSummary>[] {
                     <StatusLabel status={request.status} />
                     <OutdatedLabel outdated={request.outdated} />
                     <PlanToApproveLabel pending={'pending' === request.proposal?.state} />
+                    <SuggestionLabel pending={'pending' === request.suggestion} />
                 </span>
             ),
         },
@@ -101,7 +103,7 @@ export function RequestList() {
     const pendingDrafts = useMemo(() => pendingDraftViews(reviewId, drafts ?? [], listData), [reviewId, drafts, listData]);
     const [searchParams, setSearchParams] = useSearchParams();
     const filters = requestFilters(searchParams);
-    const setFilter = (name: 'status' | 'awaiting' | 'path' | 'outdated', value: string | null): void => {
+    const setFilter = (name: 'status' | 'awaiting' | 'path' | 'outdated' | 'suggestion', value: string | null): void => {
         setSearchParams((current) => {
             const next = new URLSearchParams(current);
             if (null === value) {
@@ -147,6 +149,10 @@ export function RequestList() {
                 <FormControl>
                     <Checkbox checked={filters.outdated} onChange={(event) => setFilter('outdated', event.target.checked ? 'true' : null)} />
                     <FormControl.Label>Outdated</FormControl.Label>
+                </FormControl>
+                <FormControl>
+                    <Checkbox checked={filters.suggestions} onChange={(event) => setFilter('suggestion', event.target.checked ? 'pending' : null)} />
+                    <FormControl.Label>Suggestions</FormControl.Label>
                 </FormControl>
                 <form className={styles.pathFilter} onSubmit={filterByPath} role="search">
                     <TextInput key={filters.path} name="path" defaultValue={filters.path} aria-label="Path prefix" placeholder="Path prefix" size="small" />

@@ -14,6 +14,7 @@ import type {
     RepoPath,
     Resolution,
     ReviewState,
+    SuggestionState,
     Ulid,
 } from './common';
 import type { Location } from './location';
@@ -58,6 +59,7 @@ export type Request = {
     lastEventSeq: EventSeq;
     carriedFrom: CarriedFrom | null;
     requireApproval: boolean;
+    suggestion: SuggestionState | null;
     proposal: Proposal | null;
     body: Markdown;
     reviewState: ReviewState;

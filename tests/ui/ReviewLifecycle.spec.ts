@@ -29,7 +29,7 @@ function closeButton(page: Page) {
 }
 
 test.describe('ReviewLifecycle', () => {
-    test('The review page shows the review ID and the prompt snippet', async ({ page, api }) => {
+    test('The review page shows the review ID and the prompt snippets', async ({ page, api }) => {
         const repository = new FakeRepositories(api).addLocal('e2e-lifecycle');
         await page.goto(`/repositories/${repository.id}`);
         await expect(page.locator(`${START_FORM} input[name="ref"]`)).toHaveValue('main');
@@ -40,6 +40,7 @@ test.describe('ReviewLifecycle', () => {
         const reviewId = new URL(page.url()).pathname.split('/').at(-1) ?? '';
         await expect(page.locator('[data-testid="review-id"]')).toHaveText(reviewId);
         await expect(page.locator('[data-testid="agent-prompt"]')).toHaveText(`Work on Slopmower review ${reviewId}`);
+        await expect(page.locator('[data-testid="suggestion-prompt"]')).toHaveText(`Review the code of Slopmower review ${reviewId} and suggest changes`);
         expect(api.bodies('POST', START)).toEqual([{ ref: 'main', title: null }]);
     });
 

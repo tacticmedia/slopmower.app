@@ -46,6 +46,9 @@ final class ClosedReviewTest extends KernelTestCase
         yield 'mark_wont_do by agent' => ['mark_wont_do', 'claiming agent', 'in_progress'];
         yield 'verify by user' => ['verify', 'user', 'ready_for_review'];
         yield 'reopen by user' => ['reopen', 'user', 'verified'];
+        yield 'suggest by agent' => ['suggest', 'claiming agent', 'none'];
+        yield 'accept_suggestion by user' => ['accept_suggestion', 'user', 'suggestion pending'];
+        yield 'dismiss_suggestion by user' => ['dismiss_suggestion', 'user', 'suggestion pending'];
     }
 
     #[TestDox('Closing a closed review gives review_closed')]

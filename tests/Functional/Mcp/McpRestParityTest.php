@@ -145,6 +145,49 @@ final class McpRestParityTest extends WebTestCase
         self::assertSame(2, $mcp['total']);
     }
 
+    #[TestDox('list_requests with suggestion equals the REST body of Q1 with the same filter')]
+    public function testListRequestsWithSuggestionEqualsQ1(): void
+    {
+        self::assertToolResult($this->mcp, $this->mcp->callTool('suggest_request', ['review' => $this->reviewId, 'body' => 'Round half cents up.']), 'suggest_request');
+        $rest = self::assertApiResponse(self::bearerRequest($this->client, $this->secret, 'GET', "/api/v1/reviews/{$this->reviewId}/requests?suggestion=pending"), 200, 'lists.schema.json#/$defs/RequestPage');
+
+        $mcp = self::assertToolResult($this->mcp, $this->mcp->callTool('list_requests', ['review' => $this->reviewId, 'suggestion' => 'pending']), 'list_requests');
+
+        self::assertSame($rest, $mcp);
+        self::assertSame(1, $mcp['total']);
+    }
+
+    #[TestDox('start_review equals the REST body of V1, for the repository that R1 finds by name')]
+    public function testStartReviewEqualsV1(): void
+    {
+        self::mockTime('2026-09-29 07:40:00');
+        $repositoryId = (string) self::assertApiResponse(self::apiRequest($this->client, 'GET', "/api/v1/reviews/{$this->reviewId}"), 200, 'review.schema.json')['repositoryId'];
+
+        $mcp = self::assertToolResult($this->mcp, $this->mcp->callTool('start_review', ['repository' => 'billing', 'ref' => 'main']), 'start_review');
+        $rest = self::assertApiResponse(self::bearerRequest($this->client, $this->secret, 'POST', "/api/v1/repositories/{$repositoryId}/reviews", ['ref' => 'main']), 201, 'review.schema.json');
+
+        self::assertSame(self::canonical($mcp, (string) $mcp['id'], 'reviewId'), self::canonical($rest, (string) $rest['id'], 'reviewId'));
+        self::assertSame('agent', $mcp['startedBy']['kind']);
+    }
+
+    #[TestDox('suggest_request with flat anchor parameters equals the REST body of Q20')]
+    public function testSuggestRequestEqualsQ20(): void
+    {
+        self::mockTime('2026-09-29 07:40:00');
+        $body = 'Round half cents up.';
+
+        $mcp = self::assertToolResult($this->mcp, $this->mcp->callTool('suggest_request', ['review' => $this->reviewId, 'body' => $body, 'anchorKind' => 'range', 'path' => self::INVOICE_TOTALS, 'startLine' => 3, 'endLine' => 5]), 'suggest_request');
+        $rest = self::assertApiResponse(
+            self::bearerRequest($this->client, $this->secret, 'POST', "/api/v1/reviews/{$this->reviewId}/suggestions", ['anchor' => ['kind' => 'range', 'path' => self::INVOICE_TOTALS, 'range' => ['startLine' => 3, 'endLine' => 5]], 'body' => $body]),
+            201,
+            'request-command-result.schema.json',
+        );
+
+        $mcpRequestId = (string) $mcp['request']['id'];
+        self::assertSame(self::canonical($mcp, $mcpRequestId, $mcpRequestId), self::canonical($rest, (string) $rest['request']['id'], $mcpRequestId));
+        self::assertSame(['range', 'pending'], [$mcp['request']['anchor']['kind'], $mcp['request']['suggestion']]);
+    }
+
     /**
      * Each tool works on one request, and its REST endpoint on a twin in the same state, at a frozen time. The bodies
      * differ only in the request ID and in the numbers and IDs of the new events.
@@ -189,12 +232,12 @@ final class McpRestParityTest extends WebTestCase
     /**
      * @param array<string, mixed> $body
      *
-     * @return array<string, mixed> The body with $requestId as $asRequestId, and the event numbers and IDs masked
+     * @return array<string, mixed> The body with $id as $asId, and the event numbers and IDs masked
      */
-    private static function canonical(array $body, string $requestId, string $asRequestId): array
+    private static function canonical(array $body, string $id, string $asId): array
     {
         /** @var array<string, mixed> $canonical */
-        $canonical = json_decode(str_replace($requestId, $asRequestId, json_encode($body, \JSON_THROW_ON_ERROR)), true, flags: \JSON_THROW_ON_ERROR);
+        $canonical = json_decode(str_replace($id, $asId, json_encode($body, \JSON_THROW_ON_ERROR)), true, flags: \JSON_THROW_ON_ERROR);
         array_walk_recursive($canonical, static function (mixed &$value, int|string $key): void {
             $value = \in_array($key, ['seq', 'eventId', 'commentId', 'lastEventSeq'], true) ? "<{$key}>" : $value;
         });

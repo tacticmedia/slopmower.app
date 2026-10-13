@@ -31,7 +31,7 @@ Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json). 
 | [R6](#r6-delete-repository-data) | DELETE | `/api/v1/repositories/{repositoryId}?confirm={name}` | S | 202 | none |
 | [R7](#r7-get-a-blob) | GET | `/api/v1/repositories/{repositoryId}/blobs/{blobSha}` | S, B | 200 or 304 | bytes |
 | [R8](#r8-check-every-pull-request) | POST | `/api/v1/repositories/{repositoryId}/check-every-pull-request` | S | 200 | [`repository.schema.json`](schemas/repository.schema.json) |
-| [V1](#v1-start-a-review) | POST | `/api/v1/repositories/{repositoryId}/reviews` | S | 201 | [`review.schema.json`](schemas/review.schema.json) |
+| [V1](#v1-start-a-review) | POST | `/api/v1/repositories/{repositoryId}/reviews` | S, B | 201 | [`review.schema.json`](schemas/review.schema.json) |
 | [V2](#v2-list-reviews) | GET | `/api/v1/repositories/{repositoryId}/reviews` | S, B | 200 | [`lists.schema.json#/$defs/ReviewPage`](schemas/lists.schema.json) |
 | [V3](#v3-get-a-review) | GET | `/api/v1/reviews/{reviewId}` | S, B | 200 | [`review.schema.json`](schemas/review.schema.json) |
 | [V4](#v4-close-a-review) | POST | `/api/v1/reviews/{reviewId}/close` | S | 200 | [`review.schema.json`](schemas/review.schema.json) |
@@ -67,6 +67,9 @@ Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json). 
 | [Q17](rest-api-requests.md#q17-link-a-pull-request-to-requests) | POST | `/api/v1/pull-request-links` | B | 200 | [`link-pull-request-result.schema.json`](schemas/link-pull-request-result.schema.json) |
 | [Q18](rest-api-requests.md#q18-change-the-plan-requirement) | POST | `/api/v1/requests/{requestId}/plan-requirement` | S | 200 | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) |
 | [Q19](rest-api-requests.md#q19-unlink-a-pull-request) | POST | `/api/v1/requests/{requestId}/unlink-pull-request` | B | 200 | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) |
+| [Q20](rest-api-requests.md#q20-suggest-a-request) | POST | `/api/v1/reviews/{reviewId}/suggestions` | B | 201 | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) |
+| [Q21](rest-api-requests.md#q21-accept-a-suggestion) | POST | `/api/v1/requests/{requestId}/accept-suggestion` | S | 200 | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) |
+| [Q22](rest-api-requests.md#q22-dismiss-a-suggestion) | POST | `/api/v1/requests/{requestId}/dismiss-suggestion` | S | 200 | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) |
 | [D1](rest-api-requests.md#d1-list-drafts) | GET | `/api/v1/reviews/{reviewId}/drafts` | S | 200 | [`lists.schema.json#/$defs/DraftList`](schemas/lists.schema.json) |
 | [D2](rest-api-requests.md#d2-create-a-draft) | POST | `/api/v1/reviews/{reviewId}/drafts` | S | 201 | [`draft.schema.json`](schemas/draft.schema.json) |
 | [D3](rest-api-requests.md#d3-update-a-draft) | PATCH | `/api/v1/drafts/{draftId}` | S | 200 | [`draft.schema.json`](schemas/draft.schema.json) |
@@ -312,7 +315,7 @@ The value says which pull requests of a GitHub repository get the check of the u
 ### V1 Start a review
 
 - **Request:** `POST /api/v1/repositories/{repositoryId}/reviews`
-- **Authentication:** S
+- **Authentication:** S, B
 - **Body:** [`StartReviewInput`](schemas/inputs.schema.json), for example `{"ref":"main","title":null}`.
   - `ref` defaults to the default branch.
   - `title` defaults to `"<ref> @ <sha 12 chars>"`, or to `"<sha 12 chars>"` when `ref` is a full SHA of 40 or 64 characters. The `<ref>` part is cut so that the title has at most 200 characters.
@@ -326,12 +329,14 @@ The value says which pull requests of a GitHub repository get the check of the u
 
 Ref validation: the git ref-name rules of `git check-ref-format --allow-onelevel`, or a hex SHA of 7 to 64 characters. A leading `-` is refused.
 
+An agent starts a review to suggest changes ([Q20](rest-api-requests.md#q20-suggest-a-request)). A token sees only the repositories of its scope, so a repository outside the scope gets 404 `not_found`. `startedBy` is the caller: the user for a session, the agent for a token. Only the user closes a review ([V4](#v4-close-a-review)).
+
 Steps:
 
 1. If `ref` is a full SHA that is already in the clone, no fetch runs. Otherwise the server fetches synchronously, with a 60-second timeout.
 2. It resolves `git rev-parse --verify --end-of-options <ref>^{commit}` in the clone.
 3. It writes the pin ref `refs/slopmower/reviews/<reviewId>` to the resolved commit.
-4. It writes `review.started` with actor user and the payload `title`, `ref`, `commitSha`.
+4. It writes `review.started` with the caller as actor and the payload `title`, `ref`, `commitSha`.
 5. It queues the index job, with `index.state = pending`.
 
 Several open reviews of one repository are allowed, also at the same commit. They are fully separate: each request, draft, viewed-file mark, and cursor belongs to one review. The index is shared per commit inside a repository, because it is code data, not review data.
@@ -658,6 +663,7 @@ The endpoint copies the open requests of the source review into the target revie
 - The source review can be open or closed. The call changes neither it nor its requests.
 - `items` holds one item per request of the source review, sorted by `id`. `source` is the source request.
 - A source request with status `open` or `reopened` is carried. Any other status gives `not_carried`, with the status as `reason`: an `in_progress` request must be released first, and requests that wait for the user or are closed stay.
+- A pending suggestion is not carried. It gives `not_carried` with the reason `open`, and its `source.suggestion` tells the client why. An accepted suggestion is carried as other requests. The copy has the caller as author, so it is a request of the user with `suggestion` null.
 - A source request that has a carried copy in the target review gives `already_carried` with the `requestId` of that copy. A repeated call writes nothing for it.
 - The server locates each anchor at the target review commit with `locate` of [architecture.md](../architecture.md) section 5.4, then captures the new anchor at the target review commit as [Q2](rest-api-requests.md#q2-open-a-request) does. `location` is the status of that location.
 

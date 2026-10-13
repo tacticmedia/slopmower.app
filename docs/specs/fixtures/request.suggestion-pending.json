@@ -1,0 +1,92 @@
+{
+  "id": "01K6B3P2A9QRSTVWXYZ012345B",
+  "reviewId": "01K6B3A1B2C3D4E5F6G7H8J9KM",
+  "repositoryId": "01K6B2Z0R3P0S1T2V3W4X5Y6Z7",
+  "status": "open",
+  "awaiting": "user",
+  "resolution": null,
+  "closed": false,
+  "anchor": {
+    "kind": "line",
+    "path": "src/Billing/InvoiceTotals.php",
+    "commitSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091",
+    "blobSha": "3b18e512dba79e4c8300dd08aeb37f8e728b8dad",
+    "range": {
+      "startLine": 55,
+      "endLine": 55
+    },
+    "symbol": null,
+    "snapshot": {
+      "lines": ["        $rounded = round($cents, 0, PHP_ROUND_HALF_EVEN);"],
+      "truncated": false,
+      "lineCount": 1,
+      "before": ["    {", "        $tax = $this->total() * $this->taxRate;", "        $cents = $tax * 100;"],
+      "after": ["", "        return $rounded / 100;", "    }"],
+      "normalizedHash": "sha256:e4f631c582923c138994bbbdaa4520fcdf689c9f80ea5cb991a7077cfcac2a10"
+    }
+  },
+  "summary": "Round half cents up: use `PHP_ROUND_HALF_UP`.",
+  "author": {
+    "kind": "agent",
+    "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+    "agentName": "claude-code laptop",
+    "name": "claude-code laptop",
+    "avatarUrl": null
+  },
+  "claimedBy": null,
+  "claimedAt": null,
+  "commentCount": 0,
+  "commitCount": 0,
+  "pendingCommitCount": 0,
+  "outdated": false,
+  "createdAt": "2026-09-29T08:10:00Z",
+  "updatedAt": "2026-09-29T08:10:00Z",
+  "lastEventSeq": 1870,
+  "carriedFrom": null,
+  "requireApproval": false,
+  "suggestion": "pending",
+  "proposal": null,
+  "body": "Round half cents up: use `PHP_ROUND_HALF_UP`.\n\n`PHP_ROUND_HALF_EVEN` rounds a tax of 12.5 cents to 12 cents. Invoices round a half cent up.",
+  "reviewState": "open",
+  "reviewCommitSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091",
+  "location": {
+    "target": "default_branch",
+    "targetSha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091",
+    "status": "exact",
+    "path": "src/Billing/InvoiceTotals.php",
+    "range": {
+      "startLine": 55,
+      "endLine": 55
+    },
+    "confidence": 1,
+    "reason": null
+  },
+  "excerpt": null,
+  "thread": [
+    {
+      "seq": 1870,
+      "eventId": "01K6C2EVT00000000000001870",
+      "type": "request.opened",
+      "actor": {
+        "kind": "agent",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "agentName": "claude-code laptop",
+        "name": "claude-code laptop",
+        "avatarUrl": null
+      },
+      "occurredAt": "2026-09-29T08:10:00Z",
+      "body": "Round half cents up: use `PHP_ROUND_HALF_UP`.\n\n`PHP_ROUND_HALF_EVEN` rounds a tax of 12.5 cents to 12 cents. Invoices round a half cent up.",
+      "diff": null,
+      "commentId": null,
+      "question": false,
+      "batchId": null,
+      "commitSha": null,
+      "pullRequestUrl": null,
+      "statusAfter": "open"
+    }
+  ],
+  "commits": [],
+  "pullRequestUrls": [],
+  "pullRequests": [],
+  "allowedActions": ["reply", "accept_suggestion", "dismiss_suggestion"]
+}

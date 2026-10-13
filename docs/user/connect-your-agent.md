@@ -71,6 +71,14 @@ Other agents that read Agent Skills from another directory need the file in that
 
 The agent then lists the requests that wait for it, asks questions, and works on the requests. If you give no review ID and several reviews are open, the agent asks you which review to use.
 
+To let the agent review the code and suggest changes, copy the second prompt of the review header:
+
+```text
+Review the code of Slopmower review 01K6B3A1B2C3D4E5F6G7H8J9KM and suggest changes
+```
+
+The agent changes no code. It opens one suggestion per finding, and you accept or dismiss each one in Slopmower. The first prompt then lets the agent work on the accepted suggestions. See "Agent suggestions" in [Reviewing](reviewing.md).
+
 To let the agent keep watching the review for your replies, ask it to do so. In Claude Code you can use the `/loop` command.
 
 If you want a pull request for the work, ask the agent for one, or put the rule into the instructions of your repository, for example `CLAUDE.md` or `AGENTS.md`. The agent then links the pull request to its requests, and Slopmower shows the link on each request. For a GitHub repository, the pull request must belong to the reviewed repository.

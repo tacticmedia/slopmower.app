@@ -23,7 +23,7 @@
     },
     "body": {
       "type": ["string", "null"],
-      "description": "opened: request body; commented: comment; proposed: plan; released, ready_for_review, verified, reopened, proposal_approved, proposal_rejected, commit.linked, pull_request.linked: note; wont_do: reason; else null."
+      "description": "opened: request body; commented: comment; proposed: plan; released, ready_for_review, verified, reopened, proposal_approved, proposal_rejected, suggestion_dismissed, commit.linked, pull_request.linked: note; wont_do: reason; else null."
     },
     "diff": {
       "anyOf": [

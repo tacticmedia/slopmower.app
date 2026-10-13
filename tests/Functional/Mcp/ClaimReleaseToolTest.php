@@ -42,6 +42,8 @@ final class ClaimReleaseToolTest extends WebTestCase
 
     private McpTestClient $mcp;
 
+    private string $reviewId;
+
     private string $requestId;
 
     protected function setUp(): void
@@ -50,7 +52,8 @@ final class ClaimReleaseToolTest extends WebTestCase
         $this->newSource()->commit(self::codeFiles());
         $this->client = static::createClient();
         $this->user = self::signIn($this->client);
-        $this->requestId = (string) self::openRequest($this->client, self::startCodeReview($this->client))['id'];
+        $this->reviewId = self::startCodeReview($this->client);
+        $this->requestId = (string) self::openRequest($this->client, $this->reviewId)['id'];
         $this->mcp = new McpTestClient($this->client, self::storeToken($this->user)[1]);
     }
 
@@ -87,6 +90,16 @@ final class ClaimReleaseToolTest extends WebTestCase
             ['requestId' => $this->requestId, 'action' => 'claim', 'status' => 'in_progress', 'claimedBy' => ['kind' => 'agent', 'userId' => $this->user->getId()->toString(), 'agentName' => 'codex desktop', 'name' => 'codex desktop', 'avatarUrl' => null], 'allowedActions' => ['reply']],
             $error['details'],
         );
+    }
+
+    #[TestDox('A claim of a pending suggestion gives isError invalid_transition')]
+    public function testClaimOfPendingSuggestionGivesInvalidTransition(): void
+    {
+        $suggested = self::assertToolResult($this->mcp, $this->mcp->callTool('suggest_request', ['review' => $this->reviewId, 'body' => 'Round half cents up.']), 'suggest_request');
+
+        $error = self::assertToolError($this->mcp->callTool('claim_request', ['id' => $suggested['request']['id']]), 'invalid_transition');
+
+        self::assertSame(['claim', ['reply']], [$error['details']['action'] ?? null, $error['details']['allowedActions'] ?? null]);
     }
 
     #[TestDox('release_request restores the status before the claim')]

@@ -7,22 +7,25 @@ This file continues [rest-api.md](rest-api.md). That file has the conventions, t
 | Command | REST | MCP | Actor | From | To | Events | Repeated call |
 |---|---|---|---|---|---|---|---|
 | open | [Q2](#q2-open-a-request) | none | user | none | `open` | `request.opened` | Creates another request |
+| suggest | [Q20](#q20-suggest-a-request) | `suggest_request` | agent | none | `open` with a pending suggestion | `request.opened` with the agent as actor | Creates another suggestion |
 | carry over | [V15](rest-api.md#v15-carry-over-open-requests) | none | user | none | `open` | `request.opened` per carried request, then `request.commented` for its first comment, if any | `already_carried`, no event |
 | reply | [Q4](#q4-comment-on-a-request) | `reply_to_request` | user, agent | any status | unchanged | `request.commented` | Adds another comment |
-| claim | [Q5](#q5-claim-a-request) | `claim_request` | agent | `open`, `reopened` | `in_progress` | `request.claimed` | The same agent on its own `in_progress` request: 200, no event, `events: []` |
+| claim | [Q5](#q5-claim-a-request) | `claim_request` | agent | `open` without a pending suggestion, `reopened` | `in_progress` | `request.claimed` | The same agent on its own `in_progress` request: 200, no event, `events: []` |
 | release | [Q6](#q6-release-a-request) | `release_request` | the claiming agent, or the user with "Unassign" | `in_progress` | the status before the claim | `request.released` | 409 `invalid_transition` |
 | link | [Q7](#q7-link-a-commit-to-requests) | `link_commits` | the claiming agent, for **every** named request | `in_progress` | unchanged | one `commit.linked` that names the newly linked requests | Pairs that are already linked are skipped. No event when nothing is new. |
 | unlink | [Q8](#q8-unlink-a-commit) | `unlink_commit` | the claiming agent | `in_progress` | unchanged | `commit.unlinked` | 422 `invalid_input` when not linked |
 | link pull request | [Q17](#q17-link-a-pull-request-to-requests) | `link_pull_request` | an agent, for **every** named request: the claiming agent while `in_progress`, any agent while `ready_for_review` | `in_progress`, `ready_for_review` | unchanged | one `pull_request.linked` that names the newly linked requests | Pairs that are already linked are skipped. No event when nothing is new. |
 | unlink pull request | [Q19](#q19-unlink-a-pull-request) | `unlink_pull_request` | an agent: the claiming agent while `in_progress`, any agent while `ready_for_review` | `in_progress`, `ready_for_review` | unchanged | `pull_request.unlinked` | 422 `invalid_input` when not linked |
 | ready | [Q10](#q10-mark-ready-for-review) | `mark_ready_for_review` | the claiming agent | `in_progress` | `ready_for_review` | any `commit.found` first, then `request.ready_for_review` | 409 |
-| won't do | [Q11](#q11-mark-wont-do) | `mark_wont_do` | agent, which must be the claiming agent when `in_progress`, or user | `open`, `reopened`, `in_progress` | `wont_do` | `request.wont_do` | 409 |
+| won't do | [Q11](#q11-mark-wont-do) | `mark_wont_do` | agent, which must be the claiming agent when `in_progress`, or user | `open` without a pending suggestion, `reopened`, `in_progress` | `wont_do` | `request.wont_do` | 409 |
 | verify | [Q12](#q12-verify-a-request) | none | user | `ready_for_review`; `wont_do` set by an agent | `verified` | `request.verified` | 409 |
 | reopen | [Q13](#q13-reopen-a-request) | none | user | `ready_for_review`, `wont_do`, `verified` | `reopened` | `request.reopened` | 409 |
 | propose | [Q14](#q14-propose-a-solution) | `propose_solution` | the claiming agent | `in_progress` | unchanged | `request.proposed` | A new proposal replaces the current one |
 | approve proposal | [Q15](#q15-approve-a-proposal) | none | user | `in_progress` with a pending proposal | unchanged | `request.proposal_approved` | 409 |
 | reject proposal | [Q16](#q16-reject-a-proposal) | none | user | `in_progress` with a pending proposal | unchanged | `request.proposal_rejected` | 409 |
-| plan requirement | [Q18](#q18-change-the-plan-requirement) | none | user | `open`, `reopened`, `in_progress` | unchanged | `request.plan_required` or `request.plan_waived` | The current value: 200, no event, `events: []` |
+| plan requirement | [Q18](#q18-change-the-plan-requirement) | none | user | `open` without a pending suggestion, `reopened`, `in_progress` | unchanged | `request.plan_required` or `request.plan_waived` | The current value: 200, no event, `events: []` |
+| accept suggestion | [Q21](#q21-accept-a-suggestion) | none | user | `open` with a pending suggestion | unchanged | `request.suggestion_accepted` | 409 |
+| dismiss suggestion | [Q22](#q22-dismiss-a-suggestion) | none | user | `open` with a pending suggestion | `wont_do` | `request.suggestion_dismissed` | 409 |
 
 Rules:
 
@@ -48,25 +51,38 @@ Proposals: the claiming agent proposes a solution in the thread, a Markdown plan
 - A decision names the proposal in `proposalEventId`. While a proposal is pending, another ID gives 422 `invalid_input`, so the user never approves a proposal that a newer one replaced. Without a pending proposal, the decision gets 409 `invalid_transition`.
 - A decision counts as a user message for `awaiting` rule 2, and a pending proposal waits for the user by rule 3.
 
+Suggestions: a request that an agent opens with [Q20](#q20-suggest-a-request) or `suggest_request` is a suggestion: the agent found code that needs a change, and the user decides whether the change becomes work.
+
+- `suggestion` is `pending`, `accepted`, or `dismissed` for a request of an agent, and null for a request of the user. `author` is the agent.
+- A suggestion opens with status `open`, `requireApproval` false, `batchId` null, and `carriedFrom` null. A pending suggestion waits for the user by `awaiting` rule 3.
+- While a suggestion is pending, both actors may reply. A user reply gives the turn to the agent by rule 2, and the agent's reply gives it back. `claim`, `mark_wont_do`, and `set_plan_requirement` get 409 `invalid_transition`, because accept and dismiss do their work.
+- [Q21](#q21-accept-a-suggestion) accepts it: `suggestion` becomes `accepted`, and `requireApproval` takes the value of the input when the input has one. The accept counts as a user message for rule 2, so the request waits for the agent as any `open` request.
+- [Q22](#q22-dismiss-a-suggestion) dismisses it: `suggestion` becomes `dismissed`, and the status becomes `wont_do` set by the user, so `closed` is true and `resolution` is `wont_do`.
+- [Q13](#q13-reopen-a-request) on a dismissed suggestion sets `suggestion` to `accepted`.
+- A review has at most 500 pending suggestions. One more gets 422 `invalid_input`.
+- [V15](rest-api.md#v15-carry-over-open-requests) does not carry a pending suggestion.
+
 `allowedActions` for the caller. It is empty when the review is closed.
 
 | Action | Agent caller | User caller |
 |---|---|---|
 | `reply` | always | always |
-| `claim` | status `open` or `reopened` | never |
+| `claim` | status `open` without a pending suggestion, or `reopened` | never |
 | `release` | `in_progress` and claimed by the caller | `in_progress` |
 | `link_commits` | `in_progress`, claimed by the caller, and the proposal gate is open | never |
 | `unlink_commit` | `in_progress`, claimed by the caller, and at least one link exists | never |
 | `link_pull_request` | `in_progress`, claimed by the caller, and the proposal gate is open, or `ready_for_review`. `request.ready_for_review` clears the claim, so any agent may link then. | never |
 | `unlink_pull_request` | `in_progress` and claimed by the caller, or `ready_for_review`, and at least one pull request is linked | never |
 | `mark_ready_for_review` | `in_progress`, claimed by the caller, and the proposal gate is open | never |
-| `mark_wont_do` | `open` or `reopened`, or `in_progress` claimed by the caller | `open`, `reopened`, `in_progress` |
+| `mark_wont_do` | `open` without a pending suggestion, `reopened`, or `in_progress` claimed by the caller | `open` without a pending suggestion, `reopened`, `in_progress` |
 | `verify` | never | `ready_for_review`, or `wont_do` whose last `request.wont_do` actor is an agent |
 | `reopen` | never | `ready_for_review`, `wont_do`, `verified` |
 | `propose_solution` | `in_progress` and claimed by the caller | never |
 | `approve_proposal` | never | `in_progress` with a pending proposal |
 | `reject_proposal` | never | `in_progress` with a pending proposal |
-| `set_plan_requirement` | never | `open`, `reopened`, `in_progress` |
+| `set_plan_requirement` | never | `open` without a pending suggestion, `reopened`, `in_progress` |
+| `accept_suggestion` | never | `open` with a pending suggestion |
+| `dismiss_suggestion` | never | `open` with a pending suggestion |
 
 ## 2. Queries
 
@@ -83,6 +99,7 @@ Proposals: the claiming agent proposes a solution in the thread, a Markdown plan
 | `awaiting` | list of Awaiting | all | "Waiting for you" is `awaiting=user` |
 | `path` | string of at most 4096 characters, no NUL, no leading `/` | none | Prefix of `anchor.path` at the review commit. Never matches a general request. |
 | `outdated` | boolean | none | Filters on `RequestSummary.outdated`. Null values never match. |
+| `suggestion` | SuggestionState | none | Filters on `RequestSummary.suggestion`. A request of the user, with `suggestion` null, never matches. The "Suggestions" filter of the UI is `suggestion=pending`. |
 | `sort` | `created`\|`updated`\|`path` | `created` | `created`: `id` ascending. `updated`: `updatedAt` descending, then `id`. `path`: general requests first, then `anchor.path`, then `anchor.range.startLine` with file anchors first, then `id`. |
 | `limit` | integer 1-200 | 50 | |
 | `cursor` | Cursor | none | |
@@ -96,8 +113,8 @@ Example response, [fixtures/lists.request-page.json](fixtures/lists.request-page
   "total": 2,
   "nextCursor": null,
   "items": [
-    {"id":"01K6B3P2A9QRSTVWXYZ0123456","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","status":"open","awaiting":"agent","resolution":null,"closed":false,"anchor":{"kind":"symbol","path":"src/Billing/InvoiceTotals.php","range":{"startLine":38,"endLine":49},"symbol":{"language":"php","kind":"method","fqn":"App\\Billing\\InvoiceTotals::total()"}},"summary":"Use `Money` instead of `float` for totals.","author":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"claimedBy":null,"claimedAt":null,"commentCount":0,"commitCount":0,"pendingCommitCount":0,"outdated":false,"createdAt":"2026-09-29T07:20:00Z","updatedAt":"2026-09-29T07:20:00Z","lastEventSeq":1830,"carriedFrom":null,"requireApproval":false,"proposal":null},
-    {"id":"01K6B3P2A9QRSTVWXYZ0123457","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","status":"open","awaiting":"agent","resolution":null,"closed":false,"anchor":{"kind":"range","path":"src/Billing/InvoiceTotals.php","range":{"startLine":52,"endLine":58},"symbol":null},"summary":"Extract the tax rounding into `TaxRounding`.","author":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"claimedBy":null,"claimedAt":null,"commentCount":1,"commitCount":0,"pendingCommitCount":0,"outdated":false,"createdAt":"2026-09-29T07:10:00Z","updatedAt":"2026-09-29T07:20:00Z","lastEventSeq":1831,"carriedFrom":null,"requireApproval":false,"proposal":null}
+    {"id":"01K6B3P2A9QRSTVWXYZ0123456","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","status":"open","awaiting":"agent","resolution":null,"closed":false,"anchor":{"kind":"symbol","path":"src/Billing/InvoiceTotals.php","range":{"startLine":38,"endLine":49},"symbol":{"language":"php","kind":"method","fqn":"App\\Billing\\InvoiceTotals::total()"}},"summary":"Use `Money` instead of `float` for totals.","author":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"claimedBy":null,"claimedAt":null,"commentCount":0,"commitCount":0,"pendingCommitCount":0,"outdated":false,"createdAt":"2026-09-29T07:20:00Z","updatedAt":"2026-09-29T07:20:00Z","lastEventSeq":1830,"carriedFrom":null,"requireApproval":false,"suggestion":null,"proposal":null},
+    {"id":"01K6B3P2A9QRSTVWXYZ0123457","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","status":"open","awaiting":"agent","resolution":null,"closed":false,"anchor":{"kind":"range","path":"src/Billing/InvoiceTotals.php","range":{"startLine":52,"endLine":58},"symbol":null},"summary":"Extract the tax rounding into `TaxRounding`.","author":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"claimedBy":null,"claimedAt":null,"commentCount":1,"commitCount":0,"pendingCommitCount":0,"outdated":false,"createdAt":"2026-09-29T07:10:00Z","updatedAt":"2026-09-29T07:20:00Z","lastEventSeq":1831,"carriedFrom":null,"requireApproval":false,"suggestion":null,"proposal":null}
   ]
 }
 ```
@@ -153,6 +170,7 @@ Example response for `GET /api/v1/requests/01K6B3P2A9QRSTVWXYZ0123456?at=a1b2c3d
   "lastEventSeq": 1842,
   "carriedFrom": null,
   "requireApproval": false,
+  "suggestion": null,
   "proposal": null,
   "body": "Use `Money` instead of `float` for totals.",
   "reviewState": "open",
@@ -441,6 +459,46 @@ The proposal gate uses the new value at once. On an `in_progress` request withou
 
 `url` follows the rule of [Q17](#q17-link-a-pull-request-to-requests). For a GitHub repository the server matches the linked pull request by its number, so a URL in another letter case unlinks the link. A linked URL with an earlier name of the repository, in any letter case, also unlinks it. A URL that is linked exactly unlinks that URL, also when another linked URL has the same number. The event names the URL as linked. The callers and statuses are those of Q17 without the proposal gate. An unlink changes neither the status nor `awaiting`.
 
+### Q20 Suggest a request
+
+- **Request:** `POST /api/v1/reviews/{reviewId}/suggestions`
+- **Authentication:** B
+- **Body:** [`SuggestRequestInput`](schemas/inputs.schema.json), `{anchor?: AnchorInput|null, body}`. Example: [fixtures/inputs.suggest-request.json](fixtures/inputs.suggest-request.json).
+- **Success:** 201 `RequestCommandResult` with one `request.opened` event whose actor is the agent, and `Location: /api/v1/requests/{id}`. Example: [fixtures/request-command-result.suggested.json](fixtures/request-command-result.suggested.json).
+- **Errors:**
+  - 422 `invalid_input`: the anchor errors of [Q2](#q2-open-a-request), or the review already has 500 pending suggestions;
+  - 409 `review_closed`;
+  - 409 `repository_unavailable`: the clone is gone, for a suggestion with an anchor;
+  - 409 `limit_exceeded` with `limit: requests_per_review`.
+
+The agent opens a suggestion, which waits for the user. The anchor capture and the general form are as in Q2. The request opens with `suggestion: pending` and `requireApproval` false. The result is a `RequestCommandResult` and not the full `Request`, so the agent's context stays small. Example of the request, read by the user: [fixtures/request.suggestion-pending.json](fixtures/request.suggestion-pending.json).
+
+Example body, [fixtures/inputs.suggest-request.json](fixtures/inputs.suggest-request.json):
+
+```json
+{"anchor":{"kind":"line","path":"src/Billing/InvoiceTotals.php","range":{"startLine":55,"endLine":55}},"body":"Round half cents up: use `PHP_ROUND_HALF_UP`.\n\n`PHP_ROUND_HALF_EVEN` rounds a tax of 12.5 cents to 12 cents. Invoices round a half cent up."}
+```
+
+### Q21 Accept a suggestion
+
+- **Request:** `POST /api/v1/requests/{requestId}/accept-suggestion`
+- **Authentication:** S
+- **Body:** [`AcceptSuggestionInput`](schemas/inputs.schema.json), `{requireApproval?}`. An absent or null `requireApproval` keeps the value. Example: [fixtures/inputs.accept-suggestion.json](fixtures/inputs.accept-suggestion.json).
+- **Success:** 200 `RequestCommandResult` with one `request.suggestion_accepted` event, with `body` null. `suggestion` becomes `accepted`, and the request waits for the agent.
+- **Errors:** 409 `invalid_transition`: no suggestion is pending; 409 `review_closed`.
+
+The event stores the resulting `requireApproval`, so a replay gives the same state. The accepted suggestion is an ordinary `open` request: the agent claims it and works on it as the user's requests.
+
+### Q22 Dismiss a suggestion
+
+- **Request:** `POST /api/v1/requests/{requestId}/dismiss-suggestion`
+- **Authentication:** S
+- **Body:** [`DismissSuggestionInput`](schemas/inputs.schema.json), `{note?}`. Example: [fixtures/inputs.dismiss-suggestion.json](fixtures/inputs.dismiss-suggestion.json).
+- **Success:** 200 `RequestCommandResult` with one `request.suggestion_dismissed` event, whose `body` is the note. `suggestion` becomes `dismissed`, and the status becomes `wont_do` set by the user, with `resolution` `wont_do` and `awaiting` `none`.
+- **Errors:** 409 `invalid_transition`: no suggestion is pending; 409 `review_closed`.
+
+[Q13](#q13-reopen-a-request) reopens a dismissed suggestion and sets `suggestion` to `accepted`.
+
 ## 4. Updates
 
 - **Request:** `GET /api/v1/reviews/{reviewId}/updates`, endpoint [V10](rest-api.md#v10-get-updates)
@@ -480,7 +538,7 @@ Example response for `cursor=1842`, [fixtures/updates-page.cursor.json](fixtures
   "hasMore": false,
   "awaitingTotal": 1,
   "requests": [
-    {"request":{"id":"01K6B3P2A9QRSTVWXYZ0123456","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","status":"in_progress","awaiting":"agent","resolution":null,"closed":false,"anchor":{"kind":"symbol","path":"src/Billing/InvoiceTotals.php","range":{"startLine":38,"endLine":49},"symbol":{"language":"php","kind":"method","fqn":"App\\Billing\\InvoiceTotals::total()"}},"summary":"Use `Money` instead of `float` for totals.","author":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"claimedBy":{"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},"claimedAt":"2026-09-29T07:40:00Z","commentCount":1,"commitCount":1,"pendingCommitCount":0,"outdated":false,"createdAt":"2026-09-29T07:20:00Z","updatedAt":"2026-09-29T07:50:00Z","lastEventSeq":1850,"carriedFrom":null,"requireApproval":false,"proposal":null},"newEvents":[{"seq":1850,"eventId":"01K6C2EVT00000000000001850","type":"request.commented","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","requestId":"01K6B3P2A9QRSTVWXYZ0123456","requestIds":["01K6B3P2A9QRSTVWXYZ0123456"],"actor":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"occurredAt":"2026-09-29T07:50:00Z","body":"Keep the old method as deprecated for one release.","diff":null,"commentId":"01K6C3C0MMENT0000000000002","question":false,"batchId":null,"commitSha":null,"pullRequestUrl":null,"statusAfter":"in_progress"}],"omittedEvents":0}
+    {"request":{"id":"01K6B3P2A9QRSTVWXYZ0123456","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","status":"in_progress","awaiting":"agent","resolution":null,"closed":false,"anchor":{"kind":"symbol","path":"src/Billing/InvoiceTotals.php","range":{"startLine":38,"endLine":49},"symbol":{"language":"php","kind":"method","fqn":"App\\Billing\\InvoiceTotals::total()"}},"summary":"Use `Money` instead of `float` for totals.","author":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"claimedBy":{"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},"claimedAt":"2026-09-29T07:40:00Z","commentCount":1,"commitCount":1,"pendingCommitCount":0,"outdated":false,"createdAt":"2026-09-29T07:20:00Z","updatedAt":"2026-09-29T07:50:00Z","lastEventSeq":1850,"carriedFrom":null,"requireApproval":false,"suggestion":null,"proposal":null},"newEvents":[{"seq":1850,"eventId":"01K6C2EVT00000000000001850","type":"request.commented","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","requestId":"01K6B3P2A9QRSTVWXYZ0123456","requestIds":["01K6B3P2A9QRSTVWXYZ0123456"],"actor":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"occurredAt":"2026-09-29T07:50:00Z","body":"Keep the old method as deprecated for one release.","diff":null,"commentId":"01K6C3C0MMENT0000000000002","question":false,"batchId":null,"commitSha":null,"pullRequestUrl":null,"statusAfter":"in_progress"}],"omittedEvents":0}
   ],
   "reviewEvents": []
 }
@@ -555,7 +613,7 @@ Example response, [fixtures/batch-submission.submitted.json](fixtures/batch-subm
   "submittedAt": "2026-09-29T07:20:00Z",
   "seq": 1832,
   "openedRequests": [
-    {"id":"01K6B3P2A9QRSTVWXYZ0123456","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","status":"open","awaiting":"agent","resolution":null,"closed":false,"anchor":{"kind":"symbol","path":"src/Billing/InvoiceTotals.php","range":{"startLine":38,"endLine":49},"symbol":{"language":"php","kind":"method","fqn":"App\\Billing\\InvoiceTotals::total()"}},"summary":"Use `Money` instead of `float` for totals.","author":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"claimedBy":null,"claimedAt":null,"commentCount":0,"commitCount":0,"pendingCommitCount":0,"outdated":null,"createdAt":"2026-09-29T07:20:00Z","updatedAt":"2026-09-29T07:20:00Z","lastEventSeq":1830,"carriedFrom":null,"requireApproval":false,"proposal":null}
+    {"id":"01K6B3P2A9QRSTVWXYZ0123456","reviewId":"01K6B3A1B2C3D4E5F6G7H8J9KM","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","status":"open","awaiting":"agent","resolution":null,"closed":false,"anchor":{"kind":"symbol","path":"src/Billing/InvoiceTotals.php","range":{"startLine":38,"endLine":49},"symbol":{"language":"php","kind":"method","fqn":"App\\Billing\\InvoiceTotals::total()"}},"summary":"Use `Money` instead of `float` for totals.","author":{"kind":"user","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":null,"name":"janklan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4"},"claimedBy":null,"claimedAt":null,"commentCount":0,"commitCount":0,"pendingCommitCount":0,"outdated":null,"createdAt":"2026-09-29T07:20:00Z","updatedAt":"2026-09-29T07:20:00Z","lastEventSeq":1830,"carriedFrom":null,"requireApproval":false,"suggestion":null,"proposal":null}
   ],
   "replies": [
     {"requestId":"01K6B3P2A9QRSTVWXYZ0123457","commentId":"01K6C3C0MMENT0000000000001"}

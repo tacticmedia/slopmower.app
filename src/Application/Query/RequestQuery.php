@@ -287,6 +287,10 @@ final class RequestQuery
         if (null !== $filter->outdated) {
             $builder->andWhere('request.outdated = :outdated')->setParameter('outdated', $filter->outdated, Types::BOOLEAN);
         }
+
+        if (null !== $filter->suggestion) {
+            $builder->andWhere('request.suggestionState = :suggestion')->setParameter('suggestion', $filter->suggestion);
+        }
     }
 
     /**

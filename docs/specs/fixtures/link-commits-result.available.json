@@ -48,6 +48,7 @@
       "lastEventSeq": 1842,
       "carriedFrom": null,
       "requireApproval": false,
+      "suggestion": null,
       "proposal": null
     },
     {
@@ -92,6 +93,7 @@
       "lastEventSeq": 1842,
       "carriedFrom": null,
       "requireApproval": false,
+      "suggestion": null,
       "proposal": null
     }
   ],

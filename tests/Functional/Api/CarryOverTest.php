@@ -161,6 +161,25 @@ final class CarryOverTest extends WebTestCase
         self::assertSame([true, false], [$this->carried($items[$planned], $targetId)['requireApproval'], $this->carried($items[$plain], $targetId)['requireApproval']]);
     }
 
+    #[TestDox('A pending suggestion is not carried, and an accepted one carries as a request of the user')]
+    public function testPendingSuggestionIsNotCarried(): void
+    {
+        [, $secret] = self::storeToken($this->user);
+        [$pending, $accepted] = array_map(fn (string $body): string => (string) self::assertApiResponse(
+            self::bearerRequest($this->client, $secret, 'POST', "/api/v1/reviews/{$this->sourceReviewId}/suggestions", ['body' => $body]),
+            201,
+            'request-command-result.schema.json',
+        )['request']['id'], ['Round half cents up.', 'Drop the float cast.']);
+        self::requestCommand($this->client, $accepted, 'accept-suggestion');
+        $targetId = $this->startTarget([]);
+
+        $items = $this->carryOver($targetId);
+
+        self::assertSame(['not_carried', 'open', 'pending'], [$items[$pending]['outcome'], $items[$pending]['reason'], $items[$pending]['source']['suggestion']]);
+        $copy = $this->carried($items[$accepted], $targetId);
+        self::assertSame(['user', null, 1], [$copy['author']['kind'], $copy['suggestion'], $this->requestsOf($targetId)['total']]);
+    }
+
     #[TestDox('Sources in in_progress and ready_for_review are listed as not carried, with their status')]
     public function testClaimedAndReadySourcesAreNotCarried(): void
     {

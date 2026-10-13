@@ -96,6 +96,27 @@ final class StartReviewTest extends WebTestCase
         self::assertSame(['title' => 'main @ '.substr($head, 0, 12), 'ref' => 'main', 'commitSha' => $head], $started->event->toPayload());
     }
 
+    #[TestDox('A token starts a review with the agent as startedBy')]
+    public function testTokenStartsReviewAsAgent(): void
+    {
+        $repositoryId = self::connectAndClone($this->client);
+        [, $secret] = self::storeToken($this->user);
+
+        $review = self::assertApiResponse(self::bearerRequest($this->client, $secret, 'POST', "/api/v1/repositories/{$repositoryId}/reviews", ['ref' => 'main']), 201, 'review.schema.json');
+
+        self::assertSame(['agent', 'claude-code laptop'], [$review['startedBy']['kind'], $review['startedBy']['agentName']]);
+    }
+
+    #[TestDox('A token scoped to another repository gets 404 not_found')]
+    public function testTokenScopedToAnotherRepositoryGetsNotFound(): void
+    {
+        $repositoryId = self::connectAndClone($this->client);
+        [, $secret] = self::storeToken($this->user, self::storeRepository($this->user->getTenantId(), 'alpha'));
+
+        self::assertApiError(self::bearerRequest($this->client, $secret, 'POST', "/api/v1/repositories/{$repositoryId}/reviews", ['ref' => 'main']), 404, 'not_found');
+        self::assertSame([], self::pins($this->user, $repositoryId));
+    }
+
     #[TestDox('A 255-character ref gives a default title of 200 characters')]
     public function testLongRefGivesTitleOf200Characters(): void
     {

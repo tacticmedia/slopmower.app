@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mcp;
 
+use App\Application\AnchorFactory;
 use App\Application\Query\LinkCommitsResult;
 use App\Application\Query\LinkPullRequestResult;
 use App\Application\Query\RepositoryPage;
@@ -16,12 +17,16 @@ use App\Application\Query\RequestView;
 use App\Application\Query\ReviewPage;
 use App\Application\Query\ReviewQuery;
 use App\Application\Query\ReviewStateFilter;
+use App\Application\Query\ReviewView;
 use App\Application\Query\UpdatesPage;
 use App\Application\Query\UpdatesQuery;
 use App\Application\RateLimits;
 use App\Application\RequestCommands;
+use App\Application\ReviewCommands;
 use App\Controller\Api\Input\RequestListQuery;
 use App\Domain\Actor\Actor;
+use App\Domain\Anchor\Anchor;
+use App\Domain\Anchor\AnchorKind;
 use App\Domain\Error\DomainError;
 use App\Domain\Error\ErrorCode;
 use App\Domain\Error\InvalidInput;
@@ -29,6 +34,7 @@ use App\Domain\Error\NotFound;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\CommitShaPrefix;
+use App\Domain\Git\RefName;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Request\Awaiting;
@@ -39,8 +45,11 @@ use App\Domain\Request\Command\MarkWontDo;
 use App\Domain\Request\Command\ProposeSolution;
 use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reply;
+use App\Domain\Request\Command\Suggest;
 use App\Domain\Request\Command\UnlinkCommit;
 use App\Domain\Request\RequestStatus;
+use App\Domain\Request\SuggestionState;
+use App\Entity\Review;
 use App\Repository\ReviewRepository;
 use App\Security\CurrentActor;
 use Mcp\Capability\Attribute\McpTool;
@@ -67,6 +76,8 @@ final class McpTools
 
     public function __construct(
         private readonly RequestCommands $commands,
+        private readonly ReviewCommands $reviewCommands,
+        private readonly AnchorFactory $anchors,
         private readonly RequestQuery $requests,
         private readonly RepositoryQuery $repositories,
         private readonly ReviewQuery $reviews,
@@ -235,13 +246,14 @@ final class McpTools
     /**
      * Section 4.3: REST Q1 with `sort=created`, under the rules of its query.
      *
-     * @param string         $review   Review ID from list_reviews
-     * @param ?RequestStatus $status   Only requests with this status
-     * @param ?Awaiting      $awaiting Only requests where it is this party's turn; "agent" means you
-     * @param ?string        $path     Only requests whose file path starts with this prefix; general requests never match
-     * @param ?bool          $outdated Only requests whose code changed (true) or did not change (false) on the default branch
-     * @param ?string        $cursor   nextCursor of the previous page
-     * @param int            $limit    Page size
+     * @param string           $review     Review ID from list_reviews
+     * @param ?RequestStatus   $status     Only requests with this status
+     * @param ?Awaiting        $awaiting   Only requests where it is this party's turn; "agent" means you
+     * @param ?string          $path       Only requests whose file path starts with this prefix; general requests never match
+     * @param ?bool            $outdated   Only requests whose code changed (true) or did not change (false) on the default branch
+     * @param ?SuggestionState $suggestion Only suggestions in this state; requests that the user opened never match
+     * @param ?string          $cursor     nextCursor of the previous page
+     * @param int              $limit      Page size
      *
      * @return array<string, mixed>
      */
@@ -258,12 +270,13 @@ final class McpTools
         ?Awaiting $awaiting = null,
         #[Schema(minLength: 1, maxLength: 4096)] ?string $path = null,
         ?bool $outdated = null,
+        ?SuggestionState $suggestion = null,
         #[Schema(minLength: 1)] ?string $cursor = null,
         #[Schema(minimum: 1, maximum: 200)] int $limit = 50,
     ): array {
-        return $this->run('list_requests', function () use ($review, $status, $awaiting, $path, $outdated, $cursor, $limit): RequestPage {
+        return $this->run('list_requests', function () use ($review, $status, $awaiting, $path, $outdated, $suggestion, $cursor, $limit): RequestPage {
             $found = $this->reviewRepository->findFresh(ReviewId::fromString($review, 'review')) ?? throw new NotFound();
-            $query = new RequestListQuery($status?->value, $awaiting?->value, $path, $outdated, RequestSort::Created, $limit, $cursor);
+            $query = new RequestListQuery($status?->value, $awaiting?->value, $path, $outdated, $suggestion, RequestSort::Created, $limit, $cursor);
             $violations = array_map(static fn (ConstraintViolationInterface $violation): array => [
                 'field' => $violation->getPropertyPath(),
                 'message' => (string) $violation->getMessage(),
@@ -406,6 +419,71 @@ final class McpTools
     }
 
     /**
+     * Section 4.16: REST R1 with `name`, then V1.
+     *
+     * @param string  $repository Repository ID, GitHub owner/name, or local directory name
+     * @param ?string $ref        Branch, tag, or commit SHA to pin; null for the default branch
+     * @param ?string $title      Review title; null for "<ref> @ <short SHA>"
+     *
+     * @return array<string, mixed>
+     */
+    #[McpTool(
+        name: 'start_review',
+        title: 'Start review',
+        description: 'Start a review of one repository, pinned to one commit, when the user asks you to review code and no review was named. Without ref, the review pins the head of the default branch. Read the code at the returned commitSha, then call suggest_request once per finding.',
+        annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
+        outputSchema: BundledSchemas::REVIEW,
+    )]
+    public function startReview(#[Schema(minLength: 1, maxLength: 255)] string $repository, #[Schema(minLength: 1, maxLength: 255)] ?string $ref = null, #[Schema(minLength: 1, maxLength: 200)] ?string $title = null): array
+    {
+        return $this->run('start_review', function () use ($repository, $ref, $title): ReviewView {
+            $match = $this->repositories->list($repository, null, 1, null)->items[0] ?? throw new NotFound();
+            $reviewId = $this->reviewCommands->start($match->repository->getId(), null === $ref ? null : RefName::fromString($ref), $title, $this->currentActor->get());
+
+            return $this->reviews->get($reviewId);
+        });
+    }
+
+    /**
+     * Section 4.17: REST Q20.
+     *
+     * @param string      $review     Review ID from start_review or list_reviews
+     * @param string      $body       Markdown: what to change, and why
+     * @param ?AnchorKind $anchorKind line, range, symbol, or file; null for a general request
+     * @param ?string     $path       File path at the review commit; required with anchorKind
+     * @param ?int        $startLine  First line, for line and range
+     * @param ?int        $endLine    Last line, for line and range; equal to startLine for line
+     * @param ?string     $symbol     Fully qualified name of the symbol, for symbol
+     *
+     * @return array<string, mixed>
+     */
+    #[McpTool(
+        name: 'suggest_request',
+        title: 'Suggest request',
+        description: 'Suggest one change while you review code. The suggestion is a request that waits for the user, who accepts or dismisses it; do not edit code for it. Use the narrowest anchor: anchorKind line or range with path, startLine, and endLine; symbol with path and the fully qualified name in symbol, for example App\\Billing\\InvoiceTotals::total(); file with path. Without anchorKind the suggestion concerns the whole review. If the server does not find the symbol, use a range. An accepted suggestion comes back through get_updates as a request that waits for you.',
+        annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
+        outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT,
+    )]
+    public function suggestRequest(
+        #[Schema(pattern: self::ULID)] string $review,
+        #[Schema(minLength: 1, maxLength: 65536)] string $body,
+        ?AnchorKind $anchorKind = null,
+        #[Schema(minLength: 1, maxLength: 4096)] ?string $path = null,
+        #[Schema(minimum: 1)] ?int $startLine = null,
+        #[Schema(minimum: 1)] ?int $endLine = null,
+        #[Schema(minLength: 1, maxLength: 1024)] ?string $symbol = null,
+    ): array {
+        return $this->run('suggest_request', function () use ($review, $body, $anchorKind, $path, $startLine, $endLine, $symbol): RequestCommandResult {
+            $found = $this->reviewRepository->findFresh(ReviewId::fromString($review, 'review')) ?? throw new NotFound();
+            $anchor = $this->anchor($found, $anchorKind, $path, $startLine, $endLine, $symbol);
+            $actor = $this->currentActor->get();
+            $events = $this->commands->suggest($found->getId(), new Suggest($anchor, $body), $actor);
+
+            return $this->requests->commandResult($events[0]->requestId ?? throw new \LogicException('request.opened has a requestId.'), $actor, $events);
+        });
+    }
+
+    /**
      * Section 4.10: REST Q8.
      *
      * @param string $commitSha Full commit SHA
@@ -443,6 +521,22 @@ final class McpTools
     public function unlinkPullRequest(#[Schema(pattern: self::PULL_REQUEST_URL, maxLength: 2048)] string $url, #[Schema(pattern: self::ULID)] string $requestId): array
     {
         return $this->requestCommand('unlink_pull_request', $requestId, 'requestId', fn (RequestId $id, Actor $actor): array => $this->commands->unlinkPullRequest($id, $url, $actor));
+    }
+
+    /**
+     * The anchor capture of Q20 from the flat parameters of suggest_request.
+     *
+     * @throws InvalidInput Parameters that do not agree with $kind
+     */
+    private function anchor(Review $review, ?AnchorKind $kind, ?string $path, ?int $startLine, ?int $endLine, ?string $symbol): ?Anchor
+    {
+        if (null !== $kind) {
+            return $this->anchors->capture($review, $kind, $path ?? throw InvalidInput::field('path', 'Is required with anchorKind.'), $startLine, $endLine, $symbol);
+        }
+
+        $anchorParameters = array_filter(['path' => $path, 'startLine' => $startLine, 'endLine' => $endLine, 'symbol' => $symbol], static fn (string|int|null $value): bool => null !== $value);
+
+        return [] === $anchorParameters ? null : throw new InvalidInput(array_map(static fn (string $field): array => ['field' => $field, 'message' => 'Must be null without anchorKind.'], array_keys($anchorParameters)));
     }
 
     /**

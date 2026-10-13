@@ -27,8 +27,12 @@ final class ReviewDecider
      */
     public static function decide(StartReview|CloseReview $command, ?ReviewSnapshot $review, Actor $actor): array
     {
-        if (ActorKind::User !== $actor->kind) {
-            throw new \LogicException("A {$actor->kind->value} issues no review command.");
+        if (ActorKind::System === $actor->kind) {
+            throw new \LogicException('The system issues no review command.');
+        }
+
+        if ($command instanceof CloseReview && ActorKind::User !== $actor->kind) {
+            throw new \LogicException('Only a user closes a review.');
         }
 
         if ($command instanceof StartReview) {

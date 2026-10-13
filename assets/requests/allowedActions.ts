@@ -27,3 +27,12 @@ export function buttonLabel(button: RequestButton, requireApproval: boolean): st
 export function requestButtons(allowedActions: readonly Action[]): RequestButton[] {
     return REQUEST_BUTTONS.filter((button) => allowedActions.includes(button));
 }
+
+/** The decisions on a pending suggestion, in display order. */
+const SUGGESTION_BUTTONS = ['accept_suggestion', 'dismiss_suggestion'] as const;
+
+export type SuggestionButton = (typeof SUGGESTION_BUTTONS)[number];
+
+export function suggestionButtons(allowedActions: readonly Action[]): SuggestionButton[] {
+    return SUGGESTION_BUTTONS.filter((button) => allowedActions.includes(button));
+}

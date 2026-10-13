@@ -30,6 +30,8 @@ use App\Domain\Event\RequestProposedEvent;
 use App\Domain\Event\RequestReadyForReviewEvent;
 use App\Domain\Event\RequestReleasedEvent;
 use App\Domain\Event\RequestReopenedEvent;
+use App\Domain\Event\RequestSuggestionAcceptedEvent;
+use App\Domain\Event\RequestSuggestionDismissedEvent;
 use App\Domain\Event\RequestVerifiedEvent;
 use App\Domain\Event\RequestWontDoEvent;
 use App\Domain\Event\ReviewClosedEvent;
@@ -170,6 +172,8 @@ final class EventRoundTripTest extends KernelTestCase
             EventType::RequestProposalRejected => new RequestProposalRejectedEvent(EventId::fromString(self::PROPOSAL), 'Put the export into `InvoiceTotals` itself. One class is enough.'),
             EventType::RequestPlanRequired => new RequestPlanRequiredEvent(),
             EventType::RequestPlanWaived => new RequestPlanWaivedEvent(),
+            EventType::RequestSuggestionAccepted => new RequestSuggestionAcceptedEvent(true),
+            EventType::RequestSuggestionDismissed => new RequestSuggestionDismissedEvent('The totals round once, by law.'),
             EventType::BatchSubmitted => new BatchSubmittedEvent(
                 BatchId::fromString(self::BATCH),
                 'First pass over billing.',

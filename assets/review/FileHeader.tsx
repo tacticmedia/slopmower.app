@@ -3,6 +3,7 @@ import { Button } from '@primer/react';
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
 import { CopyButton } from '../layout/CopyButton';
 import { PlanToApproveLabel } from '../requests/PlanToApproveLabel';
+import { SuggestionLabel } from '../requests/SuggestionLabel';
 import { ExpandTreeButton } from '../routes/reviews/CodeLayout';
 import { Breadcrumbs } from './Breadcrumbs';
 import styles from './FileHeader.module.css';
@@ -15,6 +16,8 @@ type Props = {
     directory?: boolean;
     /** A thread of the file has a pending proposal. */
     planToApprove?: boolean;
+    /** A thread of the file is a pending suggestion. */
+    suggestion?: boolean;
     /** The left part of the toolbar, for example the line count. */
     summary?: ReactNode;
     /** The file commands, at the right of the toolbar. Without a summary and commands, there is no toolbar. */
@@ -34,7 +37,7 @@ const STUCK_ROW_PX = 44;
  * positioned box, so a change of its height never moves the code. The element itself has `display: contents`, so the
  * sticky part sticks for the whole height of the file section.
  */
-export function FileHeader({ reviewId, repositoryName, path, directory = false, planToApprove = false, summary, children, stuckBelow, toolbarBelow }: Props) {
+export function FileHeader({ reviewId, repositoryName, path, directory = false, planToApprove = false, suggestion = false, summary, children, stuckBelow, toolbarBelow }: Props) {
     const sentinel = useRef<HTMLDivElement>(null);
     const toolbar = useRef<HTMLDivElement>(null);
     const stuck = useStuck(sentinel);
@@ -60,6 +63,7 @@ export function FileHeader({ reviewId, repositoryName, path, directory = false, 
                 <ExpandTreeButton />
                 <Breadcrumbs {...crumbs} heading />
                 <PlanToApproveLabel pending={planToApprove} />
+                <SuggestionLabel pending={suggestion} />
                 {'' !== path && <CopyButton text={path} label="Copy path" />}
             </div>
             <div ref={sentinel} className={styles.sentinel} />

@@ -44,12 +44,13 @@ final readonly class RequestState
         public ?CarriedFrom $carriedFrom = null,
         public bool $requireApproval = false,
         public ?Proposal $proposal = null,
+        public ?SuggestionState $suggestion = null,
     ) {
         $this->assertConsistent();
     }
 
     /**
-     * @param array{status?: RequestStatus, statusBeforeClaim?: ?RequestStatus, claimedBy?: ?Actor, claimedAt?: ?\DateTimeImmutable, wontDoBy?: ?ActorKind, resolution?: ?Resolution, links?: list<LinkedCommit>, pullRequestUrls?: list<PullRequestUrl>, lastUserCommentSeq?: ?int, lastAgentEventSeq?: ?int, lastAgentEventIsQuestion?: bool, lastEventSeq?: int, updatedAt?: \DateTimeImmutable, requireApproval?: bool, proposal?: ?Proposal} $changes
+     * @param array{status?: RequestStatus, statusBeforeClaim?: ?RequestStatus, claimedBy?: ?Actor, claimedAt?: ?\DateTimeImmutable, wontDoBy?: ?ActorKind, resolution?: ?Resolution, links?: list<LinkedCommit>, pullRequestUrls?: list<PullRequestUrl>, lastUserCommentSeq?: ?int, lastAgentEventSeq?: ?int, lastAgentEventIsQuestion?: bool, lastEventSeq?: int, updatedAt?: \DateTimeImmutable, requireApproval?: bool, proposal?: ?Proposal, suggestion?: ?SuggestionState} $changes
      */
     public function with(array $changes): self
     {
@@ -101,6 +102,11 @@ final readonly class RequestState
         return null === $this->proposal ? !$this->requireApproval : ProposalState::Approved === $this->proposal->state;
     }
 
+    public function suggestionPending(): bool
+    {
+        return SuggestionState::Pending === $this->suggestion;
+    }
+
     private function assertConsistent(): void
     {
         $inProgress = RequestStatus::InProgress === $this->status;
@@ -122,6 +128,20 @@ final readonly class RequestState
 
         if (!$resolutionFits) {
             throw new \LogicException("The resolution does not fit the status {$this->status->value}.");
+        }
+
+        if ((ActorKind::User === $this->author->kind) !== (null === $this->suggestion)) {
+            throw new \LogicException('suggestion is null exactly when a user is the author.');
+        }
+
+        $suggestionFits = match ($this->suggestion) {
+            null, SuggestionState::Accepted => true,
+            SuggestionState::Pending => RequestStatus::Open === $this->status,
+            SuggestionState::Dismissed => RequestStatus::WontDo === $this->status && ActorKind::User === $this->wontDoBy,
+        };
+
+        if (!$suggestionFits) {
+            throw new \LogicException("A {$this->suggestion?->value} suggestion does not fit the status {$this->status->value}.");
         }
 
         if (null === $this->proposal) {

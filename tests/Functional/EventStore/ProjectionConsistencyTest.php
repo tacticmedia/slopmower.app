@@ -12,6 +12,8 @@ use App\Domain\Event\DecidedEvent;
 use App\Domain\Event\EventType;
 use App\Domain\Event\RequestCommentedEvent;
 use App\Domain\Event\RequestOpenedEvent;
+use App\Domain\Event\RequestSuggestionAcceptedEvent;
+use App\Domain\Event\RequestSuggestionDismissedEvent;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\BatchId;
 use App\Domain\Identity\CommentId;
@@ -55,6 +57,7 @@ final class ProjectionConsistencyTest extends KernelTestCase
         $reviewId = self::startReview(self::newRepository($tenantId));
         $declined = self::declinedRequest($reviewId, self::fixedRequest($reviewId));
         self::submitBatch($reviewId, $declined);
+        self::suggestions($reviewId);
         self::reviewCommands()->close($reviewId, new CloseReview('Shipped in 2.4'), RequestScenario::user());
 
         $connection = self::getContainer()->get(Connection::class);
@@ -67,7 +70,7 @@ final class ProjectionConsistencyTest extends KernelTestCase
         self::assertSame(['available', $linkedAvailable['linked_at']], [$linkedAvailable['state'], $linkedAvailable['found_at']]);
 
         $connection->executeStatement("UPDATE review SET title = 'Tampered', last_event_seq = 0 WHERE tenant_id = ?", $tenant);
-        $connection->executeStatement("UPDATE change_request SET status = 'open', body = 'Tampered', awaiting = 'none', last_event_seq = 0, require_approval = false, proposal_state = NULL, pull_request_urls = '[]' WHERE tenant_id = ?", $tenant);
+        $connection->executeStatement("UPDATE change_request SET status = 'open', body = 'Tampered', awaiting = 'none', last_event_seq = 0, require_approval = false, proposal_state = NULL, suggestion_state = NULL, pull_request_urls = '[]' WHERE tenant_id = ?", $tenant);
         $connection->executeStatement("UPDATE commit_link SET state = 'pending', found_at = NULL WHERE tenant_id = ?", $tenant);
         $connection->executeStatement('DELETE FROM comment WHERE tenant_id = ?', $tenant);
 
@@ -134,6 +137,24 @@ final class ProjectionConsistencyTest extends KernelTestCase
         $commands->markWontDo(new MarkWontDo($requestId, RequestScenario::REASON), $agent);
 
         return $requestId;
+    }
+
+    /**
+     * Agent suggestions: one pending, one accepted with the plan required, and one dismissed.
+     */
+    private static function suggestions(ReviewId $reviewId): void
+    {
+        [$pending, $accepted, $dismissed] = [RequestId::generate(), RequestId::generate(), RequestId::generate()];
+
+        self::executor()->execute($reviewId, RequestScenario::claimingAgent(), static fn (): array => [
+            new DecidedEvent(new RequestOpenedEvent(null, 'Round each line before the sum.', null), $pending),
+            new DecidedEvent(new RequestOpenedEvent(null, 'Cover the shipping totals.', null), $accepted),
+            new DecidedEvent(new RequestOpenedEvent(null, 'Rename `InvoiceTotals`.', null), $dismissed),
+        ]);
+        self::executor()->execute($reviewId, RequestScenario::user(), static fn (): array => [
+            new DecidedEvent(new RequestSuggestionAcceptedEvent(true), $accepted),
+            new DecidedEvent(new RequestSuggestionDismissedEvent('The name stays.'), $dismissed),
+        ]);
     }
 
     /**

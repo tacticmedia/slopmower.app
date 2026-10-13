@@ -2,14 +2,16 @@ import type { Actor } from '../../../assets/api/types/actor';
 import type { Anchor, AnchorInput } from '../../../assets/api/types/anchor';
 import type { Blame } from '../../../assets/api/types/blame';
 import type { CommitLink } from '../../../assets/api/types/commit-link';
-import type { ActorKind, Awaiting, Proposal, PullRequestState, RequestStatus, Resolution, ThreadEntryType } from '../../../assets/api/types/common';
+import type { ActorKind, Awaiting, Proposal, PullRequestState, RequestStatus, Resolution, SuggestionState, ThreadEntryType } from '../../../assets/api/types/common';
 import type { Draft } from '../../../assets/api/types/draft';
 import type { FileContent } from '../../../assets/api/types/file-content';
 import type {
+    AcceptSuggestionInput,
     ApproveProposalInput,
     CloseReviewInput,
     CommentInput,
     CreateDraftInput,
+    DismissSuggestionInput,
     OpenRequestInput,
     OptionalNoteInput,
     PlanRequirementInput,
@@ -45,7 +47,7 @@ type Tracking = {
     lastAgentEventIsQuestion: boolean;
 };
 
-type Transition = { status?: RequestStatus; resolution?: Resolution | null; proposal?: Proposal | null; requireApproval?: boolean };
+type Transition = { status?: RequestStatus; resolution?: Resolution | null; proposal?: Proposal | null; requireApproval?: boolean; suggestion?: SuggestionState };
 
 type ThreadEntry = Request['thread'][number];
 
@@ -54,31 +56,33 @@ const LANGUAGES: Record<string, string> = { php: 'php', md: 'markdown', ts: 'typ
 /** The V7 languages that V9 parses. */
 const SYMBOL_LANGUAGES: ReadonlySet<string | null> = new Set(['php', 'javascript', 'jsx', 'typescript', 'tsx', 'python', 'go', 'rust', 'java', 'csharp', 'ruby', 'shellscript', 'scala', 'zig', 'lua', 'twig']);
 
-/** The `allowedActions` value of each command path of Q4, Q11 to Q13, Q15, Q16, and Q18. */
+/** The `allowedActions` value of each command path of Q4, Q11 to Q13, Q15, Q16, Q18, Q21, and Q22. */
 const COMMAND_ACTIONS: Record<string, string> = {
     comments: 'reply',
     'wont-do': 'mark_wont_do',
     'approve-proposal': 'approve_proposal',
     'reject-proposal': 'reject_proposal',
     'plan-requirement': 'set_plan_requirement',
+    'accept-suggestion': 'accept_suggestion',
+    'dismiss-suggestion': 'dismiss_suggestion',
 };
 
-/** Rules 1 to 5 of architecture section 6, as `AwaitingPolicy` applies them. A proposal decision is a user message. */
-function awaitingOf(status: RequestStatus, closed: boolean, tracking: Tracking, proposal: Proposal | null): Awaiting {
+/** Rules 1 to 5 of architecture section 6, as `AwaitingPolicy` applies them. A proposal decision and a suggestion accept are user messages. */
+function awaitingOf(status: RequestStatus, closed: boolean, tracking: Tracking, proposal: Proposal | null, suggestion: SuggestionState | null): Awaiting {
     if (closed) {
         return 'none';
     }
     if (null !== tracking.lastUserCommentSeq && tracking.lastUserCommentSeq > (tracking.lastAgentEventSeq ?? 0)) {
         return 'agent';
     }
-    if (tracking.lastAgentEventIsQuestion || 'pending' === proposal?.state) {
+    if (tracking.lastAgentEventIsQuestion || 'pending' === proposal?.state || 'pending' === suggestion) {
         return 'user';
     }
 
     return 'ready_for_review' === status || 'wont_do' === status ? 'user' : 'agent';
 }
 
-/** One review of the docs/specs REST API in memory: V3, V4, V6 to V9, V11 to V13, Q1 to Q4, Q6, Q11 to Q13, Q15, Q16, Q18, and D1 to D5, for the user of `me.local-user.json`. */
+/** One review of the docs/specs REST API in memory: V3, V4, V6 to V9, V11 to V13, Q1 to Q4, Q6, Q11 to Q13, Q15, Q16, Q18, Q21, Q22, and D1 to D5, for the user of `me.local-user.json`. */
 export class FakeReview {
     review: Review;
     requests: Request[] = [];
@@ -186,6 +190,16 @@ export class FakeReview {
         return entry;
     }
 
+    /** Q20: a pending suggestion of the agent. */
+    agentSuggests(input: AnchorInput | null, body: string): Request {
+        const opened = this.#openRequest(input, body);
+        this.#trackingOf(opened.id).lastAgentEventSeq = opened.lastEventSeq;
+        const suggested: Request = { ...opened, author: AGENT, suggestion: 'pending', awaiting: 'user', thread: opened.thread.map((entry) => ({ ...entry, actor: AGENT })) };
+        this.requests[this.requests.indexOf(opened)] = suggested;
+
+        return suggested;
+    }
+
     /** A location recompute after a default-branch commit changed the anchored lines. */
     markOutdated(id: string, targetSha: string): void {
         const current = this.find(id);
@@ -211,7 +225,7 @@ export class FakeReview {
 
     /** The request as Q3 shows it to the user now. */
     #present(request: Request): Request {
-        const allowedActions = 'closed' === this.review.state ? [] : userActions(request.status, this.#trackingOf(request.id).wontDoBy, request.proposal);
+        const allowedActions = 'closed' === this.review.state ? [] : userActions(request.status, this.#trackingOf(request.id).wontDoBy, request.proposal, request.suggestion);
 
         return { ...request, reviewState: this.review.state, allowedActions };
     }
@@ -238,7 +252,8 @@ export class FakeReview {
 
     /**
      * Appends the thread entry and applies the transition as `RequestReducer` does. `claimedBy` lives only in
-     * `in_progress`; `closed` and `awaiting` are derived. Release, won't do, and reopen set the proposal to null.
+     * `in_progress`; `closed` and `awaiting` are derived. Release, won't do, and reopen set the proposal to null. Reopen
+     * accepts a dismissed suggestion.
      */
     #apply(id: string, entry: ThreadEntry, transition: Transition = {}): Request {
         const current = this.find(id);
@@ -252,12 +267,13 @@ export class FakeReview {
         if ('agent' === entry.actor.kind && !['pull_request.linked', 'pull_request.unlinked'].includes(entry.type)) {
             tracking.lastAgentEventSeq = entry.seq;
             tracking.lastAgentEventIsQuestion = 'request.commented' === entry.type && entry.question;
-        } else if ('user' === entry.actor.kind && ['request.commented', 'request.proposal_approved', 'request.proposal_rejected'].includes(entry.type)) {
+        } else if ('user' === entry.actor.kind && ['request.commented', 'request.proposal_approved', 'request.proposal_rejected', 'request.suggestion_accepted'].includes(entry.type)) {
             tracking.lastUserCommentSeq = entry.seq;
         }
         const closed = 'verified' === status || ('wont_do' === status && 'user' === tracking.wontDoBy);
         const proposalEnds = ['request.released', 'request.wont_do', 'request.reopened'].includes(entry.type);
         const proposal = proposalEnds ? null : undefined === transition.proposal ? current.proposal : transition.proposal;
+        const suggestion = 'request.reopened' === entry.type && 'dismissed' === current.suggestion ? 'accepted' : (transition.suggestion ?? current.suggestion);
         const claim = 'in_progress' === status ? { claimedBy: current.claimedBy ?? entry.actor, claimedAt: current.claimedAt ?? entry.occurredAt } : { claimedBy: null, claimedAt: null };
         const next = {
             ...current,
@@ -265,7 +281,8 @@ export class FakeReview {
             status,
             closed,
             proposal,
-            awaiting: awaitingOf(status, closed, tracking, proposal),
+            suggestion,
+            awaiting: awaitingOf(status, closed, tracking, proposal, suggestion),
             resolution: undefined === transition.resolution ? current.resolution : transition.resolution,
             requireApproval: transition.requireApproval ?? current.requireApproval,
             commentCount: current.commentCount + ('request.commented' === entry.type ? 1 : 0),
@@ -313,6 +330,17 @@ export class FakeReview {
 
                 return this.#apply(id, this.#entry(requireApproval ? 'request.plan_required' : 'request.plan_waived', USER, null, status), { requireApproval });
             }
+            case 'accept-suggestion': {
+                const { requireApproval } = input as AcceptSuggestionInput;
+
+                return this.#apply(id, this.#entry('request.suggestion_accepted', USER, null, status), { suggestion: 'accepted', requireApproval: requireApproval ?? undefined });
+            }
+            case 'dismiss-suggestion':
+                return this.#apply(id, this.#entry('request.suggestion_dismissed', USER, (input as DismissSuggestionInput).note ?? null, 'wont_do'), {
+                    status: 'wont_do',
+                    resolution: 'wont_do',
+                    suggestion: 'dismissed',
+                });
             default:
                 throw new Error(`The fake knows no command ${command}.`);
         }
@@ -551,10 +579,11 @@ export class FakeReview {
     /** Q1 with the filters that the request list sends. */
     #requestPage(query: URLSearchParams): MockResponse {
         const list = (name: string): string[] | null => query.get(name)?.split(',') ?? null;
-        const [statuses, awaiting, path, outdated] = [list('status'), list('awaiting'), query.get('path'), query.get('outdated')];
+        const [statuses, awaiting, path, outdated, suggestion] = [list('status'), list('awaiting'), query.get('path'), query.get('outdated'), query.get('suggestion')];
         const items = this.requests
             .filter((request) => (null === statuses || statuses.includes(request.status)) && (null === awaiting || awaiting.includes(request.awaiting)))
             .filter((request) => (null === path || true === request.anchor?.path.startsWith(path)) && (null === outdated || request.outdated === ('true' === outdated)))
+            .filter((request) => null === suggestion || request.suggestion === suggestion)
             .map(requestSummary);
 
         return json('lists.schema.json#/$defs/RequestPage', { reviewId: this.id, reviewState: this.review.state, total: items.length, items, nextCursor: null });

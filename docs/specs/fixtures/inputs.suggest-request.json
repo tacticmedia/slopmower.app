@@ -1,0 +1,11 @@
+{
+  "anchor": {
+    "kind": "line",
+    "path": "src/Billing/InvoiceTotals.php",
+    "range": {
+      "startLine": 55,
+      "endLine": 55
+    }
+  },
+  "body": "Round half cents up: use `PHP_ROUND_HALF_UP`.\n\n`PHP_ROUND_HALF_EVEN` rounds a tax of 12.5 cents to 12 cents. Invoices round a half cent up."
+}

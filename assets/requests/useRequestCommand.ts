@@ -20,8 +20,10 @@ export type RequestCommand<Dialog extends string> = {
 /**
  * The user commands of the request detail. One write runs at a time, and a dialog closes when its write succeeds. The
  * fetcher state does not change while the transition runs, so `busy` comes from the transition.
+ *
+ * @param action The route whose action runs the write, for a command outside the request detail
  */
-export function useRequestCommand<Dialog extends string>(): RequestCommand<Dialog> {
+export function useRequestCommand<Dialog extends string>(action?: string): RequestCommand<Dialog> {
     const fetcher = useFetcher<ActionResult>();
     const [busy, startCommand] = useTransition();
     // A quick second click runs before `busy` renders, as in useSubmitOnce.
@@ -55,7 +57,7 @@ export function useRequestCommand<Dialog extends string>(): RequestCommand<Dialo
             setError(null);
             startCommand(async () => {
                 try {
-                    await fetcher.submit(intent, { method: 'post', encType: 'application/json' });
+                    await fetcher.submit(intent, { method: 'post', encType: 'application/json', action });
                 } finally {
                     sending.current = false;
                 }

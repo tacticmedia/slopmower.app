@@ -6,8 +6,10 @@ namespace App\Controller\Api;
 
 use App\Application\Query\RequestQuery;
 use App\Application\RequestCommands;
+use App\Controller\Api\Input\AcceptSuggestionInput;
 use App\Controller\Api\Input\ApproveProposalInput;
 use App\Controller\Api\Input\CommentInput;
+use App\Controller\Api\Input\DismissSuggestionInput;
 use App\Controller\Api\Input\OptionalNoteInput;
 use App\Controller\Api\Input\PlanRequirementInput;
 use App\Controller\Api\Input\RejectProposalInput;
@@ -15,7 +17,9 @@ use App\Controller\Api\Input\RequiredNoteInput;
 use App\Controller\Api\Input\WontDoInput;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Identity\EventId;
+use App\Domain\Request\Command\AcceptSuggestion;
 use App\Domain\Request\Command\ApproveProposal;
+use App\Domain\Request\Command\DismissSuggestion;
 use App\Domain\Request\Command\MarkWontDo;
 use App\Domain\Request\Command\RejectProposal;
 use App\Domain\Request\Command\Release;
@@ -35,7 +39,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * Q4, Q6, Q11 to Q13, Q15, Q16, and Q18 of docs/specs/rest-api-requests.md section 3.
+ * Q4, Q6, Q11 to Q13, Q15, Q16, Q18, Q21, and Q22 of docs/specs/rest-api-requests.md section 3.
  */
 #[Route('/api/v1/requests/{requestId}', name: 'api_request_')]
 final class RequestCommandController extends AbstractController
@@ -132,6 +136,28 @@ final class RequestCommandController extends AbstractController
         $command = new SetPlanRequirement($request->getId(), $input->requireApproval);
 
         return $this->result($request, $this->commands->setPlanRequirement($command, $this->currentActor->get()));
+    }
+
+    #[Route('/accept-suggestion', name: 'accept_suggestion', methods: ['POST'])]
+    #[IsGranted(User::ROLE, message: CurrentActor::SESSION_ONLY)]
+    public function acceptSuggestion(
+        #[MapEntity(id: 'requestId')] ChangeRequest $request,
+        #[MapRequestPayload(acceptFormat: 'json')] AcceptSuggestionInput $input = new AcceptSuggestionInput(),
+    ): JsonResponse {
+        $command = new AcceptSuggestion($request->getId(), $input->requireApproval);
+
+        return $this->result($request, $this->commands->acceptSuggestion($command, $this->currentActor->get()));
+    }
+
+    #[Route('/dismiss-suggestion', name: 'dismiss_suggestion', methods: ['POST'])]
+    #[IsGranted(User::ROLE, message: CurrentActor::SESSION_ONLY)]
+    public function dismissSuggestion(
+        #[MapEntity(id: 'requestId')] ChangeRequest $request,
+        #[MapRequestPayload(acceptFormat: 'json')] DismissSuggestionInput $input = new DismissSuggestionInput(),
+    ): JsonResponse {
+        $command = new DismissSuggestion($request->getId(), $input->note);
+
+        return $this->result($request, $this->commands->dismissSuggestion($command, $this->currentActor->get()));
     }
 
     /**

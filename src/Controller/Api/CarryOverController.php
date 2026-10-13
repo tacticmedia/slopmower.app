@@ -34,6 +34,7 @@ use App\Domain\Request\CarriedFrom;
 use App\Domain\Request\Command\Open;
 use App\Domain\Request\RequestDecider;
 use App\Domain\Request\RequestStatus;
+use App\Domain\Request\SuggestionState;
 use App\Entity\ChangeRequest;
 use App\Entity\Review;
 use App\Entity\User;
@@ -119,7 +120,7 @@ final class CarryOverController extends AbstractController
         $copies = $this->copies($target->getId());
         $carriable = array_filter(
             $this->sources($source->getId()),
-            static fn (ChangeRequest $request): bool => !isset($copies[$request->getId()->toString()]) && self::canCarry($request->getStatus()),
+            static fn (ChangeRequest $request): bool => !isset($copies[$request->getId()->toString()]) && self::canCarry($request),
         );
 
         if ([] !== array_filter($carriable, static fn (ChangeRequest $request): bool => null !== $request->getAnchor())) {
@@ -226,7 +227,7 @@ final class CarryOverController extends AbstractController
             foreach ($plans as $id => $plan) {
                 $source = $this->requests->findFresh(RequestId::fromString($id));
 
-                if (!\is_array($plan) || isset($copies[$id]) || null === $source || !self::canCarry($source->getStatus())) {
+                if (!\is_array($plan) || isset($copies[$id]) || null === $source || !self::canCarry($source)) {
                     continue;
                 }
 
@@ -300,9 +301,12 @@ final class CarryOverController extends AbstractController
         return $copies;
     }
 
-    private static function canCarry(RequestStatus $status): bool
+    /**
+     * A pending suggestion stays, so it gives not_carried with its status `open`.
+     */
+    private static function canCarry(ChangeRequest $request): bool
     {
-        return RequestStatus::Open === $status || RequestStatus::Reopened === $status;
+        return \in_array($request->getStatus(), [RequestStatus::Open, RequestStatus::Reopened], true) && SuggestionState::Pending !== $request->getSuggestionState();
     }
 
     private static function changedComment(CommitSha $source, CommitSha $target): string

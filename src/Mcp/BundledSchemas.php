@@ -725,7 +725,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => [
                     'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
-                    'requireApproval', 'proposal',
+                    'requireApproval', 'suggestion', 'proposal',
                 ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -778,7 +778,14 @@ final class BundledSchemas
                         ],
                         'description' => 'The source request that V15 carried over to this request. Null for any other request.',
                     ],
-                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18.'],
+                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18 and Q21.'],
+                    'suggestion' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/SuggestionState'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Null for a request of the user. A request of an agent is a suggestion: pending, with status open, until the user accepts it or dismisses it, which sets wont_do.',
+                    ],
                     'proposal' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/Proposal'],
@@ -827,6 +834,9 @@ final class BundledSchemas
             ],
             'ReviewState' => [
                 'enum' => ['open', 'closed'],
+            ],
+            'SuggestionState' => [
+                'enum' => ['pending', 'accepted', 'dismissed'],
             ],
             'SymbolKind' => [
                 'anyOf' => [
@@ -1087,7 +1097,7 @@ final class BundledSchemas
                     [
                         'enum' => [
                             'review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'pull_request.unlinked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived',
-                            'batch.submitted',
+                            'request.suggestion_accepted', 'request.suggestion_dismissed', 'batch.submitted',
                         ],
                     ],
                     ['type' => 'string'],
@@ -1172,7 +1182,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => [
                     'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
-                    'requireApproval', 'proposal',
+                    'requireApproval', 'suggestion', 'proposal',
                 ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -1225,7 +1235,14 @@ final class BundledSchemas
                         ],
                         'description' => 'The source request that V15 carried over to this request. Null for any other request.',
                     ],
-                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18.'],
+                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18 and Q21.'],
+                    'suggestion' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/SuggestionState'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Null for a request of the user. A request of an agent is a suggestion: pending, with status open, until the user accepts it or dismisses it, which sets wont_do.',
+                    ],
                     'proposal' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/Proposal'],
@@ -1275,6 +1292,9 @@ final class BundledSchemas
             'ReviewState' => [
                 'enum' => ['open', 'closed'],
             ],
+            'SuggestionState' => [
+                'enum' => ['pending', 'accepted', 'dismissed'],
+            ],
             'SymbolKind' => [
                 'anyOf' => [
                     [
@@ -1317,7 +1337,7 @@ final class BundledSchemas
         'type' => 'object',
         'required' => [
             'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
-            'requireApproval', 'proposal', 'body', 'reviewState', 'reviewCommitSha', 'location', 'excerpt', 'thread', 'commits', 'pullRequestUrls', 'pullRequests', 'allowedActions',
+            'requireApproval', 'suggestion', 'proposal', 'body', 'reviewState', 'reviewCommitSha', 'location', 'excerpt', 'thread', 'commits', 'pullRequestUrls', 'pullRequests', 'allowedActions',
         ],
         'properties' => [
             'id' => ['$ref' => '#/$defs/Ulid'],
@@ -1369,6 +1389,12 @@ final class BundledSchemas
                 ],
             ],
             'requireApproval' => ['type' => 'boolean'],
+            'suggestion' => [
+                'anyOf' => [
+                    ['$ref' => '#/$defs/SuggestionState'],
+                    ['type' => 'null'],
+                ],
+            ],
             'proposal' => [
                 'anyOf' => [
                     ['$ref' => '#/$defs/Proposal'],
@@ -1460,7 +1486,7 @@ final class BundledSchemas
             'Action' => [
                 'anyOf' => [
                     [
-                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal', 'set_plan_requirement'],
+                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal', 'set_plan_requirement', 'accept_suggestion', 'dismiss_suggestion'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -1884,6 +1910,9 @@ final class BundledSchemas
             'ReviewState' => [
                 'enum' => ['open', 'closed'],
             ],
+            'SuggestionState' => [
+                'enum' => ['pending', 'accepted', 'dismissed'],
+            ],
             'SymbolKind' => [
                 'anyOf' => [
                     [
@@ -1915,7 +1944,7 @@ final class BundledSchemas
                     'occurredAt' => ['$ref' => '#/$defs/DateTime'],
                     'body' => [
                         'type' => ['string', 'null'],
-                        'description' => 'opened: request body; commented: comment; proposed: plan; released, ready_for_review, verified, reopened, proposal_approved, proposal_rejected, commit.linked, pull_request.linked: note; wont_do: reason; else null.',
+                        'description' => 'opened: request body; commented: comment; proposed: plan; released, ready_for_review, verified, reopened, proposal_approved, proposal_rejected, suggestion_dismissed, commit.linked, pull_request.linked: note; wont_do: reason; else null.',
                     ],
                     'diff' => [
                         'anyOf' => [
@@ -1958,7 +1987,7 @@ final class BundledSchemas
             'ThreadEntryType' => [
                 'anyOf' => [
                     [
-                        'enum' => ['request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'pull_request.unlinked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived'],
+                        'enum' => ['request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'pull_request.unlinked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived', 'request.suggestion_accepted', 'request.suggestion_dismissed'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -1991,7 +2020,7 @@ final class BundledSchemas
             'Action' => [
                 'anyOf' => [
                     [
-                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal', 'set_plan_requirement'],
+                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal', 'set_plan_requirement', 'accept_suggestion', 'dismiss_suggestion'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -2212,7 +2241,7 @@ final class BundledSchemas
                     [
                         'enum' => [
                             'review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'pull_request.unlinked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived',
-                            'batch.submitted',
+                            'request.suggestion_accepted', 'request.suggestion_dismissed', 'batch.submitted',
                         ],
                     ],
                     ['type' => 'string'],
@@ -2297,7 +2326,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => [
                     'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
-                    'requireApproval', 'proposal',
+                    'requireApproval', 'suggestion', 'proposal',
                 ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -2350,7 +2379,14 @@ final class BundledSchemas
                         ],
                         'description' => 'The source request that V15 carried over to this request. Null for any other request.',
                     ],
-                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18.'],
+                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18 and Q21.'],
+                    'suggestion' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/SuggestionState'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Null for a request of the user. A request of an agent is a suggestion: pending, with status open, until the user accepts it or dismisses it, which sets wont_do.',
+                    ],
                     'proposal' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/Proposal'],
@@ -2396,6 +2432,9 @@ final class BundledSchemas
             ],
             'Resolution' => [
                 'enum' => ['fixed', 'wont_do'],
+            ],
+            'SuggestionState' => [
+                'enum' => ['pending', 'accepted', 'dismissed'],
             ],
             'SymbolKind' => [
                 'anyOf' => [
@@ -2657,7 +2696,7 @@ final class BundledSchemas
                     [
                         'enum' => [
                             'review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'pull_request.unlinked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived',
-                            'batch.submitted',
+                            'request.suggestion_accepted', 'request.suggestion_dismissed', 'batch.submitted',
                         ],
                     ],
                     ['type' => 'string'],
@@ -2742,7 +2781,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => [
                     'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
-                    'requireApproval', 'proposal',
+                    'requireApproval', 'suggestion', 'proposal',
                 ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -2795,7 +2834,14 @@ final class BundledSchemas
                         ],
                         'description' => 'The source request that V15 carried over to this request. Null for any other request.',
                     ],
-                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18.'],
+                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18 and Q21.'],
+                    'suggestion' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/SuggestionState'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Null for a request of the user. A request of an agent is a suggestion: pending, with status open, until the user accepts it or dismisses it, which sets wont_do.',
+                    ],
                     'proposal' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/Proposal'],
@@ -2841,6 +2887,9 @@ final class BundledSchemas
             ],
             'Resolution' => [
                 'enum' => ['fixed', 'wont_do'],
+            ],
+            'SuggestionState' => [
+                'enum' => ['pending', 'accepted', 'dismissed'],
             ],
             'SymbolKind' => [
                 'anyOf' => [
@@ -3098,7 +3147,7 @@ final class BundledSchemas
                     [
                         'enum' => [
                             'review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'pull_request.unlinked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived',
-                            'batch.submitted',
+                            'request.suggestion_accepted', 'request.suggestion_dismissed', 'batch.submitted',
                         ],
                     ],
                     ['type' => 'string'],
@@ -3183,7 +3232,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => [
                     'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
-                    'requireApproval', 'proposal',
+                    'requireApproval', 'suggestion', 'proposal',
                 ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -3236,7 +3285,14 @@ final class BundledSchemas
                         ],
                         'description' => 'The source request that V15 carried over to this request. Null for any other request.',
                     ],
-                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18.'],
+                    'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18 and Q21.'],
+                    'suggestion' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/SuggestionState'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Null for a request of the user. A request of an agent is a suggestion: pending, with status open, until the user accepts it or dismisses it, which sets wont_do.',
+                    ],
                     'proposal' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/Proposal'],
@@ -3283,6 +3339,9 @@ final class BundledSchemas
             'Resolution' => [
                 'enum' => ['fixed', 'wont_do'],
             ],
+            'SuggestionState' => [
+                'enum' => ['pending', 'accepted', 'dismissed'],
+            ],
             'SymbolKind' => [
                 'anyOf' => [
                     [
@@ -3303,6 +3362,208 @@ final class BundledSchemas
             ],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
             'UnifiedDiff' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
+        ],
+    ];
+
+    /** review.schema.json */
+    public const array REVIEW = [
+        'title' => 'Review',
+        'type' => 'object',
+        'required' => ['id', 'repositoryId', 'repositoryName', 'title', 'ref', 'commitSha', 'state', 'startedBy', 'createdAt', 'closedAt', 'closedBy', 'closeNote', 'index', 'counts', 'lastEventSeq'],
+        'properties' => [
+            'id' => ['$ref' => '#/$defs/Ulid'],
+            'repositoryId' => ['$ref' => '#/$defs/Ulid'],
+            'repositoryName' => ['type' => 'string', 'minLength' => 1],
+            'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
+            'ref' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255, 'description' => 'As given at start: branch, tag, or SHA.'],
+            'commitSha' => ['$ref' => '#/$defs/CommitSha'],
+            'state' => ['$ref' => '#/$defs/ReviewState'],
+            'startedBy' => ['$ref' => '#/$defs/Actor'],
+            'createdAt' => ['$ref' => '#/$defs/DateTime'],
+            'closedAt' => [
+                'anyOf' => [
+                    ['$ref' => '#/$defs/DateTime'],
+                    ['type' => 'null'],
+                ],
+            ],
+            'closedBy' => [
+                'anyOf' => [
+                    ['$ref' => '#/$defs/Actor'],
+                    ['type' => 'null'],
+                ],
+            ],
+            'closeNote' => [
+                'type' => ['string', 'null'],
+                'maxLength' => 65536,
+            ],
+            'index' => ['$ref' => '#/$defs/IndexStatus'],
+            'counts' => ['$ref' => '#/$defs/RequestCounts'],
+            'lastEventSeq' => ['$ref' => '#/$defs/EventSeq'],
+        ],
+        'allOf' => [
+            [
+                'if' => [
+                    'properties' => [
+                        'state' => ['const' => 'open'],
+                    ],
+                ],
+                'then' => [
+                    'properties' => [
+                        'closedAt' => ['type' => 'null'],
+                        'closedBy' => ['type' => 'null'],
+                        'closeNote' => ['type' => 'null'],
+                    ],
+                ],
+                'else' => [
+                    'properties' => [
+                        'closedAt' => ['$ref' => '#/$defs/DateTime'],
+                        'closedBy' => ['$ref' => '#/$defs/Actor'],
+                    ],
+                ],
+            ],
+        ],
+        '$defs' => [
+            'Actor' => [
+                'title' => 'Actor',
+                'type' => 'object',
+                'required' => ['kind', 'userId', 'agentName', 'name', 'avatarUrl'],
+                'properties' => [
+                    'kind' => ['$ref' => '#/$defs/ActorKind'],
+                    'userId' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The user; for an agent, the user it acts for.',
+                    ],
+                    'agentName' => [
+                        'type' => ['string', 'null'],
+                        'minLength' => 1,
+                        'maxLength' => 64,
+                        'description' => 'API token name. Agents only.',
+                    ],
+                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
+                    'avatarUrl' => [
+                        'type' => ['string', 'null'],
+                        'format' => 'uri',
+                        'description' => 'Users only.',
+                    ],
+                ],
+                'allOf' => [
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'user'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['$ref' => '#/$defs/Ulid'],
+                                'agentName' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'agent'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['$ref' => '#/$defs/Ulid'],
+                                'agentName' => ['type' => 'string'],
+                                'avatarUrl' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'system'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['type' => 'null'],
+                                'agentName' => ['type' => 'null'],
+                                'avatarUrl' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'ActorKind' => [
+                'enum' => ['user', 'agent', 'system'],
+            ],
+            'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
+            'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
+            'EventSeq' => ['type' => 'integer', 'minimum' => 0, 'description' => 'Per-tenant event number, gapless, in commit order.'],
+            'IndexState' => [
+                'enum' => ['pending', 'running', 'ready', 'failed'],
+            ],
+            'IndexStatus' => [
+                'type' => 'object',
+                'required' => ['state', 'filesTotal', 'filesDone', 'symbolsTotal', 'startedAt', 'finishedAt', 'error'],
+                'properties' => [
+                    'state' => ['$ref' => '#/$defs/IndexState'],
+                    'filesTotal' => [
+                        'type' => ['integer', 'null'],
+                        'minimum' => 0,
+                        'description' => 'Null until the path list is written.',
+                    ],
+                    'filesDone' => ['type' => 'integer', 'minimum' => 0],
+                    'symbolsTotal' => ['type' => 'integer', 'minimum' => 0],
+                    'startedAt' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/DateTime'],
+                            ['type' => 'null'],
+                        ],
+                    ],
+                    'finishedAt' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/DateTime'],
+                            ['type' => 'null'],
+                        ],
+                    ],
+                    'error' => [
+                        'type' => ['string', 'null'],
+                    ],
+                ],
+            ],
+            'RequestCounts' => [
+                'type' => 'object',
+                'required' => ['total', 'byStatus', 'byAwaiting', 'outdated'],
+                'properties' => [
+                    'total' => ['type' => 'integer', 'minimum' => 0],
+                    'byStatus' => [
+                        'type' => 'object',
+                        'required' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
+                        'properties' => [
+                            'open' => ['type' => 'integer', 'minimum' => 0],
+                            'in_progress' => ['type' => 'integer', 'minimum' => 0],
+                            'ready_for_review' => ['type' => 'integer', 'minimum' => 0],
+                            'verified' => ['type' => 'integer', 'minimum' => 0],
+                            'reopened' => ['type' => 'integer', 'minimum' => 0],
+                            'wont_do' => ['type' => 'integer', 'minimum' => 0],
+                        ],
+                    ],
+                    'byAwaiting' => [
+                        'type' => 'object',
+                        'required' => ['agent', 'user', 'none'],
+                        'properties' => [
+                            'agent' => ['type' => 'integer', 'minimum' => 0],
+                            'user' => ['type' => 'integer', 'minimum' => 0],
+                            'none' => ['type' => 'integer', 'minimum' => 0],
+                        ],
+                    ],
+                    'outdated' => ['type' => 'integer', 'minimum' => 0],
+                ],
+            ],
+            'ReviewState' => [
+                'enum' => ['open', 'closed'],
+            ],
+            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
         ],
     ];
 }

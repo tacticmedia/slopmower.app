@@ -110,6 +110,7 @@ export function FileRoute() {
                 repositoryName={review.repositoryName}
                 path={content.path}
                 planToApprove={threads.some((thread) => thread.proposalPending)}
+                suggestion={threads.some((thread) => 'pending' === thread.suggestion)}
                 summary={
                     <>
                         <ViewSwitch reviewId={review.id} path={content.path} blame={blameMode} canBlame={null !== text} />

@@ -34,6 +34,8 @@ final class McpCrossTenantCases
             'mark_ready_for_review' => [['id' => '{requestId}', 'note' => 'Done.']],
             'mark_wont_do' => [['id' => '{requestId}', 'reason' => 'The totals already use integer cents.']],
             'propose_solution' => [['id' => '{requestId}', 'plan' => 'Extract `TaxRounding`.']],
+            'start_review' => [['repository' => '{repositoryId}'], ['repository' => 'billing']],
+            'suggest_request' => [['review' => '{reviewId}', 'body' => 'Use `Money`.']],
         ];
     }
 }

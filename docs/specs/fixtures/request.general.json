@@ -26,6 +26,7 @@
   "lastEventSeq": 1850,
   "carriedFrom": null,
   "requireApproval": false,
+  "suggestion": null,
   "proposal": null,
   "body": "Add a full-screen focus mode.\n\nIt hides the file tree and the request list, so the code uses the whole window.",
   "reviewState": "open",

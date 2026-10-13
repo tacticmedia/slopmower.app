@@ -21,6 +21,7 @@ import errorRepositoryUnavailable from '../../docs/specs/fixtures/error.reposito
 import errorReviewClosed from '../../docs/specs/fixtures/error.review-closed.json';
 import errorUnauthorized from '../../docs/specs/fixtures/error.unauthorized.json';
 import fileContentPhp from '../../docs/specs/fixtures/file-content.php.json';
+import inputsAcceptSuggestion from '../../docs/specs/fixtures/inputs.accept-suggestion.json';
 import inputsApproveProposal from '../../docs/specs/fixtures/inputs.approve-proposal.json';
 import inputsCarryOver from '../../docs/specs/fixtures/inputs.carry-over.json';
 import inputsCloseReview from '../../docs/specs/fixtures/inputs.close-review.json';
@@ -31,6 +32,7 @@ import inputsCreateDraftGeneralRequest from '../../docs/specs/fixtures/inputs.cr
 import inputsCreateDraftNewRequest from '../../docs/specs/fixtures/inputs.create-draft-new-request.json';
 import inputsCreateDraftReply from '../../docs/specs/fixtures/inputs.create-draft-reply.json';
 import inputsCreateToken from '../../docs/specs/fixtures/inputs.create-token.json';
+import inputsDismissSuggestion from '../../docs/specs/fixtures/inputs.dismiss-suggestion.json';
 import inputsLinkCommits from '../../docs/specs/fixtures/inputs.link-commits.json';
 import inputsLinkPullRequest from '../../docs/specs/fixtures/inputs.link-pull-request.json';
 import inputsOpenGeneralRequest from '../../docs/specs/fixtures/inputs.open-general-request.json';
@@ -43,6 +45,7 @@ import inputsRejectProposal from '../../docs/specs/fixtures/inputs.reject-propos
 import inputsRelease from '../../docs/specs/fixtures/inputs.release.json';
 import inputsStartReview from '../../docs/specs/fixtures/inputs.start-review.json';
 import inputsSubmitDrafts from '../../docs/specs/fixtures/inputs.submit-drafts.json';
+import inputsSuggestRequest from '../../docs/specs/fixtures/inputs.suggest-request.json';
 import inputsUnlinkPullRequest from '../../docs/specs/fixtures/inputs.unlink-pull-request.json';
 import inputsUpdateDraft from '../../docs/specs/fixtures/inputs.update-draft.json';
 import inputsViewedFile from '../../docs/specs/fixtures/inputs.viewed-file.json';
@@ -79,12 +82,14 @@ import requestCommandResultProposed from '../../docs/specs/fixtures/request-comm
 import requestCommandResultQuestion from '../../docs/specs/fixtures/request-command-result.question.json';
 import requestCommandResultReady from '../../docs/specs/fixtures/request-command-result.ready.json';
 import requestCommandResultRelease from '../../docs/specs/fixtures/request-command-result.release.json';
+import requestCommandResultSuggested from '../../docs/specs/fixtures/request-command-result.suggested.json';
 import requestCarried from '../../docs/specs/fixtures/request.carried.json';
 import requestGeneral from '../../docs/specs/fixtures/request.general.json';
 import requestInProgress from '../../docs/specs/fixtures/request.in-progress.json';
 import requestOpenedRange from '../../docs/specs/fixtures/request.opened-range.json';
 import requestProposalPending from '../../docs/specs/fixtures/request.proposal-pending.json';
 import requestPullRequest from '../../docs/specs/fixtures/request.pull-request.json';
+import requestSuggestionPending from '../../docs/specs/fixtures/request.suggestion-pending.json';
 import requestWithExcerpt from '../../docs/specs/fixtures/request.with-excerpt.json';
 import reviewClosed from '../../docs/specs/fixtures/review.closed.json';
 import reviewIndexStatus from '../../docs/specs/fixtures/review.index-status.json';
@@ -100,6 +105,7 @@ import type { Draft } from './types/draft';
 import type { ErrorBody } from './types/error';
 import type { FileContent } from './types/file-content';
 import type {
+    AcceptSuggestionInput,
     ApproveProposalInput,
     CarryOverInput,
     CloseReviewInput,
@@ -107,6 +113,7 @@ import type {
     ConnectRepositoryInput,
     CreateDraftInput,
     CreateTokenInput,
+    DismissSuggestionInput,
     LinkCommitsInput,
     LinkPullRequestInput,
     OpenRequestInput,
@@ -117,6 +124,7 @@ import type {
     RequiredNoteInput,
     StartReviewInput,
     SubmitDraftsInput,
+    SuggestRequestInput,
     UnlinkPullRequestInput,
     UpdateDraftInput,
     ViewedFileInput,
@@ -181,6 +189,7 @@ const checkedFixtures = {
     'error.review-closed.json': errorReviewClosed satisfies Widen<ErrorBody>,
     'error.unauthorized.json': errorUnauthorized satisfies Widen<ErrorBody>,
     'file-content.php.json': fileContentPhp satisfies Widen<FileContent>,
+    'inputs.accept-suggestion.json': inputsAcceptSuggestion satisfies Widen<AcceptSuggestionInput>,
     'inputs.approve-proposal.json': inputsApproveProposal satisfies Widen<ApproveProposalInput>,
     'inputs.carry-over.json': inputsCarryOver satisfies Widen<CarryOverInput>,
     'inputs.close-review.json': inputsCloseReview satisfies Widen<CloseReviewInput>,
@@ -191,6 +200,7 @@ const checkedFixtures = {
     'inputs.create-draft-new-request.json': inputsCreateDraftNewRequest satisfies Widen<CreateDraftInput>,
     'inputs.create-draft-reply.json': inputsCreateDraftReply satisfies Widen<CreateDraftInput>,
     'inputs.create-token.json': inputsCreateToken satisfies Widen<CreateTokenInput>,
+    'inputs.dismiss-suggestion.json': inputsDismissSuggestion satisfies Widen<DismissSuggestionInput>,
     'inputs.link-commits.json': inputsLinkCommits satisfies Widen<LinkCommitsInput>,
     'inputs.link-pull-request.json': inputsLinkPullRequest satisfies Widen<LinkPullRequestInput>,
     'inputs.open-general-request.json': inputsOpenGeneralRequest satisfies Widen<OpenRequestInput>,
@@ -203,6 +213,7 @@ const checkedFixtures = {
     'inputs.release.json': inputsRelease satisfies Widen<OptionalNoteInput>,
     'inputs.start-review.json': inputsStartReview satisfies Widen<StartReviewInput>,
     'inputs.submit-drafts.json': inputsSubmitDrafts satisfies Widen<SubmitDraftsInput>,
+    'inputs.suggest-request.json': inputsSuggestRequest satisfies Widen<SuggestRequestInput>,
     'inputs.unlink-pull-request.json': inputsUnlinkPullRequest satisfies Widen<UnlinkPullRequestInput>,
     'inputs.update-draft.json': inputsUpdateDraft satisfies Widen<UpdateDraftInput>,
     'inputs.viewed-file.json': inputsViewedFile satisfies Widen<ViewedFileInput>,
@@ -239,12 +250,14 @@ const checkedFixtures = {
     'request-command-result.question.json': requestCommandResultQuestion satisfies Widen<RequestCommandResult>,
     'request-command-result.ready.json': requestCommandResultReady satisfies Widen<RequestCommandResult>,
     'request-command-result.release.json': requestCommandResultRelease satisfies Widen<RequestCommandResult>,
+    'request-command-result.suggested.json': requestCommandResultSuggested satisfies Widen<RequestCommandResult>,
     'request.carried.json': requestCarried satisfies Widen<Request>,
     'request.general.json': requestGeneral satisfies Widen<Request>,
     'request.in-progress.json': requestInProgress satisfies Widen<Request>,
     'request.opened-range.json': requestOpenedRange satisfies Widen<Request>,
     'request.proposal-pending.json': requestProposalPending satisfies Widen<Request>,
     'request.pull-request.json': requestPullRequest satisfies Widen<Request>,
+    'request.suggestion-pending.json': requestSuggestionPending satisfies Widen<Request>,
     'request.with-excerpt.json': requestWithExcerpt satisfies Widen<Request>,
     'review.closed.json': reviewClosed satisfies Widen<Review>,
     'review.index-status.json': reviewIndexStatus satisfies Widen<IndexStatus>,

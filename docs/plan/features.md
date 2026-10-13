@@ -63,7 +63,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F45 | [Database error details](F45-database-error-details.md) | Done 2026-10-14, [report](reports/F45.md) | 2b316e0 | src 478 PHP / 32295 lines, 478 types; tests 318 PHP / 28993 lines; assets 163 TS / 9460 lines; check 4m12s |
 | F46 | [RDS auth bundle 1.2](F46-rds-auth-bundle-1-2.md) | Done 2026-10-09, [report](reports/F46.md) | a039aa7 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26343 lines; assets 159 TS / 9202 lines; check 9m51s |
 | F47 | [Product name Slopmower](F47-product-name-slopmower.md) | Done 2026-10-13, [report](reports/F47.md) | 91b4995 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26343 lines; assets 159 TS / 9202 lines; check 8m34s |
-| F48 | [Agent suggestions](F48-agent-suggestions.md) | In progress (2026-10-13) | | |
+| F48 | [Agent suggestions](F48-agent-suggestions.md) | Done 2026-10-14, [report](reports/F48.md) | | src 487 PHP / 33070 lines, 487 types; tests 325 PHP / 29742 lines; assets 165 TS / 9660 lines |
 
 ## Candidates
 

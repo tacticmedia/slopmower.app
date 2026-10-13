@@ -58,7 +58,7 @@ final class AllowedActionsTest extends KernelTestCase
     public static function combinations(): iterable
     {
         foreach (RequestScenario::STATES as $state) {
-            foreach ([true, false] as $linked) {
+            foreach ('suggestion pending' === $state ? [false] : [true, false] as $linked) {
                 foreach (self::CALLERS as $caller) {
                     foreach ([false, true] as $reviewClosed) {
                         $name = sprintf('%s %s, %s, review %s', $state, $linked ? 'with a link' : 'without links', $caller, $reviewClosed ? 'closed' : 'open');
@@ -104,6 +104,7 @@ final class AllowedActionsTest extends KernelTestCase
             ['proposal rejected', true, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'release', 'unlink_commit', 'unlink_pull_request', 'mark_wont_do', 'propose_solution'], ['reply']],
             ['plan required', true, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'release', 'unlink_commit', 'unlink_pull_request', 'mark_wont_do', 'propose_solution'], ['reply']],
             ['plan approved', true, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], ['reply']],
+            ['suggestion pending', false, ['reply', 'accept_suggestion', 'dismiss_suggestion'], ['reply'], ['reply']],
         ];
 
         foreach ($rows as [$state, $linked, $user, $claimingAgent, $otherAgent]) {

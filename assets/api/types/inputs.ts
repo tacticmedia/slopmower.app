@@ -30,6 +30,12 @@ export type OpenRequestInput = {
     requireApproval?: boolean | null;
 };
 
+export type SuggestRequestInput = {
+    /** Absent or null suggests a general request. */
+    anchor?: AnchorInput | null;
+    body: Markdown;
+};
+
 export type CommentInput = {
     body: Markdown;
     /** Agents only. */
@@ -71,6 +77,15 @@ export type CheckEveryPullRequestInput = {
 
 export type PlanRequirementInput = {
     requireApproval: boolean;
+};
+
+export type AcceptSuggestionInput = {
+    /** "Ask for a plan first". Absent or null keeps the value. */
+    requireApproval?: boolean | null;
+};
+
+export type DismissSuggestionInput = {
+    note?: string | null;
 };
 
 export type LinkCommitsInput = {

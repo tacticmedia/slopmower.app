@@ -139,6 +139,20 @@
                         "description": "Only requests whose code changed (true) or did not change (false) on the default branch",
                         "default": null
                     },
+                    "suggestion": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Only suggestions in this state; requests that the user opened never match",
+                        "default": null,
+                        "enum": [
+                            "pending",
+                            "accepted",
+                            "dismissed",
+                            null
+                        ]
+                    },
                     "cursor": {
                         "type": [
                             "null",
@@ -589,6 +603,135 @@
                 "required": [
                     "url",
                     "requestId"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": false
+            }
+        },
+        {
+            "name": "start_review",
+            "title": "Start review",
+            "description": "Start a review of one repository, pinned to one commit, when the user asks you to review code and no review was named. Without ref, the review pins the head of the default branch. Read the code at the returned commitSha, then call suggest_request once per finding.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "repository": {
+                        "type": "string",
+                        "description": "Repository ID, GitHub owner/name, or local directory name",
+                        "minLength": 1,
+                        "maxLength": 255
+                    },
+                    "ref": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "Branch, tag, or commit SHA to pin; null for the default branch",
+                        "default": null,
+                        "minLength": 1,
+                        "maxLength": 255
+                    },
+                    "title": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "Review title; null for \"<ref> @ <short SHA>\"",
+                        "default": null,
+                        "minLength": 1,
+                        "maxLength": 200
+                    }
+                },
+                "required": [
+                    "repository"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": false
+            }
+        },
+        {
+            "name": "suggest_request",
+            "title": "Suggest request",
+            "description": "Suggest one change while you review code. The suggestion is a request that waits for the user, who accepts or dismisses it; do not edit code for it. Use the narrowest anchor: anchorKind line or range with path, startLine, and endLine; symbol with path and the fully qualified name in symbol, for example App\\Billing\\InvoiceTotals::total(); file with path. Without anchorKind the suggestion concerns the whole review. If the server does not find the symbol, use a range. An accepted suggestion comes back through get_updates as a request that waits for you.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "review": {
+                        "type": "string",
+                        "description": "Review ID from start_review or list_reviews",
+                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                    },
+                    "body": {
+                        "type": "string",
+                        "description": "Markdown: what to change, and why",
+                        "minLength": 1,
+                        "maxLength": 65536
+                    },
+                    "anchorKind": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "line, range, symbol, or file; null for a general request",
+                        "default": null,
+                        "enum": [
+                            "line",
+                            "range",
+                            "symbol",
+                            "file",
+                            null
+                        ]
+                    },
+                    "path": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "File path at the review commit; required with anchorKind",
+                        "default": null,
+                        "minLength": 1,
+                        "maxLength": 4096
+                    },
+                    "startLine": {
+                        "type": [
+                            "null",
+                            "integer"
+                        ],
+                        "description": "First line, for line and range",
+                        "default": null,
+                        "minimum": 1
+                    },
+                    "endLine": {
+                        "type": [
+                            "null",
+                            "integer"
+                        ],
+                        "description": "Last line, for line and range; equal to startLine for line",
+                        "default": null,
+                        "minimum": 1
+                    },
+                    "symbol": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "Fully qualified name of the symbol, for symbol",
+                        "default": null,
+                        "minLength": 1,
+                        "maxLength": 1024
+                    }
+                },
+                "required": [
+                    "review",
+                    "body"
                 ]
             },
             "annotations": {

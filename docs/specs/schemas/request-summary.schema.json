@@ -3,7 +3,7 @@
   "$id": "https://slopmower.invalid/schemas/v1/request-summary.schema.json",
   "title": "RequestSummary",
   "type": "object",
-  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq", "carriedFrom", "requireApproval", "proposal"],
+  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq", "carriedFrom", "requireApproval", "suggestion", "proposal"],
   "properties": {
     "id": {
       "$ref": "common.schema.json#/$defs/Ulid"
@@ -113,7 +113,18 @@
     },
     "requireApproval": {
       "type": "boolean",
-      "description": "\"Ask for a plan first\": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18."
+      "description": "\"Ask for a plan first\": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18 and Q21."
+    },
+    "suggestion": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/SuggestionState"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Null for a request of the user. A request of an agent is a suggestion: pending, with status open, until the user accepts it or dismisses it, which sets wont_do."
     },
     "proposal": {
       "anyOf": [

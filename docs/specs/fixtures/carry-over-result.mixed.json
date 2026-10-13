@@ -49,6 +49,7 @@
         "lastEventSeq": 1840,
         "carriedFrom": null,
         "requireApproval": false,
+        "suggestion": null,
         "proposal": null
       },
       "outcome": "not_carried",
@@ -93,6 +94,7 @@
         "lastEventSeq": 1831,
         "carriedFrom": null,
         "requireApproval": false,
+        "suggestion": null,
         "proposal": null
       },
       "outcome": "carried",
@@ -129,6 +131,7 @@
         "lastEventSeq": 1850,
         "carriedFrom": null,
         "requireApproval": false,
+        "suggestion": null,
         "proposal": null
       },
       "outcome": "carried",
@@ -173,6 +176,7 @@
         "lastEventSeq": 1860,
         "carriedFrom": null,
         "requireApproval": false,
+        "suggestion": null,
         "proposal": null
       },
       "outcome": "not_carried",

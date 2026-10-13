@@ -4,7 +4,7 @@
   "title": "Request",
   "description": "A request in full. Same fields as RequestSummary, with the full anchor and more.",
   "type": "object",
-  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq", "carriedFrom", "requireApproval", "proposal", "body", "reviewState", "reviewCommitSha", "location", "excerpt", "thread", "commits", "pullRequestUrls", "pullRequests", "allowedActions"],
+  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq", "carriedFrom", "requireApproval", "suggestion", "proposal", "body", "reviewState", "reviewCommitSha", "location", "excerpt", "thread", "commits", "pullRequestUrls", "pullRequests", "allowedActions"],
   "properties": {
     "id": {
       "$ref": "common.schema.json#/$defs/Ulid"
@@ -109,6 +109,16 @@
     },
     "requireApproval": {
       "type": "boolean"
+    },
+    "suggestion": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/SuggestionState"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "proposal": {
       "anyOf": [

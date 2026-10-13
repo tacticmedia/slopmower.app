@@ -10,6 +10,8 @@ When the user reads code, the user has many small remarks. The user selects a li
 
 A coding agent, such as Claude Code, finds all open change requests without the user's help, does the work, and reports the result per request. The user then verifies or reopens each request.
 
+The agent can also review the code itself. It suggests one change per finding, and the user accepts or dismisses each suggestion. An accepted suggestion is an ordinary change request for the agent.
+
 ## 2. Principles
 
 These two principles control all decisions.
@@ -82,7 +84,7 @@ These two principles control all decisions.
 
   | State | Meaning |
   |---|---|
-  | `open` | The user opened the request |
+  | `open` | The user opened the request, or an agent suggested it |
   | `in_progress` | An agent claimed it |
   | `ready_for_review` | The agent is finished |
   | `verified` | The user accepted the result |
@@ -93,6 +95,7 @@ These two principles control all decisions.
 - The allowed transitions per actor are in [architecture.md](architecture.md), section 6. The states map to GitHub concepts where possible, for example `verified` is "Resolve conversation".
 - An agent that marks a request `wont_do` gives evidence that the user can check. The user then verifies or reopens it.
 - "Ask for a plan first" (`requireApproval`), set when the request opens: the agent links no commit and marks nothing ready before the user approves a proposal. A pending or rejected proposal always blocks both. The user switches it on or off while the request is `open`, `reopened`, or `in_progress`, and the agent's next link or ready follows the new value.
+- A request that an agent opens is a suggestion. It waits for the user. While it is pending, the agent cannot claim or decline it, and both sides can discuss it in its thread. The user accepts it, with "Ask for a plan first" as an option, and it becomes an ordinary request. Or the user dismisses it with an optional note, which closes it as `wont_do`. A reopen of a dismissed suggestion accepts it.
 
 ### FR8 The agent conversation
 
@@ -101,6 +104,7 @@ These two principles control all decisions.
 - The agent can propose a solution in the thread: a plan, and for a straightforward change a unified diff. The request waits for the user, who approves it or requests changes with a note. Either decision hands the turn back to the agent. A new proposal replaces the current one.
 - The agent finds new work and new replies by polling. It keeps a cursor per review and asks for everything after it. The server never pushes to the agent.
 - When several reviews of a repository are open and the user named none, the agent asks the user which one to work on.
+- When the user asks the agent to review the code, the agent starts a review or uses the named one, reads the code at the review commit, and suggests one change per finding with the narrowest anchor. It changes no code for a suggestion. A review holds at most 500 pending suggestions.
 
 ### FR9 Commit links
 
@@ -115,11 +119,11 @@ These two principles control all decisions.
 ### FR10 Human interface
 
 - A web UI that follows Principle B.
-- Screens: repositories from both sources, the file tree at the pinned SHA, the file view with inline threads, the list of requests with filters for status, "Waiting for you", path, and outdated, the request detail with the conversation and the linked commits, and settings.
-- Actions: comment on a line, range, symbol, or file, with the "Ask for a plan first" checkbox, checked by default; open a general request with "New request" on the list of requests; reply; approve a proposal with "Approve", or reject it with "Request changes" and a note; switch the plan requirement of an unfinished request with "Ask for a plan first" or "Don't ask for a plan"; verify with "Resolve conversation"; reopen with a note; close as won't do; unassign a stale claim.
+- Screens: repositories from both sources, the file tree at the pinned SHA, the file view with inline threads, the list of requests with filters for status, "Waiting for you", path, outdated, and "Suggestions", the request detail with the conversation and the linked commits, and settings.
+- Actions: comment on a line, range, symbol, or file, with the "Ask for a plan first" checkbox, checked by default; open a general request with "New request" on the list of requests; reply; approve a proposal with "Approve", or reject it with "Request changes" and a note; switch the plan requirement of an unfinished request with "Ask for a plan first" or "Don't ask for a plan"; accept a suggestion, with "Ask for a plan first" checked by default, or dismiss it with an optional note; verify with "Resolve conversation"; reopen with a note; close as won't do; unassign a stale claim.
 - A pending review: drafts that the user submits as one batch. The agent sees nothing before the submission. The list of requests also lists the pending drafts.
 - Per-file "Viewed" marks that stay for the whole review.
-- Live updates: an agent reply shows in the open view without a reload.
+- Live updates: an agent reply or suggestion shows in the open view without a reload.
 
 ### FR11 Keyboard access
 
@@ -136,8 +140,8 @@ These two principles control all decisions.
 - An MCP server over Streamable HTTP, built with the official PHP SDK `mcp/sdk` and the official Symfony integration `symfony/mcp-bundle`, as Principle A requires.
 - A REST API with the same operations and the same JSON, for agents without MCP. There is no agent CLI.
 - Both interfaces use one application service layer. No logic is duplicated.
-- Operations: list repositories, list reviews, list requests with filters, get updates since a cursor, get one request with its current code context, claim, release, reply, propose a solution, link and unlink commits, link and unlink a pull request, mark ready for review, and mark won't do. The contracts are in [specs/](specs/README.md).
-- An Agent Skill in `SKILL.md` teaches the agent the workflow: find the review, list what waits, claim, fix, test, commit, link, and mark ready. It links a pull request only when it opened one, and it opens one only when the user or the repository's instructions ask for it.
+- Operations: list repositories, list reviews, start a review, list requests with filters, get updates since a cursor, get one request with its current code context, suggest a request, claim, release, reply, propose a solution, link and unlink commits, link and unlink a pull request, mark ready for review, and mark won't do. The contracts are in [specs/](specs/README.md).
+- An Agent Skill in `SKILL.md` teaches the agent the workflow: find the review, list what waits, claim, fix, test, commit, link, and mark ready. It links a pull request only when it opened one, and it opens one only when the user or the repository's instructions ask for it. When the user asks for a code review, it suggests changes and changes no code.
 
 ### FR13 API tokens
 

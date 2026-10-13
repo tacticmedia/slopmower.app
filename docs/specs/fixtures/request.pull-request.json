@@ -54,6 +54,7 @@
   "lastEventSeq": 1843,
   "carriedFrom": null,
   "requireApproval": false,
+  "suggestion": null,
   "proposal": null,
   "body": "Use `Money` instead of `float` for totals.",
   "reviewState": "open",

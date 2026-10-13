@@ -26,8 +26,10 @@ use App\Domain\Identity\ReviewId;
 use App\Domain\Identity\TenantId;
 use App\Domain\Identity\UserId;
 use App\Domain\Repository\RepositoryName;
+use App\Domain\Request\Command\AcceptSuggestion;
 use App\Domain\Request\Command\ApproveProposal;
 use App\Domain\Request\Command\Claim;
+use App\Domain\Request\Command\DismissSuggestion;
 use App\Domain\Request\Command\LinkCommits;
 use App\Domain\Request\Command\LinkPullRequest;
 use App\Domain\Request\Command\MarkReadyForReview;
@@ -40,6 +42,7 @@ use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\RequestCommand;
 use App\Domain\Request\Command\SetPlanRequirement;
+use App\Domain\Request\Command\Suggest;
 use App\Domain\Request\Command\UnlinkCommit;
 use App\Domain\Request\Command\UnlinkPullRequest;
 use App\Domain\Request\Command\Verify;
@@ -60,10 +63,11 @@ final class RequestScenario
     /**
      * The states that the transition matrix covers, in its column order. The "proposal" states are in_progress with a
      * proposal. The "plan" states are in_progress with requireApproval: without a proposal after a reopen, or approved.
+     * "suggestion pending" is open, suggested by the claiming agent.
      */
     public const array STATES = [
         'open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do by agent', 'wont_do by user',
-        'proposal pending', 'proposal rejected', 'plan required', 'plan approved',
+        'proposal pending', 'proposal rejected', 'plan required', 'plan approved', 'suggestion pending',
     ];
     public const string LINKED_COMMIT = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678';
     public const string OTHER_COMMIT = 'e5f6a7b8c9d0e1f2a3b4c5d6e7f8091a2b3c4d5e';
@@ -95,11 +99,18 @@ final class RequestScenario
 
     /**
      * A request in one of {@see self::STATES}. The claiming agent did the agent steps. With $linked, the request has one available
-     * commit link and one pull request link.
+     * commit link and one pull request link. A pending suggestion has no links, because no agent can claim it.
      */
     public static function inState(string $state, bool $linked = true): self
     {
         $scenario = new self();
+
+        if ('suggestion pending' === $state) {
+            $scenario->suggest();
+
+            return $scenario;
+        }
+
         $planRequired = str_starts_with($state, 'plan ');
         $id = $scenario->open($planRequired);
         $agent = self::claimingAgent();
@@ -185,13 +196,17 @@ final class RequestScenario
     }
 
     /**
-     * A command with valid input for the current request, named by its action, or "open". set_plan_requirement switches
-     * the current value.
+     * A command with valid input for the current request, named by its action, or "open" or "suggest".
+     * set_plan_requirement switches the current value.
      */
     public function validCommand(string $command): RequestCommand
     {
         if ('open' === $command) {
             return new Open($this->anchor(), 'Use `Money` instead of `float` for totals.');
+        }
+
+        if ('suggest' === $command) {
+            return new Suggest($this->anchor(), 'Round each line before the sum.');
         }
 
         $id = $this->requestId();
@@ -213,6 +228,8 @@ final class RequestScenario
             'approve_proposal' => new ApproveProposal($id, $proposalEventId),
             'reject_proposal' => new RejectProposal($id, $proposalEventId, 'Keep the rounding inside `InvoiceTotals`.'),
             'set_plan_requirement' => new SetPlanRequirement($id, !$this->state()->requireApproval),
+            'accept_suggestion' => new AcceptSuggestion($id),
+            'dismiss_suggestion' => new DismissSuggestion($id, 'The totals round once, by law.'),
             default => throw new \LogicException("Unknown command {$command}."),
         };
     }
@@ -220,6 +237,13 @@ final class RequestScenario
     public function open(bool $requireApproval = false): RequestId
     {
         $this->run(new Open($this->anchor(), 'Use `Money` instead of `float` for totals.', requireApproval: $requireApproval), self::user());
+
+        return $this->requestId();
+    }
+
+    public function suggest(): RequestId
+    {
+        $this->run($this->validCommand('suggest'), self::claimingAgent());
 
         return $this->requestId();
     }

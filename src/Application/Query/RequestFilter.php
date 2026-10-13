@@ -6,6 +6,7 @@ namespace App\Application\Query;
 
 use App\Domain\Request\Awaiting;
 use App\Domain\Request\RequestStatus;
+use App\Domain\Request\SuggestionState;
 
 /**
  * The filters and the sort of Q1.
@@ -22,6 +23,7 @@ final readonly class RequestFilter
         public array $awaiting = [],
         public ?string $pathPrefix = null,
         public ?bool $outdated = null,
+        public ?SuggestionState $suggestion = null,
         public RequestSort $sort = RequestSort::Created,
     ) {
     }
@@ -38,6 +40,7 @@ final readonly class RequestFilter
             'awaiting' => self::canonical($this->awaiting),
             'path' => $this->pathPrefix,
             'outdated' => $this->outdated,
+            'suggestion' => $this->suggestion?->value,
             'sort' => $this->sort->value,
         ];
     }

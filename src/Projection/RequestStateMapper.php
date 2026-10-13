@@ -54,6 +54,7 @@ final class RequestStateMapper
             carriedFrom: $request->getCarriedFrom(),
             requireApproval: $request->requiresApproval(),
             proposal: $request->getProposal(),
+            suggestion: $request->getSuggestionState(),
         );
     }
 
@@ -93,6 +94,7 @@ final class RequestStateMapper
             updatedAt: $state->updatedAt,
             requireApproval: $state->requireApproval,
             proposal: $state->proposal,
+            suggestionState: $state->suggestion,
             pullRequestUrls: $state->pullRequestUrls,
         );
     }

@@ -7,6 +7,7 @@ import type { Me } from '../../api/types/me';
 import type { Request as ReviewRequest } from '../../api/types/request';
 import { ThreadBox } from '../../comments/ThreadBox';
 import { threadView } from '../../comments/threadView';
+import { suggestionButtons } from '../../requests/allowedActions';
 import { AnchorLink } from '../../requests/AnchorLink';
 import { AnchorSnapshot } from '../../requests/AnchorSnapshot';
 import { ClaimedBy } from '../../requests/ClaimedBy';
@@ -18,6 +19,8 @@ import { RequestActions } from '../../requests/RequestActions';
 import shared from '../../requests/Requests.module.css';
 import { CHANGES_TAB } from '../../requests/requestTabs';
 import { StatusLabel } from '../../requests/StatusLabel';
+import { SuggestionActions } from '../../requests/SuggestionActions';
+import { SuggestionLabel } from '../../requests/SuggestionLabel';
 import { TurnLabel } from '../../requests/TurnLabel';
 import styles from './RequestDetail.module.css';
 import { RequestChanges } from './RequestChanges';
@@ -48,6 +51,7 @@ export function RequestDetail() {
                     <StatusLabel status={request.status} />
                     <OutdatedLabel outdated={request.outdated} />
                     <TurnLabel awaiting={request.awaiting} />
+                    <SuggestionLabel pending={'pending' === request.suggestion} />
                     {request.requireApproval && (
                         <Label variant="accent" data-testid="plan-required">
                             Plan required
@@ -88,6 +92,7 @@ export function RequestDetail() {
                     </div>
                 )}
                 <RequestActions key={request.id} allowedActions={request.allowedActions} requireApproval={request.requireApproval} />
+                <SuggestionActions key={`suggestion-${request.id}`} requestId={request.id} buttons={suggestionButtons(request.allowedActions)} />
             </header>
             {'closed' === request.reviewState && (
                 <Banner variant="warning" title="This review is closed and read-only" data-testid="review-closed" description="The request can be read, but not changed." />

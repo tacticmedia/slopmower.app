@@ -44,7 +44,7 @@ You can edit or delete a draft before you submit it. **Pending drafts** on the *
 
 ## Follow the requests
 
-Open **Requests** to see all requests of the review. You can filter by status, by path, and by outdated code.
+Open **Requests** to see all requests of the review. You can filter by status, by path, and by outdated code. **Suggestions** shows the suggestions of the agent that wait for your decision.
 
 | Status | Meaning |
 |---|---|
@@ -55,7 +55,7 @@ Open **Requests** to see all requests of the review. You can filter by status, b
 | Reopened | You rejected the result. The agent works on it again. |
 | Won't do | The request was declined, with a reason |
 
-**Waiting for you** shows the requests where it is your turn: the agent asked a question, proposed a solution, finished, or declined.
+**Waiting for you** shows the requests where it is your turn: the agent suggested a change, asked a question, proposed a solution, finished, or declined.
 
 ## Talk with the agent
 
@@ -77,6 +77,17 @@ On the request, the proposal shows the plan and the changes of each file of the 
 - **Request changes** sends the proposal back. Type a note that says what to change. The agent proposes again.
 
 An older proposal keeps its decision: **Approved** or **Changes requested**. An older proposal without a decision shows **Superseded** when a newer one replaced it, or **Withdrawn** when its claim ended, for example after **Unassign**.
+
+## Agent suggestions
+
+Your agent can review the code too. Copy the second prompt of the review header, **Review the code of Slopmower review <id> and suggest changes**, and give it to the agent, or ask the agent to review a part of a repository, for example "Review the src/Mcp directory with Slopmower and suggest changes". Without a review, the agent starts one. The agent changes no code. It opens one suggestion for each thing that it would change, on a line, a range of lines, a symbol, a file, or the whole review.
+
+Each suggestion shows at once, marked **Suggestion**: in the list of requests, in the file header, and on its thread in the code. **Suggestions** on the **Requests** tab lists the suggestions that wait for you. You can discuss a suggestion in its thread before you decide.
+
+- **Accept** makes the suggestion an ordinary request that waits for the agent. **Ask for a plan first** is checked by default, so the agent proposes a plan before it commits.
+- **Dismiss** closes the suggestion as won't do. You can type a note that says why.
+
+To let the agent work on the accepted suggestions, give it the first prompt of the review header, **Work on Slopmower review <id>**. The agent works on the accepted suggestions and on your own requests, never on a suggestion that waits for you. **Reopen** on a dismissed suggestion accepts it.
 
 ## Linked commits
 

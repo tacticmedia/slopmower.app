@@ -8,6 +8,7 @@ use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Request\PullRequestUrl;
+use App\Domain\Request\SuggestionState;
 use App\Entity\ChangeRequest;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
@@ -48,6 +49,18 @@ final class ChangeRequestRepository extends ServiceEntityRepository
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
             ->getResult();
+    }
+
+    public function countPendingSuggestions(ReviewId $reviewId): int
+    {
+        return (int) $this->createQueryBuilder('request')
+            ->select('COUNT(request.id)')
+            ->where('request.review = :review')
+            ->andWhere('request.suggestionState = :pending')
+            ->setParameter('review', $reviewId, ReviewId::class)
+            ->setParameter('pending', SuggestionState::Pending)
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 
     /**
