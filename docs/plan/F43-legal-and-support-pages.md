@@ -36,7 +36,9 @@ Workflow, conventions, and status: [feature track](features.md). Every GitHub Ma
 
 ## Depends on
 
-F42: the deletion rule after a cancellation, which the privacy page states.
+- F42: the deletion rule after a cancellation, which the privacy page states.
+- F41: what a check run holds on GitHub.
+- F44: the retention of rate limit rows, failed GitHub event messages, and logs.
 
 ## In scope
 
