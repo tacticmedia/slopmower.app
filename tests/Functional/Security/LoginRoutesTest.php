@@ -57,6 +57,16 @@ final class LoginRoutesTest extends WebTestCase
         yield 'not configured' => ['', 0];
     }
 
+    #[TestDox('/login links the privacy policy, the terms of service, and the support page')]
+    public function testLoginLinksTheLegalAndSupportPages(): void
+    {
+        $client = static::createClient();
+
+        $crawler = $client->request('GET', '/login');
+
+        self::assertSame(['/docs/privacy', '/docs/terms', '/docs/support'], $crawler->filter('footer a')->extract(['href']));
+    }
+
     #[TestDox('Without a client ID, /connect/github answers 404')]
     public function testWithoutClientIdTheRoutesAnswer404(): void
     {

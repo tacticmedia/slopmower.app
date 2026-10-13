@@ -26,6 +26,12 @@
                 field.value = token;
             }, true);
         </script>
+        <style>
+            .cookie-notice { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; padding: 0.5rem 1rem; font: 14px/1.5 system-ui, sans-serif; color: #1f2328; background: #f6f8fa; border-bottom: 1px solid #d1d9e0; }
+            .cookie-notice[hidden] { display: none; }
+            .cookie-notice p { margin: 0; }
+            .cookie-notice a { color: #0969da; }
+        </style>
         {% block stylesheets %}
         {% endblock %}
 
@@ -33,6 +39,29 @@
         {% endblock %}
     </head>
     <body>
+        {# In the flow above the page, so it covers no control. Every cookie is necessary, so it asks for no consent. #}
+        <section class="cookie-notice" aria-label="Cookie notice" hidden>
+            <p>Slopmower uses only the cookies and browser storage that the service needs. <a href="{{ path('docs_page', {slug: 'privacy'}) }}">Privacy policy</a></p>
+            <button type="button">Got it</button>
+        </section>
+        <script>
+            (() => {
+                const notice = document.currentScript.previousElementSibling;
+                const key = 'slopmower.cookieNoticeDismissed';
+                try {
+                    if (null !== localStorage.getItem(key)) {
+                        return;
+                    }
+                } catch {}
+                notice.hidden = false;
+                notice.querySelector('button').addEventListener('click', () => {
+                    notice.hidden = true;
+                    try {
+                        localStorage.setItem(key, '1');
+                    } catch {}
+                });
+            })();
+        </script>
         {% block body %}{% endblock %}
     </body>
 </html>

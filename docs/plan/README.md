@@ -281,7 +281,7 @@ make up
   - Strict TypeScript.
   - React Router 8.4.0 in Data Mode: `createBrowserRouter`, route `loader`s read, route `action`s and `useFetcher` write, `router.revalidate()` in `assets/live/useLiveRevalidation.ts` refreshes after a Mercure message.
   - Local component state for the UI: `useState` for selection and drafts in progress, `useOptimistic` for new threads, drafts, and replies. No Redux, no global store, no query-cache library.
-  - Per-browser UI preferences (the collapsed file tree, line wrapping) go through `assets/layout/usePreference.ts`, which reads and writes `localStorage` inside `try`/`catch`. The only other browser storage is the width of the tree pane, which Primer `PageLayout.Pane` keeps under its `widthStorageKey`.
+  - Per-browser UI preferences (the collapsed file tree, line wrapping) go through `assets/layout/usePreference.ts`, which reads and writes `localStorage` inside `try`/`catch`. The only other browser storage is the width of the tree pane, which Primer `PageLayout.Pane` keeps under its `widthStorageKey`, and the dismissal of the cookie notice in `templates/base.html.twig`. `docs/user/privacy.md` lists every cookie and storage key with its purpose and lifetime.
   - A write form, `fetcher.Form`, takes `onSubmit` from `assets/layout/useSubmitOnce.ts`. Primer's `loading` and the fetcher state, which commits in a transition, do not stop a quick second click or Enter.
   - Primer for components. CSS modules for our layout CSS.
   - `@pierre/diffs` only inside `assets/code/CodeFile.tsx`, `assets/code/CommitDiff.tsx`, and their worker pool options in `assets/code/workerPool.ts`.

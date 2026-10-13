@@ -25,4 +25,11 @@
             <p>No sign-in method is configured.</p>
         {% endif %}
     </main>
+    <footer>
+        <nav aria-label="Legal and support">
+            <a href="{{ path('docs_page', {slug: 'privacy'}) }}">Privacy policy</a>
+            <a href="{{ path('docs_page', {slug: 'terms'}) }}">Terms of service</a>
+            <a href="{{ path('docs_page', {slug: 'support'}) }}">Support</a>
+        </nav>
+    </footer>
 {% endblock %}

@@ -12,6 +12,9 @@ Your coding agent, for example Claude Code, reads the change requests from Slopm
 | [Run it locally](local-run.md) | Start Slopmower with Docker on your computer and review repositories on your disk, without GitHub |
 | [Connect your agent](connect-your-agent.md) | Create a token, configure the MCP server, install the skill, and give your agent a review |
 | [Reviewing](reviewing.md) | Comment, go to declarations, open files and symbols by name, work with the agent, verify, reopen, and close a review |
+| [Support](support.md) | Get help, ask about plans and billing, and report a security problem |
+| [Privacy policy](privacy.md) | The data that Slopmower keeps, why, for how long, the cookies, and your rights |
+| [Terms of service](terms.md) | The rules for the use of the hosted service |
 
 ## How it works
 
