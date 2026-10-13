@@ -25,6 +25,11 @@ Verified in the code on 2026-10-13:
   - delete the messages of the queue `failed` that are older than 30 days.
 - **Logs.** In `prod`, the channel `mcp` stays out of the `main` buffer, and a handler of its own writes only records of level `error` and above. A record of that handler holds no request body. If the SDK puts the body into its error records, the channel `mcp` is not logged in `prod`, and the report says what is lost.
 - **Retention to state in F43:** rate limit rows at most one day after they expire; failed GitHub event messages 30 days; webhook delivery IDs 7 days.
+- **Review decisions, 2026-10-14:**
+  - In `prod`, no handler takes the channel `mcp`. `SchemaValidator` of mcp/sdk logs the `tools/call` arguments at `error`, so the rule "If the SDK puts the body into its error records" applies.
+  - `framework.cache.prefix_seed` is `slopmower/%kernel.environment%`. The default seed holds the project directory, so each release directory got a new namespace that the prune never reached.
+  - The jobs run each day at 03:00 UTC, a fixed start, so a deployment that loses the checkpoint does not restart the period.
+  - D66 in [architecture section 11](../architecture.md#11-decisions).
 
 ## Depends on
 

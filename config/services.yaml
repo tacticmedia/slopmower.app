@@ -4,7 +4,7 @@ parameters:
     # Used by doctrine.dbal.dbname_suffix.
     app.database_suffix: ''
     # Message classes that the worker handles without a TenantStamp and without a tenant context.
-    app.tenantless_messages: ['Symfony\Component\RemoteEvent\Messenger\ConsumeRemoteEventMessage', 'App\Message\MarketplacePurchaseJob']
+    app.tenantless_messages: ['Symfony\Component\RemoteEvent\Messenger\ConsumeRemoteEventMessage', 'App\Message\MarketplacePurchaseJob', 'App\Message\PruneRateLimiterCacheJob', 'App\Message\PurgeFailedMessagesJob']
     # The free plan, docs/specs/README.md section "Usage limits". Also the plan of an account without a Marketplace plan.
     app.plans:
         free:
@@ -50,7 +50,7 @@ when@test:
         # "TEST_TOKEN" is typically set by ParaTest. TEST_DATABASE_SUFFIX is "_e2e" in tests/E2E, see E2eDatabaseExtension.
         app.database_suffix: '%env(default:app.test_database_suffix:TEST_DATABASE_SUFFIX)%%env(default::TEST_TOKEN)%'
         app.test_database_suffix: '_test'
-        app.tenantless_messages: ['Symfony\Component\RemoteEvent\Messenger\ConsumeRemoteEventMessage', 'App\Message\MarketplacePurchaseJob', 'App\Tests\Support\Messenger\TenantlessProbe']
+        app.tenantless_messages: ['Symfony\Component\RemoteEvent\Messenger\ConsumeRemoteEventMessage', 'App\Message\MarketplacePurchaseJob', 'App\Message\PruneRateLimiterCacheJob', 'App\Message\PurgeFailedMessagesJob', 'App\Tests\Support\Messenger\TenantlessProbe']
 
     services:
         App\Tests\Support\GitHub\GitHubResponses: ~

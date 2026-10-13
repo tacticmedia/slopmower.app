@@ -1,6 +1,6 @@
 # Deployment outside Docker Compose
 
-Docker Compose runs PostgreSQL and the `symbols` service in development. A deployment without Compose must connect the application to its database, install, run, and connect the `symbols` service, and run the [Mercure hub](#mercure-hub) behind nginx.
+Docker Compose runs PostgreSQL and the `symbols` service in development. A deployment without Compose must connect the application to its database, run the [Messenger worker](#messenger-worker), install, run, and connect the `symbols` service, and run the [Mercure hub](#mercure-hub) behind nginx.
 
 [`.env.prod.dist`](../.env.prod.dist) lists every variable whose `.env` default is wrong in production, with example values. Symfony never loads it.
 
@@ -20,7 +20,7 @@ Set these variables for every PHP process: the web server, each Messenger worker
 
 - In a `.env` file, put the password in single quotes. Dotenv keeps `$` and `\` literal there, and an RDS password cannot contain `'`.
 - `sslmode=verify-full` needs the RDS certificate bundle. Set `PGSSLROOTCERT` to its path in the environment of the PHP process. libpq reads it.
-- The accepted credential lives unencrypted in the cache pool `rds_credentials.cache`, under `var/share/<environment>/pools/app`: an IAM token for 10 minutes, the master password until the next rotation (D58). Keep that directory on local storage, readable only by the PHP user, and shared by the web server and every worker of the host.
+- The accepted credential lives unencrypted in the cache pool `rds_credentials.cache`, under `<APP_SHARE_DIR>/<environment>/pools/app`: an IAM token for 10 minutes, the master password until the next rotation (D58). `APP_SHARE_DIR` defaults to `var/share`. Keep that directory on local storage, readable only by the PHP user, and shared by the web server and every worker of the host.
 - On Amazon RDS, `AWS_REGION` with `RDS_IAM_USERNAME` selects IAM token authentication, and `AWS_REGION` with `RDS_SECRET_ARN` reads the master password from Secrets Manager after a rotation (D58). The [bundle documentation](https://github.com/tacticmedia/rds-auth-bundle/blob/main/docs/configuration.md) lists the AWS prerequisites.
 
 ## Usage and rate limits
@@ -51,8 +51,22 @@ The [usage limits](specs/README.md#usage-limits) are the values of the [plan of 
 
 - The plan IDs come from `GET /marketplace_listing/plans` with the App JWT. A Marketplace plan that `APP_PAID_PLANS` does not map counts as the free plan and logs an error, so add a new plan of the listing here before it is published.
 - The Marketplace listing sends its own webhook. Set it to `https://<host>/webhook/github`, content type JSON, the secret `GITHUB_APP_WEBHOOK_SECRET`, and Active.
-- The rate limiter state is in the table `cache_items` of the database, so every web server and worker shares it.
+- The rate limiter state is in the table `cache_items` of the database, so every web server and worker shares it. The daily job of the [Messenger worker](#messenger-worker) deletes the expired rows.
 - A clone gets its size at its next clone or fetch. Until then it counts as 0 bytes.
+
+## Messenger worker
+
+Run at least one worker that consumes both transports, under a process manager that starts it again when it exits:
+
+```bash
+bin/console messenger:consume async scheduler_default --time-limit=3600
+```
+
+- `async` runs the background jobs: clones and fetches, the symbol index, the GitHub webhook jobs, and deletions.
+- `scheduler_default` is the schedule `App\Schedule`. Each day at 03:00 UTC, it deletes the expired rows of `rate_limiter.cache` and the messages of the queue `failed` that are older than 30 days. Both jobs are idempotent, so several workers can consume the schedule.
+- The schedule keeps its last run in the cache pool `cache.app`, under `<APP_SHARE_DIR>/<environment>/pools/app`. A worker that starts at or after 03:00 UTC after a missed run runs it once. A worker that starts before 03:00 UTC waits for 03:00. Without that directory, a missed run waits for the next day.
+- The worker reads `scheduler_default` only when `async` is empty, so a backlog in `async` makes the daily run late.
+- A failed job is not retried, because `scheduler_default` has no retry strategy and no failure transport. Messenger logs the failure at `critical`, and the job runs again the next day.
 
 ## Symbols service
 

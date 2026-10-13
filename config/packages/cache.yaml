@@ -1,5 +1,8 @@
 framework:
     cache:
+        # The pool namespaces must not depend on the project directory: the prune job deletes only the rows of the
+        # current namespace, and every host and release shares the rate limiter state.
+        prefix_seed: 'slopmower/%kernel.environment%'
         pools:
             # The accepted RDS credentials (D58), apart from application data. On disk, so the worker reuses what the
             # web process cached: every CLI process has its own APCu segment.

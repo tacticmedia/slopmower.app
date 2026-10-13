@@ -242,7 +242,7 @@ make up
   | `src/Serializer/Normalizer` | The value normalizers, and one normalizer per schema whose response class cannot be schema-shaped. REST and MCP share them. |
   | `src/Mcp` | `McpTools` with every tool, the session decorators, generated `BundledSchemas` |
   | `src/Live`, `src/Index`, `src/Anchoring`, `src/Docs` | Mercure, symbol index, re-anchoring, public documentation |
-  | `src/Message`, `src/MessageHandler`, `src/Messenger` | Messenger messages, every Messenger handler, middleware |
+  | `src/Message`, `src/MessageHandler`, `src/Messenger`, `src/Schedule.php` | Messenger messages, every Messenger handler, middleware, the SQL of the queue `failed`, the schedule of the recurring jobs |
   | `src/Command`, `src/GitHub`, `src/Webhook` | Operator commands, GitHub API, GitHub webhooks |
 
 - Symfony, as AGENTS.md says:
@@ -364,7 +364,7 @@ The session writes it into `reports/MNN.md`:
 
 ## Verified versions
 
-Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08. `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
+Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08; the `symfony/scheduler` row on 2026-10-13. `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
 
 | Package | Version | Source |
 |---|---|---|
@@ -383,6 +383,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 | `lcobucci/jwt` | 5.6.0, for the GitHub App JWT | https://repo.packagist.org/p2/lcobucci/jwt.json |
 | `symfony/mercure-bundle` | 0.5.0 | https://repo.packagist.org/p2/symfony/mercure-bundle.json |
 | `symfony/webhook`, `symfony/remote-event` | 8.1.7, 8.1.0 | https://repo.packagist.org/p2/symfony/webhook.json |
+| `symfony/scheduler` | 8.1.8 | https://repo.packagist.org/p2/symfony/scheduler.json |
 | `symfony/reprise`, `@symfony/reprise` | 1.3.0, exact pins, stable since 1.0.0 of 2026-08-26 | https://repo.packagist.org/p2/symfony/reprise.json |
 | `nikic/php-parser` | 5.9.0 | https://repo.packagist.org/p2/nikic/php-parser.json |
 | `twig/markdown-extra` | 3.29.0 | https://repo.packagist.org/p2/twig/markdown-extra.json |
