@@ -1,6 +1,6 @@
 # Deployment outside Docker Compose
 
-Docker Compose runs PostgreSQL and the `symbols` service in development. A deployment without Compose must connect the application to its database, and install, run, and connect the `symbols` service.
+Docker Compose runs PostgreSQL and the `symbols` service in development. A deployment without Compose must connect the application to its database, install, run, and connect the `symbols` service, and run the [Mercure hub](#mercure-hub) behind nginx.
 
 [`.env.prod.dist`](../.env.prod.dist) lists every variable whose `.env` default is wrong in production, with example values. Symfony never loads it.
 
@@ -102,3 +102,94 @@ From the host of each PHP process, run the `/healthz` check against the `SYMBOLS
 
 1. Install and restart the service before the web server and the worker. `TreeSitterSymbolExtractor::LANGUAGES` must list only languages that the service knows. The service answers 422 to an unknown language, and the request that needs the symbols answers 500.
 2. A changed grammar or query file does not change the stored symbols. `app:index:rebuild <tenantId> <reviewId> --reparse` deletes the parsed blobs and symbols of the repository of the review, and queues the index job of the review. A review indexed before the release that added its language needs `app:index:rebuild <tenantId> <reviewId>`. See "Index version per language" in the [candidates](plan/features.md#candidates).
+
+## Mercure hub
+
+One hub serves `https://beta.slopmower.app` and `https://slopmower.app`. It listens on `127.0.0.1:8000`. nginx forwards `/.well-known/mercure` of each site to it, so browsers reach the hub on the origin of the UI.
+
+### Hub configuration
+
+Run the `mercure` binary of a Mercure 1.x release with this Caddyfile:
+
+```caddyfile
+{
+	admin off
+}
+
+:8000 {
+	bind 127.0.0.1
+
+	mercure {
+		protocol_version_compatibility 8
+		publisher_jwt {env.MERCURE_JWT_SECRET}
+		subscriber_jwt {env.MERCURE_JWT_SECRET}
+		cors_origins https://beta.slopmower.app https://slopmower.app
+	}
+
+	respond "Not Found" 404
+}
+```
+
+```sh
+MERCURE_JWT_SECRET=<secret> mercure run --config Caddyfile --adapter caddyfile
+```
+
+- `MERCURE_JWT_SECRET` has the value of the application.
+- `admin off` disables the Caddy admin API. Each Caddy process listens on `localhost:2019` by default, so a second one on the host does not start. Restart the hub to load a changed Caddyfile.
+- `:8000` with `bind 127.0.0.1` accepts every `Host` on the loopback interface only. Do not use the address `http://localhost:8000`: Caddy then serves only requests with `Host: localhost`, but nginx forwards the public host. Caddy also listens on all interfaces.
+- `symfony/mercure-bundle` 0.5.0 uses protocol 0.x: the `mercure` claim without `iss` or `aud`, and the cookie `mercureAuthorization`. A 1.x hub accepts these only with `protocol_version_compatibility 8`, and it refuses to start with `publisher_jwt` or `subscriber_jwt` without it. Official binaries and the `dunglas/mercure` image have the build tags that this mode needs. See "Mercure protocol 1.0" in the [candidates](plan/features.md#candidates).
+- `cors_origins` allows a page of one site to subscribe through the hub URL of the other site. The URL of the own site needs no CORS.
+- The hub keeps the update history in `mercure.db` in the Caddy data directory. The user of the hub process needs write access to it. Set `HOME` for the hub process: without it, Caddy uses `./caddy` in the working directory.
+- Beta and production share `MERCURE_JWT_SECRET`, so the beta secret can sign tokens for production topics. The topics do not collide, because each site starts them with its own `DEFAULT_URI`.
+
+### nginx
+
+Add the `location` to the `server` block of each site:
+
+```nginx
+upstream mercure {
+    server 127.0.0.1:8000;
+}
+
+server {
+    server_name slopmower.app;
+    # TLS and the application locations
+
+    location ^~ /.well-known/mercure {
+        proxy_pass http://mercure;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 24h;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host  $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+- `proxy_buffering off`: without it, nginx sends events in batches.
+- `proxy_read_timeout 24h`: the default of 60 s closes each idle event stream. The hub sends a heartbeat every 40 s.
+- `proxy_http_version 1.1` and `Connection ""` configure the connection to the hub. HTTP/2 to the browser is a separate setting.
+- `^~` stops the check of regex locations. A rule such as `location ~ /\. { deny all; }` would otherwise answer 403.
+- `proxy_pass` has no URI, so the path and the `topic` query reach the hub unchanged.
+
+### Configure the application
+
+| Variable | Value |
+|---|---|
+| `MERCURE_URL` | `http://127.0.0.1:8000/.well-known/mercure` on the host of the hub. The PHP processes publish to the hub directly. On another host, use the `MERCURE_PUBLIC_URL` value. |
+| `MERCURE_PUBLIC_URL` | `https://<site>/.well-known/mercure`, for example `https://beta.slopmower.app/.well-known/mercure` |
+| `MERCURE_JWT_SECRET` | The value of the hub |
+
+Check each site:
+
+```sh
+curl -sS -o /dev/null -w '%{http_code}\n' 'https://slopmower.app/.well-known/mercure?topic=x'
+```
+
+The command gives `401`, because the request has no token.

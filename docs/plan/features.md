@@ -94,6 +94,7 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **CI maintenance.** Dependabot for the pinned action SHAs of `qa.yml`; a `concurrency` group that cancels a superseded run of the same ref; `actions/upload-artifact` v7 once act accepts it (act 0.2.89 refuses v6 and v7). From F36.
 - **Entrypoint and a stale lock.** With an out-of-date `composer.lock`, the first `composer install` of the entrypoint fails in its `post-install-cmd` `composer normalize`, the container restarts, and the next start skips the install because `vendor/` is not empty, so `make up --wait` passes or fails by timing. The entrypoint could fail clearly, or `composer normalize` could run only on `update`. From F36.
 - **make act on a Linux host.** The containers write root-owned files into `var/act/workspace/`, and the next `bin/act-run` cannot delete them. Docker Desktop on macOS maps the owner. From F36.
+- **Mercure protocol 1.0.** `symfony/mercure-bundle` 0.5.0 uses protocol 0.x, so the production hub (Mercure 1.x) runs with `protocol_version_compatibility 8`, which needs the deprecated build tags `deprecated_claim` and `deprecated_topic`. `protocol_version: 1.0` needs the claims `iss`, `sub`, and `client_id`, an `issuer` block on the hub, and the cookie `__Secure-mercure_access_token`. The development Caddyfile uses `publisher_jwt` and `subscriber_jwt` without compatibility mode. From the production hub setup on 2026-10-12.
 
 ## For Jan
 
