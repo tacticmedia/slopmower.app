@@ -1,0 +1,15 @@
+{
+    "status": 201,
+    "headers": {
+        "content-type": "application/json; charset=utf-8"
+    },
+    "body": {
+        "token": "ghs_pullRequestsRead2F292c6912E7710c838347",
+        "expires_at": "2026-10-02T09:00:00Z",
+        "permissions": {
+            "pull_requests": "read",
+            "metadata": "read"
+        },
+        "repository_selection": "selected"
+    }
+}

@@ -7,6 +7,7 @@ import type { Actor } from '../api/types/actor';
 import { OutdatedLabel } from '../requests/OutdatedLabel';
 import { PlanToApproveLabel } from '../requests/PlanToApproveLabel';
 import { ProposalEntry } from '../requests/ProposalEntry';
+import { PullRequestStateLabel } from '../requests/PullRequestStateLabel';
 import { StatusLabel } from '../requests/StatusLabel';
 import { CommentBox, type CommentBoxHandle } from './CommentBox';
 import type { CommentIntent } from './commentIntent';
@@ -136,9 +137,12 @@ function ThreadComment({ comment, onQuote, children }: { comment: CommentView; o
                 )}
             </div>
             {null !== pullRequestUrl && (
-                <Link href={pullRequestUrl} target="_blank" rel="noreferrer" className={styles.pullRequest} data-testid="thread-pull-request">
-                    {pullRequestUrl}
-                </Link>
+                <span className={styles.pullRequest}>
+                    <Link href={pullRequestUrl} target="_blank" rel="noreferrer" data-testid="thread-pull-request">
+                        {pullRequestUrl}
+                    </Link>
+                    <PullRequestStateLabel state={comment.pullRequestState} />
+                </span>
             )}
             {null !== comment.body && (
                 <Suspense fallback={<p className={styles.plain}>{comment.body}</p>}>

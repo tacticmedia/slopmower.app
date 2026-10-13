@@ -223,6 +223,7 @@ export class LiveSubscription {
                 return;
             case 'outdated':
             case 'index':
+            case 'pull_request':
                 if (update.reviewId === this.#reviewId) {
                     this.#requestRevalidation(null);
                 }

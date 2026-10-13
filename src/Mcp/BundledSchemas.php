@@ -1315,7 +1315,7 @@ final class BundledSchemas
         'type' => 'object',
         'required' => [
             'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
-            'requireApproval', 'proposal', 'body', 'reviewState', 'reviewCommitSha', 'location', 'excerpt', 'thread', 'commits', 'pullRequestUrls', 'allowedActions',
+            'requireApproval', 'proposal', 'body', 'reviewState', 'reviewCommitSha', 'location', 'excerpt', 'thread', 'commits', 'pullRequestUrls', 'pullRequests', 'allowedActions',
         ],
         'properties' => [
             'id' => ['$ref' => '#/$defs/Ulid'],
@@ -1405,6 +1405,11 @@ final class BundledSchemas
                 'uniqueItems' => true,
                 'items' => ['$ref' => '#/$defs/PullRequestUrl'],
                 'description' => 'In link order.',
+            ],
+            'pullRequests' => [
+                'type' => 'array',
+                'items' => ['$ref' => '#/$defs/PullRequest'],
+                'description' => 'One entry per URL of pullRequestUrls, in the same order.',
             ],
             'allowedActions' => [
                 'type' => 'array',
@@ -1833,6 +1838,38 @@ final class BundledSchemas
             ],
             'ProposalState' => [
                 'enum' => ['pending', 'approved', 'rejected'],
+            ],
+            'PullRequest' => [
+                'type' => 'object',
+                'required' => ['url', 'state', 'title'],
+                'properties' => [
+                    'url' => ['$ref' => '#/$defs/PullRequestUrl'],
+                    'state' => ['$ref' => '#/$defs/PullRequestState'],
+                    'title' => [
+                        'type' => ['string', 'null'],
+                        'description' => 'The title on GitHub. Null when state is unknown.',
+                    ],
+                ],
+                'if' => [
+                    'required' => ['state'],
+                    'properties' => [
+                        'state' => ['const' => 'unknown'],
+                    ],
+                ],
+                'then' => [
+                    'properties' => [
+                        'title' => ['type' => 'null'],
+                    ],
+                ],
+                'else' => [
+                    'properties' => [
+                        'title' => ['type' => 'string'],
+                    ],
+                ],
+            ],
+            'PullRequestState' => [
+                'enum' => ['open', 'draft', 'merged', 'closed', 'unknown'],
+                'description' => 'unknown: a local repository, a state not read yet, a pull request that GitHub does not find, or an installation without the permission Pull requests: read.',
             ],
             'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://\\S+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],

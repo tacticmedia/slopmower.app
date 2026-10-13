@@ -16,6 +16,13 @@ export type OutdatedUpdate = {
     requestIds: Ulid[];
 };
 
+export type PullRequestUpdate = {
+    type: 'pull_request';
+    reviewId: Ulid;
+    /** The requests of the review that link the pull request whose state or title changed. */
+    requestIds: Ulid[];
+};
+
 export type IndexUpdate = {
     type: 'index';
     reviewId: Ulid;
@@ -40,6 +47,7 @@ export type LiveUpdate =
     | EventsUpdate
     | OutdatedUpdate
     | IndexUpdate
+    | PullRequestUpdate
     | RepositoryUpdate
     | RepositoryDeletedUpdate
     | CandidatesChangedUpdate;

@@ -23,10 +23,12 @@ trait GitHubRows
 {
     /**
      * Clears the entity manager, so a later read goes through the SQL filter.
+     *
+     * @param array<string, string> $permissions
      */
-    private static function storeInstallation(TenantId $tenantId, int $installationId = 5551, string $accountLogin = 'acme', ?\DateTimeImmutable $suspendedAt = null): void
+    private static function storeInstallation(TenantId $tenantId, int $installationId = 5551, string $accountLogin = 'acme', ?\DateTimeImmutable $suspendedAt = null, array $permissions = ['contents' => 'read', 'metadata' => 'read']): void
     {
-        self::storeRow(new GitHubInstallation($tenantId, $installationId, $accountLogin, GitHubAccountType::Organization, $suspendedAt));
+        self::storeRow(new GitHubInstallation($tenantId, $installationId, $accountLogin, GitHubAccountType::Organization, $suspendedAt, $permissions));
     }
 
     /**

@@ -124,6 +124,7 @@ Example response, [fixtures/lists.request-page.json](fixtures/lists.request-page
   - `commit.linked` and `pull_request.linked` events whose `requestIds` contain it;
   - `commit.found` events for commits linked to it.
 - `commits` is sorted by `linkedAt`. `pullRequestUrls` is in link order.
+- `pullRequests` has one entry `{url, state, title}` per URL of `pullRequestUrls`, in the same order. For a GitHub repository, `state` is `draft` for an open draft, `merged` for a closed pull request that was merged, else `open` or `closed`, and `title` is the title on GitHub. `state` is `unknown`, with `title` null, for a local repository, a state that the server has not read yet, a pull request that GitHub does not find, and an installation that has not accepted Pull requests: read. [webhooks-and-live-updates.md](webhooks-and-live-updates.md#pull-request-state) says when the server reads the state. Example: [fixtures/request.pull-request.json](fixtures/request.pull-request.json).
 - `carriedFrom` names the source request of a request that [V15](rest-api.md#v15-carry-over-open-requests) carried over, else it is null. Example: [fixtures/request.carried.json](fixtures/request.carried.json).
 
 Example response for `GET /api/v1/requests/01K6B3P2A9QRSTVWXYZ0123456?at=a1b2c3d4e5f60718293a4b5c6d7e8f9012345678`, [fixtures/request.in-progress.json](fixtures/request.in-progress.json):
@@ -166,6 +167,7 @@ Example response for `GET /api/v1/requests/01K6B3P2A9QRSTVWXYZ0123456?at=a1b2c3d
     {"commitSha":"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678","state":"available","linkedBy":{"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},"linkedAt":"2026-09-29T07:45:00Z","note":"One refactoring covers both.","foundAt":"2026-09-29T07:45:00Z","subject":"Use Money for invoice totals (01K6B3P2A9QRSTVWXYZ0123456)","committedAt":"2026-09-29T07:44:10Z","otherRequestIds":["01K6B3P2A9QRSTVWXYZ0123457"]}
   ],
   "pullRequestUrls": [],
+  "pullRequests": [],
   "allowedActions": ["reply","release","link_commits","unlink_commit","link_pull_request","mark_ready_for_review","mark_wont_do","propose_solution"]
 }
 ```
@@ -399,7 +401,7 @@ The proposal replaces the current one, also an approved one. The request then wa
 - **Request:** `POST /api/v1/pull-request-links`
 - **Authentication:** B
 - **Body:** [`LinkPullRequestInput`](schemas/inputs.schema.json), `{url, requestIds, note?}`.
-  - `url` follows the rule of [README.md section 2.2](README.md#22-text-limits). For a GitHub repository it names a pull request of the review's repository, and the server stores it with the repository name as connected. So `url` in the result, the event, and `pullRequestUrls` is that form, and a URL in another letter case names a pair that is already linked.
+  - `url` follows the rule of [README.md section 2.2](README.md#22-text-limits). For a GitHub repository it names a pull request of the review's repository, and the server stores it with the repository name as connected. So `url` in the result, the event, and `pullRequestUrls` is that form, and a URL in another letter case names a pair that is already linked. The number identifies a GitHub pull request, so a request whose link has an earlier name of the repository already links it.
   - `requestIds` holds 1 to 50 unique IDs, all from the same review.
 - **Success:** 200 [`LinkPullRequestResult`](schemas/link-pull-request-result.schema.json). Example: [fixtures/link-pull-request-result.linked.json](fixtures/link-pull-request-result.linked.json).
 - **Errors:**
@@ -408,7 +410,7 @@ The proposal replaces the current one, also an approved one. The request then wa
   - 409 `review_closed`;
   - 409 `invalid_transition`: the first request that is neither `in_progress`, claimed by the caller, with the proposal gate open, nor `ready_for_review`. Nothing is written.
 
-The server stores the URL only. It never reads the pull request from GitHub. A link never changes the status, and it does not hand the turn to the user, because `pull_request.linked` does not count as an agent event for the `awaiting` rules. A request lists its pull requests in `Request.pullRequestUrls`. [Q19](#q19-unlink-a-pull-request) removes a link.
+The server stores the URL. For a GitHub repository, a job then reads the pull request from GitHub, and `Request.pullRequests` shows its state. The server never writes to GitHub. A link never changes the status, and it does not hand the turn to the user, because `pull_request.linked` does not count as an agent event for the `awaiting` rules. A request lists its pull requests in `Request.pullRequestUrls`. [Q19](#q19-unlink-a-pull-request) removes a link.
 
 Example body, [fixtures/inputs.link-pull-request.json](fixtures/inputs.link-pull-request.json):
 
@@ -432,9 +434,9 @@ The proposal gate uses the new value at once. On an `in_progress` request withou
 - **Authentication:** B
 - **Body:** [`UnlinkPullRequestInput`](schemas/inputs.schema.json), `{url}`. A URL does not fit a path segment, so the URL is in the body, unlike Q8. Example: [fixtures/inputs.unlink-pull-request.json](fixtures/inputs.unlink-pull-request.json).
 - **Success:** 200 `RequestCommandResult` with one `pull_request.unlinked` event.
-- **Errors:** 422 `invalid_input`: a URL that breaks the rule of Q17, or a URL that is not linked to the request; 409 `invalid_transition`, 409 `review_closed`.
+- **Errors:** 422 `invalid_input`: a URL that breaks the rule of Q17 and is not a linked URL, or a URL that is not linked to the request; 409 `invalid_transition`, 409 `review_closed`.
 
-`url` follows the rule of [Q17](#q17-link-a-pull-request-to-requests). For a GitHub repository the server compares the stored form, so a URL in another letter case unlinks the link. The callers and statuses are those of Q17 without the proposal gate. An unlink changes neither the status nor `awaiting`.
+`url` follows the rule of [Q17](#q17-link-a-pull-request-to-requests). For a GitHub repository the server matches the linked pull request by its number, so a URL in another letter case unlinks the link. A linked URL with an earlier name of the repository, in any letter case, also unlinks it. A URL that is linked exactly unlinks that URL, also when another linked URL has the same number. The event names the URL as linked. The callers and statuses are those of Q17 without the proposal gate. An unlink changes neither the status nor `awaiting`.
 
 ## 4. Updates
 

@@ -93,7 +93,9 @@ A linked commit does not finish a request. The agent marks the request **Ready f
 
 When the agent opened a pull request for its work, it links the pull request to the requests that it covers. The header of the request lists its pull requests, and the conversation shows each link. Click a pull request to open it in a new tab. The agent can remove a link that it made by mistake. The conversation shows the removal too.
 
-A pull request link does not change the status, and the request does not wait for you because of it. Slopmower stores the address only. It does not read the pull request from GitHub. The agent opens a pull request only when you or the instructions of your repository ask for it.
+For a GitHub repository, each pull request shows its state on GitHub: Open, Draft, Merged, or Closed. The header also shows its title. When the pull request changes on GitHub, for example when it is merged, the label changes without a reload. A pull request shows no state when the repository is local, when Slopmower has not read it yet, when GitHub does not find it, or when the GitHub App installation has not accepted the permission Pull requests: read. Slopmower only reads pull requests. It never writes to GitHub.
+
+A pull request link does not change the status, and the request does not wait for you because of it. The agent opens a pull request only when you or the instructions of your repository ask for it.
 
 ## Verify, reopen, or decline
 

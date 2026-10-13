@@ -12,7 +12,7 @@ The first sign-in creates your account. Only you can see your repositories, revi
 
 ## 2. Install the GitHub App
 
-Slopmower reads your code through the Slopmower GitHub App. The App gets read-only access to the contents of the repositories that you choose. It cannot write to them.
+Slopmower reads your code through the Slopmower GitHub App. The App gets read-only access to the contents and the pull requests of the repositories that you choose. It cannot write to them.
 
 1. Open **Repositories**.
 2. Click **Configure on GitHub**.

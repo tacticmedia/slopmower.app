@@ -72,7 +72,7 @@ final class GitHubAppJwtTest extends KernelTestCase
             return new MockResponse('{"token":"ghs_test"}', ['http_code' => 201]);
         });
 
-        new InstallationTokenProvider($github, self::CLIENT_ID, $this->privateKeyPem, new MockClock('2026-10-02 08:00:00.250', 'UTC'))->forRepository(5551, 812345);
+        new InstallationTokenProvider($github, self::CLIENT_ID, $this->privateKeyPem, new MockClock('2026-10-02 08:00:00.250', 'UTC'))->forRepository(5551, 812345, InstallationTokenProvider::CONTENTS_READ);
 
         self::assertIsString($bearer);
         $jwt = substr($bearer, \strlen('Authorization: Bearer '));

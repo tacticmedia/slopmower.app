@@ -151,7 +151,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
    - changing a type, format, or nullability. Making a non-null field nullable is breaking.
    - a new required input;
    - tighter validation;
-   - new values in **closed** sets: `RequestStatus`, `Awaiting`, `Resolution`, `AnchorKind`, `ActorKind`, `CommitLinkState`, `LocationStatus`, `OrphanReason`, `ProposalState`, `RepositorySource`, `RepositoryAccess`, `ReviewState`, `IndexState`, `CarryOverOutcome`, `sync.state`, token `scope` and `state`, commit file `status`, tree entry `type`;
+   - new values in **closed** sets: `RequestStatus`, `Awaiting`, `Resolution`, `AnchorKind`, `ActorKind`, `CommitLinkState`, `LocationStatus`, `OrphanReason`, `ProposalState`, `PullRequestState`, `RepositorySource`, `RepositoryAccess`, `ReviewState`, `IndexState`, `CarryOverOutcome`, `sync.state`, token `scope` and `state`, commit file `status`, tree entry `type`;
    - a different HTTP status or error code for an existing situation;
    - changed defaults, sort orders, or pagination style;
    - a changed meaning of an existing field.
@@ -185,6 +185,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Quick open ranking, decision D54: V16 also matches a name by word starts, for example `CE` for `CommandExecutor`, ranks word starts between a name prefix and a name substring, and orders by the length of the name before the length of the path. The wire format does not change.
     - Symbols for more languages, decisions D56 and D57: V9, symbol anchors, and V16 also cover JavaScript, JSX, TypeScript, TSX, Python, Go, Rust, Java, C#, Ruby, Bash, Scala, Zig, and Lua files. `language` takes their V7 values, the open set `SymbolKind` gets `struct`, `type`, `module`, and `macro`, and the V9 ETag has its own version `v4`. V7 gives `scala`, `zig`, and `lua` for `.scala`, `.zig`, and `.lua` files, and its ETag is `v2`. V14 stays PHP only.
     - Twig symbols, decision D60: V9, symbol anchors, and V16 also cover Twig files. `language` is `twig`, the open set `SymbolKind` gets `block`, and the V9 ETag is `v5`.
+    - Pull request state, decision D64: `Request.pullRequests` with the closed set `PullRequestState`, and the live update type `pull_request`. All are additive. For a GitHub repository, `link_pull_request` and `unlink_pull_request` match a linked pull request by its number, so a link under an earlier name of the repository still matches after a rename, and `unlink_pull_request` also takes the URL as linked. The server reads the state of a linked GitHub pull request.
     - Product name, decision D14: the MCP server name, `serverInfo.name`, the skill name, the Bearer realm, the pin refs, the live update ID, and the schema `$id` base use `slopmower`. Token secrets start with `sm_`.
 
 ## 9. Contract tests
@@ -214,7 +215,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [repository-candidate.schema.json](schemas/repository-candidate.schema.json) | `https://slopmower.invalid/schemas/v1/repository-candidate.schema.json` | A repository that the user can connect |
 | [review.schema.json](schemas/review.schema.json) | `https://slopmower.invalid/schemas/v1/review.schema.json` | Review, plus `IndexStatus` and `RequestCounts` |
 | [request-summary.schema.json](schemas/request-summary.schema.json) | `https://slopmower.invalid/schemas/v1/request-summary.schema.json` | RequestSummary for lists and command results, plus `CarriedFrom`. `anchor` is null for a general request. |
-| [request.schema.json](schemas/request.schema.json) | `https://slopmower.invalid/schemas/v1/request.schema.json` | Request in full, plus `CodeExcerpt`. A general request has `anchor`, `location`, `excerpt`, and `outdated` null. |
+| [request.schema.json](schemas/request.schema.json) | `https://slopmower.invalid/schemas/v1/request.schema.json` | Request in full, plus `PullRequest` and `CodeExcerpt`. A general request has `anchor`, `location`, `excerpt`, and `outdated` null. |
 | [thread-entry.schema.json](schemas/thread-entry.schema.json) | `https://slopmower.invalid/schemas/v1/thread-entry.schema.json` | One entry of a request thread |
 | [event.schema.json](schemas/event.schema.json) | `https://slopmower.invalid/schemas/v1/event.schema.json` | One event of the review event log |
 | [commit-link.schema.json](schemas/commit-link.schema.json) | `https://slopmower.invalid/schemas/v1/commit-link.schema.json` | A commit linked to a request |
@@ -312,6 +313,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [live-update.events.json](fixtures/live-update.events.json) | `live-update.schema.json` | Review topic |
 | [live-update.index.json](fixtures/live-update.index.json) | `live-update.schema.json` | Review topic |
 | [live-update.outdated.json](fixtures/live-update.outdated.json) | `live-update.schema.json` | Review topic |
+| [live-update.pull-request.json](fixtures/live-update.pull-request.json) | `live-update.schema.json` | Review topic |
 | [live-update.repository-deleted.json](fixtures/live-update.repository-deleted.json) | `live-update.schema.json` | Repositories topic |
 | [live-update.repository.json](fixtures/live-update.repository.json) | `live-update.schema.json` | Repositories topic |
 | [me.agent.json](fixtures/me.agent.json) | `me.schema.json` | A1 with a scoped token |
@@ -328,6 +330,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [request.in-progress.json](fixtures/request.in-progress.json) | `request.schema.json` | Q3 with `at`, `get_request` |
 | [request.opened-range.json](fixtures/request.opened-range.json) | `request.schema.json` | Q2 |
 | [request.proposal-pending.json](fixtures/request.proposal-pending.json) | `request.schema.json` | Q3 of a request with a pending proposal, read by the user |
+| [request.pull-request.json](fixtures/request.pull-request.json) | `request.schema.json` | Q3 with `at` of a request with a linked pull request, `get_request` |
 | [request.with-excerpt.json](fixtures/request.with-excerpt.json) | `request.schema.json` | Q3 with `context`, `get_request` |
 | [review.closed.json](fixtures/review.closed.json) | `review.schema.json` | V3, V4 |
 | [review.index-status.json](fixtures/review.index-status.json) | `review.schema.json#/$defs/IndexStatus` | V5 |

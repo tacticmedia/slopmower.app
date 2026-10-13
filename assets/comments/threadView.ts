@@ -1,5 +1,5 @@
 import type { Actor } from '../api/types/actor';
-import type { DateTime, EventSeq, Proposal, ProposalState, PullRequestUrl, RequestStatus, ThreadEntryType, Ulid, UnifiedDiff } from '../api/types/common';
+import type { DateTime, EventSeq, Proposal, ProposalState, PullRequestState, PullRequestUrl, RequestStatus, ThreadEntryType, Ulid, UnifiedDiff } from '../api/types/common';
 import type { Request as ReviewRequest } from '../api/types/request';
 import type { ThreadEntry } from '../api/types/thread-entry';
 import type { CarriedFrom } from '../api/types/request-summary';
@@ -23,6 +23,8 @@ export type CommentView = {
     /** Null for an entry of {@link BODILESS_TYPES} or a pull request link without a note. */
     body: string | null;
     pullRequestUrl: PullRequestUrl | null;
+    /** The state of a pull request that is still linked, else `unknown`. */
+    pullRequestState: PullRequestState;
     question: boolean;
     /** Shown before the server confirms it. */
     pending: boolean;
@@ -66,6 +68,7 @@ export function threadView(request: ReviewRequest): ThreadView {
                 occurredAt: entry.occurredAt,
                 body: entry.body,
                 pullRequestUrl: entry.pullRequestUrl,
+                pullRequestState: request.pullRequests.find(({ url }) => url === entry.pullRequestUrl)?.state ?? 'unknown',
                 question: entry.question,
                 pending: false,
                 proposal: 'request.proposed' === entry.type ? proposalView(entry, request.thread.slice(index + 1), request.proposal) : null,
@@ -117,7 +120,7 @@ let pendingCount = 0;
 export function pendingComment(type: ThreadEntryType, body: string, author: Actor): CommentView {
     pendingCount += 1;
 
-    return { key: `pending-${pendingCount}`, type, author, occurredAt: new Date().toISOString(), body, pullRequestUrl: null, question: false, pending: true, proposal: null };
+    return { key: `pending-${pendingCount}`, type, author, occurredAt: new Date().toISOString(), body, pullRequestUrl: null, pullRequestState: 'unknown', question: false, pending: true, proposal: null };
 }
 
 export function pendingThread(range: LineRange | null, symbol: string | null, body: string, author: Actor): ThreadView {

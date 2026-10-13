@@ -257,7 +257,7 @@ public function getRequest(#[Schema(pattern: self::ULID)] string $id, #[Schema(p
 ```
 
 - **Output:** [`request.schema.json`](schemas/request.schema.json).
-- **Behaviour:** REST Q3.
+- **Behaviour:** REST Q3. `pullRequests` holds the state and the title of each linked pull request.
 - **Errors:** `not_found`, `invalid_input` for an ambiguous prefix, `commit_not_found`, `repository_unavailable`.
 - **Example:** arguments `{"id":"01K6B3P2A9QRSTVWXYZ0123456","at":"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678"}` give [fixtures/request.in-progress.json](fixtures/request.in-progress.json). Arguments `{"id":"01K6B3P2A9QRSTVWXYZ0123457","context":2}` give [fixtures/request.with-excerpt.json](fixtures/request.with-excerpt.json).
 
@@ -537,7 +537,7 @@ public function linkPullRequest(
 ```
 
 - **Output:** [`link-pull-request-result.schema.json`](schemas/link-pull-request-result.schema.json).
-- **Behaviour:** REST Q17. One URL, 1 to 50 request IDs of one review. Linking an existing pair again is a no-op. The link changes neither the status nor `awaiting`.
+- **Behaviour:** REST Q17. One URL, 1 to 50 request IDs of one review. Linking an existing pair again is a no-op; for a GitHub repository the number identifies the pull request. The link changes neither the status nor `awaiting`. For a GitHub repository, the server then reads the state of the pull request for `get_request`.
 - **Errors:** `not_found`, `review_closed`, `invalid_transition`, `invalid_input` for requests from several reviews or a pull request of another GitHub repository.
 - **Example:** arguments as in [fixtures/inputs.link-pull-request.json](fixtures/inputs.link-pull-request.json) give [fixtures/link-pull-request-result.linked.json](fixtures/link-pull-request-result.linked.json).
 
@@ -567,8 +567,8 @@ public function unlinkPullRequest(#[Schema(pattern: self::PULL_REQUEST_URL, maxL
 ```
 
 - **Output:** [`request-command-result.schema.json`](schemas/request-command-result.schema.json).
-- **Behaviour:** REST Q19. The unlink changes neither the status nor `awaiting`.
-- **Errors:** `not_found`, `review_closed`, `invalid_transition`, `invalid_input` when the URL breaks the rule of `link_pull_request` or is not linked to the request.
+- **Behaviour:** REST Q19. For a GitHub repository the number identifies the pull request, and a linked URL with an earlier name of the repository is accepted too. The unlink changes neither the status nor `awaiting`.
+- **Errors:** `not_found`, `review_closed`, `invalid_transition`, `invalid_input` when the URL breaks the rule of Q17 and is not a linked URL, or is not linked to the request.
 - **Example:** arguments `{"url":"https://github.com/acme/billing/pull/42","requestId":"01K6B3P2A9QRSTVWXYZ0123457"}`. The result has the shape of [fixtures/request-command-result.claim.json](fixtures/request-command-result.claim.json) with one `pull_request.unlinked` event.
 
 ## 5. Error codes in MCP

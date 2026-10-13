@@ -48,3 +48,10 @@
     list-style: none;
     overflow-wrap: anywhere;
 }
+
+.pullRequest {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-6);
+}

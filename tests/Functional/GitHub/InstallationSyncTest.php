@@ -67,10 +67,10 @@ final class InstallationSyncTest extends WebTestCase
         $connection = self::getContainer()->get(Connection::class);
         self::assertSame(
             [
-                ['installation_id' => 5551, 'account_login' => 'acme', 'account_type' => 'Organization', 'suspended_at' => null],
-                ['installation_id' => 5552, 'account_login' => 'octocat', 'account_type' => 'User', 'suspended_at' => null],
+                ['installation_id' => 5551, 'account_login' => 'acme', 'account_type' => 'Organization', 'suspended_at' => null, 'permissions' => '{"contents": "read", "metadata": "read"}'],
+                ['installation_id' => 5552, 'account_login' => 'octocat', 'account_type' => 'User', 'suspended_at' => null, 'permissions' => '{"contents": "read", "metadata": "read"}'],
             ],
-            $connection->fetchAllAssociative('SELECT installation_id, account_login, account_type, suspended_at FROM github_installation ORDER BY installation_id'),
+            $connection->fetchAllAssociative('SELECT installation_id, account_login, account_type, suspended_at, permissions FROM github_installation ORDER BY installation_id'),
             'The enterprise installation holds no repositories.',
         );
         self::assertSame(

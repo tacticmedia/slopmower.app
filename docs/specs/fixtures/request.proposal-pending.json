@@ -108,5 +108,6 @@
   ],
   "commits": [],
   "pullRequestUrls": [],
+  "pullRequests": [],
   "allowedActions": ["reply", "release", "mark_wont_do", "approve_proposal", "reject_proposal", "set_plan_requirement"]
 }

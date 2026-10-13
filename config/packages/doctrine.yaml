@@ -23,6 +23,7 @@ doctrine:
             App\Domain\Identity\EventId: App\Doctrine\Type\IdentifierType
             App\Domain\Identity\GitHubCandidateId: App\Doctrine\Type\IdentifierType
             App\Domain\Identity\GitHubInstallationId: App\Doctrine\Type\IdentifierType
+            App\Domain\Identity\PullRequestId: App\Doctrine\Type\IdentifierType
             App\Domain\Identity\RepositoryId: App\Doctrine\Type\IdentifierType
             App\Domain\Identity\RequestId: App\Doctrine\Type\IdentifierType
             App\Domain\Identity\ReviewId: App\Doctrine\Type\IdentifierType

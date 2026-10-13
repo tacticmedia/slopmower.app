@@ -11,11 +11,15 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
  */
 final readonly class InstallationPayload
 {
+    /**
+     * @param array<string, string> $permissions The accepted permissions, for example `['contents' => 'read']`
+     */
     public function __construct(
         public int $id,
         public AccountPayload $account,
         #[SerializedName('suspended_at')]
         public ?\DateTimeImmutable $suspendedAt = null,
+        public array $permissions = [],
     ) {
     }
 }

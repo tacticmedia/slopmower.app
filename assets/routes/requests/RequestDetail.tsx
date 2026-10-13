@@ -13,6 +13,7 @@ import { ClaimedBy } from '../../requests/ClaimedBy';
 import { CommitList } from '../../requests/CommitList';
 import { LocationInfo } from '../../requests/LocationInfo';
 import { OutdatedLabel } from '../../requests/OutdatedLabel';
+import { PullRequestStateLabel } from '../../requests/PullRequestStateLabel';
 import { RequestActions } from '../../requests/RequestActions';
 import shared from '../../requests/Requests.module.css';
 import { CHANGES_TAB } from '../../requests/requestTabs';
@@ -68,17 +69,19 @@ export function RequestDetail() {
                         Claimed by <ClaimedBy claimedBy={request.claimedBy} claimedAt={request.claimedAt} />
                     </p>
                 )}
-                {request.pullRequestUrls.length > 0 && (
+                {request.pullRequests.length > 0 && (
                     <div className={styles.pullRequests} data-testid="pull-request-list">
                         <span id="pull-requests" className={shared.muted}>
                             Pull requests
                         </span>
                         <ul aria-labelledby="pull-requests" className={styles.pullRequestLinks}>
-                            {request.pullRequestUrls.map((url) => (
-                                <li key={url}>
+                            {request.pullRequests.map(({ url, state, title }) => (
+                                <li key={url} className={styles.pullRequest}>
+                                    <PullRequestStateLabel state={state} />
                                     <Link href={url} target="_blank" rel="noreferrer">
                                         {url}
                                     </Link>
+                                    {null !== title && <span className={shared.muted}>{title}</span>}
                                 </li>
                             ))}
                         </ul>

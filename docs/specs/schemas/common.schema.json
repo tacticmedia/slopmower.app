@@ -116,6 +116,10 @@
         }
       }
     },
+    "PullRequestState": {
+      "enum": ["open", "draft", "merged", "closed", "unknown"],
+      "description": "unknown: a local repository, a state not read yet, a pull request that GitHub does not find, or an installation without the permission Pull requests: read."
+    },
     "SymbolKind": {
       "anyOf": [
         {

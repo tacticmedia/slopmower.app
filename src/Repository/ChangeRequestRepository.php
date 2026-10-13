@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
+use App\Domain\Request\PullRequestUrl;
 use App\Entity\ChangeRequest;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Query;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -45,5 +48,30 @@ final class ChangeRequestRepository extends ServiceEntityRepository
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
             ->getResult();
+    }
+
+    /**
+     * The requests of a GitHub repository that link the pull request, also under an earlier name of the repository.
+     *
+     * @return list<ChangeRequest>
+     */
+    public function findLinkingPullRequest(RepositoryId $repositoryId, int $number): array
+    {
+        /** @var list<ChangeRequest> $linking */
+        $linking = $this->createQueryBuilder('request')
+            ->join('request.review', 'review')
+            ->where('review.repository = :repository')
+            ->andWhere('request.pullRequestUrls != :none')
+            ->setParameter('repository', $repositoryId, RepositoryId::class)
+            ->setParameter('none', [], Types::JSONB)
+            ->orderBy('request.id')
+            ->getQuery()
+            ->setHint(Query::HINT_REFRESH, true)
+            ->getResult();
+
+        return array_values(array_filter(
+            $linking,
+            static fn (ChangeRequest $request): bool => array_any($request->getPullRequestUrls(), static fn (PullRequestUrl $url): bool => $number === $url->gitHubNumber()),
+        ));
     }
 }

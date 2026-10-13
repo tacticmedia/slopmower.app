@@ -46,7 +46,7 @@ final class InstallationWebhookTest extends WebTestCase
     use ResetDatabase;
     use TemporaryDirectories;
 
-    #[TestDox('installation created records the installation for the matching user and publishes candidates_changed')]
+    #[TestDox('installation created records the installation with its permissions for the matching user and publishes candidates_changed')]
     public function testInstallationCreatedRecordsTheInstallation(): void
     {
         $client = static::createClient();
@@ -57,15 +57,37 @@ final class InstallationWebhookTest extends WebTestCase
         self::runQueuedMessages();
 
         self::assertSame(
-            [['installation_id' => 5554, 'account_login' => 'octocat', 'account_type' => 'User', 'suspended_at' => null]],
+            [['installation_id' => 5554, 'account_login' => 'octocat', 'account_type' => 'User', 'suspended_at' => null, 'permissions' => '{"contents": "read", "metadata": "read"}']],
             self::getContainer()->get(Connection::class)->fetchAllAssociative(
-                'SELECT installation_id, account_login, account_type, suspended_at FROM github_installation WHERE tenant_id = ?',
+                'SELECT installation_id, account_login, account_type, suspended_at, permissions FROM github_installation WHERE tenant_id = ?',
                 [$sender->toRfc4122()],
             ),
         );
         self::assertSame(0, self::countTenantRows('github_installation', $other));
         self::assertContains(['type' => 'candidates_changed'], self::repositoriesTopicUpdates($sender));
         self::assertSame([], self::repositoriesTopicUpdates($other));
+    }
+
+    #[TestDox('installation new_permissions_accepted stores the permissions of each tenant installation')]
+    public function testNewPermissionsAcceptedStoresThePermissions(): void
+    {
+        $client = static::createClient();
+        $tenantIds = [];
+
+        foreach ([1, 2] as $githubUserId) {
+            $tenantIds[] = $tenantId = TenantFixtures::of(self::getContainer())->withGitHubUser($githubUserId)->create()->getTenantId();
+            self::storeInstallation($tenantId);
+        }
+
+        self::deliverFixture($client, 'installation.new_permissions_accepted');
+        self::runQueuedMessages();
+
+        foreach ($tenantIds as $tenantId) {
+            self::assertSame(
+                '{"contents": "read", "metadata": "read", "pull_requests": "read"}',
+                self::getContainer()->get(Connection::class)->fetchOne('SELECT permissions FROM github_installation WHERE tenant_id = ?', [$tenantId->toRfc4122()]),
+            );
+        }
     }
 
     #[TestDox('A tenant that is being deleted gets no job, and a job queued before the mark writes no row')]
@@ -78,7 +100,7 @@ final class InstallationWebhookTest extends WebTestCase
         self::deliverFixture($client, 'installation.created');
         self::runQueuedMessages();
         $routedJobs = array_filter([...self::asyncTransport()->getSent()], static fn (Envelope $envelope): bool => $envelope->getMessage() instanceof GitHubInstallationCreatedJob);
-        self::getContainer()->get(MessageBusInterface::class)->dispatch(new GitHubInstallationCreatedJob(5554, 'octocat', GitHubAccountType::User, null), [new TenantStamp($sender)]);
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new GitHubInstallationCreatedJob(5554, 'octocat', GitHubAccountType::User, null, ['contents' => 'read', 'metadata' => 'read']), [new TenantStamp($sender)]);
         self::runQueuedMessages();
 
         self::assertSame([], $routedJobs);

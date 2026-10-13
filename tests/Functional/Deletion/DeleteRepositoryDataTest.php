@@ -49,7 +49,7 @@ final class DeleteRepositoryDataTest extends WebTestCase
 
     private const array REPOSITORY_TABLES = [
         'repository', 'review', 'change_request', 'comment', 'commit_link', 'review_event', 'location_cache_entry', 'draft', 'viewed_file',
-        'indexed_file', 'indexed_blob', 'symbol',
+        'indexed_file', 'indexed_blob', 'symbol', 'pull_request',
     ];
 
     private KernelBrowser $client;
@@ -68,6 +68,7 @@ final class DeleteRepositoryDataTest extends WebTestCase
         [, $secret] = self::storeToken($this->user);
         self::storeToken($this->user, self::freshRepository(RepositoryId::fromString($this->repositoryId)), name: 'scoped');
         self::populatedReview($this->client, $this->user, self::secondUser($this->user), $this->repositoryId, $secret, $commit);
+        self::storePullRequest($this->repositoryId);
     }
 
     #[TestDox('A confirm value that differs from the name gives 422')]

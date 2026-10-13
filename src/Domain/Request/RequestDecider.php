@@ -33,6 +33,7 @@ use App\Domain\Identity\CommentId;
 use App\Domain\Identity\EventId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\UniqueIds;
+use App\Domain\Repository\RepositorySource;
 use App\Domain\Request\Command\ApproveProposal;
 use App\Domain\Request\Command\Claim;
 use App\Domain\Request\Command\LinkCommits;
@@ -125,7 +126,7 @@ final class RequestDecider
             $command instanceof Claim => new RequestClaimedEvent(),
             $command instanceof Release => new RequestReleasedEvent($command->note),
             $command instanceof UnlinkCommit => new CommitUnlinkedEvent($command->commitSha, $state->id),
-            $command instanceof UnlinkPullRequest => new PullRequestUnlinkedEvent(PullRequestUrl::forRepository($command->url, $command->repository), $state->id),
+            $command instanceof UnlinkPullRequest => new PullRequestUnlinkedEvent(self::unlinkedPullRequest($command, $state), $state->id),
             $command instanceof MarkReadyForReview => new RequestReadyForReviewEvent($command->note),
             $command instanceof MarkWontDo => new RequestWontDoEvent(WontDoReason::fromString($command->reason)),
             $command instanceof Verify => new RequestVerifiedEvent($command->note),
@@ -271,12 +272,39 @@ final class RequestDecider
     private static function unlinkPullRequestViolations(UnlinkPullRequest $command, RequestState $state): array
     {
         try {
-            $url = PullRequestUrl::forRepository($command->url, $command->repository);
+            self::unlinkedPullRequest($command, $state);
         } catch (InvalidInput $error) {
             return $error->details()['violations'];
         }
 
-        return $state->hasPullRequest($url) ? [] : [['field' => 'url', 'message' => 'Is not linked to the request.']];
+        return [];
+    }
+
+    /**
+     * The linked URL that the command names. {@see PullRequestUrl::forRepository()} checks the current name of a GitHub
+     * repository, so a linked URL with an earlier name, in any letter case, is taken as it is. The exact URL wins over
+     * the number, because a link from before D64 can hold one number under two names.
+     *
+     * @throws InvalidInput
+     */
+    private static function unlinkedPullRequest(UnlinkPullRequest $command, RequestState $state): PullRequestUrl
+    {
+        $source = $command->repository->source();
+
+        try {
+            $url = PullRequestUrl::forRepository($command->url, $command->repository);
+        } catch (InvalidInput $invalid) {
+            $asLinked = RepositorySource::Github === $source
+                ? array_find($state->pullRequestUrls, static fn (PullRequestUrl $linked): bool => 0 === strcasecmp($linked->toString(), $command->url))
+                : null;
+            $url = $asLinked ?? throw $invalid;
+        }
+
+        if ($state->hasPullRequest($url)) {
+            return $url;
+        }
+
+        return $state->linkedPullRequest($url, $source) ?? throw InvalidInput::field('url', 'Is not linked to the request.');
     }
 
     /**
@@ -385,9 +413,10 @@ final class RequestDecider
     private static function linkPullRequest(LinkPullRequest $command, array $byId): array
     {
         $url = PullRequestUrl::forRepository($command->url, $command->repository);
+        $source = $command->repository->source();
         $newlyLinked = array_values(array_filter(
             $command->requestIds,
-            static fn (RequestId $requestId): bool => !$byId[$requestId->toString()]->hasPullRequest($url),
+            static fn (RequestId $requestId): bool => null === $byId[$requestId->toString()]->linkedPullRequest($url, $source),
         ));
 
         return [] === $newlyLinked ? [] : [new DecidedEvent(new PullRequestLinkedEvent($url, $newlyLinked, $command->note))];

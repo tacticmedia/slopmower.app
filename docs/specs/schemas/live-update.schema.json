@@ -14,6 +14,9 @@
       "$ref": "#/$defs/IndexUpdate"
     },
     {
+      "$ref": "#/$defs/PullRequestUpdate"
+    },
+    {
       "$ref": "#/$defs/RepositoryUpdate"
     },
     {
@@ -78,6 +81,27 @@
         },
         "reviewId": {
           "$ref": "common.schema.json#/$defs/Ulid"
+        }
+      }
+    },
+    "PullRequestUpdate": {
+      "type": "object",
+      "required": ["type", "reviewId", "requestIds"],
+      "properties": {
+        "type": {
+          "const": "pull_request"
+        },
+        "reviewId": {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        "requestIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/Ulid"
+          },
+          "description": "The requests of the review that link the pull request whose state or title changed."
         }
       }
     },

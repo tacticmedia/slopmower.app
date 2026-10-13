@@ -180,7 +180,7 @@ final class ServerClone
             throw new SourceUnavailable(self::GITHUB_SUSPENDED);
         }
 
-        $token = $this->installationTokens->forRepository($installationId, (int) $repository->getGithubRepositoryId());
+        $token = $this->installationTokens->forRepository($installationId, (int) $repository->getGithubRepositoryId(), InstallationTokenProvider::CONTENTS_READ);
 
         return FetchCommand::gitHub($this->gitHubGitBaseUrl, $repository->getName(), $token);
     }

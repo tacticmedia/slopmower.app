@@ -2,7 +2,7 @@ import type { Actor } from '../../../assets/api/types/actor';
 import type { Anchor, AnchorInput } from '../../../assets/api/types/anchor';
 import type { Blame } from '../../../assets/api/types/blame';
 import type { CommitLink } from '../../../assets/api/types/commit-link';
-import type { ActorKind, Awaiting, Proposal, RequestStatus, Resolution, ThreadEntryType } from '../../../assets/api/types/common';
+import type { ActorKind, Awaiting, Proposal, PullRequestState, RequestStatus, Resolution, ThreadEntryType } from '../../../assets/api/types/common';
 import type { Draft } from '../../../assets/api/types/draft';
 import type { FileContent } from '../../../assets/api/types/file-content';
 import type {
@@ -143,14 +143,31 @@ export class FakeReview {
         this.requests[this.requests.indexOf(current)] = { ...current, commits: [...current.commits, commit], commitCount: current.commitCount + 1 };
     }
 
+    /** The state stays `unknown` until {@link githubChangesPullRequest}. */
     agentLinksPullRequest(id: string, url: string, note: string | null = null): void {
         const current = this.#apply(id, { ...this.#entry('pull_request.linked', AGENT, note, this.find(id).status), pullRequestUrl: url });
-        this.requests[this.requests.indexOf(current)] = { ...current, pullRequestUrls: [...current.pullRequestUrls, url] };
+        this.requests[this.requests.indexOf(current)] = {
+            ...current,
+            pullRequestUrls: [...current.pullRequestUrls, url],
+            pullRequests: [...current.pullRequests, { url, state: 'unknown', title: null }],
+        };
     }
 
     agentUnlinksPullRequest(id: string, url: string): void {
         const current = this.#apply(id, { ...this.#entry('pull_request.unlinked', AGENT, null, this.find(id).status), pullRequestUrl: url });
-        this.requests[this.requests.indexOf(current)] = { ...current, pullRequestUrls: current.pullRequestUrls.filter((linked) => linked !== url) };
+        this.requests[this.requests.indexOf(current)] = {
+            ...current,
+            pullRequestUrls: current.pullRequestUrls.filter((linked) => linked !== url),
+            pullRequests: current.pullRequests.filter((linked) => linked.url !== url),
+        };
+    }
+
+    /** A read or a `pull_request` delivery: every request that links the URL shows the new state. */
+    githubChangesPullRequest(url: string, state: Exclude<PullRequestState, 'unknown'>, title: string): void {
+        this.requests = this.requests.map((request) => ({
+            ...request,
+            pullRequests: request.pullRequests.map((linked) => (linked.url === url ? { url, state, title } : linked)),
+        }));
     }
 
     agentMarksReady(id: string, note: string): void {

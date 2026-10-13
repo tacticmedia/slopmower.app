@@ -270,7 +270,7 @@ The endpoint queues a fetch. If `sync.state` is `failed`, it queues the clone ag
 - **Success:** 202, no body.
 - **Errors:** 422 `invalid_input` when `confirm` does not equal `name`.
 
-One transaction in the request deletes the repository and its rows: the reviews, the requests, the events, the drafts, the viewed files, the location cache, the index, and the tokens scoped to the repository. The repository and its reviews then get 404, and the server publishes `repository_deleted`.
+One transaction in the request deletes the repository and its rows: the reviews, the requests, the events, the drafts, the viewed files, the location cache, the index, the pull request records, and the tokens scoped to the repository. The repository and its reviews then get 404, and the server publishes `repository_deleted`.
 
 Then a Messenger job deletes the clone with its pin refs. The directory or GitHub repository can be connected again at once. The GitHub App installation does not change.
 

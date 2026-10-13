@@ -65,6 +65,7 @@ import liveUpdateEventsBatch from '../../docs/specs/fixtures/live-update.events-
 import liveUpdateEvents from '../../docs/specs/fixtures/live-update.events.json';
 import liveUpdateIndex from '../../docs/specs/fixtures/live-update.index.json';
 import liveUpdateOutdated from '../../docs/specs/fixtures/live-update.outdated.json';
+import liveUpdatePullRequest from '../../docs/specs/fixtures/live-update.pull-request.json';
 import liveUpdateRepositoryDeleted from '../../docs/specs/fixtures/live-update.repository-deleted.json';
 import liveUpdateRepository from '../../docs/specs/fixtures/live-update.repository.json';
 import meAgent from '../../docs/specs/fixtures/me.agent.json';
@@ -81,6 +82,7 @@ import requestGeneral from '../../docs/specs/fixtures/request.general.json';
 import requestInProgress from '../../docs/specs/fixtures/request.in-progress.json';
 import requestOpenedRange from '../../docs/specs/fixtures/request.opened-range.json';
 import requestProposalPending from '../../docs/specs/fixtures/request.proposal-pending.json';
+import requestPullRequest from '../../docs/specs/fixtures/request.pull-request.json';
 import requestWithExcerpt from '../../docs/specs/fixtures/request.with-excerpt.json';
 import reviewClosed from '../../docs/specs/fixtures/review.closed.json';
 import reviewIndexStatus from '../../docs/specs/fixtures/review.index-status.json';
@@ -221,6 +223,7 @@ const checkedFixtures = {
     'live-update.events.json': liveUpdateEvents satisfies WidenedLiveUpdate<'events'>,
     'live-update.index.json': liveUpdateIndex satisfies WidenedLiveUpdate<'index'>,
     'live-update.outdated.json': liveUpdateOutdated satisfies WidenedLiveUpdate<'outdated'>,
+    'live-update.pull-request.json': liveUpdatePullRequest satisfies WidenedLiveUpdate<'pull_request'>,
     'live-update.repository-deleted.json': liveUpdateRepositoryDeleted satisfies WidenedLiveUpdate<'repository_deleted'>,
     'live-update.repository.json': liveUpdateRepository satisfies WidenedLiveUpdate<'repository'>,
     'me.agent.json': meAgent satisfies Widen<Me>,
@@ -237,6 +240,7 @@ const checkedFixtures = {
     'request.in-progress.json': requestInProgress satisfies Widen<Request>,
     'request.opened-range.json': requestOpenedRange satisfies Widen<Request>,
     'request.proposal-pending.json': requestProposalPending satisfies Widen<Request>,
+    'request.pull-request.json': requestPullRequest satisfies Widen<Request>,
     'request.with-excerpt.json': requestWithExcerpt satisfies Widen<Request>,
     'review.closed.json': reviewClosed satisfies Widen<Review>,
     'review.index-status.json': reviewIndexStatus satisfies Widen<IndexStatus>,

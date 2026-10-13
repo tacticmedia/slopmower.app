@@ -67,6 +67,7 @@ final class PurgeTenantTest extends WebTestCase
         $repositoryId = self::connectAndClone($this->client);
         [, $secret] = self::storeToken($this->user);
         self::populatedReview($this->client, $this->user, self::secondUser($this->user), $repositoryId, $secret, $commit);
+        self::storePullRequest($repositoryId);
         self::storeInstallation($this->user->getTenantId());
         self::storeCandidate($this->user->getTenantId());
     }

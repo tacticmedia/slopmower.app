@@ -29,14 +29,15 @@ final class InstallationTokenTest extends KernelTestCase
     use ResetDatabase;
     use TemporaryDirectories;
 
-    #[TestDox('The request limits the token to one repository and contents read')]
+    #[TestDox('The token request asks for one repository and the permissions of the job')]
     public function testRequestLimitsTheToken(): void
     {
-        // The recorded GitHub answers 201 only to a bearer token in JWT form that asks for one repository and contents
-        // read.
-        $token = self::getContainer()->get(InstallationTokenProvider::class)->forRepository(5551, 812345);
+        // The recorded GitHub answers 201 only to a bearer token in JWT form that asks for one repository, with one
+        // token per permission set.
+        $tokens = self::getContainer()->get(InstallationTokenProvider::class);
 
-        self::assertSame(GitHubResponses::INSTALLATION_TOKEN, $token);
+        self::assertSame(GitHubResponses::INSTALLATION_TOKEN, $tokens->forRepository(5551, 812345, InstallationTokenProvider::CONTENTS_READ));
+        self::assertSame(GitHubResponses::PULL_REQUESTS_INSTALLATION_TOKEN, $tokens->forRepository(5551, 812345, InstallationTokenProvider::PULL_REQUESTS_READ));
     }
 
     #[TestDox('Each fetch requests a new token')]

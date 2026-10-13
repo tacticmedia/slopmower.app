@@ -20,7 +20,7 @@ use Symfony\Component\Webhook\Exception\RejectWebhookException;
  */
 final class GitHubRequestParser extends AbstractRequestParser
 {
-    private const array HANDLED_EVENTS = ['ping', 'push', 'installation', 'installation_repositories', 'repository', 'github_app_authorization'];
+    private const array HANDLED_EVENTS = ['ping', 'push', 'installation', 'installation_repositories', 'repository', 'pull_request', 'github_app_authorization'];
 
     protected function getRequestMatcher(): RequestMatcherInterface
     {

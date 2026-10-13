@@ -13,25 +13,34 @@ This file specifies the GitHub webhooks, the fetches that make commits available
 | Parsing | Unparsable JSON, and JSON that is not an object, get 406. After verification, every delivery returns a `RemoteEvent`: name `github.<X-GitHub-Event>`, id = `X-GitHub-Delivery`, payload = the decoded body. Events that the server does not handle get the name `github.ignored`. A parser that returns `null` makes Symfony answer 406, so the parser never returns `null` for a verified delivery. |
 | Response | 202 with an empty body, the `AbstractRequestParser` default, within the 10-second limit of GitHub. The work runs in the Messenger worker. |
 | Duplicates | The consumer skips a delivery whose `X-GitHub-Delivery` is in `webhook_delivery (id PRIMARY KEY, received_at)`. It inserts the ID after it queues the jobs, so a failed run is retried. Every job is idempotent, so a duplicate, including a redelivery, changes nothing. Rows older than 7 days are purged. |
-| Tenancy | The consumer runs with the Doctrine tenant filter off. Only `TenantFilter::suspend()` turns the filter off, in four places: the sign-in and token lookup, this webhook router, the projection rebuild, and the tenant purge. See [architecture section 4](../architecture.md). The consumer finds the tenants by GitHub ID through `Repository`, `GitHubInstallation`, `GitHubCandidate`, and `User` rows. Each job that it queues carries a `TenantStamp` of its tenant. `TenantContextMiddleware` sets the fail-closed tenant context before the handler runs. |
+| Tenancy | The consumer runs with the Doctrine tenant filter off. Only `TenantFilter::suspend()` turns the filter off, in four places: the sign-in and token lookup, this webhook router, the projection rebuild, and the tenant purge. See [architecture section 4](../architecture.md). The consumer finds the tenants by GitHub ID through `Repository`, `GitHubInstallation`, `GitHubCandidate`, `User`, and `PullRequest` rows. Each job that it queues carries a `TenantStamp` of its tenant. `TenantContextMiddleware` sets the fail-closed tenant context before the handler runs. |
 
-Events. Subscribe to `push` and `repository` in the App settings. GitHub sends the `installation` and `installation_repositories` events to every GitHub App without a subscription. Sign-in compares the installations anyway, because a delivery can fail.
+Events. Subscribe to `push`, `repository`, and `pull_request` in the App settings. GitHub sends `pull_request` only to an installation that accepted Pull requests: read. GitHub sends the `installation` and `installation_repositories` events to every GitHub App without a subscription. Sign-in compares the installations anyway, because a delivery can fail.
 
 | `X-GitHub-Event` | Action | What the server does |
 |---|---|---|
 | `ping` | none | No-op |
 | `push` | any, for branches and tags | For each tenant repository with `github.repositoryId = repository.id` and `access = active`, request a fetch through `FetchRepository::request()` in the tenant context of that repository, as R5 does. The queued `FetchRepositoryJob` carries a `TenantStamp`. The fetch then does the steps of [section 2.2](#22-after-every-successful-fetch). |
-| `installation` | `created` | If a user has `githubUserId = sender.id`, record the `GitHubInstallation` for that tenant and publish `candidates_changed`. Otherwise ignore it: the next sign-in records it. An installation whose `target_type` is neither `User` nor `Organization`, for example an enterprise installation, is ignored here and at sign-in, because it holds no repositories. |
+| `installation` | `created` | If a user has `githubUserId = sender.id`, record the `GitHubInstallation` with `installation.permissions` for that tenant and publish `candidates_changed`. Otherwise ignore it: the next sign-in records it. An installation whose `target_type` is neither `User` nor `Organization`, for example an enterprise installation, is ignored here and at sign-in, because it holds no repositories. |
 | `installation` | `deleted` | For each tenant with this installation: delete the candidates of the installation and the installation row, then mark all its repositories `access = removed`, queue a job that deletes their clones with the pin refs and their index, publish `repository` for each, and publish `candidates_changed`. Reviews stay, by decision D22. |
 | `installation` | `suspend`, `unsuspend` | Set or clear `suspendedAt`. While suspended, fetches fail with `sync.lastError = "GitHub App installation suspended"`, and operations that need a fetch get `repository_unavailable` with reason `fetch_failed`. |
-| `installation` | `new_permissions_accepted` | No-op |
+| `installation` | `new_permissions_accepted` | For each tenant with this installation, store `installation.permissions` on its `GitHubInstallation`. |
 | `installation_repositories` | `added` | For installations where `installation.account.type = User` and `installation.account.id` equals the `githubUserId` of a tenant user, add the repositories to the candidate list of that tenant and publish `candidates_changed`. The payload has no default branch or HTML URL, so the server reads each repository with `GET /repos/{owner}/{repo}` and an installation token. Organization installations refresh at the next sign-in, because user access cannot be checked without the user token. |
 | `installation_repositories` | `removed` | For each repository in `repositories_removed`: remove it from the candidates, then set `access = removed`, queue a job that deletes the clone and the index, and publish `repository` and `candidates_changed` |
 | `repository` | `renamed`, `transferred` | Update `Repository.name` to `repository.full_name` and publish `repository`. The old name answers `not_found`. If another repository of the tenant has the new name, compared case-insensitively, the name does not change. |
 | `repository` | `deleted` | As `installation_repositories.removed` |
 | `repository` | others, for example `privatized`, `publicized`, `edited` | Update `github.private` when it changed, otherwise no-op |
+| `pull_request` | any | For each tenant with a pull request record of `repository.id` and `pull_request.number`, queue a job that updates the record from the `pull_request` object, without an API call. A number without a record queues no job. See [pull request state](#pull-request-state). |
 | `github_app_authorization` | `revoked` | Logged. The server never stores the user token, so there is nothing to revoke. |
 | anything else | any | `github.ignored`: no-op |
+
+### Pull request state
+
+- **Record.** A tenant-owned `pull_request` record per repository and number holds the title, `state` (`open` or `closed`), `merged`, `draft`, the head SHA, the full name of the head repository, and the GitHub `updated_at`. `merged` is true when `merged_at` is set, because the `pull_request` object of some actions has no `merged`. `Request.pullRequests` shows `draft` when `state` is `open` and `draft` is true, `merged` when `state` is `closed` and `merged` is true, else `state`, and `unknown` without a read state.
+- **First read.** A [Q17](rest-api-requests.md#q17-link-a-pull-request-to-requests) that writes a link on a GitHub repository queues a job. It creates the record of a new number and reads `GET /repos/{owner}/{repo}/pulls/{number}` with an installation token for the repository and `pull_requests: read`. When the repository has lost its access, or its installation is suspended or lacks Pull requests: read in its `permissions`, the job requests no token and the state stays `unknown`. A 404 leaves the record unchanged.
+- **Updates.** Each `pull_request` delivery updates the record from its `pull_request` object. A payload or response with an older `updated_at` than the record changes nothing, so the order of deliveries and reads does not matter.
+- **Live update.** A changed state or title publishes one `pull_request` update per review with requests that link the number.
+- **Tokens.** Each installation token asks for the permissions of its job: `contents: read` for a clone, a fetch, and a repository read, and `pull_requests: read` for a pull request read.
 
 ## 2. Fetches and commit availability
 
@@ -81,7 +90,7 @@ Topics:
 | Topic | Selector in the JWT | Update types |
 |---|---|---|
 | `{base}/tenants/{tenantId}/repositories` | exact | `repository`, `repository_deleted`, `candidates_changed` |
-| `{base}/tenants/{tenantId}/reviews/{reviewId}` | URI template with the tenant ID filled in and `{reviewId}` as the only variable, for example `https://slopmower.example/tenants/01K6AZZ0TENANT000000000001/reviews/{reviewId}`. It matches any review of that tenant only. | `events`, `outdated`, `index` |
+| `{base}/tenants/{tenantId}/reviews/{reviewId}` | URI template with the tenant ID filled in and `{reviewId}` as the only variable, for example `https://slopmower.example/tenants/01K6AZZ0TENANT000000000001/reviews/{reviewId}`. It matches any review of that tenant only. | `events`, `outdated`, `index`, `pull_request` |
 
 Update types. [live-update.schema.json](schemas/live-update.schema.json) defines the payloads.
 
@@ -89,6 +98,7 @@ Update types. [live-update.schema.json](schemas/live-update.schema.json) defines
 |---|---|---|---|
 | `events` | `{type, reviewId, seq, requestIds}` | Once per committed write transaction that wrote events. `seq` is the number of the last event of the transaction. `requestIds` holds every request that its events concern, or `[]` when it wrote only review events. | [live-update.events.json](fixtures/live-update.events.json), [live-update.events-batch.json](fixtures/live-update.events-batch.json) |
 | `outdated` | `{type, reviewId, requestIds}` | After a location recompute that changed at least one `outdated` flag. `requestIds` holds the requests whose flag changed. | [live-update.outdated.json](fixtures/live-update.outdated.json) |
+| `pull_request` | `{type, reviewId, requestIds}` | After a pull request read or a `pull_request` delivery that changed the state or the title of a pull request, once per review with requests that link it. `requestIds` holds those requests. | [live-update.pull-request.json](fixtures/live-update.pull-request.json) |
 | `index` | `{type, reviewId}` | While the index job runs, at most once per second per review, plus the final state | [live-update.index.json](fixtures/live-update.index.json) |
 | `repository` | `{type, repositoryId}` | After each `sync.state` change, fetch, access change, and rename, and after [V13](rest-api.md#v13-delete-a-review) deletes a review of the repository | [live-update.repository.json](fixtures/live-update.repository.json) |
 | `repository_deleted` | `{type, repositoryId}` | At [R6](rest-api.md#r6-delete-repository-data) | [live-update.repository-deleted.json](fixtures/live-update.repository-deleted.json) |
@@ -106,7 +116,7 @@ Client behaviour in the web UI:
 1. **Subscribe.** Call [A3](rest-api.md#a3-authorize-live-updates), then open one `new EventSource(url, {withCredentials: true})`. `url` is `hubUrl` with one `topic` parameter for the repositories topic and one for the topic of the open review, each encoded with `encodeURIComponent`. Call A3 again before `expiresAt`. The `useLiveRevalidation` hook holds the connection.
 2. **Track the position.** Keep `lastSeq` per review. It comes from `events` updates, from `events[].seq` of command results, from `Review.lastEventSeq`, and from the `cursor` of the updates endpoint. Ignore an `events` update whose `seq` is not above `lastSeq`.
 3. **Revalidate.** On an update, call `revalidate()` of the data router that `createBrowserRouter` of React Router 8.4.0 creates. It runs the loaders of the active routes again, and they read fresh data through REST. Only one revalidation runs at a time. Updates that arrive during a revalidation cause one more revalidation after it.
-   - `events`, `outdated`, and `index`: when `reviewId` is the open review.
+   - `events`, `outdated`, `index`, and `pull_request`: when `reviewId` is the open review.
    - `repository`, `repository_deleted`, and `candidates_changed`: always.
 4. **Catch up after a reconnect.** On every EventSource `open` after an error, and when the tab becomes visible again, call `GET /api/v1/reviews/{id}/updates?cursor=<lastSeq>&includeOwn=true` until `hasMore` is false. Set `lastSeq` to the last `cursor`, then revalidate once. The UI does not rely on `Last-Event-ID` replay. Hub history is not part of the contract.
 5. **Request detail.** The loader of the request detail view reads `GET /api/v1/requests/{id}`, so a revalidation also refreshes the thread and `allowedActions`. `allowedActions` depends on the caller, so it is never in a live payload.

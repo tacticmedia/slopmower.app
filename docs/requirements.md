@@ -43,7 +43,7 @@ These two principles control all decisions.
 ### FR3 Repositories
 
 - A repository comes from one of two sources:
-  - the Slopmower GitHub App, installed on repositories that the user chooses, with read-only access to contents;
+  - the Slopmower GitHub App, installed on repositories that the user chooses, with read-only access to contents and pull requests;
   - a local directory under `APP_LOCAL_REPOSITORIES_DIR`, which Docker mounts read-only into the application.
 - Local repositories are an instance feature. When `APP_LOCAL_REPOSITORIES_DIR` is set, every tenant of that instance may connect the repositories under it. The feature is meant for local and self-hosted runs. It is off when the variable is unset.
 - The UI lists the git repositories found directly under the directory. The user connects one.
@@ -107,8 +107,8 @@ These two principles control all decisions.
 - A link stays `pending` until the commit is in the server clone. For a GitHub repository the commit must be pushed. For a local repository a commit on a branch of the connected repository is enough.
 - `mark_ready_for_review` requires every linked commit to be in the server clone after one fetch. Otherwise it fails with `commits_not_available`.
 - The user sees the linked commits of each request and the diff of each commit.
-- An agent that opened a pull request for its work links it to the requests that it covers: requests that it holds, or requests that are ready for review. For a GitHub repository the URL must name a pull request of the reviewed repository. A pull request link changes neither the status nor whose turn it is. The server stores the URL only and never reads the pull request. The agent can unlink a pull request that it linked by mistake, on the same requests and with the same effect on the status and the turn.
-- The user sees the linked pull requests of each request, in its header and in its thread. A pull request opens in a new tab.
+- An agent that opened a pull request for its work links it to the requests that it covers: requests that it holds, or requests that are ready for review. For a GitHub repository the URL must name a pull request of the reviewed repository. A pull request link changes neither the status nor whose turn it is. A GitHub pull request is identified by its number, so a link made before a rename of the repository still names it. The server reads the state of a GitHub pull request and never writes to GitHub. The agent can unlink a pull request that it linked by mistake, on the same requests and with the same effect on the status and the turn.
+- The user sees the linked pull requests of each request, in its header and in its thread. A pull request opens in a new tab. A GitHub pull request shows its state: open, draft, merged, or closed. The header also shows its title. A change on GitHub shows without a reload.
 
 ### FR10 Human interface
 

@@ -17,6 +17,7 @@ use App\Domain\Git\CommitInfo;
 use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
+use App\Domain\Repository\RepositorySource;
 use App\Domain\Request\Command\ApproveProposal;
 use App\Domain\Request\Command\Claim;
 use App\Domain\Request\Command\LinkCommits;
@@ -45,11 +46,13 @@ use App\Git\GitFailed;
 use App\Git\GitReader;
 use App\Git\PinRefs;
 use App\Git\TenantDataPaths;
+use App\Message\ReadPullRequestJob;
 use App\Projection\RequestStateMapper;
 use App\Repository\ChangeRequestRepository;
 use App\Repository\CommitLinkRepository;
 use App\Repository\ReviewRepository;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * Each method but linkCommits() and linkPullRequest() returns the events that the command wrote. The ID of an opened
@@ -70,6 +73,7 @@ final class RequestCommands
         private readonly GitReader $reader,
         private readonly PinRefs $pins,
         private readonly TenantDataPaths $paths,
+        private readonly MessageBusInterface $bus,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -144,7 +148,7 @@ final class RequestCommands
 
     /**
      * Q17. The command carries the name of the review's repository, so the decider checks a GitHub URL against it and
-     * stores its canonical form.
+     * stores its canonical form. A new link of a GitHub pull request queues the read of its state.
      *
      * @param list<RequestId> $requestIds
      *
@@ -154,10 +158,16 @@ final class RequestCommands
     {
         $first = $requestIds[0] ?? throw InvalidInput::field('requestIds', 'Must not be empty.');
         $review = ($this->requests->findFresh($first) ?? throw new NotFound())->getReview();
-        $repository = $review->getRepository()->getName();
-        $events = $this->run($review->getId(), new LinkPullRequest($url, $requestIds, $repository, $note), $actor);
+        $repository = $review->getRepository();
+        $events = $this->run($review->getId(), new LinkPullRequest($url, $requestIds, $repository->getName(), $note), $actor);
+        $linked = PullRequestUrl::forRepository($url, $repository->getName());
+        $number = $linked->gitHubNumber();
 
-        return $this->requestQuery->linkPullRequestResult(PullRequestUrl::forRepository($url, $repository), $requestIds, $events);
+        if ([] !== $events && RepositorySource::Github === $repository->getSource() && null !== $number) {
+            $this->bus->dispatch(new ReadPullRequestJob($repository->getId(), $number));
+        }
+
+        return $this->requestQuery->linkPullRequestResult($linked, $requestIds, $events);
     }
 
     /**

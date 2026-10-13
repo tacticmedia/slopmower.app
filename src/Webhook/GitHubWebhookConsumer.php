@@ -11,10 +11,13 @@ use App\Domain\Repository\RepositoryName;
 use App\Entity\GitHubAccountType;
 use App\Entity\TenantOwned;
 use App\GitHub\Payload\InstallationPayload;
+use App\GitHub\Payload\PullRequestPayload;
 use App\GitHub\Payload\RepositoryPayload;
 use App\Message\GitHubInstallationCreatedJob;
 use App\Message\GitHubInstallationDeletedJob;
+use App\Message\GitHubInstallationPermissionsJob;
 use App\Message\GitHubInstallationSuspensionJob;
+use App\Message\GitHubPullRequestJob;
 use App\Message\GitHubPushJob;
 use App\Message\GitHubRepositoriesAddedJob;
 use App\Message\GitHubRepositoriesRemovedJob;
@@ -22,6 +25,7 @@ use App\Message\GitHubRepositoryUpdatedJob;
 use App\Messenger\TenantStamp;
 use App\Repository\GitHubCandidateRepository;
 use App\Repository\GitHubInstallationRepository;
+use App\Repository\PullRequestRepository;
 use App\Repository\RepositoryRepository;
 use App\Repository\TenantRepository;
 use App\Repository\UserRepository;
@@ -51,6 +55,7 @@ final class GitHubWebhookConsumer implements ConsumerInterface
         private readonly RepositoryRepository $repositories,
         private readonly GitHubInstallationRepository $installations,
         private readonly GitHubCandidateRepository $candidates,
+        private readonly PullRequestRepository $pullRequests,
         private readonly UserRepository $users,
         private readonly TenantRepository $tenants,
         private readonly DenormalizerInterface $denormalizer,
@@ -115,6 +120,7 @@ final class GitHubWebhookConsumer implements ConsumerInterface
                 default => [],
             },
             'github.repository' => $this->repository($action, $payload),
+            'github.pull_request' => $this->pullRequest($payload),
             'github.github_app_authorization' => $this->authorization($action, $payload),
             default => [],
         };
@@ -160,6 +166,11 @@ final class GitHubWebhookConsumer implements ConsumerInterface
                 self::tenantIds(...$installations),
                 new GitHubInstallationSuspensionJob($installationId, 'suspend' === $action ? $this->clock->now() : null),
             ),
+            // A tenant has only user and organization installations, whose payload denormalizes.
+            'new_permissions_accepted' => [] === $installations ? [] : self::jobs(
+                self::tenantIds(...$installations),
+                new GitHubInstallationPermissionsJob($installationId, $this->denormalizer->denormalize($payload['installation'], InstallationPayload::class)->permissions),
+            ),
             default => [],
         };
     }
@@ -184,7 +195,7 @@ final class GitHubWebhookConsumer implements ConsumerInterface
 
         $installation = $this->denormalizer->denormalize($payload['installation'], InstallationPayload::class);
 
-        return [[$user->getTenantId(), new GitHubInstallationCreatedJob($installation->id, $installation->account->login, $accountType, $installation->suspendedAt)]];
+        return [[$user->getTenantId(), new GitHubInstallationCreatedJob($installation->id, $installation->account->login, $accountType, $installation->suspendedAt, $installation->permissions)]];
     }
 
     /**
@@ -258,6 +269,24 @@ final class GitHubWebhookConsumer implements ConsumerInterface
         $job = new GitHubRepositoryUpdatedJob($repository->id, self::name($repository->fullName), $repository->private, $renamed);
 
         return self::jobs(self::tenantIds(...$this->repositories->findBy(['githubRepositoryId' => $repository->id])), $job);
+    }
+
+    /**
+     * Only tenants that link the number have a record of it.
+     *
+     * @param array<mixed> $payload
+     *
+     * @return list<array{TenantId, object}>
+     */
+    private function pullRequest(array $payload): array
+    {
+        $githubRepositoryId = $this->denormalizer->denormalize($payload['repository'] ?? null, RepositoryPayload::class)->id;
+        $pullRequest = $this->denormalizer->denormalize($payload['pull_request'] ?? null, PullRequestPayload::class);
+
+        return self::jobs(
+            self::tenantIds(...$this->pullRequests->findByGitHubRepository($githubRepositoryId, $pullRequest->number)),
+            new GitHubPullRequestJob($githubRepositoryId, $pullRequest),
+        );
     }
 
     /**

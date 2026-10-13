@@ -10,6 +10,7 @@ use App\Domain\Anchor\Anchor;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
+use App\Domain\Repository\RepositorySource;
 
 /**
  * One request as {@see RequestReducer} folds it from the request's thread. {@see AwaitingPolicy} derives `awaiting`.
@@ -83,6 +84,14 @@ final readonly class RequestState
     public function hasPullRequest(PullRequestUrl $url): bool
     {
         return array_any($this->pullRequestUrls, static fn (PullRequestUrl $linked): bool => $linked->equals($url));
+    }
+
+    /**
+     * The linked URL of the pull request that `$url` names, see {@see PullRequestUrl::namesSamePullRequest()}.
+     */
+    public function linkedPullRequest(PullRequestUrl $url, RepositorySource $source): ?PullRequestUrl
+    {
+        return array_find($this->pullRequestUrls, static fn (PullRequestUrl $linked): bool => $linked->namesSamePullRequest($url, $source));
     }
 
     /**

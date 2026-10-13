@@ -184,7 +184,7 @@ final class InstallationSync
             }
 
             $installation = $this->denormalizer->denormalize($item, InstallationPayload::class);
-            $installations[] = new GitHubInstallation($tenantId, $installation->id, $installation->account->login, $targetType, $installation->suspendedAt);
+            $installations[] = new GitHubInstallation($tenantId, $installation->id, $installation->account->login, $targetType, $installation->suspendedAt, $installation->permissions);
 
             foreach ($this->items("user/installations/{$installation->id}/repositories", 'repositories', $userToken) as $repositoryItem) {
                 $repository = $this->denormalizer->denormalize($repositoryItem, RepositoryPayload::class);

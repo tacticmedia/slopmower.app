@@ -38,7 +38,14 @@ class GitHubInstallation implements TenantOwned
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $suspendedAt;
 
-    public function __construct(TenantId $tenantId, int $installationId, string $accountLogin, GitHubAccountType $accountType, ?\DateTimeImmutable $suspendedAt)
+    /** @var array<string, string> The accepted permissions as GitHub sends them, for example `['contents' => 'read']` */
+    #[ORM\Column(type: Types::JSONB)]
+    private array $permissions;
+
+    /**
+     * @param array<string, string> $permissions
+     */
+    public function __construct(TenantId $tenantId, int $installationId, string $accountLogin, GitHubAccountType $accountType, ?\DateTimeImmutable $suspendedAt, array $permissions)
     {
         $this->id = GitHubInstallationId::generate();
         $this->tenantId = $tenantId;
@@ -46,6 +53,7 @@ class GitHubInstallation implements TenantOwned
         $this->accountLogin = $accountLogin;
         $this->accountType = $accountType;
         $this->suspendedAt = $suspendedAt;
+        $this->permissions = $permissions;
     }
 
     public function getTenantId(): TenantId
@@ -64,5 +72,21 @@ class GitHubInstallation implements TenantOwned
     public function recordSuspension(?\DateTimeImmutable $suspendedAt): void
     {
         $this->suspendedAt = $suspendedAt;
+    }
+
+    /**
+     * @param array<string, string> $permissions
+     */
+    public function recordPermissions(array $permissions): void
+    {
+        $this->permissions = $permissions;
+    }
+
+    /**
+     * Accepted at `read` or `write`.
+     */
+    public function canRead(string $permission): bool
+    {
+        return \in_array($this->permissions[$permission] ?? null, ['read', 'write'], true);
     }
 }

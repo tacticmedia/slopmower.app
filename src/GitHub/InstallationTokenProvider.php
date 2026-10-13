@@ -17,7 +17,8 @@ use Symfony\Contracts\HttpClient\Exception\ExceptionInterface as HttpClientExcep
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
- * Every clone or fetch requests a new token, and only its caller holds it (architecture section 12).
+ * Every job requests a new token with the permissions of that job, and only its caller holds it (architecture section
+ * 12, D64).
  */
 final class InstallationTokenProvider
 {
@@ -27,6 +28,11 @@ final class InstallationTokenProvider
         'Accept' => 'application/vnd.github+json',
         'X-GitHub-Api-Version' => '2026-03-10',
     ];
+
+    /** A clone, a fetch, and a repository read. */
+    public const array CONTENTS_READ = ['contents' => 'read'];
+
+    public const array PULL_REQUESTS_READ = ['pull_requests' => 'read'];
 
     /** Covers clock drift between the server and GitHub. */
     private const int JWT_BACKDATE_SECONDS = 60;
@@ -47,11 +53,14 @@ final class InstallationTokenProvider
     }
 
     /**
-     * A token for one repository with `contents: read`.
+     * A token for one repository. GitHub refuses permissions that the installation has not accepted, so a job checks
+     * {@see \App\Entity\GitHubInstallation::canRead()} first.
+     *
+     * @param array<string, string> $permissions The permissions of the job, for example {@see self::CONTENTS_READ}
      *
      * @throws GitHubRequestFailed
      */
-    public function forRepository(int $installationId, int $repositoryId): string
+    public function forRepository(int $installationId, int $repositoryId, array $permissions): string
     {
         $status = 0;
 
@@ -59,7 +68,7 @@ final class InstallationTokenProvider
             $response = $this->githubClient->request('POST', self::API."app/installations/{$installationId}/access_tokens", [
                 'auth_bearer' => $this->appJwt(),
                 'headers' => self::API_HEADERS,
-                'json' => ['repository_ids' => [$repositoryId], 'permissions' => ['contents' => 'read']],
+                'json' => ['repository_ids' => [$repositoryId], 'permissions' => $permissions],
                 // Keeps the token out of the profiler storage.
                 'extra' => ['trace_content' => false],
             ]);

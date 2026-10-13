@@ -45,6 +45,7 @@ final class DeletionSql
         'DELETE FROM review_event WHERE tenant_id = :tenantId AND review_id IN (SELECT id FROM review WHERE tenant_id = :tenantId AND repository_id = :repositoryId)',
         'DELETE FROM review WHERE tenant_id = :tenantId AND repository_id = :repositoryId',
         ...self::REPOSITORY_INDEX,
+        'DELETE FROM pull_request WHERE tenant_id = :tenantId AND repository_id = :repositoryId',
         'DELETE FROM api_token WHERE tenant_id = :tenantId AND repository_id = :repositoryId',
         'DELETE FROM repository WHERE tenant_id = :tenantId AND id = :repositoryId',
     ];
@@ -78,6 +79,7 @@ final class DeletionSql
         'DELETE FROM symbol WHERE tenant_id = :tenantId',
         'DELETE FROM indexed_blob WHERE tenant_id = :tenantId',
         'DELETE FROM indexed_file WHERE tenant_id = :tenantId',
+        'DELETE FROM pull_request WHERE tenant_id = :tenantId',
         'DELETE FROM api_token WHERE tenant_id = :tenantId',
         'DELETE FROM github_candidate WHERE tenant_id = :tenantId',
         'DELETE FROM github_installation WHERE tenant_id = :tenantId',

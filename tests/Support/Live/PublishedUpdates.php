@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Support\Live;
 
+use App\Domain\Identity\ReviewId;
 use App\Domain\Identity\TenantId;
 use App\Live\LiveTopics;
 use App\Tests\Support\Contract\SchemaValidator;
@@ -32,7 +33,24 @@ trait PublishedUpdates
      */
     private static function repositoriesTopicUpdates(TenantId $tenantId): array
     {
-        $topic = self::getContainer()->get(LiveTopics::class)->repositories($tenantId);
+        return self::topicUpdates(self::getContainer()->get(LiveTopics::class)->repositories($tenantId));
+    }
+
+    /**
+     * The data of the updates on the topic of the review, each private and valid against live-update.schema.json.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private static function reviewTopicUpdates(TenantId $tenantId, ReviewId $reviewId): array
+    {
+        return self::topicUpdates(self::getContainer()->get(LiveTopics::class)->review($tenantId, $reviewId));
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private static function topicUpdates(string $topic): array
+    {
         $updates = array_values(array_filter(self::publishedUpdates(), static fn (Update $update): bool => [$topic] === $update->getTopics()));
 
         foreach ($updates as $update) {

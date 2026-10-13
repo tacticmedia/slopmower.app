@@ -18,6 +18,7 @@ use App\Live\LivePublisher;
 use App\Live\LiveTopics;
 use App\Message\GitHubInstallationCreatedJob;
 use App\Message\GitHubInstallationDeletedJob;
+use App\Message\GitHubInstallationPermissionsJob;
 use App\Message\GitHubInstallationSuspensionJob;
 use App\Message\GitHubRepositoriesAddedJob;
 use App\Message\GitHubRepositoriesRemovedJob;
@@ -65,8 +66,12 @@ final class GitHubInstallationHandler
         $tenantId = $this->tenantContext->get();
 
         $ran = $this->repositoriesLock->run($tenantId, function () use ($job, $tenantId): true {
-            if (null === $this->installations->findOneBy(['installationId' => $job->installationId])) {
-                $this->entityManager->persist(new GitHubInstallation($tenantId, $job->installationId, $job->accountLogin, $job->accountType, $job->suspendedAt));
+            $installation = $this->installations->findOneBy(['installationId' => $job->installationId]);
+
+            if (null === $installation) {
+                $this->entityManager->persist(new GitHubInstallation($tenantId, $job->installationId, $job->accountLogin, $job->accountType, $job->suspendedAt, $job->permissions));
+            } else {
+                $installation->recordPermissions($job->permissions);
             }
 
             return true;
@@ -112,6 +117,14 @@ final class GitHubInstallationHandler
     {
         $this->repositoriesLock->run($this->tenantContext->get(), function () use ($job): void {
             $this->installations->findOneBy(['installationId' => $job->installationId])?->recordSuspension($job->suspendedAt);
+        });
+    }
+
+    #[AsMessageHandler]
+    public function handlePermissions(GitHubInstallationPermissionsJob $job): void
+    {
+        $this->repositoriesLock->run($this->tenantContext->get(), function () use ($job): void {
+            $this->installations->findOneBy(['installationId' => $job->installationId])?->recordPermissions($job->permissions);
         });
     }
 
@@ -196,7 +209,7 @@ final class GitHubInstallationHandler
      */
     private function readRepository(int $installationId, int $githubRepositoryId, RepositoryName $fullName): RepositoryPayload
     {
-        $token = $this->installationTokens->forRepository($installationId, $githubRepositoryId);
+        $token = $this->installationTokens->forRepository($installationId, $githubRepositoryId, InstallationTokenProvider::CONTENTS_READ);
         $response = $this->githubClient->request('GET', InstallationTokenProvider::API."repos/{$fullName}", ['auth_bearer' => $token, 'headers' => InstallationTokenProvider::API_HEADERS]);
 
         try {

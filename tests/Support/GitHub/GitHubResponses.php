@@ -9,8 +9,9 @@ use Symfony\Component\HttpClient\Response\MockResponse;
 /**
  * The mock_response_factory of github.client in the test environment. Serves the recorded responses in tests/Fixtures/github.
  * The user token selects the user and the installation listing. The installation token endpoint answers 201 only for a
- * bearer token in JWT form and a token limited to one repository with `contents: read`, as the App asks for it. A
- * repository read answers only the installation token.
+ * bearer token in JWT form and a token limited to one repository and one permission set of
+ * {@see self::TOKEN_FIXTURE_BY_PERMISSIONS}, as the jobs ask for it. A repository read answers only the
+ * `contents: read` token, and a pull request read only the `pull_requests: read` token.
  */
 final class GitHubResponses
 {
@@ -28,8 +29,16 @@ final class GitHubResponses
     /** The installation listing of ACCESS_TOKEN, whose acme repository has no default branch. */
     public const string MALFORMED_LISTING_ACCESS_TOKEN = 'ghu_malformedListingToken';
 
-    /** The token in installation-token.json. */
+    /** The token in installation-token.json, with `contents: read`. */
     public const string INSTALLATION_TOKEN = 'ghs_16C7e42F292c6912E7710c838347Ae178B4a';
+
+    /** The token in installation-token-pull-requests.json, with `pull_requests: read`. */
+    public const string PULL_REQUESTS_INSTALLATION_TOKEN = 'ghs_pullRequestsRead2F292c6912E7710c838347';
+
+    private const array TOKEN_FIXTURE_BY_PERMISSIONS = [
+        'installation-token' => ['contents' => 'read'],
+        'installation-token-pull-requests' => ['pull_requests' => 'read'],
+    ];
 
     private const string API = 'https://api.github.com/';
 
@@ -49,6 +58,11 @@ final class GitHubResponses
     /** `GET /repos/{owner}/{repo}`, which answers only the installation token. */
     private const array REPOSITORY_FIXTURES = [
         'repos/octocat/Hello-World' => 'repository-octocat-hello-world',
+    ];
+
+    /** `GET /repos/{owner}/{repo}/pulls/{number}`. Any other number answers 404. */
+    private const array PULL_REQUEST_FIXTURES = [
+        'repos/acme/billing/pulls/42' => 'pull-request-acme-billing-42',
     ];
 
     /** @var array<string, array<string, string>> Paths below the API by user token */
@@ -75,6 +89,9 @@ final class GitHubResponses
             'GET https://api.github.com/user/emails' === $request => 'user-emails-forbidden',
             str_starts_with($request, 'GET '.self::API.'user/installations') => self::LISTING_FIXTURES_BY_ACCESS_TOKEN[self::bearerToken($options)][substr($url, \strlen(self::API))] ?? null,
             1 === preg_match('~^POST https://api\.github\.com/app/installations/\d+/access_tokens$~', $request) => self::installationTokenFixture($options),
+            1 === preg_match('~^GET https://api\.github\.com/repos/[^/]+/[^/]+/pulls/\d+$~', $request) => self::PULL_REQUESTS_INSTALLATION_TOKEN === self::bearerToken($options)
+                ? self::PULL_REQUEST_FIXTURES[substr($url, \strlen(self::API))] ?? 'pull-request-not-found'
+                : 'user-unauthorized',
             str_starts_with($request, 'GET '.self::API.'repos/') => self::INSTALLATION_TOKEN === self::bearerToken($options)
                 ? self::REPOSITORY_FIXTURES[substr($url, \strlen(self::API))] ?? null
                 : 'user-unauthorized',
@@ -97,10 +114,10 @@ final class GitHubResponses
         $body = \is_string($options['body'] ?? null) ? json_decode($options['body'], true) : null;
         $isLimited = \is_array($body)
             && ['permissions', 'repository_ids'] === array_keys(self::sorted($body))
-            && ['contents' => 'read'] === $body['permissions']
             && \is_array($body['repository_ids']) && 1 === \count($body['repository_ids']) && \is_int($body['repository_ids'][0] ?? null);
+        $fixture = $isAppJwt && $isLimited ? array_search($body['permissions'], self::TOKEN_FIXTURE_BY_PERMISSIONS, true) : false;
 
-        return $isAppJwt && $isLimited ? 'installation-token' : 'installation-token-invalid';
+        return \is_string($fixture) ? $fixture : 'installation-token-invalid';
     }
 
     /**

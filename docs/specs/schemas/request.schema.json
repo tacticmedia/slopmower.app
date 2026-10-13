@@ -4,7 +4,7 @@
   "title": "Request",
   "description": "A request in full. Same fields as RequestSummary, with the full anchor and more.",
   "type": "object",
-  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq", "carriedFrom", "requireApproval", "proposal", "body", "reviewState", "reviewCommitSha", "location", "excerpt", "thread", "commits", "pullRequestUrls", "allowedActions"],
+  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq", "carriedFrom", "requireApproval", "proposal", "body", "reviewState", "reviewCommitSha", "location", "excerpt", "thread", "commits", "pullRequestUrls", "pullRequests", "allowedActions"],
   "properties": {
     "id": {
       "$ref": "common.schema.json#/$defs/Ulid"
@@ -173,6 +173,13 @@
       },
       "description": "In link order."
     },
+    "pullRequests": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/PullRequest"
+      },
+      "description": "One entry per URL of pullRequestUrls, in the same order."
+    },
     "allowedActions": {
       "type": "array",
       "uniqueItems": true,
@@ -237,6 +244,44 @@
     }
   ],
   "$defs": {
+    "PullRequest": {
+      "type": "object",
+      "required": ["url", "state", "title"],
+      "properties": {
+        "url": {
+          "$ref": "common.schema.json#/$defs/PullRequestUrl"
+        },
+        "state": {
+          "$ref": "common.schema.json#/$defs/PullRequestState"
+        },
+        "title": {
+          "type": ["string", "null"],
+          "description": "The title on GitHub. Null when state is unknown."
+        }
+      },
+      "if": {
+        "required": ["state"],
+        "properties": {
+          "state": {
+            "const": "unknown"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "title": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "title": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "CodeExcerpt": {
       "type": "object",
       "required": ["targetSha", "path", "startLine", "endLine", "lines", "truncated"],

@@ -18,18 +18,22 @@ use App\Domain\Git\CommitShaPrefix;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Location\LocationTarget;
+use App\Domain\Repository\RepositorySource;
 use App\Domain\Request\AllowedActions;
 use App\Domain\Request\Awaiting;
 use App\Domain\Request\CommitLinkState;
+use App\Domain\Request\PullRequestState;
 use App\Domain\Request\PullRequestUrl;
 use App\Domain\Request\RequestStatus;
 use App\Entity\ChangeRequest;
 use App\Entity\Comment;
 use App\Entity\CommitLink;
+use App\Entity\Repository;
 use App\Entity\Review;
 use App\Git\GitReader;
 use App\Http\Cursor;
 use App\Projection\RequestStateMapper;
+use App\Repository\PullRequestRepository;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
@@ -58,6 +62,7 @@ final class RequestQuery
         private readonly Locator $locator,
         private readonly FetchRepository $fetchRepository,
         private readonly GitReader $reader,
+        private readonly PullRequestRepository $pullRequests,
     ) {
     }
 
@@ -124,6 +129,7 @@ final class RequestQuery
             $summary,
             $thread,
             $this->commitViews($request, $links),
+            $this->pullRequestViews($repository, $summary->state->pullRequestUrls),
             AllowedActions::for($summary->state, $request->getReview()->toSnapshot(), $caller),
             $location,
             $excerpt,
@@ -427,6 +433,27 @@ final class RequestQuery
         }
 
         return $counts;
+    }
+
+    /**
+     * The state of a GitHub pull request comes from its record, found by number, so a link under an earlier name of the
+     * repository shows it too.
+     *
+     * @param list<PullRequestUrl> $urls
+     *
+     * @return list<PullRequestView>
+     */
+    private function pullRequestViews(Repository $repository, array $urls): array
+    {
+        $records = RepositorySource::Github === $repository->getSource()
+            ? $this->pullRequests->findOfRepository($repository->getId(), array_values(array_filter(array_map(static fn (PullRequestUrl $url): ?int => $url->gitHubNumber(), $urls))))
+            : [];
+
+        return array_map(static function (PullRequestUrl $url) use ($records): PullRequestView {
+            $record = $records[$url->gitHubNumber() ?? 0] ?? null;
+
+            return new PullRequestView($url, $record?->shownState() ?? PullRequestState::Unknown, $record?->getTitle());
+        }, $urls);
     }
 
     /**

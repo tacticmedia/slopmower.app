@@ -57,4 +57,23 @@ final readonly class PullRequestUrl implements \Stringable
     {
         return $this->value === $other->value;
     }
+
+    /**
+     * The number of a URL in the form of {@see self::forRepository()} with any repository name, so also of a link
+     * under an earlier name of the repository.
+     */
+    public function gitHubNumber(): ?int
+    {
+        return 1 === preg_match('#^https://github\.com/[^/]+/[^/]+/pull/([1-9][0-9]*)$#D', $this->value, $match) ? (int) $match[1] : null;
+    }
+
+    /**
+     * The same pull request: for a GitHub repository the same number (D64), else the same URL.
+     */
+    public function namesSamePullRequest(self $other, RepositorySource $source): bool
+    {
+        return RepositorySource::Github === $source
+            ? null !== $this->gitHubNumber() && $this->gitHubNumber() === $other->gitHubNumber()
+            : $this->equals($other);
+    }
 }

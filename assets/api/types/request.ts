@@ -9,6 +9,7 @@ import type {
     EventSeq,
     Markdown,
     Proposal,
+    PullRequestState,
     PullRequestUrl,
     RepoPath,
     Resolution,
@@ -28,6 +29,13 @@ export type CodeExcerpt = {
     lines: string[];
     /** True when cut at 400 lines. */
     truncated: boolean;
+};
+
+export type PullRequest = {
+    url: PullRequestUrl;
+    state: PullRequestState;
+    /** The title on GitHub. Null when `state` is `unknown`. */
+    title: string | null;
 };
 
 export type Request = {
@@ -63,6 +71,8 @@ export type Request = {
     commits: CommitLink[];
     /** In link order. */
     pullRequestUrls: PullRequestUrl[];
+    /** One entry per URL of `pullRequestUrls`, in the same order. */
+    pullRequests: PullRequest[];
     /** For the caller. Empty when the review is closed. */
     allowedActions: Action[];
 } & RequestClaim;

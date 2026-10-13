@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Support\Deletion;
 
+use App\Domain\Identity\RepositoryId;
+use App\Entity\PullRequest;
+use App\Entity\Repository;
 use App\Entity\User;
+use App\Tenancy\TenantFilter;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 
 /**
@@ -39,5 +44,20 @@ trait DeletionFixtures
         self::runQueuedMessages();
 
         return ['reviewId' => $reviewId, 'requestId' => $requestId, 'draftIds' => $draftIds];
+    }
+
+    /**
+     * A pull request record of number 42. The read job writes one for a GitHub repository only, but the deletions do
+     * not depend on the source. Clears the entity manager.
+     */
+    private static function storePullRequest(string $repositoryId): void
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        self::getContainer()->get(TenantFilter::class)->suspend(static function () use ($entityManager, $repositoryId): void {
+            $repository = $entityManager->find(Repository::class, RepositoryId::fromString($repositoryId)) ?? self::fail("The repository {$repositoryId} does not exist.");
+            $entityManager->persist(new PullRequest($repository, 42));
+            $entityManager->flush();
+        });
+        $entityManager->clear();
     }
 }

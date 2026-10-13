@@ -25,6 +25,28 @@ test.describe('PullRequestLink', () => {
         await expect(tab).toHaveURL(PULL_REQUEST);
     });
 
+    test('The header and the thread show the state of a linked pull request, and a pull_request update reloads it', async ({ page, api, live }) => {
+        const review = new FakeReview(api);
+        const request = review.seedLines(SMALL_FILE, 9, 12, 'Extract the tax calculation.');
+        review.agentClaims(request.id);
+        review.agentLinksPullRequest(request.id, PULL_REQUEST);
+        review.githubChangesPullRequest(PULL_REQUEST, 'open', 'Extract TaxCalculation');
+        await openRequest(page, request.id);
+
+        const header = page.locator(`${DETAIL} [data-testid="pull-request-list"] li`);
+        const entry = page.locator(`${DETAIL_THREAD} [data-testid="thread-comment"]`).filter({ hasText: 'linked a pull request' });
+        await expect(header.getByTestId('pull-request-state')).toHaveText('Open');
+        await expect(header).toContainText('Extract TaxCalculation');
+        await expect(entry.getByTestId('pull-request-state')).toHaveText('Open');
+        await expect(page.locator('[data-live="connected"]')).toBeAttached();
+
+        review.githubChangesPullRequest(PULL_REQUEST, 'merged', 'Extract TaxCalculation');
+        await live.push({ type: 'pull_request', reviewId: review.id, requestIds: [request.id] });
+
+        await expect(header.getByTestId('pull-request-state')).toHaveText('Merged');
+        await expect(entry.getByTestId('pull-request-state')).toHaveText('Merged');
+    });
+
     test('An unlinked pull request leaves the header, and the thread shows the unlink', async ({ page, api }) => {
         const review = new FakeReview(api);
         const request = review.seedLines(SMALL_FILE, 9, 12, 'Extract the tax calculation.');

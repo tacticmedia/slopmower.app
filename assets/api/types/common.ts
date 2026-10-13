@@ -55,6 +55,10 @@ export type OrphanReason = (typeof ORPHAN_REASONS)[number];
 export const PROPOSAL_STATES = ['pending', 'approved', 'rejected'] as const;
 export type ProposalState = (typeof PROPOSAL_STATES)[number];
 
+export const PULL_REQUEST_STATES = ['open', 'draft', 'merged', 'closed', 'unknown'] as const;
+/** `unknown`: a local repository, a state not read yet, a pull request that GitHub does not find, or an installation without Pull requests: read. */
+export type PullRequestState = (typeof PULL_REQUEST_STATES)[number];
+
 /** The current proposal of a claim. */
 export type Proposal = {
     /** The request.proposed event. */

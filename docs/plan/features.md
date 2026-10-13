@@ -55,7 +55,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F37 | [Symbols service address](F37-symbols-service-address.md) | Done 2026-10-08, [report](reports/F37.md) | fd40975 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26294 lines; assets 159 TS / 9202 lines |
 | F38 | [Database connection parameters](F38-database-connection-parameters.md) | Done 2026-10-09, [report](reports/F38.md) | c9f6b34 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26343 lines; assets 159 TS / 9202 lines; check 2m54s |
 | F39 | [Usage limits](F39-usage-limits.md) | In progress (2026-10-13) | | |
-| F40 | [Pull request state](F40-pull-request-state.md) | In progress (2026-10-13) | | |
+| F40 | [Pull request state](F40-pull-request-state.md) | Done 2026-10-13, [report](reports/F40.md) | | src 445 PHP / 29648 lines, 445 types; tests 298 PHP / 26788 lines; assets 160 TS / 9265 lines |
 | F41 | [Check run](F41-check-run.md) | Planned | | |
 | F42 | [Marketplace plans](F42-marketplace-plans.md) | Planned | | |
 | F43 | [Legal and support pages](F43-legal-and-support-pages.md) | Planned | | |
@@ -81,7 +81,6 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **"Blame prior to change".** GitHub's blame block links to the blame of the parent commit at the path the file had there. It needs V17 at an ancestor of the review commit and the text of the file there, and a view that leaves the pinned commit. From F26.
 - **Blame avatars, commit links, and contributors.** GitHub shows the author avatar, links the summary to the commit page, and counts the contributors of the file. A local repository has no avatars and no commit page. From F26.
 - **Sign-in allowlist.** Every GitHub user who can authorize the GitHub App gets a tenant at the first sign-in (`GitHubUserProvider`). A public App ("Any account") therefore opens a hosted instance to everyone on GitHub. A list of allowed GitHub logins or organizations would close it. From the GitHub App registration on 2026-10-09.
-- **Pull request links after a repository rename.** A GitHub URL is stored in the canonical form of the repository name as connected (F14). After the repository is renamed on GitHub, a link under the old name no longer matches `link_pull_request` or `unlink_pull_request`. From the F20 report. In scope of F40.
 - **Index version per language.** Stored symbols are keyed by blob, so a changed grammar or query of the `symbols` service leaves old rows until `app:index:rebuild --reparse`. A version per language on `indexed_blob` would re-parse stale rows on demand. A review indexed before its language was added also has none of its symbols in quick open until `app:index:rebuild` runs for that review, one review per call. From F27 and F33.
 - **Go to declaration for more languages.** V14 resolves PHP names only. Other languages need their own name resolution: imports, modules, and packages. From F27.
 - **Concurrent symbol requests in the index job.** The index job calls the `symbols` service once per blob, in sequence. HttpClient can keep several requests in flight. F27 measured 1.2 times the PHP time per line for files of 100 to 300 lines, and 1.5 to 1.9 times over all files, because each small file costs one round trip. From F27.
@@ -105,6 +104,7 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **Review a pull request head.** Start a review at the head of a pull request through `refs/pull/N/head`, which the fetch refspecs exclude, because they take only heads and tags. It would also give F41 the head of a fork pull request. From the GitHub App plan on 2026-10-09.
 - **Per-unit plans.** A Marketplace plan with a price per unit, for example per seat. F42 has flat-rate plans only (D65). From the GitHub App plan on 2026-10-09.
 - **Several users per tenant for organization plans.** An organization plan gives the tenant of each member the plan (D65), but the members do not share reviews. With [several users per tenant](../backlog/multiple-users-per-tenant.md), one organization plan could cover one shared tenant. From the GitHub App plan on 2026-10-09.
+- **Pull request state after a late permission.** A pull request linked before F40, or while its installation had not accepted Pull requests: read, has no record, so its state stays `unknown`. The `pull_request` webhook updates only numbers with a record, and a repeated link writes no event. A read of the linked pull requests on `new_permissions_accepted`, or a console command, would fill them. From the F40 report.
 
 ## For Jan
 
