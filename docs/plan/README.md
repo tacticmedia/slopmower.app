@@ -440,6 +440,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 - **One database role.** Do not add init scripts under `/docker-entrypoint-initdb.d/`. A second role needs the facts in [database-hardening.md](../backlog/database-hardening.md).
 - **Image build context.** `.dockerignore` excludes `docs/` and every `*.md` file. `DocsCatalog` reads `docs/user/` and `docs/specs/schemas/` at run time, so a production stage that copies the source must include both, or `/docs` answers 500.
 - **Worker cache.** The compose `worker` sets `APP_CACHE_DIR=var/cache/worker`, so it builds its own container in `var/cache/worker/dev`. A rebuild of `var/cache/dev` by the `php` container removes container files that a worker on the shared cache still loads, and such a worker dies with its message delivered until the 15-minute redelivery.
+- **A new package in worker mode.** A FrankenPHP worker keeps the Composer autoloader that it loaded at its start. After `composer install` adds a package, run `docker compose restart php`, or the dev app answers with "Class not found". Tests run in new processes and do not show it.
 
 ### CI and act
 
