@@ -2,7 +2,7 @@
 
 This guide is a map of the Slopmower code. It tells you what each part does, where it is, how a call moves through it, and which parts are more complex than their task needs (section 7). The [architecture](architecture.md) and the [specifications](specs/README.md) stay the sources of truth. This guide points to them.
 
-Size: `src/` has 477 PHP files and about 32,300 lines. One generated file, `src/Mcp/BundledSchemas.php`, has 3,308 of these lines. `assets/` has 163 TypeScript files and about 9,500 lines without tests. `tests/` has about 28,900 lines of PHP and 4,600 lines of Playwright UI tests.
+Size: `src/` has 478 PHP files and about 32,300 lines. One generated file, `src/Mcp/BundledSchemas.php`, has 3,308 of these lines. `assets/` has 163 TypeScript files and about 9,500 lines without tests. `tests/` has about 28,900 lines of PHP and 4,600 lines of Playwright UI tests.
 
 ## 1. Start here
 
@@ -193,7 +193,7 @@ A row counts the PHP files of its namespace and of the sub-namespaces without a 
 | `App\Projection` | 3 | Keeps the read tables in step with events, in the write transaction | `RequestProjector`, `ReviewProjector`, `RequestStateMapper` | Domain, Entity, Repository |
 | `App\Entity` | 24 | Doctrine entities, one table each. 17 implement `TenantOwned`, an interface of this namespace that the SQL filters read. The enums `DraftKind`, `SignInMethod`, and `GitHubAccountType`. | `Tenant`, `Repository`, `ReviewEvent`, `Review`, `ChangeRequest`, `CommitLink`, `ApiToken` | Domain, Doctrine, Index, Repository |
 | `App\Repository` | 22 | 17 ORM repositories plus `DeletionSql`, `ViewedFileSql`, `UsageSql`, and `MarketplaceAccountSql`: fresh reads, conditional state updates, deletes, the use of a tenant, the Marketplace plans of the GitHub accounts. The sign-in finders of `UserRepository` throw `TenantBeingDeleted`. | `RepositoryRepository`, `ReviewEventRepository`, `DeletionSql` | Domain, Entity |
-| `App\Doctrine` | 8 | DBAL types for value objects, jsonb DQL functions, `ActorEmbeddable` | `IdentifierType`, `StringValueType`, `AnchorType`, `JsonbContains` | Domain |
+| `App\Doctrine` | 10 | DBAL types for value objects, jsonb DQL functions, `ActorEmbeddable`, the error log of an outdated RDS password, and the driver middleware that keeps only the first line of a database error, so no row value reaches a log | `IdentifierType`, `StringValueType`, `AnchorType`, `JsonbContains`, `StripDatabaseErrorDetail` | Domain |
 | `App\Tenancy` | 6 | Fail-closed tenant context and the two SQL filters | `TenantContext`, `TenantSqlFilter`, `TenantFilter`, `RepositoryScopeSqlFilter` | Domain, Entity |
 | `App\Security` | 14 | Session sign-in, bearer tokens, principal to `Actor` | `ApiTokenHandler`, `AgentUser`, `CurrentActor`, `TenantUserProvider` | Domain, Entity, Http, Repository, Tenancy |
 | `App\Git` | 17 | The only code that runs git. Server clone reads and writes, and the schema-shaped `BlameRange` and `BlameCommit` of V17. | `GitRunner`, `GitReader`, `BareClone`, `PinRefs`, `RepositoryLock` | Domain |
@@ -339,7 +339,7 @@ An agent cannot open a request. A user opens one through `RequestController::ope
 | Suite | Location | Tool and base | What it proves | Run |
 |---|---|---|---|---|
 | Unit | `tests/Unit/`, 71 classes | PHPUnit, `KernelTestCase` without boot | Value objects, the transition matrix, `awaiting` rules, event codecs, pure anchoring algorithms. `Conventions/` holds the meta-tests, for example domain purity, 800-line limit, no container mocks, TestDox on every test (D44). | `docker compose exec php bin/phpunit --testsuite unit` |
-| Functional | `tests/Functional/`, 180 classes | `KernelTestCase` and `WebTestCase` on `app_test`, real git repositories in temporary directories, `MockHttpClient` for GitHub, the `symbols` service of the compose stack | Event store and projections, re-anchoring cases F1 to F14, tenant isolation, REST and MCP contracts against the schemas, webhooks, deletion, the headless slice | `make test` runs unit and functional |
+| Functional | `tests/Functional/`, 181 classes | `KernelTestCase` and `WebTestCase` on `app_test`, real git repositories in temporary directories, `MockHttpClient` for GitHub, the `symbols` service of the compose stack | Event store and projections, re-anchoring cases F1 to F14, tenant isolation, REST and MCP contracts against the schemas, webhooks, deletion, the headless slice | `make test` runs unit and functional |
 | Front-end unit | `assets/**/*.test.ts`, 25 files, and `symbols/src/extract.test.ts` | Vitest | Pure TypeScript: live subscription, helpers, enum arrays and fixtures against the schemas. The symbol tables of the fixtures in `tests/Fixtures/<language>/`. | `make front` |
 | UI | `tests/ui/*.spec.ts`, 50 specs | Playwright Test on the host, against the SPA built by `tests/ui/vite.config.ts` | Screen flows with no PHP, database, or git. `tests/ui/support/mockApi.ts` answers `/api/v1`, and each mocked body validates against the schemas. A fake `EventSource` sends live updates. | `make ui` |
 | Full-stack E2E | `tests/E2E/`, 7 classes | `FullStackTestCase` in `tests/Support/E2E/` with playwright-php, against the `e2e` site on port 8081 and `app_e2e` | Sign-in, the vertical slice through browser and MCP, a live agent reply, account deletion, a scoped token | `make e2e` |

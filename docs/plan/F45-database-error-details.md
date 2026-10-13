@@ -21,6 +21,9 @@ Verified in the code on 2026-10-14, DBAL 4.5.0, DoctrineBundle 3.3.2:
 - **Driver middleware.** A DBAL driver middleware with `#[AsMiddleware]` wraps the exception converter. Before the PostgreSQL converter runs, it replaces the driver exception with one that has only the first line of the message, the same SQLSTATE and code, and no previous exception. So the class of each DBAL exception stays the same, and code that catches `UniqueConstraintViolationException` still works.
 - **The first line stays.** Some primary messages hold an input value, for example `invalid input syntax for type uuid: "..."`. That is a parameter, not a row. The first line names the error and the column, which an operator needs.
 - **Lost:** the `PDOException` and its trace as previous exceptions. The prod JSON formatter writes no trace.
+- **Decisions at the merge, 2026-10-14:**
+  - No `#[AsMiddleware]`. DoctrineBundle autoconfigures every `Driver\Middleware` with the tag `doctrine.middleware`, and the attribute adds only a priority or a list of connections.
+  - The PostgreSQL server log writes the same `DETAIL` line and the failing statement. `docs/deployment.md` sets `log_error_verbosity = terse` and `log_min_error_statement = panic`.
 
 ## Depends on
 
@@ -29,7 +32,7 @@ Nothing. F44 links the candidate from the risk row of architecture section 12. F
 ## In scope
 
 - The middleware and its test.
-- Docs: architecture section 12 (the risk "We host other developers' source code"), and the candidate "Row values in database errors" in [features.md](features.md), which F45 closes.
+- Docs: architecture section 12 (the risk "We host other developers' source code"), `docs/deployment.md` section "Database connection", and the candidate "Row values in database errors" in [features.md](features.md), which F45 closes.
 
 ## Out of scope
 
