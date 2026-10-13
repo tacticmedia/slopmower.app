@@ -54,10 +54,10 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F36 | [QA pipeline](F36-qa-pipeline.md) | Done 2026-10-08, [report](reports/F36.md) | bb166d4 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26294 lines; assets 159 TS / 9202 lines; check 3m36s |
 | F37 | [Symbols service address](F37-symbols-service-address.md) | Done 2026-10-08, [report](reports/F37.md) | fd40975 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26294 lines; assets 159 TS / 9202 lines |
 | F38 | [Database connection parameters](F38-database-connection-parameters.md) | Done 2026-10-09, [report](reports/F38.md) | c9f6b34 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26343 lines; assets 159 TS / 9202 lines; check 2m54s |
-| F39 | [Usage limits](F39-usage-limits.md) | Done 2026-10-13, [report](reports/F39.md) | | src 453 PHP / 30275 lines, 453 types; tests 306 PHP / 27476 lines; assets 161 TS / 9361 lines |
+| F39 | [Usage limits](F39-usage-limits.md) | Done 2026-10-13, [report](reports/F39.md) | 23b9c8e | src 453 PHP / 30275 lines, 453 types; tests 306 PHP / 27476 lines; assets 161 TS / 9361 lines; check 3m54s |
 | F40 | [Pull request state](F40-pull-request-state.md) | Done 2026-10-13, [report](reports/F40.md) | 2e5de64 | src 445 PHP / 29648 lines, 445 types; tests 298 PHP / 26788 lines; assets 160 TS / 9265 lines; check 3m29s |
 | F41 | [Check run](F41-check-run.md) | In progress (2026-10-13) | | |
-| F42 | [Marketplace plans](F42-marketplace-plans.md) | Planned | | |
+| F42 | [Marketplace plans](F42-marketplace-plans.md) | In progress (2026-10-13) | | |
 | F43 | [Legal and support pages](F43-legal-and-support-pages.md) | Planned | | |
 | F46 | [RDS auth bundle 1.2](F46-rds-auth-bundle-1-2.md) | Done 2026-10-09, [report](reports/F46.md) | a039aa7 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26343 lines; assets 159 TS / 9202 lines; check 9m51s |
 | F47 | [Product name Slopmower](F47-product-name-slopmower.md) | Done 2026-10-13, [report](reports/F47.md) | 91b4995 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26343 lines; assets 159 TS / 9202 lines; check 8m34s |
@@ -105,6 +105,7 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **Per-unit plans.** A Marketplace plan with a price per unit, for example per seat. F42 has flat-rate plans only (D65). From the GitHub App plan on 2026-10-09.
 - **Several users per tenant for organization plans.** An organization plan gives the tenant of each member the plan (D65), but the members do not share reviews. With [several users per tenant](../backlog/multiple-users-per-tenant.md), one organization plan could cover one shared tenant. From the GitHub App plan on 2026-10-09.
 - **Pull request state after a late permission.** A pull request linked before F40, or while its installation had not accepted Pull requests: read, has no record, so its state stays `unknown`. The `pull_request` webhook updates only numbers with a record, and a repeated link writes no event. A read of the linked pull requests on `new_permissions_accepted`, or a console command, would fill them. From the F40 report.
+- **Dev log size.** `var/log/dev.log` grew to 276 MB, mostly Doctrine `DEBUG` lines of the dev worker, which polls the queue every 2 s. A `rotating_file` handler with `max_files`, or `!doctrine` on the dev file handler, would bound it. `GitHubFetchSecretTest` read every file of the log directory and ran out of memory on it, so it now reads only the part of `test.log` that its run writes (`b6f0c76`). From the F39 check on main.
 
 ## For Jan
 
