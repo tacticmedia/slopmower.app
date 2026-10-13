@@ -12,7 +12,7 @@ use App\Domain\Identity\ReviewId;
  */
 final class PinRefs
 {
-    public const string PREFIX = 'refs/holistic-review/';
+    public const string PREFIX = 'refs/slopmower/';
 
     public const string REVIEWS = self::PREFIX.'reviews/';
 

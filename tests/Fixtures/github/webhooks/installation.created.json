@@ -14,7 +14,7 @@
         "repositories_url": "https://api.github.com/installation/repositories",
         "html_url": "https://github.com/settings/installations/5554",
         "app_id": 1,
-        "app_slug": "holistic-review-test",
+        "app_slug": "slopmower-test",
         "target_id": 1,
         "target_type": "User",
         "permissions": {

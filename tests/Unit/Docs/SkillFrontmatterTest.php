@@ -16,13 +16,13 @@ final class SkillFrontmatterTest extends KernelTestCase
     private const int DESCRIPTION_MAX_CHARACTERS = 1024;
     private const int BODY_MAX_LINES = 500;
 
-    #[TestDox('name is holistic-review, the name of the install directory')]
+    #[TestDox('name is slopmower, the name of the install directory')]
     public function testNameIsTheInstallDirectory(): void
     {
         $specification = (string) file_get_contents(dirname(__DIR__, 3).'/docs/specs/rest-api-requests.md');
         self::assertSame(1, preg_match('#--create-dirs -o \.claude/skills/([^/]+)/SKILL\.md`#', $specification, $installDirectory));
 
-        self::assertSame('holistic-review', self::frontmatter()['name']);
+        self::assertSame('slopmower', self::frontmatter()['name']);
         self::assertSame($installDirectory[1], self::frontmatter()['name']);
     }
 

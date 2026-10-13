@@ -64,7 +64,7 @@ final class McpTestClient
         $this->post(['jsonrpc' => '2.0', 'id' => $this->nextId++, 'method' => 'initialize', 'params' => [
             'protocolVersion' => $protocolVersion,
             'capabilities' => new \stdClass(),
-            'clientInfo' => ['name' => 'holistic-review-tests', 'version' => '1.0.0'],
+            'clientInfo' => ['name' => 'slopmower-tests', 'version' => '1.0.0'],
         ]], []);
 
         return $this->lastResponse();

@@ -14,11 +14,11 @@ use Symfony\Component\Security\Http\EntryPoint\AuthenticationEntryPointInterface
 
 /**
  * The 401 of docs/specs/README.md section 3. As the entry point it also answers a Bearer header that
- * HeaderAccessTokenExtractor rejects, for example `Bearer hr_%%%`, because then no authenticator runs.
+ * HeaderAccessTokenExtractor rejects, for example `Bearer sm_%%%`, because then no authenticator runs.
  */
 final class BearerAuthenticationFailure implements AuthenticationFailureHandlerInterface, AuthenticationEntryPointInterface
 {
-    private const string CHALLENGE = 'Bearer realm="holistic-review"';
+    private const string CHALLENGE = 'Bearer realm="slopmower"';
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): Response
     {

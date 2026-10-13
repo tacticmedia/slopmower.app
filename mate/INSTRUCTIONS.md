@@ -1,4 +1,4 @@
-## Holistic Review data
+## Slopmower data
 
 Read the reviews and the event log of the dev database with these tools. Do not write SQL by hand.
 

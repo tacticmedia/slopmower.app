@@ -79,7 +79,7 @@ final class StartReviewTest extends WebTestCase
 
         $review = self::startReviewThroughApi($this->client, $repositoryId);
 
-        self::assertSame(["refs/holistic-review/reviews/{$review['id']}" => $this->source->revParse('main')], self::pins($this->user, $repositoryId));
+        self::assertSame(["refs/slopmower/reviews/{$review['id']}" => $this->source->revParse('main')], self::pins($this->user, $repositoryId));
     }
 
     #[TestDox('The review.started event has actor user and the default title')]

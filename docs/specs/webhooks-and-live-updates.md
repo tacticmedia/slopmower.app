@@ -60,9 +60,9 @@ An MCP tool name also stands for its REST endpoint.
 
 1. Set `lastFetchedAt`, clear `lastError`, and read `defaultBranch`, which is the remote HEAD, and `defaultBranchHead`.
 2. If `defaultBranchHead` changed, queue `RecomputeLocations(reviewId)` for each open review. The job recomputes the default-branch location of each request with an anchor. When at least one `outdated` flag changed, it publishes `outdated` with the IDs of those requests. `outdated` means that the location at the default-branch head is `changed` or `orphaned`. This step comes before step 3: a retried fetch finds the head unchanged, so a failed step 3 must not skip it.
-3. Resolve pending links. The fetch has already fetched each pending linked SHA by ID into `refs/holistic-review/commits/<sha>`. For each pending `CommitLink` of the repository whose SHA is now present:
+3. Resolve pending links. The fetch has already fetched each pending linked SHA by ID into `refs/slopmower/commits/<sha>`. For each pending `CommitLink` of the repository whose SHA is now present:
    - set it to `available`;
-   - make sure that the pin ref `refs/holistic-review/commits/<sha>` exists;
+   - make sure that the pin ref `refs/slopmower/commits/<sha>` exists;
    - write one `commit.found` event per review, in its own transaction. The actor is `system`, and the stored payload is `{commitSha, requestIds, subject, committedAt}` for the requests linked in that review.
 4. Publish `repository`, and one `events` update per review that got `commit.found`.
 
@@ -73,7 +73,7 @@ An MCP tool name also stands for its REST endpoint.
 | Hub | Built into FrankenPHP. The public URL `MERCURE_PUBLIC_URL` is `https://<host>/.well-known/mercure`, the same origin as the UI. The local development environment uses `http://localhost:8000/.well-known/mercure`. The hub URL is always set, because without it the bundle compiles `FrankenPhpHub` and console processes fail. |
 | Publisher | `symfony/mercure-bundle` 0.5.0, `HubInterface::publish()`. Every update is `private: true`. |
 | Subscriber authorization | The cookie that [A3](rest-api.md#a3-authorize-live-updates) sets. The JWT claim `mercure.subscribe` holds the two selectors of the tenant below. `exp` is now plus 3,600 s. Agents do not subscribe: they poll `get_updates`. |
-| Base | `{base}` = `DEFAULT_URI` without a trailing slash, for example `https://hr.example` |
+| Base | `{base}` = `DEFAULT_URI` without a trailing slash, for example `https://slopmower.example` |
 | Payloads | IDs only. The browser reloads the data through REST. Mercure carries no second copy of the data model. |
 
 Topics:
@@ -81,7 +81,7 @@ Topics:
 | Topic | Selector in the JWT | Update types |
 |---|---|---|
 | `{base}/tenants/{tenantId}/repositories` | exact | `repository`, `repository_deleted`, `candidates_changed` |
-| `{base}/tenants/{tenantId}/reviews/{reviewId}` | URI template with the tenant ID filled in and `{reviewId}` as the only variable, for example `https://hr.example/tenants/01K6AZZ0TENANT000000000001/reviews/{reviewId}`. It matches any review of that tenant only. | `events`, `outdated`, `index` |
+| `{base}/tenants/{tenantId}/reviews/{reviewId}` | URI template with the tenant ID filled in and `{reviewId}` as the only variable, for example `https://slopmower.example/tenants/01K6AZZ0TENANT000000000001/reviews/{reviewId}`. It matches any review of that tenant only. | `events`, `outdated`, `index` |
 
 Update types. [live-update.schema.json](schemas/live-update.schema.json) defines the payloads.
 
@@ -97,7 +97,7 @@ Update types. [live-update.schema.json](schemas/live-update.schema.json) defines
 Publishing rules:
 
 - **When:** only after the write transaction commits. See [architecture.md](../architecture.md) section 4.
-- **One transaction, one update:** a batch submission sends one `events` update for all its events. The update ID is `urn:holistic-review:{tenantId}:{seq}`.
+- **One transaction, one update:** a batch submission sends one `events` update for all its events. The update ID is `urn:slopmower:{tenantId}:{seq}`.
 - **Failures:** the server logs a publish failure and does not retry it. The write has already committed, and the UI catches up.
 - **SSE event type:** the Mercure `type` is not set, so the browser receives every update through `EventSource.onmessage`. The JSON `type` field selects the handler. Clients ignore unknown types.
 

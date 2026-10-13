@@ -14,27 +14,27 @@ Status: backlog. Not part of the proof of concept. The proof of concept uses one
 
 | Role | Attributes | Owns | Grants | Used by |
 |---|---|---|---|---|
-| `holistic_owner` | `LOGIN NOSUPERUSER NOBYPASSRLS` | The database, every table, sequence, and function | All | Doctrine Migrations, through the `migrations` connection |
-| `holistic_app` | `LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE` | Nothing | `SELECT, INSERT, UPDATE, DELETE` on every table except `review_event` and `doctrine_migration_versions`. Only `SELECT, INSERT` on `review_event`. `USAGE, SELECT` on sequences. `EXECUTE` on the lookup functions. | HTTP requests and the Messenger worker |
-| `holistic_maintenance` | `LOGIN NOSUPERUSER NOBYPASSRLS` | Nothing | The grants of `holistic_app`, plus `DELETE` on `review_event` | Review deletion (V13), repository deletion (R6), the tenant purge job, and the projection rebuild |
+| `slopmower_owner` | `LOGIN NOSUPERUSER NOBYPASSRLS` | The database, every table, sequence, and function | All | Doctrine Migrations, through the `migrations` connection |
+| `slopmower_app` | `LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE` | Nothing | `SELECT, INSERT, UPDATE, DELETE` on every table except `review_event` and `doctrine_migration_versions`. Only `SELECT, INSERT` on `review_event`. `USAGE, SELECT` on sequences. `EXECUTE` on the lookup functions. | HTTP requests and the Messenger worker |
+| `slopmower_maintenance` | `LOGIN NOSUPERUSER NOBYPASSRLS` | Nothing | The grants of `slopmower_app`, plus `DELETE` on `review_event` | Review deletion (V13), repository deletion (R6), the tenant purge job, and the projection rebuild |
 
 The Docker `POSTGRES_USER` is a superuser. It is used only by the init script that creates these roles. The application never connects with it.
 
 Default privileges give new tables their grants without extra work in each migration:
 
 ```sql
-ALTER DEFAULT PRIVILEGES FOR ROLE holistic_owner IN SCHEMA public
-  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO holistic_app, holistic_maintenance;
-ALTER DEFAULT PRIVILEGES FOR ROLE holistic_owner IN SCHEMA public
-  GRANT USAGE, SELECT ON SEQUENCES TO holistic_app, holistic_maintenance;
+ALTER DEFAULT PRIVILEGES FOR ROLE slopmower_owner IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO slopmower_app, slopmower_maintenance;
+ALTER DEFAULT PRIVILEGES FOR ROLE slopmower_owner IN SCHEMA public
+  GRANT USAGE, SELECT ON SEQUENCES TO slopmower_app, slopmower_maintenance;
 ```
 
 The migration that hardens `review_event` then narrows its grants:
 
 ```sql
-REVOKE UPDATE, DELETE ON review_event FROM holistic_app;
-REVOKE UPDATE ON review_event FROM holistic_maintenance;
-REVOKE ALL ON doctrine_migration_versions FROM holistic_app, holistic_maintenance;
+REVOKE UPDATE, DELETE ON review_event FROM slopmower_app;
+REVOKE UPDATE ON review_event FROM slopmower_maintenance;
+REVOKE ALL ON doctrine_migration_versions FROM slopmower_app, slopmower_maintenance;
 ```
 
 ### Policies
@@ -56,7 +56,7 @@ CREATE POLICY tenant_isolation ON review_event
 
 ### Tenantless lookups
 
-The proof of concept suspends the SQL filter in the places of the table below, and in the projection rebuild and the purge. Under row-level security, the runtime role cannot see other tenants' rows at all, so these places use `SECURITY DEFINER` functions owned by `holistic_owner`. Each function returns only IDs. The application then sets the tenant context and loads the entities normally.
+The proof of concept suspends the SQL filter in the places of the table below, and in the projection rebuild and the purge. Under row-level security, the runtime role cannot see other tenants' rows at all, so these places use `SECURITY DEFINER` functions owned by `slopmower_owner`. Each function returns only IDs. The application then sets the tenant context and loads the entities normally.
 
 | Place | Function | Returns |
 |---|---|---|
@@ -72,18 +72,18 @@ CREATE FUNCTION app_find_api_token(p_token_hash text)
   LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
   AS $$ SELECT id, tenant_id FROM api_token WHERE token_hash = p_token_hash $$;
 REVOKE ALL ON FUNCTION app_find_api_token(text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION app_find_api_token(text) TO holistic_app;
+GRANT EXECUTE ON FUNCTION app_find_api_token(text) TO slopmower_app;
 ```
 
-The first sign-in generates the new tenant ID, sets the tenant context to it, and then inserts the `tenant` and `app_user` rows, so the `WITH CHECK` passes. The projection rebuild and the purge run as `holistic_maintenance` and set the tenant context for each tenant in turn. They find the tenant IDs through `app_list_tenant_ids()`, which only `holistic_maintenance` may execute.
+The first sign-in generates the new tenant ID, sets the tenant context to it, and then inserts the `tenant` and `app_user` rows, so the `WITH CHECK` passes. The projection rebuild and the purge run as `slopmower_maintenance` and set the tenant context for each tenant in turn. They find the tenant IDs through `app_list_tenant_ids()`, which only `slopmower_maintenance` may execute.
 
 ### Connections
 
 | Environment variables | Role | Doctrine connection |
 |---|---|---|
-| `DATABASE_USER`, `DATABASE_PASSWORD` | `holistic_owner` | `migrations`, selected by `doctrine_migrations.connection: migrations` |
-| `DATABASE_RUNTIME_USER`, `DATABASE_RUNTIME_PASSWORD` | `holistic_app` | `default`, used by the ORM, the Messenger queue, and the locks |
-| `DATABASE_MAINTENANCE_USER`, `DATABASE_MAINTENANCE_PASSWORD` | `holistic_maintenance` | `maintenance`, used by review and repository deletion, the purge job, and the rebuild |
+| `DATABASE_USER`, `DATABASE_PASSWORD` | `slopmower_owner` | `migrations`, selected by `doctrine_migrations.connection: migrations` |
+| `DATABASE_RUNTIME_USER`, `DATABASE_RUNTIME_PASSWORD` | `slopmower_app` | `default`, used by the ORM, the Messenger queue, and the locks |
+| `DATABASE_MAINTENANCE_USER`, `DATABASE_MAINTENANCE_PASSWORD` | `slopmower_maintenance` | `maintenance`, used by review and repository deletion, the purge job, and the rebuild |
 
 All connections share `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_SERVER_VERSION`, and `DATABASE_SSLMODE` (D63). The RDS bundle option `iam_username` is one user for every connection, so IAM authentication with three roles needs a user per connection in `tacticmedia/rds-auth-bundle`.
 
@@ -103,15 +103,15 @@ All connections share `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABA
 
 Each test extends `KernelTestCase` or `WebTestCase` and runs against PostgreSQL 18 with the three roles.
 
-1. `DatabaseRolesTest`: the runtime connection's `current_user` is `holistic_app`. It is not a superuser, has no `BYPASSRLS`, and owns no table.
+1. `DatabaseRolesTest`: the runtime connection's `current_user` is `slopmower_app`. It is not a superuser, has no `BYPASSRLS`, and owns no table.
 2. `RowLevelSecurityCatalogTest`: every table with a `tenant_id` column, and `tenant`, has `relrowsecurity = true` and a policy `tenant_isolation`.
 3. `ForeignRowsInvisibleTest`: with the Doctrine filter suspended and the tenant context of tenant A, a raw `SELECT` on every tenant table returns no row of tenant B.
 4. `NoTenantContextTest`: without `app.tenant_id`, every tenant table returns zero rows, and an `INSERT` fails with a row-level security error.
 5. `ForeignInsertRefusedTest`: an `INSERT` with tenant B's ID in tenant A's context fails.
-6. `AppendOnlyEventsTest`: as `holistic_app`, `UPDATE` and `DELETE` on `review_event` fail with SQLSTATE 42501.
+6. `AppendOnlyEventsTest`: as `slopmower_app`, `UPDATE` and `DELETE` on `review_event` fail with SQLSTATE 42501.
 7. `TenantContextDoesNotLeakTest`: two requests in one kernel with different tenants each see only their own rows. After each request, `current_setting('app.tenant_id', true)` is null or empty.
-8. `MigrationsUseOwnerTest`: the migrations connection runs as `holistic_owner`. The runtime role cannot create a table.
-9. `MaintenancePurgeTest`: the purge as `holistic_maintenance` deletes every row of one tenant, including its events. The other tenant is unchanged.
+8. `MigrationsUseOwnerTest`: the migrations connection runs as `slopmower_owner`. The runtime role cannot create a table.
+9. `MaintenancePurgeTest`: the purge as `slopmower_maintenance` deletes every row of one tenant, including its events. The other tenant is unchanged.
 10. `TenantlessLookupTest`: each lookup function returns only IDs, and the runtime role cannot read the looked-up tables without a tenant context.
 11. The cross-tenant suite, the gapless-sequence concurrency test, and the isolation audit pass unchanged.
 12. The architecture document describes the roles and the policies. Its section 4 and decision D3 describe the hardened database.

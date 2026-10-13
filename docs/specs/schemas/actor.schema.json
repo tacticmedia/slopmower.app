@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://holistic-review.invalid/schemas/v1/actor.schema.json",
+  "$id": "https://slopmower.invalid/schemas/v1/actor.schema.json",
   "title": "Actor",
   "type": "object",
   "required": ["kind", "userId", "agentName", "name", "avatarUrl"],
@@ -28,7 +28,7 @@
     "name": {
       "type": "string",
       "minLength": 1,
-      "description": "Display name: login for users, agentName for agents, 'Holistic Review' for system."
+      "description": "Display name: login for users, agentName for agents, 'Slopmower' for system."
     },
     "avatarUrl": {
       "type": ["string", "null"],

@@ -14,7 +14,7 @@ No feature, refactoring, or behaviour change lives only in a session. The reposi
 
 - **Before any code:** the request has a row in [docs/plan/features.md](docs/plan/features.md) and a scope file `docs/plan/Fnn-<name>.md`. The scope file has a goal, decisions, in scope, out of scope, acceptance tests, and verification.
 - **An idea that is not scheduled** goes to the Candidates list of `features.md` in the session where it comes up.
-- **Every source counts:** Jan in a session, a change request in Holistic Review (also when Holistic Review reviews itself), a review finding, or a follow-up in a report.
+- **Every source counts:** Jan in a session, a change request in Slopmower (also when Slopmower reviews itself), a review finding, or a follow-up in a report.
 - **Local fixes:** a change request that asks only for a local fix is documented by its own thread and its linked commits. A request that asks for more gets a scope file, and its thread links that file.
 - **Decisions:** they go into the scope file in the session that makes them. A decision about the architecture or a contract also goes into [architecture section 11](docs/architecture.md#11-decisions).
 - **Reports:** `docs/plan/reports/Fnn.md` records what was built and every deviation from the scope file.

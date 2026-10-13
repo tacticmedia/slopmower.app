@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://holistic-review.invalid/schemas/v1/link-commits-result.schema.json",
+  "$id": "https://slopmower.invalid/schemas/v1/link-commits-result.schema.json",
   "title": "LinkCommitsResult",
   "type": "object",
   "required": ["commitSha", "state", "requests", "events"],

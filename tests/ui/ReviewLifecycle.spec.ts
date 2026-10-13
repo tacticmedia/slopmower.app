@@ -39,7 +39,7 @@ test.describe('ReviewLifecycle', () => {
         await expect(page).toHaveURL(/\/reviews\/[0-9A-HJKMNP-TV-Z]{26}$/);
         const reviewId = new URL(page.url()).pathname.split('/').at(-1) ?? '';
         await expect(page.locator('[data-testid="review-id"]')).toHaveText(reviewId);
-        await expect(page.locator('[data-testid="agent-prompt"]')).toHaveText(`Work on Holistic Review ${reviewId}`);
+        await expect(page.locator('[data-testid="agent-prompt"]')).toHaveText(`Work on Slopmower review ${reviewId}`);
         expect(api.bodies('POST', START)).toEqual([{ ref: 'main', title: null }]);
     });
 

@@ -1,4 +1,4 @@
-export const TOKEN_ENVIRONMENT_VARIABLE = 'HOLISTIC_REVIEW_TOKEN';
+export const TOKEN_ENVIRONMENT_VARIABLE = 'SLOPMOWER_TOKEN';
 
 /**
  * The `.mcp.json` client configuration of docs/specs/mcp.md section 1. The agent expands the variable, so the file holds no secret.
@@ -6,7 +6,7 @@ export const TOKEN_ENVIRONMENT_VARIABLE = 'HOLISTIC_REVIEW_TOKEN';
 export function mcpConfig(mcpUrl: string): string {
     const config = {
         mcpServers: {
-            'holistic-review': {
+            slopmower: {
                 type: 'http',
                 url: mcpUrl,
                 headers: { Authorization: `Bearer \${${TOKEN_ENVIRONMENT_VARIABLE}}` },

@@ -18,7 +18,7 @@ final class LiveTopicsTest extends KernelTestCase
     #[TestDox("Tenant A's selectors match none of tenant B's topics")]
     public function testSelectorsOfOneTenantMatchNoTopicOfAnother(): void
     {
-        $topics = new LiveTopics('https://hr.example/');
+        $topics = new LiveTopics('https://slopmower.example/');
         $tenantA = TenantId::generate();
         $tenantB = TenantId::generate();
         $topicsOf = static fn (TenantId $tenantId): array => [
@@ -29,7 +29,7 @@ final class LiveTopicsTest extends KernelTestCase
 
         $selectors = $topics->subscriberSelectors($tenantA);
 
-        self::assertSame(["https://hr.example/tenants/{$tenantA}/repositories", "https://hr.example/tenants/{$tenantA}/reviews/{reviewId}"], $selectors);
+        self::assertSame(["https://slopmower.example/tenants/{$tenantA}/repositories", "https://slopmower.example/tenants/{$tenantA}/reviews/{reviewId}"], $selectors);
         self::assertSame([true, true, true], array_map(static fn (string $topic): bool => self::anyMatches($selectors, $topic), $topicsOf($tenantA)));
         self::assertSame([false, false, false], array_map(static fn (string $topic): bool => self::anyMatches($selectors, $topic), $topicsOf($tenantB)));
     }

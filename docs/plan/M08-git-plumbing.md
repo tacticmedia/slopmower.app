@@ -22,10 +22,10 @@ M01, M02.
 - `BareClone`:
   - `init --bare`;
   - `fetch --no-auto-maintenance <url> --prune +refs/heads/*:refs/heads/* +refs/tags/*:refs/tags/*`, never `--mirror`. `--no-auto-maintenance` keeps git from starting a background process in the clone;
-  - then a second fetch with the refspecs `<sha>:refs/holistic-review/commits/<sha>` for the pending linked SHAs. One unknown SHA fails a whole `git fetch`: git exits 128 with `not our ref` and writes no ref. After a failure, fetch one SHA per command and ignore the failures;
+  - then a second fetch with the refspecs `<sha>:refs/slopmower/commits/<sha>` for the pending linked SHAs. One unknown SHA fails a whole `git fetch`: git exits 128 with `not our ref` and writes no ref. After a failure, fetch one SHA per command and ignore the failures;
   - `HEAD` set to the default branch from `ls-remote --symref`.
 - `PinRefs`, decision D26:
-  - `refs/holistic-review/reviews/<reviewId>` and `refs/holistic-review/commits/<sha>`;
+  - `refs/slopmower/reviews/<reviewId>` and `refs/slopmower/commits/<sha>`;
   - created with `update-ref` and the zero OID as the old value, so an existing pin never moves;
   - delete and list.
 - `GitReader`:
@@ -57,7 +57,7 @@ M01, M02.
 ## Acceptance tests
 
 - **F `BareCloneFetchTest`** proves the refspecs.
-  - "After a fetch only refs/heads, refs/tags, and refs/holistic-review exist"
+  - "After a fetch only refs/heads, refs/tags, and refs/slopmower exist"
 - **F `PinRefsSurvivePruneTest`** proves that reviewed commits survive force-pushes and garbage collection. A branch is deleted and another is force-pushed at the source.
   - "fetch --prune changes the heads but keeps the pins"
   - "git gc --prune=now keeps the pinned commits readable"
@@ -66,7 +66,7 @@ M01, M02.
   - "Moving a pin to another commit is refused"
   - "Deleting a pin removes the ref"
 - **F `PendingShaFetchTest`** proves the fetch of pending SHAs by ID over `file://`. Record in the report which SHAs a by-ID fetch can get: a commit on a branch, and a commit reachable only from a ref outside `refs/heads`.
-  - "A pending SHA that the source has lands in refs/holistic-review/commits"
+  - "A pending SHA that the source has lands in refs/slopmower/commits"
   - "An unknown pending SHA does not stop the heads or the other pending SHAs"
 - **F `GitReaderTest`** proves the reads.
   - "Lists tree entries at a commit"

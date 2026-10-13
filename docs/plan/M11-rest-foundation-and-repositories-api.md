@@ -37,7 +37,7 @@ M09, M10.
   - R4 `GET /api/v1/repositories/{repositoryId}`;
   - R5 `POST /api/v1/repositories/{repositoryId}/fetch`: 202 with the `Repository`. It queues a fetch, or the clone again after a failed clone. A queued fetch or clone is reused. A call during a running fetch queues one more fetch. 409 `repository_unavailable` with reason `removed`.
 - `composer require --dev opis/json-schema`.
-- `SchemaValidator`: loads `docs/specs/schemas/` through a loader that maps the `$id` prefix `https://holistic-review.invalid/schemas/v1/` to that directory. The `JsonApiAssertions` trait validates a response against a named schema or `$defs` entry.
+- `SchemaValidator`: loads `docs/specs/schemas/` through a loader that maps the `$id` prefix `https://slopmower.invalid/schemas/v1/` to that directory. The `JsonApiAssertions` trait validates a response against a named schema or `$defs` entry.
 - The `CrossTenantCases` registry: one case per `/api/v1` route, with the IDs of another tenant.
 
 ## Out of scope

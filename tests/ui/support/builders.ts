@@ -118,9 +118,9 @@ export function token(overrides: Partial<ApiToken> = {}): ApiToken {
     return { ...base, id: newId(), createdAt: now(), ...overrides } as ApiToken;
 }
 
-/** A secret in the T2 format: `hr_` and 43 base64url characters. */
+/** A secret in the T2 format: `sm_` and 43 base64url characters. */
 export function tokenSecret(): string {
-    return `hr_${createHash('sha256').update(newId()).digest('base64url')}`;
+    return `sm_${createHash('sha256').update(newId()).digest('base64url')}`;
 }
 
 export function snapshot(lines: readonly string[], range: LineRange): ContentSnapshot {

@@ -68,7 +68,7 @@ final class ConcurrentReviewsTest extends WebTestCase
         self::assertNotSame($first['id'], $second['id']);
         self::assertSame([$second['id'], $first['id']], array_column($page['items'], 'id'));
         self::assertSame([$head, $head], array_column($page['items'], 'commitSha'));
-        self::assertSame(["refs/holistic-review/reviews/{$first['id']}" => $head, "refs/holistic-review/reviews/{$second['id']}" => $head], self::pins($this->user, $this->repositoryId));
+        self::assertSame(["refs/slopmower/reviews/{$first['id']}" => $head, "refs/slopmower/reviews/{$second['id']}" => $head], self::pins($this->user, $this->repositoryId));
         self::assertIsArray($page['repository']);
         self::assertSame([$this->repositoryId, 2], [$page['repository']['id'], $page['repository']['openReviewCount']]);
     }

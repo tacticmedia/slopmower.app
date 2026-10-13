@@ -4,7 +4,7 @@ Workflow, conventions, and status: [README](README.md).
 
 ## Goal
 
-The `holistic-review` MCP server over Streamable HTTP at `/_mcp`, with the five read tools. The contract is docs/specs/mcp.md.
+The `slopmower` MCP server over Streamable HTTP at `/_mcp`, with the five read tools. The contract is docs/specs/mcp.md.
 
 ## Depends on
 
@@ -14,7 +14,7 @@ M13, M14.
 
 - `composer require symfony/mcp-bundle:0.14.1 mcp/sdk:0.8.1 nyholm/psr7`. The first two are exact pins.
 - A hand-written `config/packages/mcp.yaml`, because the bundle has no recipe. Confirm every key with `make console c="config:dump-reference mcp"`:
-  - server `holistic-review`, version `1.0.0`, the description of docs/specs/mcp.md section 1;
+  - server `slopmower`, version `1.0.0`, the description of docs/specs/mcp.md section 1;
   - transports: HTTP only, no stdio;
   - `http.path: /_mcp`;
   - `http.allowed_hosts: ['%env(APP_PUBLIC_HOST)%']`, with `APP_PUBLIC_HOST=localhost` in `.env`. Read how the bundle compares the `Host` header, with or without the port, so that `localhost:8000` and `localhost:8081` pass;
@@ -23,7 +23,7 @@ M13, M14.
   - `instructions`: the text of docs/specs/mcp.md section 2, through the parameter `app.mcp_instructions`.
 - `config/routes/mcp.yaml` with the route type `mcp`.
 - Resolve the double PSR-17 aliases of the `nyholm/psr7` and `php-http/discovery` recipes. Keep one set.
-- Firewall `mcp`: pattern `^/_mcp`, `stateless: true`, `access_token` with the M14 handler, role `ROLE_AGENT`. `BearerAuthenticationFailure` of M14 is its `failure_handler` and its `entry_point`, so a call without a token also gets the Error body. A wrong token gets HTTP 401 before JSON-RPC, with `WWW-Authenticate: Bearer realm="holistic-review", error="invalid_token"` and the Error JSON body. `/.well-known/oauth-protected-resource` answers 404, decision D18.
+- Firewall `mcp`: pattern `^/_mcp`, `stateless: true`, `access_token` with the M14 handler, role `ROLE_AGENT`. `BearerAuthenticationFailure` of M14 is its `failure_handler` and its `entry_point`, so a call without a token also gets the Error body. A wrong token gets HTTP 401 before JSON-RPC, with `WWW-Authenticate: Bearer realm="slopmower", error="invalid_token"` and the Error JSON body. `/.well-known/oauth-protected-resource` answers 404, decision D18.
 - `app:schema:bundle`: generates `src/Mcp/BundledSchemas.php` with one `public const array` per output root. Each constant is a bundled copy of a schema: the root with `type: "object"`, its `properties` and `required`, and a `$defs` section with every referenced definition, with the `$ref`s rewritten to `#/$defs/<Name>`. Attribute arguments must be constant expressions, so the schemas live in constants. The file is generated, so add it to the exception list of `FileSizeLimitTest`.
 - Read tools. One class per tool in `src/Mcp/Tool`, each with one `#[McpTool]` method. Parameters are scalars and backed enums only. Names, titles, descriptions, `#[Schema]` constraints, annotations, and output schemas equal docs/specs/mcp.md section 4:
   - `list_repositories(cursor, limit)`;
@@ -107,7 +107,7 @@ By hand:
 
 1. Sign in locally in the browser. Create a token with T2 through a `fetch()` call from the browser console.
 2. Send `initialize` with `curl` and the token.
-3. Run `claude mcp add --transport http holistic-review http://localhost:8000/_mcp --header "Authorization: Bearer $T"` and list the tools in Claude Code.
+3. Run `claude mcp add --transport http slopmower http://localhost:8000/_mcp --header "Authorization: Bearer $T"` and list the tools in Claude Code.
 
 ## Done
 

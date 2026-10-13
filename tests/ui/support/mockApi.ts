@@ -20,7 +20,7 @@ const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 /** `SameOriginCsrfTokenManager`: 18 random bytes in base64url, and a cookie named after them. */
 const CSRF_TOKEN = /^[A-Za-z0-9_-]{24}$/;
 
-const LOGIN_PAGE = '<!DOCTYPE html><html lang="en"><title>Sign in</title><h1>Sign in to Holistic Review</h1></html>';
+const LOGIN_PAGE = '<!DOCTYPE html><html lang="en"><title>Sign in</title><h1>Sign in to Slopmower</h1></html>';
 
 export function json(ref: SchemaRef, body: unknown, status = 200): MockResponse {
     assertMatchesSchema(ref, body);

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://holistic-review.invalid/schemas/v1/blame.schema.json",
+  "$id": "https://slopmower.invalid/schemas/v1/blame.schema.json",
   "title": "Blame",
   "description": "The commit that last changed each line of a file, up to the review commit.",
   "type": "object",

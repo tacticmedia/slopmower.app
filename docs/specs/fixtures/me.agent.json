@@ -20,7 +20,7 @@
     "scope": "repository",
     "repositoryId": "01K6B2Z0R3P0S1T2V3W4X5Y6Z7",
     "repositoryName": "acme/billing",
-    "prefix": "hr_KXidQQ",
+    "prefix": "sm_KXidQQ",
     "state": "active",
     "createdAt": "2026-09-29T07:00:00Z",
     "expiresAt": null,
@@ -30,13 +30,13 @@
   "features": {
     "localRepositories": true,
     "githubApp": {
-      "slug": "holistic-review",
-      "installUrl": "https://github.com/apps/holistic-review/installations/new"
+      "slug": "slopmower",
+      "installUrl": "https://github.com/apps/slopmower/installations/new"
     }
   },
   "links": {
-    "mcpUrl": "https://hr.example/_mcp",
-    "docsUrl": "https://hr.example/docs",
-    "skillUrl": "https://hr.example/docs/skill/SKILL.md"
+    "mcpUrl": "https://slopmower.example/_mcp",
+    "docsUrl": "https://slopmower.example/docs",
+    "skillUrl": "https://slopmower.example/docs/skill/SKILL.md"
   }
 }

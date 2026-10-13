@@ -8,7 +8,7 @@ Quick open finds a symbol from a camel-case abbreviation, for example `CE` for `
 
 ## Decisions
 
-Jan, 2026-10-07: pick the Candidates that help most when reviewing this repository with Holistic Review, and decide what a sensible default decides.
+Jan, 2026-10-07: pick the Candidates that help most when reviewing this repository with Slopmower, and decide what a sensible default decides.
 
 - **Decision D54** amends the V16 rules of D48 in place, as D45 did. The wire format does not change: more names match, and the order changes.
 - **Word starts.** The words of a name are split at every character that is not a letter or a digit, before an upper-case letter that follows a lower-case letter or a digit, and before an upper-case letter that follows an upper-case letter and precedes a lower-case letter. So `HTTPClient` has the words `HTTP` and `Client`. A name matches `q` by word starts when `q`, ignoring case, is a sequence of non-empty prefixes of its words, in word order, with words skipped where needed. `CE` and `ComEx` match `CommandExecutor`, `ReqDec` matches `RequestDecider`, `tax` matches `InvoiceTax`, and `ce` does not match `Service`. A `q` with a character that is not a letter or a digit matches no name by word starts.

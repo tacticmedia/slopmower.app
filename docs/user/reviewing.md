@@ -82,8 +82,8 @@ An older proposal keeps its decision: **Approved** or **Changes requested**. An 
 
 The agent links each commit to the requests that it covers. One commit can cover several requests. The request shows each linked commit with its state:
 
-- **Pending**: Holistic Review does not have the commit yet. For a GitHub repository, the agent must push. For a local repository, the commit must be on a branch of the connected repository.
-- **Available**: Holistic Review has the commit. Click it to see its changes on the **Changes** tab.
+- **Pending**: Slopmower does not have the commit yet. For a GitHub repository, the agent must push. For a local repository, the commit must be on a branch of the connected repository.
+- **Available**: Slopmower has the commit. Click it to see its changes on the **Changes** tab.
 
 On the **Changes** tab, a commit with more than 20 changed files opens only the files that hold the code of the request. Click the arrow of a file to show or hide its changes.
 
@@ -93,7 +93,7 @@ A linked commit does not finish a request. The agent marks the request **Ready f
 
 When the agent opened a pull request for its work, it links the pull request to the requests that it covers. The header of the request lists its pull requests, and the conversation shows each link. Click a pull request to open it in a new tab. The agent can remove a link that it made by mistake. The conversation shows the removal too.
 
-A pull request link does not change the status, and the request does not wait for you because of it. Holistic Review stores the address only. It does not read the pull request from GitHub. The agent opens a pull request only when you or the instructions of your repository ask for it.
+A pull request link does not change the status, and the request does not wait for you because of it. Slopmower stores the address only. It does not read the pull request from GitHub. The agent opens a pull request only when you or the instructions of your repository ask for it.
 
 ## Verify, reopen, or decline
 
@@ -168,7 +168,7 @@ When the repository has a `.git-blame-ignore-revs` file, the commits that it nam
 
 ## Outdated requests
 
-A request is **Outdated** when its code changed on the default branch, or when Holistic Review cannot find the code there any more. The review view always shows the code at the review commit, so the request stays at its original place. The label tells you that the code on the default branch is different.
+A request is **Outdated** when its code changed on the default branch, or when Slopmower cannot find the code there any more. The review view always shows the code at the review commit, so the request stays at its original place. The label tells you that the code on the default branch is different.
 
 ## Carry over open requests
 
@@ -176,7 +176,7 @@ When the code moved on, start a new review at the later commit and take the open
 
 An open review can also take the open requests of another review of the repository, for example after the agent released a request of that review, or you clicked **Unassign** on it. Click **Carry over requests** in the review header, pick the review in **Carry over open requests from**, then click **Carry over**. The list has the open and the closed reviews of the repository. A closed review shows **(closed)**.
 
-Holistic Review finds the code of each open or reopened request at the commit of the review that takes the requests, and opens a copy of the request in that review. A list then shows every request of the other review with its outcome:
+Slopmower finds the code of each open or reopened request at the commit of the review that takes the requests, and opens a copy of the request in that review. A list then shows every request of the other review with its outcome:
 
 - **Carried**: the copy points at the same code, at its new place.
 - **Carried, the code changed**: the copy points at the changed code, and its first comment says that the code changed.
@@ -188,6 +188,6 @@ A copy shows **Carried from the source request**, a link to the request in the o
 
 ## Close a review
 
-When you are finished, click **Close review** in the review header. You can add a note. If you have drafts, Holistic Review warns you, because closing deletes them.
+When you are finished, click **Close review** in the review header. You can add a note. If you have drafts, Slopmower warns you, because closing deletes them.
 
 A closed review is read-only. Nobody can comment, change a status, or link commits. The agent gets `review_closed` and stops. Closed reviews are hidden from the lists. Select **Show closed** to see them. A closed review cannot be opened again. Start a new review instead.

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://holistic-review.invalid/schemas/v1/event.schema.json",
+  "$id": "https://slopmower.invalid/schemas/v1/event.schema.json",
   "title": "Event",
   "description": "An entry of the review event log as returned by get_updates, the updates endpoint, and command results.",
   "type": "object",

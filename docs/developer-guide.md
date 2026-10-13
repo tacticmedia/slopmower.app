@@ -1,6 +1,6 @@
 # Developer guide
 
-This guide is a map of the Holistic Review code. It tells you what each part does, where it is, how a call moves through it, and which parts are more complex than their task needs (section 7). The [architecture](architecture.md) and the [specifications](specs/README.md) stay the sources of truth. This guide points to them.
+This guide is a map of the Slopmower code. It tells you what each part does, where it is, how a call moves through it, and which parts are more complex than their task needs (section 7). The [architecture](architecture.md) and the [specifications](specs/README.md) stay the sources of truth. This guide points to them.
 
 Size: `src/` has 380 PHP files and about 24,700 lines. One generated file, `src/Mcp/BundledSchemas.php`, has 2,472 of these lines. `assets/` has 128 TypeScript files and about 6,500 lines without tests. `tests/` has about 23,000 lines of PHP and 2,800 lines of Playwright UI tests.
 
@@ -8,7 +8,7 @@ Size: `src/` has 380 PHP files and about 24,700 lines. One generated file, `src/
 
 ### 1.1 The product
 
-Holistic Review lets you review a full codebase at one commit, in a view like a GitHub pull request review, and each comment is a change request. Your coding agent reads the requests over MCP, does the work, and links its commits, and you verify or reopen each request in the browser.
+Slopmower lets you review a full codebase at one commit, in a view like a GitHub pull request review, and each comment is a change request. Your coding agent reads the requests over MCP, does the work, and links its commits, and you verify or reopen each request in the browser.
 
 ### 1.2 Runtime pieces
 
@@ -57,7 +57,7 @@ Skip these on a first pass: `src/Mcp/BundledSchemas.php`, `assets/api/types/`, `
 
 ### 2.1 Domain areas
 
-**Repositories and the server clone.** A tenant connects a repository from a GitHub App installation or from a local directory under `APP_LOCAL_REPOSITORIES_DIR` (D24). The server keeps its own bare clone of each repository and reads code only from that clone. `SyncState` is the clone state: `cloning`, `idle`, `fetching`, `failed`, or `unavailable`. Pin refs under `refs/holistic-review/` keep reviewed and linked commits through force-pushes and `git gc` (D26). Code: `Application\FetchRepository`, `Application\ServerClone`, `MessageHandler\RepositorySyncHandler`, `App\Git`, `App\Source`, `App\GitHub`, `Repository\RepositoryRepository`.
+**Repositories and the server clone.** A tenant connects a repository from a GitHub App installation or from a local directory under `APP_LOCAL_REPOSITORIES_DIR` (D24). The server keeps its own bare clone of each repository and reads code only from that clone. `SyncState` is the clone state: `cloning`, `idle`, `fetching`, `failed`, or `unavailable`. Pin refs under `refs/slopmower/` keep reviewed and linked commits through force-pushes and `git gc` (D26). Code: `Application\FetchRepository`, `Application\ServerClone`, `MessageHandler\RepositorySyncHandler`, `App\Git`, `App\Source`, `App\GitHub`, `Repository\RepositoryRepository`.
 
 **Reviews.** A review is one feedback round on one repository at one pinned commit. The start resolves the ref to a full SHA, and that SHA never changes. A review stays open until a user closes it. A closed review is read-only (D27). Two open reviews of one repository are fully separate. Code: `Domain\Review`, `Application\ReviewCommands`, `Entity\Review`.
 
@@ -69,7 +69,7 @@ Skip these on a first pass: `src/Mcp/BundledSchemas.php`, `assets/api/types/`, `
 
 **Code reading and the symbol index.** The server reads the review commit from its clone: `git ls-tree` for trees, one `git cat-file --batch` process per clone for content, one more per streamed raw blob, and `git blame --incremental` for the blame view (D59). At review start, a Messenger job writes the path list and the symbols of the commit: PHP through `nikic/php-parser`, the other languages of [architecture section 4](architecture.md#symbol-languages) through the `symbols` service. Symbols give symbol anchors, the "Symbols" menu, and code navigation: V14 resolves the name at a position, or a typed name, with php-parser's `NameResolver` and looks up its declarations by FQN among the PHP symbols of the commit. There is no reference index. Quick open, V16, finds the paths and symbol names of the commit that contain a text or match it by word starts: one SQL query on the index selects the candidates, and `Index\SearchRank` ranks them. The index belongs to a commit, so reviews of one commit share it. Code: `Git\GitReader`, `App\Index`, `MessageHandler\IndexReviewHandler`, `Controller\Api\DeclarationController`, `Controller\Api\SearchController`.
 
-**Identity, tokens, and tenants.** A tenant is one developer account, with one user per tenant (D17). A browser user signs in with GitHub (D23), or with local sign-in in `dev` only (D25). An agent sends a per-user API token `hr_...` and acts as `agent`, with the token name as agent name (D13, D30). A token can be limited to one repository. Code: `App\Security`, `App\Tenancy`, `Entity\Tenant`, `Entity\User`, `Entity\ApiToken`.
+**Identity, tokens, and tenants.** A tenant is one developer account, with one user per tenant (D17). A browser user signs in with GitHub (D23), or with local sign-in in `dev` only (D25). An agent sends a per-user API token `sm_...` and acts as `agent`, with the token name as agent name (D13, D30). A token can be limited to one repository. Code: `App\Security`, `App\Tenancy`, `Entity\Tenant`, `Entity\User`, `Entity\ApiToken`.
 
 **Live updates.** After a commit, the server publishes a private Mercure update that holds IDs only (D42). The browser keeps one `EventSource` and revalidates its React Router loaders. The agent gets no push. It polls `get_updates` (D21). Code: `App\Live`, `assets/live/`.
 
@@ -125,7 +125,7 @@ App\Anchoring          git and cache side: Locator, LocationCacheSql, CodeExcerp
 | Tenant context | The current tenant of a request, message, or command. A query without it throws `MissingTenantContext`. | `Tenancy\TenantContext` |
 | Server clone | The bare clone that the server keeps per repository. Code reads use only this clone. | `Git\TenantDataPaths::clonePath()` |
 | Sync state | Clone state: `cloning`, `idle`, `fetching`, `failed`, `unavailable` | `Domain\Repository\SyncState`, `RepositoryRepository` |
-| Pin ref | `refs/holistic-review/reviews/<reviewId>` and `refs/holistic-review/commits/<sha>`. Fetch refspecs never touch them (D26). | `Git\PinRefs` |
+| Pin ref | `refs/slopmower/reviews/<reviewId>` and `refs/slopmower/commits/<sha>`. Fetch refspecs never touch them (D26). | `Git\PinRefs` |
 | Review commit | The one commit of a review. All code reads and anchor captures use it. | `Entity\Review::getCommitSha()` |
 | Request | One change request thread. The table is `change_request`. | `Domain\Request\RequestState`, `Entity\ChangeRequest` |
 | Claim, holder | An agent claims a request and holds it while `in_progress`. A repeated claim by the holder writes no event. | `RequestDecider`, `RequestState::isClaimedBy()` |
@@ -291,14 +291,14 @@ Change the specs first when a contract changes. The plan forbids a wire format t
 
 An agent cannot open a request. A user opens one through `RequestController::open()`, `AnchorFactory::capture()` for a request with an anchor, and `RequestCommands::open()`. The agent side is the reply:
 
-1. The agent sends `tools/call reply_to_request` to `POST /_mcp` with `Authorization: Bearer hr_...`.
+1. The agent sends `tools/call reply_to_request` to `POST /_mcp` with `Authorization: Bearer sm_...`.
 2. The `mcp` firewall calls `ApiTokenHandler::getUserBadgeFrom()`. It finds the token by its SHA-256 inside `TenantFilter::suspend()`, requires `ApiTokenState::Active` and a live owner, calls `TenantContext::set()`, and calls `restrictToRepository()` for a scoped token. It returns a `UserBadge` that loads an `AgentUser`. `access_control` requires `ROLE_AGENT`.
 3. `SessionLockedMcpController::handle()` holds the lock `mcp-session-<id>`, so one request per MCP session runs at a time. `TokenBoundSessionStore` binds the session to the token.
 4. The SDK checks the arguments against `#[Schema]` and calls `McpTools::replyToRequest()`. `requestCommand()` runs the command through `McpTools::run()`, which maps each failure. `CurrentActor::get()` gives `Actor::agent(userId, agentName)`.
 5. `RequestCommands::reply()` calls `reviewOf()`. The SQL filters apply to this lookup, so a request of another tenant or outside the token scope gives `NotFound`. Then `RequestCommands::run()` calls `CommandExecutor::execute()`.
 6. Under the tenant row lock, the decide closure reads `ReviewRepository::findFresh()`, builds the state with `RequestStateMapper::toState()` from `ChangeRequestRepository::findFresh()` and `CommitLinkRepository::findFreshOf()`, and calls `RequestDecider::decide()`. The checks run in the order `invalid_input`, `review_closed`, `invalid_transition`, `commits_not_available`. The result is `request.commented`.
 7. `CommandExecutor` numbers the event with the next `seq` and calls `EventStoreSql::append()`. `RequestProjector::project()` folds `RequestReducer::apply()`, writes the state with `RequestStateMapper::update()`, including `awaiting` from `AwaitingPolicy::evaluate()`, and persists a `Comment`. `ReviewProjector::project()` moves `Review.lastEventSeq`. The transaction commits.
-8. `EventsCommitted` goes to `QueueLocationRecompute::onEventsCommitted()`, which does nothing, because no `request.opened` is in the batch. Then `PublishCommittedEvents::__invoke()` publishes `{type: events, reviewId, seq, requestIds}` on the review topic with the ID `urn:holistic-review:<tenantId>:<seq>`.
+8. `EventsCommitted` goes to `QueueLocationRecompute::onEventsCommitted()`, which does nothing, because no `request.opened` is in the batch. Then `PublishCommittedEvents::__invoke()` publishes `{type: events, reviewId, seq, requestIds}` on the review topic with the ID `urn:slopmower:<tenantId>:<seq>`.
 9. The tool returns `RequestQuery::commandResult()`. The shared normalizers give the same JSON as REST Q4. A `DomainError` becomes an `isError` result with the error body.
 10. In the browser, `LiveSubscription.#receive()` gets the `events` update for the open review with a new `seq`. `#requestRevalidation()` records the `seq` and starts `#revalidate()`, which waits for `routerIdle()`. It skips the revalidation when `EventPositions` already covers every pending `seq`, which happens when the update reports a write of this browser.
 11. `router.revalidate()` runs `requestLoader()` again, which reads Q3. `ThreadBox` in `RequestDetail.tsx` shows the reply. `TurnLabel` shows the new `awaiting` value.

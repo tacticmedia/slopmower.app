@@ -84,7 +84,7 @@ final class ConnectLocalRepositoryTest extends KernelTestCase
     public function testSourceOwnedByAnotherUser(): void
     {
         // The bind mount of the project directory does not keep a changed owner.
-        $localRepositories = sys_get_temp_dir().'/holistic-review-'.bin2hex(random_bytes(8));
+        $localRepositories = sys_get_temp_dir().'/slopmower-'.bin2hex(random_bytes(8));
         $filesystem = new Filesystem();
         $filesystem->mkdir($localRepositories);
 

@@ -18,7 +18,7 @@ describe('SkillInstallTest', () => {
 
         const command = skillInstallCommand(skillUrl);
 
-        expect(command).toBe('curl -fsSL https://hr.example/docs/skill/SKILL.md --create-dirs -o .claude/skills/holistic-review/SKILL.md');
+        expect(command).toBe('curl -fsSL https://slopmower.example/docs/skill/SKILL.md --create-dirs -o .claude/skills/slopmower/SKILL.md');
         expect(command).toBe(specifiedCommand(skillUrl));
     });
 });

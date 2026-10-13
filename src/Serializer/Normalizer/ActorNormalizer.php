@@ -14,7 +14,7 @@ use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
  */
 final class ActorNormalizer implements NormalizerInterface
 {
-    private const string SYSTEM_NAME = 'Holistic Review';
+    private const string SYSTEM_NAME = 'Slopmower';
 
     public function __construct(private readonly UserRepository $users)
     {

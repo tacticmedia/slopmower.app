@@ -41,7 +41,7 @@ export function CodeLayout() {
                 position="start"
                 sticky
                 resizable
-                widthStorageKey="holistic-review.tree-width"
+                widthStorageKey="slopmower.tree-width"
                 width={TREE_WIDTH}
                 hidden={treeCollapsed}
                 aria-label="File tree"

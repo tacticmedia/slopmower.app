@@ -1,4 +1,4 @@
-# Holistic Review: requirements
+# Slopmower: requirements
 
 Status: approved requirements for the proof of concept. The design that meets them is in [architecture.md](architecture.md). The contracts are in [specs/](specs/README.md). The implementation plan starts at [plan/README.md](plan/README.md).
 
@@ -31,7 +31,7 @@ These two principles control all decisions.
 
 ### FR1 Product and tenancy
 
-- Holistic Review is a hosted, multi-tenant web application.
+- Slopmower is a hosted, multi-tenant web application.
 - A tenant is one developer account and all its data. A tenant never sees the data of another tenant.
 - The proof of concept has one user per tenant. `User` and `Tenant` are separate, so that a tenant can get more users later.
 
@@ -43,7 +43,7 @@ These two principles control all decisions.
 ### FR3 Repositories
 
 - A repository comes from one of two sources:
-  - the Holistic Review GitHub App, installed on repositories that the user chooses, with read-only access to contents;
+  - the Slopmower GitHub App, installed on repositories that the user chooses, with read-only access to contents;
   - a local directory under `APP_LOCAL_REPOSITORIES_DIR`, which Docker mounts read-only into the application.
 - Local repositories are an instance feature. When `APP_LOCAL_REPOSITORIES_DIR` is set, every tenant of that instance may connect the repositories under it. The feature is meant for local and self-hosted runs. It is off when the variable is unset.
 - The UI lists the git repositories found directly under the directory. The user connects one.
@@ -54,7 +54,7 @@ These two principles control all decisions.
 
 - A review is pinned to one commit SHA. The server resolves the ref, for example the default branch, to a SHA when the review starts.
 - Reviews are revision-specific. Several open reviews of one repository can run at the same time and stay fully separate. Each request, draft, viewed-file mark, and update cursor belongs to exactly one review.
-- The review header shows a copyable review ID and a ready prompt for the agent: "Work on Holistic Review <id>".
+- The review header shows a copyable review ID and a ready prompt for the agent: "Work on Slopmower review <id>".
 - The index of paths and symbols belongs to a commit of a repository, because it is code data. Reviews of the same commit share it.
 - The server keeps the review commit and every linked commit in its clone, so that force-pushes and garbage collection cannot remove them.
 
@@ -142,13 +142,13 @@ These two principles control all decisions.
 - The user creates tokens in Settings. The token name is the agent name on every event made with the token.
 - Scope: all repositories of the tenant, or one repository. A scoped token answers `not_found` for other repositories.
 - Optional expiry date.
-- The secret is `hr_` followed by 32 random bytes in base64url. It is shown once. The server stores only its SHA-256 hash.
+- The secret is `sm_` followed by 32 random bytes in base64url. It is shown once. The server stores only its SHA-256 hash.
 - The user can revoke a token. The last use is shown.
 
 ### FR14 Public documentation
 
 - The application renders the user documentation from `docs/user/*.md` at `/docs`, without sign-in.
-- It serves the Agent Skill raw at `/docs/skill/SKILL.md`, so that one `curl` command installs it into `.claude/skills/holistic-review/SKILL.md` of the user's repository.
+- It serves the Agent Skill raw at `/docs/skill/SKILL.md`, so that one `curl` command installs it into `.claude/skills/slopmower/SKILL.md` of the user's repository.
 - Settings links to the documentation and to the skill.
 
 ### FR15 Storage and safety

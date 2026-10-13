@@ -20,7 +20,7 @@ use Symfony\Component\Uid\Uuid;
  * without a lock, so two parallel requests of one session can lose or swap a response. No tool suspends, so the SDK
  * answers with JSON and touches the session only inside handle().
  */
-#[AsDecorator('mcp.server.holistic_review.controller')]
+#[AsDecorator('mcp.server.slopmower.controller')]
 final class SessionLockedMcpController
 {
     private const float LOCK_TIMEOUT_SECONDS = 30.0;

@@ -22,8 +22,8 @@ final class McpAuthTest extends WebTestCase
     use ApiFixtures;
     use ResetDatabase;
 
-    private const string CHALLENGE = 'Bearer realm="holistic-review"';
-    private const string INVALID_TOKEN_CHALLENGE = 'Bearer realm="holistic-review", error="invalid_token"';
+    private const string CHALLENGE = 'Bearer realm="slopmower"';
+    private const string INVALID_TOKEN_CHALLENGE = 'Bearer realm="slopmower", error="invalid_token"';
 
     #[TestDox('A call without a token gets 401 with WWW-Authenticate')]
     public function testCallWithoutTokenGets401(): void

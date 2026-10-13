@@ -23,7 +23,7 @@ M16, M18 for the prompt snippet, M19 for the Settings screen.
 - A plain Twig layout for the pages.
 - The pages in `docs/user/` and the skill in `docs/user/skill/SKILL.md` exist. They describe the whole proof of concept, so this milestone does not change their content. M35 checks them against the finished implementation. The tests below check the skill against the tools and the error codes now.
 - Links:
-  - Settings shows the install command `curl -fsSL <skillUrl> --create-dirs -o .claude/skills/holistic-review/SKILL.md`, built from `links.skillUrl` of `/api/v1/me`, and a link to `/docs/connect-your-agent`;
+  - Settings shows the install command `curl -fsSL <skillUrl> --create-dirs -o .claude/skills/slopmower/SKILL.md`, built from `links.skillUrl` of `/api/v1/me`, and a link to `/docs/connect-your-agent`;
   - the agent prompt snippet of the review header links to `/docs/connect-your-agent`.
 
 ## Out of scope
@@ -63,7 +63,7 @@ M16, M18 for the prompt snippet, M19 for the Settings screen.
   - "javascript: links are dropped"
   - "GFM tables render"
 - **U `SkillFrontmatterTest`** proves the Agent Skills format.
-  - "name is holistic-review, the name of the install directory"
+  - "name is slopmower, the name of the install directory"
   - "description has at most 1,024 characters"
   - "metadata has api v1"
   - "The body has fewer than 500 lines"

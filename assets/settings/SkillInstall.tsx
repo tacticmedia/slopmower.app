@@ -15,7 +15,7 @@ export function SkillInstall({ skillUrl }: { skillUrl: string }) {
                 <CopyButton text={command} label="Copy command" />
             </div>
             <p className={styles.note}>
-                Run this command in the root of your repository to install the Holistic Review skill.{' '}
+                Run this command in the root of your repository to install the Slopmower skill.{' '}
                 <Link href="/docs/connect-your-agent">Connect your agent</Link> shows every step.
             </p>
             <pre className={styles.code} data-testid="skill-install">

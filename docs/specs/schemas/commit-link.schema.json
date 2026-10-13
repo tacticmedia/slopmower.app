@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://holistic-review.invalid/schemas/v1/commit-link.schema.json",
+  "$id": "https://slopmower.invalid/schemas/v1/commit-link.schema.json",
   "title": "CommitLink",
   "type": "object",
   "required": ["commitSha", "state", "linkedBy", "linkedAt", "note", "foundAt", "subject", "committedAt", "otherRequestIds"],

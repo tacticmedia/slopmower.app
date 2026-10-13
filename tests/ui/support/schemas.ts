@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 
-const SCHEMA_BASE = 'https://holistic-review.invalid/schemas/v1/';
+const SCHEMA_BASE = 'https://slopmower.invalid/schemas/v1/';
 
 const SCHEMA_DIRECTORY = new URL('../../../docs/specs/schemas/', import.meta.url);
 

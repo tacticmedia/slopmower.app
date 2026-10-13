@@ -91,7 +91,7 @@ Code facts at `07a1bb7` that shape the design:
   - Tools table: `propose_solution` with `id`, `plan`, `diff?`.
   - Section 4, after `claim_request`: when `requireApproval` is true, or the request is unclear or large, propose first.
     - Plan only: describe the change. Do not edit code.
-    - Plan with diff, when the change is straightforward and touches fewer than 10 files: start from a clean working tree, make the change, `git add -A`, attach `git diff --cached`, then `git stash push -m "holistic-review <requestId>"`.
+    - Plan with diff, when the change is straightforward and touches fewer than 10 files: start from a clean working tree, make the change, `git add -A`, attach `git diff --cached`, then `git stash push -m "slopmower <requestId>"`.
     - Call `propose_solution`, then take the next request. The decision arrives through `get_updates`.
     - On approval: `git apply --index` the approved diff from `get_request`, `git stash drop` that entry, test, commit, link, mark ready. Without a diff, implement the approved plan.
     - On "request changes": drop the stash, read the note, propose again.

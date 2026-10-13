@@ -15,7 +15,7 @@ M16, M19, M24, M25 for drafts and viewed files, M26 for the index, M29 for the l
 - V13 `DELETE /api/v1/reviews/{reviewId}`, session only, 204 without a body:
   - it works for open and closed reviews, and for reviews of a repository whose access was removed;
   - `DeleteReview` deletes, in one transaction under the tenant row lock of M07, the review and all its rows: requests, comments, commit links, events, the location cache entries, the drafts of every user, and the viewed-file marks;
-  - after the commit, when the clone exists, it deletes `refs/holistic-review/reviews/<reviewId>` and each `refs/holistic-review/commits/<sha>` that no remaining link in the repository uses;
+  - after the commit, when the clone exists, it deletes `refs/slopmower/reviews/<reviewId>` and each `refs/slopmower/commits/<sha>` that no remaining link in the repository uses;
   - the index stays, because it belongs to the repository and the commit;
   - it publishes a `repository` live update, because `openReviewCount` can change;
   - afterwards the IDs of the review, its requests, and its drafts answer 404.

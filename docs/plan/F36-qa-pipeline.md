@@ -14,7 +14,7 @@ Workflow, conventions, and status: [feature track](features.md). Jan asked on 20
   - `front` and `ui` run on the host with Node 24. `ui` needs Chromium on the host.
   - `make up` is `docker compose up -d --wait --build`, and `make db-test` creates and migrates `app_test` and `app_e2e`.
 - `docker/frankenphp/docker-entrypoint.sh` runs `composer install` when `vendor/` is empty, waits for the database, and migrates the dev and test databases. Compose reads `MERCURE_JWT_SECRET` and the other interpolated values from the committed `.env`.
-- The repository has the GitHub remote `git@github.com:tacticmedia/holistic-review.git`. Sessions never push, so the workflow runs on GitHub after Jan pushes.
+- The repository has the GitHub remote `git@github.com:tacticmedia/slopmower.git`. Sessions never push, so the workflow runs on GitHub after Jan pushes.
 - Local machine on 2026-10-08:
   - `act` 0.2.89 (Homebrew);
   - Docker 29.4.0, linux/arm64;
@@ -27,7 +27,7 @@ Workflow, conventions, and status: [feature track](features.md). Jan asked on 20
   - `--artifact-server-path` starts the artifact server;
   - a cache server runs by default;
   - `act` reads `./.actrc` and `~/.actrc`, and sets `ACT=true` in the job.
-- A step that runs `docker compose` in an `act` job talks to the host daemon. A bind mount of the compose file, `.:/app`, resolves on the host, so the job must see the checkout at its host path. Binding the developer checkout itself would let the job run `npm ci` and `composer install` with Linux binaries into the host's `node_modules/` and `vendor/`. It would also, with the default project name `holistic-review`, replace the developer stack.
+- A step that runs `docker compose` in an `act` job talks to the host daemon. A bind mount of the compose file, `.:/app`, resolves on the host, so the job must see the checkout at its host path. Binding the developer checkout itself would let the job run `npm ci` and `composer install` with Linux binaries into the host's `node_modules/` and `vendor/`. It would also, with the default project name `slopmower`, replace the developer stack.
 
 ## Decisions
 

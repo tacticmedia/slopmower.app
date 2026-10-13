@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://holistic-review.invalid/schemas/v1/request-command-result.schema.json",
+  "$id": "https://slopmower.invalid/schemas/v1/request-command-result.schema.json",
   "title": "RequestCommandResult",
   "type": "object",
   "required": ["request", "allowedActions", "events"],

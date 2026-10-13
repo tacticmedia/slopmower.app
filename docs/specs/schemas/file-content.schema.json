@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://holistic-review.invalid/schemas/v1/file-content.schema.json",
+  "$id": "https://slopmower.invalid/schemas/v1/file-content.schema.json",
   "title": "FileContent",
   "description": "Metadata of one file at the review commit. Bytes come from rawUrl.",
   "type": "object",

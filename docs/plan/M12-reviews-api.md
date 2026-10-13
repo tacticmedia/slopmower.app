@@ -15,7 +15,7 @@ M11.
 - `ReviewCommands::start`, endpoint V1:
   1. If `ref` is a full SHA that is already in the clone, skip the fetch. Otherwise fetch synchronously under the lock, with a 60-second timeout.
   2. Resolve `ref` with `rev-parse --verify --end-of-options <ref>^{commit}`.
-  3. Create the pin `refs/holistic-review/reviews/<reviewId>`, decision D26.
+  3. Create the pin `refs/slopmower/reviews/<reviewId>`, decision D26.
   4. Run the `review.started` transaction: actor user, payload `title`, `ref`, `commitSha`. Set the index state to `pending`. M26 adds the index job.
   5. If the transaction fails, delete the pin.
 - Start input rules: `ref` defaults to the default branch. `title` defaults to `"<ref> @ <first 12 SHA characters>"`, or to the 12 characters alone when `ref` is a SHA. A `ref` has up to 255 characters, so the ref part is cut until the title has at most 200 characters. `ref` follows the git ref-name rules or is a hex SHA of 7 to 64 characters. A leading `-` is refused.

@@ -1,4 +1,4 @@
-# Holistic Review REST API v1
+# Slopmower REST API v1
 
 This file has the endpoint index and the account, repository, review, and code endpoints. [rest-api-requests.md](rest-api-requests.md) has the requests, updates, drafts, API tokens, and the routes outside `/api/v1`. The MCP tools in [mcp.md](mcp.md) return the same JSON.
 
@@ -109,9 +109,9 @@ Example response for a bearer call, [fixtures/me.agent.json](fixtures/me.agent.j
   "user": {"id":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","login":"janklan","name":"Jan Klan","avatarUrl":"https://avatars.githubusercontent.com/u/1?v=4","signInMethod":"github"},
   "tenantId": "01K6AZZ0TENANT000000000001",
   "caller": {"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},
-  "token": {"id":"01K6C0T0KEN0000000000000AB","name":"claude-code laptop","scope":"repository","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","repositoryName":"acme/billing","prefix":"hr_KXidQQ","state":"active","createdAt":"2026-09-29T07:00:00Z","expiresAt":null,"lastUsedAt":"2026-09-29T07:30:00Z","revokedAt":null},
-  "features": {"localRepositories":true,"githubApp":{"slug":"holistic-review","installUrl":"https://github.com/apps/holistic-review/installations/new"}},
-  "links": {"mcpUrl":"https://hr.example/_mcp","docsUrl":"https://hr.example/docs","skillUrl":"https://hr.example/docs/skill/SKILL.md"}
+  "token": {"id":"01K6C0T0KEN0000000000000AB","name":"claude-code laptop","scope":"repository","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","repositoryName":"acme/billing","prefix":"sm_KXidQQ","state":"active","createdAt":"2026-09-29T07:00:00Z","expiresAt":null,"lastUsedAt":"2026-09-29T07:30:00Z","revokedAt":null},
+  "features": {"localRepositories":true,"githubApp":{"slug":"slopmower","installUrl":"https://github.com/apps/slopmower/installations/new"}},
+  "links": {"mcpUrl":"https://slopmower.example/_mcp","docsUrl":"https://slopmower.example/docs","skillUrl":"https://slopmower.example/docs/skill/SKILL.md"}
 }
 ```
 
@@ -152,8 +152,8 @@ Example response, [fixtures/lists.mercure-authorization.json](fixtures/lists.mer
 
 ```json
 {
-  "hubUrl": "https://hr.example/.well-known/mercure",
-  "topics": ["https://hr.example/tenants/01K6AZZ0TENANT000000000001/repositories","https://hr.example/tenants/01K6AZZ0TENANT000000000001/reviews/{reviewId}"],
+  "hubUrl": "https://slopmower.example/.well-known/mercure",
+  "topics": ["https://slopmower.example/tenants/01K6AZZ0TENANT000000000001/repositories","https://slopmower.example/tenants/01K6AZZ0TENANT000000000001/reviews/{reviewId}"],
   "expiresAt": "2026-09-29T08:31:12Z"
 }
 ```
@@ -210,7 +210,7 @@ Example response, [fixtures/lists.candidate-list.json](fixtures/lists.candidate-
   "truncated": false,
   "localEnabled": true,
   "githubListedAt": "2026-09-29T06:59:10Z",
-  "githubConfigureUrl": "https://github.com/apps/holistic-review/installations/new"
+  "githubConfigureUrl": "https://github.com/apps/slopmower/installations/new"
 }
 ```
 
@@ -312,7 +312,7 @@ Steps:
 
 1. If `ref` is a full SHA that is already in the clone, no fetch runs. Otherwise the server fetches synchronously, with a 60-second timeout.
 2. It resolves `git rev-parse --verify --end-of-options <ref>^{commit}` in the clone.
-3. It writes the pin ref `refs/holistic-review/reviews/<reviewId>` to the resolved commit.
+3. It writes the pin ref `refs/slopmower/reviews/<reviewId>` to the resolved commit.
 4. It writes `review.started` with actor user and the payload `title`, `ref`, `commitSha`.
 5. It queues the index job, with `index.state = pending`.
 
@@ -571,7 +571,7 @@ The call is idempotent per path.
 The endpoint works for open and closed reviews, and for reviews of a repository whose access was removed. The UI asks for a confirmation in a dialog first.
 
 - One transaction deletes the review and all its rows: requests, comments, commit links, events, the location cache entries, the drafts of every user, and the viewed-file marks.
-- After the commit, the server deletes `refs/holistic-review/reviews/<reviewId>` and each `refs/holistic-review/commits/<sha>` that no remaining link in the repository uses, when the clone exists.
+- After the commit, the server deletes `refs/slopmower/reviews/<reviewId>` and each `refs/slopmower/commits/<sha>` that no remaining link in the repository uses, when the clone exists.
 - The index stays, because it belongs to the repository and the commit, not to the review.
 - The server publishes a `repository` live update, because `openReviewCount` can change.
 - Afterwards the review ID and the IDs of its requests and drafts get 404.

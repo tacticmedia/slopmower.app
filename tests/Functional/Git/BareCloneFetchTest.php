@@ -17,7 +17,7 @@ final class BareCloneFetchTest extends KernelTestCase
 {
     use TemporaryDirectories;
 
-    #[TestDox('After a fetch only refs/heads, refs/tags, and refs/holistic-review exist')]
+    #[TestDox('After a fetch only refs/heads, refs/tags, and refs/slopmower exist')]
     public function testFetchWritesOnlyHeadsTagsAndPins(): void
     {
         $source = GitRepositoryBuilder::init($this->temporaryDirectory());
@@ -36,7 +36,7 @@ final class BareCloneFetchTest extends KernelTestCase
         $bareClone->fetch($clone, $source->url(), [CommitSha::fromString($pullHead)]);
 
         self::assertSame(
-            ['refs/heads/develop', 'refs/heads/main', "refs/holistic-review/commits/{$pullHead}", 'refs/tags/v1'],
+            ['refs/heads/develop', 'refs/heads/main', "refs/slopmower/commits/{$pullHead}", 'refs/tags/v1'],
             explode("\n", trim($git->run($clone, ['for-each-ref', '--format=%(refname)']))),
         );
         self::assertSame("refs/heads/develop\n", $git->run($clone, ['symbolic-ref', 'HEAD']));

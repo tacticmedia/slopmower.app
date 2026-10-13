@@ -13,7 +13,7 @@ type Props = {
 export function IssuedToken({ token, mcpUrl }: Props) {
     return (
         <>
-            <Banner variant="warning" title="Copy the token now" description="Holistic Review shows it only once." />
+            <Banner variant="warning" title="Copy the token now" description="Slopmower shows it only once." />
             <section className={styles.section} aria-labelledby="token-secret-title">
                 <div className={styles.sectionHeader}>
                     <Heading as="h3" id="token-secret-title" className={styles.sectionTitle}>

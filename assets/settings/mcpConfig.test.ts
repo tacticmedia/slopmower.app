@@ -13,17 +13,17 @@ function specifiedClientConfig(mcpUrl: string): unknown {
 }
 
 describe('McpConfigTest', () => {
-    it('The snippet has the server holistic-review, type http, the /_mcp URL, and the Authorization header with ${HOLISTIC_REVIEW_TOKEN}', () => {
+    it('The snippet has the server slopmower, type http, the /_mcp URL, and the Authorization header with ${SLOPMOWER_TOKEN}', () => {
         const mcpUrl = meFixture.links.mcpUrl;
 
         const snippet: unknown = JSON.parse(mcpConfig(mcpUrl));
 
         expect(snippet).toEqual({
             mcpServers: {
-                'holistic-review': {
+                slopmower: {
                     type: 'http',
-                    url: 'https://hr.example/_mcp',
-                    headers: { Authorization: 'Bearer ${HOLISTIC_REVIEW_TOKEN}' },
+                    url: 'https://slopmower.example/_mcp',
+                    headers: { Authorization: 'Bearer ${SLOPMOWER_TOKEN}' },
                 },
             },
         });

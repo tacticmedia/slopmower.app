@@ -16,13 +16,13 @@ M11.
   - The name is the agent name on every event made with the token. It follows `TokenName` in `docs/specs/schemas/api-token.schema.json`.
   - `state` is derived: `active`, `expired`, or `revoked`.
 - `ApiTokenIssuer`:
-  - the secret is `hr_` plus 32 random bytes in base64url without padding, 46 characters in total;
+  - the secret is `sm_` plus 32 random bytes in base64url without padding, 46 characters in total;
   - the server stores `hash('sha256', secret)` as lower-case hex and a `prefix` of the first 9 characters. SHA-256 is enough for a random secret of this length;
   - the plaintext is returned once, in the create response;
   - `expiresAt` is null or between now plus 1 minute and now plus 366 days;
   - at most 50 active tokens per user.
 - `ApiTokenHandler`, an `AccessTokenHandlerInterface`:
-  - a token that does not match `^hr_[A-Za-z0-9_-]{43}$` gets 401 without a database lookup;
+  - a token that does not match `^sm_[A-Za-z0-9_-]{43}$` gets 401 without a database lookup;
   - a tenantless hash lookup through `TenantFilter::suspend()`;
   - unknown, revoked, and expired tokens get 401. A token is expired when `expiresAt <= now`;
   - `lastUsedAt` is updated at most once per 60 seconds;
@@ -30,8 +30,8 @@ M11.
 - The firewall `api_bearer`, before `api`, with the `access_token` authenticator and this handler:
   - the request matcher service `BearerApiRequestMatcher` selects it for `^/api/v1` with an `Authorization: Bearer` header. So the bearer token wins over a session cookie;
   - `stateless: true`, so a bearer request never starts a session, and the response has no `Set-Cookie`. On a stateful firewall, `ContextListener::onKernelResponse` would write the token into the session;
-  - every 401 carries `WWW-Authenticate: Bearer realm="holistic-review"`, plus `, error="invalid_token"` when a token was sent.
-- `BearerAuthenticationFailure`: the `failure_handler` and the `entry_point` of `api_bearer`. M15 also makes it the `failure_handler` and the `entry_point` of `mcp`. The entry point is necessary: `HeaderAccessTokenExtractor` accepts only `[a-zA-Z0-9\-_\+~\/\.]+=*`, so for a header such as `Bearer hr_%%%` no authenticator runs. It answers 401 with the Error body, code `unauthorized`, and the `WWW-Authenticate` header of docs/specs/README.md section 3. Without it, `AccessTokenAuthenticator` answers with an empty body and its own header format, and it has no entry point.
+  - every 401 carries `WWW-Authenticate: Bearer realm="slopmower"`, plus `, error="invalid_token"` when a token was sent.
+- `BearerAuthenticationFailure`: the `failure_handler` and the `entry_point` of `api_bearer`. M15 also makes it the `failure_handler` and the `entry_point` of `mcp`. The entry point is necessary: `HeaderAccessTokenExtractor` accepts only `[a-zA-Z0-9\-_\+~\/\.]+=*`, so for a header such as `Bearer sm_%%%` no authenticator runs. It answers 401 with the Error body, code `unauthorized`, and the `WWW-Authenticate` header of docs/specs/README.md section 3. Without it, `AccessTokenAuthenticator` answers with an empty body and its own header format, and it has no entry point.
 - `CurrentActor`: actor `user` for a session, actor `agent` with `userId` and `agentName` for a token.
 - The actor-kind rule of docs/specs/README.md section 3: a session-only endpoint called with a token, or a bearer-only endpoint called with a session, gets 403 `forbidden`. A 404 for an invisible ID comes first.
 - `AccessScope` in every query: a token scoped to one repository sees only that repository and its reviews, requests, drafts, and blobs. Every other ID answers 404 `not_found`.
@@ -66,7 +66,7 @@ M11.
 ## Acceptance tests
 
 - **U `TokenFormatTest`** proves the secret format.
-  - "A secret matches ^hr_[A-Za-z0-9_-]{43}$"
+  - "A secret matches ^sm_[A-Za-z0-9_-]{43}$"
   - "1,000 secrets are unique"
   - "The stored hash is the SHA-256 hex of the secret and the prefix is its first 9 characters"
 - **F `TokenStorageTest`** proves that the plaintext is never stored.

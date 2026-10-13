@@ -37,7 +37,7 @@ final class PendingShaFetchTest extends KernelTestCase
         $this->source->switch('main')->git('branch', '--delete', '--force', 'pull');
     }
 
-    #[TestDox('A pending SHA that the source has lands in refs/holistic-review/commits')]
+    #[TestDox('A pending SHA that the source has lands in refs/slopmower/commits')]
     public function testKnownShasLandInPins(): void
     {
         $clone = $this->fetchClone([$this->onBranch, $this->outsideHeads]);

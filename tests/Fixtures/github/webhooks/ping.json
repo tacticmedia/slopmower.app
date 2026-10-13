@@ -10,7 +10,7 @@
         "config": {
             "content_type": "json",
             "insecure_ssl": "0",
-            "url": "https://hr.example/webhook/github"
+            "url": "https://slopmower.example/webhook/github"
         },
         "updated_at": "2026-09-28T07:00:00Z",
         "created_at": "2026-09-28T07:00:00Z",

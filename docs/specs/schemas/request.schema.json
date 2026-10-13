@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://holistic-review.invalid/schemas/v1/request.schema.json",
+  "$id": "https://slopmower.invalid/schemas/v1/request.schema.json",
   "title": "Request",
   "description": "A request in full. Same fields as RequestSummary, with the full anchor and more.",
   "type": "object",

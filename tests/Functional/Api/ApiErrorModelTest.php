@@ -37,7 +37,7 @@ final class ApiErrorModelTest extends WebTestCase
         $response = self::apiRequest($this->client, 'GET', '/api/v1/repositories/'.RepositoryId::generate());
 
         self::assertApiError($response, 401, 'unauthorized');
-        self::assertSame('Bearer realm="holistic-review"', $response->headers->get('WWW-Authenticate'));
+        self::assertSame('Bearer realm="slopmower"', $response->headers->get('WWW-Authenticate'));
     }
 
     #[TestDox('Bad JSON gives 400 invalid_input')]

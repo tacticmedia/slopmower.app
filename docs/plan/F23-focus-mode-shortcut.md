@@ -8,7 +8,7 @@ The reviewer turns focus mode on and off from the keyboard while a file is open.
 
 ## Decisions
 
-Jan, 2026-10-07: pick the Candidates that help most when reviewing this repository with Holistic Review, and decide what a sensible default decides.
+Jan, 2026-10-07: pick the Candidates that help most when reviewing this repository with Slopmower, and decide what a sensible default decides.
 
 - **The keys:** Cmd+Shift+Enter on macOS, Ctrl+Shift+Enter elsewhere (`Mod+Shift+Enter`). Firefox on macOS binds Cmd+Shift+F to full screen, and Safari binds Cmd+. to stop loading. Chrome binds Ctrl+Shift+Enter only in the address bar. A key without a modifier would need a way to turn it off (WCAG 2.1.4).
 - **Where it acts:** only while a file is open, also on the error element of a file, where "Focus" stays. It does nothing in a text field, as the Quick open shortcut (`isEditableElement`). Escape keeps leaving focus mode.

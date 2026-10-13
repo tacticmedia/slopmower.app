@@ -41,7 +41,7 @@ final class PublishAfterCommitTest extends KernelTestCase
         $lastSeq = $recorded[1]->seq;
         self::assertTrue($updates[0]->isPrivate());
         self::assertSame(["http://localhost/tenants/{$tenantId}/reviews/{$reviewId}"], $updates[0]->getTopics());
-        self::assertSame("urn:holistic-review:{$tenantId}:{$lastSeq}", $updates[0]->getId());
+        self::assertSame("urn:slopmower:{$tenantId}:{$lastSeq}", $updates[0]->getId());
         self::assertSame(['type' => 'events', 'reviewId' => $reviewId->toString(), 'seq' => $lastSeq, 'requestIds' => [$requestId->toString()]], self::updateData($updates[0]));
     }
 

@@ -42,7 +42,7 @@ final class CrossTenantCoverageTest extends WebTestCase
      * {@see ShellRouteTest}, `sign-in` sign-in, sign-out, and health, without tenant data.
      */
     private const array ROUTES_OUTSIDE_API = [
-        '_mcp_endpoint_holistic_review' => 'mcp',
+        '_mcp_endpoint_slopmower' => 'mcp',
         '_webhook_controller' => 'webhook',
         'docs_index' => 'docs',
         'docs_page' => 'docs',

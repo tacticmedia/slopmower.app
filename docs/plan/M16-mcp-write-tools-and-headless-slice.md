@@ -29,7 +29,7 @@ M15, M09.
 - `LinkCommits`, Q7:
   - `commitSha` is a full SHA. `requestIds` holds 1 to 50 unique IDs of one review. Requests of several reviews give 422 `invalid_input`. An unknown request ID gives 404;
   - every request must be `in_progress` and claimed by the caller. The first one that fails gives 409 `invalid_transition`, and nothing is written;
-  - the availability check runs `git cat-file -e` in the clone, without a fetch. A present commit gets the link state `available`, `foundAt` equal to the link time, and the pin `refs/holistic-review/commits/<sha>`, decision D26. As in V1, the pin is written before the transaction and deleted after a rollback, unless another link in the repository uses the commit. `commit.linked` then carries `available: true`, `subject`, and `committedAt` from git, read by a new `GitReader::commitInfo()`;
+  - the availability check runs `git cat-file -e` in the clone, without a fetch. A present commit gets the link state `available`, `foundAt` equal to the link time, and the pin `refs/slopmower/commits/<sha>`, decision D26. As in V1, the pin is written before the transaction and deleted after a rollback, unless another link in the repository uses the commit. `commit.linked` then carries `available: true`, `subject`, and `committedAt` from git, read by a new `GitReader::commitInfo()`;
   - a missing commit gets the link state `pending`. After `CommandExecutor::execute()` returns, `LinkCommits` requests an asynchronous fetch through the `fetchRequested` flag of M09, with a `DelayStamp` of 5 seconds. This is the debounce per repository;
   - one `commit.linked` event names the newly linked requests. Pairs that are already linked are skipped. The response is `LinkCommitsResult`.
 - `UnlinkCommit`, Q8: writes `commit.unlinked` and removes the commit pin when no other link in the repository uses the commit. A commit that is not linked gives 422.
@@ -37,7 +37,7 @@ M15, M09.
   1. Decide `review_closed` and `invalid_transition` first, so that a refused command does not wait for a fetch and gets its error in the check order of docs/specs. Then, if any link is `pending`, fetch synchronously with the 60-second deadline of M09.
   2. The fetch dispatches `RepositoryFetched`. `ResolvePendingCommitLinks` writes `commit.found` and the pins in its own transaction. `MarkReadyForReview` does not write `commit.found`. It reads the links again, and its `events` hold only `request.ready_for_review`.
   3. Then check the links. A link that is still `pending` gives 409 `commits_not_available` with `pendingCommits`. A failed fetch gives 409 `repository_unavailable` with reason `fetch_failed`. Zero links are allowed.
-- The fetch gets the SHAs of pending links in its second step, as M08 says, into `refs/holistic-review/commits/<sha>`.
+- The fetch gets the SHAs of pending links in its second step, as M08 says, into `refs/slopmower/commits/<sha>`.
 - `ResolvePendingCommitLinks`, a listener on `RepositoryFetched`: for each pending link of the repository whose commit is now present, set it `available`, pin it, and write one `commit.found` per review, with `subject` and `committedAt` from git. It is the only writer of `commit.found`.
 - Every agent write on a closed review gives `review_closed`.
 - A cross-tenant case for every new route and tool.

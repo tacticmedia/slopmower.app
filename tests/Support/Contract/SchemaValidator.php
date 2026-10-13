@@ -13,7 +13,7 @@ use Opis\JsonSchema\Validator;
  */
 final class SchemaValidator
 {
-    private const string ID_PREFIX = 'https://holistic-review.invalid/schemas/v1/';
+    private const string ID_PREFIX = 'https://slopmower.invalid/schemas/v1/';
 
     private static ?Validator $validator = null;
 

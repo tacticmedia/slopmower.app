@@ -15,7 +15,7 @@ use Symfony\Component\Uid\Uuid;
  * Stores a session under `Uuid::v5(<token ID>, <session ID>)`, so a session ID answers only to the token that opened
  * it. Another token gets the SDK's 404 "Session not found", and its DELETE removes nothing.
  */
-#[AsDecorator('mcp.server.holistic_review.session.store')]
+#[AsDecorator('mcp.server.slopmower.session.store')]
 final class TokenBoundSessionStore implements SessionStoreInterface
 {
     public function __construct(

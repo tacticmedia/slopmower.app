@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://holistic-review.invalid/schemas/v1/review.schema.json",
+  "$id": "https://slopmower.invalid/schemas/v1/review.schema.json",
   "title": "Review",
   "type": "object",
   "required": ["id", "repositoryId", "repositoryName", "title", "ref", "commitSha", "state", "startedBy", "createdAt", "closedAt", "closedBy", "closeNote", "index", "counts", "lastEventSeq"],

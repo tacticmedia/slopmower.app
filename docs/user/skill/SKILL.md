@@ -1,19 +1,19 @@
 ---
-name: holistic-review
-description: Work through change requests from a Holistic Review of this repository. Use when the user asks to address, fix, discuss, or work on Holistic Review requests, review feedback, or the review queue, gives a Holistic Review ID, or asks to keep watching a review. Finds the review through the holistic-review MCP server, discusses requests in their threads, proposes a plan first when the user asks for one, fixes them with one commit per request, links the commits, and marks requests ready for review.
+name: slopmower
+description: Work through change requests from a Slopmower review of this repository. Use when the user asks to address, fix, discuss, or work on Slopmower requests, review feedback, or the review queue, gives a Slopmower review ID, or asks to keep watching a review. Finds the review through the slopmower MCP server, discusses requests in their threads, proposes a plan first when the user asks for one, fixes them with one commit per request, links the commits, and marks requests ready for review.
 metadata:
   api: "v1"
 ---
 
-# Holistic Review: work the request queue
+# Slopmower: work the request queue
 
-The user reviewed this repository in the Holistic Review web application and
+The user reviewed this repository in the Slopmower web application and
 left change requests. Each request asks for one change and belongs to exactly
 one review. A review is pinned to one commit. Several reviews of one repository
 can be open at the same time, and they stay separate.
 
 You talk to the user in the request's thread, or you do the work. The user then
-verifies or reopens the request. All calls go to the `holistic-review` MCP
+verifies or reopens the request. All calls go to the `slopmower` MCP
 server.
 
 ## Tools
@@ -53,7 +53,7 @@ matches. Its `source` is `github` or `local`.
 
 ## 2. Find the review
 
-- If the user gave a review ID, for example "Work on Holistic Review
+- If the user gave a review ID, for example "Work on Slopmower review
   01K6B3A1B2C3D4E5F6G7H8J9KM", use that ID as `review`.
 - Otherwise call `list_reviews` with `repository`.
   - One open review: use it.
@@ -109,12 +109,12 @@ and read their whole thread, because the user rejected an earlier result.
    - Plan with a diff, when the change is straightforward and touches fewer than
      10 files: start from a clean working tree, make the change, run
      `git add -A`, and pass the output of `git diff --cached` as `diff`. Then run
-     `git stash push -m "holistic-review <requestId>"`.
+     `git stash push -m "slopmower <requestId>"`.
    - Call `propose_solution`, then take the next request. The user's decision
      arrives through `get_updates`.
    - Approved: run `git apply --index` with the `diff` of the approved
      `request.proposed` entry from `get_request`, and `git stash drop` the entry
-     that `git stash list` names `holistic-review <requestId>`. If
+     that `git stash list` names `slopmower <requestId>`. If
      `git apply --index` fails, implement the approved plan by hand, then drop
      the stash entry. Without a diff, implement the approved plan. Go on with
      step 5.
@@ -179,7 +179,7 @@ A tool error is a result with `isError: true`. Its text is JSON:
 
 | Code | Meaning | Action |
 |---|---|---|
-| `unauthorized` | The token is missing, wrong, revoked, or expired. It arrives as HTTP 401 from the server, not as a tool result. | Tell the user to check `HOLISTIC_REVIEW_TOKEN` and the token in Settings. Stop. |
+| `unauthorized` | The token is missing, wrong, revoked, or expired. It arrives as HTTP 401 from the server, not as a tool result. | Tell the user to check `SLOPMOWER_TOKEN` and the token in Settings. Stop. |
 | `forbidden` | The caller may not do this. The MCP tools do not return it. | Tell the user |
 | `not_found` | No such repository, review, or request for this token. A token for one repository sees only that repository. | Check the ID or name, then list again. If it is still missing, tell the user. |
 | `invalid_input` | The input failed a check, for example a blank body, a reason under 20 characters after trimming, requests from several reviews, a commit that is not linked, a pull request of another repository, or an ambiguous SHA prefix | Read `details.violations`, fix the input, and call again |

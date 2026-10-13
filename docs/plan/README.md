@@ -1,4 +1,4 @@
-# Implementation plan: Holistic Review proof of concept
+# Implementation plan: Slopmower proof of concept
 
 This plan splits the proof of concept into 38 milestones: M00 to M35, plus M34b and M34c. One Claude session implements one milestone, writes a report, and stops.
 
@@ -31,7 +31,7 @@ The spec files that milestones name:
 | [docs/specs/rest-api-requests.md](../specs/rest-api-requests.md) | Requests, updates, drafts, API tokens, and the routes outside `/api/v1` |
 | [docs/specs/mcp.md](../specs/mcp.md) | Every MCP tool, the server `instructions`, the error mapping |
 | [docs/specs/webhooks-and-live-updates.md](../specs/webhooks-and-live-updates.md) | GitHub webhooks, fetch triggers, Mercure topics and payloads |
-| `docs/specs/schemas/<name>.schema.json` | JSON Schemas, draft 2020-12, `$id` base `https://holistic-review.invalid/schemas/v1/` |
+| `docs/specs/schemas/<name>.schema.json` | JSON Schemas, draft 2020-12, `$id` base `https://slopmower.invalid/schemas/v1/` |
 | `docs/specs/fixtures/` | Example payloads. PHP contract tests and TypeScript type checks use the same files. |
 
 ## Precondition
@@ -170,7 +170,7 @@ PHP, Composer, the console, and PHPUnit run in the `php` container. `make` wraps
 | `make lint` | `lint:container`, `lint:yaml config`, `lint:twig templates`, `doctrine:schema:validate --env=test` |
 | `make front` | On the host when `package.json` exists: `npm ci --prefix symbols --ignore-scripts` when `symbols/package-lock.json` is newer than the installed packages, then `npm run typecheck && npm test` |
 | `make ui` | On the host when `package.json` exists: `npx playwright install chromium` (returns at once when the browser is present), then `npm run test:ui`: Playwright against the mocked API, on `UI_PORT` |
-| `make act` | `bin/act-run`: copies the working tree without ignored files into `var/act/workspace/`, so the run installs `vendor/` and `node_modules/` as on GitHub, and runs `.github/workflows/qa.yml` with act. The job runs the compose project `holistic-review-act` on the ports of `.github/act.env`. `make act` removes that project with its volumes before and after the run. Artifacts go to `var/act/artifacts/`. The action and cache servers of act keep their default directories under `~/.cache/`. One act run per Docker daemon at a time. |
+| `make act` | `bin/act-run`: copies the working tree without ignored files into `var/act/workspace/`, so the run installs `vendor/` and `node_modules/` as on GitHub, and runs `.github/workflows/qa.yml` with act. The job runs the compose project `slopmower-act` on the ports of `.github/act.env`. `make act` removes that project with its volumes before and after the run. Artifacts go to `var/act/artifacts/`. The action and cache servers of act keep their default directories under `~/.cache/`. One act run per Docker daemon at a time. |
 | `make check` | `cs`, `stan`, `lint`, `test`, `front`, `ui`, `e2e`, then `make act` when no green `make act` has seen the current content of `ACT_INPUTS`. A green `make act` records the hash of that content in `.git/act-verified/`, shared by every worktree. With `CI` or `ACT` set, `make check` never runs act. |
 
 For verbose PHPUnit output, use `--debug`. Never use `-v` or `--verbose`. Example: `docker compose exec php bin/phpunit --debug --filter StartReviewTest`.

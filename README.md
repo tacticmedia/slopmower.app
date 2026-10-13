@@ -1,8 +1,8 @@
-# Holistic Review
+# Slopmower
 
-Holistic Review lets you review a full codebase at one commit, not only a diff. You read the code in a view that works like a GitHub pull request review, and you comment on lines, line ranges, symbols, or files. Each comment is a change request. Your coding agent, for example Claude Code, reads the requests over MCP, asks questions, makes the changes, and links its commits. You then verify or reopen each request.
+Slopmower lets you review a full codebase at one commit, not only a diff. You read the code in a view that works like a GitHub pull request review, and you comment on lines, line ranges, symbols, or files. Each comment is a change request. Your coding agent, for example Claude Code, reads the requests over MCP, asks questions, makes the changes, and links its commits. You then verify or reopen each request.
 
-This page tells you how to run Holistic Review on your computer and how to run the checks. The user documentation is in [docs/user/](docs/user/index.md). The developer documentation starts at [docs/plan/README.md](docs/plan/README.md).
+This page tells you how to run Slopmower on your computer and how to run the checks. The user documentation is in [docs/user/](docs/user/index.md). The developer documentation starts at [docs/plan/README.md](docs/plan/README.md).
 The [developer guide](docs/developer-guide.md) maps the code: domain areas, namespaces, traced flows, and where to start.
 
 ## Quick start
@@ -31,13 +31,13 @@ A port other than 8000: see [Port overrides](#port-overrides-and-saved-variables
 - For `make act`: [act](https://github.com/nektos/act) 0.2.89 or later and `rsync`. `make check` runs `make act` after a change to the workflow, the stack, or a gate. See [Run the checks](#run-the-checks).
 - Optional: Claude Code or another agent that can use an HTTP MCP server.
 
-## Start Holistic Review
+## Start Slopmower
 
 1. Clone the repository and open a terminal in it:
 
    ```sh
-   git clone <repository URL> holistic-review
-   cd holistic-review
+   git clone <repository URL> slopmower
+   cd slopmower
    ```
 
 2. Set the directory that holds your git repositories, as an absolute path, and the name of your local user:
@@ -68,9 +68,9 @@ A port other than 8000: see [Port overrides](#port-overrides-and-saved-variables
 
 5. Open http://localhost:8000 and click **Sign in as jan**. The button shows the name from `APP_LOCAL_SIGN_IN`. The first sign-in creates your local account.
 
-To stop Holistic Review, run `make down`. The database and the clones stay in Docker volumes.
+To stop Slopmower, run `make down`. The database and the clones stay in Docker volumes.
 
-[Run it locally](docs/user/local-run.md) has the details: how Holistic Review reads the repository directory, when it fetches new commits, and the limits of local sign-in.
+[Run it locally](docs/user/local-run.md) has the details: how Slopmower reads the repository directory, when it fetches new commits, and the limits of local sign-in.
 
 ## Review a local repository
 
@@ -83,7 +83,7 @@ To stop Holistic Review, run `make down`. The database and the clones stay in Do
 
 ## Connect your agent
 
-Follow [Connect your agent](docs/user/connect-your-agent.md): create a token in **Settings**, put it into `HOLISTIC_REVIEW_TOKEN`, add `.mcp.json` to the repository that you review, and install the skill. For a local run, use these URLs:
+Follow [Connect your agent](docs/user/connect-your-agent.md): create a token in **Settings**, put it into `SLOPMOWER_TOKEN`, add `.mcp.json` to the repository that you review, and install the skill. For a local run, use these URLs:
 
 - MCP server: `http://localhost:8000/_mcp`
 - Skill: `http://localhost:8000/docs/skill/SKILL.md`
@@ -126,7 +126,7 @@ The workflow [`.github/workflows/qa.yml`](.github/workflows/qa.yml) runs on ever
 `make act` runs the same workflow on your computer with act:
 
 - It copies the working tree without the git-ignored files into `var/act/workspace/`. As on GitHub, the run installs `vendor/` and `node_modules/` itself.
-- The job uses its own compose project, `holistic-review-act`, on the ports 8290, 5490, and 4290. Your stack keeps running. After the run, `make act` removes that project with its volumes.
+- The job uses its own compose project, `slopmower-act`, on the ports 8290, 5490, and 4290. Your stack keeps running. After the run, `make act` removes that project with its volumes.
 - The failure files go to `var/act/artifacts/`. The caches stay in the default directories of act under `~/.cache/`.
 - Only one act run of the workflow can run on a Docker daemon at a time.
 

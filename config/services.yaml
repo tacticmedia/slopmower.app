@@ -7,7 +7,7 @@ parameters:
     app.tenantless_messages: ['Symfony\Component\RemoteEvent\Messenger\ConsumeRemoteEventMessage']
     # The MCP server instructions, docs/specs/mcp.md section 2.
     app.mcp_instructions: |-
-        Holistic Review stores change requests that the user wrote while reviewing this repository at a pinned commit. Each request asks for one change and belongs to exactly one review; several reviews can be open at once.
+        Slopmower stores change requests that the user wrote while reviewing this repository at a pinned commit. Each request asks for one change and belongs to exactly one review; several reviews can be open at once.
 
         1. Identify the repository: owner/name from `git remote get-url origin` for GitHub, or the name of the repository's root directory for a local repository. list_repositories shows what this token can see.
         2. list_reviews(repository) returns the open reviews. Work on the one the user named; if several are open and none was named, ask.

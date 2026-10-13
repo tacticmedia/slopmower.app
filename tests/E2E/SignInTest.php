@@ -45,6 +45,6 @@ final class SignInTest extends FullStackTestCase
             JS);
 
         $this->page->waitForURL(self::BASE_URI.'/login');
-        $this->expect($this->page->locator('h1'))->toContainText('Sign in to Holistic Review');
+        $this->expect($this->page->locator('h1'))->toContainText('Sign in to Slopmower');
     }
 }

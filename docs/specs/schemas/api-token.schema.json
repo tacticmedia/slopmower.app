@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://holistic-review.invalid/schemas/v1/api-token.schema.json",
+  "$id": "https://slopmower.invalid/schemas/v1/api-token.schema.json",
   "title": "ApiToken",
   "type": "object",
   "required": ["id", "name", "scope", "repositoryId", "repositoryName", "prefix", "state", "createdAt", "expiresAt", "lastUsedAt", "revokedAt"],
@@ -29,7 +29,7 @@
     },
     "prefix": {
       "type": "string",
-      "pattern": "^hr_[A-Za-z0-9_-]{6}$",
+      "pattern": "^sm_[A-Za-z0-9_-]{6}$",
       "description": "First 9 characters of the secret."
     },
     "state": {
@@ -120,8 +120,8 @@
           "properties": {
             "secret": {
               "type": "string",
-              "pattern": "^hr_[A-Za-z0-9_-]{43}$",
-              "description": "hr_ + base64url(32 random bytes), no padding. Shown once."
+              "pattern": "^sm_[A-Za-z0-9_-]{43}$",
+              "description": "sm_ + base64url(32 random bytes), no padding. Shown once."
             }
           }
         }

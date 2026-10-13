@@ -26,7 +26,7 @@ final class MeEndpointTest extends WebTestCase
             ['code' => 'unauthorized', 'message' => 'Authentication is required.', 'details' => null],
             self::assertApiError($client->getResponse(), 401, 'unauthorized'),
         );
-        self::assertResponseHeaderSame('WWW-Authenticate', 'Bearer realm="holistic-review"');
+        self::assertResponseHeaderSame('WWW-Authenticate', 'Bearer realm="slopmower"');
         self::assertFalse($client->getResponse()->headers->has('Set-Cookie'), 'An anonymous API call starts no session.');
     }
 
@@ -39,7 +39,7 @@ final class MeEndpointTest extends WebTestCase
         $userId = $user->getId()->toString();
 
         // DEFAULT_URI is http://localhost, so this host proves that the links come from the request.
-        $client->request('GET', '/api/v1/me', server: ['HTTP_HOST' => 'hr.example:8443']);
+        $client->request('GET', '/api/v1/me', server: ['HTTP_HOST' => 'slopmower.example:8443']);
 
         $me = self::assertApiResponse($client->getResponse(), 200, 'me.schema.json');
         self::assertSame(
@@ -50,9 +50,9 @@ final class MeEndpointTest extends WebTestCase
                 'token' => null,
                 'features' => ['localRepositories' => true, 'githubApp' => null],
                 'links' => [
-                    'mcpUrl' => 'http://hr.example:8443/_mcp',
-                    'docsUrl' => 'http://hr.example:8443/docs',
-                    'skillUrl' => 'http://hr.example:8443/docs/skill/SKILL.md',
+                    'mcpUrl' => 'http://slopmower.example:8443/_mcp',
+                    'docsUrl' => 'http://slopmower.example:8443/docs',
+                    'skillUrl' => 'http://slopmower.example:8443/docs/skill/SKILL.md',
                 ],
             ],
             $me,
@@ -68,7 +68,7 @@ final class MeEndpointTest extends WebTestCase
         $client->request('GET', '/api/v1/me');
 
         self::assertSame(
-            ['localRepositories' => true, 'githubApp' => ['slug' => 'holistic-review-test', 'installUrl' => 'https://github.com/apps/holistic-review-test/installations/new']],
+            ['localRepositories' => true, 'githubApp' => ['slug' => 'slopmower-test', 'installUrl' => 'https://github.com/apps/slopmower-test/installations/new']],
             self::assertApiResponse($client->getResponse(), 200, 'me.schema.json')['features'],
         );
     }

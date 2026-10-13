@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://holistic-review.invalid/schemas/v1/live-update.schema.json",
+  "$id": "https://slopmower.invalid/schemas/v1/live-update.schema.json",
   "title": "LiveUpdate",
   "description": "Data of one Mercure update. It carries IDs only: the browser reloads data through REST. Clients ignore unknown types.",
   "oneOf": [

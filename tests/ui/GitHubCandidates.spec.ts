@@ -16,7 +16,7 @@ test.describe('GitHubCandidates', () => {
 
         await expect(page.locator(`${SECTION} button[aria-label="Connect acme/shipping"]`)).toBeVisible();
         await expect(page.locator(`${SECTION} table`)).toContainText('acme/billing');
-        await expect(page.locator(`${SECTION} [data-testid="github-configure"]`)).toHaveAttribute('href', 'https://github.com/apps/holistic-review/installations/new');
+        await expect(page.locator(`${SECTION} [data-testid="github-configure"]`)).toHaveAttribute('href', 'https://github.com/apps/slopmower/installations/new');
         await expect(page.locator(`${SECTION} [data-testid="github-configure"]`)).toContainText('Configure on GitHub');
     });
 });

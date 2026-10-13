@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://holistic-review.invalid/schemas/v1/tree-entry.schema.json",
+  "$id": "https://slopmower.invalid/schemas/v1/tree-entry.schema.json",
   "title": "TreeEntry",
   "type": "object",
   "required": ["path", "name", "type", "mode", "sha", "sizeBytes"],

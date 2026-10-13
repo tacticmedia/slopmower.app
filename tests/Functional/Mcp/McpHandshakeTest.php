@@ -31,7 +31,7 @@ final class McpHandshakeTest extends WebTestCase
 
         self::assertSame(McpTestClient::HANDSHAKE_VERSION, $initialized['protocolVersion']);
         self::assertIsArray($initialized['serverInfo']);
-        self::assertSame(['holistic-review', '1.0.0'], [$initialized['serverInfo']['name'], $initialized['serverInfo']['version']]);
+        self::assertSame(['slopmower', '1.0.0'], [$initialized['serverInfo']['name'], $initialized['serverInfo']['version']]);
         self::assertSame(self::specsCodeBlock('mcp.md', '## 2. Server instructions'), $initialized['instructions']);
         self::assertSame([], McpTestClient::result($ping));
     }

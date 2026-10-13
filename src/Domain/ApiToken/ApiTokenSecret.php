@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Domain\ApiToken;
 
 /**
- * `hr_` and 32 random bytes in base64url without padding (docs/specs/rest-api-requests.md section 6).
+ * `sm_` and 32 random bytes in base64url without padding (docs/specs/rest-api-requests.md section 6).
  */
 final readonly class ApiTokenSecret
 {
-    public const string PATTERN = '/^hr_[A-Za-z0-9_-]{43}$/D';
+    public const string PATTERN = '/^sm_[A-Za-z0-9_-]{43}$/D';
 
-    private const string MARKER = 'hr_';
+    private const string MARKER = 'sm_';
     private const int RANDOM_BYTES = 32;
     private const int PREFIX_CHARACTERS = 9;
 

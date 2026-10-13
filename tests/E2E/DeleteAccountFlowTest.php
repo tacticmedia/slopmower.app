@@ -34,7 +34,7 @@ final class DeleteAccountFlowTest extends FullStackTestCase
         $dialog->locator('button[type="submit"]')->click();
 
         $this->page->waitForURL(self::BASE_URI.'/login');
-        $this->expect($this->page->locator('h1'))->toContainText('Sign in to Holistic Review');
+        $this->expect($this->page->locator('h1'))->toContainText('Sign in to Slopmower');
         $this->visit('/settings');
         $this->page->waitForURL(self::BASE_URI.'/login');
         self::assertSame(0, self::getContainer()->get(Connection::class)->fetchOne('SELECT count(*) FROM app_user'));

@@ -1,10 +1,10 @@
 # Written by hand: symfony/mcp-bundle 0.14.1 has no Flex recipe. docs/specs/mcp.md section 1.
 mcp:
     servers:
-        holistic-review:
-            name: holistic-review
+        slopmower:
+            name: slopmower
             version: 1.0.0
-            description: Change requests from Holistic Review, for the coding agent that implements them.
+            description: Change requests from Slopmower, for the coding agent that implements them.
             instructions: '%app.mcp_instructions%'
             transports: { stdio: false, http: true }
             # The protection compares the host without the port.

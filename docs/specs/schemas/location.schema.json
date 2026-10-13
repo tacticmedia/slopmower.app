@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://holistic-review.invalid/schemas/v1/location.schema.json",
+  "$id": "https://slopmower.invalid/schemas/v1/location.schema.json",
   "title": "Location",
   "description": "Where the anchor is found at another commit. Computed and cached, never an event.",
   "type": "object",

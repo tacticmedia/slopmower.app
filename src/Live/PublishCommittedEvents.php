@@ -30,7 +30,7 @@ final class PublishCommittedEvents
                 'seq' => $committed->lastSeq,
                 'requestIds' => array_map(static fn (RequestId $requestId): string => $requestId->toString(), $committed->requestIds),
             ],
-            "urn:holistic-review:{$committed->tenantId}:{$committed->lastSeq}",
+            "urn:slopmower:{$committed->tenantId}:{$committed->lastSeq}",
         );
     }
 }

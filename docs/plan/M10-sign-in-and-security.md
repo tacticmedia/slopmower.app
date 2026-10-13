@@ -20,7 +20,7 @@ M05.
 - `access_control`: `^/api/v1` requires `IS_AUTHENTICATED`. So the firewall answers 401 on `kernel.request`, before a value resolver reads a path ID without a tenant context. Without it, the fail-closed filter throws, and the caller gets 500.
 - `TenantContextListener`: runs after the firewall and sets the tenant from the user.
 - Entry points:
-  - under `/api/v1`: JSON 401 with the Error body, code `unauthorized`, `details: null`, and `WWW-Authenticate: Bearer realm="holistic-review"`;
+  - under `/api/v1`: JSON 401 with the Error body, code `unauthorized`, `details: null`, and `WWW-Authenticate: Bearer realm="slopmower"`;
   - elsewhere: a redirect to `/login`.
 - `LocalSignInAuthenticator`, decision D25:
   - configured in the base `main` firewall, not in a `when@dev` block;

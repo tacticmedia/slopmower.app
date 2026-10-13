@@ -16,7 +16,7 @@ export function RootLayout() {
             <Header className={styles.header}>
                 <Header.Item>
                     <Header.Link as={NavLink} to="/" className={styles.brand}>
-                        Holistic Review
+                        Slopmower
                     </Header.Link>
                 </Header.Item>
                 <Header.Item full>

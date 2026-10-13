@@ -21,7 +21,7 @@ M22.
   - `{type: "events", reviewId, seq, requestIds}` on the review topic;
   - `{type: "repository", repositoryId}` on the repositories topic.
   M26 adds `index`, M29 adds `outdated`, M31 adds `repository_deleted`, and M34 adds `candidates_changed`. There is no `resync` type.
-- `PublishCommittedEvents`: a listener on `EventsCommitted` publishes one private update per committed transaction. The update ID is `urn:holistic-review:{tenantId}:{seq}`, with the last event's `seq`. A publish failure is logged and not retried.
+- `PublishCommittedEvents`: a listener on `EventsCommitted` publishes one private update per committed transaction. The update ID is `urn:slopmower:{tenantId}:{seq}`, with the last event's `seq`. A publish failure is logged and not retried.
 - `RepositoryChanged`: a Symfony event with the tenant ID and the repository ID, dispatched after the commit of every change to a repository: sync state, fetch, access, rename, and a deleted review. `PublishRepositoryChanges` listens to it and publishes `repository`. This milestone dispatches it in the use cases of M09 and M11. M31, M33, and M34 dispatch it where they say "publish `repository`".
 - A3 `POST /api/v1/mercure/authorize`, session only:
   - sets the subscriber cookie: the hub's cookie name, `mercureAuthorization` by default, `HttpOnly`, `SameSite=Strict`, path `/.well-known/mercure`, and `Secure` when the request uses HTTPS;

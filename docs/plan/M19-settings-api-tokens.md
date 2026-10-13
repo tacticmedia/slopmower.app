@@ -19,8 +19,8 @@ M14, M17.
   - an optional expiry date.
 - A one-time display of the secret:
   - a copy button;
-  - a `.mcp.json` snippet built from `links.mcpUrl` of `/api/v1/me`, with `${HOLISTIC_REVIEW_TOKEN}` in the `Authorization` header;
-  - a note to put the secret into the `HOLISTIC_REVIEW_TOKEN` environment variable.
+  - a `.mcp.json` snippet built from `links.mcpUrl` of `/api/v1/me`, with `${SLOPMOWER_TOKEN}` in the `Authorization` header;
+  - a note to put the secret into the `SLOPMOWER_TOKEN` environment variable.
 - Revoke through T3, with a confirmation.
 
 ## Out of scope
@@ -44,7 +44,7 @@ M14, M17.
 ## Acceptance tests
 
 - **V `McpConfigTest`** proves the snippet.
-  - "The snippet has the server holistic-review, type http, the /_mcp URL, and the Authorization header with ${HOLISTIC_REVIEW_TOKEN}"
+  - "The snippet has the server slopmower, type http, the /_mcp URL, and the Authorization header with ${SLOPMOWER_TOKEN}"
 - **E `TokenSettingsTest`** proves the token flow.
   - "The secret is shown once and matches the token format"
   - "The page source after a reload does not contain the secret"

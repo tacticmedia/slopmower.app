@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 
 /** A per-browser UI preference in `localStorage`, off by default. */
 export function usePreference(name: 'treeCollapsed' | 'wrap'): [boolean, (on: boolean) => void] {
-    const key = `holistic-review.${name}`;
+    const key = `slopmower.${name}`;
     const [on, setOn] = useState(() => {
         try {
             return '1' === localStorage.getItem(key);

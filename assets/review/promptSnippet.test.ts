@@ -4,6 +4,6 @@ import { agentPrompt } from './promptSnippet';
 
 describe('PromptSnippetTest', () => {
     it('The snippet names the review ID', () => {
-        expect(agentPrompt(reviewOpen.id)).toBe(`Work on Holistic Review ${reviewOpen.id}`);
+        expect(agentPrompt(reviewOpen.id)).toBe(`Work on Slopmower review ${reviewOpen.id}`);
     });
 });

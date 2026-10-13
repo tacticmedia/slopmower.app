@@ -1,4 +1,4 @@
-# Holistic Review MCP server v1
+# Slopmower MCP server v1
 
 The MCP server gives coding agents the agent side of the request workflow. It calls the same application services as the REST API and returns the same JSON. Conventions, errors, and versioning are in [README.md](README.md).
 
@@ -7,17 +7,17 @@ The MCP server gives coding agents the agent side of the request workflow. It ca
 | Item | Value |
 |---|---|
 | Endpoint | `https://<host>/_mcp`, Streamable HTTP, through the HTTP transport of `symfony/mcp-bundle` 0.14.1 with `mcp/sdk` 0.8.1. The transport needs `nyholm/psr7`. The local development environment serves `http://localhost:8000/_mcp`. |
-| Server name, version | `holistic-review`, `1.0.0` |
+| Server name, version | `slopmower`, `1.0.0` |
 | Protocol | The handshake era up to 2025-11-25 with MCP sessions, and 2026-07-28 with `server/discover` |
 | Sessions | The `file` session store of the bundle, in `var/mcp-sessions`. The default directory is under `%kernel.cache_dir%`, which `cache:clear` removes, so the configuration sets `directory`. One `php` container serves `/_mcp`, so a file store is enough. A shared store is the backlog item `docs/backlog/mcp-session-store.md`. |
 | Authentication | Firewall `mcp` with pattern `^/_mcp`, `stateless: true`, and `access_token` with the same token handler as REST. A token scoped to one repository sees only that repository. |
 | Actor | Always `agent`: `agentName` is the token name, `userId` is the token owner |
-| Wrong token | HTTP 401 before JSON-RPC, with `WWW-Authenticate: Bearer realm="holistic-review", error="invalid_token"` and an Error JSON body. There is no `resource_metadata` parameter. `/.well-known/oauth-protected-resource` answers 404. MCP OAuth comes later: decision D18 and the backlog item `docs/backlog/mcp-oauth.md`. |
+| Wrong token | HTTP 401 before JSON-RPC, with `WWW-Authenticate: Bearer realm="slopmower", error="invalid_token"` and an Error JSON body. There is no `resource_metadata` parameter. `/.well-known/oauth-protected-resource` answers 404. MCP OAuth comes later: decision D18 and the backlog item `docs/backlog/mcp-oauth.md`. |
 
 Client configuration in the repository of the developer:
 
 ```json
-{"mcpServers":{"holistic-review":{"type":"http","url":"https://<host>/_mcp","headers":{"Authorization":"Bearer ${HOLISTIC_REVIEW_TOKEN}"}}}}
+{"mcpServers":{"slopmower":{"type":"http","url":"https://<host>/_mcp","headers":{"Authorization":"Bearer ${SLOPMOWER_TOKEN}"}}}}
 ```
 
 Bundle configuration, `config/packages/mcp.yaml`:
@@ -25,10 +25,10 @@ Bundle configuration, `config/packages/mcp.yaml`:
 ```yaml
 mcp:
   servers:
-    holistic-review:
-      name: holistic-review
+    slopmower:
+      name: slopmower
       version: 1.0.0
-      description: Change requests from Holistic Review, for the coding agent that implements them.
+      description: Change requests from Slopmower, for the coding agent that implements them.
       instructions: '%app.mcp_instructions%'   # the string in section 2
       transports: { stdio: false, http: true }
       http: { path: /_mcp, allowed_hosts: ['%env(APP_PUBLIC_HOST)%'] }
@@ -41,7 +41,7 @@ mcp:
 ## 2. Server instructions
 
 ```text
-Holistic Review stores change requests that the user wrote while reviewing this repository at a pinned commit. Each request asks for one change and belongs to exactly one review; several reviews can be open at once.
+Slopmower stores change requests that the user wrote while reviewing this repository at a pinned commit. Each request asks for one change and belongs to exactly one review; several reviews can be open at once.
 
 1. Identify the repository: owner/name from `git remote get-url origin` for GitHub, or the name of the repository's root directory for a local repository. list_repositories shows what this token can see.
 2. list_reviews(repository) returns the open reviews. Work on the one the user named; if several are open and none was named, ask.
@@ -575,7 +575,7 @@ public function unlinkPullRequest(#[Schema(pattern: self::PULL_REQUEST_URL, maxL
 
 | Code | Delivered as | Agent action |
 |---|---|---|
-| `unauthorized` | HTTP 401 on the transport, never a tool result | Tell the user to check `HOLISTIC_REVIEW_TOKEN` |
+| `unauthorized` | HTTP 401 on the transport, never a tool result | Tell the user to check `SLOPMOWER_TOKEN` |
 | `not_found` | isError | Check the ID or name, then list again. Repositories outside the token scope also answer `not_found`. |
 | `invalid_input` | isError. Schema violations come as JSON-RPC -32602. | Fix the input |
 | `invalid_transition` | isError | `get_request`, then read `allowedActions`, `proposal`, and `details.claimedBy` |

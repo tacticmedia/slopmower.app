@@ -59,7 +59,7 @@ test.describe('TokenSettings', () => {
 
         const secret = await createToken(page, TOKEN_NAME);
 
-        expect(secret).toMatch(/^hr_[A-Za-z0-9_-]{43}$/);
+        expect(secret).toMatch(/^sm_[A-Za-z0-9_-]{43}$/);
         await closeIssuedToken(page);
         expect(await tokenCell(page, TOKEN_NAME, 'State')).toBe('Active');
         await page.getByRole('button', { name: 'Create token' }).click();

@@ -1,6 +1,6 @@
-# Holistic Review API specification v1
+# Slopmower API specification v1
 
-This directory is the v1 contract of Holistic Review: the REST API, the MCP server, the GitHub webhooks, the live updates, and the JSON Schemas that all of them share. REST responses, MCP `structuredContent`, the PHP contract tests, and the TypeScript types of the web UI use the same schema files. [architecture.md](../architecture.md) gives the overview and the decisions.
+This directory is the v1 contract of Slopmower: the REST API, the MCP server, the GitHub webhooks, the live updates, and the JSON Schemas that all of them share. REST responses, MCP `structuredContent`, the PHP contract tests, and the TypeScript types of the web UI use the same schema files. [architecture.md](../architecture.md) gives the overview and the decisions.
 
 ## 1. Files
 
@@ -49,12 +49,12 @@ This directory is the v1 contract of Holistic Review: the REST API, the MCP serv
 | Mode | Credential | Actor | CSRF | Used by |
 |---|---|---|---|---|
 | Session (`S`) | Session cookie from the GitHub sign-in at `/login/check-github` through HWIOAuthBundle, or from the local sign-in when `APP_ENV=dev` and `APP_LOCAL_SIGN_IN` holds a login | `user` | Required for POST, PUT, PATCH, DELETE | Web UI |
-| Bearer (`B`) | `Authorization: Bearer hr_<43 base64url characters>` | `agent`: `userId` is the token owner, `agentName` is the token name | Not checked | Agents without MCP |
+| Bearer (`B`) | `Authorization: Bearer sm_<43 base64url characters>` | `agent`: `userId` is the token owner, `agentName` is the token name | Not checked | Agents without MCP |
 
 - **Firewalls.** The stateless firewall `api_bearer` comes first. A request matcher selects it for `^/api/v1` requests with an `Authorization: Bearer` header. It uses an `access_token` authenticator whose token handler looks up the SHA-256 hex digest of the full token string. The firewalls `api`, for the other `^/api/v1` requests, and `main` both set `context: web`, so `api` shares the security token of `main`. `api` sets `lazy: true`. The MCP endpoint has its own stateless firewall. See [mcp.md](mcp.md#1-endpoint-and-authentication).
 - **Precedence and sessions.** When a request has both an `Authorization` header and a session cookie, the bearer token wins, because `api_bearer` matches first. A bearer request never starts a session: the response has no `Set-Cookie`.
-- **Token checks.** A token that does not match `^hr_[A-Za-z0-9_-]{43}$` gets 401 without a database lookup. Unknown, revoked, and expired tokens get 401. A token is expired when `expiresAt <= now`. `lastUsedAt` is updated at most once per 60 seconds.
-- **401 headers.** Every 401 carries `WWW-Authenticate: Bearer realm="holistic-review"`. When the request sent a token, the header adds `, error="invalid_token"`.
+- **Token checks.** A token that does not match `^sm_[A-Za-z0-9_-]{43}$` gets 401 without a database lookup. Unknown, revoked, and expired tokens get 401. A token is expired when `expiresAt <= now`. `lastUsedAt` is updated at most once per 60 seconds.
+- **401 headers.** Every 401 carries `WWW-Authenticate: Bearer realm="slopmower"`. When the request sent a token, the header adds `, error="invalid_token"`.
 - **CSRF.** Session writes must pass `SameOriginCsrfTokenManager` with the stateless token ID `api`. The request needs `Sec-Fetch-Site: same-origin`, an `Origin` or `Referer` header that matches the host, or a double-submit token of at least 24 characters in the `csrf-token` header. An origin header that does not match fails also with the token. A failure gets 403 `forbidden`.
 - **Tenant context.** Each request sets a fail-closed tenant context from the session user or from the token. A Doctrine SQL filter limits every ORM query to that tenant. Without a tenant context, no tenant data is read.
 - **Visibility.** A caller sees only its own tenant. A token scoped to one repository sees only that repository and its reviews, requests, drafts, and blobs. Any ID outside that visibility gets **404 `not_found`**, in the path, the query, or the body. An unknown name in the MCP `repository` argument, and a connect input that is not a candidate, also get 404. `GET /api/v1/repositories?name=` returns an empty page instead.
@@ -130,8 +130,8 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 - **Uniqueness.** Names are unique per tenant: GitHub names always contain `/`, local names never do. A second connect of the same source identity returns the existing repository.
 - **Local directories.** The server resolves the directory with `realpath()`. Its parent must equal `realpath(APP_LOCAL_REPOSITORIES_DIR)`, so symlinks cannot escape the mount. For a local source, the `git upload-pack` command that reads the source runs with `-c safe.directory=<realpath>` and `-c safe.directory=<realpath>/.git`. The server never writes to the source directory.
 - **Server clone.** Every repository has one bare clone at `$APP_TENANT_DATA_DIR/<tenantId>/repositories/<repositoryId>.git`. Two tenants that connect the same source get two clones.
-- **Fetch.** A fetch from the source takes `+refs/heads/*:refs/heads/*` and `+refs/tags/*:refs/tags/*` with `--prune`, never `--mirror`. A second `git fetch` then gets the pending linked SHAs by ID into `refs/holistic-review/commits/<sha>`. One unknown SHA fails a whole `git fetch`, so when the second fetch fails, the server fetches one SHA per command and ignores the failures.
-- **Pin refs.** At review start the server writes `refs/holistic-review/reviews/<reviewId>` to the review commit. When a linked commit is present in the clone, the server writes `refs/holistic-review/commits/<sha>`. The fetch refspecs never touch the `refs/holistic-review/` namespace, so force-pushes, pruning, and `git gc` cannot remove reviewed or linked commits. Deleting a review, unlinking the last link of a commit, or deleting the repository data deletes the matching pin refs.
+- **Fetch.** A fetch from the source takes `+refs/heads/*:refs/heads/*` and `+refs/tags/*:refs/tags/*` with `--prune`, never `--mirror`. A second `git fetch` then gets the pending linked SHAs by ID into `refs/slopmower/commits/<sha>`. One unknown SHA fails a whole `git fetch`, so when the second fetch fails, the server fetches one SHA per command and ignores the failures.
+- **Pin refs.** At review start the server writes `refs/slopmower/reviews/<reviewId>` to the review commit. When a linked commit is present in the clone, the server writes `refs/slopmower/commits/<sha>`. The fetch refspecs never touch the `refs/slopmower/` namespace, so force-pushes, pruning, and `git gc` cannot remove reviewed or linked commits. Deleting a review, unlinking the last link of a commit, or deleting the repository data deletes the matching pin refs.
 - **Available.** A commit is *available* when `git cat-file -e <sha>^{commit}` succeeds in the clone. For a local source, a local commit becomes available at the next fetch, without a push. For a GitHub source, the commit must be pushed.
 - **When fetches run.** See [webhooks-and-live-updates.md](webhooks-and-live-updates.md#2-fetches-and-commit-availability).
 
@@ -185,6 +185,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Quick open ranking, decision D54: V16 also matches a name by word starts, for example `CE` for `CommandExecutor`, ranks word starts between a name prefix and a name substring, and orders by the length of the name before the length of the path. The wire format does not change.
     - Symbols for more languages, decisions D56 and D57: V9, symbol anchors, and V16 also cover JavaScript, JSX, TypeScript, TSX, Python, Go, Rust, Java, C#, Ruby, Bash, Scala, Zig, and Lua files. `language` takes their V7 values, the open set `SymbolKind` gets `struct`, `type`, `module`, and `macro`, and the V9 ETag has its own version `v4`. V7 gives `scala`, `zig`, and `lua` for `.scala`, `.zig`, and `.lua` files, and its ETag is `v2`. V14 stays PHP only.
     - Twig symbols, decision D60: V9, symbol anchors, and V16 also cover Twig files. `language` is `twig`, the open set `SymbolKind` gets `block`, and the V9 ETag is `v5`.
+    - Product name, decision D14: the MCP server name, `serverInfo.name`, the skill name, the Bearer realm, the pin refs, the live update ID, and the schema `$id` base use `slopmower`. Token secrets start with `sm_`.
 
 ## 9. Contract tests
 
@@ -196,46 +197,46 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 ## 10. Schemas
 
 - Every file uses `"$schema": "https://json-schema.org/draft/2020-12/schema"` and a 2-space indent.
-- `$id` has the base `https://holistic-review.invalid/schemas/v1/`. The `.invalid` top-level domain of RFC 2606 makes it a stable identifier that never resolves.
-- The tests register an `opis/json-schema` loader that maps this prefix to `docs/specs/schemas/`: `$validator->resolver()->registerPrefix('https://holistic-review.invalid/schemas/v1/', $schemaDir)`.
+- `$id` has the base `https://slopmower.invalid/schemas/v1/`. The `.invalid` top-level domain of RFC 2606 makes it a stable identifier that never resolves.
+- The tests register an `opis/json-schema` loader that maps this prefix to `docs/specs/schemas/`: `$validator->resolver()->registerPrefix('https://slopmower.invalid/schemas/v1/', $schemaDir)`.
 - `GET /docs/schemas/v1/{file}.schema.json` serves the same files as `application/schema+json`.
 - Response schemas never set `additionalProperties: false`.
 - Patterns use only syntax that both ECMA-262 and PCRE accept, for example `\x00` and not `\u0000`.
 
 | File | `$id` | Content |
 |---|---|---|
-| [common.schema.json](schemas/common.schema.json) | `https://holistic-review.invalid/schemas/v1/common.schema.json` | `$defs` only: IDs, SHAs, paths, times, cursors, `UnifiedDiff`, `Proposal`, and the shared enums |
-| [error.schema.json](schemas/error.schema.json) | `https://holistic-review.invalid/schemas/v1/error.schema.json` | Error body and the `details` shape per code |
-| [actor.schema.json](schemas/actor.schema.json) | `https://holistic-review.invalid/schemas/v1/actor.schema.json` | Actor: user, agent, or system |
-| [anchor.schema.json](schemas/anchor.schema.json) | `https://holistic-review.invalid/schemas/v1/anchor.schema.json` | Anchor of a request with a code location, plus `LineRange`, `SymbolRef`, `ContentSnapshot`, `AnchorSummary`, `AnchorInput`. A general request has no anchor. |
-| [location.schema.json](schemas/location.schema.json) | `https://holistic-review.invalid/schemas/v1/location.schema.json` | Location of an anchor at another commit |
-| [repository.schema.json](schemas/repository.schema.json) | `https://holistic-review.invalid/schemas/v1/repository.schema.json` | Repository, plus `LocalDirectory` and `Sync` |
-| [repository-candidate.schema.json](schemas/repository-candidate.schema.json) | `https://holistic-review.invalid/schemas/v1/repository-candidate.schema.json` | A repository that the user can connect |
-| [review.schema.json](schemas/review.schema.json) | `https://holistic-review.invalid/schemas/v1/review.schema.json` | Review, plus `IndexStatus` and `RequestCounts` |
-| [request-summary.schema.json](schemas/request-summary.schema.json) | `https://holistic-review.invalid/schemas/v1/request-summary.schema.json` | RequestSummary for lists and command results, plus `CarriedFrom`. `anchor` is null for a general request. |
-| [request.schema.json](schemas/request.schema.json) | `https://holistic-review.invalid/schemas/v1/request.schema.json` | Request in full, plus `CodeExcerpt`. A general request has `anchor`, `location`, `excerpt`, and `outdated` null. |
-| [thread-entry.schema.json](schemas/thread-entry.schema.json) | `https://holistic-review.invalid/schemas/v1/thread-entry.schema.json` | One entry of a request thread |
-| [event.schema.json](schemas/event.schema.json) | `https://holistic-review.invalid/schemas/v1/event.schema.json` | One event of the review event log |
-| [commit-link.schema.json](schemas/commit-link.schema.json) | `https://holistic-review.invalid/schemas/v1/commit-link.schema.json` | A commit linked to a request |
-| [commit-diff.schema.json](schemas/commit-diff.schema.json) | `https://holistic-review.invalid/schemas/v1/commit-diff.schema.json` | Diff data of one linked commit, plus `CommitDiffFile` |
-| [tree-entry.schema.json](schemas/tree-entry.schema.json) | `https://holistic-review.invalid/schemas/v1/tree-entry.schema.json` | One entry of a tree listing |
-| [file-content.schema.json](schemas/file-content.schema.json) | `https://holistic-review.invalid/schemas/v1/file-content.schema.json` | File metadata at the review commit |
-| [blame.schema.json](schemas/blame.schema.json) | `https://holistic-review.invalid/schemas/v1/blame.schema.json` | The blame of a file at the review commit, plus `BlameRange` and `BlameCommit` |
-| [symbol.schema.json](schemas/symbol.schema.json) | `https://holistic-review.invalid/schemas/v1/symbol.schema.json` | One symbol of a file |
-| [declaration.schema.json](schemas/declaration.schema.json) | `https://holistic-review.invalid/schemas/v1/declaration.schema.json` | One declaration of a name at the review commit |
-| [search-hit.schema.json](schemas/search-hit.schema.json) | `https://holistic-review.invalid/schemas/v1/search-hit.schema.json` | One hit of a search at the review commit: `FileHit` or `SymbolHit` |
-| [draft.schema.json](schemas/draft.schema.json) | `https://holistic-review.invalid/schemas/v1/draft.schema.json` | A draft of the pending batch |
-| [batch-submission.schema.json](schemas/batch-submission.schema.json) | `https://holistic-review.invalid/schemas/v1/batch-submission.schema.json` | Result of a batch submission |
-| [carry-over-result.schema.json](schemas/carry-over-result.schema.json) | `https://holistic-review.invalid/schemas/v1/carry-over-result.schema.json` | Result of a carry-over, plus `CarryOverItem` and `CarryOverOutcome` |
-| [api-token.schema.json](schemas/api-token.schema.json) | `https://holistic-review.invalid/schemas/v1/api-token.schema.json` | ApiToken, plus `TokenName` and `ApiTokenWithSecret` |
-| [updates-page.schema.json](schemas/updates-page.schema.json) | `https://holistic-review.invalid/schemas/v1/updates-page.schema.json` | Result of the updates endpoint and `get_updates`, plus `UpdatedRequest` |
-| [request-command-result.schema.json](schemas/request-command-result.schema.json) | `https://holistic-review.invalid/schemas/v1/request-command-result.schema.json` | Result of a request command |
-| [link-commits-result.schema.json](schemas/link-commits-result.schema.json) | `https://holistic-review.invalid/schemas/v1/link-commits-result.schema.json` | Result of `link_commits` |
-| [link-pull-request-result.schema.json](schemas/link-pull-request-result.schema.json) | `https://holistic-review.invalid/schemas/v1/link-pull-request-result.schema.json` | Result of `link_pull_request` |
-| [me.schema.json](schemas/me.schema.json) | `https://holistic-review.invalid/schemas/v1/me.schema.json` | The caller, the tenant, the features, and the links |
-| [lists.schema.json](schemas/lists.schema.json) | `https://holistic-review.invalid/schemas/v1/lists.schema.json` | `$defs` only: every page and list, and `MercureAuthorization` |
-| [inputs.schema.json](schemas/inputs.schema.json) | `https://holistic-review.invalid/schemas/v1/inputs.schema.json` | `$defs` only: every REST request body |
-| [live-update.schema.json](schemas/live-update.schema.json) | `https://holistic-review.invalid/schemas/v1/live-update.schema.json` | Data of one Mercure update, IDs only |
+| [common.schema.json](schemas/common.schema.json) | `https://slopmower.invalid/schemas/v1/common.schema.json` | `$defs` only: IDs, SHAs, paths, times, cursors, `UnifiedDiff`, `Proposal`, and the shared enums |
+| [error.schema.json](schemas/error.schema.json) | `https://slopmower.invalid/schemas/v1/error.schema.json` | Error body and the `details` shape per code |
+| [actor.schema.json](schemas/actor.schema.json) | `https://slopmower.invalid/schemas/v1/actor.schema.json` | Actor: user, agent, or system |
+| [anchor.schema.json](schemas/anchor.schema.json) | `https://slopmower.invalid/schemas/v1/anchor.schema.json` | Anchor of a request with a code location, plus `LineRange`, `SymbolRef`, `ContentSnapshot`, `AnchorSummary`, `AnchorInput`. A general request has no anchor. |
+| [location.schema.json](schemas/location.schema.json) | `https://slopmower.invalid/schemas/v1/location.schema.json` | Location of an anchor at another commit |
+| [repository.schema.json](schemas/repository.schema.json) | `https://slopmower.invalid/schemas/v1/repository.schema.json` | Repository, plus `LocalDirectory` and `Sync` |
+| [repository-candidate.schema.json](schemas/repository-candidate.schema.json) | `https://slopmower.invalid/schemas/v1/repository-candidate.schema.json` | A repository that the user can connect |
+| [review.schema.json](schemas/review.schema.json) | `https://slopmower.invalid/schemas/v1/review.schema.json` | Review, plus `IndexStatus` and `RequestCounts` |
+| [request-summary.schema.json](schemas/request-summary.schema.json) | `https://slopmower.invalid/schemas/v1/request-summary.schema.json` | RequestSummary for lists and command results, plus `CarriedFrom`. `anchor` is null for a general request. |
+| [request.schema.json](schemas/request.schema.json) | `https://slopmower.invalid/schemas/v1/request.schema.json` | Request in full, plus `CodeExcerpt`. A general request has `anchor`, `location`, `excerpt`, and `outdated` null. |
+| [thread-entry.schema.json](schemas/thread-entry.schema.json) | `https://slopmower.invalid/schemas/v1/thread-entry.schema.json` | One entry of a request thread |
+| [event.schema.json](schemas/event.schema.json) | `https://slopmower.invalid/schemas/v1/event.schema.json` | One event of the review event log |
+| [commit-link.schema.json](schemas/commit-link.schema.json) | `https://slopmower.invalid/schemas/v1/commit-link.schema.json` | A commit linked to a request |
+| [commit-diff.schema.json](schemas/commit-diff.schema.json) | `https://slopmower.invalid/schemas/v1/commit-diff.schema.json` | Diff data of one linked commit, plus `CommitDiffFile` |
+| [tree-entry.schema.json](schemas/tree-entry.schema.json) | `https://slopmower.invalid/schemas/v1/tree-entry.schema.json` | One entry of a tree listing |
+| [file-content.schema.json](schemas/file-content.schema.json) | `https://slopmower.invalid/schemas/v1/file-content.schema.json` | File metadata at the review commit |
+| [blame.schema.json](schemas/blame.schema.json) | `https://slopmower.invalid/schemas/v1/blame.schema.json` | The blame of a file at the review commit, plus `BlameRange` and `BlameCommit` |
+| [symbol.schema.json](schemas/symbol.schema.json) | `https://slopmower.invalid/schemas/v1/symbol.schema.json` | One symbol of a file |
+| [declaration.schema.json](schemas/declaration.schema.json) | `https://slopmower.invalid/schemas/v1/declaration.schema.json` | One declaration of a name at the review commit |
+| [search-hit.schema.json](schemas/search-hit.schema.json) | `https://slopmower.invalid/schemas/v1/search-hit.schema.json` | One hit of a search at the review commit: `FileHit` or `SymbolHit` |
+| [draft.schema.json](schemas/draft.schema.json) | `https://slopmower.invalid/schemas/v1/draft.schema.json` | A draft of the pending batch |
+| [batch-submission.schema.json](schemas/batch-submission.schema.json) | `https://slopmower.invalid/schemas/v1/batch-submission.schema.json` | Result of a batch submission |
+| [carry-over-result.schema.json](schemas/carry-over-result.schema.json) | `https://slopmower.invalid/schemas/v1/carry-over-result.schema.json` | Result of a carry-over, plus `CarryOverItem` and `CarryOverOutcome` |
+| [api-token.schema.json](schemas/api-token.schema.json) | `https://slopmower.invalid/schemas/v1/api-token.schema.json` | ApiToken, plus `TokenName` and `ApiTokenWithSecret` |
+| [updates-page.schema.json](schemas/updates-page.schema.json) | `https://slopmower.invalid/schemas/v1/updates-page.schema.json` | Result of the updates endpoint and `get_updates`, plus `UpdatedRequest` |
+| [request-command-result.schema.json](schemas/request-command-result.schema.json) | `https://slopmower.invalid/schemas/v1/request-command-result.schema.json` | Result of a request command |
+| [link-commits-result.schema.json](schemas/link-commits-result.schema.json) | `https://slopmower.invalid/schemas/v1/link-commits-result.schema.json` | Result of `link_commits` |
+| [link-pull-request-result.schema.json](schemas/link-pull-request-result.schema.json) | `https://slopmower.invalid/schemas/v1/link-pull-request-result.schema.json` | Result of `link_pull_request` |
+| [me.schema.json](schemas/me.schema.json) | `https://slopmower.invalid/schemas/v1/me.schema.json` | The caller, the tenant, the features, and the links |
+| [lists.schema.json](schemas/lists.schema.json) | `https://slopmower.invalid/schemas/v1/lists.schema.json` | `$defs` only: every page and list, and `MercureAuthorization` |
+| [inputs.schema.json](schemas/inputs.schema.json) | `https://slopmower.invalid/schemas/v1/inputs.schema.json` | `$defs` only: every REST request body |
+| [live-update.schema.json](schemas/live-update.schema.json) | `https://slopmower.invalid/schemas/v1/live-update.schema.json` | Data of one Mercure update, IDs only |
 
 ## 11. Fixtures
 

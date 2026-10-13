@@ -259,7 +259,7 @@ final class InstallationSyncTest extends WebTestCase
             array_values(array_filter((array) $list['items'], static fn (mixed $item): bool => \is_array($item) && 'github' === $item['source'])),
             "Sorted by name case-insensitively, without the other tenant's candidate.",
         );
-        self::assertSame(['githubListedAt' => '2026-10-02T07:00:00Z', 'githubConfigureUrl' => 'https://github.com/apps/holistic-review-test/installations/new'], array_intersect_key($list, ['githubListedAt' => 0, 'githubConfigureUrl' => 0]));
+        self::assertSame(['githubListedAt' => '2026-10-02T07:00:00Z', 'githubConfigureUrl' => 'https://github.com/apps/slopmower-test/installations/new'], array_intersect_key($list, ['githubListedAt' => 0, 'githubConfigureUrl' => 0]));
     }
 
     /**

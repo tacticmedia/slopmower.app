@@ -9,10 +9,10 @@ Status: backlog. In the proof of concept the user installs the skill with one `c
 
 ## What
 
-- A Claude Code plugin named `holistic-review` in a public repository, with the layout that the Claude Code plugin documentation at https://code.claude.com/docs/en/plugins describes:
+- A Claude Code plugin named `slopmower` in a public repository, with the layout that the Claude Code plugin documentation at https://code.claude.com/docs/en/plugins describes:
   - the manifest `.claude-plugin/plugin.json` with name, version, and description;
-  - `skills/holistic-review/SKILL.md`, the same file as `docs/user/skill/SKILL.md`;
-  - `.mcp.json` with the `holistic-review` HTTP server and the header `Authorization: Bearer ${HOLISTIC_REVIEW_TOKEN}`.
+  - `skills/slopmower/SKILL.md`, the same file as `docs/user/skill/SKILL.md`;
+  - `.mcp.json` with the `slopmower` HTTP server and the header `Authorization: Bearer ${SLOPMOWER_TOKEN}`.
 - A marketplace file `.claude-plugin/marketplace.json` in the same repository, so that users add it with `/plugin marketplace add` and install the plugin from it.
 - The plugin version follows the API version: plugin 1.x for API v1.
 - The server URL differs between the hosted instance and self-hosted instances. Check whether Claude Code expands an environment variable in the plugin's `.mcp.json` URL. If it does, use a variable with the hosted URL as default. If it does not, the plugin covers the hosted instance only, and self-hosted users keep the manual steps.

@@ -182,7 +182,7 @@ final class BundledSchemas
                         'maxLength' => 64,
                         'description' => 'API token name. Agents only.',
                     ],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Holistic Review\' for system.'],
+                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
                     'avatarUrl' => [
                         'type' => ['string', 'null'],
                         'format' => 'uri',
@@ -521,7 +521,7 @@ final class BundledSchemas
                         'maxLength' => 64,
                         'description' => 'API token name. Agents only.',
                     ],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Holistic Review\' for system.'],
+                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
                     'avatarUrl' => [
                         'type' => ['string', 'null'],
                         'format' => 'uri',
@@ -889,7 +889,7 @@ final class BundledSchemas
                         'maxLength' => 64,
                         'description' => 'API token name. Agents only.',
                     ],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Holistic Review\' for system.'],
+                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
                     'avatarUrl' => [
                         'type' => ['string', 'null'],
                         'format' => 'uri',
@@ -1478,7 +1478,7 @@ final class BundledSchemas
                         'maxLength' => 64,
                         'description' => 'API token name. Agents only.',
                     ],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Holistic Review\' for system.'],
+                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
                     'avatarUrl' => [
                         'type' => ['string', 'null'],
                         'format' => 'uri',
@@ -1977,7 +1977,7 @@ final class BundledSchemas
                         'maxLength' => 64,
                         'description' => 'API token name. Agents only.',
                     ],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Holistic Review\' for system.'],
+                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
                     'avatarUrl' => [
                         'type' => ['string', 'null'],
                         'format' => 'uri',
@@ -2419,7 +2419,7 @@ final class BundledSchemas
                         'maxLength' => 64,
                         'description' => 'API token name. Agents only.',
                     ],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Holistic Review\' for system.'],
+                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
                     'avatarUrl' => [
                         'type' => ['string', 'null'],
                         'format' => 'uri',
@@ -2863,7 +2863,7 @@ final class BundledSchemas
                         'maxLength' => 64,
                         'description' => 'API token name. Agents only.',
                     ],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Holistic Review\' for system.'],
+                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
                     'avatarUrl' => [
                         'type' => ['string', 'null'],
                         'format' => 'uri',

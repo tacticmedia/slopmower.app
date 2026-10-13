@@ -13,12 +13,12 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class TokenFormatTest extends KernelTestCase
 {
-    #[TestDox('A secret matches ^hr_[A-Za-z0-9_-]{43}$')]
+    #[TestDox('A secret matches ^sm_[A-Za-z0-9_-]{43}$')]
     public function testSecretFormat(): void
     {
         $secret = ApiTokenSecret::generate()->value;
 
-        self::assertMatchesRegularExpression('/^hr_[A-Za-z0-9_-]{43}$/D', $secret);
+        self::assertMatchesRegularExpression('/^sm_[A-Za-z0-9_-]{43}$/D', $secret);
         self::assertSame(46, strlen($secret));
     }
 

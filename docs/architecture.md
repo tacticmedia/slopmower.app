@@ -1,8 +1,8 @@
-# Holistic Review: architecture
+# Slopmower: architecture
 
 Status: approved architecture, implementation in progress. The implementation follows the milestones in [docs/plan/README.md](plan/README.md).
 
-Holistic Review is a hosted, multi-tenant web application. A developer signs in, connects repositories, and reviews a full codebase at one pinned commit. A repository comes from the Holistic Review GitHub App, or from a local directory that the instance mounts read-only. The developer writes change requests on lines, line ranges, symbols, or files. The developer's coding agent runs next to the developer's local clone and connects to the application's MCP endpoint. The agent discusses a request in its thread, or does the work, links each commit to the requests that it covers, and marks requests ready for review. The developer verifies or reopens each request in the web UI.
+Slopmower is a hosted, multi-tenant web application. A developer signs in, connects repositories, and reviews a full codebase at one pinned commit. A repository comes from the Slopmower GitHub App, or from a local directory that the instance mounts read-only. The developer writes change requests on lines, line ranges, symbols, or files. The developer's coding agent runs next to the developer's local clone and connects to the application's MCP endpoint. The agent discusses a request in its thread, or does the work, links each commit to the requests that it covers, and marks requests ready for review. The developer verifies or reopens each request in the web UI.
 
 Related documents:
 
@@ -19,7 +19,7 @@ Related documents:
 | Term | Meaning |
 |---|---|
 | Tenant | One developer account and all its data. A tenant never sees the data of another tenant. The proof of concept has one user per tenant. `User` and `Tenant` are separate tables. |
-| Instance | One deployment of Holistic Review with its own configuration |
+| Instance | One deployment of Slopmower with its own configuration |
 | Repository | A git repository that a tenant connected. Its source is a GitHub App installation or a local directory under `APP_LOCAL_REPOSITORIES_DIR`. |
 | Server clone | The bare clone that the server keeps for each repository and fetches from the source. A commit in it is available. |
 | Review | One review round of one repository, pinned to one revision: a commit SHA. Several open reviews of one repository are fully separate. |
@@ -290,9 +290,9 @@ Server clone rules:
 
 - One bare clone per repository at `<data>/tenants/<tenantId>/repositories/<repositoryId>.git`.
 - The fetch refspecs are `+refs/heads/*:refs/heads/*` and `+refs/tags/*:refs/tags/*`, with `--prune`. Never `--mirror`.
-- A second `git fetch` gets the pending linked SHAs by ID into `refs/holistic-review/commits/<sha>`. One unknown SHA fails a whole `git fetch`, so after a failure the server fetches one SHA per command and ignores the failures.
+- A second `git fetch` gets the pending linked SHAs by ID into `refs/slopmower/commits/<sha>`. One unknown SHA fails a whole `git fetch`, so after a failure the server fetches one SHA per command and ignores the failures.
 - A commit is available when `git cat-file -e <sha>^{commit}` succeeds in the clone.
-- **Pin refs.** At review start the server writes `refs/holistic-review/reviews/<reviewId>` to the review commit. When a linked commit is available, it writes `refs/holistic-review/commits/<sha>`. The fetch refspecs never touch `refs/holistic-review/*`, so force-pushes, `--prune`, and `git gc` cannot remove reviewed or linked commits. Deleting a review deletes its review pin. A commit pin is deleted when no remaining link in the repository uses the SHA.
+- **Pin refs.** At review start the server writes `refs/slopmower/reviews/<reviewId>` to the review commit. When a linked commit is available, it writes `refs/slopmower/commits/<sha>`. The fetch refspecs never touch `refs/slopmower/*`, so force-pushes, `--prune`, and `git gc` cannot remove reviewed or linked commits. Deleting a review deletes its review pin. A commit pin is deleted when no remaining link in the repository uses the SHA.
 
 Fetch triggers:
 
@@ -571,7 +571,7 @@ Web UI and REST API      MCP over HTTP      Webhook consumer      Messenger hand
 - [rest-api.md](specs/rest-api.md) and [rest-api-requests.md](specs/rest-api-requests.md): every REST endpoint with its method, path, authentication mode, input, output, errors, and an example.
 - [mcp.md](specs/mcp.md): the MCP endpoint, the server `instructions`, and every tool with its input schema, output schema, annotations, and errors.
 - [webhooks-and-live-updates.md](specs/webhooks-and-live-updates.md): GitHub webhooks, fetch triggers, and Mercure topics and payloads.
-- [schemas/](specs/schemas/): the JSON Schemas, draft 2020-12, with the `$id` base `https://holistic-review.invalid/schemas/v1/`. Tests validate every REST response and every MCP `structuredContent` against them with `opis/json-schema`. The front-end TypeScript types are written from them.
+- [schemas/](specs/schemas/): the JSON Schemas, draft 2020-12, with the `$id` base `https://slopmower.invalid/schemas/v1/`. Tests validate every REST response and every MCP `structuredContent` against them with `opis/json-schema`. The front-end TypeScript types are written from them.
 
 Error codes for all adapters. The body is `{"error": {"code", "message", "details"}}`. The checks run in a fixed order, and `details` has a fixed shape per code.
 
@@ -590,13 +590,13 @@ Error codes for all adapters. The body is `{"error": {"code", "message", "detail
 
 ### 7.3 MCP server
 
-- **Endpoint:** `https://<host>/_mcp`, Streamable HTTP, through the `symfony/mcp-bundle` HTTP transport, which needs `nyholm/psr7`. Server name `holistic-review`. The phase 1 spike verified the handshake and the 2026-07-28 `server/discover` over HTTP. `http.allowed_hosts` defaults to localhost, so it must list the public host.
+- **Endpoint:** `https://<host>/_mcp`, Streamable HTTP, through the `symfony/mcp-bundle` HTTP transport, which needs `nyholm/psr7`. Server name `slopmower`. The phase 1 spike verified the handshake and the 2026-07-28 `server/discover` over HTTP. `http.allowed_hosts` defaults to localhost, so it must list the public host.
 - **Sessions:** clients of the handshake era, up to 2025-11-25, need MCP sessions. They use the bundle's `file` session store under `var/mcp-sessions`, because there is one `php` container. A shared store is a backlog item: [mcp-session-store.md](backlog/mcp-session-store.md).
 - **Authentication:** the stateless `mcp` firewall with Symfony's `access_token` authenticator. A wrong token gets HTTP 401 before JSON-RPC. The bundle docs say that resource-server authentication is "plain Symfony Security". MCP OAuth is a backlog item: [mcp-oauth.md](backlog/mcp-oauth.md). See D18.
 - **Configuration** in the developer's repository:
 
 ```json
-{"mcpServers": {"holistic-review": {"type": "http", "url": "https://<host>/_mcp", "headers": {"Authorization": "Bearer ${HOLISTIC_REVIEW_TOKEN}"}}}}
+{"mcpServers": {"slopmower": {"type": "http", "url": "https://<host>/_mcp", "headers": {"Authorization": "Bearer ${SLOPMOWER_TOKEN}"}}}}
 ```
 
 | Tool | Input | Annotations |
@@ -639,7 +639,7 @@ Operator commands: rebuild projections, rebuild an index, purge a tenant. `app:s
 
 ### 7.7 Agent Skill and public documentation
 
-- The skill source is [docs/user/skill/SKILL.md](user/skill/SKILL.md). The application serves it raw at `GET /docs/skill/SKILL.md`. The developer installs it into `.claude/skills/holistic-review/SKILL.md` of the reviewed repository with one `curl` command. See D9 and D28.
+- The skill source is [docs/user/skill/SKILL.md](user/skill/SKILL.md). The application serves it raw at `GET /docs/skill/SKILL.md`. The developer installs it into `.claude/skills/slopmower/SKILL.md` of the reviewed repository with one `curl` command. See D9 and D28.
 - The skill teaches the agent to identify the repository, to call `list_reviews` and ask the user when several reviews are open and none was named, to poll `get_updates(review, cursor)`, to answer or ask in threads, to claim before editing, to propose a plan first when the request asks for one, with a diff for a straightforward change, to commit per request, to link commits with the full SHA, to link a pull request only when it opened one, to push for GitHub sources, to commit on a branch for local sources, to justify every refusal with evidence, and to stop on `review_closed`.
 - The public pages in `docs/user/*.md` render at `/docs/<slug>` through `twig/markdown-extra` with `league/commonmark`, configured to escape raw HTML and drop unsafe links. Slugs come from a whitelist built from the directory listing. No path comes from input.
 
@@ -651,7 +651,7 @@ Operator commands: rebuild projections, rebuild an index, purge a tenant. `app:s
 |---|---|---|
 | Sign in | "Sign in with GitHub". With local sign-in in `dev`, "Sign in as <login>". | Twig |
 | Repositories | Candidates from both sources: the repositories of the user's installations with "Configure on GitHub", and the directories under `APP_LOCAL_REPOSITORIES_DIR`. A notice when local repositories are off. Without a GitHub App, the GitHub section is hidden. Connect, clone status, "Refresh" to fetch at once, the reviews of a repository with "Show closed", "Start review" with a ref. A GitHub repository shows its owner, "Private" or "Public", and "View on GitHub". | Primer `DataTable`, `Label` |
-| Review | Header: title, ref, short SHA, the copyable review ID, the ready agent prompt "Work on Holistic Review <id>", "Quick open" with its shortcut Cmd+K or Ctrl+K, "Carry over requests", "Close review", and "Delete review". "Carry over requests" and "Close review" show only while the review is open. A read-only banner when the review is closed. The index progress. The Code tab works like the repository file browser of GitHub: it spans the window, and the window scrolls the headers away. File tree at the review commit in a sticky, resizable, collapsible pane with the window height above 768 px, which expands the directories above the open file or directory and scrolls it into view. A directory label opens the directory, its chevron only toggles it. Directory view, also the index of the Code tab: breadcrumbs, a table "Folders and files" with name, size, and viewed mark, and the `README.md` of the directory. File view: breadcrumbs with "Copy path" and "Plan to approve" when a thread of the file has a pending proposal, then a toolbar with the line count and the size, "Go to declaration" for PHP files, "Wrap lines", "Comment on lines", "Symbols", "Comment on file", "Viewed", "Raw", "Copy raw file", and "Download raw file", and the switch "Code | Blame". The blame view at `/reviews/{id}/blame/{path}` shows a column of blocks beside the code: per range the age colour, the date, the author, and the summary, with an age legend in the toolbar and a banner when `.git-blame-ignore-revs` applies. It has no threads, no gutter "+", and no line wrap. The toolbar sticks to the window top, with a row of breadcrumbs, "Copy path", and "Top" above it, and the declaration lines of the enclosing class and function below it. Without symbols, "Symbols" says why in a tooltip. Cmd-click on a name in a PHP file opens its declaration. Code with inline threads, each with its lines, the FQN of a symbol anchor, and "Plan to approve" while its proposal is pending. "Finish your review (n)". | Primer `PageLayout`, `TreeView`, `ActionMenu`, `SelectPanel`, `FilteredActionList`, `Checkbox`, `Dialog`, `ProgressBar`; `@pierre/diffs` `File` |
+| Review | Header: title, ref, short SHA, the copyable review ID, the ready agent prompt "Work on Slopmower review <id>", "Quick open" with its shortcut Cmd+K or Ctrl+K, "Carry over requests", "Close review", and "Delete review". "Carry over requests" and "Close review" show only while the review is open. A read-only banner when the review is closed. The index progress. The Code tab works like the repository file browser of GitHub: it spans the window, and the window scrolls the headers away. File tree at the review commit in a sticky, resizable, collapsible pane with the window height above 768 px, which expands the directories above the open file or directory and scrolls it into view. A directory label opens the directory, its chevron only toggles it. Directory view, also the index of the Code tab: breadcrumbs, a table "Folders and files" with name, size, and viewed mark, and the `README.md` of the directory. File view: breadcrumbs with "Copy path" and "Plan to approve" when a thread of the file has a pending proposal, then a toolbar with the line count and the size, "Go to declaration" for PHP files, "Wrap lines", "Comment on lines", "Symbols", "Comment on file", "Viewed", "Raw", "Copy raw file", and "Download raw file", and the switch "Code | Blame". The blame view at `/reviews/{id}/blame/{path}` shows a column of blocks beside the code: per range the age colour, the date, the author, and the summary, with an age legend in the toolbar and a banner when `.git-blame-ignore-revs` applies. It has no threads, no gutter "+", and no line wrap. The toolbar sticks to the window top, with a row of breadcrumbs, "Copy path", and "Top" above it, and the declaration lines of the enclosing class and function below it. Without symbols, "Symbols" says why in a tooltip. Cmd-click on a name in a PHP file opens its declaration. Code with inline threads, each with its lines, the FQN of a symbol anchor, and "Plan to approve" while its proposal is pending. "Finish your review (n)". | Primer `PageLayout`, `TreeView`, `ActionMenu`, `SelectPanel`, `FilteredActionList`, `Checkbox`, `Dialog`, `ProgressBar`; `@pierre/diffs` `File` |
 | Requests | Filters: status, "Waiting for you" (`awaiting = user`), path, outdated. "Plan to approve" marks a request with a pending proposal. "New request" opens a general request, at once or as a draft of the pending review, with "Ask for a plan first", checked by default. "Pending drafts" lists every draft of the user from D1, labelled "General", with its path and lines, or with the request that it replies to, and linked to those lines or that request. | Primer `DataTable`, `SegmentedControl` |
 | Request detail | The anchor with the FQN of a symbol, and the snapshot between its dimmed context lines. "Plan required" when `requireApproval` is true, and "Ask for a plan first" or "Don't ask for a plan" to change it while the request is `open`, `reopened`, or `in_progress`. The linked pull requests in the header, each opening in a new tab. The conversation with the agent, live, with each pull request link. A proposal shows its plan, a `FileDiff` per file of its diff, "Download .diff", and "Approve" and "Request changes" while it is pending; an older one keeps its decision, "Approved" or "Changes requested", and without one shows "Superseded" or "Withdrawn". Linked commits with state, each linked to its section of the Changes tab, and a `FileDiff` per changed file. Above 20 files, a commit expands only the files that touch the anchor. A file loads its diff when it is expanded and near the window. "Resolve conversation", "Reopen", "Close as won't do", "Unassign". Read-only when the review is closed. | Primer parts; `@pierre/diffs` `FileDiff` |
 | Settings | API tokens: create with name, scope, and optional expiry; the secret is shown once; revoke; last use; the `.mcp.json` snippet; links to `/docs` and to the skill install command. Delete repository data. Delete account. | Primer `DataTable`, `Dialog` |
@@ -665,7 +665,7 @@ Live updates: section 7.5. An agent reply shows in the open thread without a rel
 
 1. **Start, hosted.** Sign in with GitHub. Install the GitHub App on selected repositories. Connect a repository. Start a review at the default branch or another ref. The index runs, and the tree opens.
 2. **Start, local run.** Set `LOCAL_REPOSITORIES_HOST_DIR` and `APP_LOCAL_SIGN_IN`, then run `make up`, and `npm run dev` or `npm run build` on the host. Open `http://localhost:8000` and click "Sign in as <login>". Connect a directory and start a review. No GitHub App is necessary.
-3. **Connect the agent.** Create an API token in Settings, put it in `HOLISTIC_REVIEW_TOKEN`, add the `.mcp.json` snippet, install the skill with `curl`, and give the agent the prompt from the review header.
+3. **Connect the agent.** Create an API token in Settings, put it in `SLOPMOWER_TOKEN`, add the `.mcp.json` snippet, install the skill with `curl`, and give the agent the prompt from the review header.
 4. **Comment with the mouse.** Line: hover, click "+", the box opens below the line. Range: a drag or a shift-click on the line numbers selects the lines and writes the line hash. The "+" on the last selected line opens the box for the selection. A drag from the "+" opens the box at once. The box opens below the last line. Symbol: choose it in "Symbols", or select exactly its range, and the box anchors to the FQN. File: the button in the file header. "Add single comment" submits at once. "Start a review" collects drafts until "Submit review". In a comment box, Ctrl+Enter, or Cmd+Enter on macOS, submits, and Escape cancels a box that has "Cancel". A failed write opens the box again with the text, the error, and the line selection.
 5. **Comment with the keyboard, decision D31.** The library's gutter is not changed. "Comment on lines" in the file header takes a start line and an end line, selects the range through `selectedLines`, and opens the draft box below the last line. "Symbols", a Primer `SelectPanel` with a filter, selects the range of a symbol and opens the draft box below its last line, anchored to the FQN. "Comment on file" opens a file comment. On the last line of a selection, Tab reaches the library's "+": it is named "Comment on line <n>" for one line and "Comment on lines <start> to <end>" for more, and Enter or Space opens the draft box for the selection. The draft box receives focus. UI tests cover keyboard-only comments.
 6. **Converse.** Agent questions show as "Waiting for you". A reply hands the turn back to the agent.
@@ -679,10 +679,10 @@ Protection: `http.allowed_hosts` of the MCP transport, CSRF protection on sessio
 
 ### Differences from the GitHub PR UI
 
-| GitHub | Holistic Review | Reason |
+| GitHub | Slopmower | Reason |
 |---|---|---|
 | Diff with `+`/`-` and two number columns | Full file, one number column, no markers | The target is an unchanged file |
-| Tree of changed files | Tree of all files at the review commit | Holistic review |
+| Tree of changed files | Tree of all files at the review commit | The review covers the whole codebase |
 | Two thread states | Six states, `awaiting`, "Resolve conversation" means verify | The agent workflow needs more states |
 | Submit review: Comment, Approve, Request changes | Submit with a summary only | No merge gate |
 | Close pull request | "Close review" makes the review read-only | No merge gate |
@@ -781,12 +781,12 @@ CI (D62): `.github/workflows/qa.yml` runs on every push and pull request. One jo
 | D6 | Stale claims | Manual release, claim age in the UI, "Unassign" for the user |
 | D7 | Symbol range | Includes the doc comment |
 | D8 | Agent scope | Agent tools work per review. `list_reviews(repository)` finds the open reviews. `list_requests` and `get_updates` take `review`. The agent asks the user when several reviews are open and none was named. |
-| D9 | Skill location | `.claude/skills/holistic-review/SKILL.md` in the developer's repository. A plugin is a backlog item: [skill-plugin.md](backlog/skill-plugin.md). |
+| D9 | Skill location | `.claude/skills/slopmower/SKILL.md` in the developer's repository. A plugin is a backlog item: [skill-plugin.md](backlog/skill-plugin.md). |
 | D10 | Skeleton packages | Keep Doctrine, Messenger, Security, Twig. Add Mercure, Webhook, and HWIOAuthBundle. Remove Mailer, Notifier, Turbo, Stimulus, and AssetMapper. Form stays, because HWIOAuthBundle requires it. |
 | D11 | Hosting | Docker Compose: FrankenPHP in worker mode, Messenger worker, PostgreSQL, and the `symbols` service (D56) |
 | D12 | Live UI updates | Mercure through FrankenPHP's built-in hub |
 | D13 | Agent identity | The API token's user, with the token name as agent name |
-| D14 | Names | Product "Holistic Review", MCP server `holistic-review` |
+| D14 | Names | Product "Slopmower" (F47). Machine identifiers use `slopmower`: the MCP server name and `serverInfo.name`, the skill name and its install directory `.claude/skills/slopmower/`, the Bearer realm, the pin refs `refs/slopmower/`, the live update ID `urn:slopmower:<tenantId>:<seq>`, the JSON Schema `$id` base `https://slopmower.invalid/schemas/v1/`, and the `localStorage` key prefix `slopmower.`. The token variable is `SLOPMOWER_TOKEN`, and API token secrets start with `sm_`. |
 | D15 | Pending state changes | Only new requests and replies are drafts. State changes happen at once. |
 | D16 | Build integration | Symfony Reprise with Vite, pinned |
 | D17 | Tenancy | Multi-tenant, one user per tenant, `User` and `Tenant` in separate tables. Full isolation in the application, files, and live updates. A tenant with several users gets unrestricted access inside the tenant: [multiple-users-per-tenant.md](backlog/multiple-users-per-tenant.md). No teams, no billing. |
@@ -798,11 +798,11 @@ CI (D62): `.github/workflows/qa.yml` runs on every push and pull request. One jo
 | D23 | GitHub sign-in | `hwi/oauth-bundle` with its `github` resource owner and `csrf: true` for the `state` check |
 | D24 | Local repositories | Two repository sources: the GitHub App and local directories. `APP_LOCAL_REPOSITORIES_DIR` names a directory that Docker mounts read-only. An instance feature: every tenant of the instance may connect the repositories under it. Off when the variable is empty. The server keeps its own bare clone of every repository and fetches from the source over `file://`, on demand. |
 | D25 | Local sign-in | `APP_LOCAL_SIGN_IN=<login>` signs the browser in as one local user and tenant without OAuth, only when `APP_ENV=dev` |
-| D26 | Pin refs | `refs/holistic-review/reviews/<reviewId>` at review start, `refs/holistic-review/commits/<sha>` for linked commits. The fetch refspecs never touch them. |
+| D26 | Pin refs | `refs/slopmower/reviews/<reviewId>` at review start, `refs/slopmower/commits/<sha>` for linked commits. The fetch refspecs never touch them. |
 | D27 | Review close | "Close review" in the review header with an optional note. Event `review.closed`. A closed review is read-only, and writes answer `review_closed`. Reopening: [review-reopen.md](backlog/review-reopen.md). |
 | D28 | Public docs | `docs/user/*.md` rendered at `/docs` with `twig/markdown-extra` and `league/commonmark`. `SKILL.md` served raw at `/docs/skill/SKILL.md`, installed with one `curl` command. |
 | D29 | Front-end approach | React 19, React Router 8.4.0 in Data Mode, local component state, no global store, CSS modules, TypeScript types from the JSON Schemas |
-| D30 | Token scope | Name as agent name. Scope: all repositories of the tenant, or one repository. Optional expiry. Secret `hr_` and 32 random bytes in base64url, shown once, stored as SHA-256. Revocable, last use shown. |
+| D30 | Token scope | Name as agent name. Scope: all repositories of the tenant, or one repository. Optional expiry. Secret `sm_` and 32 random bytes in base64url, shown once, stored as SHA-256. Revocable, last use shown. |
 | D31 | Keyboard access | "Comment on lines", "Symbols", and "Comment on file" in the file header. The "+" of a selection has a name and takes Enter and Space. The library's gutter is not changed. Keyboard-only tests in the UI suite. |
 | D32 | Usage limits | None in the proof of concept. Proposal: [usage-limits.md](backlog/usage-limits.md). |
 | D33 | Container tooling | PHP, Composer, the console, and PHPUnit run in the `php` container through `make`. npm and Vite run on the host. Only `make e2e` runs npm in the `php` container, to pin the playwright-php server. The `symbols` image installs its own packages, and `make front` installs them on the host for `tsc` and Vitest. M00 and the M01 baseline use host PHP and Composer. The host needs no PHP after that. |

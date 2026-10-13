@@ -1,10 +1,10 @@
 # Getting started
 
-This page shows how to start your first review on a hosted Holistic Review. To run Holistic Review on your own computer, see [Run it locally](local-run.md).
+This page shows how to start your first review on a hosted Slopmower server. To run Slopmower on your own computer, see [Run it locally](local-run.md).
 
 ## 1. Sign in with GitHub
 
-1. Open Holistic Review in your browser.
+1. Open Slopmower in your browser.
 2. Click **Sign in with GitHub**.
 3. Approve the sign-in on GitHub.
 
@@ -12,21 +12,21 @@ The first sign-in creates your account. Only you can see your repositories, revi
 
 ## 2. Install the GitHub App
 
-Holistic Review reads your code through the Holistic Review GitHub App. The App gets read-only access to the contents of the repositories that you choose. It cannot write to them.
+Slopmower reads your code through the Slopmower GitHub App. The App gets read-only access to the contents of the repositories that you choose. It cannot write to them.
 
 1. Open **Repositories**.
 2. Click **Configure on GitHub**.
 3. On GitHub, choose the account or organization, then choose **Only select repositories** and select the repositories to review.
-4. Click **Install**. GitHub sends you back to Holistic Review.
+4. Click **Install**. GitHub sends you back to Slopmower.
 
-To add or remove repositories later, click **Configure on GitHub** again. When you remove a repository from the App, Holistic Review deletes its copy of the code. Your reviews stay until you delete them.
+To add or remove repositories later, click **Configure on GitHub** again. When you remove a repository from the App, Slopmower deletes its copy of the code. Your reviews stay until you delete them.
 
 ## 3. Connect a repository
 
 1. Open **Repositories**. The list shows the repositories that the App can read.
 2. Click **Connect** next to a repository.
 
-Holistic Review makes its own copy of the repository. The status under **Connected repositories** shows the progress. When the status is **Ready**, you can start a review.
+Slopmower makes its own copy of the repository. The status under **Connected repositories** shows the progress. When the status is **Ready**, you can start a review.
 
 ## 4. Start a review
 
@@ -34,7 +34,7 @@ Holistic Review makes its own copy of the repository. The status under **Connect
 2. Under **Start a review**, keep the default branch in **Ref**, or type another branch, tag, or commit SHA. You can also give the review a **Title**.
 3. Click **Start review**.
 
-Holistic Review pins the review to the commit that the ref points to when the review starts. The file tree opens. The progress bar shows the index progress.
+Slopmower pins the review to the commit that the ref points to when the review starts. The file tree opens. The progress bar shows the index progress.
 
 ## Next steps
 

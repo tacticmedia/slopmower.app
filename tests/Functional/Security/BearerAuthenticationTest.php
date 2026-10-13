@@ -28,8 +28,8 @@ final class BearerAuthenticationTest extends WebTestCase
     use JsonApiAssertions;
     use ResetDatabase;
 
-    private const string CHALLENGE = 'Bearer realm="holistic-review"';
-    private const string INVALID_TOKEN_CHALLENGE = 'Bearer realm="holistic-review", error="invalid_token"';
+    private const string CHALLENGE = 'Bearer realm="slopmower"';
+    private const string INVALID_TOKEN_CHALLENGE = 'Bearer realm="slopmower", error="invalid_token"';
 
     #[TestDox('A valid token makes the caller an agent with the token name')]
     public function testValidTokenMakesAnAgent(): void
@@ -56,7 +56,7 @@ final class BearerAuthenticationTest extends WebTestCase
         $client = static::createClient();
         $user = TenantFixtures::of(self::getContainer())->create();
         $secret = match ($case) {
-            'malformed' => 'hr_'.str_repeat('a', 42),
+            'malformed' => 'sm_'.str_repeat('a', 42),
             'unknown' => ApiTokenSecret::generate()->value,
             'revoked' => self::storeToken($user, revoked: true)[1],
             'expired' => self::storeToken($user, expiresAt: Clock::get()->now())[1],
@@ -87,7 +87,7 @@ final class BearerAuthenticationTest extends WebTestCase
     {
         $client = static::createClient();
 
-        self::assertInvalidToken(self::bearerRequest($client, 'hr_%%%', 'GET', '/api/v1/me'));
+        self::assertInvalidToken(self::bearerRequest($client, 'sm_%%%', 'GET', '/api/v1/me'));
     }
 
     #[TestDox('A 401 has the Error body and exactly the WWW-Authenticate header of docs/specs')]

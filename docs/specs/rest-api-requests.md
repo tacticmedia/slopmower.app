@@ -1,4 +1,4 @@
-# Holistic Review REST API v1: requests, drafts, and tokens
+# Slopmower REST API v1: requests, drafts, and tokens
 
 This file continues [rest-api.md](rest-api.md). That file has the conventions, the [endpoint index](rest-api.md#2-endpoint-index), and the common errors, which this file does not repeat. Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json).
 
@@ -295,7 +295,7 @@ Example error, [fixtures/error.invalid-transition.json](fixtures/error.invalid-t
 
 Availability check: the server checks the clone with `git cat-file -e`, without a fetch.
 
-- If the commit is present, the link is `available`, `foundAt` equals the link time, and the server writes the pin ref `refs/holistic-review/commits/<sha>`.
+- If the commit is present, the link is `available`, `foundAt` equals the link time, and the server writes the pin ref `refs/slopmower/commits/<sha>`.
 - Otherwise the link is `pending`, and the server queues an asynchronous fetch. It does this always for local sources, and for GitHub sources as a fallback to the push webhook.
 
 Example body, [fixtures/inputs.link-commits.json](fixtures/inputs.link-commits.json):
@@ -311,7 +311,7 @@ Example body, [fixtures/inputs.link-commits.json](fixtures/inputs.link-commits.j
 - **Success:** 200 `RequestCommandResult`.
 - **Errors:** 422 `invalid_input`: not linked; 409 `invalid_transition`, 409 `review_closed`.
 
-The endpoint writes `commit.unlinked`. It deletes the pin ref `refs/holistic-review/commits/<sha>` when no other link in the repository uses the commit.
+The endpoint writes `commit.unlinked`. It deletes the pin ref `refs/slopmower/commits/<sha>` when no other link in the repository uses the commit.
 
 ### Q10 Mark ready for review
 
@@ -579,7 +579,7 @@ Example response, [fixtures/batch-submission.submitted.json](fixtures/batch-subm
 - **Success:** 201 [`ApiTokenWithSecret`](schemas/api-token.schema.json)
 - **Errors:** 404 `not_found` for `repositoryId`; 422 `invalid_input`.
 
-Secret: `"hr_" + base64url_no_padding(random_bytes(32))`, 46 characters in total. The server stores `hash('sha256', secret)` as lower-case hex, and a `prefix` of the first 9 characters. Only this response contains the secret. The UI shows it once.
+Secret: `"sm_" + base64url_no_padding(random_bytes(32))`, 46 characters in total. The server stores `hash('sha256', secret)` as lower-case hex, and a `prefix` of the first 9 characters. Only this response contains the secret. The UI shows it once.
 
 Example response, [fixtures/api-token.with-secret.json](fixtures/api-token.with-secret.json):
 
@@ -590,13 +590,13 @@ Example response, [fixtures/api-token.with-secret.json](fixtures/api-token.with-
   "scope": "all_repositories",
   "repositoryId": null,
   "repositoryName": null,
-  "prefix": "hr_Zm9vYm",
+  "prefix": "sm_Zm9vYm",
   "state": "active",
   "createdAt": "2026-09-29T08:00:00Z",
   "expiresAt": null,
   "lastUsedAt": null,
   "revokedAt": null,
-  "secret": "hr_Zm9vYmFyYmF6cXV4cXV1eGNvcmdlZ3JhdWx0Z2Fyc3A"
+  "secret": "sm_Zm9vYmFyYmF6cXV4cXV1eGNvcmdlZ3JhdWx0Z2Fyc3A"
 }
 ```
 
@@ -623,7 +623,7 @@ The endpoint sets `revokedAt`. The row stays, so T1 lists the revoked token.
 | GET | `/github/installed` | session | Setup URL of the GitHub App. Redirects through `/connect/github?_target_path=/repositories` to list the installations again. |
 | GET | `/docs` | public | Documentation index, rendered from `docs/user/index.md` |
 | GET | `/docs/{page}` | public | One page of `docs/user/*.md`, rendered as HTML with `twig/markdown-extra` 3.29.0 and `league/commonmark` 2.10.3. Raw HTML is escaped and unsafe links are dropped. `page` must be in a whitelist of slugs built from the directory listing, for example `getting-started`, `local-run`, `connect-your-agent`, `reviewing`. Other values get 404. |
-| GET | `/docs/skill/SKILL.md` | public | Raw skill file from `docs/user/skill/SKILL.md`: `text/markdown; charset=utf-8`, `Content-Disposition: inline; filename="SKILL.md"`. With `?download=1`, `attachment`. ETag is the SHA-256 of the content; `Cache-Control: public, max-age=300`. Install: `curl -fsSL https://<host>/docs/skill/SKILL.md --create-dirs -o .claude/skills/holistic-review/SKILL.md` |
+| GET | `/docs/skill/SKILL.md` | public | Raw skill file from `docs/user/skill/SKILL.md`: `text/markdown; charset=utf-8`, `Content-Disposition: inline; filename="SKILL.md"`. With `?download=1`, `attachment`. ETag is the SHA-256 of the content; `Cache-Control: public, max-age=300`. Install: `curl -fsSL https://<host>/docs/skill/SKILL.md --create-dirs -o .claude/skills/slopmower/SKILL.md` |
 | GET | `/docs/schemas/v1/{file}.schema.json` | public | The files of `docs/specs/schemas/`, `application/schema+json` |
 | GET | `/healthz` | public | Health check of the container: 200 with a short HTML body |
 | POST, GET, DELETE | `/_mcp` | bearer | MCP Streamable HTTP. See [mcp.md](mcp.md). |

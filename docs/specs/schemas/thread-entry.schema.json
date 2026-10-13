@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://holistic-review.invalid/schemas/v1/thread-entry.schema.json",
+  "$id": "https://slopmower.invalid/schemas/v1/thread-entry.schema.json",
   "title": "ThreadEntry",
   "description": "One event in a request's timeline: comments, status changes, commit and pull request links.",
   "type": "object",

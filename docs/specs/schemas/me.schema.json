@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://holistic-review.invalid/schemas/v1/me.schema.json",
+  "$id": "https://slopmower.invalid/schemas/v1/me.schema.json",
   "title": "Me",
   "type": "object",
   "required": ["user", "tenantId", "caller", "token", "features", "links"],

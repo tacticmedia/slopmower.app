@@ -23,7 +23,7 @@ M12, M17.
   - a start form for V1. `ref` defaults to the default branch. `title` is optional.
 - The `/reviews/:id` layout:
   - title, ref, and short SHA;
-  - a copyable review ID and an agent prompt snippet, "Work on Holistic Review <reviewId>", decision D8;
+  - a copyable review ID and an agent prompt snippet, "Work on Slopmower review <reviewId>", decision D8;
   - "Close review" in the header: a Primer `Dialog` with an optional note, through V4, decision D27;
   - a read-only banner when the review is closed.
 - Forms submit through route `action`s and `useFetcher`. `fetcher.state` shows the pending state. API errors show the `message` of the Error body.

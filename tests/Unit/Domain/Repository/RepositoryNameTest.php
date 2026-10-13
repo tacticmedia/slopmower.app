@@ -18,13 +18,13 @@ final class RepositoryNameTest extends KernelTestCase
     #[TestDox('Accepts owner/name for GitHub and a plain directory name for local')]
     public function testAcceptsNamesPerSource(): void
     {
-        $github = RepositoryName::forSource(RepositorySource::Github, 'tactic-media/holistic.review_2');
-        $local = RepositoryName::forSource(RepositorySource::Local, 'Holistic Review (copy)');
+        $github = RepositoryName::forSource(RepositorySource::Github, 'tactic-media/slop.mower_2');
+        $local = RepositoryName::forSource(RepositorySource::Local, 'Slopmower (copy)');
 
         self::assertSame(RepositorySource::Github, $github->source());
-        self::assertSame('tactic-media/holistic.review_2', $github->toString());
+        self::assertSame('tactic-media/slop.mower_2', $github->toString());
         self::assertSame(RepositorySource::Local, $local->source());
-        self::assertSame('Holistic Review (copy)', $local->toString());
+        self::assertSame('Slopmower (copy)', $local->toString());
     }
 
     #[TestDox('Rejects a local name with a slash or a leading dot')]
@@ -58,7 +58,7 @@ final class RepositoryNameTest extends KernelTestCase
      */
     public static function invalidGithubNames(): iterable
     {
-        yield 'no slash' => ['holistic-review'];
+        yield 'no slash' => ['slopmower'];
         yield 'two slashes' => ['a/b/c'];
         yield 'empty owner' => ['/name'];
         yield 'dot dot name' => ['owner/..'];
