@@ -54,6 +54,11 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F36 | [QA pipeline](F36-qa-pipeline.md) | Done 2026-10-08, [report](reports/F36.md) | bb166d4 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26294 lines; assets 159 TS / 9202 lines; check 3m36s |
 | F37 | [Symbols service address](F37-symbols-service-address.md) | Done 2026-10-08, [report](reports/F37.md) | fd40975 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26294 lines; assets 159 TS / 9202 lines |
 | F38 | [Database connection parameters](F38-database-connection-parameters.md) | Done 2026-10-09, [report](reports/F38.md) | c9f6b34 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26343 lines; assets 159 TS / 9202 lines; check 2m54s |
+| F39 | [Usage limits](F39-usage-limits.md) | Planned | | |
+| F40 | [Pull request state](F40-pull-request-state.md) | Planned | | |
+| F41 | [Check run](F41-check-run.md) | Planned | | |
+| F42 | [Marketplace plans](F42-marketplace-plans.md) | Planned | | |
+| F43 | [Legal and support pages](F43-legal-and-support-pages.md) | Planned | | |
 | F46 | [RDS auth bundle 1.2](F46-rds-auth-bundle-1-2.md) | Done 2026-10-09, [report](reports/F46.md) | a039aa7 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26343 lines; assets 159 TS / 9202 lines; check 9m51s |
 | F47 | [Product name Slopmower](F47-product-name-slopmower.md) | Done 2026-10-13, [report](reports/F47.md) | 91b4995 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26343 lines; assets 159 TS / 9202 lines; check 8m34s |
 
@@ -76,7 +81,7 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **"Blame prior to change".** GitHub's blame block links to the blame of the parent commit at the path the file had there. It needs V17 at an ancestor of the review commit and the text of the file there, and a view that leaves the pinned commit. From F26.
 - **Blame avatars, commit links, and contributors.** GitHub shows the author avatar, links the summary to the commit page, and counts the contributors of the file. A local repository has no avatars and no commit page. From F26.
 - **Sign-in allowlist.** Every GitHub user who can authorize the GitHub App gets a tenant at the first sign-in (`GitHubUserProvider`). A public App ("Any account") therefore opens a hosted instance to everyone on GitHub. A list of allowed GitHub logins or organizations would close it. From the GitHub App registration on 2026-10-09.
-- **Pull request links after a repository rename.** A GitHub URL is stored in the canonical form of the repository name as connected (F14). After the repository is renamed on GitHub, a link under the old name no longer matches `link_pull_request` or `unlink_pull_request`. From the F20 report.
+- **Pull request links after a repository rename.** A GitHub URL is stored in the canonical form of the repository name as connected (F14). After the repository is renamed on GitHub, a link under the old name no longer matches `link_pull_request` or `unlink_pull_request`. From the F20 report. In scope of F40.
 - **Index version per language.** Stored symbols are keyed by blob, so a changed grammar or query of the `symbols` service leaves old rows until `app:index:rebuild --reparse`. A version per language on `indexed_blob` would re-parse stale rows on demand. A review indexed before its language was added also has none of its symbols in quick open until `app:index:rebuild` runs for that review, one review per call. From F27 and F33.
 - **Go to declaration for more languages.** V14 resolves PHP names only. Other languages need their own name resolution: imports, modules, and packages. From F27.
 - **Concurrent symbol requests in the index job.** The index job calls the `symbols` service once per blob, in sequence. HttpClient can keep several requests in flight. F27 measured 1.2 times the PHP time per line for files of 100 to 300 lines, and 1.5 to 1.9 times over all files, because each small file costs one round trip. From F27.
@@ -96,6 +101,10 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **Entrypoint and a stale lock.** With an out-of-date `composer.lock`, the first `composer install` of the entrypoint fails in its `post-install-cmd` `composer normalize`, the container restarts, and the next start skips the install because `vendor/` is not empty, so `make up --wait` passes or fails by timing. The entrypoint could fail clearly, or `composer normalize` could run only on `update`. From F36.
 - **make act on a Linux host.** The containers write root-owned files into `var/act/workspace/`, and the next `bin/act-run` cannot delete them. Docker Desktop on macOS maps the owner. From F36.
 - **Mercure protocol 1.0.** `symfony/mercure-bundle` 0.5.0 uses protocol 0.x, so the production hub (Mercure 1.x) runs with `protocol_version_compatibility 8`, which needs the deprecated build tags `deprecated_claim` and `deprecated_topic`. `protocol_version: 1.0` needs the claims `iss`, `sub`, and `client_id`, an `issuer` block on the hub, and the cookie `__Secure-mercure_access_token`. The development Caddyfile uses `publisher_jwt` and `subscriber_jwt` without compatibility mode. From the production hub setup on 2026-10-12.
+- **Mirror requests as pull request review comments.** The REST API anchors a review comment to lines of the diff only, and a file comment needs a changed file. A request anchors to any line of the codebase, so a mirror covers only part of the requests. Resolving a thread is GraphQL only, and the App would need Pull requests: write. The F41 annotations show the requests in "Files changed" without these limits. From the GitHub App plan on 2026-10-09.
+- **Review a pull request head.** Start a review at the head of a pull request through `refs/pull/N/head`, which the fetch refspecs exclude, because they take only heads and tags. It would also give F41 the head of a fork pull request. From the GitHub App plan on 2026-10-09.
+- **Per-unit plans.** A Marketplace plan with a price per unit, for example per seat. F42 has flat-rate plans only (D65). From the GitHub App plan on 2026-10-09.
+- **Several users per tenant for organization plans.** An organization plan gives the tenant of each member the plan (D65), but the members do not share reviews. With [several users per tenant](../backlog/multiple-users-per-tenant.md), one organization plan could cover one shared tenant. From the GitHub App plan on 2026-10-09.
 
 ## For Jan
 
@@ -109,5 +118,21 @@ Decisions or actions that only Jan can take. Each comes from a report or a revie
   - Symfony 8.1: `SameOriginCsrfListener` writes the CSRF strategies of the logout request, those of the old session included, into the session that logout starts. The new session then refuses a same-origin form that sends no double-submit token. F34 makes every form send one, so the app is not affected.
   - tree-sitter-zig (`@tree-sitter-grammars/tree-sitter-zig` 1.1.2, also on master): `_container_members` uses `repeat1`, so an empty `struct {}`, `enum {}`, `union {}`, or `opaque {}` is a syntax error, and such a Zig file has no symbols (F32).
 - **First GitHub Actions run:** after the push of F36, check the steps that act cannot show: the Buildx and bake layer cache, the GitHub cache service, the artifact upload, and the ownership of `var/` on the runner. Then require the workflow `QA` on `main` with branch protection.
-- **GitHub App:** when a real App exists, record real API responses and webhook deliveries for the fixtures. Confirm the by-ID fetch of pending SHAs and the listing of a suspended installation. Set `GITHUB_APP_WEBHOOK_SECRET` in the vault, and the webhook content type to JSON.
+- **GitHub App:**
+  - When a real App exists, record real API responses and webhook deliveries for the fixtures. Confirm the by-ID fetch of pending SHAs, which F41 also needs for the head of a fork pull request, and the listing of a suspended installation. Set `GITHUB_APP_WEBHOOK_SECRET` in the vault, and the webhook content type to JSON.
+  - Launch on the GitHub Marketplace, after F39 to F43:
+    1. **Organization.** Put the App in an organization: register it there, or transfer it. Turn on 2FA, verify the domain, and apply for publisher verification. Paid plans need it.
+    2. **Production instance.** HTTPS, backups, and monitoring. A process to report a security incident to GitHub within 24 hours.
+    3. **Permissions before going public.** Contents: read, Metadata: read, Pull requests: read, and Checks: write. Events `push`, `repository`, and `pull_request`. After the App is public, every account that installed it must approve each new permission again.
+    4. **Fixtures.** Record real responses and deliveries, as in the item above.
+    5. **Go public.** Set "Any account". A public App cannot become private again while other accounts have it installed.
+    6. **Draft listing.**
+       - A very short description of 40 to 80 characters, an introduction of 150 to 250, and details of up to 1,000.
+       - A logo of at least 200 x 200 px, a feature card of 965 x 482 px, and 1 to 5 screenshots at least 1,200 px wide.
+       - Categories, and the support, privacy, and terms URLs of F43.
+       - The Marketplace webhook `https://<host>/webhook/github`, JSON, with the secret, set to Active.
+    7. **Plans.** Launch with the free plan. Add the flat-rate paid plans, monthly and yearly, after about 100 installations, when publisher verification is done. A published plan cannot be edited, only replaced.
+    8. **Test.** Buy on the draft listing, which charges nothing. Use "Apply Pending Change" for downgrades and cancellations.
+    9. **Submit.** Accept the Marketplace Developer Agreement and submit the listing for review. For paid plans, request listing verification and financial onboarding.
+- **Legal and support pages (F43):** supply the storage country and the support email, and write or approve the privacy policy and the terms of service.
 - **phpstan-doctrine:** it finds a type descriptor by DBAL type class, not by type name. So `IdentifierType` and `StringValueType`, which serve several value classes, fall back to `mixed` in DQL result shapes. The fix needs either two new `phpstanApi` ignores, which the definition of done forbids, or an upstream change. F08 item 6 is left open for it.

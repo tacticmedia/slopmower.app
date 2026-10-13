@@ -1,6 +1,6 @@
 # Usage limits and rate limiting
 
-Status: backlog. The proof of concept has no usage limits, by decision D32. The specification already bounds some lists: 500 drafts per user and review, 50 active tokens per user, and 1,000 repository candidates.
+Status: scheduled as [F39](../plan/F39-usage-limits.md), which takes each per-tenant limit value from the plan of the tenant (F42). The proof of concept has no usage limits, by decision D32. The specification already bounds some lists: 500 drafts per user and review, 50 active tokens per user, and 1,000 repository candidates.
 
 ## Why
 
