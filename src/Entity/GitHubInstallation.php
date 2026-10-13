@@ -19,6 +19,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\UniqueConstraint(name: 'uniq_github_installation', columns: ['tenant_id', 'installation_id'])]
 class GitHubInstallation implements TenantOwned
 {
+    private const array PERMISSION_LEVELS = ['read' => 1, 'write' => 2, 'admin' => 3];
+
     #[ORM\Id]
     #[ORM\Column(type: GitHubInstallationId::class)]
     private GitHubInstallationId $id;
@@ -83,10 +85,15 @@ class GitHubInstallation implements TenantOwned
     }
 
     /**
-     * Accepted at `read` or `write`.
+     * A higher level covers a lower one: `write` covers `read`.
+     *
+     * @param array<string, string> $permissions The permissions of a job, for example {@see \App\GitHub\InstallationTokenProvider::CHECKS_WRITE}
      */
-    public function canRead(string $permission): bool
+    public function accepts(array $permissions): bool
     {
-        return \in_array($this->permissions[$permission] ?? null, ['read', 'write'], true);
+        return array_all(
+            $permissions,
+            fn (string $level, string $permission): bool => (self::PERMISSION_LEVELS[$this->permissions[$permission] ?? ''] ?? 0) >= (self::PERMISSION_LEVELS[$level] ?? \PHP_INT_MAX),
+        );
     }
 }

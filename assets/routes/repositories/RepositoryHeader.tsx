@@ -3,6 +3,7 @@ import { SyncIcon } from '@primer/octicons-react';
 import { useFetcher } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
 import type { Repository } from '../../api/types/repository';
+import { CheckEveryPullRequestSwitch } from './CheckEveryPullRequestSwitch';
 import { ActionErrorMessage } from '../../layout/ActionErrorMessage';
 import { useSubmitOnce } from '../../layout/useSubmitOnce';
 import { SOURCE_NAMES } from './ConnectedRepositories';
@@ -30,6 +31,7 @@ export function RepositoryHeader({ repository }: { repository: Repository }) {
                         </Link>
                     </span>
                 )}
+                {null !== repository.github && <CheckEveryPullRequestSwitch enabled={repository.github.checkEveryPullRequest} />}
                 <SyncStatus sync={repository.sync} />
             </div>
             <refresh.Form method="post" className={styles.actions} onSubmit={submitOnce}>

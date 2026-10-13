@@ -413,7 +413,7 @@ The proposal replaces the current one, also an approved one. The request then wa
   - 409 `review_closed`;
   - 409 `invalid_transition`: the first request that is neither `in_progress`, claimed by the caller, with the proposal gate open, nor `ready_for_review`. Nothing is written.
 
-The server stores the URL. For a GitHub repository, a job then reads the pull request from GitHub, and `Request.pullRequests` shows its state. The server never writes to GitHub. A link never changes the status, and it does not hand the turn to the user, because `pull_request.linked` does not count as an agent event for the `awaiting` rules. A request lists its pull requests in `Request.pullRequestUrls`. [Q19](#q19-unlink-a-pull-request) removes a link.
+The server stores the URL. For a GitHub repository, a job then reads the pull request from GitHub, and `Request.pullRequests` shows its state. The only write to GitHub is the [check run](webhooks-and-live-updates.md#check-run) of the pull request. A link never changes the status, and it does not hand the turn to the user, because `pull_request.linked` does not count as an agent event for the `awaiting` rules. A request lists its pull requests in `Request.pullRequestUrls`. [Q19](#q19-unlink-a-pull-request) removes a link.
 
 Example body, [fixtures/inputs.link-pull-request.json](fixtures/inputs.link-pull-request.json):
 

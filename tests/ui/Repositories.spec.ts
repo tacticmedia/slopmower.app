@@ -52,6 +52,19 @@ test.describe('Repositories', () => {
         await expect(details.getByRole('link', { name: 'View on GitHub' })).toHaveAttribute('href', 'https://github.com/acme/billing');
     });
 
+    test('The switch of a GitHub repository turns on the check of every pull request', async ({ page, api }) => {
+        const repository = { ...fixture<Repository>('repository.github-cloning.json'), id: newId() };
+        new FakeRepositories(api).repositories.push(repository);
+        await page.goto(`/repositories/${repository.id}`);
+        const toggle = page.getByRole('button', { name: 'Check every pull request' });
+        await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+
+        await toggle.click();
+
+        await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+        expect(api.bodies('POST', `/api/v1/repositories/${repository.id}/check-every-pull-request`)).toEqual([{ enabled: true }]);
+    });
+
     test('A notice shows when local repositories are disabled', async ({ page, api }) => {
         api.me = me({ localRepositories: false });
         const repositories = new FakeRepositories(api);

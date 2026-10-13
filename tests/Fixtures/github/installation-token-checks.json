@@ -1,0 +1,15 @@
+{
+    "status": 201,
+    "headers": {
+        "content-type": "application/json; charset=utf-8"
+    },
+    "body": {
+        "token": "ghs_checksWrite16C7e42F292c6912E7710c8383",
+        "expires_at": "2026-10-02T09:00:00Z",
+        "permissions": {
+            "checks": "write",
+            "metadata": "read"
+        },
+        "repository_selection": "selected"
+    }
+}

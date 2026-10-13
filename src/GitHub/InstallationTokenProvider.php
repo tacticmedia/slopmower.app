@@ -34,6 +34,8 @@ final class InstallationTokenProvider
 
     public const array PULL_REQUESTS_READ = ['pull_requests' => 'read'];
 
+    public const array CHECKS_WRITE = ['checks' => 'write'];
+
     /** Covers clock drift between the server and GitHub. */
     private const int JWT_BACKDATE_SECONDS = 60;
 
@@ -54,7 +56,7 @@ final class InstallationTokenProvider
 
     /**
      * A token for one repository. GitHub refuses permissions that the installation has not accepted, so a job checks
-     * {@see \App\Entity\GitHubInstallation::canRead()} first.
+     * {@see \App\Entity\GitHubInstallation::accepts()} first.
      *
      * @param array<string, string> $permissions The permissions of the job, for example {@see self::CONTENTS_READ}
      *

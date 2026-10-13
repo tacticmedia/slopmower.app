@@ -53,7 +53,7 @@ final class ConnectGitHubRepositoryTest extends WebTestCase
             [
                 'source' => 'github',
                 'name' => 'acme/billing',
-                'github' => ['repositoryId' => 812345, 'installationId' => 5551, 'owner' => 'acme', 'private' => true, 'htmlUrl' => 'https://github.com/acme/billing'],
+                'github' => ['repositoryId' => 812345, 'installationId' => 5551, 'owner' => 'acme', 'private' => true, 'htmlUrl' => 'https://github.com/acme/billing', 'checkEveryPullRequest' => false],
                 'local' => null,
                 'access' => 'active',
                 'sync' => ['state' => 'cloning', 'lastFetchedAt' => null, 'lastError' => null, 'defaultBranchHead' => null],

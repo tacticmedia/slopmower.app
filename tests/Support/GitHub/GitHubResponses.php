@@ -11,7 +11,8 @@ use Symfony\Component\HttpClient\Response\MockResponse;
  * The user token selects the user and the installation listing. The installation token endpoint answers 201 only for a
  * bearer token in JWT form and a token limited to one repository and one permission set of
  * {@see self::TOKEN_FIXTURE_BY_PERMISSIONS}, as the jobs ask for it. A repository read answers only the
- * `contents: read` token, and a pull request read only the `pull_requests: read` token.
+ * `contents: read` token, and a pull request read only the `pull_requests: read` token. The check run calls answer only
+ * the `checks: write` token, and {@see self::checkRunCalls()} keeps them.
  */
 final class GitHubResponses
 {
@@ -35,9 +36,13 @@ final class GitHubResponses
     /** The token in installation-token-pull-requests.json, with `pull_requests: read`. */
     public const string PULL_REQUESTS_INSTALLATION_TOKEN = 'ghs_pullRequestsRead2F292c6912E7710c838347';
 
+    /** The token in installation-token-checks.json, with `checks: write`. */
+    public const string CHECKS_INSTALLATION_TOKEN = 'ghs_checksWrite16C7e42F292c6912E7710c8383';
+
     private const array TOKEN_FIXTURE_BY_PERMISSIONS = [
         'installation-token' => ['contents' => 'read'],
         'installation-token-pull-requests' => ['pull_requests' => 'read'],
+        'installation-token-checks' => ['checks' => 'write'],
     ];
 
     private const string API = 'https://api.github.com/';
@@ -78,6 +83,9 @@ final class GitHubResponses
         self::MALFORMED_LISTING_ACCESS_TOKEN => ['user/installations/5551/repositories?per_page=100' => 'installation-5551-repositories-malformed'] + self::LISTING,
     ];
 
+    /** @var list<array{string, string, array<mixed>}> Method, path below the API, and JSON body */
+    private array $checkRunCalls = [];
+
     /**
      * @param array{normalized_headers?: array<string, list<string>>, body?: mixed} $options
      */
@@ -93,6 +101,7 @@ final class GitHubResponses
             1 === preg_match('~^GET https://api\.github\.com/repos/[^/]+/[^/]+/pulls/\d+$~', $request) => self::PULL_REQUESTS_INSTALLATION_TOKEN === self::bearerToken($options)
                 ? self::PULL_REQUEST_FIXTURES[substr($url, \strlen(self::API))] ?? 'pull-request-not-found'
                 : 'user-unauthorized',
+            1 === preg_match('~^(POST|PATCH) https://api\.github\.com/repos/[^/]+/[^/]+/check-runs(/\d+)?$~', $request) => $this->checkRunFixture($method, $url, $options),
             str_starts_with($request, 'GET '.self::API.'repos/') => self::INSTALLATION_TOKEN === self::bearerToken($options)
                 ? self::REPOSITORY_FIXTURES[substr($url, \strlen(self::API))] ?? 'repository-not-found'
                 : 'user-unauthorized',
@@ -104,6 +113,31 @@ final class GitHubResponses
         $body = \is_string($recorded['body']) ? $recorded['body'] : json_encode($recorded['body'], \JSON_THROW_ON_ERROR);
 
         return new MockResponse($body, ['http_code' => $recorded['status'], 'response_headers' => $recorded['headers']]);
+    }
+
+    /**
+     * @return list<array{string, string, array<mixed>}> The check run calls with the `checks: write` token: method,
+     *                                                   path below the API, and JSON body
+     */
+    public function checkRunCalls(): array
+    {
+        return $this->checkRunCalls;
+    }
+
+    /**
+     * @param array{normalized_headers?: array<string, list<string>>, body?: mixed} $options
+     */
+    private function checkRunFixture(string $method, string $url, array $options): string
+    {
+        if (self::CHECKS_INSTALLATION_TOKEN !== self::bearerToken($options)) {
+            return 'user-unauthorized';
+        }
+
+        $path = substr($url, \strlen(self::API));
+        $body = json_decode(\is_string($options['body'] ?? null) ? $options['body'] : '', true, flags: \JSON_THROW_ON_ERROR);
+        $this->checkRunCalls[] = [$method, $path, \is_array($body) ? $body : []];
+
+        return 'POST' === $method ? 'check-run-created' : 'check-run-updated';
     }
 
     /**

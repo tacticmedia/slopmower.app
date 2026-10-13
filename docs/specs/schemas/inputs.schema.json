@@ -213,6 +213,16 @@
         }
       }
     },
+    "CheckEveryPullRequestInput": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "The new value of `github.checkEveryPullRequest`."
+        }
+      }
+    },
     "PlanRequirementInput": {
       "type": "object",
       "required": ["requireApproval"],

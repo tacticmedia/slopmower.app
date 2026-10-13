@@ -1,0 +1,72 @@
+{
+    "status": 200,
+    "headers": {
+        "content-type": "application/json; charset=utf-8"
+    },
+    "body": {
+        "id": 4,
+        "head_sha": "ce587453ced02b1526dfb4cb910479d431683101",
+        "node_id": "MDg6Q2hlY2tSdW40",
+        "external_id": "01K7E2Z8Q4M2N6P8R0T2V4X6Z8",
+        "url": "https://api.github.com/repos/acme/billing/check-runs/4",
+        "html_url": "https://github.com/acme/billing/runs/4",
+        "details_url": "http://localhost/reviews/01K7E2Z8Q4M2N6P8R0T2V4X6Y0/requests",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2018-05-04T01:14:52Z",
+        "completed_at": "2018-05-04T01:14:52Z",
+        "output": {
+            "title": "All requests finished",
+            "summary": "### [main @ 79f8595a4c1e](http://localhost/reviews/01K7E2Z8Q4M2N6P8R0T2V4X6Y0/requests)",
+            "text": null,
+            "annotations_count": 1,
+            "annotations_url": "https://api.github.com/repos/acme/billing/check-runs/4/annotations"
+        },
+        "name": "Slopmower",
+        "check_suite": {
+            "id": 5
+        },
+        "app": {
+            "id": 1,
+            "slug": "octoapp",
+            "node_id": "MDExOkludGVncmF0aW9uMQ==",
+            "owner": {
+                "login": "github",
+                "id": 1,
+                "node_id": "MDEyOk9yZ2FuaXphdGlvbjE=",
+                "url": "https://api.github.com/orgs/github",
+                "repos_url": "https://api.github.com/orgs/github/repos",
+                "events_url": "https://api.github.com/orgs/github/events",
+                "avatar_url": "https://github.com/images/error/octocat_happy.gif",
+                "gravatar_id": "",
+                "html_url": "https://github.com/octocat",
+                "followers_url": "https://api.github.com/users/octocat/followers",
+                "following_url": "https://api.github.com/users/octocat/following{/other_user}",
+                "gists_url": "https://api.github.com/users/octocat/gists{/gist_id}",
+                "starred_url": "https://api.github.com/users/octocat/starred{/owner}{/repo}",
+                "subscriptions_url": "https://api.github.com/users/octocat/subscriptions",
+                "organizations_url": "https://api.github.com/users/octocat/orgs",
+                "received_events_url": "https://api.github.com/users/octocat/received_events",
+                "type": "User",
+                "site_admin": true
+            },
+            "name": "Octocat App",
+            "description": "",
+            "external_url": "https://example.com",
+            "html_url": "https://github.com/apps/octoapp",
+            "created_at": "2017-07-08T16:18:44-04:00",
+            "updated_at": "2017-07-08T16:18:44-04:00",
+            "permissions": {
+                "metadata": "read",
+                "contents": "read",
+                "issues": "write",
+                "single_file": "write"
+            },
+            "events": [
+                "push",
+                "pull_request"
+            ]
+        },
+        "pull_requests": []
+    }
+}

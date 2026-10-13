@@ -44,13 +44,14 @@ final class BundledSchemas
                             ['type' => 'null'],
                             [
                                 'type' => 'object',
-                                'required' => ['repositoryId', 'installationId', 'owner', 'private', 'htmlUrl'],
+                                'required' => ['repositoryId', 'installationId', 'owner', 'private', 'htmlUrl', 'checkEveryPullRequest'],
                                 'properties' => [
                                     'repositoryId' => ['type' => 'integer', 'minimum' => 1],
                                     'installationId' => ['type' => 'integer', 'minimum' => 1],
                                     'owner' => ['type' => 'string', 'minLength' => 1],
                                     'private' => ['type' => 'boolean'],
                                     'htmlUrl' => ['type' => 'string', 'format' => 'uri'],
+                                    'checkEveryPullRequest' => ['type' => 'boolean', 'description' => 'Whether every pull request gets the check of the user, not only the linked ones. R8 sets it.'],
                                 ],
                             ],
                         ],
@@ -292,13 +293,14 @@ final class BundledSchemas
                             ['type' => 'null'],
                             [
                                 'type' => 'object',
-                                'required' => ['repositoryId', 'installationId', 'owner', 'private', 'htmlUrl'],
+                                'required' => ['repositoryId', 'installationId', 'owner', 'private', 'htmlUrl', 'checkEveryPullRequest'],
                                 'properties' => [
                                     'repositoryId' => ['type' => 'integer', 'minimum' => 1],
                                     'installationId' => ['type' => 'integer', 'minimum' => 1],
                                     'owner' => ['type' => 'string', 'minLength' => 1],
                                     'private' => ['type' => 'boolean'],
                                     'htmlUrl' => ['type' => 'string', 'format' => 'uri'],
+                                    'checkEveryPullRequest' => ['type' => 'boolean', 'description' => 'Whether every pull request gets the check of the user, not only the linked ones. R8 sets it.'],
                                 ],
                             ],
                         ],

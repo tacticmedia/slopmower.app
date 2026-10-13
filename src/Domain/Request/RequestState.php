@@ -61,8 +61,7 @@ final readonly class RequestState
 
     public function closed(): bool
     {
-        return RequestStatus::Verified === $this->status
-            || (RequestStatus::WontDo === $this->status && ActorKind::User === $this->wontDoBy);
+        return $this->status->isClosed($this->wontDoBy);
     }
 
     public function isClaimedBy(Actor $actor): bool

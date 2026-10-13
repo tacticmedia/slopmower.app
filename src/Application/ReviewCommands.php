@@ -65,6 +65,7 @@ final class ReviewCommands
         private readonly CommitLinkRepository $links,
         private readonly TenantDataPaths $paths,
         private readonly EventDispatcherInterface $dispatcher,
+        private readonly QueueCheckRun $queueCheckRun,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -172,7 +173,8 @@ final class ReviewCommands
 
     /**
      * V13, for open and closed reviews, also of a removed repository. The index stays: it belongs to the commit.
-     * The `repository` live update follows, because `openReviewCount` can change.
+     * The `repository` live update follows, because `openReviewCount` can change, and the check runs of the pull
+     * requests that the deleted requests linked.
      *
      * @throws NotFound
      */
@@ -182,6 +184,7 @@ final class ReviewCommands
         $tenantId = $review->getTenantId();
         $repositoryId = $review->getRepository()->getId();
         $linkedShas = [];
+        $linkedPullRequests = $this->queueCheckRun->linkedByReview($reviewId);
 
         $this->executor->delete($tenantId, function () use ($tenantId, $reviewId, &$linkedShas): void {
             $linkedShas = $this->links->commitShasOfReview($reviewId);
@@ -190,6 +193,10 @@ final class ReviewCommands
 
         $this->unpinDeletedReview($this->paths->clonePath($tenantId, $repositoryId), $repositoryId, $reviewId, $linkedShas);
         $this->dispatcher->dispatch(new RepositoryChanged($tenantId, $repositoryId));
+
+        foreach ($linkedPullRequests as $pullRequestId) {
+            $this->queueCheckRun->request($pullRequestId);
+        }
     }
 
     /**

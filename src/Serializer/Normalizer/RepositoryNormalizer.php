@@ -40,6 +40,7 @@ final class RepositoryNormalizer implements NormalizerInterface, NormalizerAware
                 'owner' => explode('/', $name, 2)[0],
                 'private' => $repository->isGithubPrivate(),
                 'htmlUrl' => "https://github.com/{$name}",
+                'checkEveryPullRequest' => $repository->checksEveryPullRequest(),
             ] : null,
             'local' => $isGitHub ? null : ['directory' => $repository->getLocalDirectory()],
             'defaultBranch' => $repository->getDefaultBranch(),

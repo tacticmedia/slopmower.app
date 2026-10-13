@@ -65,6 +65,10 @@ export type RejectProposalInput = {
     note: Markdown;
 };
 
+export type CheckEveryPullRequestInput = {
+    enabled: boolean;
+};
+
 export type PlanRequirementInput = {
     requireApproval: boolean;
 };

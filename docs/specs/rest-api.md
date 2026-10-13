@@ -30,6 +30,7 @@ Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json). 
 | [R5](#r5-fetch-a-repository) | POST | `/api/v1/repositories/{repositoryId}/fetch` | S, B | 202 | [`repository.schema.json`](schemas/repository.schema.json) |
 | [R6](#r6-delete-repository-data) | DELETE | `/api/v1/repositories/{repositoryId}?confirm={name}` | S | 202 | none |
 | [R7](#r7-get-a-blob) | GET | `/api/v1/repositories/{repositoryId}/blobs/{blobSha}` | S, B | 200 or 304 | bytes |
+| [R8](#r8-check-every-pull-request) | POST | `/api/v1/repositories/{repositoryId}/check-every-pull-request` | S | 200 | [`repository.schema.json`](schemas/repository.schema.json) |
 | [V1](#v1-start-a-review) | POST | `/api/v1/repositories/{repositoryId}/reviews` | S | 201 | [`review.schema.json`](schemas/review.schema.json) |
 | [V2](#v2-list-reviews) | GET | `/api/v1/repositories/{repositoryId}/reviews` | S, B | 200 | [`lists.schema.json#/$defs/ReviewPage`](schemas/lists.schema.json) |
 | [V3](#v3-get-a-review) | GET | `/api/v1/reviews/{reviewId}` | S, B | 200 | [`review.schema.json`](schemas/review.schema.json) |
@@ -237,7 +238,7 @@ Example response, [fixtures/repository.github-cloning.json](fixtures/repository.
   "id": "01K6B2Z0R3P0S1T2V3W4X5Y6Z7",
   "source": "github",
   "name": "acme/billing",
-  "github": {"repositoryId":812345,"installationId":5551,"owner":"acme","private":true,"htmlUrl":"https://github.com/acme/billing"},
+  "github": {"repositoryId":812345,"installationId":5551,"owner":"acme","private":true,"htmlUrl":"https://github.com/acme/billing","checkEveryPullRequest":false},
   "local": null,
   "defaultBranch": null,
   "access": "active",
@@ -293,6 +294,16 @@ The verify view uses this endpoint for the old and the new side of a `FileDiff`.
 - `X-Content-Type-Options: nosniff`;
 - `Content-Security-Policy: sandbox; default-src 'none'`;
 - caching as in [README.md section 6](README.md#6-caching-and-etags).
+
+### R8 Check every pull request
+
+- **Request:** `POST /api/v1/repositories/{repositoryId}/check-every-pull-request`
+- **Authentication:** S
+- **Body:** [`CheckEveryPullRequestInput`](schemas/inputs.schema.json), `{"enabled": true}`.
+- **Success:** 200 [`Repository`](schemas/repository.schema.json) with the new `github.checkEveryPullRequest`.
+- **Errors:** 422 `invalid_input` for a local repository, which has no check runs.
+
+The value says which pull requests of a GitHub repository get the check of the user, see [webhooks-and-live-updates.md](webhooks-and-live-updates.md#check-run). Off, the default: only the pull requests that a request of the tenant links. On: every pull request, and the others get a `neutral` run, so a required check does not block them. A change publishes the live update `repository`. No MCP tool changes the value.
 
 ## 5. Reviews and code
 

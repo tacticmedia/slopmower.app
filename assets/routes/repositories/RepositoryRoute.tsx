@@ -2,7 +2,7 @@ import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect, useLoaderDa
 import { actionError, type ActionResult, optionalText, writeResult } from '../../api/actionResult';
 import { apiGetAllPages, apiWrite } from '../../api/client';
 import type { CarryOverResult } from '../../api/types/carry-over-result';
-import type { CarryOverInput, StartReviewInput } from '../../api/types/inputs';
+import type { CarryOverInput, CheckEveryPullRequestInput, StartReviewInput } from '../../api/types/inputs';
 import type { ReviewPage } from '../../api/types/lists';
 import type { Review } from '../../api/types/review';
 import { encodedRouteParam } from '../encodedRouteParam';
@@ -27,6 +27,11 @@ export async function repositoryAction({ request, params }: ActionFunctionArgs):
     switch (form.get('intent')) {
         case 'refresh':
             return writeResult(() => apiWrite('POST', `${repositoryPath}/fetch`));
+        case 'check-every-pull-request': {
+            const input: CheckEveryPullRequestInput = { enabled: 'true' === form.get('enabled') };
+
+            return writeResult(() => apiWrite('POST', `${repositoryPath}/check-every-pull-request`, input));
+        }
         case 'start':
             try {
                 const input: StartReviewInput = { ref: optionalText(form.get('ref')), title: optionalText(form.get('title')) };

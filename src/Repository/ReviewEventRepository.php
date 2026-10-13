@@ -105,6 +105,23 @@ final class ReviewEventRepository extends ServiceEntityRepository
     }
 
     /**
+     * @param list<ReviewId> $reviewIds
+     *
+     * @return list<ReviewEvent> The pull_request.linked events of the reviews, newest first
+     */
+    public function findPullRequestLinks(array $reviewIds): array
+    {
+        return $this->createQueryBuilder('event')
+            ->where('event.reviewId IN (:reviewIds)')
+            ->andWhere('event.type = :linked')
+            ->orderBy('event.seq', \SortDirection::Descending)
+            ->setParameter('reviewIds', array_map(static fn (ReviewId $id): string => $id->toRfc4122(), $reviewIds), ArrayParameterType::STRING)
+            ->setParameter('linked', EventType::PullRequestLinked->value)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * @return array<string, EventId> The ID of the request.opened event, by request ID
      */
     public function findOpenedEventIds(ReviewId $reviewId): array

@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Application\ConnectedRepository;
+use App\Application\Event\RepositoryChanged;
 use App\Application\FetchRepository;
 use App\Application\GitHubRepositoriesLock;
 use App\Application\Query\RepositoryQuery;
 use App\Application\UsageLimits;
+use App\Controller\Api\Input\CheckEveryPullRequestInput;
 use App\Controller\Api\Input\ConfirmQuery;
 use App\Controller\Api\Input\ConnectRepositoryInput;
 use App\Controller\Api\Input\RepositoryListQuery;
@@ -40,9 +42,10 @@ use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
- * R1 and R3 to R6 of docs/specs/rest-api.md section 4. A path ID that the SQL filter hides resolves to 404.
+ * R1, R3 to R6, and R8 of docs/specs/rest-api.md section 4. A path ID that the SQL filter hides resolves to 404.
  */
 #[Route('/api/v1/repositories', name: 'api_repository_')]
 final class RepositoryController extends AbstractController
@@ -124,6 +127,20 @@ final class RepositoryController extends AbstractController
         $this->fetchRepository->request($repository->getId());
 
         return $this->json($this->repositories->get($repository->getId()), Response::HTTP_ACCEPTED);
+    }
+
+    #[Route('/{repositoryId}/check-every-pull-request', name: 'check_every_pull_request', methods: ['POST'])]
+    #[IsGranted(User::ROLE, message: CurrentActor::SESSION_ONLY)]
+    public function checkEveryPullRequest(
+        #[MapEntity(id: 'repositoryId')] Repository $repository,
+        #[MapRequestPayload(acceptFormat: 'json')] CheckEveryPullRequestInput $input,
+        EventDispatcherInterface $dispatcher,
+    ): JsonResponse {
+        $repository->setCheckEveryPullRequest($input->enabled ?? throw new \LogicException('The input validation requires the value.'));
+        $this->entityManager->flush();
+        $dispatcher->dispatch(new RepositoryChanged($repository->getTenantId(), $repository->getId()));
+
+        return $this->json($this->repositories->get($repository->getId()));
     }
 
     /**

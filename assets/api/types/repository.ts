@@ -23,6 +23,7 @@ type SourceFields =
               owner: string;
               private: boolean;
               htmlUrl: string;
+              checkEveryPullRequest: boolean;
           };
           local: null;
       }

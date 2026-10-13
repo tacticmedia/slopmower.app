@@ -5,14 +5,19 @@ declare(strict_types=1);
 namespace App\Webhook;
 
 use App\Domain\Error\InvalidInput;
+use App\Domain\Git\CommitSha;
+use App\Domain\Identity\PullRequestId;
 use App\Domain\Identity\TenantId;
 use App\Domain\Repository\RepositoryAccess;
 use App\Domain\Repository\RepositoryName;
+use App\Domain\Request\CheckRunOutput;
 use App\Entity\GitHubAccountType;
+use App\Entity\SignInMethod;
 use App\Entity\TenantOwned;
 use App\GitHub\Payload\InstallationPayload;
 use App\GitHub\Payload\PullRequestPayload;
 use App\GitHub\Payload\RepositoryPayload;
+use App\Message\CheckRunJob;
 use App\Message\GitHubInstallationCreatedJob;
 use App\Message\GitHubInstallationDeletedJob;
 use App\Message\GitHubInstallationPermissionsJob;
@@ -22,6 +27,7 @@ use App\Message\GitHubPushJob;
 use App\Message\GitHubRepositoriesAddedJob;
 use App\Message\GitHubRepositoriesRemovedJob;
 use App\Message\GitHubRepositoryUpdatedJob;
+use App\Message\NeutralCheckRunJob;
 use App\Messenger\TenantStamp;
 use App\Repository\GitHubCandidateRepository;
 use App\Repository\GitHubInstallationRepository;
@@ -40,6 +46,7 @@ use Symfony\Component\RemoteEvent\Consumer\ConsumerInterface;
 use Symfony\Component\RemoteEvent\RemoteEvent;
 use Symfony\Component\Serializer\Exception\ExceptionInterface as SerializerException;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
+use Symfony\Component\Uid\Ulid;
 
 /**
  * Routes a verified delivery to one job per tenant, docs/specs/webhooks-and-live-updates.md section 1. It reads across
@@ -120,7 +127,8 @@ final class GitHubWebhookConsumer implements ConsumerInterface
                 default => [],
             },
             'github.repository' => $this->repository($action, $payload),
-            'github.pull_request' => $this->pullRequest($payload),
+            'github.pull_request' => $this->pullRequest($action, $payload),
+            'github.check_run' => 'rerequested' === $action ? $this->checkRunRerequested($payload) : [],
             'github.github_app_authorization' => $this->authorization($action, $payload),
             default => [],
         };
@@ -272,21 +280,80 @@ final class GitHubWebhookConsumer implements ConsumerInterface
     }
 
     /**
-     * Only tenants that link the number have a record of it.
+     * Only tenants that link the number have a record of it. Each other tenant that checks every pull request of the
+     * repository gets its own neutral run, so its check does not block a pull request that it does not link.
      *
      * @param array<mixed> $payload
      *
      * @return list<array{TenantId, object}>
      */
-    private function pullRequest(array $payload): array
+    private function pullRequest(mixed $action, array $payload): array
     {
         $githubRepositoryId = $this->denormalizer->denormalize($payload['repository'] ?? null, RepositoryPayload::class)->id;
         $pullRequest = $this->denormalizer->denormalize($payload['pull_request'] ?? null, PullRequestPayload::class);
+        $linking = self::tenantIds(...$this->pullRequests->findByGitHubRepository($githubRepositoryId, $pullRequest->number));
+        $jobs = self::jobs($linking, new GitHubPullRequestJob($githubRepositoryId, $pullRequest));
 
-        return self::jobs(
-            self::tenantIds(...$this->pullRequests->findByGitHubRepository($githubRepositoryId, $pullRequest->number)),
-            new GitHubPullRequestJob($githubRepositoryId, $pullRequest),
-        );
+        if (!\in_array($action, ['opened', 'reopened', 'synchronize'], true)) {
+            return $jobs;
+        }
+
+        $linkingIds = array_map(static fn (TenantId $tenantId): string => $tenantId->toString(), $linking);
+
+        foreach ($this->repositories->findBy(['githubRepositoryId' => $githubRepositoryId, 'access' => RepositoryAccess::Active, 'checkEveryPullRequest' => true]) as $repository) {
+            if (!\in_array($repository->getTenantId()->toString(), $linkingIds, true)) {
+                $jobs[] = [$repository->getTenantId(), new NeutralCheckRunJob($repository->getId(), $pullRequest->number, self::sha($pullRequest->headSha))];
+            }
+        }
+
+        return $jobs;
+    }
+
+    /**
+     * A run of another App has another `external_id`, or none. A record run gets a new run. A neutral run, and a run
+     * whose record is gone, for example after a deletion of the repository data or of the tenant, gets the neutral run
+     * of its tenant: the one that its `external_id` names, else the users with the login of its name.
+     *
+     * @param array<mixed> $payload
+     *
+     * @return list<array{TenantId, object}>
+     */
+    private function checkRunRerequested(array $payload): array
+    {
+        $githubRepositoryId = self::int($payload, 'repository', 'id');
+        $externalId = self::value($payload, 'check_run', 'external_id');
+        $externalId = \is_string($externalId) ? $externalId : '';
+        $pullRequest = Ulid::isValid($externalId) ? $this->pullRequests->find(PullRequestId::fromString($externalId)) : null;
+
+        if (null !== $pullRequest && $pullRequest->getRepository()->getGithubRepositoryId() === $githubRepositoryId) {
+            return [[$pullRequest->getTenantId(), new CheckRunJob($pullRequest->getId(), newRun: true)]];
+        }
+
+        $tenantId = CheckRunOutput::tenantOf($externalId);
+        $number = self::value($payload, 'check_run', 'pull_requests', '0', 'number');
+        $jobs = [];
+
+        foreach (null !== $tenantId && $this->tenants->isActive($tenantId) ? [$tenantId] : $this->tenantsOfCheckName(self::value($payload, 'check_run', 'name')) as $named) {
+            $repository = $this->repositories->findOneBy(['tenantId' => $named, 'githubRepositoryId' => $githubRepositoryId, 'access' => RepositoryAccess::Active, 'checkEveryPullRequest' => true]);
+
+            if (null !== $repository) {
+                $jobs[] = [$named, new NeutralCheckRunJob($repository->getId(), \is_int($number) ? $number : null, self::sha(self::value($payload, 'check_run', 'head_sha')))];
+            }
+        }
+
+        return $jobs;
+    }
+
+    /**
+     * A renamed login can pass to another user before the next sign-in of either, so it can name two tenants.
+     *
+     * @return list<TenantId>
+     */
+    private function tenantsOfCheckName(mixed $name): array
+    {
+        $login = \is_string($name) ? CheckRunOutput::loginOf($name) : null;
+
+        return null === $login ? [] : self::tenantIds(...$this->users->findBy(['login' => $login, 'signInMethod' => SignInMethod::GitHub]));
     }
 
     /**
@@ -375,6 +442,15 @@ final class GitHubWebhookConsumer implements ConsumerInterface
     private static function repositoryIds(array $payload, string $key): array
     {
         return array_map(static fn (array $item): int => self::int($item, 'id'), self::items($payload, $key));
+    }
+
+    private static function sha(mixed $sha): CommitSha
+    {
+        try {
+            return CommitSha::fromString(\is_string($sha) ? $sha : '', 'head_sha');
+        } catch (InvalidInput $invalid) {
+            throw self::malformed('an invalid head SHA', $invalid);
+        }
     }
 
     private static function name(mixed $fullName): RepositoryName

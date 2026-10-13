@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\MessageHandler;
 
+use App\Application\QueueCheckRun;
 use App\Domain\Git\CommitSha;
 use App\Domain\Repository\RepositoryAccess;
 use App\Domain\Repository\RepositorySource;
@@ -46,6 +47,7 @@ final class PullRequestStateHandler
         private readonly ChangeRequestRepository $requests,
         private readonly LivePublisher $publisher,
         private readonly LiveTopics $topics,
+        private readonly QueueCheckRun $queueCheckRun,
     ) {
     }
 
@@ -73,7 +75,7 @@ final class PullRequestStateHandler
 
         $installation = $this->installations->findOneBy(['installationId' => $repository->getGithubInstallationId()]);
 
-        if (null === $installation || $installation->isSuspended() || !$installation->canRead('pull_requests')) {
+        if (null === $installation || $installation->isSuspended() || !$installation->accepts(InstallationTokenProvider::PULL_REQUESTS_READ)) {
             return;
         }
 
@@ -121,20 +123,33 @@ final class PullRequestStateHandler
     }
 
     /**
-     * Publishes after the commit, so a view that reloads reads the new state.
+     * Publishes and queues the check run after the commit, so a view that reloads and the job read the new state.
      */
     private function record(Repository $repository, PullRequestPayload $pullRequest): void
     {
         $headSha = CommitSha::fromString($pullRequest->headSha, 'head.sha');
-        $changed = $this->entityManager->wrapInTransaction(fn (): bool => $this->pullRequests->findForUpdate($repository->getId(), $pullRequest->number)?->record(
-            $pullRequest->title,
-            $pullRequest->state,
-            $pullRequest->merged(),
-            $pullRequest->draft,
-            $headSha,
-            $pullRequest->headRepositoryFullName,
-            $pullRequest->updatedAt,
-        ) ?? false);
+        [$record, $headBefore, $openBefore, $changed] = $this->entityManager->wrapInTransaction(function () use ($repository, $pullRequest, $headSha): array {
+            $record = $this->pullRequests->findForUpdate($repository->getId(), $pullRequest->number);
+            $headBefore = $record?->getHeadSha();
+            $openBefore = $record?->isOpen() ?? false;
+            $changed = $record?->record(
+                $pullRequest->title,
+                $pullRequest->state,
+                $pullRequest->merged(),
+                $pullRequest->draft,
+                $headSha,
+                $pullRequest->headRepositoryFullName,
+                $pullRequest->updatedAt,
+            ) ?? false;
+
+            return [$record, $headBefore, $openBefore, $changed];
+        });
+        $newHead = null !== $record?->getHeadSha() && !($headBefore?->equals($record->getHeadSha()) ?? false);
+
+        // A reopen keeps the head, and a pull request linked while closed has no current run.
+        if (null !== $record && ($newHead || (!$openBefore && $record->isOpen()))) {
+            $this->queueCheckRun->request($record->getId());
+        }
 
         if (!$changed) {
             return;

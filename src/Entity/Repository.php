@@ -54,6 +54,10 @@ class Repository implements TenantOwned
     #[ORM\Column(nullable: true)]
     private ?bool $githubPrivate;
 
+    /** Every pull request gets the check of the user, the unlinked ones a neutral run. */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $checkEveryPullRequest = false;
+
     #[ORM\Column(nullable: true)]
     private ?string $defaultBranch = null;
 
@@ -181,6 +185,23 @@ class Repository implements TenantOwned
     public function isGithubPrivate(): ?bool
     {
         return $this->githubPrivate;
+    }
+
+    public function checksEveryPullRequest(): bool
+    {
+        return $this->checkEveryPullRequest;
+    }
+
+    /**
+     * @throws InvalidInput For a local repository, which has no check runs
+     */
+    public function setCheckEveryPullRequest(bool $enabled): void
+    {
+        if (RepositorySource::Github !== $this->source) {
+            throw InvalidInput::field('enabled', 'Only a GitHub repository has check runs.');
+        }
+
+        $this->checkEveryPullRequest = $enabled;
     }
 
     public function getDefaultBranch(): ?string

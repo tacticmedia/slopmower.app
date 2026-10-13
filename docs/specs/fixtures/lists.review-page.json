@@ -8,7 +8,8 @@
       "installationId": 5551,
       "owner": "acme",
       "private": true,
-      "htmlUrl": "https://github.com/acme/billing"
+      "htmlUrl": "https://github.com/acme/billing",
+      "checkEveryPullRequest": false
     },
     "local": null,
     "defaultBranch": "main",

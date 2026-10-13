@@ -23,6 +23,9 @@ GitHub Docs, read on 2026-10-13:
 - An update "appends" its annotations "to the list of annotations that already exist for the check run". No call removes an annotation.
 - "The `status` can be `queued`, `in_progress`, `requested`, `waiting`, `pending`, or `completed`." "Only GitHub Actions can set a status of `requested`, `waiting`, or `pending`."
 - `annotation_level` is `notice`, `warning`, or `failure`.
+- "If a check run is in an incomplete state for more than 14 days, then the check run's conclusion becomes stale".
+- "Required status checks must have a `successful`, `skipped`, or `neutral` status". A ruleset that names an app as the source of a check needs the app "installed in the repository with the `statuses:write` permission". Branch protection lets you "select an app that has recently set this check".
+- The REST API has no call that deletes a check run.
 
 ## Decisions
 
@@ -59,6 +62,16 @@ D64 in [architecture section 11](../architecture.md#11-decisions), and:
   - A `symfony/lock` key per installation around the GitHub calls of a job, so the calls of one installation go in series.
   - `check_suite` events stay `github.ignored`.
 - A job whose installation has not accepted Checks: write is skipped (D64). Local repositories get no check.
+
+Review decisions, 2026-10-13. They replace the bullets above where they differ.
+
+- **One check per tenant.** The name is "Slopmower (<login>)", with the GitHub login of the tenant's user. Runs of two tenants on one pull request never interfere, and a repository requires the check of the user whose review gates the merge. A choice between tenants would need one more suspension of the tenant filter.
+- **Content.** An annotation holds the request headline, its state, and the link to the request, never the request text: a check run on a public repository is public, and GitHub cannot delete it.
+- **Pull requests without a link.** With R8 "Check every pull request" on for the repository, off by default, a tenant posts a `completed` / `neutral` run "No linked requests" on `opened`, `reopened`, and `synchronize`, so a required check does not block them. Never when the tenant has a record of the number or an open record on the same head SHA, because a run belongs to a commit. Its `external_id` names the tenant.
+- **No Statuses: write.** The user guide uses branch protection with the App as the source, and "any source" in a ruleset.
+- **New run** when the status, the annotations, or the name change, or when the run is older than 14 days.
+- **More triggers:** a record whose state changes to `open`, a review deletion, and `rerequested` of a run whose record is gone, which gets the neutral run.
+- **Series:** a lock per record spans the whole job, and the lock per installation spans the GitHub calls inside it.
 
 ## Depends on
 

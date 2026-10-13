@@ -1,4 +1,4 @@
-import type { ConnectRepositoryInput, StartReviewInput } from '../../../assets/api/types/inputs';
+import type { CheckEveryPullRequestInput, ConnectRepositoryInput, StartReviewInput } from '../../../assets/api/types/inputs';
 import type { CandidateList } from '../../../assets/api/types/lists';
 import type { Repository } from '../../../assets/api/types/repository';
 import type { RepositoryCandidate } from '../../../assets/api/types/repository-candidate';
@@ -7,7 +7,7 @@ import { FakeReview, type FakeReviewOptions } from './fakeReview';
 import { type ApiCall, apiError, json, type MockApi, type MockResponse, noContent } from './mockApi';
 
 /**
- * The repositories of the user in memory: R1 to R3, R5, R6, V1, and V2. Each review of a repository is a
+ * The repositories of the user in memory: R1 to R3, R5, R6, R8, V1, and V2. Each review of a repository is a
  * {@link FakeReview}.
  */
 export class FakeRepositories {
@@ -32,6 +32,18 @@ export class FakeRepositories {
                 this.onFetch(repository);
 
                 return json('repository.schema.json', { ...repository, sync: { ...repository.sync, state: 'fetching' } }, 202);
+            }),
+        );
+        api.on('POST', '/api/v1/repositories/:repositoryId/check-every-pull-request', (call) =>
+            this.#with(call, (repository) => {
+                if (null === repository.github) {
+                    return apiError(422, 'invalid_input', 'The request is invalid.', { violations: [{ field: 'enabled', message: 'Only a GitHub repository has check runs.' }] });
+                }
+                const github = { ...repository.github, checkEveryPullRequest: (call.body as CheckEveryPullRequestInput).enabled };
+                const changed = { ...repository, github } as Repository;
+                this.repositories = this.repositories.map((stored) => (stored.id === repository.id ? changed : stored));
+
+                return json('repository.schema.json', changed);
             }),
         );
         api.on('DELETE', '/api/v1/repositories/:repositoryId', (call) =>
