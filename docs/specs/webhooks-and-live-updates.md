@@ -64,6 +64,7 @@ An MCP tool name also stands for its REST endpoint.
 - **Credentials:** a GitHub fetch uses a fresh installation token as `http.https://github.com/.extraheader` with `AUTHORIZATION: basic <base64>`. The token reaches git only through the environment variables `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`, and `GIT_CONFIG_VALUE_<n>`, never through the argument list, because `symfony/process` exceptions print the arguments. The token never goes into the git configuration of the clone.
 - **Local fetches:** the remote is `file://` plus the real path of the directory, with each segment percent-encoded. The `git upload-pack` command that reads the source gets `-c safe.directory=<realpath>` and `-c safe.directory=<realpath>/.git` through `--upload-pack`, because git drops the `-c` options of the fetching git on a local transport. The source directory is mounted read-only and never written.
 - **Failure:** the server sets `sync.lastError` and publishes a `repository` live update. For a synchronous trigger the caller gets 409 `repository_unavailable` with reason `fetch_failed`.
+- **Limits:** a synchronous trigger consumes the rate limiter `sync_fetch` of the repository, and a refusal gets 429 `rate_limited`. A clone or fetch above a size limit fails as the [usage limits](README.md#usage-limits) describe.
 
 ### 2.2 After every successful fetch
 

@@ -10,7 +10,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Lock\LockFactory;
 
 /**
- * The tenant lock of the GitHub repository names, installations, and candidates.
+ * The tenant lock of the connected repositories, for their count and the GitHub names, and of the GitHub installations
+ * and candidates.
  */
 final class GitHubRepositoriesLock
 {

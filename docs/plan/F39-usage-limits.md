@@ -12,6 +12,8 @@ Workflow, conventions, and status: [feature track](features.md). Jan selected a 
 - **Specification.** [usage-limits.md](../backlog/usage-limits.md) as written: the per-tenant limits with `limit_exceeded`, the `symfony/rate-limiter` limiters with `rate_limited`, and both error codes in `ErrorCode`, `error.schema.json`, and the skill.
 - **Change to the specification: plan values.** Each per-tenant limit value comes from the plan of the tenant (F42). Until F42 exists, every tenant has the free plan. F39 names the parameters as the values of the free plan, so F42 adds the paid plans next to them without a rename. A value of zero or an empty value switches the limit off, as the specification says.
 - **Rate limits do not depend on the plan.** A named limiter of `framework.rate_limiter` has one static configuration. The rate limits protect the instance, so their values are instance parameters only.
+- **Token buckets only.** Review on 2026-10-13: a `sliding_window` limiter reports a `Retry-After` shorter than the real wait, because `SlidingWindow` spreads the window over its hits. An agent that waits `retryAfterSeconds` is then refused again. So `api_user` and `review_start` are `token_bucket` limiters too, with the same limits per interval.
+- **Carry-over.** V15 opens requests, so it checks the requests per review too.
 - **Clone size.** `Repository` stores the measured `size-pack`, so the tenant total is a query and not a walk of the disk.
 - **Settings data.** Specs first: `Me` gets `usage`, a list of `{limit, max, current}`, the shape of the `details` of `limit_exceeded`. `max` is null for a limit that is off.
 - D32 in [architecture section 11](../architecture.md#11-decisions) changes from "None in the proof of concept" to F39.

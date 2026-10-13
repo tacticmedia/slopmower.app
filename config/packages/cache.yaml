@@ -5,3 +5,7 @@ framework:
             # web process cached: every CLI process has its own APCu segment.
             rds_credentials.cache:
                 adapter: cache.adapter.filesystem
+            # The rate limiter state, on the connection default (D58), so every php and worker process shares it.
+            rate_limiter.cache:
+                adapter: cache.adapter.doctrine_dbal
+                provider: doctrine.dbal.default_connection

@@ -37,13 +37,14 @@ final class DeletionHandler
     }
 
     /**
-     * The index and the location cache go with the clone.
+     * The index, the location cache, and the clone size go with the clone.
      */
     #[AsMessageHandler]
     public function handleDeleteClone(DeleteCloneJob $job): void
     {
         $this->deleteClone($job->tenantId, $job->repositoryId);
         $this->deletion->deleteRepositoryIndex($job->tenantId, $job->repositoryId);
+        $this->repositories->recordCloneSize($job->repositoryId, null);
     }
 
     #[AsMessageHandler]

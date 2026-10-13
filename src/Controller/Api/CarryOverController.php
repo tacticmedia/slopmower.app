@@ -12,11 +12,13 @@ use App\Application\Query\CarryOverOutcome;
 use App\Application\Query\CarryOverResult;
 use App\Application\Query\RequestQuery;
 use App\Application\Query\RequestSummaryView;
+use App\Application\UsageLimits;
 use App\Controller\Api\Input\CarryOverInput;
 use App\Domain\Anchor\Anchor;
 use App\Domain\Anchor\AnchorKind;
 use App\Domain\Anchor\LineRange;
 use App\Domain\Error\InvalidInput;
+use App\Domain\Error\LimitExceeded;
 use App\Domain\Error\NotFound;
 use App\Domain\Event\DecidedEvent;
 use App\Domain\Event\RequestCommentedEvent;
@@ -69,6 +71,7 @@ final class CarryOverController extends AbstractController
         private readonly Locator $locator,
         private readonly AnchorFactory $anchors,
         private readonly CommandExecutor $executor,
+        private readonly UsageLimits $usageLimits,
         private readonly CurrentActor $currentActor,
     ) {
     }
@@ -207,6 +210,8 @@ final class CarryOverController extends AbstractController
      * @param array<string, Plan|OrphanReason> $plans
      *
      * @return array<string, RequestId> The new request by source request ID
+     *
+     * @throws LimitExceeded The requests of the target review
      */
     private function carry(Review $target, array $plans): array
     {
@@ -235,6 +240,8 @@ final class CarryOverController extends AbstractController
                     $decided[] = new DecidedEvent(new RequestCommentedEvent(CommentId::generate(), $plan['comment'], false, null), $requestId);
                 }
             }
+
+            $this->usageLimits->checkNewRequests($target->getTenantId(), $target->getId(), \count($carried));
 
             return $decided;
         });

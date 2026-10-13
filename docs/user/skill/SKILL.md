@@ -188,6 +188,8 @@ A tool error is a result with `isError: true`. Its text is JSON:
 | `commits_not_available` | The commits in `details.pendingCommits` are not in the server's copy after one fetch | GitHub: push them. Local: make sure that they are on a branch of the connected repository. Then call `mark_ready_for_review` again. |
 | `commit_not_found` | The commit in `at` is not in the server's copy after one fetch | Push it, or commit it on a branch for a local repository, or leave out `at` |
 | `repository_unavailable` | The server's copy is cloning, its clone or fetch failed, or access was removed. `details.reason` says which. | For `cloning`, try again later. Otherwise tell the user. |
+| `rate_limited` | Too many calls in a short time. It also arrives as HTTP 429 from the server. | Wait `details.retryAfterSeconds` seconds (the `Retry-After` header of an HTTP 429), then retry |
+| `limit_exceeded` | A usage limit of the user's plan, for example the number of open reviews. `details.limit` names it. | Stop and tell the user |
 | `internal_error` | An unexpected server failure | Try once more, then tell the user |
 
 Arguments that break a tool's input schema, for example a missing required

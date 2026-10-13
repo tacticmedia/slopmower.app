@@ -110,7 +110,8 @@ Example response, [fixtures/lists.request-page.json](fixtures/lists.request-page
 - **Errors:**
   - 422 `invalid_input`: an ambiguous prefix, or `context` out of range;
   - 422 `commit_not_found`;
-  - 409 `repository_unavailable`: a fetch was needed and failed, or the clone is gone and `at` was given.
+  - 409 `repository_unavailable`: a fetch was needed and failed, or the clone is gone and `at` was given;
+  - 429 `rate_limited`: the fetch for `at` passes the `sync_fetch` limit of the repository.
 
 | Query | Type | Default | Notes |
 |---|---|---|---|
@@ -227,7 +228,8 @@ All command responses except Q2, Q7, and Q17 are [`RequestCommandResult`](schema
 - **Errors:**
   - 422 `invalid_input`: unknown path, range outside the file, FQN not found or ambiguous, kind and fields do not agree, or the file is not renderable or not valid UTF-8 for a `line`, `range`, or `symbol` anchor;
   - 409 `review_closed`;
-  - 409 `repository_unavailable`: the clone is gone, for a request with an anchor.
+  - 409 `repository_unavailable`: the clone is gone, for a request with an anchor;
+  - 409 `limit_exceeded` with `limit: requests_per_review`.
 
 The endpoint opens a request at once, as a "single comment". Anchor capture: the server reads the blob at the review commit and captures the snapshot, as [architecture.md](../architecture.md) section 5.1 describes. An absent or null `anchor` opens a general request: there is no capture, so no anchor error and no `repository_unavailable`.
 
@@ -324,7 +326,8 @@ The endpoint writes `commit.unlinked`. It deletes the pin ref `refs/slopmower/co
 - **Errors:**
   - 409 `commits_not_available`: at least one link is still pending;
   - 409 `repository_unavailable`: the fetch failed;
-  - 409 `invalid_transition`, 409 `review_closed`.
+  - 409 `invalid_transition`, 409 `review_closed`;
+  - 429 `rate_limited`: the fetch passes the `sync_fetch` limit of the repository.
 
 Steps:
 
@@ -533,7 +536,7 @@ The anchor cannot change. To move a draft, delete it and create a new one.
 - **Authentication:** S
 - **Body:** [`SubmitDraftsInput`](schemas/inputs.schema.json), `{summary?}`. Example: [fixtures/inputs.submit-drafts.json](fixtures/inputs.submit-drafts.json).
 - **Success:** 201 [`BatchSubmission`](schemas/batch-submission.schema.json)
-- **Errors:** 422 `invalid_input` when there are no drafts; 409 `review_closed`.
+- **Errors:** 422 `invalid_input` when there are no drafts; 409 `review_closed`; 409 `limit_exceeded` with `limit: requests_per_review` when the `new_request` drafts would pass the limit.
 
 One transaction:
 

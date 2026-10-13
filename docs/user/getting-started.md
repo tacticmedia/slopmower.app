@@ -28,6 +28,8 @@ To add or remove repositories later, click **Configure on GitHub** again. When y
 
 Slopmower makes its own copy of the repository. The status under **Connected repositories** shows the progress. When the status is **Ready**, you can start a review.
 
+Your plan limits the number of connected repositories and open reviews, and the size of the copies. **Settings** shows the use and the limit of each item. A copy that is larger than a size limit fails, and the status names the limit.
+
 ## 4. Start a review
 
 1. Open the repository: click its name under **Connected repositories**.

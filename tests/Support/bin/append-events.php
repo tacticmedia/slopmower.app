@@ -31,6 +31,8 @@ if (!is_array($arguments) || 5 !== count($arguments)) {
 
 [, $tenantId, $repositoryId, $writer, $eventCount] = array_map(strval(...), $arguments);
 new Dotenv()->bootEnv($projectDir.'/.env');
+// The writers start more reviews than the free plan allows open.
+$_ENV['APP_PLAN_FREE_OPEN_REVIEWS'] = $_SERVER['APP_PLAN_FREE_OPEN_REVIEWS'] = '0';
 
 // KernelTestCase boots the test kernel and gives the test container, as in a test.
 $kernel = new class('appendEvents') extends KernelTestCase {

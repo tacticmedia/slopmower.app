@@ -19,6 +19,33 @@
     "localRepositories": true,
     "githubApp": null
   },
+  "usage": [
+    {
+      "limit": "repositories",
+      "max": null,
+      "current": 4
+    },
+    {
+      "limit": "open_reviews",
+      "max": null,
+      "current": 1
+    },
+    {
+      "limit": "requests_per_review",
+      "max": null,
+      "current": 6
+    },
+    {
+      "limit": "repository_size",
+      "max": null,
+      "current": 20971520
+    },
+    {
+      "limit": "tenant_storage",
+      "max": null,
+      "current": 31457280
+    }
+  ],
   "links": {
     "mcpUrl": "http://localhost:8000/_mcp",
     "docsUrl": "http://localhost:8000/docs",

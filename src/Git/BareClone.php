@@ -14,6 +14,8 @@ final class BareClone
 {
     private const array REFSPECS = ['+refs/heads/*:refs/heads/*', '+refs/tags/*:refs/tags/*'];
 
+    private const int BYTES_PER_KIB = 1024;
+
     public function __construct(private readonly GitRunner $git)
     {
     }
@@ -88,6 +90,23 @@ final class BareClone
         if (1 === preg_match('~^ref: (refs/heads/\S+)\tHEAD$~m', $run('ls-remote', ...$remoteOptions, ...['--symref', '--end-of-options', $url, 'HEAD']), $match)) {
             $run('symbolic-ref', 'HEAD', $match[1]);
         }
+    }
+
+    /**
+     * `size` and `size-pack` of `git count-objects -v`: git keeps the objects of a fetch of fewer than 100 objects
+     * loose (`fetch.unpackLimit`).
+     *
+     * @throws GitFailed
+     */
+    public function objectSizeBytes(string $gitDir): int
+    {
+        $output = $this->git->run($gitDir, ['count-objects', '-v']);
+
+        if (1 !== preg_match('/^size: (\d+)$/m', $output, $loose) || 1 !== preg_match('/^size-pack: (\d+)$/m', $output, $packed)) {
+            throw new GitFailed('git count-objects -v printed no size or size-pack.');
+        }
+
+        return ((int) $loose[1] + (int) $packed[1]) * self::BYTES_PER_KIB;
     }
 
     /**

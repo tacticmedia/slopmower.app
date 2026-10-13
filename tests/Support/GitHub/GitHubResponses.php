@@ -55,8 +55,9 @@ final class GitHubResponses
         'user/installations/5552/repositories?per_page=100' => 'installation-5552-repositories',
     ];
 
-    /** `GET /repos/{owner}/{repo}`, which answers only the installation token. */
+    /** `GET /repos/{owner}/{repo}`, which answers only the installation token, and 404 for another name. acme/billing has the size 2 MiB. */
     private const array REPOSITORY_FIXTURES = [
+        'repos/acme/billing' => 'repository-acme-billing',
         'repos/octocat/Hello-World' => 'repository-octocat-hello-world',
     ];
 
@@ -93,7 +94,7 @@ final class GitHubResponses
                 ? self::PULL_REQUEST_FIXTURES[substr($url, \strlen(self::API))] ?? 'pull-request-not-found'
                 : 'user-unauthorized',
             str_starts_with($request, 'GET '.self::API.'repos/') => self::INSTALLATION_TOKEN === self::bearerToken($options)
-                ? self::REPOSITORY_FIXTURES[substr($url, \strlen(self::API))] ?? null
+                ? self::REPOSITORY_FIXTURES[substr($url, \strlen(self::API))] ?? 'repository-not-found'
                 : 'user-unauthorized',
             default => null,
         } ?? throw new \LogicException("No recorded GitHub response for {$method} {$url}.");

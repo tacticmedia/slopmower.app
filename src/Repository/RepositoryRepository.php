@@ -163,12 +163,25 @@ final class RepositoryRepository extends ServiceEntityRepository
     }
 
     /**
-     * Ends a clone with `failed`, and a fetch as {@see recordSuccess()} does. Other states stay.
+     * @param int|null $sizeBytes Null when the clone is gone
+     */
+    public function recordCloneSize(RepositoryId $id, ?int $sizeBytes): void
+    {
+        $this->update($id)
+            ->set('repository.cloneSizeBytes', ':sizeBytes')
+            ->setParameter('sizeBytes', $sizeBytes, Types::BIGINT)
+            ->getQuery()
+            ->execute();
+    }
+
+    /**
+     * Ends a clone with `failed` and no clone size, and a fetch as {@see recordSuccess()} does. Other states stay.
      */
     public function recordFailure(RepositoryId $id, string $error): void
     {
         $this->running($id)
             ->set('repository.syncState', 'CASE WHEN repository.syncState = :cloning THEN :failed WHEN repository.fetchRequested = true THEN :fetching ELSE :idle END')
+            ->set('repository.cloneSizeBytes', 'CASE WHEN repository.syncState = :cloning THEN NULL ELSE repository.cloneSizeBytes END')
             ->set('repository.lastError', ':error')
             ->setParameter('cloning', SyncState::Cloning)
             ->setParameter('failed', SyncState::Failed)

@@ -53,7 +53,7 @@ final class InstallationTokenTest extends KernelTestCase
         self::runQueuedMessages();
         self::getContainer()->get(FetchRepository::class)->fetchNow($repository->getId());
 
-        self::assertSame(1, $requestsAfterClone - $requestsBefore, 'The clone requests one token.');
+        self::assertSame(2, $requestsAfterClone - $requestsBefore, 'The clone requests one token, and reads the size of the repository with it.');
         self::assertSame(2, self::gitHubRequestCount() - $requestsAfterClone, 'The fetch job and the synchronous fetch request one token each.');
     }
 

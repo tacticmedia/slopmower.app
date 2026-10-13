@@ -6,6 +6,7 @@ namespace App\Application;
 
 use App\Application\Event\RepositoryChanged;
 use App\Domain\Error\NotFound;
+use App\Domain\Error\RateLimited;
 use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Error\RepositoryUnavailableReason;
 use App\Domain\Identity\RepositoryId;
@@ -37,6 +38,7 @@ final class FetchRepository
         private readonly ReviewRepository $reviews,
         private readonly RepositoryLock $repositoryLock,
         private readonly ServerClone $serverClone,
+        private readonly RateLimits $rateLimits,
         private readonly TenantDataPaths $paths,
         private readonly MessageBusInterface $bus,
         private readonly EventDispatcherInterface $dispatcher,
@@ -106,12 +108,14 @@ final class FetchRepository
      *
      * @throws NotFound
      * @throws RepositoryUnavailable
+     * @throws RateLimited           The `sync_fetch` limit of the repository
      */
     public function fetchNow(RepositoryId $id): void
     {
         $this->refuseOpenTransaction();
-        $deadlineUnixSeconds = $this->nowUnixSeconds() + self::SYNCHRONOUS_DEADLINE_SECONDS;
         $this->cloneReady($id);
+        $this->rateLimits->consumeSyncFetch($id);
+        $deadlineUnixSeconds = $this->nowUnixSeconds() + self::SYNCHRONOUS_DEADLINE_SECONDS;
         $lock = $this->repositoryLock->acquire($id, $deadlineUnixSeconds)
             ?? throw new RepositoryUnavailable($id, RepositoryUnavailableReason::FetchFailed);
 

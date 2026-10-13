@@ -77,7 +77,7 @@ Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json). 
 
 Common errors are not repeated per endpoint:
 
-- every endpoint: 401 `unauthorized` and 500 `internal_error`;
+- every endpoint: 401 `unauthorized`, 429 `rate_limited` of the limiters `api_token` and `api_user`, and 500 `internal_error`, as [README.md section 4](README.md#rate-limits) describes;
 - 403 `forbidden`, as [README.md section 3](README.md#3-authentication-actors-and-scope) describes;
 - 404 `not_found` for any ID that the caller cannot see;
 - 400 or 422 `invalid_input` for malformed input.
@@ -98,6 +98,7 @@ The response holds:
 - the signed-in user and the tenant;
 - the calling actor, and the token for a bearer call;
 - the server features: `localRepositories`, and `githubApp`. `githubApp` is null when the GitHub App is not configured or the user signed in locally.
+- `usage`: the use of the tenant and the limit of its plan for each [usage limit](README.md#usage-limits). A token scoped to one repository also gets the use of the whole tenant.
 - the links `mcpUrl`, `docsUrl`, and `skillUrl`.
 
 Agents use this endpoint to check the scope of their token.
@@ -111,11 +112,12 @@ Example response for a bearer call, [fixtures/me.agent.json](fixtures/me.agent.j
   "caller": {"kind":"agent","userId":"01K6AZZ9Y8X7W6V5T4S3R2Q1P0","agentName":"claude-code laptop","name":"claude-code laptop","avatarUrl":null},
   "token": {"id":"01K6C0T0KEN0000000000000AB","name":"claude-code laptop","scope":"repository","repositoryId":"01K6B2Z0R3P0S1T2V3W4X5Y6Z7","repositoryName":"acme/billing","prefix":"sm_KXidQQ","state":"active","createdAt":"2026-09-29T07:00:00Z","expiresAt":null,"lastUsedAt":"2026-09-29T07:30:00Z","revokedAt":null},
   "features": {"localRepositories":true,"githubApp":{"slug":"slopmower","installUrl":"https://github.com/apps/slopmower/installations/new"}},
+  "usage": [{"limit":"repositories","max":25,"current":3},{"limit":"open_reviews","max":20,"current":2},{"limit":"requests_per_review","max":1000,"current":14},{"limit":"repository_size","max":2147483648,"current":48234496},{"limit":"tenant_storage","max":10737418240,"current":61865984}],
   "links": {"mcpUrl":"https://slopmower.example/_mcp","docsUrl":"https://slopmower.example/docs","skillUrl":"https://slopmower.example/docs/skill/SKILL.md"}
 }
 ```
 
-A session of a local sign-in: [fixtures/me.local-user.json](fixtures/me.local-user.json).
+A session of a local sign-in, on an instance with the usage limits off: [fixtures/me.local-user.json](fixtures/me.local-user.json).
 
 ### A2 Delete the account
 
@@ -224,6 +226,7 @@ Example response, [fixtures/lists.candidate-list.json](fixtures/lists.candidate-
   - 404 `not_found`: the GitHub ID is not a candidate, or the directory is not a local candidate.
   - 422 `invalid_input`: `source: local` while local repositories are off.
   - 422 `invalid_input`: another connected GitHub repository of the tenant has the same name, compared case-insensitively.
+  - 409 `limit_exceeded` with `limit: repositories`: a new repository would pass the limit. A repository that is already connected gets 200.
 
 A new repository starts with `sync.state = cloning`, and the server queues a clone job.
 
@@ -304,7 +307,9 @@ The verify view uses this endpoint for the old and the new side of a `FileDiff`.
 - **Errors:**
   - 409 `repository_unavailable`: `cloning`, `clone_failed`, `fetch_failed`, or `removed`;
   - 422 `commit_not_found`: the ref cannot be resolved after the fetch;
-  - 422 `invalid_input`: an ambiguous SHA prefix, a malformed ref, or no `ref` while the repository has no default branch.
+  - 422 `invalid_input`: an ambiguous SHA prefix, a malformed ref, or no `ref` while the repository has no default branch;
+  - 429 `rate_limited`: the `review_start` limit of the tenant, or the `sync_fetch` limit of the repository;
+  - 409 `limit_exceeded` with `limit: open_reviews`. Example: [fixtures/error.limit-exceeded.json](fixtures/error.limit-exceeded.json).
 
 Ref validation: the git ref-name rules of `git check-ref-format --allow-onelevel`, or a hex SHA of 7 to 64 characters. A leading `-` is refused.
 
@@ -632,7 +637,8 @@ Example response to `?path=src%2FBilling%2FInvoiceTotals.php&line=12&column=24`,
 - **Errors:**
   - 404 `not_found`: the caller cannot see the review `fromReviewId`;
   - 422 `invalid_input`: `fromReviewId` is the review itself or a review of another repository, or the review `{reviewId}` is closed;
-  - 409 `repository_unavailable`: a source request has an anchor, and the clone is not ready.
+  - 409 `repository_unavailable`: a source request has an anchor, and the clone is not ready;
+  - 409 `limit_exceeded` with `limit: requests_per_review`: the carried requests would pass the limit of the target review.
 
 The endpoint copies the open requests of the source review into the target review `{reviewId}`, at the target review commit. The web UI calls it after [V1](#v1-start-a-review). It also works later on any open review.
 

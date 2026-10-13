@@ -7,6 +7,7 @@ namespace App\Controller\Api;
 use App\Application\AnchorFactory;
 use App\Application\Query\BatchSubmission;
 use App\Application\Query\RequestQuery;
+use App\Application\UsageLimits;
 use App\Controller\Api\Input\AnchorInput;
 use App\Controller\Api\Input\CreateDraftInput;
 use App\Controller\Api\Input\SubmitDraftsInput;
@@ -148,6 +149,7 @@ final class DraftController extends AbstractController
         ChangeRequestRepository $requests,
         CommitLinkRepository $links,
         RequestQuery $requestQuery,
+        UsageLimits $usageLimits,
         #[MapRequestPayload(acceptFormat: 'json')] SubmitDraftsInput $input = new SubmitDraftsInput(),
     ): JsonResponse {
         $actor = $this->currentActor->get();
@@ -158,7 +160,7 @@ final class DraftController extends AbstractController
         $events = $executor->execute(
             $review->getId(),
             $actor,
-            function () use ($review, $reviews, $requests, $links, $batchId, $input, $actor, &$drafts): array {
+            function () use ($review, $reviews, $requests, $links, $usageLimits, $batchId, $input, $actor, &$drafts): array {
                 $snapshot = ($reviews->findFresh($review->getId()) ?? throw new NotFound())->toSnapshot();
                 $drafts = $this->drafts->findOfUser($this->currentActor->sessionUser()->getId(), $review->getId());
 
@@ -167,6 +169,8 @@ final class DraftController extends AbstractController
                 }
 
                 $decided = array_map(static fn (Draft $draft): DecidedEvent => self::decideDraft($draft, $batchId, $snapshot, $actor, $requests, $links), $drafts);
+                $opened = array_filter($decided, static fn (DecidedEvent $event): bool => $event->event instanceof RequestOpenedEvent);
+                $usageLimits->checkNewRequests($review->getTenantId(), $review->getId(), \count($opened));
 
                 return [...$decided, new DecidedEvent(self::batchSubmitted($batchId, $input->summary, $decided))];
             },

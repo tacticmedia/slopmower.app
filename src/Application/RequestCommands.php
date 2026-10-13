@@ -9,6 +9,7 @@ use App\Application\Query\LinkPullRequestResult;
 use App\Application\Query\RequestQuery;
 use App\Domain\Actor\Actor;
 use App\Domain\Error\InvalidInput;
+use App\Domain\Error\LimitExceeded;
 use App\Domain\Error\NotFound;
 use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Error\ReviewClosed;
@@ -70,6 +71,7 @@ final class RequestCommands
         private readonly CommitLinkRepository $links,
         private readonly RequestQuery $requestQuery,
         private readonly FetchRepository $fetchRepository,
+        private readonly UsageLimits $usageLimits,
         private readonly GitReader $reader,
         private readonly PinRefs $pins,
         private readonly TenantDataPaths $paths,
@@ -80,10 +82,12 @@ final class RequestCommands
 
     /**
      * @return list<RecordedEvent>
+     *
+     * @throws LimitExceeded The requests of the review
      */
     public function open(ReviewId $reviewId, Open $command, Actor $actor): array
     {
-        return $this->run($reviewId, $command, $actor);
+        return $this->run($reviewId, $command, $actor, openedRequests: 1);
     }
 
     /**
@@ -292,13 +296,15 @@ final class RequestCommands
      *
      * @return list<RecordedEvent>
      */
-    private function run(ReviewId $reviewId, RequestCommand $command, Actor $actor, array $availability = []): array
+    private function run(ReviewId $reviewId, RequestCommand $command, Actor $actor, array $availability = [], int $openedRequests = 0): array
     {
-        return $this->executor->execute($reviewId, $actor, function () use ($reviewId, $command, $actor, $availability): array {
+        return $this->executor->execute($reviewId, $actor, function () use ($reviewId, $command, $actor, $availability, $openedRequests): array {
             $review = $this->reviews->findFresh($reviewId) ?? throw new NotFound();
             $states = array_map($this->state(...), $command->requestIds());
+            $events = RequestDecider::decide($command, $states, $review->toSnapshot(), $actor, $availability);
+            $this->usageLimits->checkNewRequests($review->getTenantId(), $reviewId, $openedRequests);
 
-            return RequestDecider::decide($command, $states, $review->toSnapshot(), $actor, $availability);
+            return $events;
         });
     }
 

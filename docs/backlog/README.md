@@ -5,7 +5,7 @@ Work outside the proof of concept. Each item has the sections Why, What, Accepta
 | Item | Summary |
 |---|---|
 | [Database hardening](database-hardening.md) | Row-level security on every tenant table, separate owner, runtime, and maintenance roles, and an append-only event log in the database |
-| [Usage limits and rate limiting](usage-limits.md) | Per-tenant limits for repositories, open reviews, requests, and clone size, and API and MCP rate limits with Symfony RateLimiter. Scheduled as [F39](../plan/F39-usage-limits.md). |
+| [Usage limits and rate limiting](usage-limits.md) | Per-tenant limits for repositories, open reviews, requests, and clone size, and API and MCP rate limits with Symfony RateLimiter. Done in [F39](../plan/F39-usage-limits.md). |
 | [MCP OAuth](mcp-oauth.md) | OAuth for the MCP server, so that agents connect without a copied token |
 | [Reopen a closed review](review-reopen.md) | Reopen a closed review and make it writable again |
 | [Suggested changes](suggested-changes.md) | Proposed replacement lines in a comment, as on GitHub |

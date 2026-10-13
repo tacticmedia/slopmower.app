@@ -13,6 +13,7 @@ The MCP server gives coding agents the agent side of the request workflow. It ca
 | Authentication | Firewall `mcp` with pattern `^/_mcp`, `stateless: true`, and `access_token` with the same token handler as REST. A token scoped to one repository sees only that repository. |
 | Actor | Always `agent`: `agentName` is the token name, `userId` is the token owner |
 | Wrong token | HTTP 401 before JSON-RPC, with `WWW-Authenticate: Bearer realm="slopmower", error="invalid_token"` and an Error JSON body. There is no `resource_metadata` parameter. `/.well-known/oauth-protected-resource` answers 404. MCP OAuth comes later: decision D18 and the backlog item `docs/backlog/mcp-oauth.md`. |
+| Rate limit | Each `tools/call` consumes the limiters `api_token` and `api_user`, and a refusal is an `isError` result with `rate_limited`. Each HTTP request consumes `mcp_http`, whose refusal is HTTP 429 before JSON-RPC, with `Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and an Error JSON body. See [README.md](README.md#rate-limits). |
 
 Client configuration in the repository of the developer:
 
@@ -61,6 +62,7 @@ Never verify, reopen, create requests, or decide on proposals. Errors are isErro
 - **Output schemas.** Each output schema is a bundled copy of a file in [schemas/](schemas/): the root with `type: "object"`, `properties`, and `required` at the top level, plus a `$defs` section with every referenced definition, with each `$ref` rewritten to `#/$defs/<Name>`. The command `bin/console app:schema:bundle` generates `src/Mcp/BundledSchemas.php` with one `public const array` per root, because attribute arguments must be constant expressions. A test fails when the generated file differs from the output of the command.
 - **Annotations.** All tools set `destructiveHint: false` and `openWorldHint: false`. The read tools set `readOnlyHint: true` and `idempotentHint: true`. The table in section 4 lists them per tool.
 - **Domain errors.** The adapter catches `DomainError` and throws `ToolCallException(json_encode(['error' => ['code' => ..., 'message' => ..., 'details' => ...]]))`. The SDK turns that into `{"isError": true, "content": [{"type": "text", "text": "<Error JSON>"}]}`, with **no `structuredContent`**. So clients that validate `structuredContent` against the `outputSchema` do not reject the error.
+- **Rate limits.** The adapter consumes the limiters of [README.md](README.md#rate-limits) before each tool runs, so every tool can return `rate_limited`. The tool lists below do not repeat it.
 - **Other exceptions.** The adapter catches every other `Throwable`, logs it, and throws `ToolCallException` with code `internal_error`. The agent therefore never gets a bare -32603.
 - **Protocol-level errors.** The SDK answers these before the tool runs. An unknown tool gives JSON-RPC error -32602 without `data`. Arguments that violate `inputSchema` give -32602 with `data.validation_errors`. Any `inputSchema` keyword can fail, for example `pattern`, `minLength`, `maximum`, `enum`, `type`, or a missing required field. Semantic checks give `isError` with `invalid_input`, for example a body of whitespace only, or a reason shorter than 20 characters after trimming.
 - **Constants** of `App\Mcp\McpTools` used in `#[Schema]`:
@@ -583,6 +585,8 @@ public function unlinkPullRequest(#[Schema(pattern: self::PULL_REQUEST_URL, maxL
 | `commits_not_available` | isError | Push, or commit for local repositories, then call `mark_ready_for_review` again |
 | `commit_not_found` | isError | Push the commit, or leave out `at` |
 | `repository_unavailable` | isError | Tell the user: the repository is cloning, removed, or its source cannot be reached |
+| `rate_limited` | isError. A refused HTTP request is HTTP 429 on the transport. | Wait `details.retryAfterSeconds`, then retry |
+| `limit_exceeded` | never, because no tool writes what a usage limit counts | none |
 | `internal_error` | isError | Retry once, then tell the user |
 | `forbidden` | never, because all tools are agent tools | none |
 

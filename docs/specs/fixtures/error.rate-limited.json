@@ -1,0 +1,10 @@
+{
+  "error": {
+    "code": "rate_limited",
+    "message": "Too many calls. Wait 12 seconds, then try again.",
+    "details": {
+      "retryAfterSeconds": 12,
+      "limit": 300
+    }
+  }
+}

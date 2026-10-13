@@ -209,6 +209,7 @@ The host ports 8000 and 5432 are the defaults of `HTTP_PORT` and `DATABASE_PUBLI
 | `SYMBOLS_HOST`, `SYMBOLS_PORT` | Environment of the `symbols` service. `SYMBOLS_HOST=0.0.0.0` in the `symbols` stage of the `Dockerfile`. | Listen address and TCP port of the service (F37), by default `127.0.0.1` and `3000`. An empty value means the default. |
 | `GITHUB_GIT_BASE_URL` | `.env`, default `https://github.com` | Base URL for GitHub clone and fetch, from M33 on. Tests point it at a local bare repository. The token extraheader stays bound to `https://github.com`, so another base URL never receives the token. |
 | `GITHUB_APP_CLIENT_SECRET`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET` | Secrets vault or `.env.local`, fake values in `.env.test` | GitHub App credentials: the client secret from M32 on, the private key from M33 on, the webhook secret from M34 on. Read with `%env(default::<NAME>)%`, not with a default in `.env`, because a non-empty `.env` value wins over the vault. |
+| `APP_PLAN_FREE_*`, `APP_RATE_LIMIT_*` | `.env`, listed in [deployment](../deployment.md#usage-and-rate-limits) | The usage limits of the free plan and the rate limits of the instance (D32). A test sets a low limit through its variable with the `EnvironmentVariables` trait. |
 | `PLAYWRIGHT_BROWSERS_PATH` | `Dockerfile` | `/ms-playwright`, on the `playwright_browsers` volume. `vendor/bin/playwright-install` installs Chromium there. |
 | `PLAYWRIGHT_VERSION` | `Dockerfile` | `1.63.0`: the `playwright` npm version of the system libraries in the image and of the playwright-php server |
 
@@ -310,7 +311,7 @@ Suite markers: **U** unit, **F** functional, **E** full-stack E2E, **V** Vitest,
 - Never mock the container. No `getContainer()->set()`, no service replacement.
   - GitHub HTTP goes through the `github.client` scoped client, mocked in `test` with responses in `tests/Fixtures/github/`. The global HTTP client is not mocked, so Mercure publishes are not caught.
   - `symbols.client` is not mocked: functional tests call the `symbols` service of the compose stack.
-  - Time goes through `ClockSensitiveTrait`.
+  - Time goes through `ClockSensitiveTrait`. It also drives the rate limiters, see "Known gotchas".
 - Test every feature the way a caller uses it: HTTP for controllers, a service call for services, JSON-RPC for MCP, a Playwright UI test for JavaScript behaviour, and an E2E test for a flow across the browser, PHP, and the database.
 - Tests validate every REST response and every MCP `structuredContent` against the docs/specs schemas, through the `JsonApiAssertions` trait.
 - Every new `/api/v1` route and every new MCP tool gets a cross-tenant case. The inventory tests fail otherwise.
@@ -427,6 +428,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
   - `issuer` blocks in the Caddyfile. Mercure 1.0 refuses the top-level `publisher_jwt` and `subscriber_jwt` directives unless `protocol_version_compatibility 8` is set;
   - `cookie_name: mercureAuthorization`, because the 1.0 default `__Secure-mercure_access_token` cannot be set over plain HTTP.
 - **Reprise recipe.** It re-creates `assets/app.js` and `assets/styles/app.css`, and edits `templates/base.html.twig`.
+- **symfony/rate-limiter 8.1.** It has no Flex recipe. `framework.rate_limiter` refuses a `lock_factory` while `framework.lock` is off, so `config/packages/rate_limiter.yaml` sets `lock_factory: null`, and `Kernel::process()` gives each limiter the advisory-lock `LockFactory`. The policies read `microtime()`, not the Symfony clock. `tests/Support/Clock/rate-limiter-time.php`, which `tests/bootstrap.php` loads first, shadows it with the global clock, so `ClockSensitiveTrait::mockTime()` drives the limiters. A token bucket adds its whole `amount` once per interval.
 - **symfony/webhook.** The recipe route prefix is `/webhook`, so the GitHub endpoint is `/webhook/github`. A request parser that returns `null` makes Symfony answer 406. Return a `RemoteEvent` for every verified delivery.
 
 ### Docker and PostgreSQL
@@ -488,4 +490,5 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 - **Advisory locks and transactions.** The lock store shares the database session of the ORM (D63). An aborted transaction refuses `pg_advisory_unlock` until its rollback, so release a lock only after the transaction inside it has ended. `CommandExecutor`, `transactional()`, and `wrapInTransaction()` roll back before they rethrow.
 - **Messenger deduplication.** Do not use `DeduplicateStamp` with the advisory-lock store. An advisory lock belongs to one database session, so the worker cannot release a lock that the web process took.
 - **Live-update payloads.** They carry IDs only. Never put a `RequestSummary`, a `Review`, or other data into a Mercure update.
+- **Clone size.** Git keeps the objects of a fetch of fewer than 100 objects loose (`fetch.unpackLimit`), so `size-pack` alone misses them. `BareClone::objectSizeBytes()` adds `size` and `size-pack` of `git count-objects -v`.
 - **Doctrine profiler in the worker.** In debug mode (`dev`, `test`), DoctrineBundle's `DebugMiddleware` keeps every statement of one Messenger message, with its parameters and a backtrace, until the message ends. A job that writes per item grows with each statement, so it writes in batches. See F12.

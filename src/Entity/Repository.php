@@ -76,6 +76,10 @@ class Repository implements TenantOwned
     #[ORM\Column(enumType: RepositoryAccess::class)]
     private RepositoryAccess $access = RepositoryAccess::Active;
 
+    /** The object size of {@see \App\Git\BareClone::objectSizeBytes()} after the last clone or fetch. Null without a clone. */
+    #[ORM\Column(type: Types::BIGINT, nullable: true)]
+    private ?int $cloneSizeBytes = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -217,5 +221,10 @@ class Repository implements TenantOwned
     public function isFetchRequested(): bool
     {
         return $this->fetchRequested;
+    }
+
+    public function getCloneSizeBytes(): ?int
+    {
+        return $this->cloneSizeBytes;
     }
 }

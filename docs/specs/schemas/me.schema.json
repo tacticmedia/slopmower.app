@@ -3,7 +3,7 @@
   "$id": "https://slopmower.invalid/schemas/v1/me.schema.json",
   "title": "Me",
   "type": "object",
-  "required": ["user", "tenantId", "caller", "token", "features", "links"],
+  "required": ["user", "tenantId", "caller", "token", "features", "usage", "links"],
   "properties": {
     "user": {
       "type": "object",
@@ -73,6 +73,13 @@
         }
       }
     },
+    "usage": {
+      "type": "array",
+      "description": "The use and the limit of each usage limit of the tenant, in the order of UsageLimit.",
+      "items": {
+        "$ref": "#/$defs/LimitUsage"
+      }
+    },
     "links": {
       "type": "object",
       "required": ["mcpUrl", "docsUrl", "skillUrl"],
@@ -88,6 +95,27 @@
         "skillUrl": {
           "type": "string",
           "format": "uri"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "LimitUsage": {
+      "type": "object",
+      "required": ["limit", "max", "current"],
+      "properties": {
+        "limit": {
+          "$ref": "common.schema.json#/$defs/UsageLimit"
+        },
+        "max": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "description": "The limit of the plan of the tenant, null when the limit is off. Bytes for repository_size and tenant_storage."
+        },
+        "current": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "The use, in the unit of max. For requests_per_review the largest open review, for repository_size the largest clone."
         }
       }
     }

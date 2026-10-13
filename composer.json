@@ -40,6 +40,7 @@
         "symfony/process": "~8.1.0",
         "symfony/property-access": "~8.1.0",
         "symfony/property-info": "~8.1.0",
+        "symfony/rate-limiter": "~8.1.0",
         "symfony/remote-event": "~8.1.0",
         "symfony/reprise": "1.3.0",
         "symfony/runtime": "~8.1.0",

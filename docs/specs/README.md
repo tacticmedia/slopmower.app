@@ -75,17 +75,21 @@ The body is `{"error": {"code", "message", "details"}}`. `message` is English an
 | `commits_not_available` | 409 | `mark_ready_for_review` while a linked commit is still `pending` after one fetch, or a commit diff of a pending link | `{pendingCommits: [sha]}` |
 | `commit_not_found` | 422 | A ref or commit that the caller named, such as `at` or the review `ref`, is not in the server clone after one fetch | `{commit}` |
 | `repository_unavailable` | 409 | The operation needs the clone or a fetch, and the repository is cloning, its clone failed, its fetch failed, or its access was removed | `{repositoryId, reason: cloning\|clone_failed\|fetch_failed\|removed}` |
+| `rate_limited` | 429 | A rate limit refused the call. See [Rate limits](#rate-limits). | `{retryAfterSeconds, limit}` |
+| `limit_exceeded` | 409 | The call would pass a usage limit of the tenant. See [Usage limits](#usage-limits). | `{limit, max, current}` |
 | `internal_error` | 500 | An unexpected failure. The server logs it with the exception. The message is generic. | null |
 
 Check order:
 
 1. 401 `unauthorized`.
-2. 404 `not_found`: existence and visibility.
-3. 403 `forbidden`: actor kind or CSRF.
-4. 400 or 422 `invalid_input`.
-5. 409 `review_closed`.
-6. 409 `invalid_transition`.
-7. `repository_unavailable`, `commit_not_found`, and `commits_not_available`.
+2. 429 `rate_limited` of the limiters per call.
+3. 404 `not_found`: existence and visibility.
+4. 403 `forbidden`: actor kind or CSRF.
+5. 400 or 422 `invalid_input`.
+6. 409 `review_closed`.
+7. 409 `invalid_transition`.
+8. `repository_unavailable`, `commit_not_found`, and `commits_not_available`. The limiters `review_start` and `sync_fetch` answer 429 `rate_limited` at the step that they protect.
+9. 409 `limit_exceeded`.
 
 If an ID is not visible, the caller gets 404 before any 403.
 
@@ -95,6 +99,39 @@ Two exceptions follow from the Symfony request cycle:
 - IDs in the request body are checked after the body validation. An invalid body gets 400 or 422 before a 404 for a body ID.
 
 Fixtures: one file per code, `fixtures/error.<code>.json` with `-` in place of `_`. See [section 11](#11-fixtures).
+
+### Rate limits
+
+Each call consumes one token of every limiter that applies to it. The limits are values of the instance, not of a plan. [deployment.md](../deployment.md) lists their variables.
+
+| Limiter | Counts | Key | Default |
+|---|---|---|---|
+| `api_token` | Each call under `/api/v1` with a token, and each MCP `tools/call` | Token | 300 per minute, token bucket |
+| `api_user` | Each call under `/api/v1`, and each MCP `tools/call`: the session and all tokens of the user together | User | 1,200 per minute, token bucket |
+| `mcp_http` | Each HTTP request to `/_mcp` | Token | 600 per minute, token bucket |
+| `sync_fetch` | Each synchronous fetch: [V1](rest-api.md#v1-start-a-review), [Q3](rest-api-requests.md#q3-get-a-request) with `at`, and [Q10](rest-api-requests.md#q10-mark-ready-for-review) | Repository | 10 per minute, token bucket |
+| `review_start` | Each [V1](rest-api.md#v1-start-a-review) | Tenant | 30 per hour, token bucket |
+
+- REST: a refused call gets 429 `rate_limited` with `Retry-After` in seconds, `X-RateLimit-Limit`, and `X-RateLimit-Remaining`. `details.retryAfterSeconds` equals `Retry-After`, and `details.limit` equals `X-RateLimit-Limit`.
+- MCP: a refused `tools/call` is an `isError` result with `rate_limited`. `mcp_http` is the last line of defence: a refused HTTP request gets HTTP 429 with the same headers and Error body, before JSON-RPC.
+- `/webhook/github` has no rate limit. Its signature check protects it.
+
+### Usage limits
+
+The plan of the tenant sets each usage limit. Every tenant has the free plan. A limit with the value 0 is off.
+
+| `limit` | Use, `current` | Free plan | Checked at |
+|---|---|---|---|
+| `repositories` | Connected repositories of the tenant | 25 | [R3](rest-api.md#r3-connect-a-repository) of a new repository |
+| `open_reviews` | Open reviews of the tenant | 20 | [V1](rest-api.md#v1-start-a-review) |
+| `requests_per_review` | Requests of the review | 1,000 | [Q2](rest-api-requests.md#q2-open-a-request), [D5](rest-api-requests.md#d5-submit-drafts) for its `new_request` drafts, and [V15](rest-api.md#v15-carry-over-open-requests) for the carried requests |
+| `repository_size` | Bytes of one clone: `size` plus `size-pack` of `git count-objects -v`, because git keeps a fetch of fewer than 100 objects loose | 2 GiB | Clone and fetch |
+| `tenant_storage` | Bytes of all clones of the tenant | 10 GiB | Clone and fetch |
+
+- A call that would pass a limit gets 409 `limit_exceeded`. `details.current` is the use before the call, and `details.max` is the limit. Sizes are in bytes.
+- A clone above a size limit fails: `sync.state` is `failed`, `sync.lastError` names the limit, and the server deletes the clone. For a GitHub repository, the server also checks the `size` of the repository in the GitHub API before the clone.
+- A fetch that passes a size limit keeps the clone and sets `sync.lastError`. While the clone or the tenant is above a size limit, each fetch of the repository fails, so an operation that needs a fetch gets `repository_unavailable` with reason `fetch_failed`.
+- [A1](rest-api.md#a1-get-the-caller) returns the use and the limits in `usage`.
 
 ## 5. Pagination
 
@@ -142,7 +179,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
    - new endpoints and tools;
    - new optional input fields or query parameters whose absence keeps the old behaviour;
    - new response properties;
-   - new values in **open** sets: `Action`, `EventType`, `ThreadEntryType`, `ErrorCode`, `SymbolKind`, `language`, the live-update `type`, and the search hit `kind`;
+   - new values in **open** sets: `Action`, `EventType`, `ThreadEntryType`, `ErrorCode`, `SymbolKind`, `UsageLimit`, `language`, the live-update `type`, and the search hit `kind`;
    - new error codes for new situations;
    - relaxed validation, for example higher limits;
    - new headers.
@@ -262,7 +299,9 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [error.invalid-input-method.json](fixtures/error.invalid-input-method.json) | `error.schema.json` | Any path with a wrong method, 405 |
 | [error.invalid-input.json](fixtures/error.invalid-input.json) | `error.schema.json` | Q11, `mark_wont_do` |
 | [error.invalid-transition.json](fixtures/error.invalid-transition.json) | `error.schema.json` | Q5, `claim_request` |
+| [error.limit-exceeded.json](fixtures/error.limit-exceeded.json) | `error.schema.json` | R3, V1, V15, Q2, D5 |
 | [error.not-found.json](fixtures/error.not-found.json) | `error.schema.json` | Any invisible ID |
+| [error.rate-limited.json](fixtures/error.rate-limited.json) | `error.schema.json` | Any endpoint and tool, the MCP transport |
 | [error.repository-unavailable.json](fixtures/error.repository-unavailable.json) | `error.schema.json` | R5, V1, V6 to V9, V14, V17, Q2, Q3, Q9, Q10 |
 | [error.review-closed.json](fixtures/error.review-closed.json) | `error.schema.json` | Writes on a closed review |
 | [error.unauthorized.json](fixtures/error.unauthorized.json) | `error.schema.json` | Any endpoint, the MCP transport |

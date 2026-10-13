@@ -39,6 +39,12 @@
             },
             {
               "$ref": "#/$defs/RepositoryUnavailableDetails"
+            },
+            {
+              "$ref": "#/$defs/RateLimitedDetails"
+            },
+            {
+              "$ref": "#/$defs/LimitExceededDetails"
             }
           ]
         }
@@ -172,6 +178,38 @@
               }
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "rate_limited"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/RateLimitedDetails"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "limit_exceeded"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/LimitExceededDetails"
+              }
+            }
+          }
         }
       ]
     },
@@ -276,6 +314,41 @@
         },
         "reason": {
           "enum": ["cloning", "clone_failed", "fetch_failed", "removed"]
+        }
+      }
+    },
+    "RateLimitedDetails": {
+      "type": "object",
+      "required": ["retryAfterSeconds", "limit"],
+      "properties": {
+        "retryAfterSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Wait this long, then retry. Equals the Retry-After header of a REST response."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The calls that the refusing limiter allows in its interval."
+        }
+      }
+    },
+    "LimitExceededDetails": {
+      "type": "object",
+      "required": ["limit", "max", "current"],
+      "properties": {
+        "limit": {
+          "$ref": "common.schema.json#/$defs/UsageLimit"
+        },
+        "max": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The limit of the plan of the tenant. Bytes for repository_size and tenant_storage."
+        },
+        "current": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "The use before the call, in the unit of max."
         }
       }
     }

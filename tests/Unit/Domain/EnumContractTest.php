@@ -23,6 +23,7 @@ use App\Domain\Request\RequestStatus;
 use App\Domain\Request\Resolution;
 use App\Domain\Review\IndexState;
 use App\Domain\Review\ReviewState;
+use App\Domain\Usage\UsageLimit;
 use App\Entity\DraftKind;
 use App\Entity\SignInMethod;
 use App\Tests\Support\Specs\SpecsFiles;
@@ -71,6 +72,7 @@ final class EnumContractTest extends KernelTestCase
         yield 'SymbolKind' => [SymbolKind::class, 'common.schema.json', ['$defs', 'SymbolKind', 'anyOf', '0', 'enum']];
         yield 'Action' => [Action::class, 'common.schema.json', ['$defs', 'Action', 'anyOf', '0', 'enum']];
         yield 'EventType' => [EventType::class, 'common.schema.json', ['$defs', 'EventType', 'anyOf', '0', 'enum']];
+        yield 'UsageLimit' => [UsageLimit::class, 'common.schema.json', ['$defs', 'UsageLimit', 'anyOf', '0', 'enum']];
         yield 'SyncState' => [SyncState::class, 'repository.schema.json', ['$defs', 'Sync', 'properties', 'state', 'enum']];
         yield 'SignInMethod' => [SignInMethod::class, 'me.schema.json', ['properties', 'user', 'properties', 'signInMethod', 'enum']];
         yield 'RepositoryUnavailableReason' => [RepositoryUnavailableReason::class, 'error.schema.json', ['$defs', 'RepositoryUnavailableDetails', 'properties', 'reason', 'enum']];

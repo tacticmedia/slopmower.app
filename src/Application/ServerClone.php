@@ -8,6 +8,7 @@ use App\Application\Event\RepositoryChanged;
 use App\Application\Event\RepositoryFetched;
 use App\Domain\Error\CommitNotFound;
 use App\Domain\Error\InvalidInput;
+use App\Domain\Error\LimitExceeded;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\RefName;
 use App\Domain\Identity\RepositoryId;
@@ -29,17 +30,23 @@ use App\Source\LocalRepositoryDiscovery;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+use Symfony\Contracts\HttpClient\Exception\ExceptionInterface as HttpClientException;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
- * Clones or fetches the server clone from the source of its repository (D24). The caller holds the
- * {@see RepositoryLock} for {@see fetch()} and calls {@see synced()} after it releases the lock.
+ * Clones or fetches the server clone from the source of its repository (D24), within the size limits of
+ * {@see UsageLimits}. The caller holds the {@see RepositoryLock} for {@see fetch()} and calls {@see synced()} after it
+ * releases the lock.
  */
 final class ServerClone
 {
     private const string GITHUB_SUSPENDED = 'GitHub App installation suspended';
+
+    private const int BYTES_PER_KIB = 1024;
 
     public function __construct(
         private readonly RepositoryRepository $repositories,
@@ -49,6 +56,9 @@ final class ServerClone
         private readonly LocalRepositoryDiscovery $discovery,
         private readonly GitHubInstallationRepository $installations,
         private readonly InstallationTokenProvider $installationTokens,
+        #[Target('github.client')]
+        private readonly HttpClientInterface $githubClient,
+        private readonly UsageLimits $usageLimits,
         #[Autowire(env: 'GITHUB_GIT_BASE_URL')]
         private readonly string $gitHubGitBaseUrl,
         private readonly TenantDataPaths $paths,
@@ -59,18 +69,26 @@ final class ServerClone
     }
 
     /**
+     * A clone above a size limit fails and is deleted. A fetch that passes a size limit keeps the clone and fails, and
+     * so does each fetch of a clone that is above a size limit.
+     *
      * @return RepositoryFetched|null Null after a failure, which the row records in `lastError`
      */
     public function fetch(Repository $repository, bool $clone, float $timeoutSeconds): ?RepositoryFetched
     {
         $id = $repository->getId();
-        $gitDir = $this->paths->clonePath($repository->getTenantId(), $id);
+        $tenantId = $repository->getTenantId();
+        $gitDir = $this->paths->clonePath($tenantId, $id);
         $serverPaths = [$gitDir];
         $filesystem = new Filesystem();
 
         try {
+            if (!$clone) {
+                $this->usageLimits->checkCloneSize($tenantId, $id, $repository->getCloneSizeBytes() ?? 0);
+            }
+
             if (RepositorySource::Github === $repository->getSource()) {
-                $command = $this->gitHubFetchCommand($repository);
+                $command = $this->gitHubFetchCommand($repository, $clone);
             } else {
                 $sourcePath = $this->localSourcePath($repository);
                 $serverPaths[] = $sourcePath;
@@ -84,7 +102,10 @@ final class ServerClone
             }
 
             $this->bareClone->fetch($gitDir, $command->url, $this->pendingShas($id), $timeoutSeconds, $command->secretConfiguration, $command->uploadPack);
-        } catch (GitFailed|SourceUnavailable|GitHubRequestFailed|IOExceptionInterface $failure) {
+            $sizeBytes = $this->bareClone->objectSizeBytes($gitDir);
+            $this->repositories->recordCloneSize($id, $sizeBytes);
+            $this->usageLimits->checkCloneSize($tenantId, $id, $sizeBytes);
+        } catch (GitFailed|SourceUnavailable|GitHubRequestFailed|IOExceptionInterface|LimitExceeded $failure) {
             $this->logger->warning('The sync of repository {repositoryId} failed.', ['repositoryId' => $id->toString(), 'exception' => $failure]);
             // Recorded first, so a failing removal cannot leave the row in `cloning`.
             $this->repositories->recordFailure($id, self::lastError($failure, $serverPaths));
@@ -147,7 +168,7 @@ final class ServerClone
      *
      * @param list<string> $serverPaths
      */
-    private static function lastError(GitFailed|SourceUnavailable|GitHubRequestFailed|IOExceptionInterface $failure, array $serverPaths): string
+    private static function lastError(GitFailed|SourceUnavailable|GitHubRequestFailed|IOExceptionInterface|LimitExceeded $failure, array $serverPaths): string
     {
         $message = str_replace($serverPaths, GitRunner::REDACTED, $failure instanceof GitFailed ? $failure->summary : $failure->getMessage());
 
@@ -167,12 +188,15 @@ final class ServerClone
     }
 
     /**
-     * The command carries a new installation token, which lives only as long as the command.
+     * The command carries a new installation token, which lives only as long as the command. Before a clone, the
+     * `size` of the repository in the GitHub API must be within the size limits. The size of the clone is checked after
+     * the clone anyway, so a failed read skips this check.
      *
      * @throws SourceUnavailable   While the installation is suspended
      * @throws GitHubRequestFailed
+     * @throws LimitExceeded
      */
-    private function gitHubFetchCommand(Repository $repository): FetchCommand
+    private function gitHubFetchCommand(Repository $repository, bool $clone): FetchCommand
     {
         $installationId = $repository->getGithubInstallationId() ?? throw new \LogicException('A GitHub repository has an installation ID.');
 
@@ -182,6 +206,35 @@ final class ServerClone
 
         $token = $this->installationTokens->forRepository($installationId, (int) $repository->getGithubRepositoryId(), InstallationTokenProvider::CONTENTS_READ);
 
+        $sizeBytes = $clone ? $this->gitHubSizeBytes($repository, $token) : null;
+
+        if (null !== $sizeBytes) {
+            $this->usageLimits->checkCloneSize($repository->getTenantId(), $repository->getId(), $sizeBytes);
+        }
+
         return FetchCommand::gitHub($this->gitHubGitBaseUrl, $repository->getName(), $token);
+    }
+
+    /**
+     * GitHub gives the `size` of a repository in KiB.
+     *
+     * @return int|null Null when the read fails
+     */
+    private function gitHubSizeBytes(Repository $repository, #[\SensitiveParameter] string $token): ?int
+    {
+        $name = $repository->getName();
+
+        try {
+            $sizeKib = $this->githubClient->request('GET', InstallationTokenProvider::API."repos/{$name}", [
+                'auth_bearer' => $token,
+                'headers' => InstallationTokenProvider::API_HEADERS,
+            ])->toArray()['size'] ?? null;
+        } catch (HttpClientException $failure) {
+            $this->logger->warning('The size of the GitHub repository {name} could not be read.', ['name' => $name->toString(), 'exception' => $failure]);
+
+            return null;
+        }
+
+        return \is_int($sizeKib) ? $sizeKib * self::BYTES_PER_KIB : null;
     }
 }

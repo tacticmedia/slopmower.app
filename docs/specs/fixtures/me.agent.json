@@ -34,6 +34,33 @@
       "installUrl": "https://github.com/apps/slopmower/installations/new"
     }
   },
+  "usage": [
+    {
+      "limit": "repositories",
+      "max": 25,
+      "current": 3
+    },
+    {
+      "limit": "open_reviews",
+      "max": 20,
+      "current": 2
+    },
+    {
+      "limit": "requests_per_review",
+      "max": 1000,
+      "current": 14
+    },
+    {
+      "limit": "repository_size",
+      "max": 2147483648,
+      "current": 48234496
+    },
+    {
+      "limit": "tenant_storage",
+      "max": 10737418240,
+      "current": 61865984
+    }
+  ],
   "links": {
     "mcpUrl": "https://slopmower.example/_mcp",
     "docsUrl": "https://slopmower.example/docs",

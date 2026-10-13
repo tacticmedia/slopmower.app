@@ -14,7 +14,9 @@ import errorInternalError from '../../docs/specs/fixtures/error.internal-error.j
 import errorInvalidInputMethod from '../../docs/specs/fixtures/error.invalid-input-method.json';
 import errorInvalidInput from '../../docs/specs/fixtures/error.invalid-input.json';
 import errorInvalidTransition from '../../docs/specs/fixtures/error.invalid-transition.json';
+import errorLimitExceeded from '../../docs/specs/fixtures/error.limit-exceeded.json';
 import errorNotFound from '../../docs/specs/fixtures/error.not-found.json';
+import errorRateLimited from '../../docs/specs/fixtures/error.rate-limited.json';
 import errorRepositoryUnavailable from '../../docs/specs/fixtures/error.repository-unavailable.json';
 import errorReviewClosed from '../../docs/specs/fixtures/error.review-closed.json';
 import errorUnauthorized from '../../docs/specs/fixtures/error.unauthorized.json';
@@ -172,7 +174,9 @@ const checkedFixtures = {
     'error.invalid-input-method.json': errorInvalidInputMethod satisfies Widen<ErrorBody>,
     'error.invalid-input.json': errorInvalidInput satisfies Widen<ErrorBody>,
     'error.invalid-transition.json': errorInvalidTransition satisfies Widen<ErrorBody>,
+    'error.limit-exceeded.json': errorLimitExceeded satisfies Widen<ErrorBody>,
     'error.not-found.json': errorNotFound satisfies Widen<ErrorBody>,
+    'error.rate-limited.json': errorRateLimited satisfies Widen<ErrorBody>,
     'error.repository-unavailable.json': errorRepositoryUnavailable satisfies Widen<ErrorBody>,
     'error.review-closed.json': errorReviewClosed satisfies Widen<ErrorBody>,
     'error.unauthorized.json': errorUnauthorized satisfies Widen<ErrorBody>,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
+use App\Application\UsageLimits;
 use App\Entity\User;
 use App\GitHub\GitHubApp;
 use App\Repository\ApiTokenRepository;
@@ -29,6 +30,7 @@ final class MeController extends AbstractController
         UserRepository $users,
         ApiTokenRepository $tokens,
         GitHubApp $gitHubApp,
+        UsageLimits $usageLimits,
         Request $request,
         #[Autowire(env: 'APP_LOCAL_REPOSITORIES_DIR')] string $localRepositoriesDir,
     ): JsonResponse {
@@ -59,6 +61,7 @@ final class MeController extends AbstractController
                 'localRepositories' => '' !== $localRepositoriesDir,
                 'githubApp' => $gitHubApp->featuresFor($user),
             ],
+            'usage' => $usageLimits->usage($user->getTenantId()),
             'links' => [
                 'mcpUrl' => $request->getUriForPath('/_mcp'),
                 'docsUrl' => $request->getUriForPath('/docs'),

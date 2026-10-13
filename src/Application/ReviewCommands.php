@@ -8,7 +8,9 @@ use App\Application\Event\RepositoryChanged;
 use App\Domain\Actor\Actor;
 use App\Domain\Error\CommitNotFound;
 use App\Domain\Error\InvalidInput;
+use App\Domain\Error\LimitExceeded;
 use App\Domain\Error\NotFound;
+use App\Domain\Error\RateLimited;
 use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Error\RepositoryUnavailableReason;
 use App\Domain\Error\ReviewClosed;
@@ -54,6 +56,8 @@ final class ReviewCommands
         private readonly ReviewRepository $reviews,
         private readonly DraftRepository $drafts,
         private readonly FetchRepository $fetchRepository,
+        private readonly RateLimits $rateLimits,
+        private readonly UsageLimits $usageLimits,
         private readonly GitReader $reader,
         private readonly PinRefs $pins,
         private readonly MessageBusInterface $bus,
@@ -74,13 +78,17 @@ final class ReviewCommands
      *
      * @throws NotFound
      * @throws RepositoryUnavailable
+     * @throws RateLimited           The `review_start` limit of the tenant, or the `sync_fetch` limit of the repository
      * @throws CommitNotFound
      * @throws InvalidInput          An ambiguous SHA prefix, or no ref and no default branch
      * @throws GitFailed
+     * @throws LimitExceeded         The open reviews of the tenant
      */
     public function start(RepositoryId $repositoryId, ?RefName $ref, ?string $title, Actor $actor): ReviewId
     {
-        $gitDir = $this->fetchRepository->readyClonePath($repositoryId);
+        $tenantId = $this->fetchRepository->cloneReady($repositoryId)->getTenantId();
+        $this->rateLimits->consumeReviewStart($tenantId);
+        $gitDir = $this->paths->clonePath($tenantId, $repositoryId);
 
         if (!$this->isFullShaInClone($gitDir, $ref)) {
             $this->fetchRepository->fetchNow($repositoryId);
@@ -112,6 +120,7 @@ final class ReviewCommands
      *
      * @throws NotFound
      * @throws RepositoryUnavailable The access to the repository was removed
+     * @throws LimitExceeded         The open reviews of the tenant
      */
     public function recordStarted(ReviewId $reviewId, RepositoryId $repositoryId, StartReview $command, Actor $actor): array
     {
@@ -125,7 +134,10 @@ final class ReviewCommands
                     throw new RepositoryUnavailable($repositoryId, RepositoryUnavailableReason::Removed);
                 }
 
-                return ReviewDecider::decide($command, $this->reviews->findFresh($reviewId)?->toSnapshot(), $actor);
+                $events = ReviewDecider::decide($command, $this->reviews->findFresh($reviewId)?->toSnapshot(), $actor);
+                $this->usageLimits->checkNewReview($repository->getTenantId());
+
+                return $events;
             },
             function (array $recorded) use ($reviewId, $repositoryId, $command, $actor): void {
                 $started = $recorded[0] ?? throw new \LogicException('review.started is missing.');

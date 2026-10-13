@@ -18,6 +18,7 @@ use App\Application\Query\ReviewQuery;
 use App\Application\Query\ReviewStateFilter;
 use App\Application\Query\UpdatesPage;
 use App\Application\Query\UpdatesQuery;
+use App\Application\RateLimits;
 use App\Application\RequestCommands;
 use App\Controller\Api\Input\RequestListQuery;
 use App\Domain\Actor\Actor;
@@ -72,6 +73,7 @@ final class McpTools
         private readonly UpdatesQuery $updates,
         private readonly ReviewRepository $reviewRepository,
         private readonly CurrentActor $currentActor,
+        private readonly RateLimits $rateLimits,
         private readonly NormalizerInterface $normalizer,
         private readonly ValidatorInterface $validator,
         private readonly LoggerInterface $logger,
@@ -459,6 +461,8 @@ final class McpTools
     }
 
     /**
+     * Consumes the rate limits of the call first (docs/specs/mcp.md section 3).
+     *
      * @param \Closure(): object $call
      *
      * @return array<string, mixed> The REST JSON of the result
@@ -468,6 +472,7 @@ final class McpTools
     private function run(string $tool, \Closure $call): array
     {
         try {
+            $this->rateLimits->consumeCall();
             $normalized = $this->normalizer->normalize($call(), 'json');
         } catch (DomainError $error) {
             throw new ToolCallException($this->errorJson($error->code(), $error->getMessage(), $error->details()), previous: $error);

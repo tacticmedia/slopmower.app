@@ -165,7 +165,13 @@ export const ERROR_CODES = [
     'commits_not_available',
     'commit_not_found',
     'repository_unavailable',
+    'rate_limited',
+    'limit_exceeded',
     'internal_error',
 ] as const;
 export type KnownErrorCode = (typeof ERROR_CODES)[number];
 export type ErrorCode = OpenSet<KnownErrorCode>;
+
+export const USAGE_LIMITS = ['repositories', 'open_reviews', 'requests_per_review', 'repository_size', 'tenant_storage'] as const;
+export type KnownUsageLimit = (typeof USAGE_LIMITS)[number];
+export type UsageLimit = OpenSet<KnownUsageLimit>;

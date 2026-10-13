@@ -22,6 +22,7 @@ import {
     REVIEW_STATES,
     SYMBOL_KINDS,
     THREAD_ENTRY_TYPES,
+    USAGE_LIMITS,
 } from './types/common';
 import { DRAFT_KINDS } from './types/draft';
 import { REPOSITORY_UNAVAILABLE_REASONS } from './types/error';
@@ -59,6 +60,7 @@ const ENUM_ARRAYS: [schemaFileName: string, jsonPointer: string, tsArray: readon
     ['common.schema.json', '/$defs/EventType/anyOf/0/enum', EVENT_TYPES],
     ['common.schema.json', '/$defs/ThreadEntryType/anyOf/0/enum', THREAD_ENTRY_TYPES],
     ['common.schema.json', '/$defs/ErrorCode/anyOf/0/enum', ERROR_CODES],
+    ['common.schema.json', '/$defs/UsageLimit/anyOf/0/enum', USAGE_LIMITS],
     ['error.schema.json', '/$defs/RepositoryUnavailableDetails/properties/reason/enum', REPOSITORY_UNAVAILABLE_REASONS],
     ['location.schema.json', '/properties/target/enum', LOCATION_TARGETS],
     ['repository.schema.json', '/$defs/Sync/properties/state/enum', SYNC_STATES],

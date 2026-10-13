@@ -9,7 +9,9 @@ use App\Domain\Error\CommitNotFound;
 use App\Domain\Error\DomainError;
 use App\Domain\Error\ErrorCode;
 use App\Domain\Error\InvalidInput;
+use App\Domain\Error\LimitExceeded;
 use App\Domain\Error\NotFound;
+use App\Domain\Error\RateLimited;
 use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Error\RepositoryUnavailableReason;
 use App\Domain\Error\ReviewClosed;
@@ -22,6 +24,7 @@ use App\Domain\Request\Action;
 use App\Domain\Request\CommitsNotAvailable;
 use App\Domain\Request\InvalidTransition;
 use App\Domain\Request\RequestStatus;
+use App\Domain\Usage\UsageLimit;
 use App\Tests\Support\Specs\SpecsFiles;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -63,6 +66,8 @@ final class DomainErrorDetailsTest extends KernelTestCase
         yield 'commits_not_available' => [new CommitsNotAvailable([CommitSha::fromString('79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091')])];
         yield 'commit_not_found' => [new CommitNotFound('feature/x')];
         yield 'repository_unavailable' => [new RepositoryUnavailable(RepositoryId::generate(), RepositoryUnavailableReason::Cloning)];
+        yield 'rate_limited' => [new RateLimited(12, 300, 0)];
+        yield 'limit_exceeded' => [new LimitExceeded(UsageLimit::OpenReviews, 20, 20)];
     }
 
     /**

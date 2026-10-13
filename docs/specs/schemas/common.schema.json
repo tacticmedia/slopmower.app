@@ -167,13 +167,24 @@
     "ErrorCode": {
       "anyOf": [
         {
-          "enum": ["unauthorized", "forbidden", "not_found", "invalid_input", "invalid_transition", "review_closed", "commits_not_available", "commit_not_found", "repository_unavailable", "internal_error"]
+          "enum": ["unauthorized", "forbidden", "not_found", "invalid_input", "invalid_transition", "review_closed", "commits_not_available", "commit_not_found", "repository_unavailable", "rate_limited", "limit_exceeded", "internal_error"]
         },
         {
           "type": "string"
         }
       ],
       "description": "Open set."
+    },
+    "UsageLimit": {
+      "anyOf": [
+        {
+          "enum": ["repositories", "open_reviews", "requests_per_review", "repository_size", "tenant_storage"]
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "Open set. A usage limit of the plan of the tenant."
     }
   }
 }

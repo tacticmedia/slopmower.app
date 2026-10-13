@@ -7,6 +7,7 @@ namespace App\Http;
 use App\Domain\Error\DomainError;
 use App\Domain\Error\ErrorCode;
 use App\Domain\Error\InvalidInput;
+use App\Domain\Error\RateLimited;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -20,8 +21,9 @@ use Symfony\Component\Validator\ConstraintViolationInterface;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
 
 /**
- * The Error body of docs/specs/README.md section 4 for every failure under /api/v1. Runs after the firewall exception
- * listener at 1, which answers 401, and after the framework logs the exception at 0.
+ * The Error body of docs/specs/README.md section 4 for every failure under /api/v1, and for the `mcp_http` refusal of
+ * {@see RateLimitListener} on /_mcp. Runs after the firewall exception listener at 1, which answers 401, and after the
+ * framework logs the exception at 0.
  */
 #[AsEventListener(event: KernelEvents::EXCEPTION, priority: -1)]
 final class ApiExceptionListener
@@ -34,11 +36,11 @@ final class ApiExceptionListener
     {
         $request = $event->getRequest();
 
-        if (!ApiRequest::matches($request)) {
+        $throwable = $event->getThrowable();
+
+        if (!ApiRequest::matches($request) && !$throwable instanceof RateLimited) {
             return;
         }
-
-        $throwable = $event->getThrowable();
 
         $event->setResponse(match (true) {
             $throwable instanceof DomainError => $this->domainError($throwable, self::status($throwable->code())),
@@ -90,7 +92,13 @@ final class ApiExceptionListener
 
     private function domainError(DomainError $error, int $status): Response
     {
-        return self::error($status, $error->code(), $error->getMessage(), details: $this->normalizer->normalize($error->details(), 'json'));
+        $headers = $error instanceof RateLimited ? [
+            'Retry-After' => (string) $error->retryAfterSeconds,
+            'X-RateLimit-Limit' => (string) $error->limit,
+            'X-RateLimit-Remaining' => (string) $error->remaining,
+        ] : [];
+
+        return self::error($status, $error->code(), $error->getMessage(), $headers, $this->normalizer->normalize($error->details(), 'json'));
     }
 
     private static function methodNotAllowed(HttpExceptionInterface $exception, Request $request): Response
@@ -121,7 +129,8 @@ final class ApiExceptionListener
             ErrorCode::Forbidden => Response::HTTP_FORBIDDEN,
             ErrorCode::NotFound => Response::HTTP_NOT_FOUND,
             ErrorCode::InvalidInput, ErrorCode::CommitNotFound => Response::HTTP_UNPROCESSABLE_ENTITY,
-            ErrorCode::InvalidTransition, ErrorCode::ReviewClosed, ErrorCode::CommitsNotAvailable, ErrorCode::RepositoryUnavailable => Response::HTTP_CONFLICT,
+            ErrorCode::InvalidTransition, ErrorCode::ReviewClosed, ErrorCode::CommitsNotAvailable, ErrorCode::RepositoryUnavailable, ErrorCode::LimitExceeded => Response::HTTP_CONFLICT,
+            ErrorCode::RateLimited => Response::HTTP_TOO_MANY_REQUESTS,
             ErrorCode::InternalError => Response::HTTP_INTERNAL_SERVER_ERROR,
         };
     }

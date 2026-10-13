@@ -9,6 +9,7 @@ import { RepositoryDataTable } from '../../settings/RepositoryDataTable';
 import styles from '../../settings/Settings.module.css';
 import { SkillInstall } from '../../settings/SkillInstall';
 import { TokenTable } from '../../settings/TokenTable';
+import { UsageTable } from '../../settings/UsageTable';
 import type { SettingsData } from './settingsData';
 
 export function SettingsRoute() {
@@ -38,6 +39,18 @@ export function SettingsRoute() {
                 <TokenTable tokens={tokens} labelledBy="api-tokens" describedBy="api-tokens-subtitle" />
             </Table.Container>
             <SkillInstall skillUrl={me.links.skillUrl} />
+            <div className={styles.pageSection}>
+                <Table.Container>
+                    <Table.Title as="h2" id="usage">
+                        Usage
+                    </Table.Title>
+                    <Table.Subtitle as="p" id="usage-subtitle">
+                        The use of your account and the limits of your plan. Requests per review and the size of one repository show the largest open review and the largest
+                        repository.
+                    </Table.Subtitle>
+                    <UsageTable usage={me.usage} labelledBy="usage" describedBy="usage-subtitle" />
+                </Table.Container>
+            </div>
             <div className={styles.pageSection}>
                 <Table.Container>
                     <Table.Title as="h2" id="repository-data">

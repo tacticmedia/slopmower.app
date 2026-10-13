@@ -5,6 +5,14 @@ parameters:
     app.database_suffix: ''
     # Message classes that the worker handles without a TenantStamp and without a tenant context.
     app.tenantless_messages: ['Symfony\Component\RemoteEvent\Messenger\ConsumeRemoteEventMessage']
+    # The usage limits of each plan, docs/specs/README.md section "Usage limits". Every tenant has the free plan.
+    app.plans:
+        free:
+            repositories: '%env(int:default::APP_PLAN_FREE_REPOSITORIES)%'
+            open_reviews: '%env(int:default::APP_PLAN_FREE_OPEN_REVIEWS)%'
+            requests_per_review: '%env(int:default::APP_PLAN_FREE_REQUESTS_PER_REVIEW)%'
+            repository_size_mib: '%env(int:default::APP_PLAN_FREE_REPOSITORY_SIZE_MIB)%'
+            tenant_storage_mib: '%env(int:default::APP_PLAN_FREE_TENANT_STORAGE_MIB)%'
     # The MCP server instructions, docs/specs/mcp.md section 2.
     app.mcp_instructions: |-
         Slopmower stores change requests that the user wrote while reviewing this repository at a pinned commit. Each request asks for one change and belongs to exactly one review; several reviews can be open at once.

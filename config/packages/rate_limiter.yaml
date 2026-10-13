@@ -1,0 +1,36 @@
+# Written by hand: symfony/rate-limiter has no Flex recipe. docs/specs/README.md, section "Rate limits".
+# Token buckets only: the Retry-After of a sliding window is shorter than the real wait.
+# lock_factory is null, because framework.rate_limiter refuses a lock factory while framework.lock is off (lock.yaml).
+# Kernel::process() gives each limiter the advisory-lock LockFactory.
+framework:
+    rate_limiter:
+        api_token:
+            policy: token_bucket
+            limit: '%env(int:APP_RATE_LIMIT_API_TOKEN_PER_MINUTE)%'
+            rate: { interval: '1 minute', amount: '%env(int:APP_RATE_LIMIT_API_TOKEN_PER_MINUTE)%' }
+            cache_pool: rate_limiter.cache
+            lock_factory: null
+        api_user:
+            policy: token_bucket
+            limit: '%env(int:APP_RATE_LIMIT_API_USER_PER_MINUTE)%'
+            rate: { interval: '1 minute', amount: '%env(int:APP_RATE_LIMIT_API_USER_PER_MINUTE)%' }
+            cache_pool: rate_limiter.cache
+            lock_factory: null
+        mcp_http:
+            policy: token_bucket
+            limit: '%env(int:APP_RATE_LIMIT_MCP_HTTP_PER_MINUTE)%'
+            rate: { interval: '1 minute', amount: '%env(int:APP_RATE_LIMIT_MCP_HTTP_PER_MINUTE)%' }
+            cache_pool: rate_limiter.cache
+            lock_factory: null
+        sync_fetch:
+            policy: token_bucket
+            limit: '%env(int:APP_RATE_LIMIT_SYNC_FETCH_PER_MINUTE)%'
+            rate: { interval: '1 minute', amount: '%env(int:APP_RATE_LIMIT_SYNC_FETCH_PER_MINUTE)%' }
+            cache_pool: rate_limiter.cache
+            lock_factory: null
+        review_start:
+            policy: token_bucket
+            limit: '%env(int:APP_RATE_LIMIT_REVIEW_START_PER_HOUR)%'
+            rate: { interval: '1 hour', amount: '%env(int:APP_RATE_LIMIT_REVIEW_START_PER_HOUR)%' }
+            cache_pool: rate_limiter.cache
+            lock_factory: null

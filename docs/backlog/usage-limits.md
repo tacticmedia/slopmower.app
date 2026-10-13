@@ -1,6 +1,6 @@
 # Usage limits and rate limiting
 
-Status: scheduled as [F39](../plan/F39-usage-limits.md), which takes each per-tenant limit value from the plan of the tenant (F42). The proof of concept has no usage limits, by decision D32. The specification already bounds some lists: 500 drafts per user and review, 50 active tokens per user, and 1,000 repository candidates.
+Status: done in [F39](../plan/F39-usage-limits.md), which takes each per-tenant limit value from the plan of the tenant (F42). The specification already bounds some lists: 500 drafts per user and review, 50 active tokens per user, and 1,000 repository candidates.
 
 ## Why
 
@@ -18,7 +18,7 @@ Each limit is an instance parameter with an environment variable, so that a self
 |---|---|---|---|
 | Connected repositories per tenant | 25 | Connect repository | 409 `limit_exceeded` |
 | Open reviews per tenant | 20 | Start review | 409 `limit_exceeded` |
-| Requests per review | 1,000 | Open request, submit drafts | 409 `limit_exceeded` |
+| Requests per review | 1,000 | Open request, submit drafts, carry over | 409 `limit_exceeded` |
 | Size of one server clone | 2 GiB, measured as `size-pack` from `git count-objects -v` | After the first clone and after each fetch. For a GitHub source also before the clone, from the `size` field of the repository in the GitHub API. | The clone job fails: `sync.state` is `failed` and `sync.lastError` names the limit. A fetch that passes the limit keeps the clone, sets `lastError`, and refuses further fetches, so operations that need a fetch get `repository_unavailable` with reason `fetch_failed`. |
 | Total size of the tenant's clones | 10 GiB | As the clone size | As the clone size |
 
@@ -31,9 +31,9 @@ Settings shows the use and the limit of each item.
 | Limiter | Policy | Key | Default |
 |---|---|---|---|
 | `api_token` | `token_bucket` | API token ID | `limit: 300`, `rate: {interval: '1 minute', amount: 300}` |
-| `api_user` | `sliding_window` | User ID, for the session and all tokens of the user together | `limit: 1200`, `interval: '1 minute'` |
+| `api_user` | `token_bucket` | User ID, for the session and all tokens of the user together | `limit: 1200`, `rate: {interval: '1 minute', amount: 1200}` |
 | `sync_fetch` | `token_bucket` | Repository ID | `limit: 10`, `rate: {interval: '1 minute', amount: 10}`, for the synchronous fetch triggers |
-| `review_start` | `sliding_window` | Tenant ID | `limit: 30`, `interval: '1 hour'` |
+| `review_start` | `token_bucket` | Tenant ID | `limit: 30`, `rate: {interval: '1 hour', amount: 30}` |
 
 - The limiter state must be shared by every `php` process and container. It uses a PostgreSQL-backed cache pool and the advisory-lock `LockFactory`.
 - REST: a refused call gets HTTP 429 with a `Retry-After` header in seconds, `X-RateLimit-Limit`, and `X-RateLimit-Remaining`. The values come from `getRetryAfter()`, `getLimit()`, and `getRemainingTokens()` of the `RateLimit` object.

@@ -1,0 +1,11 @@
+{
+  "error": {
+    "code": "limit_exceeded",
+    "message": "The limit of open reviews of your plan is 20. Close a review, then try again.",
+    "details": {
+      "limit": "open_reviews",
+      "max": 20,
+      "current": 20
+    }
+  }
+}

@@ -23,6 +23,26 @@ Set these variables for every PHP process: the web server, each Messenger worker
 - The accepted credential lives unencrypted in the cache pool `rds_credentials.cache`, under `var/share/<environment>/pools/app`: an IAM token for 10 minutes, the master password until the next rotation (D58). Keep that directory on local storage, readable only by the PHP user, and shared by the web server and every worker of the host.
 - On Amazon RDS, `AWS_REGION` with `RDS_IAM_USERNAME` selects IAM token authentication, and `AWS_REGION` with `RDS_SECRET_ARN` reads the master password from Secrets Manager after a rotation (D58). The [bundle documentation](https://github.com/tacticmedia/rds-auth-bundle/blob/main/docs/configuration.md) lists the AWS prerequisites.
 
+## Usage and rate limits
+
+The [usage limits](specs/README.md#usage-limits) are the values of the free plan, which every tenant has. The [rate limits](specs/README.md#rate-limits) are values of the instance. The `.env` defaults apply when a variable is not set.
+
+| Variable | Default | Value |
+|---|---|---|
+| `APP_PLAN_FREE_REPOSITORIES` | `25` | Connected repositories per tenant. `0` or empty: off. |
+| `APP_PLAN_FREE_OPEN_REVIEWS` | `20` | Open reviews per tenant. `0` or empty: off. |
+| `APP_PLAN_FREE_REQUESTS_PER_REVIEW` | `1000` | Requests per review. `0` or empty: off. |
+| `APP_PLAN_FREE_REPOSITORY_SIZE_MIB` | `2048` | Size of one clone in MiB. `0` or empty: off. |
+| `APP_PLAN_FREE_TENANT_STORAGE_MIB` | `10240` | Size of all clones of a tenant in MiB. `0` or empty: off. |
+| `APP_RATE_LIMIT_API_TOKEN_PER_MINUTE` | `300` | Calls per API token, at least 1 |
+| `APP_RATE_LIMIT_API_USER_PER_MINUTE` | `1200` | Calls per user, at least 1 |
+| `APP_RATE_LIMIT_MCP_HTTP_PER_MINUTE` | `600` | HTTP requests to `/_mcp` per API token, at least 1 |
+| `APP_RATE_LIMIT_SYNC_FETCH_PER_MINUTE` | `10` | Synchronous fetches per repository, at least 1 |
+| `APP_RATE_LIMIT_REVIEW_START_PER_HOUR` | `30` | Review starts per tenant, at least 1 |
+
+- The rate limiter state is in the table `cache_items` of the database, so every web server and worker shares it.
+- A clone gets its size at its next clone or fetch. Until then it counts as 0 bytes.
+
 ## Symbols service
 
 The service extracts the symbols of every [symbol language](architecture.md#symbol-languages) but PHP and Twig (D56). The web server and the Messenger worker both call it through the scoped client `symbols.client`. When the service is down, the index job stores no symbols for these languages, and a request that needs their symbols answers 500. PHP and Twig files do not use the service.

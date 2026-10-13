@@ -8,10 +8,12 @@ use App\Application\ConnectedRepository;
 use App\Application\FetchRepository;
 use App\Application\GitHubRepositoriesLock;
 use App\Application\Query\RepositoryQuery;
+use App\Application\UsageLimits;
 use App\Controller\Api\Input\ConfirmQuery;
 use App\Controller\Api\Input\ConnectRepositoryInput;
 use App\Controller\Api\Input\RepositoryListQuery;
 use App\Domain\Error\InvalidInput;
+use App\Domain\Error\LimitExceeded;
 use App\Domain\Error\NotFound;
 use App\Domain\Repository\RepositoryName;
 use App\Domain\Repository\RepositorySource;
@@ -35,7 +37,6 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
-use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -55,7 +56,7 @@ final class RepositoryController extends AbstractController
         private readonly EntityManagerInterface $entityManager,
         private readonly TenantContext $tenantContext,
         private readonly GitHubRepositoriesLock $repositoriesLock,
-        private readonly LockFactory $lockFactory,
+        private readonly UsageLimits $usageLimits,
         private readonly ClockInterface $clock,
     ) {
     }
@@ -128,8 +129,9 @@ final class RepositoryController extends AbstractController
     /**
      * A new repository is `cloning`, and its clone job is queued after the row commits.
      *
-     * @throws NotFound     The ID is not a candidate of the tenant, or the tenant is being deleted
-     * @throws InvalidInput Another repository of the tenant has the name, in any case
+     * @throws NotFound      The ID is not a candidate of the tenant, or the tenant is being deleted
+     * @throws InvalidInput  Another repository of the tenant has the name, in any case
+     * @throws LimitExceeded
      */
     private function connectGitHub(int $githubRepositoryId): ConnectedRepository
     {
@@ -148,6 +150,8 @@ final class RepositoryController extends AbstractController
                 throw InvalidInput::field('githubRepositoryId', "Another connected repository has the name {$name}.");
             }
 
+            $this->usageLimits->checkNewRepository($tenantId);
+
             $repository = Repository::gitHub($tenantId, $name, $githubRepositoryId, $candidate->getInstallationId(), $candidate->isPrivate(), $this->clock->now());
             $this->entityManager->persist($repository);
 
@@ -164,8 +168,9 @@ final class RepositoryController extends AbstractController
     /**
      * A new repository is `cloning`, and its clone job is queued after the row commits.
      *
-     * @throws InvalidInput Local repositories are off, or the name is not a direct child name
-     * @throws NotFound     The directory is not a local candidate
+     * @throws InvalidInput  Local repositories are off, or the name is not a direct child name
+     * @throws NotFound      The directory is not a local candidate, or the tenant is being deleted
+     * @throws LimitExceeded
      */
     private function connectLocal(string $directory): ConnectedRepository
     {
@@ -177,25 +182,24 @@ final class RepositoryController extends AbstractController
         $this->discovery->find($directory) ?? throw new NotFound('The directory is not a local repository candidate.');
         $tenantId = $this->tenantContext->get();
         // A second concurrent connect waits, then finds the row, instead of failing on the unique index.
-        $lock = $this->lockFactory->createLock("connect-local:{$tenantId}:{$directory}", ttl: null);
-        $lock->acquire(true);
-
-        try {
+        $connected = $this->repositoriesLock->run($tenantId, function () use ($tenantId, $name, $directory): ConnectedRepository {
             $existing = $this->repositoryRows->findLocal($directory);
 
             if (null !== $existing) {
                 return new ConnectedRepository($existing, false);
             }
 
+            $this->usageLimits->checkNewRepository($tenantId);
             $repository = Repository::local($tenantId, $name, $directory, $this->clock->now());
             $this->entityManager->persist($repository);
-            $this->entityManager->flush();
-        } finally {
-            $lock->release();
+
+            return new ConnectedRepository($repository, true);
+        }) ?? throw new NotFound();
+
+        if ($connected->created) {
+            $this->fetchRepository->queueClone($connected->repository);
         }
 
-        $this->fetchRepository->queueClone($repository);
-
-        return new ConnectedRepository($repository, true);
+        return $connected;
     }
 }

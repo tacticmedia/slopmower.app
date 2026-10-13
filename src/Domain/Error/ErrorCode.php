@@ -15,5 +15,7 @@ enum ErrorCode: string
     case CommitsNotAvailable = 'commits_not_available';
     case CommitNotFound = 'commit_not_found';
     case RepositoryUnavailable = 'repository_unavailable';
+    case RateLimited = 'rate_limited';
+    case LimitExceeded = 'limit_exceeded';
     case InternalError = 'internal_error';
 }
