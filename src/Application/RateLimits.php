@@ -11,6 +11,7 @@ use App\Entity\User;
 use App\Security\AgentUser;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 
 /**
@@ -20,10 +21,15 @@ use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 final class RateLimits
 {
     public function __construct(
+        #[Target('api_token')]
         private readonly RateLimiterFactoryInterface $apiTokenLimiter,
+        #[Target('api_user')]
         private readonly RateLimiterFactoryInterface $apiUserLimiter,
+        #[Target('mcp_http')]
         private readonly RateLimiterFactoryInterface $mcpHttpLimiter,
+        #[Target('sync_fetch')]
         private readonly RateLimiterFactoryInterface $syncFetchLimiter,
+        #[Target('review_start')]
         private readonly RateLimiterFactoryInterface $reviewStartLimiter,
         private readonly Security $security,
         private readonly ClockInterface $clock,
