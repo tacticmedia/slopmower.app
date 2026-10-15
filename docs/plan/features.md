@@ -64,6 +64,8 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F46 | [RDS auth bundle 1.2](F46-rds-auth-bundle-1-2.md) | Done 2026-10-09, [report](reports/F46.md) | a039aa7 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26343 lines; assets 159 TS / 9202 lines; check 9m51s |
 | F47 | [Product name Slopmower](F47-product-name-slopmower.md) | Done 2026-10-13, [report](reports/F47.md) | 91b4995 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26343 lines; assets 159 TS / 9202 lines; check 8m34s |
 | F48 | [Agent suggestions](F48-agent-suggestions.md) | Done 2026-10-14, [report](reports/F48.md) | 7c35379 | src 487 PHP / 33070 lines, 487 types; tests 325 PHP / 29742 lines; assets 165 TS / 9660 lines; check 3m31s |
+| F49 | [Development fixtures](F49-dev-fixtures.md) | Planned (2026-10-15) | | |
+| F50 | [Production image](F50-production-image.md) | Planned (2026-10-15) | | |
 
 ## Candidates
 
@@ -117,6 +119,8 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **Suggested diff on a suggestion.** A suggestion with a diff, before the claim. The agent proposes a diff after the claim with `propose_solution`. From F48.
 - **Edit a suggestion before accepting.** The user replies in the thread instead. From F48.
 - **MCP triage tools.** Tools to accept or dismiss a suggestion or to close a review. Verify and reopen have none either. From F48.
+- **Demo fixture set for qa-bundle screenshots.** A Foundry story `demo` with the data of every view, for screenshots of each page with tacticmedia/qa-bundle. It writes reviews and requests through `ReviewCommands` and `RequestCommands`, from the `RequestScenario` states and the `acme/billing` story of `docs/specs/README.md`. From F49.
+- **Test helpers on Foundry factories.** `TenantFixtures`, `ApiFixtures::storeToken()`, and `ApiFixtures::storeRepository()` in `tests/Support/` could use the factories of F49. From F49.
 
 ## For Jan
 
