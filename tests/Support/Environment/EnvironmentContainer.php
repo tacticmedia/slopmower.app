@@ -10,18 +10,18 @@ use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 /**
- * The `prod` container, compiled as `debug:config` does: the test kernel cannot reach private services of another
- * environment. `get()` reaches only the services that `$publicIds` names.
+ * The container of another environment without debug, compiled as `debug:config` does: the test kernel cannot reach
+ * private services of another environment. `get()` reaches only the services that `$publicIds` names.
  */
-final class ProdContainer
+final class EnvironmentContainer
 {
-    public static function build(string ...$publicIds): ContainerBuilder
+    public static function build(string $environment, string ...$publicIds): ContainerBuilder
     {
         $build = \Closure::bind(function (): ContainerBuilder {
             $this->initializeBundles();
 
             return $this->buildContainer();
-        }, new Kernel('prod', false), Kernel::class) ?? throw new \LogicException('Cannot bind the kernel.');
+        }, new Kernel($environment, false), Kernel::class) ?? throw new \LogicException('Cannot bind the kernel.');
 
         $container = $build();
         // The removing passes would inline or remove the private services.

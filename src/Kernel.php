@@ -21,6 +21,8 @@ class Kernel extends BaseKernel implements CompilerPassInterface
         // The resource owner keeps the OAuth state of one sign-in, and has no reset. A FrankenPHP worker would share it between users.
         $container->getDefinition('hwi_oauth.resource_owner.github')->setShared(false);
 
+        $container->getDefinition('messenger.transport.doctrine.pg_notify_on_idle_listener')->replaceArgument(0, new Reference('monolog.logger.messenger_idle'));
+
         // framework.rate_limiter refuses a lock factory while framework.lock is off (config/packages/lock.yaml).
         foreach (array_keys($container->findTaggedServiceIds('rate_limiter')) as $id) {
             $definition = $container->getDefinition($id);

@@ -1,6 +1,7 @@
 monolog:
     channels: # To see all channels, run bin/console debug:autowiring logger
         - deprecation # Deprecations are logged in the dedicated "deprecation" channel when it exists
+        - messenger_idle # One debug record per idle poll of the worker. No dev or prod handler takes it.
 
 when@dev:
     monolog:
@@ -12,11 +13,11 @@ when@dev:
                 path: "%kernel.logs_dir%/%kernel.environment%.log"
                 max_files: 2
                 level: debug
-                channels: ["!event", "!doctrine"]
+                channels: ["!event", "!doctrine", "!messenger_idle"]
             console:
                 type: console
                 process_psr_3_messages: false
-                channels: ["!event", "!doctrine", "!console"]
+                channels: ["!event", "!doctrine", "!console", "!messenger_idle"]
 
 when@test:
     monolog:
@@ -63,7 +64,7 @@ when@prod:
                 action_level: error
                 handler: nested
                 excluded_http_codes: [404, 405]
-                channels: ["!deprecation", "!mcp"]
+                channels: ["!deprecation", "!mcp", "!messenger_idle"]
                 buffer_size: 50 # How many messages should be saved? Prevent memory leaks
             nested:
                 type: stream
@@ -73,7 +74,7 @@ when@prod:
             console:
                 type: console
                 process_psr_3_messages: false
-                channels: ["!event", "!doctrine", "!mcp"]
+                channels: ["!event", "!doctrine", "!mcp", "!messenger_idle"]
             deprecation:
                 type: stream
                 channels: [deprecation]

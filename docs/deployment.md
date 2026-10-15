@@ -73,7 +73,8 @@ bin/console messenger:consume async scheduler_default --time-limit=3600
 
 In `prod`, the application sends server errors to Sentry (D67). Set `SENTRY_DSN` to the DSN of the Sentry project for every PHP process. Empty switches Sentry off. `SENTRY_RELEASE` names the release of each event, for example the commit SHA.
 
-- Each failure of a request, a Messenger job, or a console command sends an event, also a failed job that Messenger retries. A request that ends below 500 sends none, for example a 404, a 409 `limit_exceeded`, or a 429 `rate_limited`. A server error inside an MCP tool sends none either, because `McpTools::run()` catches it and answers `internal_error`. It is only in the prod log.
+- Each failure of a request, a Messenger job, or a console command sends an event, also a failed job that Messenger retries. A request that ends below 500 sends none, for example a 404, a 409 `limit_exceeded`, or a 429 `rate_limited`.
+- A server error inside an MCP tool sends an event with the same rules. The tool answers `internal_error`. A tool error with another code, for example `not_found`, sends none.
 - An event holds the exception with its message and stack trace, the 5 source lines around each frame of Slopmower and its packages, the server name, the environment, the release, and the installed packages. For a request, it also holds the method, the URL, the headers, and the route name once a controller takes the request. For a job: the message class, the receiver, and the bus. For a command: the command line.
 - An event holds no request body, no frame arguments, no cookies, no IP address, and no user. The values of the query parameters `q`, `name`, `confirm`, and `code`, of the forwarded IP headers, and of the credential headers, for example `Authorization`, are `[Filtered]`.
 - No tracing, no Monolog handler, and no logs go to Sentry.

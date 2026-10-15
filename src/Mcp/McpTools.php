@@ -57,6 +57,7 @@ use Mcp\Capability\Attribute\Schema;
 use Mcp\Exception\ToolCallException;
 use Mcp\Schema\ToolAnnotations;
 use Psr\Log\LoggerInterface;
+use Sentry\State\HubInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -88,6 +89,8 @@ final class McpTools
         private readonly NormalizerInterface $normalizer,
         private readonly ValidatorInterface $validator,
         private readonly LoggerInterface $logger,
+        // The Sentry bundle runs in prod only.
+        private readonly ?HubInterface $sentryHub = null,
     ) {
     }
 
@@ -572,6 +575,7 @@ final class McpTools
             throw new ToolCallException($this->errorJson($error->code(), $error->getMessage(), $error->details()), previous: $error);
         } catch (\Throwable $throwable) {
             $this->logger->error('The MCP tool {tool} failed.', ['tool' => $tool, 'exception' => $throwable]);
+            $this->sentryHub?->captureException($throwable);
 
             throw new ToolCallException($this->errorJson(ErrorCode::InternalError, 'An unexpected error occurred.', null));
         }

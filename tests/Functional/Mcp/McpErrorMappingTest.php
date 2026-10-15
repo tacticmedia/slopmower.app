@@ -10,8 +10,10 @@ use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Fixtures\TenantFixtures;
 use App\Tests\Support\Mcp\McpAssertions;
 use App\Tests\Support\Mcp\McpTestClient;
+use App\Tests\Support\Sentry\RecordingHub;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\TestDox;
+use Sentry\State\HubInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpKernel\DataCollector\LoggerDataCollector;
@@ -27,7 +29,7 @@ final class McpErrorMappingTest extends WebTestCase
     use McpAssertions;
     use ResetDatabase;
 
-    #[TestDox('not_found gives isError with the Error JSON as text and no structuredContent')]
+    #[TestDox('not_found gives isError with the Error JSON as text and no structuredContent, and reaches no Sentry hub')]
     public function testNotFoundGivesIsError(): void
     {
         [, $mcp] = $this->mcpClient();
@@ -35,6 +37,7 @@ final class McpErrorMappingTest extends WebTestCase
         $error = self::assertToolError($mcp->callTool('get_request', ['id' => (string) new Ulid()]), 'not_found');
 
         self::assertNull($error['details']);
+        self::assertSame([], self::sentryHub()->exceptions);
     }
 
     #[TestDox('A bad enum value gives JSON-RPC error -32602')]
@@ -60,7 +63,7 @@ final class McpErrorMappingTest extends WebTestCase
         self::assertSame(['path'], array_column($error['details']['violations'], 'field'));
     }
 
-    #[TestDox('An unexpected exception gives isError with internal_error, not -32603')]
+    #[TestDox('An unexpected exception gives isError with internal_error, not -32603, and reaches the Sentry hub')]
     public function testUnexpectedExceptionGivesInternalError(): void
     {
         [$client, $mcp, $user] = $this->mcpClient();
@@ -78,6 +81,7 @@ final class McpErrorMappingTest extends WebTestCase
         $logs = self::profile($client)->getCollector('logger');
         self::assertInstanceOf(LoggerDataCollector::class, $logs);
         self::assertContains('The MCP tool {tool} failed.', array_map(strval(...), array_column($logs->getProcessedLogs(), 'message')));
+        self::assertCount(1, self::sentryHub()->exceptions);
     }
 
     /**
@@ -90,6 +94,11 @@ final class McpErrorMappingTest extends WebTestCase
         [, $secret] = self::storeToken($user);
 
         return [$client, new McpTestClient($client, $secret), $user];
+    }
+
+    private static function sentryHub(): RecordingHub
+    {
+        return self::getContainer()->get(HubInterface::class);
     }
 
     private static function profile(KernelBrowser $client): Profile

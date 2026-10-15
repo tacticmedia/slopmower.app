@@ -21,6 +21,9 @@ Verified in the code on 2026-10-15:
 - **MCP errors.** The catch in `McpTools::run()` also captures the exception through the Sentry hub when the hub exists. Outside `prod` there is no hub and nothing changes. The capture uses the F51 rules: no request body, no frame arguments.
 - **Idle log line.** The listener logs on a channel of its own, which no `prod` or `dev` handler writes. The implementer checks how the framework wires the listener's logger and picks the smallest correct change, for example a `monolog.logger` tag through a service decoration or a `monolog.channels` entry.
 - **Idle memory.** The implementer measures the growth of an idle worker, finds the cause, and fixes it. If the cause is in a vendor package, the fix is the smallest change in this application, and the report names the upstream issue.
+- **Findings, 2026-10-16:**
+  - The idle listener logs on the channel `messenger_idle`, which `Kernel::process()` sets, because MonologBundle's `LoggerChannelPass` runs before the kernel pass and a tag would come too late.
+  - The memory growth exists only with `kernel.debug`: Messenger resets services only after a handled message, and each idle poll left the Doctrine query log with backtraces, about 38 KB. `App\Messenger\IdleWorkerResetListener`, in `dev` only, resets the services after each idle poll. Memory stayed flat for 30 minutes.
 
 ## Depends on
 

@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Functional;
 
 use App\Http\SentryClientErrorFilter;
-use App\Tests\Support\Environment\ProdContainer;
+use App\Mcp\McpTools;
+use App\Tests\Support\Environment\EnvironmentContainer;
 use PHPUnit\Framework\Attributes\TestDox;
 use Sentry\DataCollection\DataCollectionPolicy;
 use Sentry\DataCollection\HttpHeaderCollector;
@@ -14,8 +15,10 @@ use Sentry\DataCollection\HttpUrlCollector;
 use Sentry\Options;
 use Sentry\SentryBundle\Tracing\Doctrine\DBAL\TracingDriverMiddleware;
 use Sentry\SentryBundle\Tracing\HttpClient\TraceableHttpClient;
+use Sentry\State\HubInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Reference;
 
 final class SentryOptionsTest extends KernelTestCase
 {
@@ -82,6 +85,16 @@ final class SentryOptionsTest extends KernelTestCase
         self::assertFalse(self::prodContainer()->hasDefinition(TracingDriverMiddleware::class));
     }
 
+    #[TestDox('In prod, the MCP tools get the Sentry hub')]
+    public function testMcpToolsGetTheHub(): void
+    {
+        $arguments = self::prodContainer()->getDefinition(McpTools::class)->getArguments();
+        $hub = end($arguments);
+
+        self::assertInstanceOf(Reference::class, $hub);
+        self::assertSame(HubInterface::class, (string) $hub);
+    }
+
     private static function options(): Options
     {
         $options = self::prodContainer()->get('sentry.client.options'); // @phpstan-ignore symfonyContainer.serviceNotFound (a prod service)
@@ -92,6 +105,6 @@ final class SentryOptionsTest extends KernelTestCase
 
     private static function prodContainer(): ContainerBuilder
     {
-        return self::$container ??= ProdContainer::build('sentry.client.options');
+        return self::$container ??= EnvironmentContainer::build('prod', 'sentry.client.options');
     }
 }

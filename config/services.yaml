@@ -75,6 +75,8 @@ when@test:
         App\Tests\Support\Messenger\TenantProbeHandler:
             autowire: true
             autoconfigure: true
+        Sentry\State\HubInterface:
+            class: App\Tests\Support\Sentry\RecordingHub
 
 when@e2e:
     parameters:
