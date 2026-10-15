@@ -15,6 +15,10 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use Symfony\Component\Security\Core\Exception\AuthenticationException;
+use Symfony\Component\Security\Core\Exception\LazyResponseException;
+use Symfony\Component\Security\Core\Exception\LogoutException;
 use Symfony\Component\Serializer\Exception\NotEncodableValueException;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Validator\ConstraintViolationInterface;
@@ -28,6 +32,9 @@ use Symfony\Component\Validator\Exception\ValidationFailedException;
 #[AsEventListener(event: KernelEvents::EXCEPTION, priority: -1)]
 final class ApiExceptionListener
 {
+    /** The statuses of an `HttpExceptionInterface` that this listener keeps. It answers every other status with 500. */
+    private const array HTTP_STATUSES = [400, 403, 404, 405, 413, 415, 422];
+
     public function __construct(private readonly NormalizerInterface $normalizer)
     {
     }
@@ -38,20 +45,59 @@ final class ApiExceptionListener
 
         $throwable = $event->getThrowable();
 
-        if (!ApiRequest::matches($request) && !$throwable instanceof RateLimited) {
+        if (!self::answers($throwable, $request)) {
             return;
         }
 
+        $status = self::status($throwable, $request);
+
         $event->setResponse(match (true) {
-            $throwable instanceof DomainError => $this->domainError($throwable, self::status($throwable->code())),
-            $throwable instanceof HttpExceptionInterface => $this->httpError($throwable, $request),
+            $throwable instanceof DomainError => $this->domainError($throwable, $status),
+            $throwable instanceof HttpExceptionInterface && \in_array($status, self::HTTP_STATUSES, true) => $this->httpError($throwable, $request, $status),
             default => self::internalError(),
         });
     }
 
-    private function httpError(HttpExceptionInterface $exception, Request $request): Response
+    /**
+     * The status of the response to $throwable, as the firewall, this listener, and the framework answer it. The
+     * firewall answers a security exception anywhere in the chain with 401, 403, or a redirect to the sign-in, and this
+     * function gives 401 or 403 for it.
+     */
+    public static function status(\Throwable $throwable, Request $request): int
     {
-        return match ($exception->getStatusCode()) {
+        for ($exception = $throwable; null !== $exception; $exception = $exception->getPrevious()) {
+            if ($exception instanceof LazyResponseException) {
+                return $exception->getResponse()->getStatusCode();
+            }
+
+            if ($exception instanceof AuthenticationException) {
+                return Response::HTTP_UNAUTHORIZED;
+            }
+
+            if ($exception instanceof AccessDeniedException || $exception instanceof LogoutException) {
+                return Response::HTTP_FORBIDDEN;
+            }
+        }
+
+        if (!self::answers($throwable, $request)) {
+            return $throwable instanceof HttpExceptionInterface ? $throwable->getStatusCode() : Response::HTTP_INTERNAL_SERVER_ERROR;
+        }
+
+        return match (true) {
+            $throwable instanceof DomainError => self::codeStatus($throwable->code()),
+            $throwable instanceof HttpExceptionInterface && \in_array($throwable->getStatusCode(), self::HTTP_STATUSES, true) => $throwable->getStatusCode(),
+            default => Response::HTTP_INTERNAL_SERVER_ERROR,
+        };
+    }
+
+    private static function answers(\Throwable $throwable, Request $request): bool
+    {
+        return ApiRequest::matches($request) || $throwable instanceof RateLimited;
+    }
+
+    private function httpError(HttpExceptionInterface $exception, Request $request, int $status): Response
+    {
+        return match ($status) {
             Response::HTTP_BAD_REQUEST, Response::HTTP_UNPROCESSABLE_ENTITY => $this->invalidInput($exception),
             Response::HTTP_FORBIDDEN => self::error(Response::HTTP_FORBIDDEN, ErrorCode::Forbidden, '' !== $exception->getMessage() ? $exception->getMessage() : 'Access denied.'),
             Response::HTTP_NOT_FOUND => self::error(Response::HTTP_NOT_FOUND, ErrorCode::NotFound, 'The resource does not exist.'),
@@ -122,7 +168,7 @@ final class ApiExceptionListener
         return new JsonResponse(['error' => ['code' => $code->value, 'message' => $message, 'details' => $details]], $status, $headers);
     }
 
-    private static function status(ErrorCode $code): int
+    private static function codeStatus(ErrorCode $code): int
     {
         return match ($code) {
             ErrorCode::Unauthorized => Response::HTTP_UNAUTHORIZED,

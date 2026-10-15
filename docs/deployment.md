@@ -69,6 +69,16 @@ bin/console messenger:consume async scheduler_default --time-limit=3600
 - The worker reads `scheduler_default` only when `async` is empty, so a backlog in `async` makes the daily run late.
 - A failed job is not retried, because `scheduler_default` has no retry strategy and no failure transport. Messenger logs the failure at `critical`, and the job runs again the next day.
 
+## Error reporting
+
+In `prod`, the application sends server errors to Sentry (D67). Set `SENTRY_DSN` to the DSN of the Sentry project for every PHP process. Empty switches Sentry off. `SENTRY_RELEASE` names the release of each event, for example the commit SHA.
+
+- Each failure of a request, a Messenger job, or a console command sends an event, also a failed job that Messenger retries. A request that ends below 500 sends none, for example a 404, a 409 `limit_exceeded`, or a 429 `rate_limited`. A server error inside an MCP tool sends none either, because `McpTools::run()` catches it and answers `internal_error`. It is only in the prod log.
+- An event holds the exception with its message and stack trace, the 5 source lines around each frame of Slopmower and its packages, the server name, the environment, the release, and the installed packages. For a request, it also holds the method, the URL, the headers, and the route name once a controller takes the request. For a job: the message class, the receiver, and the bus. For a command: the command line.
+- An event holds no request body, no frame arguments, no cookies, no IP address, and no user. The values of the query parameters `q`, `name`, `confirm`, and `code`, of the forwarded IP headers, and of the credential headers, for example `Authorization`, are `[Filtered]`.
+- No tracing, no Monolog handler, and no logs go to Sentry.
+- In the Sentry project, keep the data scrubbing of the Security & Privacy settings on, and turn on the setting that stops storing IP addresses, as a second layer.
+
 ## Symbols service
 
 The service extracts the symbols of every [symbol language](architecture.md#symbol-languages) but PHP and Twig (D56). The web server and the Messenger worker both call it through the scoped client `symbols.client`. When the service is down, the index job stores no symbols for these languages, and a request that needs their symbols answers 500. PHP and Twig files do not use the service.

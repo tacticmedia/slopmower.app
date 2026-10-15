@@ -26,6 +26,10 @@ Verified in the installed code on 2026-10-15, sentry/sentry 4.34.0 and sentry/se
 - **Integrations.** The error listener, the console listener, and the Messenger listener stay. No Monolog handler and no tracing.
 - **Privacy policy.** Sentry is a recipient: the operator of Sentry processes error reports with the request URL, the method, the exception, and the stack trace, with IDs and no request body. The region, the legal entity, and the retention of Sentry are `[TO SUPPLY]` markers.
 - **D67** in [architecture section 11](../architecture.md#11-decisions) records these rules.
+- **Review decisions, 2026-10-15:**
+  - The filter finds the request through `RequestStack`, not through the request data of the event. That data is empty when the SDK cannot convert the request, for example with an invalid Host or a port above 65535, so a client could send 4xx events without limit.
+  - `ApiExceptionListener::status()` is the one source of the response status, for the listener and the filter. It walks the exception chain as the firewall does, answers 500 for an API 4xx that the listener does not map, and 500 for a `DomainError` outside `/api/v1` except `rate_limited`.
+  - Also off as guards for SDK updates: tracing, `database_query_data`, `queues`, and `gen_ai`. The query parameters `q`, `name`, `confirm`, and `code` are filtered.
 
 ## Depends on
 

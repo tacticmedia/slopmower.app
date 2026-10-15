@@ -32,6 +32,7 @@ Send every privacy question and request to this email address.
 | Session data: your sign-in state and a copy of your profile | Slopmower | To keep you signed in | Contract |
 | GitHub events: the webhook messages of pushes, installations, repositories, pull requests, check runs, App authorizations, and Marketplace purchases. They contain the names and email addresses of the senders, the pushers, and the commit authors. | GitHub | To keep the copies, the installations, the pull requests, and the plans up to date | Contract |
 | Server logs: times, request URLs, status codes, error messages, IDs, and IP addresses. Never your code or the text of agent calls. | Slopmower and the hosting provider | To find errors and keep the service secure | Legitimate interests |
+| Error reports: the time, the request method, URL, and headers, the error message, and where in the Slopmower code the error happened. Never a request body, your code, the text of agent calls, cookies, tokens, or your IP address. | Slopmower | To find and fix errors | Legitimate interests |
 
 The legal bases are those of the GDPR and the UK GDPR:
 
@@ -70,12 +71,13 @@ We do not sell your personal data. We do not share it for advertising.
 
 - **GitHub** (GitHub, Inc., USA). You sign in with GitHub. Slopmower reads your repositories through the GitHub App. The GitHub Marketplace bills the paid plans. Slopmower writes check runs on pull requests. The name of a check run contains your GitHub login, for example "Slopmower (octocat)". A check run contains the titles of your reviews, and for each request its state, its headline, and a link to Slopmower. The headline is the first line of the request text, up to 80 characters. A check run does not contain the rest of the request text or the replies. Its annotations show the headline, the state, and the link of a request at a file path and a line. Slopmower writes check runs on the pull requests that you link to requests. When you switch on "Check every pull request" for a repository, it also writes a "No linked requests" check run on each other pull request of that repository that is opened, reopened, or pushed to. Each person who can see the pull request can read its check runs, so on a public repository they are public.
 - **The hosting provider**, [TO SUPPLY: hosting provider]. It runs the servers, the database, the logs, and the backups [TO CONFIRM: backups].
+- **Sentry**, [TO SUPPLY: Sentry legal entity]. It gets an error report when a request, a background job, or a command fails on the server. A report contains the time, the request method, URL, and headers, the error message, and where in the Slopmower code the error happened. A URL contains IDs and can contain the name of a repository and the path of a file in it. Before Slopmower sends a report, it removes the search texts, names, and confirmations from the URL, and the cookies, tokens, and IP addresses from the headers. A report never contains a request body, your code, the text of agent calls, or your user ID. Slopmower sends no report when it refuses a request because of the request itself, for example for a missing token or an invalid input.
 - **Your coding agent.** When you give a token to an agent, the agent reads your reviews and your code through Slopmower. You choose the agent. Its provider processes that data under its own terms.
 - **Authorities**, when the law requires it.
 
 ## Where we keep data
 
-We keep your data in [TO SUPPLY: storage country]. GitHub processes data in the USA. When we send data out of the European Economic Area, the UK, or Australia, we protect it with an adequacy decision or the standard contractual clauses [TO CONFIRM: transfer mechanism]. We make sure that each recipient protects the data as this policy says [TO CONFIRM: recipient protection].
+We keep your data in [TO SUPPLY: storage country]. GitHub processes data in the USA. Sentry processes error reports in [TO SUPPLY: Sentry region]. When we send data out of the European Economic Area, the UK, or Australia, we protect it with an adequacy decision or the standard contractual clauses [TO CONFIRM: transfer mechanism]. We make sure that each recipient protects the data as this policy says [TO CONFIRM: recipient protection].
 
 ## How long we keep data
 
@@ -90,6 +92,7 @@ We keep your data in [TO SUPPLY: storage country]. GitHub processes data in the 
 - **Rate limit counters:** we delete them at most one day after they expire.
 - **Session data:** until you sign out, or until the server removes the inactive session.
 - **Server logs:** [TO SUPPLY: log retention period].
+- **Error reports:** Sentry keeps them for [TO SUPPLY: Sentry retention period].
 - **Backups:** [TO SUPPLY: backup retention period]. Deleted data stays in a backup until the backup expires.
 
 ## Security
@@ -99,7 +102,7 @@ We keep your data in [TO SUPPLY: storage country]. GitHub processes data in the 
 - We keep the copies of your repositories on encrypted storage [TO CONFIRM: encrypted storage].
 - Your browser and your coding agent connect to Slopmower over HTTPS [TO CONFIRM: HTTPS].
 - We keep only a hash of each API token, and no GitHub sign-in token.
-- Logs never contain your code or the text of agent calls.
+- Logs and error reports never contain your code or the text of agent calls.
 
 ## Your rights
 
@@ -120,9 +123,9 @@ Under the GDPR and the UK GDPR, you have the right to access, correct, and delet
 
 Under the CCPA, as amended by the CPRA:
 
-- **Categories of personal information** that we collected in the last 12 months: identifiers (GitHub user ID, login, name, and IP address), commercial information (plan and billing cycle), internet activity (usage, sessions, and server logs), and the content of your reviews and repositories.
+- **Categories of personal information** that we collected in the last 12 months: identifiers (GitHub user ID, login, name, and IP address), commercial information (plan and billing cycle), internet activity (usage, sessions, server logs, and error reports), and the content of your reviews and repositories.
 - **Sources:** you, your coding agent, and GitHub.
-- **Purposes:** to give you the service, keep it secure, and fix errors. We give data to GitHub and to the hosting provider only for these purposes.
+- **Purposes:** to give you the service, keep it secure, and fix errors. We give data to GitHub, the hosting provider, and Sentry only for these purposes.
 - **No sale and no sharing:** we do not sell or share your personal information, and we did not do so in the last 12 months. We do not use sensitive personal information to infer characteristics about you.
 - **Your rights:** to know, delete, and correct your personal information, and no discrimination when you use these rights. An authorized agent can make a request for you.
 
