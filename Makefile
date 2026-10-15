@@ -8,7 +8,7 @@ CONSOLE        = $(PHP) bin/console
 PACKAGE_JSON   = $(wildcard package.json)
 
 .DEFAULT_GOAL = help
-.PHONY: help up down sh worker-restart console composer mate migration db-reset db-test test e2e stan cs cs-fix lint front ui act check
+.PHONY: help up down sh worker-restart console composer mate migration db-reset fixtures db-test test e2e stan cs cs-fix lint front ui act check
 
 help: ## List the targets
 	@grep -hE '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "%-16s %s\n", $$1, $$2}'
@@ -37,12 +37,15 @@ mate: ## ai-mate, arguments in c="..."
 migration: ## Generate a migration from the mapping
 	$(CONSOLE) make:migration --no-interaction
 
-db-reset: ## Drop, create, and migrate the dev database. Ask Jan first.
+db-reset: ## Drop, create, and migrate the dev database. Ask Jan first. Run make fixtures after it.
 	$(DOCKER_COMPOSE) stop worker
 	$(DOCKER_COMPOSE) exec -T database sh -c 'dropdb -U "$$POSTGRES_USER" --if-exists --force "$$POSTGRES_DB"'
 	$(CONSOLE) doctrine:database:create
 	$(CONSOLE) doctrine:migrations:migrate --no-interaction --all-or-nothing --allow-no-migration
 	$(DOCKER_COMPOSE) start worker
+
+fixtures: ## Load the dev set: the local user, the token APP_DEV_API_TOKEN of .env.dev, and APP_DEV_REPOSITORY. Idempotent.
+	$(CONSOLE) foundry:load-fixtures dev --append --no-transaction
 
 db-test: ## Create app_test and app_e2e when they are missing, then migrate them
 	$(CONSOLE) doctrine:database:create --if-not-exists --env=test

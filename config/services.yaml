@@ -36,8 +36,10 @@ services:
         autowire: true
         autoconfigure: true
 
+    # Factory and Story extend Foundry, a dev package. when@dev and when@test register them.
     App\:
         resource: '../src/'
+        exclude: '../src/{Factory,Story}/'
 
     # The bundle builds its own client. The alias makes it use github.client, whose mock_response_factory the test environment sets.
     hwi_oauth.http_client: '@github.client'
@@ -45,6 +47,17 @@ services:
     # docs/user renders as on GitHub. twig/extra-bundle adds every CommonMark extension with this tag to markdown_to_html.
     League\CommonMark\Extension\GithubFlavoredMarkdownExtension:
         tags: ['twig.markdown.league_extension']
+
+when@dev:
+    services:
+        App\Factory\: &factories
+            resource: '../src/Factory/'
+            autowire: true
+            autoconfigure: true
+        App\Story\: &stories
+            resource: '../src/Story/'
+            autowire: true
+            autoconfigure: true
 
 when@test:
     parameters:
@@ -54,6 +67,8 @@ when@test:
         app.tenantless_messages: ['Symfony\Component\RemoteEvent\Messenger\ConsumeRemoteEventMessage', 'App\Message\MarketplacePurchaseJob', 'App\Message\PruneRateLimiterCacheJob', 'App\Message\PurgeFailedMessagesJob', 'App\Tests\Support\Messenger\TenantlessProbe']
 
     services:
+        App\Factory\: *factories
+        App\Story\: *stories
         App\Tests\Support\GitHub\GitHubResponses: ~
         # The mock transport of github.client, for the GitHub request counts. A test cannot get a service whose ID starts with a dot.
         github.client.mock_transport: '@.http_client.mock_transport.App\Tests\Support\GitHub\GitHubResponses'

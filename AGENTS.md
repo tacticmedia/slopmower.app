@@ -92,6 +92,8 @@ Three specifics worth spelling out, because they are easy to get wrong:
 - Run the app with `make up`, and console commands with `make console c="..."`.
   [docs/plan/README.md](docs/plan/README.md#environment-and-commands) lists every
   target.
+- After `make db-reset`, run `make fixtures`. The agent token is `APP_DEV_API_TOKEN`
+  of `.env.dev`, a committed secret that only the dev stack reads.
 - When something fails, run the Symfony AI Mate tools as
   `docker compose exec -T php vendor/bin/mate <command>` before you read the logs
   or the web profiler (`/_profiler`) by hand and before you change code. For

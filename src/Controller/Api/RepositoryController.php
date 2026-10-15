@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Application\ConnectedRepository;
+use App\Application\ConnectLocalRepository;
 use App\Application\Event\RepositoryChanged;
 use App\Application\FetchRepository;
 use App\Application\GitHubRepositoriesLock;
@@ -17,7 +18,6 @@ use App\Controller\Api\Input\RepositoryListQuery;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Error\LimitExceeded;
 use App\Domain\Error\NotFound;
-use App\Domain\Repository\RepositoryName;
 use App\Domain\Repository\RepositorySource;
 use App\Entity\Repository;
 use App\Entity\User;
@@ -29,7 +29,6 @@ use App\Repository\DeletionSql;
 use App\Repository\GitHubCandidateRepository;
 use App\Repository\RepositoryRepository;
 use App\Security\CurrentActor;
-use App\Source\LocalRepositoryDiscovery;
 use App\Tenancy\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -54,7 +53,7 @@ final class RepositoryController extends AbstractController
         private readonly RepositoryQuery $repositories,
         private readonly RepositoryRepository $repositoryRows,
         private readonly GitHubCandidateRepository $candidates,
-        private readonly LocalRepositoryDiscovery $discovery,
+        private readonly ConnectLocalRepository $connectLocalRepository,
         private readonly FetchRepository $fetchRepository,
         private readonly EntityManagerInterface $entityManager,
         private readonly TenantContext $tenantContext,
@@ -78,7 +77,7 @@ final class RepositoryController extends AbstractController
     {
         $connected = RepositorySource::Github === $input->source
             ? $this->connectGitHub($input->githubRepositoryId ?? throw new \LogicException('The input validation requires the ID.'))
-            : $this->connectLocal($input->directory ?? throw new \LogicException('The input validation requires the directory.'));
+            : $this->connectLocalRepository->connect($input->directory ?? throw new \LogicException('The input validation requires the directory.'));
         $id = $connected->repository->getId();
         $view = $this->repositories->get($id);
 
@@ -170,44 +169,6 @@ final class RepositoryController extends AbstractController
             $this->usageLimits->checkNewRepository($tenantId);
 
             $repository = Repository::gitHub($tenantId, $name, $githubRepositoryId, $candidate->getInstallationId(), $candidate->isPrivate(), $this->clock->now());
-            $this->entityManager->persist($repository);
-
-            return new ConnectedRepository($repository, true);
-        }) ?? throw new NotFound();
-
-        if ($connected->created) {
-            $this->fetchRepository->queueClone($connected->repository);
-        }
-
-        return $connected;
-    }
-
-    /**
-     * A new repository is `cloning`, and its clone job is queued after the row commits.
-     *
-     * @throws InvalidInput  Local repositories are off, or the name is not a direct child name
-     * @throws NotFound      The directory is not a local candidate, or the tenant is being deleted
-     * @throws LimitExceeded
-     */
-    private function connectLocal(string $directory): ConnectedRepository
-    {
-        if (!$this->discovery->isEnabled()) {
-            throw InvalidInput::field('source', 'Local repositories are off on this instance.');
-        }
-
-        $name = RepositoryName::local($directory, 'directory');
-        $this->discovery->find($directory) ?? throw new NotFound('The directory is not a local repository candidate.');
-        $tenantId = $this->tenantContext->get();
-        // A second concurrent connect waits, then finds the row, instead of failing on the unique index.
-        $connected = $this->repositoriesLock->run($tenantId, function () use ($tenantId, $name, $directory): ConnectedRepository {
-            $existing = $this->repositoryRows->findLocal($directory);
-
-            if (null !== $existing) {
-                return new ConnectedRepository($existing, false);
-            }
-
-            $this->usageLimits->checkNewRepository($tenantId);
-            $repository = Repository::local($tenantId, $name, $directory, $this->clock->now());
             $this->entityManager->persist($repository);
 
             return new ConnectedRepository($repository, true);

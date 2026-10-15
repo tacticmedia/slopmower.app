@@ -64,10 +64,10 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F46 | [RDS auth bundle 1.2](F46-rds-auth-bundle-1-2.md) | Done 2026-10-09, [report](reports/F46.md) | a039aa7 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26343 lines; assets 159 TS / 9202 lines; check 9m51s |
 | F47 | [Product name Slopmower](F47-product-name-slopmower.md) | Done 2026-10-13, [report](reports/F47.md) | 91b4995 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26343 lines; assets 159 TS / 9202 lines; check 8m34s |
 | F48 | [Agent suggestions](F48-agent-suggestions.md) | Done 2026-10-14, [report](reports/F48.md) | 7c35379 | src 487 PHP / 33070 lines, 487 types; tests 325 PHP / 29742 lines; assets 165 TS / 9660 lines; check 3m31s |
-| F49 | [Development fixtures](F49-dev-fixtures.md) | Planned (2026-10-15) | | |
+| F49 | [Development fixtures](F49-dev-fixtures.md) | Done 2026-10-15, [report](reports/F49.md) | | src 493 PHP / 33336 lines, 493 types; tests 326 PHP / 29899 lines; assets 165 TS / 9660 lines |
 | F50 | [Production image](F50-production-image.md) | Planned (2026-10-15) | | |
-| F51 | [Sentry data rules](F51-sentry-data-rules.md) | Planned (2026-10-15) | | |
-| F52 | [Follow-ups of F39 to F45](F52-follow-ups-of-f39-to-f45.md) | Planned (2026-10-15) | | |
+| F51 | [Sentry data rules](F51-sentry-data-rules.md) | In progress (2026-10-15) | | |
+| F52 | [Follow-ups of F39 to F45](F52-follow-ups-of-f39-to-f45.md) | In progress (2026-10-15) | | |
 
 ## Candidates
 
@@ -117,6 +117,7 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **Retention job logs.** Scheduled as F52. The F44 jobs log nothing. The purge of the queue `failed` also deletes failed deletion and tenant purge jobs after 30 days, without a log line. Messenger logs each of them at `critical` when it fails, so the failure is in the prod log once. A record at `error` with the count, and the ID and class of each deleted message, would show what the purge removed. From the F44 review.
 - **Legal links in the app.** Scheduled as F52. Link the privacy policy, the terms, and the support page from the app shell, for example in Settings or a footer, and from the docs layout. Today only the sign-in page and the docs index link them. From the F43 report.
 - **Marketplace record after account deletion.** Scheduled as F52. The tenant purge keeps the `marketplace_account` record of the personal GitHub account, so the account ID and the plan stay until GitHub reports that the plan ended. The sign-in reads the plan again, so the purge could delete the record of the personal account when no other tenant uses it. The F43 privacy policy states the current behaviour. From the F43 review.
+- **Idle worker log and memory.** The idle dev worker writes one `app.DEBUG` line, "Worker waiting for PostgreSQL LISTEN/NOTIFY wake-up.", about once a second, roughly 9 MB a day. The rotation of F52 keeps 2 days. A log channel of its own for that listener would remove it. The idle dev worker also reaches `--memory-limit=96M` and stops: 18 times in the main `dev.log` by 2026-10-15, about every 11 to 30 minutes, and compose starts it again. The cause is not known; the debug collectors of `dev` are a guess. From the F52 report and review.
 - **Bulk triage of suggestions.** Accept or dismiss many agent suggestions at once. From F48.
 - **Suggested diff on a suggestion.** A suggestion with a diff, before the claim. The agent proposes a diff after the claim with `propose_solution`. From F48.
 - **Edit a suggestion before accepting.** The user replies in the thread instead. From F48.

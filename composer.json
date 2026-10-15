@@ -80,7 +80,8 @@
         "symfony/debug-bundle": "~8.1.0",
         "symfony/maker-bundle": "^1.0",
         "symfony/stopwatch": "~8.1.0",
-        "symfony/web-profiler-bundle": "~8.1.0"
+        "symfony/web-profiler-bundle": "~8.1.0",
+        "zenstruck/foundry": "^2.14"
     },
     "replace": {
         "symfony/polyfill-ctype": "*",

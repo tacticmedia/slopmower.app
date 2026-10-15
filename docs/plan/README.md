@@ -160,7 +160,8 @@ PHP, Composer, the console, and PHPUnit run in the `php` container. `make` wraps
 | `make composer c="<arguments>"` | `composer <arguments>` |
 | `make mate c="<arguments>"` | `vendor/bin/mate <arguments>`: Symfony AI Mate tools, for example `tools:list` or `tools:call monolog-tail --level=ERROR`. The project tools `review-list` and `review-events` in `mate/src` read the reviews and the event log of the dev database, as `mate/INSTRUCTIONS.md` describes. |
 | `make migration` | `bin/console make:migration --no-interaction` |
-| `make db-reset` | Dev database: drop, create, migrate. Ask Jan first. |
+| `make db-reset` | Dev database: drop, create, migrate. Ask Jan first. Run `make fixtures` after it. |
+| `make fixtures` | `bin/console foundry:load-fixtures dev --append --no-transaction`: the local user of `APP_LOCAL_SIGN_IN`, the agent token `APP_DEV_API_TOKEN` of `.env.dev`, and the local repository `APP_DEV_REPOSITORY`. A second load adds no row. |
 | `make db-test` | Databases `app_test` and `app_e2e`: create each one if it is missing, then migrate it |
 | `make test` | `bin/phpunit --testsuite unit,functional`. Runs `npm run build:e2e` first when `package.json` exists and `public/build-e2e/entrypoints.json` is missing. |
 | `make e2e` | `npm run build:e2e` on the host when `package.json` exists, then in the `php` container: `npm install --save-exact playwright@$PLAYWRIGHT_VERSION` for the playwright-php server, `vendor/bin/playwright-install chromium` (returns at once when the browser is present), and `bin/phpunit --testsuite e2e` |
