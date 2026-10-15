@@ -69,7 +69,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F51 | [Sentry data rules](F51-sentry-data-rules.md) | Done 2026-10-15, [report](reports/F51.md) | a272724 | src 494 PHP / 33472 lines, 494 types; tests 330 PHP / 30307 lines; assets 165 TS / 9670 lines; check 3m37s |
 | F52 | [Follow-ups of F39 to F45](F52-follow-ups-of-f39-to-f45.md) | Done 2026-10-15, [report](reports/F52.md) | d5552ec | src 493 PHP / 33395 lines, 493 types; tests 327 PHP / 30053 lines; assets 165 TS / 9670 lines; check 3m47s |
 | F53 | [Worker and MCP diagnostics](F53-worker-and-mcp-diagnostics.md) | In progress (2026-10-16) | | |
-| F54 | [Pull request state after a late permission](F54-pull-request-state-after-a-late-permission.md) | Done 2026-10-16, [report](reports/F54.md) | | src 494 PHP / 33541 lines, 494 types; tests 331 PHP / 30468 lines; assets 165 TS / 9670 lines |
+| F54 | [Pull request state after a late permission](F54-pull-request-state-after-a-late-permission.md) | Done 2026-10-16, [report](reports/F54.md) | a6a201a | src 494 PHP / 33541 lines, 494 types; tests 331 PHP / 30468 lines; assets 165 TS / 9670 lines; check 4m57s |
 
 ## Candidates
 
