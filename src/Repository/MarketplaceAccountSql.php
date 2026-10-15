@@ -27,6 +27,11 @@ final class MarketplaceAccountSql
         SQL;
     private const string RECORD_PENDING_CHANGE = 'UPDATE marketplace_account SET pending_plan_id = :pendingPlanId, pending_effective_at = :pendingEffectiveAt WHERE account_id = :accountId';
     private const string DELETE = 'DELETE FROM marketplace_account WHERE account_id = :accountId';
+    private const string DELETE_OF_TENANT_USER = <<<'SQL'
+        DELETE FROM marketplace_account
+        WHERE account_id IN (SELECT github_user_id FROM app_user WHERE tenant_id = :tenantId)
+            AND NOT EXISTS (SELECT 1 FROM github_installation WHERE tenant_id <> :tenantId AND account_id = marketplace_account.account_id)
+        SQL;
     private const string OF_TENANT = <<<'SQL'
         SELECT plan_id, trial_ends_at, pending_plan_id, pending_effective_at FROM marketplace_account
         WHERE account_id IN (
@@ -75,6 +80,15 @@ final class MarketplaceAccountSql
     public function delete(int $accountId): void
     {
         $this->connection->executeStatement(self::DELETE, ['accountId' => $accountId]);
+    }
+
+    /**
+     * The record of the GitHub account of the user of the tenant, unless another tenant has that account as an
+     * installation account. Reads the user row, so it runs before the purge deletes it.
+     */
+    public function deleteOfTenantUser(TenantId $tenantId): void
+    {
+        $this->connection->executeStatement(self::DELETE_OF_TENANT_USER, ['tenantId' => $tenantId->toRfc4122()]);
     }
 
     /**

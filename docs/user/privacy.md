@@ -83,7 +83,7 @@ We keep your data in [TO SUPPLY: storage country]. GitHub processes data in the 
 - **Reviews and requests:** until you delete the review, the data of the repository, or your account.
 - **Your account:** until you delete it with **Delete account** in **Settings**. We then revoke your API tokens, sign you out, and delete all the data of the account.
 - **After you cancel the paid plan of your personal GitHub account:** your GitHub account moves to the free plan. 30 days after the cancellation, we ask GitHub again. We delete all the data of your Slopmower account if GitHub reports no Marketplace plan for your GitHub account, and your Slopmower account has no GitHub App installation left, on any GitHub account. A new purchase or installation in those 30 days stops the deletion.
-- **Plan:** until GitHub tells us that the plan ended, also after you delete your account, because the plan belongs to the GitHub account.
+- **Plan:** until GitHub tells us that the plan ended. When you delete your account, we also delete the plan of your personal GitHub account, unless another Slopmower account uses a GitHub App installation on your personal GitHub account. We keep the plan of an organization until GitHub tells us that the plan ended, because the plan belongs to the organization. A new sign-in reads the plan from GitHub again.
 - **Check runs:** GitHub has no API to delete a check run. So check runs stay on GitHub after you delete a review, the data of a repository, or your account.
 - **GitHub events:** we delete an event at once when we have processed it. An event or a background job that failed stays for at most 31 days.
 - **Webhook delivery IDs:** 7 days.

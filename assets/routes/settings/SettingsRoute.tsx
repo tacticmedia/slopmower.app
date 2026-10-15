@@ -1,4 +1,4 @@
-import { Button, Heading } from '@primer/react';
+import { Button, Heading, Link } from '@primer/react';
 import { Table } from '@primer/react/experimental';
 import { useState } from 'react';
 import { useLoaderData, useRouteLoaderData } from 'react-router';
@@ -71,6 +71,16 @@ export function SettingsRoute() {
                 <p className={styles.note}>Deletes your account and all its data. You cannot undo this.</p>
                 <DeleteAccountDialog user={me.user} />
             </section>
+            <nav className={styles.pageSection} aria-labelledby="legal-title">
+                <Heading as="h2" id="legal-title" className={styles.pageSectionTitle}>
+                    Legal and support
+                </Heading>
+                <p className={styles.linkList}>
+                    <Link href="/docs/privacy">Privacy policy</Link>
+                    <Link href="/docs/terms">Terms of service</Link>
+                    <Link href="/docs/support">Support</Link>
+                </p>
+            </nav>
             {creating && <CreateTokenDialog repositories={repositories} mcpUrl={me.links.mcpUrl} onClose={() => setCreating(false)} />}
         </>
     );

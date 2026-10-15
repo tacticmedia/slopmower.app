@@ -26,10 +26,6 @@
         {% endif %}
     </main>
     <footer>
-        <nav aria-label="Legal and support">
-            <a href="{{ path('docs_page', {slug: 'privacy'}) }}">Privacy policy</a>
-            <a href="{{ path('docs_page', {slug: 'terms'}) }}">Terms of service</a>
-            <a href="{{ path('docs_page', {slug: 'support'}) }}">Support</a>
-        </nav>
+        {{ include('_legal_links.html.twig') }}
     </footer>
 {% endblock %}

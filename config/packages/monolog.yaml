@@ -5,11 +5,14 @@ monolog:
 when@dev:
     monolog:
         handlers:
+            # var/log/dev-<date>.log. No doctrine: the queue poll of the idle worker fills the file, and the profiler has the
+            # queries of each request.
             main:
-                type: stream
+                type: rotating_file
                 path: "%kernel.logs_dir%/%kernel.environment%.log"
+                max_files: 2
                 level: debug
-                channels: ["!event"]
+                channels: ["!event", "!doctrine"]
             console:
                 type: console
                 process_psr_3_messages: false

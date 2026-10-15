@@ -167,4 +167,4 @@ The file uses make syntax: write `$(HOME)`, not `$HOME`, and no quotes. With ano
 | The sign-in page says "No sign-in method is configured." | `APP_LOCAL_SIGN_IN` was not set at the last `make up`. Set it and run `make up` again. |
 | `make act` says "waiting for the act run in container ..." | Another checkout runs `make act`, and this run starts after it. After an hour it stops waiting. If no act process runs, an earlier run was killed: remove that container with `docker rm -f <container>`. |
 
-For more, read `var/log/dev.log` and the web profiler at http://localhost:8000/_profiler.
+For more, read `var/log/dev-<date>.log` and the web profiler at http://localhost:8000/_profiler.

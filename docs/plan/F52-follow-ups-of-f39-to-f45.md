@@ -24,6 +24,9 @@ Verified in the code on 2026-10-15:
 - **Purge log.** The purge of the queue `failed` writes one record at `error` when it deletes at least one message: the count, and the ID and the message class of each deleted message. `error`, because a message that nobody retried in 30 days is a failure that nobody handled. The class comes from the stored envelope. The record holds no message content.
 - **Marketplace record.** The tenant purge also deletes the `marketplace_account` record of the GitHub account of the tenant user, when no other tenant has that account as its user account or as an installation account. The next sign-in reads the plan again. The F43 privacy policy changes to say so.
 - **Legal links.** Settings gets the links to the privacy policy, the terms, and the support page. The docs layout gets the same links in its footer.
+- **Review decisions, 2026-10-15:**
+  - The purge deletes and logs in batches of 100, one `error` record per batch after its commit. One `DELETE ... RETURNING body` for all messages held every envelope in worker memory after the commit, and the prod JSON formatter cuts a context above 1000 items.
+  - The Marketplace record check looks only at installation accounts of other tenants. `app_user.github_user_id` is unique, so no other tenant has the account as its user account.
 
 ## Depends on
 

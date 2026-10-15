@@ -5,8 +5,10 @@
 {% block stylesheets %}
     <style>
         body { margin: 0; font: 16px/1.6 system-ui, sans-serif; color: #1f2328; }
-        .docs-header, .docs-content { max-width: 52rem; margin: 0 auto; padding: 0 1rem; }
+        .docs-header, .docs-content, .docs-footer { max-width: 52rem; margin: 0 auto; padding: 0 1rem; }
         .docs-header { padding-block: 0.75rem; border-bottom: 1px solid #d1d9e0; }
+        .docs-footer { margin-top: 2rem; padding-block: 0.75rem; border-top: 1px solid #d1d9e0; font-size: 0.875rem; }
+        .docs-footer nav { display: flex; flex-wrap: wrap; gap: 1rem; }
         .docs-header a { color: inherit; font-weight: 600; text-decoration: none; }
         a { color: #0969da; }
         code, pre { font-family: ui-monospace, monospace; font-size: 0.875em; background: #f6f8fa; border-radius: 6px; }
@@ -25,4 +27,7 @@
     <main class="docs-content">
         {% block content %}{% endblock %}
     </main>
+    <footer class="docs-footer">
+        {{ include('_legal_links.html.twig') }}
+    </footer>
 {% endblock %}

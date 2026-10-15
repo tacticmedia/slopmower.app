@@ -64,7 +64,7 @@ bin/console messenger:consume async scheduler_default --time-limit=3600
 ```
 
 - `async` runs the background jobs: clones and fetches, the symbol index, the GitHub webhook jobs, and deletions.
-- `scheduler_default` is the schedule `App\Schedule`. Each day at 03:00 UTC, it deletes the expired rows of `rate_limiter.cache` and the messages of the queue `failed` that are older than 30 days. Both jobs are idempotent, so several workers can consume the schedule.
+- `scheduler_default` is the schedule `App\Schedule`. Each day at 03:00 UTC, it deletes the expired rows of `rate_limiter.cache` and the messages of the queue `failed` that are older than 30 days. The purge deletes in batches of 100, and logs one record at `error` per batch with the count, and the ID and the message class of each deleted message. Both jobs are idempotent, so several workers can consume the schedule.
 - The schedule keeps its last run in the cache pool `cache.app`, under `<APP_SHARE_DIR>/<environment>/pools/app`. A worker that starts at or after 03:00 UTC after a missed run runs it once. A worker that starts before 03:00 UTC waits for 03:00. Without that directory, a missed run waits for the next day.
 - The worker reads `scheduler_default` only when `async` is empty, so a backlog in `async` makes the daily run late.
 - A failed job is not retried, because `scheduler_default` has no retry strategy and no failure transport. Messenger logs the failure at `critical`, and the job runs again the next day.

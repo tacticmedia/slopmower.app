@@ -22,7 +22,7 @@ final class PlanConfigurationTest extends KernelTestCase
         $this->setEnvironmentVariable('APP_PAID_PLANS', '{"pro": {"name": "Pro", "marketplace_plan_id": 1313, "rank": 0, "repositories": 100, "open_reviews": 100, "requests_per_review": 5000, "repository_size_mib": 4096, "tenant_storage_mib": 51200}}');
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('APP_PAID_PLANS: the plan "pro" needs a marketplace_plan_id and a rank of at least 1.');
+        $this->expectExceptionMessageIsOrContains('APP_PAID_PLANS: the plan "pro" needs a marketplace_plan_id and a rank of at least 1.');
 
         self::getContainer()->get(Plans::class);
     }

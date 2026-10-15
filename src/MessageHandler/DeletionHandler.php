@@ -14,6 +14,7 @@ use App\Git\TenantDataPaths;
 use App\Message\DeleteCloneJob;
 use App\Message\PurgeTenantJob;
 use App\Repository\DeletionSql;
+use App\Repository\MarketplaceAccountSql;
 use App\Repository\RepositoryRepository;
 use App\Repository\TenantRepository;
 use App\Tenancy\TenantFilter;
@@ -31,6 +32,7 @@ final class DeletionHandler
         private readonly RepositoryRepository $repositories,
         private readonly CommandExecutor $executor,
         private readonly DeletionSql $deletion,
+        private readonly MarketplaceAccountSql $marketplaceAccounts,
         private readonly RepositoryLock $repositoryLock,
         private readonly TenantDataPaths $paths,
     ) {
@@ -73,6 +75,7 @@ final class DeletionHandler
                 $kept = null !== $keep && $keep();
 
                 if (!$kept) {
+                    $this->marketplaceAccounts->deleteOfTenantUser($tenantId);
                     $this->deletion->deleteTenant($tenantId);
                 }
             });

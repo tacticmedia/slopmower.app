@@ -48,6 +48,16 @@ final class DocsRenderingTest extends WebTestCase
         self::assertSame([], array_values(array_filter($hrefs, static fn (string $href): bool => str_contains($href, '.md'))));
     }
 
+    #[TestDox('A docs page links the privacy policy, the terms of service, and the support page')]
+    public function testPageLinksTheLegalAndSupportPages(): void
+    {
+        $client = static::createClient();
+
+        $crawler = $client->request('GET', '/docs/connect-your-agent');
+
+        self::assertSame(['/docs/privacy', '/docs/terms', '/docs/support'], $crawler->filter('footer nav[aria-label="Legal and support"] a')->extract(['href']));
+    }
+
     /**
      * @return iterable<string, array{string, string}>
      */

@@ -4,12 +4,19 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Messenger;
 
+use App\Domain\Identity\RepositoryId;
+use App\Domain\Identity\TenantId;
+use App\Message\DeleteCloneJob;
 use App\Message\PruneRateLimiterCacheJob;
 use App\Message\PurgeFailedMessagesJob;
+use App\Message\PurgeTenantJob;
+use App\Messenger\FailedMessageSql;
 use App\Schedule;
 use App\Tests\Support\Database\ResetDatabase;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
+use Monolog\Level;
+use Monolog\LogRecord;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Cache\Adapter\DoctrineDbalAdapter;
@@ -65,6 +72,45 @@ final class RetentionJobsTest extends KernelTestCase
         self::assertSame([$recentId, $asyncId], array_map(intval(...), self::connection()->fetchFirstColumn('SELECT id FROM messenger_messages ORDER BY id')));
     }
 
+    #[TestDox('The failed-message job logs an error with the count, and the ID and the message class of each deleted message')]
+    public function testPurgeLogsTheDeletedMessages(): void
+    {
+        self::mockTime('2026-10-13 03:00:00 UTC');
+        $tenantId = TenantId::generate();
+        $purgeId = self::sendFailedMessage('2026-09-01 00:00:00', new PurgeTenantJob($tenantId));
+        $cloneId = self::sendFailedMessage('2026-09-02 00:00:00', new DeleteCloneJob($tenantId, RepositoryId::generate()));
+        self::sendFailedMessage('2026-10-01 00:00:00');
+
+        self::receive(new PurgeFailedMessagesJob());
+
+        $errors = self::errorRecords();
+        self::assertCount(1, $errors);
+        self::assertSame(['count' => 2, 'messages' => [['id' => $purgeId, 'class' => PurgeTenantJob::class], ['id' => $cloneId, 'class' => DeleteCloneJob::class]]], $errors[0]->context);
+    }
+
+    #[TestDox('The failed-message job deletes in batches of 100 and logs one error per batch')]
+    public function testPurgeLogsOneErrorPerBatch(): void
+    {
+        self::mockTime('2026-10-13 03:00:00 UTC');
+        self::copyMessage(self::sendFailedMessage('2026-09-01 00:00:00'), FailedMessageSql::BATCH_SIZE);
+
+        self::receive(new PurgeFailedMessagesJob());
+
+        self::assertSame([FailedMessageSql::BATCH_SIZE, 1], array_map(static fn (LogRecord $record): mixed => $record->context['count'] ?? null, self::errorRecords()));
+        self::assertSame(0, (int) self::connection()->fetchOne('SELECT count(*) FROM messenger_messages'));
+    }
+
+    #[TestDox('The failed-message job logs nothing when it deletes nothing')]
+    public function testPurgeWithoutOldMessagesLogsNothing(): void
+    {
+        self::mockTime('2026-10-13 03:00:00 UTC');
+        self::sendFailedMessage('2026-10-01 00:00:00');
+
+        self::receive(new PurgeFailedMessagesJob());
+
+        self::assertSame([], static::getContainer()->get('monolog.handler.records')->getRecords());
+    }
+
     #[TestDox('The schedule runs both jobs once a day at 03:00 UTC')]
     public function testScheduleRunsBothJobsDaily(): void
     {
@@ -94,9 +140,9 @@ final class RetentionJobsTest extends KernelTestCase
         static::getContainer()->get(MessageBusInterface::class)->dispatch(new Envelope($job, [new ReceivedStamp('scheduler_default')]));
     }
 
-    private static function sendFailedMessage(string $createdAt): int
+    private static function sendFailedMessage(string $createdAt, object $message = new \stdClass()): int
     {
-        $id = (int) (static::getContainer()->get('messenger.transport.failed')->send(new Envelope(new \stdClass()))->last(TransportMessageIdStamp::class)?->getId() ?? self::fail('No message ID.'));
+        $id = (int) (static::getContainer()->get('messenger.transport.failed')->send(new Envelope($message))->last(TransportMessageIdStamp::class)?->getId() ?? self::fail('No message ID.'));
 
         self::connection()->executeStatement(
             'UPDATE messenger_messages SET created_at = :createdAt WHERE id = :id',
@@ -105,6 +151,14 @@ final class RetentionJobsTest extends KernelTestCase
         );
 
         return $id;
+    }
+
+    private static function copyMessage(int $id, int $copies): void
+    {
+        self::connection()->executeStatement(
+            'INSERT INTO messenger_messages (body, headers, queue_name, created_at, available_at) SELECT body, headers, queue_name, created_at, available_at FROM messenger_messages CROSS JOIN generate_series(1, :copies) WHERE id = :id',
+            ['copies' => $copies, 'id' => $id],
+        );
     }
 
     /**
@@ -117,6 +171,14 @@ final class RetentionJobsTest extends KernelTestCase
             ['createdAt' => new \DateTimeImmutable($createdAt)],
             ['createdAt' => Types::DATETIME_IMMUTABLE],
         );
+    }
+
+    /**
+     * @return list<LogRecord>
+     */
+    private static function errorRecords(): array
+    {
+        return array_values(array_filter(static::getContainer()->get('monolog.handler.records')->getRecords(), static fn (LogRecord $record): bool => Level::Error === $record->level));
     }
 
     private static function connection(): Connection

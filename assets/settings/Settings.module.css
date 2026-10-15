@@ -23,6 +23,13 @@
     color: var(--fgColor-muted);
 }
 
+.linkList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--base-size-16);
+    margin: var(--base-size-8) 0;
+}
+
 .secret,
 .code {
     display: block;
