@@ -70,6 +70,28 @@ final class ChangeRequestRepository extends ServiceEntityRepository
      */
     public function findLinkingPullRequest(RepositoryId $repositoryId, int $number): array
     {
+        return array_values(array_filter(
+            $this->findLinkingInRepository($repositoryId),
+            static fn (ChangeRequest $request): bool => array_any($request->getPullRequestUrls(), static fn (PullRequestUrl $url): bool => $number === $url->gitHubNumber()),
+        ));
+    }
+
+    /**
+     * @return list<int> The GitHub pull requests that the requests of the repository link, also under an earlier name of
+     *                   the repository
+     */
+    public function findLinkedPullRequestNumbers(RepositoryId $repositoryId): array
+    {
+        $urls = array_merge(...array_map(static fn (ChangeRequest $request): array => $request->getPullRequestUrls(), $this->findLinkingInRepository($repositoryId)));
+
+        return array_values(array_unique(array_filter(array_map(static fn (PullRequestUrl $url): ?int => $url->gitHubNumber(), $urls), static fn (?int $number): bool => null !== $number)));
+    }
+
+    /**
+     * @return list<ChangeRequest> The requests of the repository with a pull request link
+     */
+    private function findLinkingInRepository(RepositoryId $repositoryId): array
+    {
         /** @var list<ChangeRequest> $linking */
         $linking = $this->createQueryBuilder('request')
             ->join('request.review', 'review')
@@ -82,9 +104,6 @@ final class ChangeRequestRepository extends ServiceEntityRepository
             ->setHint(Query::HINT_REFRESH, true)
             ->getResult();
 
-        return array_values(array_filter(
-            $linking,
-            static fn (ChangeRequest $request): bool => array_any($request->getPullRequestUrls(), static fn (PullRequestUrl $url): bool => $number === $url->gitHubNumber()),
-        ));
+        return $linking;
     }
 }

@@ -104,7 +104,7 @@ A linked commit does not finish a request. The agent marks the request **Ready f
 
 When the agent opened a pull request for its work, it links the pull request to the requests that it covers. The header of the request lists its pull requests, and the conversation shows each link. Click a pull request to open it in a new tab. The agent can remove a link that it made by mistake. The conversation shows the removal too.
 
-For a GitHub repository, each pull request shows its state on GitHub: Open, Draft, Merged, or Closed. The header also shows its title. When the pull request changes on GitHub, for example when it is merged, the label changes without a reload. A pull request shows no state when the repository is local, when Slopmower has not read it yet, when GitHub does not find it, or when the GitHub App installation has not accepted the permission Pull requests: read. Slopmower only reads pull requests. On GitHub it writes only the Slopmower check.
+For a GitHub repository, each pull request shows its state on GitHub: Open, Draft, Merged, or Closed. The header also shows its title. When the pull request changes on GitHub, for example when it is merged, the label changes without a reload. A pull request shows no state when the repository is local, when Slopmower has not read it yet, when GitHub does not find it, or when the GitHub App installation has not accepted the permission Pull requests: read. When the installation accepts it, Slopmower reads each linked pull request that shows no state. Slopmower only reads pull requests. On GitHub it writes only the Slopmower check.
 
 A pull request link does not change the status, and the request does not wait for you because of it. The agent opens a pull request only when you or the instructions of your repository ask for it.
 
@@ -114,7 +114,7 @@ For a GitHub repository, Slopmower sets your check **Slopmower (your login)**, w
 
 Each unfinished request on a line or file of the code shows as an annotation with its headline, its state, and its link: a warning while the agent works on it, and a notice while it waits for you. **Files changed** shows the annotations on the files that the pull request changes, and the page of the check shows all of them. The summary of the check lists the linked requests per review, with a link to each. A general request has no annotation. A pull request from a fork gets no annotations, because Slopmower fetches only the branches of the repository. **Re-run** on GitHub sets the check again.
 
-The check needs the permission Checks: write. When your installation of the GitHub App does not have it yet, accept the new permission on GitHub.
+The check needs the permission Checks: write. When your installation of the GitHub App does not have it yet, accept the new permission on GitHub. Slopmower then sets your check on each open pull request that one of your requests links.
 
 By default, only the pull requests that your requests link get your check. To check every pull request of a GitHub repository, open the repository in Slopmower and switch on **Check every pull request**. A pull request without your linked requests then gets a neutral check when it is opened, reopened, or pushed to, so your check does not block its merge.
 

@@ -20,6 +20,9 @@ Verified in the code on 2026-10-15:
 
 - **Trigger.** `handlePermissions()` compares the old and the new permissions. When Pull requests: read is new, it queues a `ReadPullRequestJob` for each linked pull request of the installation's repositories that has no record. When Checks: write is new, it queues a `CheckRunJob` for each linked pull request of those repositories. The jobs are the existing jobs of F40 and F41, so the rate limits, the locks, and the retries stay the same.
 - **No console command.** The webhook covers the case. An installation that accepted the permissions before F54 gets its states and check runs at the next trigger, as now.
+- **Review decisions, 2026-10-16:**
+  - "Without a record" means without a read state: `handleRead()` writes the record before it checks the permission, so a skipped read leaves a record in state `unknown`.
+  - A new Checks: write also queues the read of each linked pull request without a read state. The read sets the head SHA, and the record then queues its check run. A check run needs the record ID.
 
 ## Depends on
 

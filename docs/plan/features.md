@@ -68,8 +68,8 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F50 | [Production image](F50-production-image.md) | Planned (2026-10-15) | | |
 | F51 | [Sentry data rules](F51-sentry-data-rules.md) | Done 2026-10-15, [report](reports/F51.md) | a272724 | src 494 PHP / 33472 lines, 494 types; tests 330 PHP / 30307 lines; assets 165 TS / 9670 lines; check 3m37s |
 | F52 | [Follow-ups of F39 to F45](F52-follow-ups-of-f39-to-f45.md) | Done 2026-10-15, [report](reports/F52.md) | d5552ec | src 493 PHP / 33395 lines, 493 types; tests 327 PHP / 30053 lines; assets 165 TS / 9670 lines; check 3m47s |
-| F53 | [Worker and MCP diagnostics](F53-worker-and-mcp-diagnostics.md) | Planned (2026-10-15) | | |
-| F54 | [Pull request state after a late permission](F54-pull-request-state-after-a-late-permission.md) | Planned (2026-10-15) | | |
+| F53 | [Worker and MCP diagnostics](F53-worker-and-mcp-diagnostics.md) | In progress (2026-10-16) | | |
+| F54 | [Pull request state after a late permission](F54-pull-request-state-after-a-late-permission.md) | Done 2026-10-16, [report](reports/F54.md) | | src 494 PHP / 33541 lines, 494 types; tests 331 PHP / 30468 lines; assets 165 TS / 9670 lines |
 
 ## Candidates
 
@@ -120,6 +120,8 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **Legal links in the app.** Scheduled as F52. Link the privacy policy, the terms, and the support page from the app shell, for example in Settings or a footer, and from the docs layout. Today only the sign-in page and the docs index link them. From the F43 report.
 - **Marketplace record after account deletion.** Scheduled as F52. The tenant purge keeps the `marketplace_account` record of the personal GitHub account, so the account ID and the plan stay until GitHub reports that the plan ended. The sign-in reads the plan again, so the purge could delete the record of the personal account when no other tenant uses it. The F43 privacy policy states the current behaviour. From the F43 review.
 - **MCP tool errors in Sentry.** Scheduled as F53. `McpTools::run()` catches every Throwable of a tool, logs it on `app`, and answers `internal_error`, so a server error inside an MCP tool never reaches `kernel.exception` and Sentry. A capture through the Sentry hub in that catch would report it with the F51 data rules. From the F51 report.
+- **Pull request states after an unsuspend.** A suspended installation gets no webhook events, and its reads and check runs are skipped. `handleSuspension()` records only the suspension, so after an unsuspend every linked record can be stale: an old state, an old head SHA, and no check run on the new head until a push. A read of every linked pull request of the installation on `unsuspend` would repair them. From the F54 report and review.
+- **Permissions recorded by a sign-in.** `InstallationSync::record()` writes the listed permissions at a sign-in and queues nothing. When a sign-in runs before the worker handles a `new_permissions_accepted` job, or when that delivery fails, F54 sees no new permission and queues no read and no check run. From the F54 review.
 - **Idle worker log and memory.** Scheduled as F53. The idle dev worker writes one `app.DEBUG` line, "Worker waiting for PostgreSQL LISTEN/NOTIFY wake-up.", about once a second, roughly 9 MB a day. The rotation of F52 keeps 2 days. A log channel of its own for that listener would remove it. The idle dev worker also reaches `--memory-limit=96M` and stops: 18 times in the main `dev.log` by 2026-10-15, about every 11 to 30 minutes, and compose starts it again. The cause is not known; the debug collectors of `dev` are a guess. From the F52 report and review.
 - **Bulk triage of suggestions.** Accept or dismiss many agent suggestions at once. From F48.
 - **Suggested diff on a suggestion.** A suggestion with a diff, before the claim. The agent proposes a diff after the claim with `propose_solution`. From F48.
