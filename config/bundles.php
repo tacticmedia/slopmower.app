@@ -16,4 +16,5 @@ return [
     Symfony\AI\McpBundle\McpBundle::class => ['all' => true],
     Symfony\Bundle\MercureBundle\MercureBundle::class => ['all' => true],
     TacticMedia\RdsAuthBundle\RdsAuthBundle::class => ['all' => true],
+    Sentry\SentryBundle\SentryBundle::class => ['prod' => true],
 ];
