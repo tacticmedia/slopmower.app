@@ -46,6 +46,10 @@ class Draft implements TenantOwned
     #[ORM\ManyToOne]
     private ?ChangeRequest $request;
 
+    /** Always null for a reply. */
+    #[ORM\Column(length: 200, nullable: true)]
+    private ?string $title;
+
     #[ORM\Column(type: Types::TEXT)]
     private string $body;
 
@@ -59,7 +63,7 @@ class Draft implements TenantOwned
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
-    private function __construct(User $user, Review $review, ?Anchor $anchor, ?ChangeRequest $request, string $body, bool $requireApproval, \DateTimeImmutable $now)
+    private function __construct(User $user, Review $review, ?Anchor $anchor, ?ChangeRequest $request, ?string $title, string $body, bool $requireApproval, \DateTimeImmutable $now)
     {
         if (!$review->getTenantId()->equals($user->getTenantId())) {
             throw new \LogicException('The review belongs to another tenant.');
@@ -72,6 +76,7 @@ class Draft implements TenantOwned
         $this->kind = null === $request ? DraftKind::NewRequest : DraftKind::Reply;
         $this->anchor = $anchor;
         $this->request = $request;
+        $this->title = self::trimmed($title);
         $this->body = $body;
         $this->requireApproval = $requireApproval;
         $this->createdAt = self::storedTime($now);
@@ -80,28 +85,36 @@ class Draft implements TenantOwned
 
     /**
      * @param Anchor|null $anchor Captured at the review commit. Null for a general request.
+     * @param string|null $title  Stored trimmed
      */
-    public static function newRequest(User $user, Review $review, ?Anchor $anchor, string $body, bool $requireApproval, \DateTimeImmutable $now): self
+    public static function newRequest(User $user, Review $review, ?Anchor $anchor, ?string $title, string $body, bool $requireApproval, \DateTimeImmutable $now): self
     {
-        return new self($user, $review, $anchor, null, $body, $requireApproval, $now);
+        return new self($user, $review, $anchor, null, $title, $body, $requireApproval, $now);
     }
 
     public static function reply(User $user, ChangeRequest $request, string $body, \DateTimeImmutable $now): self
     {
-        return new self($user, $request->getReview(), null, $request, $body, false, $now);
+        return new self($user, $request->getReview(), null, $request, null, $body, false, $now);
     }
 
     /**
+     * Replaces the title and the body together, so a null title removes the title.
+     *
      * @param bool|null $requireApproval Null keeps the value
      *
-     * @throws InvalidInput For a reply that gets a requireApproval
+     * @throws InvalidInput For a reply that gets a title or a requireApproval
      */
-    public function edit(string $body, ?bool $requireApproval, \DateTimeImmutable $now): void
+    public function edit(?string $title, string $body, ?bool $requireApproval, \DateTimeImmutable $now): void
     {
+        if (null !== $title && DraftKind::Reply === $this->kind) {
+            throw InvalidInput::field('title', 'Only a new request has a title.');
+        }
+
         if (null !== $requireApproval && DraftKind::Reply === $this->kind) {
             throw InvalidInput::field('requireApproval', 'Only a new request asks for a plan first.');
         }
 
+        $this->title = self::trimmed($title);
         $this->body = $body;
         $this->requireApproval = $requireApproval ?? $this->requireApproval;
         $this->updatedAt = self::storedTime($now);
@@ -148,6 +161,11 @@ class Draft implements TenantOwned
         return $this->request;
     }
 
+    public function getTitle(): ?string
+    {
+        return $this->title;
+    }
+
     public function getBody(): string
     {
         return $this->body;
@@ -166,6 +184,11 @@ class Draft implements TenantOwned
     public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
+    }
+
+    private static function trimmed(?string $title): ?string
+    {
+        return null === $title ? null : trim($title);
     }
 
     /**

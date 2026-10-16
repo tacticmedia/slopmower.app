@@ -3,7 +3,7 @@
   "$id": "https://slopmower.invalid/schemas/v1/draft.schema.json",
   "title": "Draft",
   "type": "object",
-  "required": ["id", "reviewId", "kind", "anchor", "requestId", "body", "requireApproval", "createdAt", "updatedAt"],
+  "required": ["id", "reviewId", "kind", "anchor", "requestId", "title", "body", "requireApproval", "createdAt", "updatedAt"],
   "properties": {
     "id": {
       "$ref": "common.schema.json#/$defs/Ulid"
@@ -34,6 +34,17 @@
           "type": "null"
         }
       ]
+    },
+    "title": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Title"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "new_request: the title of the request that the submission opens, null without one. Always null for a reply."
     },
     "body": {
       "$ref": "common.schema.json#/$defs/Markdown"
@@ -72,6 +83,9 @@
           },
           "requestId": {
             "$ref": "common.schema.json#/$defs/Ulid"
+          },
+          "title": {
+            "type": "null"
           },
           "requireApproval": {
             "const": false

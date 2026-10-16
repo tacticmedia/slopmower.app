@@ -52,6 +52,7 @@ final class AllowedActions
             Action::ApproveProposal, Action::RejectProposal => $isUser && $inProgress && true === $state->proposal?->isPending(),
             Action::SetPlanRequirement => $isUser && !$suggestionPending && ($openOrReopened || $inProgress),
             Action::AcceptSuggestion, Action::DismissSuggestion => $isUser && $suggestionPending,
+            Action::SetTitle => $isUser || ($isAgent && null === $state->title),
         };
     }
 }

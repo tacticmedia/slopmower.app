@@ -16,6 +16,7 @@
       },
       "symbol": null
     },
+    "title": null,
     "summary": "Extract the tax rounding into `TaxRounding`.",
     "author": {
       "kind": "user",
@@ -44,7 +45,7 @@
     "suggestion": null,
     "proposal": null
   },
-  "allowedActions": ["reply", "release", "link_commits", "unlink_commit", "link_pull_request", "mark_ready_for_review", "mark_wont_do", "propose_solution"],
+  "allowedActions": ["reply", "release", "link_commits", "unlink_commit", "link_pull_request", "mark_ready_for_review", "mark_wont_do", "propose_solution", "set_title"],
   "events": [
     {
       "seq": 1844,

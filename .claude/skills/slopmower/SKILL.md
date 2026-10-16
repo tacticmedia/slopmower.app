@@ -35,6 +35,7 @@ server.
 | `mark_ready_for_review` | `id`, `note` | Finish a request that you hold |
 | `mark_wont_do` | `id`, `reason` | Decline a request, with evidence |
 | `propose_solution` | `id`, `plan`, `diff?` | Propose a plan, with a diff for a straightforward change, before you link commits |
+| `set_request_title` | `id`, `title` | Give a request without a title one, before you claim it |
 
 A `?` marks an optional parameter.
 
@@ -79,8 +80,11 @@ page by page.
 Handle every request whose `awaiting` is `agent`. Do `reopened` requests first,
 and read their whole thread, because the user rejected an earlier result.
 
-1. Call `get_request` with `id`. Read `body`, `thread`, `anchor`, `location`,
-   and `allowedActions`.
+1. Call `get_request` with `id`. Read `title`, `body`, `thread`, `anchor`,
+   `location`, and `allowedActions`.
+   - A request with `title` null has no title. Before you claim it, call
+     `set_request_title` with one line of at most 80 characters that
+     summarizes its body.
    - `location` is computed at the default-branch head in the server's copy of
      the repository. Your working tree can differ. Find the code with the lines
      of `anchor.snapshot`, its `before` and `after` lines, and
@@ -182,8 +186,8 @@ A tool error is a result with `isError: true`. Its text is JSON:
 | `unauthorized` | The token is missing, wrong, revoked, or expired. It arrives as HTTP 401 from the server, not as a tool result. | Tell the user to check `SLOPMOWER_TOKEN` and the token in Settings. Stop. |
 | `forbidden` | The caller may not do this. The MCP tools do not return it. | Tell the user |
 | `not_found` | No such repository, review, or request for this token. A token for one repository sees only that repository. | Check the ID or name, then list again. If it is still missing, tell the user. |
-| `invalid_input` | The input failed a check, for example a blank body, a reason under 20 characters after trimming, requests from several reviews, a commit that is not linked, a pull request of another repository, or an ambiguous SHA prefix | Read `details.violations`, fix the input, and call again |
-| `invalid_transition` | The status, the claim holder, or the proposal state does not allow the action | Call `get_request` and read `allowedActions`, `proposal`, and `details.claimedBy`. A pending proposal: take the next request. You hold the request, and `proposal` is null or rejected: propose with `propose_solution`. Otherwise take the next request. |
+| `invalid_input` | The input failed a check, for example a blank body, a reason under 20 characters after trimming, requests from several reviews, a commit that is not linked, a pull request of another repository, an ambiguous SHA prefix, or a title with a line break | Read `details.violations`, fix the input, and call again |
+| `invalid_transition` | The status, the claim holder, the proposal state, or a title that is set does not allow the action | Call `get_request` and read `allowedActions`, `proposal`, and `details.claimedBy`. `set_request_title` on a request with a title: go on without it. A pending proposal: take the next request. You hold the request, and `proposal` is null or rejected: propose with `propose_solution`. Otherwise take the next request. |
 | `review_closed` | The user closed the review | Stop working on this review. Tell the user. Do not retry. |
 | `commits_not_available` | The commits in `details.pendingCommits` are not in the server's copy after one fetch | GitHub: push them. Local: make sure that they are on a branch of the connected repository. Then call `mark_ready_for_review` again. |
 | `commit_not_found` | The commit in `at` is not in the server's copy after one fetch | Push it, or commit it on a branch for a local repository, or leave out `at` |

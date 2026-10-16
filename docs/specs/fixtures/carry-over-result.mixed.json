@@ -24,6 +24,7 @@
             "fqn": "App\\Billing\\InvoiceTotals::total()"
           }
         },
+        "title": null,
         "summary": "Use `Money` instead of `float` for totals.",
         "author": {
           "kind": "user",
@@ -75,6 +76,7 @@
           },
           "symbol": null
         },
+        "title": null,
         "summary": "Extract the tax rounding into `TaxRounding`.",
         "author": {
           "kind": "user",
@@ -112,7 +114,8 @@
         "resolution": null,
         "closed": false,
         "anchor": null,
-        "summary": "Add a full-screen focus mode.",
+        "title": "Full-screen focus mode",
+        "summary": "Full-screen focus mode",
         "author": {
           "kind": "user",
           "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
@@ -157,6 +160,7 @@
           },
           "symbol": null
         },
+        "title": null,
         "summary": "Remove the float cast.",
         "author": {
           "kind": "user",

@@ -3,7 +3,7 @@
   "$id": "https://slopmower.invalid/schemas/v1/request-summary.schema.json",
   "title": "RequestSummary",
   "type": "object",
-  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq", "carriedFrom", "requireApproval", "suggestion", "proposal"],
+  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "title", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq", "carriedFrom", "requireApproval", "suggestion", "proposal"],
   "properties": {
     "id": {
       "$ref": "common.schema.json#/$defs/Ulid"
@@ -45,11 +45,22 @@
       ],
       "description": "Null for a general request, which belongs to the whole review."
     },
+    "title": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Title"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Null while the request has no title."
+    },
     "summary": {
       "type": "string",
       "minLength": 1,
       "maxLength": 200,
-      "description": "First non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS."
+      "description": "The title when set, else the first non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS."
     },
     "author": {
       "$ref": "actor.schema.json"

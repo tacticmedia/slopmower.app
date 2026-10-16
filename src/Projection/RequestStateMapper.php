@@ -55,6 +55,7 @@ final class RequestStateMapper
             requireApproval: $request->requiresApproval(),
             proposal: $request->getProposal(),
             suggestion: $request->getSuggestionState(),
+            title: $request->getTitle(),
         );
     }
 
@@ -96,6 +97,7 @@ final class RequestStateMapper
             proposal: $state->proposal,
             suggestionState: $state->suggestion,
             pullRequestUrls: $state->pullRequestUrls,
+            title: $state->title,
         );
     }
 }

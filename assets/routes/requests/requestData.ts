@@ -21,6 +21,7 @@ const COMMAND_PATHS: Record<RequestCommandIntent['intent'], string> = {
     set_plan_requirement: 'plan-requirement',
     accept_suggestion: 'accept-suggestion',
     dismiss_suggestion: 'dismiss-suggestion',
+    set_title: 'title',
 };
 
 /**

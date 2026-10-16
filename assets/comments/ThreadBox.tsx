@@ -11,7 +11,7 @@ import { PullRequestStateLabel } from '../requests/PullRequestStateLabel';
 import { StatusLabel } from '../requests/StatusLabel';
 import { SuggestionActions } from '../requests/SuggestionActions';
 import { SuggestionLabel } from '../requests/SuggestionLabel';
-import { CommentBox, type CommentBoxHandle } from './CommentBox';
+import { CommentBox, type CommentBoxHandle, type CommentText } from './CommentBox';
 import type { CommentIntent } from './commentIntent';
 import styles from './ThreadBox.module.css';
 import { type CommentView, linesText, pendingComment, type ThreadView } from './threadView';
@@ -36,6 +36,7 @@ const CAPTIONS: Record<string, string> = {
     'request.plan_waived': 'no longer asks for a plan',
     'request.suggestion_accepted': 'accepted the suggestion',
     'request.suggestion_dismissed': 'dismissed the suggestion',
+    'request.retitled': 'set the title',
 };
 
 type Props = {
@@ -58,7 +59,7 @@ export function ThreadBox({ thread, caller, showHeader = true, detail = false }:
     const replyBox = useRef<CommentBoxHandle>(null);
     const { requestId } = thread;
 
-    const reply = (body: string): boolean => {
+    const reply = ({ body }: CommentText): boolean => {
         if (replying || null === requestId) {
             return false;
         }
@@ -74,17 +75,22 @@ export function ThreadBox({ thread, caller, showHeader = true, detail = false }:
     return (
         <article className={styles.thread} data-testid="thread" data-request-id={requestId ?? undefined} aria-busy={null === requestId}>
             {showHeader && (
-                <header className={styles.header}>
-                    <StatusLabel status={thread.status} />
-                    <OutdatedLabel outdated={thread.outdated} />
-                    <PlanToApproveLabel pending={thread.proposalPending} />
-                    <SuggestionLabel pending={'pending' === thread.suggestion} />
-                    <span className={styles.lines}>{linesText(thread.range)}</span>
-                    {null !== thread.symbol && (
-                        <code className={styles.symbol} data-testid="thread-symbol">
-                            {thread.symbol}
-                        </code>
-                    )}
+                <header className={`${styles.header} ${styles.stacked}`}>
+                    <p className={styles.title} data-testid="thread-summary">
+                        {thread.summary}
+                    </p>
+                    <div className={styles.labels}>
+                        <StatusLabel status={thread.status} />
+                        <OutdatedLabel outdated={thread.outdated} />
+                        <PlanToApproveLabel pending={thread.proposalPending} />
+                        <SuggestionLabel pending={'pending' === thread.suggestion} />
+                        <span className={styles.lines}>{linesText(thread.range)}</span>
+                        {null !== thread.symbol && (
+                            <code className={styles.symbol} data-testid="thread-symbol">
+                                {thread.symbol}
+                            </code>
+                        )}
+                    </div>
                 </header>
             )}
             {null !== thread.carriedFrom && (

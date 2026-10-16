@@ -60,7 +60,7 @@ final class AgentRequestController extends AbstractController
         }
 
         $actor = $this->currentActor->get();
-        $events = $this->commands->suggest($review->getId(), new Suggest($anchor, $input->body), $actor);
+        $events = $this->commands->suggest($review->getId(), new Suggest($anchor, $input->body, $input->title), $actor);
         $requestId = $events[0]->requestId ?? throw new \LogicException('request.opened has a requestId.');
 
         return $this->json($this->requests->commandResult($requestId, $actor, $events), Response::HTTP_CREATED, ['Location' => $this->generateUrl('api_request_get', ['requestId' => $requestId])]);

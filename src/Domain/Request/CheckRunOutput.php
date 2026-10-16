@@ -122,7 +122,7 @@ final readonly class CheckRunOutput
             'start_line' => $range->startLine ?? 1,
             'end_line' => $range->endLine ?? 1,
             'annotation_level' => $level,
-            'title' => self::headline($request->body),
+            'title' => self::headline($request),
             'message' => self::statusLabel($request->status).' in Slopmower: '.$request->url,
         ];
     }
@@ -156,7 +156,7 @@ final readonly class CheckRunOutput
 
     private static function summaryLine(CheckedRequest $request, bool $noAnnotations): string
     {
-        $line = '- '.self::statusLabel($request->status).': ['.self::linkText(self::headline($request->body)).']('.$request->url.')';
+        $line = '- '.self::statusLabel($request->status).': ['.self::linkText(self::headline($request)).']('.$request->url.')';
 
         if ($noAnnotations || $request->finished()) {
             return $line;
@@ -194,11 +194,11 @@ final readonly class CheckRunOutput
     }
 
     /**
-     * The first line with text, cut to HEADLINE_CHARACTERS.
+     * The title, or the first line with text of the body, cut to HEADLINE_CHARACTERS.
      */
-    private static function headline(string $body): string
+    private static function headline(CheckedRequest $request): string
     {
-        $line = trim(array_find(explode("\n", $body), static fn (string $line): bool => '' !== trim($line)) ?? '');
+        $line = $request->title ?? trim(array_find(explode("\n", $request->body), static fn (string $line): bool => '' !== trim($line)) ?? '');
 
         return mb_strlen($line) > self::HEADLINE_CHARACTERS ? mb_substr($line, 0, self::HEADLINE_CHARACTERS - 3).'...' : $line;
     }

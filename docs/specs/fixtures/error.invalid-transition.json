@@ -13,7 +13,7 @@
         "name": "codex desktop",
         "avatarUrl": null
       },
-      "allowedActions": ["reply"]
+      "allowedActions": ["reply", "set_title"]
     }
   }
 }

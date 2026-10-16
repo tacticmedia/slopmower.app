@@ -20,6 +20,7 @@ use App\Domain\Event\RequestProposedEvent;
 use App\Domain\Event\RequestReadyForReviewEvent;
 use App\Domain\Event\RequestReleasedEvent;
 use App\Domain\Event\RequestReopenedEvent;
+use App\Domain\Event\RequestRetitledEvent;
 use App\Domain\Event\RequestSuggestionDismissedEvent;
 use App\Domain\Event\RequestVerifiedEvent;
 use App\Domain\Event\RequestWontDoEvent;
@@ -101,7 +102,7 @@ final class EventNormalizer implements NormalizerInterface, NormalizerAwareInter
             $event instanceof RequestProposalApprovedEvent, $event instanceof RequestProposalRejectedEvent, $event instanceof RequestSuggestionDismissedEvent => $event->note,
             $event instanceof RequestProposedEvent => $event->plan,
             $event instanceof RequestWontDoEvent => $event->reason->toString(),
-            $event instanceof ReviewStartedEvent => $event->title,
+            $event instanceof ReviewStartedEvent, $event instanceof RequestRetitledEvent => $event->title,
             $event instanceof BatchSubmittedEvent => $event->summary,
             default => null,
         };

@@ -50,7 +50,7 @@ final class ClaimIdempotenceTest extends KernelTestCase
             self::assertSame(Action::Claim, $details['action']);
             self::assertSame(RequestStatus::InProgress, $details['status']);
             self::assertEquals(RequestScenario::claimingAgent(), $details['claimedBy']);
-            self::assertSame([Action::Reply], $details['allowedActions']);
+            self::assertSame([Action::Reply, Action::SetTitle], $details['allowedActions']);
 
             return;
         }

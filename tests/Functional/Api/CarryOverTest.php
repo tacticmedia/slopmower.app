@@ -161,12 +161,23 @@ final class CarryOverTest extends WebTestCase
         self::assertSame([true, false], [$this->carried($items[$planned], $targetId)['requireApproval'], $this->carried($items[$plain], $targetId)['requireApproval']]);
     }
 
+    #[TestDox('A carried request keeps the title of its source')]
+    public function testCarriedRequestKeepsTheTitle(): void
+    {
+        $titled = (string) self::openRequest($this->client, $this->sourceReviewId, null, 'Add a full-screen focus mode.', 'Full-screen focus mode')['id'];
+        $targetId = $this->startTarget([]);
+
+        $items = $this->carryOver($targetId);
+
+        self::assertSame('Full-screen focus mode', $this->carried($items[$titled], $targetId)['title']);
+    }
+
     #[TestDox('A pending suggestion is not carried, and an accepted one carries as a request of the user')]
     public function testPendingSuggestionIsNotCarried(): void
     {
         [, $secret] = self::storeToken($this->user);
         [$pending, $accepted] = array_map(fn (string $body): string => (string) self::assertApiResponse(
-            self::bearerRequest($this->client, $secret, 'POST', "/api/v1/reviews/{$this->sourceReviewId}/suggestions", ['body' => $body]),
+            self::bearerRequest($this->client, $secret, 'POST', "/api/v1/reviews/{$this->sourceReviewId}/suggestions", ['title' => $body, 'body' => $body]),
             201,
             'request-command-result.schema.json',
         )['request']['id'], ['Round half cents up.', 'Drop the float cast.']);

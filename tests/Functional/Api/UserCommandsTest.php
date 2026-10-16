@@ -56,7 +56,7 @@ final class UserCommandsTest extends WebTestCase
 
         $error = self::assertApiError(self::apiRequest($this->client, 'POST', "/api/v1/requests/{$requestId}/verify"), 409, 'invalid_transition');
 
-        self::assertSame(['requestId' => $requestId, 'action' => 'verify', 'status' => 'open', 'claimedBy' => null, 'allowedActions' => ['reply', 'mark_wont_do', 'set_plan_requirement']], $error['details']);
+        self::assertSame(['requestId' => $requestId, 'action' => 'verify', 'status' => 'open', 'claimedBy' => null, 'allowedActions' => ['reply', 'mark_wont_do', 'set_plan_requirement', 'set_title']], $error['details']);
     }
 
     #[TestDox('Reopen needs a note')]
@@ -83,7 +83,7 @@ final class UserCommandsTest extends WebTestCase
 
         $expected = ['status' => 'wont_do', 'awaiting' => 'none', 'resolution' => 'wont_do', 'closed' => true];
         self::assertSame($expected, array_intersect_key($result['request'], $expected));
-        self::assertSame(['reply', 'reopen'], $result['allowedActions']);
+        self::assertSame(['reply', 'reopen', 'set_title'], $result['allowedActions']);
         self::assertSame(['request.wont_do', 'user', self::WONT_DO_REASON, 'wont_do'], [$result['events'][0]['type'], $result['events'][0]['actor']['kind'], $result['events'][0]['body'], $result['events'][0]['statusAfter']]);
     }
 

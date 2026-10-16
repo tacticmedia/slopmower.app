@@ -68,7 +68,7 @@ test.describe('BatchReview', () => {
         const [edited, deleted] = review.drafts;
 
         await chooseDraftAction(page, 'Split this class.', 'Edit');
-        const editor = page.locator(`${FILE_THREADS} textarea[aria-label="Edit pending comment"]`);
+        const editor = page.locator(`${FILE_THREADS} form[aria-label="Edit pending comment"] textarea`);
         await editor.fill('Split this class in two.');
         await commentBoxButton(page, 'Update comment').click();
         await expect(editor).toHaveCount(0);

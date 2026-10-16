@@ -2,6 +2,7 @@ import { CodeIcon, CommentDiscussionIcon } from '@primer/octicons-react';
 import { Banner, Heading, Link, RelativeTime, UnderlineNav } from '@primer/react';
 import { Outlet, Link as RouterLink, useLoaderData, useMatch } from 'react-router';
 import type { Review } from '../../api/types/review';
+import { useDocumentTitle } from '../../layout/useDocumentTitle';
 import { AgentPromptSnippet } from '../../review/AgentPromptSnippet';
 import { CarryOverDialog } from '../../review/CarryOverDialog';
 import { CloseReviewDialog } from '../../review/CloseReviewDialog';
@@ -56,6 +57,7 @@ export function ReviewLayout() {
     const { review, drafts } = useLoaderData<ReviewData>();
     // Every tab but Requests is the code browser.
     const codeBrowser = null === useMatch('/reviews/:reviewId/requests');
+    useDocumentTitle(review.title);
 
     return (
         <div className={styles.page} data-code-browser={codeBrowser ? '' : undefined}>

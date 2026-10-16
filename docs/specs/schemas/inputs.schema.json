@@ -112,6 +112,17 @@
           ],
           "description": "Absent or null opens a general request."
         },
+        "title": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Title"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Absent or null opens the request without a title. Q23 sets it later."
+        },
         "body": {
           "$ref": "common.schema.json#/$defs/Markdown"
         },
@@ -124,7 +135,7 @@
     },
     "SuggestRequestInput": {
       "type": "object",
-      "required": ["body"],
+      "required": ["title", "body"],
       "properties": {
         "anchor": {
           "anyOf": [
@@ -136,6 +147,9 @@
             }
           ],
           "description": "Absent or null suggests a general request."
+        },
+        "title": {
+          "$ref": "common.schema.json#/$defs/Title"
         },
         "body": {
           "$ref": "common.schema.json#/$defs/Markdown"
@@ -271,6 +285,16 @@
         }
       }
     },
+    "TitleInput": {
+      "type": "object",
+      "required": ["title"],
+      "properties": {
+        "title": {
+          "$ref": "common.schema.json#/$defs/Title",
+          "description": "The new title. A title cannot be removed."
+        }
+      }
+    },
     "LinkCommitsInput": {
       "type": "object",
       "required": ["commitSha", "requestIds"],
@@ -352,6 +376,17 @@
             }
           ]
         },
+        "title": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Title"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "new_request only. Absent or null: no title."
+        },
         "body": {
           "$ref": "common.schema.json#/$defs/Markdown"
         },
@@ -395,6 +430,9 @@
               "anchor": {
                 "type": "null"
               },
+              "title": {
+                "type": "null"
+              },
               "requireApproval": {
                 "type": "null"
               }
@@ -407,6 +445,17 @@
       "type": "object",
       "required": ["body"],
       "properties": {
+        "title": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Title"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Replaces the title together with body: absent or null removes it. A title on a reply draft answers 422."
+        },
         "body": {
           "$ref": "common.schema.json#/$defs/Markdown"
         },

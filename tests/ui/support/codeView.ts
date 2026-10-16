@@ -5,7 +5,7 @@ import type { FakeReview } from './fakeReview';
 export const CODE_HOST = 'diffs-container';
 
 /** The new-comment box. A reply box is labelled "Reply". */
-export const COMPOSER = 'textarea[aria-label^="Comment on"]';
+export const COMPOSER = 'form[aria-label^="Comment on"] textarea';
 
 export const SAVED_THREAD = '[data-testid="thread"][data-request-id]';
 

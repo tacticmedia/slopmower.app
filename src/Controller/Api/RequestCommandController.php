@@ -14,6 +14,7 @@ use App\Controller\Api\Input\OptionalNoteInput;
 use App\Controller\Api\Input\PlanRequirementInput;
 use App\Controller\Api\Input\RejectProposalInput;
 use App\Controller\Api\Input\RequiredNoteInput;
+use App\Controller\Api\Input\TitleInput;
 use App\Controller\Api\Input\WontDoInput;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Identity\EventId;
@@ -26,6 +27,7 @@ use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\SetPlanRequirement;
+use App\Domain\Request\Command\SetTitle;
 use App\Domain\Request\Command\Verify;
 use App\Entity\ChangeRequest;
 use App\Entity\User;
@@ -39,7 +41,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * Q4, Q6, Q11 to Q13, Q15, Q16, Q18, Q21, and Q22 of docs/specs/rest-api-requests.md section 3.
+ * Q4, Q6, Q11 to Q13, Q15, Q16, Q18, and Q21 to Q23 of docs/specs/rest-api-requests.md section 3.
  */
 #[Route('/api/v1/requests/{requestId}', name: 'api_request_')]
 final class RequestCommandController extends AbstractController
@@ -158,6 +160,16 @@ final class RequestCommandController extends AbstractController
         $command = new DismissSuggestion($request->getId(), $input->note);
 
         return $this->result($request, $this->commands->dismissSuggestion($command, $this->currentActor->get()));
+    }
+
+    #[Route('/title', name: 'title', methods: ['POST'])]
+    public function setTitle(
+        #[MapEntity(id: 'requestId')] ChangeRequest $request,
+        #[MapRequestPayload(acceptFormat: 'json')] TitleInput $input,
+    ): JsonResponse {
+        \assert(null !== $input->title);
+
+        return $this->result($request, $this->commands->setTitle(new SetTitle($request->getId(), $input->title), $this->currentActor->get()));
     }
 
     /**

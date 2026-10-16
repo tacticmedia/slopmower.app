@@ -27,7 +27,7 @@ trait CodeComments
     /** The host of the open shadow root that `@pierre/diffs` renders into. CSS locators pierce it. */
     private const string CODE_HOST = 'diffs-container';
     /** The new-comment box. A reply box is labelled "Reply". */
-    private const string COMPOSER = 'textarea[aria-label^="Comment on"]';
+    private const string COMPOSER = 'form[aria-label^="Comment on"] textarea';
     private const string SAVED_THREAD = '[data-testid="thread"][data-request-id]';
 
     private User $commenter;

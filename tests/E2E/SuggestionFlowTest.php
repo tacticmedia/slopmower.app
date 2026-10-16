@@ -16,12 +16,13 @@ final class SuggestionFlowTest extends FullStackTestCase
     use RequestScreens;
     use ResetDatabase;
 
+    private const string TITLE = 'Basis-point scale with a digit separator';
     private const string BODY = 'Write the basis-point scale as `10_000`.';
     private const string READY_NOTE = 'Wrote the scale as 10_000.';
     private const string CODE_THREAD = '[data-testid="code-view"] '.self::SAVED_THREAD;
     private const int WAIT_MILLISECONDS = 5000;
 
-    #[TestDox('The agent starts a review and suggests over MCP, the user accepts live, and the agent finishes the accepted request')]
+    #[TestDox('The agent starts a review and suggests with a title over MCP, the user accepts live, the agent finishes the request, and the list shows the title')]
     public function testUserAcceptsTheAgentsSuggestion(): void
     {
         $this->commenter = $this->user();
@@ -36,6 +37,7 @@ final class SuggestionFlowTest extends FullStackTestCase
 
         $suggested = self::agentCalls($agent, 'suggest_request', [
             'review' => $this->reviewId->toString(),
+            'title' => self::TITLE,
             'body' => self::BODY,
             'anchorKind' => 'line',
             'path' => FixtureRepositories::SMALL_FILE,
@@ -65,5 +67,8 @@ final class SuggestionFlowTest extends FullStackTestCase
         $this->openRequest($requestId);
         $this->waitForStatus('Ready for review');
         $this->expect($this->page->locator(self::DETAIL.' [data-testid="thread"]'))->toContainText(self::READY_NOTE);
+
+        $this->visit("/reviews/{$this->reviewId}/requests");
+        $this->expect($this->page->locator('[data-testid="request-list"]')->getByRole('link', ['name' => self::TITLE, 'exact' => true]))->toBeVisible();
     }
 }

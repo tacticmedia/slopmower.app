@@ -20,6 +20,7 @@
         "fqn": "App\\Billing\\InvoiceTotals::total()"
       }
     },
+    "title": null,
     "summary": "Use `Money` instead of `float` for totals.",
     "author": {
       "kind": "user",
@@ -42,7 +43,7 @@
     "suggestion": null,
     "proposal": null
   },
-  "allowedActions": ["reply", "link_pull_request"],
+  "allowedActions": ["reply", "link_pull_request", "set_title"],
   "events": [
     {
       "seq": 1852,

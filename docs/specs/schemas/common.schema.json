@@ -47,6 +47,16 @@
       "maxLength": 65536,
       "description": "GitHub-flavoured Markdown with at least one non-whitespace character."
     },
+    "Title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "\\S",
+      "not": {
+        "pattern": "[\\r\\n]"
+      },
+      "description": "The title of a request: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length."
+    },
     "UnifiedDiff": {
       "type": "string",
       "minLength": 1,
@@ -137,7 +147,7 @@
     "Action": {
       "anyOf": [
         {
-          "enum": ["reply", "claim", "release", "link_commits", "unlink_commit", "link_pull_request", "unlink_pull_request", "mark_ready_for_review", "mark_wont_do", "verify", "reopen", "propose_solution", "approve_proposal", "reject_proposal", "set_plan_requirement", "accept_suggestion", "dismiss_suggestion"]
+          "enum": ["reply", "claim", "release", "link_commits", "unlink_commit", "link_pull_request", "unlink_pull_request", "mark_ready_for_review", "mark_wont_do", "verify", "reopen", "propose_solution", "approve_proposal", "reject_proposal", "set_plan_requirement", "accept_suggestion", "dismiss_suggestion", "set_title"]
         },
         {
           "type": "string"
@@ -148,7 +158,7 @@
     "EventType": {
       "anyOf": [
         {
-          "enum": ["review.started", "review.closed", "request.opened", "request.commented", "request.claimed", "request.released", "commit.linked", "commit.unlinked", "commit.found", "pull_request.linked", "pull_request.unlinked", "request.ready_for_review", "request.wont_do", "request.verified", "request.reopened", "request.proposed", "request.proposal_approved", "request.proposal_rejected", "request.plan_required", "request.plan_waived", "request.suggestion_accepted", "request.suggestion_dismissed", "batch.submitted"]
+          "enum": ["review.started", "review.closed", "request.opened", "request.commented", "request.claimed", "request.released", "commit.linked", "commit.unlinked", "commit.found", "pull_request.linked", "pull_request.unlinked", "request.ready_for_review", "request.wont_do", "request.verified", "request.reopened", "request.proposed", "request.proposal_approved", "request.proposal_rejected", "request.plan_required", "request.plan_waived", "request.suggestion_accepted", "request.suggestion_dismissed", "request.retitled", "batch.submitted"]
         },
         {
           "type": "string"
@@ -159,7 +169,7 @@
     "ThreadEntryType": {
       "anyOf": [
         {
-          "enum": ["request.opened", "request.commented", "request.claimed", "request.released", "commit.linked", "commit.unlinked", "commit.found", "pull_request.linked", "pull_request.unlinked", "request.ready_for_review", "request.wont_do", "request.verified", "request.reopened", "request.proposed", "request.proposal_approved", "request.proposal_rejected", "request.plan_required", "request.plan_waived", "request.suggestion_accepted", "request.suggestion_dismissed"]
+          "enum": ["request.opened", "request.commented", "request.claimed", "request.released", "commit.linked", "commit.unlinked", "commit.found", "pull_request.linked", "pull_request.unlinked", "request.ready_for_review", "request.wont_do", "request.verified", "request.reopened", "request.proposed", "request.proposal_approved", "request.proposal_rejected", "request.plan_required", "request.plan_waived", "request.suggestion_accepted", "request.suggestion_dismissed", "request.retitled"]
         },
         {
           "type": "string"

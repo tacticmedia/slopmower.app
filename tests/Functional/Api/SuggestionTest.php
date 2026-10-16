@@ -42,6 +42,8 @@ final class SuggestionTest extends WebTestCase
 
     private const string TOTAL_FQN = 'App\Billing\InvoiceTotals::total()';
 
+    private const string TITLE = 'Round half cents up';
+
     private const string BODY = 'Round half cents up: use `PHP_ROUND_HALF_UP`.';
 
     private KernelBrowser $client;
@@ -143,6 +145,14 @@ final class SuggestionTest extends WebTestCase
         self::assertApiError($this->suggestResponse(null), 422, 'invalid_input');
     }
 
+    #[TestDox('A suggestion without a title gets 422 invalid_input')]
+    public function testSuggestionWithoutTitleGetsInvalidInput(): void
+    {
+        $response = self::bearerRequest($this->client, $this->secret, 'POST', "/api/v1/reviews/{$this->reviewId}/suggestions", ['body' => self::BODY]);
+
+        self::assertSame(['title'], array_column(self::assertApiError($response, 422, 'invalid_input')['details']['violations'] ?? [], 'field'));
+    }
+
     #[TestDox('A closed review gets 409 review_closed')]
     public function testClosedReviewGetsReviewClosed(): void
     {
@@ -180,6 +190,6 @@ final class SuggestionTest extends WebTestCase
      */
     private function suggestResponse(?array $anchor): Response
     {
-        return self::bearerRequest($this->client, $this->secret, 'POST', "/api/v1/reviews/{$this->reviewId}/suggestions", ['anchor' => $anchor, 'body' => self::BODY]);
+        return self::bearerRequest($this->client, $this->secret, 'POST', "/api/v1/reviews/{$this->reviewId}/suggestions", ['anchor' => $anchor, 'title' => self::TITLE, 'body' => self::BODY]);
     }
 }

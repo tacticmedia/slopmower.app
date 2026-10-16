@@ -15,6 +15,25 @@
     border-top-right-radius: var(--borderRadius-medium);
 }
 
+.stacked {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--base-size-4);
+}
+
+.labels {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-8);
+}
+
+.title {
+    margin: 0;
+    font-weight: var(--base-text-weight-semibold);
+    overflow-wrap: anywhere;
+}
+
 .lines {
     color: var(--fgColor-muted);
     font-size: var(--text-body-size-small);

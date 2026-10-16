@@ -724,8 +724,8 @@ final class BundledSchemas
                 'title' => 'RequestSummary',
                 'type' => 'object',
                 'required' => [
-                    'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
-                    'requireApproval', 'suggestion', 'proposal',
+                    'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'title', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq',
+                    'carriedFrom', 'requireApproval', 'suggestion', 'proposal',
                 ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -747,7 +747,14 @@ final class BundledSchemas
                         ],
                         'description' => 'Null for a general request, which belongs to the whole review.',
                     ],
-                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'First non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
+                    'title' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Title'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Null while the request has no title.',
+                    ],
+                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set, else the first non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
                     'author' => ['$ref' => '#/$defs/Actor'],
                     'claimedBy' => [
                         'anyOf' => [
@@ -855,6 +862,14 @@ final class BundledSchemas
                     'kind' => ['$ref' => '#/$defs/SymbolKind'],
                     'fqn' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 1024],
                 ],
+            ],
+            'Title' => [
+                'type' => 'string',
+                'minLength' => 1,
+                'maxLength' => 200,
+                'pattern' => '\\S',
+                'not' => ['pattern' => '[\\r\\n]'],
+                'description' => 'The title of a request: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
         ],
@@ -1097,7 +1112,7 @@ final class BundledSchemas
                     [
                         'enum' => [
                             'review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'pull_request.unlinked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived',
-                            'request.suggestion_accepted', 'request.suggestion_dismissed', 'batch.submitted',
+                            'request.suggestion_accepted', 'request.suggestion_dismissed', 'request.retitled', 'batch.submitted',
                         ],
                     ],
                     ['type' => 'string'],
@@ -1181,8 +1196,8 @@ final class BundledSchemas
                 'title' => 'RequestSummary',
                 'type' => 'object',
                 'required' => [
-                    'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
-                    'requireApproval', 'suggestion', 'proposal',
+                    'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'title', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq',
+                    'carriedFrom', 'requireApproval', 'suggestion', 'proposal',
                 ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -1204,7 +1219,14 @@ final class BundledSchemas
                         ],
                         'description' => 'Null for a general request, which belongs to the whole review.',
                     ],
-                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'First non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
+                    'title' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Title'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Null while the request has no title.',
+                    ],
+                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set, else the first non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
                     'author' => ['$ref' => '#/$defs/Actor'],
                     'claimedBy' => [
                         'anyOf' => [
@@ -1313,6 +1335,14 @@ final class BundledSchemas
                     'fqn' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 1024],
                 ],
             ],
+            'Title' => [
+                'type' => 'string',
+                'minLength' => 1,
+                'maxLength' => 200,
+                'pattern' => '\\S',
+                'not' => ['pattern' => '[\\r\\n]'],
+                'description' => 'The title of a request: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
+            ],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
             'UnifiedDiff' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
             'UpdatedRequest' => [
@@ -1336,8 +1366,8 @@ final class BundledSchemas
         'description' => 'A request in full. Same fields as RequestSummary, with the full anchor and more.',
         'type' => 'object',
         'required' => [
-            'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
-            'requireApproval', 'suggestion', 'proposal', 'body', 'reviewState', 'reviewCommitSha', 'location', 'excerpt', 'thread', 'commits', 'pullRequestUrls', 'pullRequests', 'allowedActions',
+            'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'title', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq',
+            'carriedFrom', 'requireApproval', 'suggestion', 'proposal', 'body', 'reviewState', 'reviewCommitSha', 'location', 'excerpt', 'thread', 'commits', 'pullRequestUrls', 'pullRequests', 'allowedActions',
         ],
         'properties' => [
             'id' => ['$ref' => '#/$defs/Ulid'],
@@ -1359,7 +1389,14 @@ final class BundledSchemas
                 ],
                 'description' => 'Null for a general request, which belongs to the whole review.',
             ],
-            'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
+            'title' => [
+                'anyOf' => [
+                    ['$ref' => '#/$defs/Title'],
+                    ['type' => 'null'],
+                ],
+                'description' => 'Null while the request has no title.',
+            ],
+            'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set, else the first non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
             'author' => ['$ref' => '#/$defs/Actor'],
             'claimedBy' => [
                 'anyOf' => [
@@ -1486,7 +1523,7 @@ final class BundledSchemas
             'Action' => [
                 'anyOf' => [
                     [
-                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal', 'set_plan_requirement', 'accept_suggestion', 'dismiss_suggestion'],
+                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal', 'set_plan_requirement', 'accept_suggestion', 'dismiss_suggestion', 'set_title'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -1944,7 +1981,7 @@ final class BundledSchemas
                     'occurredAt' => ['$ref' => '#/$defs/DateTime'],
                     'body' => [
                         'type' => ['string', 'null'],
-                        'description' => 'opened: request body; commented: comment; proposed: plan; released, ready_for_review, verified, reopened, proposal_approved, proposal_rejected, suggestion_dismissed, commit.linked, pull_request.linked: note; wont_do: reason; else null.',
+                        'description' => 'opened: request body; commented: comment; proposed: plan; retitled: the new title; released, ready_for_review, verified, reopened, proposal_approved, proposal_rejected, suggestion_dismissed, commit.linked, pull_request.linked: note; wont_do: reason; else null.',
                     ],
                     'diff' => [
                         'anyOf' => [
@@ -1987,11 +2024,22 @@ final class BundledSchemas
             'ThreadEntryType' => [
                 'anyOf' => [
                     [
-                        'enum' => ['request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'pull_request.unlinked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived', 'request.suggestion_accepted', 'request.suggestion_dismissed'],
+                        'enum' => [
+                            'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'pull_request.unlinked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived', 'request.suggestion_accepted', 'request.suggestion_dismissed',
+                            'request.retitled',
+                        ],
                     ],
                     ['type' => 'string'],
                 ],
                 'description' => 'Open set.',
+            ],
+            'Title' => [
+                'type' => 'string',
+                'minLength' => 1,
+                'maxLength' => 200,
+                'pattern' => '\\S',
+                'not' => ['pattern' => '[\\r\\n]'],
+                'description' => 'The title of a request: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
             'UnifiedDiff' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
@@ -2020,7 +2068,7 @@ final class BundledSchemas
             'Action' => [
                 'anyOf' => [
                     [
-                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal', 'set_plan_requirement', 'accept_suggestion', 'dismiss_suggestion'],
+                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal', 'set_plan_requirement', 'accept_suggestion', 'dismiss_suggestion', 'set_title'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -2241,7 +2289,7 @@ final class BundledSchemas
                     [
                         'enum' => [
                             'review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'pull_request.unlinked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived',
-                            'request.suggestion_accepted', 'request.suggestion_dismissed', 'batch.submitted',
+                            'request.suggestion_accepted', 'request.suggestion_dismissed', 'request.retitled', 'batch.submitted',
                         ],
                     ],
                     ['type' => 'string'],
@@ -2325,8 +2373,8 @@ final class BundledSchemas
                 'title' => 'RequestSummary',
                 'type' => 'object',
                 'required' => [
-                    'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
-                    'requireApproval', 'suggestion', 'proposal',
+                    'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'title', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq',
+                    'carriedFrom', 'requireApproval', 'suggestion', 'proposal',
                 ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -2348,7 +2396,14 @@ final class BundledSchemas
                         ],
                         'description' => 'Null for a general request, which belongs to the whole review.',
                     ],
-                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'First non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
+                    'title' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Title'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Null while the request has no title.',
+                    ],
+                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set, else the first non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
                     'author' => ['$ref' => '#/$defs/Actor'],
                     'claimedBy' => [
                         'anyOf' => [
@@ -2453,6 +2508,14 @@ final class BundledSchemas
                     'kind' => ['$ref' => '#/$defs/SymbolKind'],
                     'fqn' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 1024],
                 ],
+            ],
+            'Title' => [
+                'type' => 'string',
+                'minLength' => 1,
+                'maxLength' => 200,
+                'pattern' => '\\S',
+                'not' => ['pattern' => '[\\r\\n]'],
+                'description' => 'The title of a request: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
             'UnifiedDiff' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
@@ -2696,7 +2759,7 @@ final class BundledSchemas
                     [
                         'enum' => [
                             'review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'pull_request.unlinked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived',
-                            'request.suggestion_accepted', 'request.suggestion_dismissed', 'batch.submitted',
+                            'request.suggestion_accepted', 'request.suggestion_dismissed', 'request.retitled', 'batch.submitted',
                         ],
                     ],
                     ['type' => 'string'],
@@ -2780,8 +2843,8 @@ final class BundledSchemas
                 'title' => 'RequestSummary',
                 'type' => 'object',
                 'required' => [
-                    'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
-                    'requireApproval', 'suggestion', 'proposal',
+                    'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'title', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq',
+                    'carriedFrom', 'requireApproval', 'suggestion', 'proposal',
                 ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -2803,7 +2866,14 @@ final class BundledSchemas
                         ],
                         'description' => 'Null for a general request, which belongs to the whole review.',
                     ],
-                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'First non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
+                    'title' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Title'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Null while the request has no title.',
+                    ],
+                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set, else the first non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
                     'author' => ['$ref' => '#/$defs/Actor'],
                     'claimedBy' => [
                         'anyOf' => [
@@ -2908,6 +2978,14 @@ final class BundledSchemas
                     'kind' => ['$ref' => '#/$defs/SymbolKind'],
                     'fqn' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 1024],
                 ],
+            ],
+            'Title' => [
+                'type' => 'string',
+                'minLength' => 1,
+                'maxLength' => 200,
+                'pattern' => '\\S',
+                'not' => ['pattern' => '[\\r\\n]'],
+                'description' => 'The title of a request: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
             'UnifiedDiff' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
@@ -3147,7 +3225,7 @@ final class BundledSchemas
                     [
                         'enum' => [
                             'review.started', 'review.closed', 'request.opened', 'request.commented', 'request.claimed', 'request.released', 'commit.linked', 'commit.unlinked', 'commit.found', 'pull_request.linked', 'pull_request.unlinked', 'request.ready_for_review', 'request.wont_do', 'request.verified', 'request.reopened', 'request.proposed', 'request.proposal_approved', 'request.proposal_rejected', 'request.plan_required', 'request.plan_waived',
-                            'request.suggestion_accepted', 'request.suggestion_dismissed', 'batch.submitted',
+                            'request.suggestion_accepted', 'request.suggestion_dismissed', 'request.retitled', 'batch.submitted',
                         ],
                     ],
                     ['type' => 'string'],
@@ -3231,8 +3309,8 @@ final class BundledSchemas
                 'title' => 'RequestSummary',
                 'type' => 'object',
                 'required' => [
-                    'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq', 'carriedFrom',
-                    'requireApproval', 'suggestion', 'proposal',
+                    'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'title', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq',
+                    'carriedFrom', 'requireApproval', 'suggestion', 'proposal',
                 ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -3254,7 +3332,14 @@ final class BundledSchemas
                         ],
                         'description' => 'Null for a general request, which belongs to the whole review.',
                     ],
-                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'First non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
+                    'title' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Title'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Null while the request has no title.',
+                    ],
+                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set, else the first non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
                     'author' => ['$ref' => '#/$defs/Actor'],
                     'claimedBy' => [
                         'anyOf' => [
@@ -3359,6 +3444,14 @@ final class BundledSchemas
                     'kind' => ['$ref' => '#/$defs/SymbolKind'],
                     'fqn' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 1024],
                 ],
+            ],
+            'Title' => [
+                'type' => 'string',
+                'minLength' => 1,
+                'maxLength' => 200,
+                'pattern' => '\\S',
+                'not' => ['pattern' => '[\\r\\n]'],
+                'description' => 'The title of a request: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
             'UnifiedDiff' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],

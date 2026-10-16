@@ -36,6 +36,7 @@ export type ThreadView = {
     key: string;
     /** Null until Q2 answers. */
     requestId: Ulid | null;
+    summary: string;
     status: RequestStatus;
     outdated: boolean | null;
     /** Null for a file anchor. */
@@ -84,6 +85,7 @@ export function threadView(request: ReviewRequest): ThreadView {
     return {
         key: request.id,
         requestId: request.id,
+        summary: request.summary,
         status: request.status,
         outdated: request.outdated,
         range: null === range ? null : { start: range.startLine, end: range.endLine },
@@ -130,12 +132,14 @@ export function pendingComment(type: ThreadEntryType, body: string, author: Acto
     return { key: `pending-${pendingCount}`, type, author, occurredAt: new Date().toISOString(), body, pullRequestUrl: null, pullRequestState: 'unknown', question: false, pending: true, proposal: null };
 }
 
-export function pendingThread(range: LineRange | null, symbol: string | null, body: string, author: Actor): ThreadView {
+export function pendingThread(range: LineRange | null, symbol: string | null, title: string | null, body: string, author: Actor): ThreadView {
     const opened = pendingComment('request.opened', body, author);
 
     return {
         key: opened.key,
         requestId: null,
+        // The `summary` rule of Q3.
+        summary: title ?? (body.split('\n').find((line) => '' !== line.trim()) ?? '').trim(),
         status: 'open',
         outdated: null,
         range,

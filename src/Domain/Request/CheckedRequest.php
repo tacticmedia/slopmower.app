@@ -23,6 +23,7 @@ final readonly class CheckedRequest
         public string $reviewUrl,
         public bool $reviewClosed,
         public string $url,
+        public ?string $title,
         public string $body,
         public RequestStatus $status,
         public ?ActorKind $wontDoBy,

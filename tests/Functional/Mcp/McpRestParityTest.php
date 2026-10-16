@@ -148,7 +148,7 @@ final class McpRestParityTest extends WebTestCase
     #[TestDox('list_requests with suggestion equals the REST body of Q1 with the same filter')]
     public function testListRequestsWithSuggestionEqualsQ1(): void
     {
-        self::assertToolResult($this->mcp, $this->mcp->callTool('suggest_request', ['review' => $this->reviewId, 'body' => 'Round half cents up.']), 'suggest_request');
+        self::assertToolResult($this->mcp, $this->mcp->callTool('suggest_request', ['review' => $this->reviewId, 'title' => 'Round half cents up', 'body' => 'Round half cents up.']), 'suggest_request');
         $rest = self::assertApiResponse(self::bearerRequest($this->client, $this->secret, 'GET', "/api/v1/reviews/{$this->reviewId}/requests?suggestion=pending"), 200, 'lists.schema.json#/$defs/RequestPage');
 
         $mcp = self::assertToolResult($this->mcp, $this->mcp->callTool('list_requests', ['review' => $this->reviewId, 'suggestion' => 'pending']), 'list_requests');
@@ -170,22 +170,23 @@ final class McpRestParityTest extends WebTestCase
         self::assertSame('agent', $mcp['startedBy']['kind']);
     }
 
-    #[TestDox('suggest_request with flat anchor parameters equals the REST body of Q20')]
+    #[TestDox('suggest_request with a title and flat anchor parameters equals the REST body of Q20')]
     public function testSuggestRequestEqualsQ20(): void
     {
         self::mockTime('2026-09-29 07:40:00');
+        $title = 'Round half cents up';
         $body = 'Round half cents up.';
 
-        $mcp = self::assertToolResult($this->mcp, $this->mcp->callTool('suggest_request', ['review' => $this->reviewId, 'body' => $body, 'anchorKind' => 'range', 'path' => self::INVOICE_TOTALS, 'startLine' => 3, 'endLine' => 5]), 'suggest_request');
+        $mcp = self::assertToolResult($this->mcp, $this->mcp->callTool('suggest_request', ['review' => $this->reviewId, 'title' => $title, 'body' => $body, 'anchorKind' => 'range', 'path' => self::INVOICE_TOTALS, 'startLine' => 3, 'endLine' => 5]), 'suggest_request');
         $rest = self::assertApiResponse(
-            self::bearerRequest($this->client, $this->secret, 'POST', "/api/v1/reviews/{$this->reviewId}/suggestions", ['anchor' => ['kind' => 'range', 'path' => self::INVOICE_TOTALS, 'range' => ['startLine' => 3, 'endLine' => 5]], 'body' => $body]),
+            self::bearerRequest($this->client, $this->secret, 'POST', "/api/v1/reviews/{$this->reviewId}/suggestions", ['anchor' => ['kind' => 'range', 'path' => self::INVOICE_TOTALS, 'range' => ['startLine' => 3, 'endLine' => 5]], 'title' => $title, 'body' => $body]),
             201,
             'request-command-result.schema.json',
         );
 
         $mcpRequestId = (string) $mcp['request']['id'];
         self::assertSame(self::canonical($mcp, $mcpRequestId, $mcpRequestId), self::canonical($rest, (string) $rest['request']['id'], $mcpRequestId));
-        self::assertSame(['range', 'pending'], [$mcp['request']['anchor']['kind'], $mcp['request']['suggestion']]);
+        self::assertSame(['range', 'pending', $title], [$mcp['request']['anchor']['kind'], $mcp['request']['suggestion'], $mcp['request']['title']]);
     }
 
     /**
@@ -202,6 +203,7 @@ final class McpRestParityTest extends WebTestCase
         $note = 'Extracted TaxRounding.';
         $proposal = ['plan' => 'Extract `TaxRounding`.', 'diff' => "diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n@@ -1 +1 @@\n-Billing\n+Billing with `Money`\n"];
         $writes = [
+            [$doneByMcp, $doneByRest, 'set_request_title', ['id' => $doneByMcp, 'title' => 'Use Money for totals'], 'POST', 'title', ['title' => 'Use Money for totals']],
             [$doneByMcp, $doneByRest, 'claim_request', ['id' => $doneByMcp], 'POST', 'claim', null],
             [$doneByMcp, $doneByRest, 'reply_to_request', ['id' => $doneByMcp, 'body' => 'Rounding too?', 'question' => true], 'POST', 'comments', ['body' => 'Rounding too?', 'question' => true]],
             [$doneByMcp, $doneByRest, 'link_commits', ['commitSha' => $commit, 'requestIds' => [$doneByMcp], 'note' => $note], 'POST', '/api/v1/commit-links', ['commitSha' => $commit, 'requestIds' => [$doneByRest], 'note' => $note]],

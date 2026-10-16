@@ -23,4 +23,5 @@ enum Action: string
     case SetPlanRequirement = 'set_plan_requirement';
     case AcceptSuggestion = 'accept_suggestion';
     case DismissSuggestion = 'dismiss_suggestion';
+    case SetTitle = 'set_title';
 }

@@ -314,6 +314,7 @@ final class CheckRunHandler
                 $this->reviewUrl($reviewId),
                 ReviewState::Closed === $review->getState(),
                 $this->urlGenerator->generate('shell_request', ['id' => $request->getId()->toString()], UrlGeneratorInterface::ABSOLUTE_URL),
+                $request->getTitle(),
                 $request->getBody(),
                 $request->getStatus(),
                 $request->getWontDoBy(),

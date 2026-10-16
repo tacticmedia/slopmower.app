@@ -31,7 +31,7 @@ const NO_THREADS: readonly ThreadView[] = [];
  */
 function pendingDraftViews(reviewId: string, drafts: readonly Draft[], { items, hiddenReplySummaries }: RequestListData): DraftView[] {
     return drafts.map((draft) => {
-        const view = { key: draft.id, draftId: draft.id, body: draft.body, requireApproval: 'reply' === draft.kind ? null : draft.requireApproval };
+        const view = { key: draft.id, draftId: draft.id, title: draft.title, body: draft.body, requireApproval: 'reply' === draft.kind ? null : draft.requireApproval };
 
         if ('reply' === draft.kind) {
             const summary = items.find(({ id }) => id === draft.requestId)?.summary ?? hiddenReplySummaries[draft.requestId];

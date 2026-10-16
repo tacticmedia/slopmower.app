@@ -155,7 +155,7 @@ export function threadEntry(seq: number, type: ThreadEntryType, actor: ThreadEnt
 }
 
 /** `request.opened-range.json` of another anchor and body, or `request.general.json` without an anchor, opened by the user. */
-export function request(review: Review, anchor: Anchor | null, body: string, seq: number, requireApproval = false): Request {
+export function request(review: Review, anchor: Anchor | null, body: string, seq: number, requireApproval = false, title: string | null = null): Request {
     const base = fixture<Request>(null === anchor ? 'request.general.json' : 'request.opened-range.json');
     const createdAt = now();
 
@@ -165,7 +165,8 @@ export function request(review: Review, anchor: Anchor | null, body: string, seq
         reviewId: review.id,
         repositoryId: review.repositoryId,
         anchor,
-        summary: summaryText(body),
+        title,
+        summary: title ?? summaryText(body),
         body,
         author: USER,
         createdAt,
@@ -211,6 +212,7 @@ export function userActions(status: RequestStatus, wontDoBy: ActorKind | null = 
     if (suggestionPending) {
         actions.push('accept_suggestion', 'dismiss_suggestion');
     }
+    actions.push('set_title');
 
     return actions;
 }
@@ -227,6 +229,7 @@ export function requestSummary(request: Request): RequestSummary {
         resolution: request.resolution,
         closed: request.closed,
         anchor: null === anchor ? null : ({ kind: anchor.kind, path: anchor.path, range: anchor.range, symbol: anchor.symbol } as RequestSummary['anchor']),
+        title: request.title,
         summary: request.summary,
         author: request.author,
         claimedBy: request.claimedBy,

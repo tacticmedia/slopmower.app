@@ -31,7 +31,7 @@ final class ProposalFlowTest extends FullStackTestCase
         $this->visit("/reviews/{$this->reviewId}/requests");
         $this->page->getByRole('button', ['name' => 'New request', 'exact' => true])->click();
         $this->expect($this->page->getByRole('checkbox', ['name' => 'Ask for a plan first', 'exact' => true]))->toBeChecked();
-        $this->page->locator('textarea[aria-label="New request"]')->fill(self::BODY);
+        $this->page->locator('form[aria-label="New request"] textarea')->fill(self::BODY);
         $this->page->locator('form[data-testid="comment-box"]')->getByRole('button', ['name' => 'Add single comment', 'exact' => true])->click();
         $this->expect($this->page->locator('[data-testid="request-list"]')->getByRole('link', ['name' => self::BODY, 'exact' => true]))->toBeVisible();
 

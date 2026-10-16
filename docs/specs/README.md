@@ -9,7 +9,7 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 | [README.md](README.md) | Conventions, authentication, errors, pagination, caching, repository sources, versioning, schema and fixture index |
 | [rest-api.md](rest-api.md) | REST endpoint index, account, repositories, reviews and code |
 | [rest-api-requests.md](rest-api-requests.md) | REST requests, updates, drafts, API tokens, and the routes outside `/api/v1` |
-| [mcp.md](mcp.md) | MCP endpoint, server instructions, the 17 tools, error mapping, parity with REST |
+| [mcp.md](mcp.md) | MCP endpoint, server instructions, the 18 tools, error mapping, parity with REST |
 | [webhooks-and-live-updates.md](webhooks-and-live-updates.md) | GitHub webhooks, fetch triggers and post-fetch steps, Mercure live updates |
 | [schemas/](schemas/) | 32 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
 | [fixtures/](fixtures/) | One realistic example per response shape, error code, live-update type, and request body. See [section 11](#11-fixtures). |
@@ -40,6 +40,7 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 | optional `note`, `summary`, close `note` | 0 to 65,536 characters, or null |
 | `reason` of won't do | at least 20 characters after trimming, at most 65,536 characters |
 | review `title` | 1 to 200 characters |
+| request `title` | 1 to 200 characters after trimming, one line without CR or LF, at least one non-whitespace character. The server stores it trimmed. |
 | `ref` | 1 to 255 characters |
 | pull request `url` | `https`, at most 2,048 characters, no whitespace. For a GitHub repository, `https://github.com/{owner}/{name}/pull/{number}` of the review's repository, compared case-insensitively. The server stores such a URL with the repository name as connected. A local repository accepts any such URL as written. |
 | token `name` | 1 to 64 characters, pattern in [api-token.schema.json](schemas/api-token.schema.json) |
@@ -227,6 +228,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Check of every pull request, decision D64: the endpoint R8, the input `CheckEveryPullRequestInput`, and `github.checkEveryPullRequest` in `Repository`. All are additive.
     - Product name, decision D14: the MCP server name, `serverInfo.name`, the skill name, the Bearer realm, the pin refs, the live update ID, and the schema `$id` base use `slopmower`. Token secrets start with `sm_`.
     - Agent suggestions, decision D72: the endpoints Q20, Q21, and Q22, the tools `start_review` and `suggest_request`, the `Action` values `accept_suggestion` and `dismiss_suggestion`, the `EventType` and `ThreadEntryType` values `request.suggestion_accepted` and `request.suggestion_dismissed`, the inputs `SuggestRequestInput`, `AcceptSuggestionInput`, and `DismissSuggestionInput`, the closed set `SuggestionState` on the new property `suggestion`, and the filter `suggestion` of Q1 and `list_requests`. All are additive. V1 also accepts `B`. A `request.opened` with an agent actor opens a suggestion with the same payload, and one with a user actor gives `suggestion: null`, so stored events need no change. While a suggestion is pending, `claim`, `mark_wont_do`, and `set_plan_requirement` are refused, `awaiting` rule 3 matches it, and rule 2 counts an accept as a user message. V15 does not carry a pending suggestion.
+    - Request titles, decision D75: the endpoint Q23 and the tool `set_request_title`, the `Action` value `set_title`, the `EventType` and `ThreadEntryType` value `request.retitled`, the input `TitleInput`, the property `title` of `Request`, `RequestSummary`, and `Draft`, and the optional input `title` of Q2, D2, and D3. These are additive. Not additive: the required `title` of Q20 and `suggest_request`, and the new meaning of `summary`, which is the title when one is set. `request.opened` has the payload field `title`, read as null when missing, so stored events need no change.
 
 ## 9. Contract tests
 
@@ -246,7 +248,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 
 | File | `$id` | Content |
 |---|---|---|
-| [common.schema.json](schemas/common.schema.json) | `https://slopmower.invalid/schemas/v1/common.schema.json` | `$defs` only: IDs, SHAs, paths, times, cursors, `UnifiedDiff`, `Proposal`, and the shared enums |
+| [common.schema.json](schemas/common.schema.json) | `https://slopmower.invalid/schemas/v1/common.schema.json` | `$defs` only: IDs, SHAs, paths, times, cursors, `Markdown`, `Title`, `UnifiedDiff`, `Proposal`, and the shared enums |
 | [error.schema.json](schemas/error.schema.json) | `https://slopmower.invalid/schemas/v1/error.schema.json` | Error body and the `details` shape per code |
 | [actor.schema.json](schemas/actor.schema.json) | `https://slopmower.invalid/schemas/v1/actor.schema.json` | Actor: user, agent, or system |
 | [anchor.schema.json](schemas/anchor.schema.json) | `https://slopmower.invalid/schemas/v1/anchor.schema.json` | Anchor of a request with a code location, plus `LineRange`, `SymbolRef`, `ContentSnapshot`, `AnchorSummary`, `AnchorInput`. A general request has no anchor. |
@@ -254,8 +256,8 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [repository.schema.json](schemas/repository.schema.json) | `https://slopmower.invalid/schemas/v1/repository.schema.json` | Repository, plus `LocalDirectory` and `Sync` |
 | [repository-candidate.schema.json](schemas/repository-candidate.schema.json) | `https://slopmower.invalid/schemas/v1/repository-candidate.schema.json` | A repository that the user can connect |
 | [review.schema.json](schemas/review.schema.json) | `https://slopmower.invalid/schemas/v1/review.schema.json` | Review, plus `IndexStatus` and `RequestCounts` |
-| [request-summary.schema.json](schemas/request-summary.schema.json) | `https://slopmower.invalid/schemas/v1/request-summary.schema.json` | RequestSummary for lists and command results, plus `CarriedFrom`. `anchor` is null for a general request, and `suggestion` is null for a request of the user. |
-| [request.schema.json](schemas/request.schema.json) | `https://slopmower.invalid/schemas/v1/request.schema.json` | Request in full, plus `PullRequest` and `CodeExcerpt`. A general request has `anchor`, `location`, `excerpt`, and `outdated` null. A request of the user has `suggestion` null. |
+| [request-summary.schema.json](schemas/request-summary.schema.json) | `https://slopmower.invalid/schemas/v1/request-summary.schema.json` | RequestSummary for lists and command results, plus `CarriedFrom`. `anchor` is null for a general request, `title` is null for a request without a title, and `suggestion` is null for a request of the user. |
+| [request.schema.json](schemas/request.schema.json) | `https://slopmower.invalid/schemas/v1/request.schema.json` | Request in full, plus `PullRequest` and `CodeExcerpt`. A general request has `anchor`, `location`, `excerpt`, and `outdated` null. A request without a title has `title` null. A request of the user has `suggestion` null. |
 | [thread-entry.schema.json](schemas/thread-entry.schema.json) | `https://slopmower.invalid/schemas/v1/thread-entry.schema.json` | One entry of a request thread |
 | [event.schema.json](schemas/event.schema.json) | `https://slopmower.invalid/schemas/v1/event.schema.json` | One event of the review event log |
 | [commit-link.schema.json](schemas/commit-link.schema.json) | `https://slopmower.invalid/schemas/v1/commit-link.schema.json` | A commit linked to a request |
@@ -316,14 +318,14 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.comment.json](fixtures/inputs.comment.json) | `inputs.schema.json#/$defs/CommentInput` | Q4 |
 | [inputs.connect-github.json](fixtures/inputs.connect-github.json) | `inputs.schema.json#/$defs/ConnectRepositoryInput` | R3 |
 | [inputs.connect-local.json](fixtures/inputs.connect-local.json) | `inputs.schema.json#/$defs/ConnectRepositoryInput` | R3 |
-| [inputs.create-draft-general-request.json](fixtures/inputs.create-draft-general-request.json) | `inputs.schema.json#/$defs/CreateDraftInput` | D2 |
+| [inputs.create-draft-general-request.json](fixtures/inputs.create-draft-general-request.json) | `inputs.schema.json#/$defs/CreateDraftInput` | D2 with a title |
 | [inputs.create-draft-new-request.json](fixtures/inputs.create-draft-new-request.json) | `inputs.schema.json#/$defs/CreateDraftInput` | D2 |
 | [inputs.create-draft-reply.json](fixtures/inputs.create-draft-reply.json) | `inputs.schema.json#/$defs/CreateDraftInput` | D2 |
 | [inputs.create-token.json](fixtures/inputs.create-token.json) | `inputs.schema.json#/$defs/CreateTokenInput` | T2 |
 | [inputs.dismiss-suggestion.json](fixtures/inputs.dismiss-suggestion.json) | `inputs.schema.json#/$defs/DismissSuggestionInput` | Q22 |
 | [inputs.link-commits.json](fixtures/inputs.link-commits.json) | `inputs.schema.json#/$defs/LinkCommitsInput` | Q7 |
 | [inputs.link-pull-request.json](fixtures/inputs.link-pull-request.json) | `inputs.schema.json#/$defs/LinkPullRequestInput` | Q17 |
-| [inputs.open-general-request.json](fixtures/inputs.open-general-request.json) | `inputs.schema.json#/$defs/OpenRequestInput` | Q2 |
+| [inputs.open-general-request.json](fixtures/inputs.open-general-request.json) | `inputs.schema.json#/$defs/OpenRequestInput` | Q2 with a title |
 | [inputs.open-request-approval.json](fixtures/inputs.open-request-approval.json) | `inputs.schema.json#/$defs/OpenRequestInput` | Q2 with "Ask for a plan first" |
 | [inputs.open-request.json](fixtures/inputs.open-request.json) | `inputs.schema.json#/$defs/OpenRequestInput` | Q2 |
 | [inputs.plan-requirement.json](fixtures/inputs.plan-requirement.json) | `inputs.schema.json#/$defs/PlanRequirementInput` | Q18 |
@@ -334,6 +336,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.start-review.json](fixtures/inputs.start-review.json) | `inputs.schema.json#/$defs/StartReviewInput` | V1 |
 | [inputs.submit-drafts.json](fixtures/inputs.submit-drafts.json) | `inputs.schema.json#/$defs/SubmitDraftsInput` | D5 |
 | [inputs.suggest-request.json](fixtures/inputs.suggest-request.json) | `inputs.schema.json#/$defs/SuggestRequestInput` | Q20, `suggest_request` |
+| [inputs.title.json](fixtures/inputs.title.json) | `inputs.schema.json#/$defs/TitleInput` | Q23, `set_request_title` |
 | [inputs.unlink-pull-request.json](fixtures/inputs.unlink-pull-request.json) | `inputs.schema.json#/$defs/UnlinkPullRequestInput` | Q19 |
 | [inputs.update-draft.json](fixtures/inputs.update-draft.json) | `inputs.schema.json#/$defs/UpdateDraftInput` | D3 |
 | [inputs.viewed-file.json](fixtures/inputs.viewed-file.json) | `inputs.schema.json#/$defs/ViewedFileInput` | V12 |
@@ -370,6 +373,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [request-command-result.question.json](fixtures/request-command-result.question.json) | `request-command-result.schema.json` | Q4, `reply_to_request` |
 | [request-command-result.ready.json](fixtures/request-command-result.ready.json) | `request-command-result.schema.json` | Q10, `mark_ready_for_review` |
 | [request-command-result.release.json](fixtures/request-command-result.release.json) | `request-command-result.schema.json` | Q6, `release_request` |
+| [request-command-result.retitled.json](fixtures/request-command-result.retitled.json) | `request-command-result.schema.json` | Q23, `set_request_title` |
 | [request-command-result.suggested.json](fixtures/request-command-result.suggested.json) | `request-command-result.schema.json` | Q20, `suggest_request` |
 | [request.carried.json](fixtures/request.carried.json) | `request.schema.json` | Q3 of a carried request, `get_request` |
 | [request.general.json](fixtures/request.general.json) | `request.schema.json` | Q2, Q3, `get_request` |

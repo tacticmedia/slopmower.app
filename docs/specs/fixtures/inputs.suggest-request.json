@@ -7,5 +7,6 @@
       "endLine": 55
     }
   },
+  "title": "Round half cents up",
   "body": "Round half cents up: use `PHP_ROUND_HALF_UP`.\n\n`PHP_ROUND_HALF_EVEN` rounds a tax of 12.5 cents to 12 cents. Invoices round a half cent up."
 }

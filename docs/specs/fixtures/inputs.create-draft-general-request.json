@@ -1,5 +1,6 @@
 {
   "kind": "new_request",
   "anchor": null,
+  "title": "Wrap long lines",
   "body": "Wrap long lines in the code view."
 }

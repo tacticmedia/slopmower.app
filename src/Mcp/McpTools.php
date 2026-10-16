@@ -45,6 +45,7 @@ use App\Domain\Request\Command\MarkWontDo;
 use App\Domain\Request\Command\ProposeSolution;
 use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reply;
+use App\Domain\Request\Command\SetTitle;
 use App\Domain\Request\Command\Suggest;
 use App\Domain\Request\Command\UnlinkCommit;
 use App\Domain\Request\RequestStatus;
@@ -125,7 +126,7 @@ final class McpTools
     #[McpTool(
         name: 'get_request',
         title: 'Get request',
-        description: "Return one request in full: body, thread, anchor with a code snapshot at the review commit, linked commits, location, and the actions you may take now (allowedActions). `at` locates the anchor at another commit that the server's clone has (pushed, or committed in a local repository); by default the location is at the default-branch head. Your working tree can differ: find the code with anchor.snapshot, its before and after lines, and anchor.symbol.fqn. A general request has anchor, location, and excerpt null. It belongs to the whole review, and its body and thread say what to change.",
+        description: "Return one request in full: title, body, thread, anchor with a code snapshot at the review commit, linked commits, location, and the actions you may take now (allowedActions). `at` locates the anchor at another commit that the server's clone has (pushed, or committed in a local repository); by default the location is at the default-branch head. Your working tree can differ: find the code with anchor.snapshot, its before and after lines, and anchor.symbol.fqn. A general request has anchor, location, and excerpt null. It belongs to the whole review, and its body and thread say what to change. A request with title null has no title: give it one with set_request_title before you claim it.",
         annotations: new ToolAnnotations(readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false),
         outputSchema: BundledSchemas::REQUEST,
     )]
@@ -263,7 +264,7 @@ final class McpTools
     #[McpTool(
         name: 'list_requests',
         title: 'List requests',
-        description: 'List the change requests of one review, oldest first, with optional filters. Returns summaries; call get_request for the body, thread, anchor, and location.',
+        description: 'List the change requests of one review, oldest first, with optional filters. Returns summaries: title is null while a request has none, and summary is the title or else the first line of the body. Call get_request for the body, thread, anchor, and location.',
         annotations: new ToolAnnotations(readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false),
         outputSchema: BundledSchemas::REQUEST_PAGE,
     )]
@@ -422,6 +423,26 @@ final class McpTools
     }
 
     /**
+     * Section 4.18: REST Q23. The decider checks the title rules.
+     *
+     * @param string $id    Request ID
+     * @param string $title One line of at most 80 characters that summarizes the body
+     *
+     * @return array<string, mixed>
+     */
+    #[McpTool(
+        name: 'set_request_title',
+        title: 'Set request title',
+        description: 'Set the title of a request whose title is null: one line of at most 80 characters that summarizes its body. Call it before you claim such a request. Fails with invalid_transition when the request has a title; only the user changes a title.',
+        annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
+        outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT,
+    )]
+    public function setRequestTitle(#[Schema(pattern: self::ULID)] string $id, #[Schema(minLength: 1, maxLength: 200)] string $title): array
+    {
+        return $this->requestCommand('set_request_title', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->setTitle(new SetTitle($requestId, $title), $actor));
+    }
+
+    /**
      * Section 4.16: REST R1 with `name`, then V1.
      *
      * @param string  $repository Repository ID, GitHub owner/name, or local directory name
@@ -451,6 +472,7 @@ final class McpTools
      * Section 4.17: REST Q20.
      *
      * @param string      $review     Review ID from start_review or list_reviews
+     * @param string      $title      One line of at most 80 characters that summarizes the body
      * @param string      $body       Markdown: what to change, and why
      * @param ?AnchorKind $anchorKind line, range, symbol, or file; null for a general request
      * @param ?string     $path       File path at the review commit; required with anchorKind
@@ -463,12 +485,13 @@ final class McpTools
     #[McpTool(
         name: 'suggest_request',
         title: 'Suggest request',
-        description: 'Suggest one change while you review code. The suggestion is a request that waits for the user, who accepts or dismisses it; do not edit code for it. Use the narrowest anchor: anchorKind line or range with path, startLine, and endLine; symbol with path and the fully qualified name in symbol, for example App\\Billing\\InvoiceTotals::total(); file with path. Without anchorKind the suggestion concerns the whole review. If the server does not find the symbol, use a range. An accepted suggestion comes back through get_updates as a request that waits for you.',
+        description: 'Suggest one change while you review code. The suggestion is a request that waits for the user, who accepts or dismisses it; do not edit code for it. Give it a title: one line of at most 80 characters that summarizes the body. Use the narrowest anchor: anchorKind line or range with path, startLine, and endLine; symbol with path and the fully qualified name in symbol, for example App\\Billing\\InvoiceTotals::total(); file with path. Without anchorKind the suggestion concerns the whole review. If the server does not find the symbol, use a range. An accepted suggestion comes back through get_updates as a request that waits for you.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
         outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT,
     )]
     public function suggestRequest(
         #[Schema(pattern: self::ULID)] string $review,
+        #[Schema(minLength: 1, maxLength: 200)] string $title,
         #[Schema(minLength: 1, maxLength: 65536)] string $body,
         ?AnchorKind $anchorKind = null,
         #[Schema(minLength: 1, maxLength: 4096)] ?string $path = null,
@@ -476,11 +499,11 @@ final class McpTools
         #[Schema(minimum: 1)] ?int $endLine = null,
         #[Schema(minLength: 1, maxLength: 1024)] ?string $symbol = null,
     ): array {
-        return $this->run('suggest_request', function () use ($review, $body, $anchorKind, $path, $startLine, $endLine, $symbol): RequestCommandResult {
+        return $this->run('suggest_request', function () use ($review, $title, $body, $anchorKind, $path, $startLine, $endLine, $symbol): RequestCommandResult {
             $found = $this->reviewRepository->findFresh(ReviewId::fromString($review, 'review')) ?? throw new NotFound();
             $anchor = $this->anchor($found, $anchorKind, $path, $startLine, $endLine, $symbol);
             $actor = $this->currentActor->get();
-            $events = $this->commands->suggest($found->getId(), new Suggest($anchor, $body), $actor);
+            $events = $this->commands->suggest($found->getId(), new Suggest($anchor, $body, $title), $actor);
 
             return $this->requests->commandResult($events[0]->requestId ?? throw new \LogicException('request.opened has a requestId.'), $actor, $events);
         });

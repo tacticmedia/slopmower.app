@@ -19,6 +19,7 @@ final readonly class Open implements RequestCommand
         public ?BatchId $batchId = null,
         public ?CarriedFrom $carriedFrom = null,
         public bool $requireApproval = false,
+        public ?string $title = null,
     ) {
     }
 

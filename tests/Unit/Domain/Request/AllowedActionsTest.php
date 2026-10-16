@@ -84,27 +84,28 @@ final class AllowedActionsTest extends KernelTestCase
     }
 
     /**
-     * docs/specs/rest-api-requests.md section 1. The claiming agent holds the in_progress request.
+     * docs/specs/rest-api-requests.md section 1. The claiming agent holds the in_progress request. Only the suggestion has a
+     * title.
      *
      * @return iterable<string, array{string, bool, string, list<string>}>
      */
     public static function table(): iterable
     {
         $rows = [
-            ['open', true, ['reply', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'claim', 'mark_wont_do'], ['reply', 'claim', 'mark_wont_do']],
-            ['in_progress', true, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], ['reply']],
-            ['in_progress', false, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'release', 'link_commits', 'link_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], ['reply']],
-            ['ready_for_review', true, ['reply', 'verify', 'reopen'], ['reply', 'link_pull_request', 'unlink_pull_request'], ['reply', 'link_pull_request', 'unlink_pull_request']],
-            ['verified', true, ['reply', 'reopen'], ['reply'], ['reply']],
-            ['reopened', true, ['reply', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'claim', 'mark_wont_do'], ['reply', 'claim', 'mark_wont_do']],
-            ['wont_do by agent', true, ['reply', 'verify', 'reopen'], ['reply'], ['reply']],
-            ['wont_do by user', true, ['reply', 'reopen'], ['reply'], ['reply']],
-            ['proposal pending', true, ['reply', 'release', 'mark_wont_do', 'approve_proposal', 'reject_proposal', 'set_plan_requirement'], ['reply', 'release', 'unlink_commit', 'unlink_pull_request', 'mark_wont_do', 'propose_solution'], ['reply']],
-            ['proposal pending', false, ['reply', 'release', 'mark_wont_do', 'approve_proposal', 'reject_proposal', 'set_plan_requirement'], ['reply', 'release', 'mark_wont_do', 'propose_solution'], ['reply']],
-            ['proposal rejected', true, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'release', 'unlink_commit', 'unlink_pull_request', 'mark_wont_do', 'propose_solution'], ['reply']],
-            ['plan required', true, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'release', 'unlink_commit', 'unlink_pull_request', 'mark_wont_do', 'propose_solution'], ['reply']],
-            ['plan approved', true, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement'], ['reply', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], ['reply']],
-            ['suggestion pending', false, ['reply', 'accept_suggestion', 'dismiss_suggestion'], ['reply'], ['reply']],
+            ['open', true, ['reply', 'mark_wont_do', 'set_plan_requirement', 'set_title'], ['reply', 'claim', 'mark_wont_do', 'set_title'], ['reply', 'claim', 'mark_wont_do', 'set_title']],
+            ['in_progress', true, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement', 'set_title'], ['reply', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution', 'set_title'], ['reply', 'set_title']],
+            ['in_progress', false, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement', 'set_title'], ['reply', 'release', 'link_commits', 'link_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution', 'set_title'], ['reply', 'set_title']],
+            ['ready_for_review', true, ['reply', 'verify', 'reopen', 'set_title'], ['reply', 'link_pull_request', 'unlink_pull_request', 'set_title'], ['reply', 'link_pull_request', 'unlink_pull_request', 'set_title']],
+            ['verified', true, ['reply', 'reopen', 'set_title'], ['reply', 'set_title'], ['reply', 'set_title']],
+            ['reopened', true, ['reply', 'mark_wont_do', 'set_plan_requirement', 'set_title'], ['reply', 'claim', 'mark_wont_do', 'set_title'], ['reply', 'claim', 'mark_wont_do', 'set_title']],
+            ['wont_do by agent', true, ['reply', 'verify', 'reopen', 'set_title'], ['reply', 'set_title'], ['reply', 'set_title']],
+            ['wont_do by user', true, ['reply', 'reopen', 'set_title'], ['reply', 'set_title'], ['reply', 'set_title']],
+            ['proposal pending', true, ['reply', 'release', 'mark_wont_do', 'approve_proposal', 'reject_proposal', 'set_plan_requirement', 'set_title'], ['reply', 'release', 'unlink_commit', 'unlink_pull_request', 'mark_wont_do', 'propose_solution', 'set_title'], ['reply', 'set_title']],
+            ['proposal pending', false, ['reply', 'release', 'mark_wont_do', 'approve_proposal', 'reject_proposal', 'set_plan_requirement', 'set_title'], ['reply', 'release', 'mark_wont_do', 'propose_solution', 'set_title'], ['reply', 'set_title']],
+            ['proposal rejected', true, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement', 'set_title'], ['reply', 'release', 'unlink_commit', 'unlink_pull_request', 'mark_wont_do', 'propose_solution', 'set_title'], ['reply', 'set_title']],
+            ['plan required', true, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement', 'set_title'], ['reply', 'release', 'unlink_commit', 'unlink_pull_request', 'mark_wont_do', 'propose_solution', 'set_title'], ['reply', 'set_title']],
+            ['plan approved', true, ['reply', 'release', 'mark_wont_do', 'set_plan_requirement', 'set_title'], ['reply', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution', 'set_title'], ['reply', 'set_title']],
+            ['suggestion pending', false, ['reply', 'accept_suggestion', 'dismiss_suggestion', 'set_title'], ['reply'], ['reply']],
         ];
 
         foreach ($rows as [$state, $linked, $user, $claimingAgent, $otherAgent]) {
@@ -113,6 +114,20 @@ final class AllowedActionsTest extends KernelTestCase
             yield "{$state}{$suffix}, user" => [$state, $linked, 'user', $user];
             yield "{$state}{$suffix}, claiming agent" => [$state, $linked, 'claiming agent', $claimingAgent];
             yield "{$state}{$suffix}, another agent" => [$state, $linked, 'another agent', $otherAgent];
+        }
+    }
+
+    #[TestDox('On a titled $state request, only the user may set the title')]
+    #[DataProvider('states')]
+    public function testOnlyTheUserChangesATitle(string $state): void
+    {
+        $scenario = RequestScenario::inState($state);
+        $scenario->run($scenario->validCommand('set_title'), RequestScenario::user());
+
+        foreach (self::CALLERS as $caller) {
+            $allowedActions = AllowedActions::for($scenario->state(), $scenario->review(), RequestScenario::caller($caller));
+
+            self::assertSame('user' === $caller, in_array(Action::SetTitle, $allowedActions, true), $caller);
         }
     }
 

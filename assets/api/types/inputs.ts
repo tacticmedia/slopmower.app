@@ -25,6 +25,8 @@ export type CarryOverInput = {
 export type OpenRequestInput = {
     /** Absent or null opens a general request. */
     anchor?: AnchorInput | null;
+    /** Absent or null opens the request without a title. */
+    title?: string | null;
     body: Markdown;
     /** "Ask for a plan first". Default false. */
     requireApproval?: boolean | null;
@@ -33,6 +35,7 @@ export type OpenRequestInput = {
 export type SuggestRequestInput = {
     /** Absent or null suggests a general request. */
     anchor?: AnchorInput | null;
+    title: string;
     body: Markdown;
 };
 
@@ -88,6 +91,10 @@ export type DismissSuggestionInput = {
     note?: string | null;
 };
 
+export type TitleInput = {
+    title: string;
+};
+
 export type LinkCommitsInput = {
     commitSha: CommitSha;
     requestIds: Ulid[];
@@ -105,10 +112,12 @@ export type UnlinkPullRequestInput = {
 };
 
 export type CreateDraftInput =
-    | { kind: 'new_request'; anchor?: AnchorInput | null; requestId?: null; body: Markdown; requireApproval?: boolean | null }
-    | { kind: 'reply'; anchor?: null; requestId: Ulid; body: Markdown; requireApproval?: null };
+    | { kind: 'new_request'; anchor?: AnchorInput | null; requestId?: null; title?: string | null; body: Markdown; requireApproval?: boolean | null }
+    | { kind: 'reply'; anchor?: null; requestId: Ulid; title?: null; body: Markdown; requireApproval?: null };
 
 export type UpdateDraftInput = {
+    /** Replaced with `body`: absent or null removes it. new_request drafts only. */
+    title?: string | null;
     body: Markdown;
     /** new_request drafts only. Absent or null keeps the value. */
     requireApproval?: boolean | null;

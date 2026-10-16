@@ -45,12 +45,13 @@ final readonly class RequestState
         public bool $requireApproval = false,
         public ?Proposal $proposal = null,
         public ?SuggestionState $suggestion = null,
+        public ?string $title = null,
     ) {
         $this->assertConsistent();
     }
 
     /**
-     * @param array{status?: RequestStatus, statusBeforeClaim?: ?RequestStatus, claimedBy?: ?Actor, claimedAt?: ?\DateTimeImmutable, wontDoBy?: ?ActorKind, resolution?: ?Resolution, links?: list<LinkedCommit>, pullRequestUrls?: list<PullRequestUrl>, lastUserCommentSeq?: ?int, lastAgentEventSeq?: ?int, lastAgentEventIsQuestion?: bool, lastEventSeq?: int, updatedAt?: \DateTimeImmutable, requireApproval?: bool, proposal?: ?Proposal, suggestion?: ?SuggestionState} $changes
+     * @param array{status?: RequestStatus, statusBeforeClaim?: ?RequestStatus, claimedBy?: ?Actor, claimedAt?: ?\DateTimeImmutable, wontDoBy?: ?ActorKind, resolution?: ?Resolution, links?: list<LinkedCommit>, pullRequestUrls?: list<PullRequestUrl>, lastUserCommentSeq?: ?int, lastAgentEventSeq?: ?int, lastAgentEventIsQuestion?: bool, lastEventSeq?: int, updatedAt?: \DateTimeImmutable, requireApproval?: bool, proposal?: ?Proposal, suggestion?: ?SuggestionState, title?: string} $changes
      */
     public function with(array $changes): self
     {

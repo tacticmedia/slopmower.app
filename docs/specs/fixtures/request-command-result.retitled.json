@@ -1,0 +1,61 @@
+{
+  "request": {
+    "id": "01K6B3P2A9QRSTVWXYZ012345C",
+    "reviewId": "01K6B3A1B2C3D4E5F6G7H8J9KM",
+    "repositoryId": "01K6B2Z0R3P0S1T2V3W4X5Y6Z7",
+    "status": "open",
+    "awaiting": "agent",
+    "resolution": null,
+    "closed": false,
+    "anchor": null,
+    "title": "Show the tax rate with four decimals",
+    "summary": "Show the tax rate with four decimals",
+    "author": {
+      "kind": "user",
+      "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+      "agentName": null,
+      "name": "janklan",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/1?v=4"
+    },
+    "claimedBy": null,
+    "claimedAt": null,
+    "commentCount": 0,
+    "commitCount": 0,
+    "pendingCommitCount": 0,
+    "outdated": null,
+    "createdAt": "2026-09-29T08:20:00Z",
+    "updatedAt": "2026-09-29T08:25:00Z",
+    "lastEventSeq": 1881,
+    "carriedFrom": null,
+    "requireApproval": false,
+    "suggestion": null,
+    "proposal": null
+  },
+  "allowedActions": ["reply", "claim", "mark_wont_do"],
+  "events": [
+    {
+      "seq": 1881,
+      "eventId": "01K6C2EVT00000000000001881",
+      "type": "request.retitled",
+      "reviewId": "01K6B3A1B2C3D4E5F6G7H8J9KM",
+      "requestId": "01K6B3P2A9QRSTVWXYZ012345C",
+      "requestIds": ["01K6B3P2A9QRSTVWXYZ012345C"],
+      "actor": {
+        "kind": "agent",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "agentName": "claude-code laptop",
+        "name": "claude-code laptop",
+        "avatarUrl": null
+      },
+      "occurredAt": "2026-09-29T08:25:00Z",
+      "body": "Show the tax rate with four decimals",
+      "diff": null,
+      "commentId": null,
+      "question": false,
+      "batchId": null,
+      "commitSha": null,
+      "pullRequestUrl": null,
+      "statusAfter": "open"
+    }
+  ]
+}

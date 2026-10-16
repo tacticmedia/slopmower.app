@@ -31,6 +31,7 @@ trait McpAssertions
         'propose_solution' => 'request-command-result.schema.json',
         'start_review' => 'review.schema.json',
         'suggest_request' => 'request-command-result.schema.json',
+        'set_request_title' => 'request-command-result.schema.json',
     ];
 
     /**

@@ -30,6 +30,7 @@ use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\SetPlanRequirement;
+use App\Domain\Request\Command\SetTitle;
 use App\Domain\Request\Command\UnlinkCommit;
 use App\Domain\Request\Command\Verify;
 use App\Domain\Review\Command\CloseReview;
@@ -70,7 +71,7 @@ final class ProjectionConsistencyTest extends KernelTestCase
         self::assertSame(['available', $linkedAvailable['linked_at']], [$linkedAvailable['state'], $linkedAvailable['found_at']]);
 
         $connection->executeStatement("UPDATE review SET title = 'Tampered', last_event_seq = 0 WHERE tenant_id = ?", $tenant);
-        $connection->executeStatement("UPDATE change_request SET status = 'open', body = 'Tampered', awaiting = 'none', last_event_seq = 0, require_approval = false, proposal_state = NULL, suggestion_state = NULL, pull_request_urls = '[]' WHERE tenant_id = ?", $tenant);
+        $connection->executeStatement("UPDATE change_request SET status = 'open', body = 'Tampered', awaiting = 'none', last_event_seq = 0, require_approval = false, proposal_state = NULL, suggestion_state = NULL, pull_request_urls = '[]', title = NULL WHERE tenant_id = ?", $tenant);
         $connection->executeStatement("UPDATE commit_link SET state = 'pending', found_at = NULL WHERE tenant_id = ?", $tenant);
         $connection->executeStatement('DELETE FROM comment WHERE tenant_id = ?', $tenant);
 
@@ -121,7 +122,7 @@ final class ProjectionConsistencyTest extends KernelTestCase
     }
 
     /**
-     * A question, a reply, the plan required, claim, release, and wont_do by the agent.
+     * A question, a reply, the title set by the agent, the plan required, claim, release, and wont_do by the agent.
      */
     private static function declinedRequest(ReviewId $reviewId, RequestId $fixed): RequestId
     {
@@ -131,6 +132,7 @@ final class ProjectionConsistencyTest extends KernelTestCase
 
         $commands->reply(new Reply($requestId, 'Should this cover the shipping totals?', true), $agent);
         $commands->reply(new Reply($requestId, 'Yes, see '.$fixed.'.'), RequestScenario::user());
+        $commands->setTitle(new SetTitle($requestId, 'Cover the shipping totals'), $agent);
         $commands->setPlanRequirement(new SetPlanRequirement($requestId, true), RequestScenario::user());
         $commands->claim(new Claim($requestId), $agent);
         $commands->release(new Release($requestId, 'Needs a decision first.'), $agent);
@@ -140,14 +142,14 @@ final class ProjectionConsistencyTest extends KernelTestCase
     }
 
     /**
-     * Agent suggestions: one pending, one accepted with the plan required, and one dismissed.
+     * Agent suggestions: one pending with a title, one accepted with the plan required, and one dismissed.
      */
     private static function suggestions(ReviewId $reviewId): void
     {
         [$pending, $accepted, $dismissed] = [RequestId::generate(), RequestId::generate(), RequestId::generate()];
 
         self::executor()->execute($reviewId, RequestScenario::claimingAgent(), static fn (): array => [
-            new DecidedEvent(new RequestOpenedEvent(null, 'Round each line before the sum.', null), $pending),
+            new DecidedEvent(new RequestOpenedEvent(null, 'Round each line before the sum.', null, title: 'Round each line'), $pending),
             new DecidedEvent(new RequestOpenedEvent(null, 'Cover the shipping totals.', null), $accepted),
             new DecidedEvent(new RequestOpenedEvent(null, 'Rename `InvoiceTotals`.', null), $dismissed),
         ]);

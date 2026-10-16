@@ -46,9 +46,9 @@ Slopmower stores change requests that the user wrote while reviewing this reposi
 
 1. Identify the repository: owner/name from `git remote get-url origin` for GitHub, or the name of the repository's root directory for a local repository. list_repositories shows what this token can see.
 2. list_reviews(repository) returns the open reviews. Work on the one the user named; if several are open and none was named, ask.
-3. To review code, start_review or use the named review, read the code at its commitSha, and call suggest_request once per finding with the narrowest anchor. Do not edit code for a suggestion. A pending suggestion allows only reply_to_request.
+3. To review code, start_review or use the named review, read the code at its commitSha, and call suggest_request once per finding with the narrowest anchor and a title of at most 80 characters. Do not edit code for a suggestion. A pending suggestion allows only reply_to_request.
 4. get_updates(review) without a cursor returns what waits for you. Keep the returned cursor and pass it in the next call; if hasMore is true, call again at once.
-5. For each request with awaiting "agent", reopened ones first: get_request, then reply_to_request (question: true when you need an answer, then move on), or claim_request before you edit code.
+5. For each request with awaiting "agent", reopened ones first: get_request, then reply_to_request (question: true when you need an answer, then move on), or claim_request before you edit code. A request with `title` null has no title. Before you claim it, call set_request_title with one line of at most 80 characters that summarizes its body.
 6. When requireApproval is true, or the request is unclear or large, propose_solution after the claim and take the next request. The decision comes back through get_updates. Link no commit before proposal.state is approved; on "rejected", read the note and propose again.
 7. Commit per request, then link_commits with the full SHA and every request that the commit covers. GitHub repositories: push before mark_ready_for_review. Local repositories: committing is enough. If you opened a pull request for the work, link_pull_request with its URL and every request that it covers; unlink_pull_request removes a link made by mistake.
 8. Finish with mark_ready_for_review (what changed, how you tested it), or mark_wont_do with evidence the user can check, or release_request if you stop.
@@ -96,6 +96,7 @@ The `inputSchema` blocks below are what the SDK 0.8.1 `SchemaGenerator` generate
 | [`unlink_pull_request`](#415-unlink_pull_request) | Unlink pull request | false | false | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) | [Q19](rest-api-requests.md#q19-unlink-a-pull-request) |
 | [`start_review`](#416-start_review) | Start review | false | false | [`review.schema.json`](schemas/review.schema.json) | [V1](rest-api.md#v1-start-a-review) |
 | [`suggest_request`](#417-suggest_request) | Suggest request | false | false | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) | [Q20](rest-api-requests.md#q20-suggest-a-request) |
+| [`set_request_title`](#418-set_request_title) | Set request title | false | false | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) | [Q23](rest-api-requests.md#q23-set-the-title) |
 
 Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 
@@ -168,7 +169,7 @@ public function listReviews(#[Schema(minLength: 1, maxLength: 255)] string $repo
 - **Description:**
 
 ```text
-List the change requests of one review, oldest first, with optional filters. Returns summaries; call get_request for the body, thread, anchor, and location.
+List the change requests of one review, oldest first, with optional filters. Returns summaries: title is null while a request has none, and summary is the title or else the first line of the body. Call get_request for the body, thread, anchor, and location.
 ```
 
 ```php
@@ -242,7 +243,7 @@ public function getUpdates(#[Schema(pattern: self::ULID)] string $review, #[Sche
 - **Description:**
 
 ```text
-Return one request in full: body, thread, anchor with a code snapshot at the review commit, linked commits, location, and the actions you may take now (allowedActions). `at` locates the anchor at another commit that the server's clone has (pushed, or committed in a local repository); by default the location is at the default-branch head. Your working tree can differ: find the code with anchor.snapshot, its before and after lines, and anchor.symbol.fqn. A general request has anchor, location, and excerpt null. It belongs to the whole review, and its body and thread say what to change.
+Return one request in full: title, body, thread, anchor with a code snapshot at the review commit, linked commits, location, and the actions you may take now (allowedActions). `at` locates the anchor at another commit that the server's clone has (pushed, or committed in a local repository); by default the location is at the default-branch head. Your working tree can differ: find the code with anchor.snapshot, its before and after lines, and anchor.symbol.fqn. A general request has anchor, location, and excerpt null. It belongs to the whole review, and its body and thread say what to change. A request with title null has no title: give it one with set_request_title before you claim it.
 ```
 
 ```php
@@ -616,12 +617,13 @@ public function startReview(#[Schema(minLength: 1, maxLength: 255)] string $repo
 - **Description:**
 
 ```text
-Suggest one change while you review code. The suggestion is a request that waits for the user, who accepts or dismisses it; do not edit code for it. Use the narrowest anchor: anchorKind line or range with path, startLine, and endLine; symbol with path and the fully qualified name in symbol, for example App\Billing\InvoiceTotals::total(); file with path. Without anchorKind the suggestion concerns the whole review. If the server does not find the symbol, use a range. An accepted suggestion comes back through get_updates as a request that waits for you.
+Suggest one change while you review code. The suggestion is a request that waits for the user, who accepts or dismisses it; do not edit code for it. Give it a title: one line of at most 80 characters that summarizes the body. Use the narrowest anchor: anchorKind line or range with path, startLine, and endLine; symbol with path and the fully qualified name in symbol, for example App\Billing\InvoiceTotals::total(); file with path. Without anchorKind the suggestion concerns the whole review. If the server does not find the symbol, use a range. An accepted suggestion comes back through get_updates as a request that waits for you.
 ```
 
 ```php
 /**
  * @param string      $review     Review ID from start_review or list_reviews
+ * @param string      $title      One line of at most 80 characters that summarizes the body
  * @param string      $body       Markdown: what to change, and why
  * @param ?AnchorKind $anchorKind line, range, symbol, or file; null for a general request
  * @param ?string     $path       File path at the review commit; required with anchorKind
@@ -632,6 +634,7 @@ Suggest one change while you review code. The suggestion is a request that waits
 #[McpTool(name: 'suggest_request', title: 'Suggest request', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false), outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT)]
 public function suggestRequest(
     #[Schema(pattern: self::ULID)] string $review,
+    #[Schema(minLength: 1, maxLength: 200)] string $title,
     #[Schema(minLength: 1, maxLength: 65536)] string $body,
     ?AnchorKind $anchorKind = null,
     #[Schema(minLength: 1, maxLength: 4096)] ?string $path = null,
@@ -644,19 +647,50 @@ public function suggestRequest(
 ```json
 {"type":"object","properties":{
  "review":{"type":"string","description":"Review ID from start_review or list_reviews","pattern":"^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"},
+ "title":{"type":"string","description":"One line of at most 80 characters that summarizes the body","minLength":1,"maxLength":200},
  "body":{"type":"string","description":"Markdown: what to change, and why","minLength":1,"maxLength":65536},
  "anchorKind":{"type":["string","null"],"description":"line, range, symbol, or file; null for a general request","default":null,"enum":["line","range","symbol","file",null]},
  "path":{"type":["null","string"],"description":"File path at the review commit; required with anchorKind","default":null,"minLength":1,"maxLength":4096},
  "startLine":{"type":["null","integer"],"description":"First line, for line and range","default":null,"minimum":1},
  "endLine":{"type":["null","integer"],"description":"Last line, for line and range; equal to startLine for line","default":null,"minimum":1},
  "symbol":{"type":["null","string"],"description":"Fully qualified name of the symbol, for symbol","default":null,"minLength":1,"maxLength":1024}},
- "required":["review","body"]}
+ "required":["review","title","body"]}
 ```
 
 - **Output:** [`request-command-result.schema.json`](schemas/request-command-result.schema.json).
-- **Behaviour:** REST Q20. The flat parameters form the `anchor` of `SuggestRequestInput`: `anchorKind` is `kind`, `path` is `path`, `startLine` and `endLine` form `range`, and `symbol` is `symbol.fqn`. They go to the same anchor capture as Q20, which checks that the kind and the parameters agree. With `anchorKind` null, the suggestion is general, and `path`, `startLine`, `endLine`, and `symbol` must be null.
-- **Errors:** `not_found`, `review_closed`, `repository_unavailable`, and `invalid_input` for the anchor errors of Q2, for example parameters that do not agree with `anchorKind`, for a body of whitespace only, or for a 501st pending suggestion in the review, and `limit_exceeded` for `requests_per_review`.
-- **Example:** arguments `{"review":"01K6B3A1B2C3D4E5F6G7H8J9KM","anchorKind":"line","path":"src/Billing/InvoiceTotals.php","startLine":55,"endLine":55}` plus the `body` of [fixtures/inputs.suggest-request.json](fixtures/inputs.suggest-request.json) give [fixtures/request-command-result.suggested.json](fixtures/request-command-result.suggested.json).
+- **Behaviour:** REST Q20 with `title` and `body`. The flat parameters form the `anchor` of `SuggestRequestInput`: `anchorKind` is `kind`, `path` is `path`, `startLine` and `endLine` form `range`, and `symbol` is `symbol.fqn`. They go to the same anchor capture as Q20, which checks that the kind and the parameters agree. With `anchorKind` null, the suggestion is general, and `path`, `startLine`, `endLine`, and `symbol` must be null.
+- **Errors:** `not_found`, `review_closed`, `repository_unavailable`, and `invalid_input` for the anchor errors of Q2, for example parameters that do not agree with `anchorKind`, for a title or a body of whitespace only, for a title with a line break, or for a 501st pending suggestion in the review, and `limit_exceeded` for `requests_per_review`.
+- **Example:** arguments `{"review":"01K6B3A1B2C3D4E5F6G7H8J9KM","anchorKind":"line","path":"src/Billing/InvoiceTotals.php","startLine":55,"endLine":55}` plus the `title` and the `body` of [fixtures/inputs.suggest-request.json](fixtures/inputs.suggest-request.json) give [fixtures/request-command-result.suggested.json](fixtures/request-command-result.suggested.json).
+
+### 4.18 `set_request_title`
+
+- **Title:** `Set request title`
+- **Description:**
+
+```text
+Set the title of a request whose title is null: one line of at most 80 characters that summarizes its body. Call it before you claim such a request. Fails with invalid_transition when the request has a title; only the user changes a title.
+```
+
+```php
+/**
+ * @param string $id    Request ID
+ * @param string $title One line of at most 80 characters that summarizes the body
+ */
+#[McpTool(name: 'set_request_title', title: 'Set request title', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false), outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT)]
+public function setRequestTitle(#[Schema(pattern: self::ULID)] string $id, #[Schema(minLength: 1, maxLength: 200)] string $title): array
+```
+
+```json
+{"type":"object","properties":{
+ "id":{"type":"string","description":"Request ID","pattern":"^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"},
+ "title":{"type":"string","description":"One line of at most 80 characters that summarizes the body","minLength":1,"maxLength":200}},
+ "required":["id","title"]}
+```
+
+- **Output:** [`request-command-result.schema.json`](schemas/request-command-result.schema.json).
+- **Behaviour:** REST Q23 with the body `{title}`. An agent sets the title only while `title` is null, in any status. The title changes neither the status nor `awaiting`.
+- **Errors:** `not_found`, `review_closed`, `invalid_transition` when the request has a title, `invalid_input` for a title of whitespace only or with a line break.
+- **Example:** arguments `{"id":"01K6B3P2A9QRSTVWXYZ012345C"}` plus the `title` of [fixtures/inputs.title.json](fixtures/inputs.title.json) give [fixtures/request-command-result.retitled.json](fixtures/request-command-result.retitled.json).
 
 ## 5. Error codes in MCP
 
@@ -665,7 +699,7 @@ public function suggestRequest(
 | `unauthorized` | HTTP 401 on the transport, never a tool result | Tell the user to check `SLOPMOWER_TOKEN` |
 | `not_found` | isError | Check the ID or name, then list again. Repositories outside the token scope also answer `not_found`. |
 | `invalid_input` | isError. Schema violations come as JSON-RPC -32602. | Fix the input |
-| `invalid_transition` | isError | `get_request`, then read `allowedActions`, `proposal`, `suggestion`, and `details.claimedBy` |
+| `invalid_transition` | isError | `get_request`, then read `allowedActions`, `proposal`, `suggestion`, `title`, and `details.claimedBy` |
 | `review_closed` | isError | Stop working on that review |
 | `commits_not_available` | isError | Push, or commit for local repositories, then call `mark_ready_for_review` again |
 | `commit_not_found` | isError | Push the commit, or leave out `at` |
@@ -696,6 +730,7 @@ public function suggestRequest(
 | `unlink_pull_request` | `POST /api/v1/requests/{id}/unlink-pull-request` |
 | `start_review` | `GET /api/v1/repositories?name=` then `POST /api/v1/repositories/{id}/reviews` |
 | `suggest_request` | `POST /api/v1/reviews/{id}/suggestions` |
+| `set_request_title` | `POST /api/v1/requests/{id}/title` |
 
 `McpRestParityTest` compares the MCP and REST payloads of every tool: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, and every write tool.
 
@@ -711,8 +746,8 @@ The response. The members `"...": "..."` stand for the rest of [fixtures/request
 
 ```json
 {"jsonrpc":"2.0","id":4,"result":{
- "content":[{"type":"text","text":"{\"request\":{\"id\":\"01K6B3P2A9QRSTVWXYZ0123456\",\"status\":\"in_progress\",\"...\":\"...\"},\"allowedActions\":[\"reply\",\"release\",\"link_commits\",\"link_pull_request\",\"mark_ready_for_review\",\"mark_wont_do\",\"propose_solution\"],\"events\":[{\"seq\":1840,\"type\":\"request.claimed\",\"...\":\"...\"}]}"}],
- "structuredContent":{"request":{"id":"01K6B3P2A9QRSTVWXYZ0123456","status":"in_progress","awaiting":"agent","...":"..."},"allowedActions":["reply","release","link_commits","link_pull_request","mark_ready_for_review","mark_wont_do","propose_solution"],"events":[{"seq":1840,"type":"request.claimed","...":"..."}]},
+ "content":[{"type":"text","text":"{\"request\":{\"id\":\"01K6B3P2A9QRSTVWXYZ0123456\",\"status\":\"in_progress\",\"...\":\"...\"},\"allowedActions\":[\"reply\",\"release\",\"link_commits\",\"link_pull_request\",\"mark_ready_for_review\",\"mark_wont_do\",\"propose_solution\",\"set_title\"],\"events\":[{\"seq\":1840,\"type\":\"request.claimed\",\"...\":\"...\"}]}"}],
+ "structuredContent":{"request":{"id":"01K6B3P2A9QRSTVWXYZ0123456","status":"in_progress","awaiting":"agent","...":"..."},"allowedActions":["reply","release","link_commits","link_pull_request","mark_ready_for_review","mark_wont_do","propose_solution","set_title"],"events":[{"seq":1840,"type":"request.claimed","...":"..."}]},
  "isError":false}}
 ```
 

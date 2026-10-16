@@ -35,6 +35,14 @@ A general request belongs to the whole review and names no file, line, or symbol
 
 The list shows **General** in place of a location. No file view shows a general request, and the path filter never matches it.
 
+## Title and description
+
+A request has a description and an optional title, like a GitHub issue. A comment box that opens a request has a one-line **Title** field above the **Description**. Leave the title empty if the first line of the description says enough. A reply has no title.
+
+The heading of the request, its row in the list of requests, its thread in the code, and the browser tab show the title. A request without a title shows the first line of its description, and its heading is dimmed. Your agent gives each untitled request a title from its description before it starts work, and it gives each of its suggestions a title.
+
+To set or change the title, open the request and click **Edit**, or **Add a title** when it has none. Type the title, then press Enter or click **Save**. Escape or **Cancel** keeps the old title. A title is one line of at most 200 characters. You can change it in every status while the review is open, but you cannot remove it. The description does not change: reply in the conversation to add to it.
+
 ## Send comments one by one or as a batch
 
 - **Add single comment** sends the comment at once. The agent sees it the next time it checks for updates.
@@ -110,7 +118,7 @@ A pull request link does not change the status, and the request does not wait fo
 
 ### The Slopmower check
 
-For a GitHub repository, Slopmower sets your check **Slopmower (your login)**, with your GitHub login, on the newest commit of each open pull request that one of your requests links. Each Slopmower user has a separate check, so the requests of another user never change yours. The check stays in progress while a linked request is unfinished. It passes when each linked request is verified, declined by you, or in a closed review. Everyone who can see the pull request can read the check: the headlines of the linked requests, their states, and the links to them in Slopmower. It never shows the rest of a request.
+For a GitHub repository, Slopmower sets your check **Slopmower (your login)**, with your GitHub login, on the newest commit of each open pull request that one of your requests links. Each Slopmower user has a separate check, so the requests of another user never change yours. The check stays in progress while a linked request is unfinished. It passes when each linked request is verified, declined by you, or in a closed review. Everyone who can see the pull request can read the check: the headlines of the linked requests, their states, and the links to them in Slopmower. The headline is the title of a request, or the first line of its description while it has no title, cut to 80 characters. The check never shows the rest of a request.
 
 Each unfinished request on a line or file of the code shows as an annotation with its headline, its state, and its link: a warning while the agent works on it, and a notice while it waits for you. **Files changed** shows the annotations on the files that the pull request changes, and the page of the check shows all of them. The summary of the check lists the linked requests per review, with a link to each. A general request has no annotation. A pull request from a fork gets no annotations, because Slopmower fetches only the branches of the repository. **Re-run** on GitHub sets the check again.
 

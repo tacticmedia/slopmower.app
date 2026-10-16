@@ -6,7 +6,9 @@ import { SMALL_FILE } from './support/files';
 import { DETAIL, DETAIL_THREAD, openRequest, REQUEST_ROWS, submitNoteDialog } from './support/requestScreens';
 import { expect, test } from './support/test';
 
-const BODY = 'Round half cents up.';
+const TITLE = 'Round half cents up';
+
+const BODY = 'Use `PHP_ROUND_HALF_UP`.';
 
 const { note: NOTE } = fixture<{ note: string }>('inputs.dismiss-suggestion.json');
 
@@ -19,7 +21,7 @@ const CODE_THREAD = `[data-testid="code-view"] ${SAVED_THREAD}`;
 const ACCEPT = '/api/v1/requests/:requestId/accept-suggestion';
 
 function suggestion(review: FakeReview): string {
-    return review.agentSuggests({ kind: 'line', path: SMALL_FILE, range: { startLine: 11, endLine: 11 } }, BODY).id;
+    return review.agentSuggests({ kind: 'line', path: SMALL_FILE, range: { startLine: 11, endLine: 11 } }, TITLE, BODY).id;
 }
 
 function actions(page: Page, container: string) {
@@ -94,7 +96,7 @@ test.describe('Suggestion', () => {
         await page.locator('[data-testid="request-filters"] label').filter({ hasText: /^Suggestions$/ }).click();
 
         await expect(rows).toHaveCount(1);
-        await expect(rows).toContainText(BODY);
+        await expect(rows).toContainText(TITLE);
         expect(api.callsTo('GET', '/api/v1/reviews/:reviewId/requests').at(-1)?.query.get('suggestion')).toBe('pending');
     });
 });

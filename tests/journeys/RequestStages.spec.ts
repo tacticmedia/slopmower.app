@@ -11,6 +11,8 @@ const { plan: PLAN, diff: DIFF } = fixture<Required<ProposeSolutionInput>>('inpu
 
 const PULL_REQUEST = 'https://github.com/acme/billing/pull/42';
 
+const SUGGESTION_BODY = 'Use `PHP_ROUND_HALF_UP`. `PHP_ROUND_HALF_EVEN` rounds a tax of 12.5 cents to 12 cents, and invoices round a half cent up.';
+
 const DIFF_LINE = 'diffs-container [data-line-type]';
 
 const EXTRACTED = SMALL_FILE_TEXT.replace('intdiv($net * $taxBasisPoints, 10000)', '$this->tax($net, $taxBasisPoints)');
@@ -39,11 +41,11 @@ test.describe('RequestStages', () => {
     test('A request goes from a suggestion to the work of the agent', async ({ page, api, captureScreen }) => {
         const review = new FakeReview(api);
 
-        const suggested = review.agentSuggests({ kind: 'line', path: SMALL_FILE, range: { startLine: 11, endLine: 11 } }, 'Round half cents up.');
+        const suggested = review.agentSuggests({ kind: 'line', path: SMALL_FILE, range: { startLine: 11, endLine: 11 } }, 'Round half cents up', SUGGESTION_BODY);
         await openRequest(page, suggested.id);
         await captureScreen('Suggestion waiting for you', page.locator(`${DETAIL} [data-testid="suggestion-actions"]`));
 
-        const planned = review.seedGeneral('Add a CSV export of the invoice totals.', true);
+        const planned = review.seedGeneral('Add a CSV export of the invoice totals.', true, 'CSV export of the invoice totals');
         await openRequest(page, planned.id);
         await captureScreen('Open with a plan required', page.locator(`${DETAIL} [data-testid="plan-required"]`));
 
@@ -62,11 +64,14 @@ test.describe('RequestStages', () => {
         }
         await captureScreen('Proposal with a diff', files.last());
 
-        const claimed = review.seedLines(SMALL_FILE, 9, 12, 'Extract the tax calculation.');
+        const claimed = review.seedLines(SMALL_FILE, 9, 12, 'Move the rounding of `total()` into its own method.', 'Extract the tax calculation');
         review.agentClaims(claimed.id);
         review.command(claimed.id, 'comments', { body: 'Keep the method private.' });
         await openRequest(page, claimed.id);
         await captureScreen('In progress', page.locator(`${DETAIL} [data-testid="claimed-by"]`));
+
+        await page.locator(DETAIL).getByRole('button', { name: 'Edit', exact: true }).click();
+        await captureScreen('Title editor', page.locator(`${DETAIL} [data-testid="title-editor"]`));
 
         const orphaned = review.seedLines(SYMBOL_FILE, 19, 22, 'Rename ceil() to roundUp().');
         review.markOrphaned(orphaned.id, sha1('Remove ceil()'), 'region_deleted');
@@ -77,7 +82,7 @@ test.describe('RequestStages', () => {
     test('A finished request shows its outcome and its changes', async ({ page, api, captureScreen }) => {
         const review = new FakeReview(api);
 
-        const ready = review.seedLines(SMALL_FILE, 9, 12, 'Extract the tax calculation.');
+        const ready = review.seedLines(SMALL_FILE, 9, 12, 'Move the rounding of `total()` into its own method.', 'Extract the tax calculation');
         review.agentClaims(ready.id);
         linkExtractCommit(api, review, ready.id);
         review.agentLinksPullRequest(ready.id, PULL_REQUEST);
@@ -95,7 +100,7 @@ test.describe('RequestStages', () => {
         }
         await captureScreen('Changes tab', fileDiffs.first());
 
-        const declined = review.seedGeneral('Move the tax rates into the database.');
+        const declined = review.seedGeneral('Move the tax rates into the database.', false, 'Tax rates in the database');
         review.agentClaims(declined.id);
         review.agentMarksWontDo(declined.id, 'The rates change once a year, and a deploy changes them faster than a migration.');
         await openRequest(page, declined.id);
@@ -112,6 +117,7 @@ test.describe('RequestStages', () => {
         review.agentClaims(reopened.id);
         review.agentMarksReady(reopened.id, 'Added.');
         review.command(reopened.id, 'reopen', { note: 'The entry names the wrong version.' });
+        review.command(reopened.id, 'title', { title: 'Changelog entry for 2.4.0' });
         await openRequest(page, reopened.id);
         await captureScreen('Reopened', status(page, 'Reopened'));
 

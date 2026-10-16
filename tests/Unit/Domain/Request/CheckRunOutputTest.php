@@ -87,10 +87,18 @@ final class CheckRunOutputTest extends KernelTestCase
         );
     }
 
-    private static function request(RequestStatus $status, ?ActorKind $wontDoBy = null, bool $reviewClosed = false, string $body = 'Use `Money` for totals.'): CheckedRequest
+    #[TestDox('The headline is the title when the request has one')]
+    public function testHeadlineIsTheTitle(): void
+    {
+        $output = CheckRunOutput::of([self::request(RequestStatus::Open, title: 'Money totals')]);
+
+        self::assertSame(['Money totals'], array_column($output->annotations, 'title'));
+    }
+
+    private static function request(RequestStatus $status, ?ActorKind $wontDoBy = null, bool $reviewClosed = false, string $body = 'Use `Money` for totals.', ?string $title = null): CheckedRequest
     {
         $location = Location::exact(CommitSha::fromString(self::HEAD), RepoPath::fromString('src/Invoice.php'), LineRange::of(3, 4));
 
-        return new CheckedRequest(ReviewId::generate(), 'main @ 79f8595a4c1e', 'http://localhost/reviews/1/requests', $reviewClosed, 'http://localhost/requests/1', $body, $status, $wontDoBy, false, $location);
+        return new CheckedRequest(ReviewId::generate(), 'main @ 79f8595a4c1e', 'http://localhost/reviews/1/requests', $reviewClosed, 'http://localhost/requests/1', $title, $body, $status, $wontDoBy, false, $location);
     }
 }

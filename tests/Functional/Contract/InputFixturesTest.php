@@ -89,6 +89,7 @@ final class InputFixturesTest extends WebTestCase
         'inputs.start-review.json' => ['schema' => 'inputs.schema.json#/$defs/StartReviewInput', 'method' => 'POST', 'path' => '/api/v1/repositories/{repositoryId}/reviews', 'status' => 201, 'response' => 'review.schema.json'],
         'inputs.submit-drafts.json' => ['schema' => 'inputs.schema.json#/$defs/SubmitDraftsInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/drafts/submit', 'status' => 201, 'response' => 'batch-submission.schema.json', 'draft' => true],
         'inputs.suggest-request.json' => ['schema' => 'inputs.schema.json#/$defs/SuggestRequestInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/suggestions', 'status' => 201, 'response' => self::RESULT, 'bearer' => true],
+        'inputs.title.json' => ['schema' => 'inputs.schema.json#/$defs/TitleInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/title', 'status' => 200, 'response' => self::RESULT, 'bearer' => true],
         'inputs.unlink-pull-request.json' => ['schema' => 'inputs.schema.json#/$defs/UnlinkPullRequestInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/unlink-pull-request', 'status' => 200, 'response' => self::RESULT, 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID], 'linked' => true],
         'inputs.update-draft.json' => ['schema' => 'inputs.schema.json#/$defs/UpdateDraftInput', 'method' => 'PATCH', 'path' => '/api/v1/drafts/{draftId}', 'status' => 200, 'response' => 'draft.schema.json', 'draft' => true],
         'inputs.viewed-file.json' => ['schema' => 'inputs.schema.json#/$defs/ViewedFileInput', 'method' => 'PUT', 'path' => '/api/v1/reviews/{reviewId}/viewed-files', 'status' => 200, 'response' => 'lists.schema.json#/$defs/ViewedFiles'],
@@ -117,7 +118,7 @@ final class InputFixturesTest extends WebTestCase
         $reviewId = (string) self::startReviewThroughApi($client, $repositoryId)['id'];
         [, $secret] = self::storeToken($user);
         $firstRequest = isset($case['suggested'])
-            ? self::agentRequest($client, $secret, 'POST', "/api/v1/reviews/{$reviewId}/suggestions", ['body' => 'Round half cents up.'], 201)['request']
+            ? self::agentRequest($client, $secret, 'POST', "/api/v1/reviews/{$reviewId}/suggestions", ['title' => 'Round half cents up', 'body' => 'Round half cents up.'], 201)['request']
             : self::openRequest($client, $reviewId);
         $ids = [
             self::FIXTURE_REPOSITORY_ID => $repositoryId,

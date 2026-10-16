@@ -46,6 +46,7 @@ import inputsRelease from '../../docs/specs/fixtures/inputs.release.json';
 import inputsStartReview from '../../docs/specs/fixtures/inputs.start-review.json';
 import inputsSubmitDrafts from '../../docs/specs/fixtures/inputs.submit-drafts.json';
 import inputsSuggestRequest from '../../docs/specs/fixtures/inputs.suggest-request.json';
+import inputsTitle from '../../docs/specs/fixtures/inputs.title.json';
 import inputsUnlinkPullRequest from '../../docs/specs/fixtures/inputs.unlink-pull-request.json';
 import inputsUpdateDraft from '../../docs/specs/fixtures/inputs.update-draft.json';
 import inputsViewedFile from '../../docs/specs/fixtures/inputs.viewed-file.json';
@@ -82,6 +83,7 @@ import requestCommandResultProposed from '../../docs/specs/fixtures/request-comm
 import requestCommandResultQuestion from '../../docs/specs/fixtures/request-command-result.question.json';
 import requestCommandResultReady from '../../docs/specs/fixtures/request-command-result.ready.json';
 import requestCommandResultRelease from '../../docs/specs/fixtures/request-command-result.release.json';
+import requestCommandResultRetitled from '../../docs/specs/fixtures/request-command-result.retitled.json';
 import requestCommandResultSuggested from '../../docs/specs/fixtures/request-command-result.suggested.json';
 import requestCarried from '../../docs/specs/fixtures/request.carried.json';
 import requestGeneral from '../../docs/specs/fixtures/request.general.json';
@@ -125,6 +127,7 @@ import type {
     StartReviewInput,
     SubmitDraftsInput,
     SuggestRequestInput,
+    TitleInput,
     UnlinkPullRequestInput,
     UpdateDraftInput,
     ViewedFileInput,
@@ -214,6 +217,7 @@ const checkedFixtures = {
     'inputs.start-review.json': inputsStartReview satisfies Widen<StartReviewInput>,
     'inputs.submit-drafts.json': inputsSubmitDrafts satisfies Widen<SubmitDraftsInput>,
     'inputs.suggest-request.json': inputsSuggestRequest satisfies Widen<SuggestRequestInput>,
+    'inputs.title.json': inputsTitle satisfies Widen<TitleInput>,
     'inputs.unlink-pull-request.json': inputsUnlinkPullRequest satisfies Widen<UnlinkPullRequestInput>,
     'inputs.update-draft.json': inputsUpdateDraft satisfies Widen<UpdateDraftInput>,
     'inputs.viewed-file.json': inputsViewedFile satisfies Widen<ViewedFileInput>,
@@ -250,6 +254,7 @@ const checkedFixtures = {
     'request-command-result.question.json': requestCommandResultQuestion satisfies Widen<RequestCommandResult>,
     'request-command-result.ready.json': requestCommandResultReady satisfies Widen<RequestCommandResult>,
     'request-command-result.release.json': requestCommandResultRelease satisfies Widen<RequestCommandResult>,
+    'request-command-result.retitled.json': requestCommandResultRetitled satisfies Widen<RequestCommandResult>,
     'request-command-result.suggested.json': requestCommandResultSuggested satisfies Widen<RequestCommandResult>,
     'request.carried.json': requestCarried satisfies Widen<Request>,
     'request.general.json': requestGeneral satisfies Widen<Request>,

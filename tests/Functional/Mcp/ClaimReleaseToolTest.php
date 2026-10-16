@@ -63,7 +63,7 @@ final class ClaimReleaseToolTest extends WebTestCase
         $result = self::assertToolResult($this->mcp, $this->mcp->callTool('claim_request', ['id' => $this->requestId]), 'claim_request');
 
         self::assertSame(['in_progress', 'agent', self::AGENT_NAME], [$result['request']['status'], $result['request']['awaiting'], $result['request']['claimedBy']['agentName']]);
-        self::assertSame(['reply', 'release', 'link_commits', 'link_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution'], $result['allowedActions']);
+        self::assertSame(['reply', 'release', 'link_commits', 'link_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'propose_solution', 'set_title'], $result['allowedActions']);
         self::assertSame([['request.claimed', 'in_progress']], array_map(static fn (array $event): array => [$event['type'], $event['statusAfter']], $result['events']));
     }
 
@@ -87,7 +87,7 @@ final class ClaimReleaseToolTest extends WebTestCase
         $error = self::assertToolError($this->mcp->callTool('claim_request', ['id' => $this->requestId]), 'invalid_transition');
 
         self::assertSame(
-            ['requestId' => $this->requestId, 'action' => 'claim', 'status' => 'in_progress', 'claimedBy' => ['kind' => 'agent', 'userId' => $this->user->getId()->toString(), 'agentName' => 'codex desktop', 'name' => 'codex desktop', 'avatarUrl' => null], 'allowedActions' => ['reply']],
+            ['requestId' => $this->requestId, 'action' => 'claim', 'status' => 'in_progress', 'claimedBy' => ['kind' => 'agent', 'userId' => $this->user->getId()->toString(), 'agentName' => 'codex desktop', 'name' => 'codex desktop', 'avatarUrl' => null], 'allowedActions' => ['reply', 'set_title']],
             $error['details'],
         );
     }
@@ -95,7 +95,7 @@ final class ClaimReleaseToolTest extends WebTestCase
     #[TestDox('A claim of a pending suggestion gives isError invalid_transition')]
     public function testClaimOfPendingSuggestionGivesInvalidTransition(): void
     {
-        $suggested = self::assertToolResult($this->mcp, $this->mcp->callTool('suggest_request', ['review' => $this->reviewId, 'body' => 'Round half cents up.']), 'suggest_request');
+        $suggested = self::assertToolResult($this->mcp, $this->mcp->callTool('suggest_request', ['review' => $this->reviewId, 'title' => 'Round half cents up', 'body' => 'Round half cents up.']), 'suggest_request');
 
         $error = self::assertToolError($this->mcp->callTool('claim_request', ['id' => $suggested['request']['id']]), 'invalid_transition');
 

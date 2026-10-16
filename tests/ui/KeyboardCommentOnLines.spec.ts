@@ -89,7 +89,8 @@ test.describe('KeyboardCommentOnLines', () => {
         // Far below the first rows, so the box renders only after the view scrolls there.
         await commentOnLines(page, 3000, 3002);
 
-        await expect(await focusedCommentBoxBelow(page, 3002)).toHaveAttribute('aria-label', 'Comment on lines 3000 to 3002');
+        await focusedCommentBoxBelow(page, 3002);
+        await expect(page.locator('[slot="annotation-3002"] form[data-testid="comment-box"]')).toHaveAttribute('aria-label', 'Comment on lines 3000 to 3002');
     });
 
     test('The file comment button works with the keyboard', async ({ page, api }) => {
@@ -133,7 +134,8 @@ test.describe('KeyboardCommentOnLines', () => {
         await tabFromHeaderTo(page, plus);
         await page.keyboard.press('Space');
 
-        await expect(await focusedCommentBoxBelow(page, 100)).toHaveAttribute('aria-label', 'Comment on line 100');
+        await focusedCommentBoxBelow(page, 100);
+        await expect(page.locator('[slot="annotation-100"] form[data-testid="comment-box"]')).toHaveAttribute('aria-label', 'Comment on line 100');
     });
 
     test('The gutter + does not take back the focus that Tab moves out of the page', async ({ page, api }) => {

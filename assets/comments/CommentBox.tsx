@@ -1,4 +1,4 @@
-import { Button, Checkbox, FormControl, Textarea } from '@primer/react';
+import { Button, Checkbox, FormControl, Textarea, TextInput } from '@primer/react';
 import { InlineMessage } from '@primer/react/experimental';
 import { type FormEvent, type KeyboardEvent, type Ref, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { isPressed, type ModShortcut } from '../layout/modShortcut';
@@ -9,13 +9,18 @@ const FOCUS_ATTEMPTS = 120;
 
 const SUBMIT_SHORTCUT: ModShortcut = { key: 'Enter', shift: false };
 
+export const TITLE_MAX_CHARACTERS = 200;
+
+/** `title` is absent without a title field or when the field is blank, so Q2, D2, and D3 get no `title` key. */
+export type CommentText = { title?: string; body: string; requireApproval: boolean };
+
 export type CommentBoxHandle = {
     /** Appends the text as a Markdown quote and focuses the field. */
     quote(text: string): void;
 };
 
 type Props = {
-    /** The accessible name of the text field. */
+    /** The accessible name of the text field, or of the form when the box has a title field. */
     label: string;
     /** Shows `label` as the header of the box. */
     labelVisible?: boolean;
@@ -24,12 +29,15 @@ type Props = {
      * False when the submit was not accepted, for example while another write runs. `requireApproval` is the "Ask for a
      * plan first" checkbox, false without it.
      */
-    onSubmit(body: string, requireApproval: boolean): boolean;
+    onSubmit(text: CommentText): boolean;
     /** A second write of the same text, the primary button. */
-    alternative?: { label: string; onSubmit(body: string, requireApproval: boolean): boolean };
+    alternative?: { label: string; onSubmit(text: CommentText): boolean };
     /** Shows the "Ask for a plan first" checkbox of a new request, with this initial state. */
     askForPlan?: boolean;
+    /** The box opens a request: a "Title" field and a "Description" text field. */
+    titled?: boolean;
     onCancel?: () => void;
+    initialTitle?: string;
     initialBody?: string;
     error: string | null;
     busy: boolean;
@@ -39,9 +47,25 @@ type Props = {
 
 /**
  * The text stays while the write runs and clears when it succeeds, so a failed write keeps it. Mod+Enter runs
- * `onSubmit`, and Escape runs `onCancel`.
+ * `onSubmit`, and Escape runs `onCancel`. Enter in the title field moves to the description.
  */
-export function CommentBox({ label, labelVisible = false, submitLabel, onSubmit, alternative, askForPlan, onCancel, initialBody = '', error, busy, focusOnMount = false, ref }: Props) {
+export function CommentBox({
+    label,
+    labelVisible = false,
+    submitLabel,
+    onSubmit,
+    alternative,
+    askForPlan,
+    titled = false,
+    onCancel,
+    initialTitle = '',
+    initialBody = '',
+    error,
+    busy,
+    focusOnMount = false,
+    ref,
+}: Props) {
+    const [title, setTitle] = useState(initialTitle);
     const [body, setBody] = useState(initialBody);
     const [requireApproval, setRequireApproval] = useState(askForPlan ?? false);
     const [sent, setSent] = useState(false);
@@ -50,6 +74,7 @@ export function CommentBox({ label, labelVisible = false, submitLabel, onSubmit,
     if (sent && !busy) {
         setSent(false);
         if (null === error) {
+            setTitle('');
             setBody('');
         }
     }
@@ -72,8 +97,9 @@ export function CommentBox({ label, labelVisible = false, submitLabel, onSubmit,
         }
     }, [focusOnMount]);
 
-    const send = (write: (text: string, requireApproval: boolean) => boolean): void => {
-        if ('' !== body.trim() && !busy && write(body, requireApproval)) {
+    const send = (write: (text: CommentText) => boolean): void => {
+        const givenTitle = title.trim();
+        if ('' !== body.trim() && !busy && write({ ...('' === givenTitle ? {} : { title: givenTitle }), body, requireApproval })) {
             setSent(true);
         }
     };
@@ -94,24 +120,48 @@ export function CommentBox({ label, labelVisible = false, submitLabel, onSubmit,
         }
     };
 
+    const pressTitleKey = (event: KeyboardEvent<HTMLInputElement>): void => {
+        if ('Enter' === event.key && !event.nativeEvent.isComposing && !isPressed(SUBMIT_SHORTCUT, event.nativeEvent)) {
+            event.preventDefault();
+            textarea.current?.focus();
+        }
+    };
+    const description = (
+        <Textarea
+            ref={textarea}
+            value={body}
+            onChange={(event) => setBody(event.target.value)}
+            aria-label={titled ? undefined : label}
+            placeholder="Leave a comment"
+            block
+            resize="vertical"
+            rows={4}
+            readOnly={busy}
+        />
+    );
+
     return (
-        <form className={styles.box} onSubmit={submit} onKeyDown={pressKey} data-testid="comment-box">
+        <form className={styles.box} onSubmit={submit} onKeyDown={pressKey} aria-label={titled ? label : undefined} data-testid="comment-box">
             {labelVisible && (
                 <div className={styles.header} aria-hidden="true" data-testid="comment-box-header">
                     {label}
                 </div>
             )}
-            <Textarea
-                ref={textarea}
-                value={body}
-                onChange={(event) => setBody(event.target.value)}
-                aria-label={label}
-                placeholder="Leave a comment"
-                block
-                resize="vertical"
-                rows={4}
-                readOnly={busy}
-            />
+            {titled ? (
+                <>
+                    <FormControl>
+                        <FormControl.Label>Title</FormControl.Label>
+                        <TextInput value={title} onChange={(event) => setTitle(event.target.value)} onKeyDown={pressTitleKey} maxLength={TITLE_MAX_CHARACTERS} block readOnly={busy} />
+                        <FormControl.Caption>Optional.</FormControl.Caption>
+                    </FormControl>
+                    <FormControl>
+                        <FormControl.Label>Description</FormControl.Label>
+                        {description}
+                    </FormControl>
+                </>
+            ) : (
+                description
+            )}
             {null !== error && (
                 <InlineMessage variant="critical" role="alert" data-testid="comment-error">
                     {error}

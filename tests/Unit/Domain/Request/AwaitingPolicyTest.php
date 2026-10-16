@@ -74,6 +74,29 @@ final class AwaitingPolicyTest extends KernelTestCase
         self::assertSame(Awaiting::Agent, AwaitingPolicy::evaluate($scenario->state()));
     }
 
+    /**
+     * @param \Closure(): RequestScenario $scenario
+     */
+    #[TestDox('A retitle by the $caller keeps awaiting $awaiting')]
+    #[DataProvider('retitles')]
+    public function testRetitleKeepsAwaiting(string $caller, string $awaiting, \Closure $scenario): void
+    {
+        $scenario = $scenario();
+
+        $scenario->run($scenario->validCommand('set_title'), RequestScenario::caller($caller));
+
+        self::assertSame(Awaiting::from($awaiting), AwaitingPolicy::evaluate($scenario->state()));
+    }
+
+    /**
+     * @return iterable<string, array{string, string, \Closure(): RequestScenario}>
+     */
+    public static function retitles(): iterable
+    {
+        yield 'agent after a user reply' => ['claiming agent', 'agent', static fn (): RequestScenario => self::userReply(RequestScenario::inState('ready_for_review'))];
+        yield 'user after an agent question' => ['user', 'user', static fn (): RequestScenario => self::agentQuestion(RequestScenario::inState('in_progress'))];
+    }
+
     private static function userReply(RequestScenario $scenario): RequestScenario
     {
         $scenario->run(new Reply($scenario->requestId(), 'Please also cover the shipping totals.'), RequestScenario::user());

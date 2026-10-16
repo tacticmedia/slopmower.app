@@ -23,6 +23,7 @@ use App\Domain\Request\Command\Claim;
 use App\Domain\Request\Command\MarkReadyForReview;
 use App\Domain\Request\Command\Open;
 use App\Domain\Request\Command\Reply;
+use App\Domain\Request\Command\SetTitle;
 use App\Domain\Request\Command\Verify;
 use App\Domain\Request\RequestDecider;
 use App\Entity\PullRequest;
@@ -160,6 +161,22 @@ final class CheckRunJobTest extends KernelTestCase
             ['POST', 'repos/acme/billing/check-runs', ['notice', 'warning']],
             ['POST', 'repos/acme/billing/check-runs', ['warning']],
         ], $calls);
+    }
+
+    #[TestDox('A retitle queues the job, and the annotation title is the request title')]
+    public function testRetitleChangesTheAnnotationTitle(): void
+    {
+        $this->reviewOfClonedRepository();
+        $this->storePullRequest();
+        $requestId = $this->openRequest(3);
+        $this->claimAndLink($requestId);
+        self::runCheckRunJobs();
+
+        self::commands()->setTitle(new SetTitle($requestId, 'Money totals'), $this->userActor());
+        self::runCheckRunJobs();
+
+        $calls = array_map(static fn (array $call): array => [$call[0], array_column($call[2]['output']['annotations'] ?? [], 'title')], self::checkRunCalls());
+        self::assertSame([['POST', [self::BODY]], ['POST', ['Money totals']]], $calls);
     }
 
     #[TestDox('A job with the same status and annotations updates the run')]

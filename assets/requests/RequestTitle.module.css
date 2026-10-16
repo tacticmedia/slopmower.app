@@ -1,0 +1,41 @@
+.heading {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--base-size-8);
+}
+
+.text {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.untitled {
+    color: var(--fgColor-muted);
+}
+
+.edit {
+    flex: none;
+    margin-top: var(--base-size-4);
+}
+
+.editor {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-8);
+}
+
+.input {
+    flex: 1 1 20rem;
+    min-width: 0;
+}
+
+.buttons {
+    display: flex;
+    gap: var(--base-size-8);
+}
+
+.error {
+    flex: 1 1 100%;
+}

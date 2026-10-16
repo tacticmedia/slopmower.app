@@ -59,7 +59,7 @@ final class HeadlessSliceTest extends WebTestCase
         $claimed = self::assertToolResult($mcp, $mcp->callTool('claim_request', ['id' => $requestId]), 'claim_request');
         self::assertSame([$reviewId], array_column($reviews['items'], 'id'));
         self::assertSame([$requestId], array_column($requests['items'], 'id'));
-        self::assertSame([self::INVOICE_TOTALS, ['reply', 'claim', 'mark_wont_do']], [$request['anchor']['path'], $request['allowedActions']]);
+        self::assertSame([self::INVOICE_TOTALS, ['reply', 'claim', 'mark_wont_do', 'set_title']], [$request['anchor']['path'], $request['allowedActions']]);
         self::assertSame('in_progress', $claimed['request']['status']);
 
         $fix = $source->switch('fix')->commit(['src/Billing/TaxRounding.php' => "<?php\n\nfinal class TaxRounding\n{\n    public const int SCALE = 2;\n}\n"], 'Extract TaxRounding');

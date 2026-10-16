@@ -22,6 +22,7 @@ use App\Domain\Event\RequestProposedEvent;
 use App\Domain\Event\RequestReadyForReviewEvent;
 use App\Domain\Event\RequestReleasedEvent;
 use App\Domain\Event\RequestReopenedEvent;
+use App\Domain\Event\RequestRetitledEvent;
 use App\Domain\Event\RequestSuggestionAcceptedEvent;
 use App\Domain\Event\RequestSuggestionDismissedEvent;
 use App\Domain\Event\RequestVerifiedEvent;
@@ -113,6 +114,7 @@ final class RequestReducer
                 'resolution' => Resolution::WontDo,
                 'suggestion' => SuggestionState::Dismissed,
             ],
+            $event instanceof RequestRetitledEvent => ['title' => $event->title],
             default => null,
         };
 
@@ -158,6 +160,7 @@ final class RequestReducer
             carriedFrom: $event->carriedFrom,
             requireApproval: $event->requireApproval,
             suggestion: ActorKind::Agent === $recorded->actor->kind ? SuggestionState::Pending : null,
+            title: $event->title,
         )->with(self::tracking($recorded));
     }
 
@@ -174,6 +177,7 @@ final class RequestReducer
 
     /**
      * A pull request link or unlink is no agent event for the `awaiting` rules, so it never takes the turn from the user.
+     * A retitle is neither a user message nor an agent event, so it never moves the turn.
      *
      * @return array{lastEventSeq: int, updatedAt: \DateTimeImmutable, lastAgentEventSeq?: int, lastAgentEventIsQuestion?: bool, lastUserCommentSeq?: int}
      */
@@ -187,7 +191,7 @@ final class RequestReducer
             || $event instanceof RequestProposalRejectedEvent
             || $event instanceof RequestSuggestionAcceptedEvent;
 
-        if ($event instanceof PullRequestLinkedEvent || $event instanceof PullRequestUnlinkedEvent) {
+        if ($event instanceof PullRequestLinkedEvent || $event instanceof PullRequestUnlinkedEvent || $event instanceof RequestRetitledEvent) {
             return $tracking;
         }
 

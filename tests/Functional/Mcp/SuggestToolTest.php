@@ -45,8 +45,8 @@ final class SuggestToolTest extends WebTestCase
         $mcp = new McpTestClient($client, self::storeToken($user)[1]);
         $body = 'Round half cents up.';
 
-        $withoutKind = self::assertToolError($mcp->callTool('suggest_request', ['review' => $reviewId, 'body' => $body, 'path' => self::INVOICE_TOTALS, 'startLine' => 3]), 'invalid_input');
-        $withoutPath = self::assertToolError($mcp->callTool('suggest_request', ['review' => $reviewId, 'body' => $body, 'anchorKind' => 'file']), 'invalid_input');
+        $withoutKind = self::assertToolError($mcp->callTool('suggest_request', ['review' => $reviewId, 'title' => $body, 'body' => $body, 'path' => self::INVOICE_TOTALS, 'startLine' => 3]), 'invalid_input');
+        $withoutPath = self::assertToolError($mcp->callTool('suggest_request', ['review' => $reviewId, 'title' => $body, 'body' => $body, 'anchorKind' => 'file']), 'invalid_input');
 
         self::assertSame(['path', 'startLine'], array_column($withoutKind['details']['violations'] ?? [], 'field'));
         self::assertSame(['path'], array_column($withoutPath['details']['violations'] ?? [], 'field'));

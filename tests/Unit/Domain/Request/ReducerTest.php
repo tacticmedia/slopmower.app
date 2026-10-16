@@ -22,6 +22,7 @@ use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\SetPlanRequirement;
+use App\Domain\Request\Command\SetTitle;
 use App\Domain\Request\Command\UnlinkCommit;
 use App\Domain\Request\Command\UnlinkPullRequest;
 use App\Domain\Request\Command\Verify;
@@ -62,7 +63,7 @@ final class ReducerTest extends KernelTestCase
             'status' => 'open', 'statusBeforeClaim' => null, 'claimedBy' => null, 'claimedAt' => null, 'wontDoBy' => null,
             'resolution' => null, 'links' => [], 'pullRequestUrls' => [], 'lastUserCommentSeq' => null, 'lastAgentEventSeq' => null,
             'lastAgentEventIsQuestion' => false, 'lastEventSeq' => 2, 'updatedAt' => '07:02', 'requireApproval' => false,
-            'suggestion' => null,
+            'suggestion' => null, 'title' => null,
         ];
         self::assertSame($expected, self::fields($scenario->state()));
 
@@ -130,6 +131,10 @@ final class ReducerTest extends KernelTestCase
             'pull_request.unlinked, without agent tracking' => [
                 static fn () => $scenario->run(new UnlinkPullRequest($id, RequestScenario::PULL_REQUEST, RepositoryName::github(RequestScenario::REPOSITORY)), $agent),
                 ['pullRequestUrls' => []],
+            ],
+            'request.retitled, without agent tracking' => [
+                static fn () => $scenario->run(new SetTitle($id, 'Use Money for totals'), $agent),
+                ['title' => 'Use Money for totals'],
             ],
             'request.verified' => [
                 static fn () => $scenario->run(new Verify($id), $user),
@@ -347,6 +352,7 @@ final class ReducerTest extends KernelTestCase
             'updatedAt' => $state->updatedAt->format('H:i'),
             'requireApproval' => $state->requireApproval,
             'suggestion' => $state->suggestion?->value,
+            'title' => $state->title,
         ];
     }
 }

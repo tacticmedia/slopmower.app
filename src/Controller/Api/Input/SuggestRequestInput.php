@@ -17,6 +17,9 @@ final readonly class SuggestRequestInput
     public function __construct(
         #[Assert\Valid]
         public ?AnchorInput $anchor = null,
+        #[Assert\NotNull]
+        #[RequestTitle]
+        public ?string $title = null,
         #[Assert\NotBlank(normalizer: 'trim')]
         #[Assert\Length(max: 65536)]
         public ?string $body = null,

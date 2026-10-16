@@ -104,6 +104,16 @@ final class SubmitBatchTest extends WebTestCase
         self::assertSame([true], array_column($submission['openedRequests'], 'requireApproval'));
     }
 
+    #[TestDox('A draft with a title opens a request with that title')]
+    public function testDraftOpensRequestWithItsTitle(): void
+    {
+        self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts", ['kind' => 'new_request', 'title' => 'CSV export', 'body' => 'Add a CSV export.']), 201, 'draft.schema.json');
+
+        $submission = self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts/submit"), 201, 'batch-submission.schema.json');
+
+        self::assertSame(['CSV export'], array_column($submission['openedRequests'], 'title'));
+    }
+
     #[TestDox('A draft created during a submission stays')]
     public function testDraftCreatedDuringSubmissionStays(): void
     {

@@ -1,4 +1,5 @@
 {
   "anchor": null,
+  "title": "Full-screen focus mode",
   "body": "Add a full-screen focus mode.\n\nIt hides the file tree and the request list, so the code uses the whole window."
 }

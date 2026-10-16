@@ -52,11 +52,15 @@ test.describe('CodeBrowser', () => {
         await captureScreen('Directory with README', page.getByRole('region', { name: 'README.md' }).getByRole('table'));
 
         review.seedLines(SYMBOL_FILE, 9, 9, 'Name the scale after its unit, for example `BASIS_POINTS`.');
-        review.seedLines(SYMBOL_FILE, 19, 22, 'Add a test for an amount of zero.');
+        review.seedLines(SYMBOL_FILE, 19, 22, 'Add a test for an amount of zero.', 'Test a zero amount');
         review.seedSymbol(SYMBOL_FILE, ROUND_FQN, 'Round half to even, as the tax office does.');
         await openFile(page, review, SYMBOL_FILE);
         await waitForHighlighting(page, 23);
         await captureScreen('File with line, range, and symbol threads', page.locator('[slot="annotation-17"] [data-testid="thread"]'));
+
+        await page.getByRole('button', { name: 'Comment on file', exact: true }).click();
+        await captureScreen('Comment box with a title field', page.locator('[data-testid="file-threads"] form[data-testid="comment-box"]'));
+        await page.keyboard.press('Escape');
 
         review.blames.set(SMALL_FILE, {
             ignoreRevsFile: false,

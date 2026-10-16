@@ -26,6 +26,7 @@
           "fqn": "App\\Billing\\InvoiceTotals::total()"
         }
       },
+      "title": null,
       "summary": "Use `Money` instead of `float` for totals.",
       "author": {
         "kind": "user",

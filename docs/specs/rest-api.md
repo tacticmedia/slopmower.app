@@ -70,6 +70,7 @@ Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json). 
 | [Q20](rest-api-requests.md#q20-suggest-a-request) | POST | `/api/v1/reviews/{reviewId}/suggestions` | B | 201 | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) |
 | [Q21](rest-api-requests.md#q21-accept-a-suggestion) | POST | `/api/v1/requests/{requestId}/accept-suggestion` | S | 200 | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) |
 | [Q22](rest-api-requests.md#q22-dismiss-a-suggestion) | POST | `/api/v1/requests/{requestId}/dismiss-suggestion` | S | 200 | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) |
+| [Q23](rest-api-requests.md#q23-set-the-title) | POST | `/api/v1/requests/{requestId}/title` | S, B | 200 | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) |
 | [D1](rest-api-requests.md#d1-list-drafts) | GET | `/api/v1/reviews/{reviewId}/drafts` | S | 200 | [`lists.schema.json#/$defs/DraftList`](schemas/lists.schema.json) |
 | [D2](rest-api-requests.md#d2-create-a-draft) | POST | `/api/v1/reviews/{reviewId}/drafts` | S | 201 | [`draft.schema.json`](schemas/draft.schema.json) |
 | [D3](rest-api-requests.md#d3-update-a-draft) | PATCH | `/api/v1/drafts/{draftId}` | S | 200 | [`draft.schema.json`](schemas/draft.schema.json) |
@@ -676,7 +677,7 @@ The endpoint copies the open requests of the source review into the target revie
 
 - "The same kind": a `file` anchor stays a `file` anchor. A `line` or `range` anchor becomes `line` for one located line and `range` for more. A `symbol` anchor stays `symbol` when its FQN names exactly one symbol of the file at the target review commit, else it becomes `line` or `range` at the located range. When the capture fails, for example because the file is no longer valid UTF-8, the request gets the `file` anchor and the comment of an orphaned location.
 - A general request carries as a general request, with `location` null.
-- One transaction under the tenant lock writes, per carried request, `request.opened` with the source body, the new anchor, `batchId` null, and `carriedFrom`, followed by `request.commented` with the first comment, if any. Both have the caller as actor. A carried request starts as `open`. Then one `events` live update follows.
+- One transaction under the tenant lock writes, per carried request, `request.opened` with the source body, the source title, the new anchor, `batchId` null, and `carriedFrom`, followed by `request.commented` with the first comment, if any. Both have the caller as actor. A carried request starts as `open`. Then one `events` live update follows.
 - [Q3](rest-api-requests.md#q3-get-a-request) and every `RequestSummary` show `carriedFrom` of a carried request: the `reviewId` and `requestId` of its source.
 
 ### V16 Search files and symbols

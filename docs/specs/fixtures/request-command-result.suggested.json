@@ -16,7 +16,8 @@
       },
       "symbol": null
     },
-    "summary": "Round half cents up: use `PHP_ROUND_HALF_UP`.",
+    "title": "Round half cents up",
+    "summary": "Round half cents up",
     "author": {
       "kind": "agent",
       "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",

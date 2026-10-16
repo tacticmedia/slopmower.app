@@ -63,12 +63,13 @@ export function NewRequestBox({ drafts }: { drafts: readonly Draft[] }) {
                 label="New request"
                 labelVisible
                 submitLabel="Add single comment"
-                onSubmit={(body, requireApproval) => submit({ intent: 'open', input: { anchor: null, body, requireApproval } })}
+                onSubmit={(text) => submit({ intent: 'open', input: { anchor: null, ...text } })}
                 alternative={{
                     label: reviewLabel(drafts),
-                    onSubmit: (body, requireApproval) => submit({ intent: 'draft', input: { kind: 'new_request', anchor: null, body, requireApproval } }),
+                    onSubmit: (text) => submit({ intent: 'draft', input: { kind: 'new_request', anchor: null, ...text } }),
                 }}
                 askForPlan
+                titled
                 onCancel={() => setOpen(false)}
                 error={error}
                 busy={writing}

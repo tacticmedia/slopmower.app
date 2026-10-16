@@ -29,6 +29,7 @@
       "normalizedHash": "sha256:4cd0f94b186ef4903963fa0397ae6175cd9f82d31d4512d8e9b67a2b3a0142f9"
     }
   },
+  "title": null,
   "summary": "Use `Money` instead of `float` for totals.",
   "author": {
     "kind": "user",
@@ -185,5 +186,5 @@
       "title": "Use Money for invoice totals"
     }
   ],
-  "allowedActions": ["reply", "release", "link_commits", "unlink_commit", "link_pull_request", "unlink_pull_request", "mark_ready_for_review", "mark_wont_do", "propose_solution"]
+  "allowedActions": ["reply", "release", "link_commits", "unlink_commit", "link_pull_request", "unlink_pull_request", "mark_ready_for_review", "mark_wont_do", "propose_solution", "set_title"]
 }

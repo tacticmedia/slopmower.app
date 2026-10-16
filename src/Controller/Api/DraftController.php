@@ -85,7 +85,7 @@ final class DraftController extends AbstractController
         $now = $this->clock->now();
         $draft = match ($input->kind) {
             DraftKind::Reply => Draft::reply($user, $this->requestOfReview($review, $requests, (string) $input->requestId), $input->body, $now),
-            DraftKind::NewRequest => Draft::newRequest($user, $review, self::capture($anchors, $review, $input->anchor), $input->body, $input->requireApproval ?? false, $now),
+            DraftKind::NewRequest => Draft::newRequest($user, $review, self::capture($anchors, $review, $input->anchor), $input->title, $input->body, $input->requireApproval ?? false, $now),
             null => throw new \LogicException('The kind is validated.'),
         };
 
@@ -116,8 +116,8 @@ final class DraftController extends AbstractController
     public function update(#[MapEntity(id: 'draftId')] Draft $draft, #[MapRequestPayload(acceptFormat: 'json')] UpdateDraftInput $input): JsonResponse
     {
         \assert(null !== $input->body);
-        // The edit refuses requireApproval on a reply, and invalid_input comes before review_closed.
-        $draft->edit($input->body, $input->requireApproval, $this->clock->now());
+        // The edit refuses title and requireApproval on a reply, and invalid_input comes before review_closed.
+        $draft->edit($input->title, $input->body, $input->requireApproval, $this->clock->now());
         $draft->getReview()->assertOpen();
         $this->entityManager->flush();
 
@@ -211,7 +211,7 @@ final class DraftController extends AbstractController
         $replyTo = $draft->getRequest();
         $request = null === $replyTo ? null : $requests->findFresh($replyTo->getId()) ?? throw new NotFound();
         $command = null === $request
-            ? new Open($draft->getAnchor(), $draft->getBody(), $batchId, requireApproval: $draft->requiresApproval())
+            ? new Open($draft->getAnchor(), $draft->getBody(), $batchId, requireApproval: $draft->requiresApproval(), title: $draft->getTitle())
             : new Reply($request->getId(), $draft->getBody(), batchId: $batchId);
         $states = null === $request ? [] : [RequestStateMapper::toState($request, $links->findFreshOf($request))];
 

@@ -42,6 +42,7 @@ use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\RequestCommand;
 use App\Domain\Request\Command\SetPlanRequirement;
+use App\Domain\Request\Command\SetTitle;
 use App\Domain\Request\Command\Suggest;
 use App\Domain\Request\Command\UnlinkCommit;
 use App\Domain\Request\Command\UnlinkPullRequest;
@@ -206,7 +207,7 @@ final class RequestScenario
         }
 
         if ('suggest' === $command) {
-            return new Suggest($this->anchor(), 'Round each line before the sum.');
+            return new Suggest($this->anchor(), 'Round each line before the sum.', 'Round each line');
         }
 
         $id = $this->requestId();
@@ -230,6 +231,7 @@ final class RequestScenario
             'set_plan_requirement' => new SetPlanRequirement($id, !$this->state()->requireApproval),
             'accept_suggestion' => new AcceptSuggestion($id),
             'dismiss_suggestion' => new DismissSuggestion($id, 'The totals round once, by law.'),
+            'set_title' => new SetTitle($id, 'Use Money for totals'),
             default => throw new \LogicException("Unknown command {$command}."),
         };
     }

@@ -12,7 +12,7 @@ import type { LineGeometry, NamePosition, Overflow } from '../../code/CodeFile';
 import { type LineRange, lineRange } from '../../code/lineHash';
 import { bottomLine, type GestureRange } from '../../code/rangeSelection';
 import { enclosingScopes, matchingSymbol, symbolKindLabel } from '../../code/symbolMatch';
-import { CommentBox } from '../../comments/CommentBox';
+import { CommentBox, type CommentText } from '../../comments/CommentBox';
 import { CommentOnLinesForm } from '../../comments/CommentOnLinesForm';
 import { type DraftView, fileDraftViews, reviewLabel as reviewButtonLabel } from '../../comments/draftView';
 import { ThreadList } from '../../comments/ThreadList';
@@ -289,7 +289,7 @@ type ComposerBoxProps = {
     composer: Composer;
     /** "Start a review" or "Add review comment". */
     reviewLabel: string;
-    onSubmit(body: string, mode: SubmitMode, requireApproval: boolean): boolean;
+    onSubmit(text: CommentText, mode: SubmitMode): boolean;
     onCancel(): void;
 };
 
@@ -300,10 +300,12 @@ function ComposerBox({ composer, reviewLabel, onSubmit, onCancel }: ComposerBoxP
             label={composerLabel(composer)}
             labelVisible
             submitLabel="Add single comment"
-            onSubmit={(body, requireApproval) => onSubmit(body, 'single', requireApproval)}
-            alternative={{ label: reviewLabel, onSubmit: (body, requireApproval) => onSubmit(body, 'draft', requireApproval) }}
+            onSubmit={(text) => onSubmit(text, 'single')}
+            alternative={{ label: reviewLabel, onSubmit: (text) => onSubmit(text, 'draft') }}
             askForPlan={composer.requireApproval}
+            titled
             onCancel={onCancel}
+            initialTitle={composer.initialTitle}
             initialBody={composer.initialBody}
             error={composer.error}
             busy={false}

@@ -1,6 +1,7 @@
 import type { Ulid } from '../api/types/common';
 import type { Draft } from '../api/types/draft';
 import type { LineRange } from '../code/lineHash';
+import type { CommentText } from './CommentBox';
 import { linesText } from './threadView';
 
 /** A pending draft of the caller: a new request or a reply. */
@@ -14,6 +15,8 @@ export type DraftView = {
     label: string;
     /** On the Requests tab: the drafted lines or the request of a reply. */
     href: string | null;
+    /** Null for a reply and a new request without a title. */
+    title: string | null;
     body: string;
     /** The "Ask for a plan first" choice of a new request. Null for a reply. */
     requireApproval: boolean | null;
@@ -29,7 +32,7 @@ export function fileDraftViews(drafts: readonly Draft[], path: string): DraftVie
         if ('new_request' === draft.kind && draft.anchor?.path === path) {
             const { range: anchorRange } = draft.anchor;
             const range = null === anchorRange ? null : { start: anchorRange.startLine, end: anchorRange.endLine };
-            views.push({ key: draft.id, draftId: draft.id, range, label: linesText(range), href: null, body: draft.body, requireApproval: draft.requireApproval });
+            views.push({ key: draft.id, draftId: draft.id, range, label: linesText(range), href: null, title: draft.title, body: draft.body, requireApproval: draft.requireApproval });
         }
     }
 
@@ -43,8 +46,8 @@ export function reviewLabel(drafts: readonly Draft[]): string {
 
 let pendingCount = 0;
 
-export function pendingDraft(range: LineRange | null, body: string, requireApproval: boolean): DraftView {
+export function pendingDraft(range: LineRange | null, { title, body, requireApproval }: CommentText): DraftView {
     pendingCount += 1;
 
-    return { key: `pending-draft-${pendingCount}`, draftId: null, range, label: linesText(range), href: null, body, requireApproval };
+    return { key: `pending-draft-${pendingCount}`, draftId: null, range, label: linesText(range), href: null, title: title ?? null, body, requireApproval };
 }

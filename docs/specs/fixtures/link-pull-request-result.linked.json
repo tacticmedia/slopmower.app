@@ -22,6 +22,7 @@
           "fqn": "App\\Billing\\InvoiceTotals::total()"
         }
       },
+      "title": null,
       "summary": "Use `Money` instead of `float` for totals.",
       "author": {
         "kind": "user",
@@ -67,6 +68,7 @@
         },
         "symbol": null
       },
+      "title": null,
       "summary": "Extract the tax rounding into `TaxRounding`.",
       "author": {
         "kind": "user",

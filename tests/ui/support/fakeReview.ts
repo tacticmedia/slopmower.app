@@ -18,6 +18,7 @@ import type {
     RejectProposalInput,
     RequiredNoteInput,
     SubmitDraftsInput,
+    TitleInput,
     UpdateDraftInput,
     ViewedFileInput,
     WontDoInput,
@@ -47,7 +48,7 @@ type Tracking = {
     lastAgentEventIsQuestion: boolean;
 };
 
-type Transition = { status?: RequestStatus; resolution?: Resolution | null; proposal?: Proposal | null; requireApproval?: boolean; suggestion?: SuggestionState };
+type Transition = { status?: RequestStatus; resolution?: Resolution | null; proposal?: Proposal | null; requireApproval?: boolean; suggestion?: SuggestionState; title?: string };
 
 type ThreadEntry = Request['thread'][number];
 
@@ -56,9 +57,10 @@ const LANGUAGES: Record<string, string> = { php: 'php', md: 'markdown', ts: 'typ
 /** The V7 languages that V9 parses. */
 const SYMBOL_LANGUAGES: ReadonlySet<string | null> = new Set(['php', 'javascript', 'jsx', 'typescript', 'tsx', 'python', 'go', 'rust', 'java', 'csharp', 'ruby', 'shellscript', 'scala', 'zig', 'lua', 'twig']);
 
-/** The `allowedActions` value of each command path of Q4, Q11 to Q13, Q15, Q16, Q18, Q21, and Q22. */
+/** The `allowedActions` value of each command path of Q4, Q11 to Q13, Q15, Q16, Q18, and Q21 to Q23. */
 const COMMAND_ACTIONS: Record<string, string> = {
     comments: 'reply',
+    title: 'set_title',
     'wont-do': 'mark_wont_do',
     'approve-proposal': 'approve_proposal',
     'reject-proposal': 'reject_proposal',
@@ -82,7 +84,7 @@ function awaitingOf(status: RequestStatus, closed: boolean, tracking: Tracking, 
     return 'ready_for_review' === status || 'wont_do' === status ? 'user' : 'agent';
 }
 
-/** One review of the docs/specs REST API in memory: V3, V4, V6 to V9, V11 to V13, Q1 to Q4, Q6, Q11 to Q13, Q15, Q16, Q18, Q21, Q22, and D1 to D5, for the user of `me.local-user.json`. */
+/** One review of the docs/specs REST API in memory: V3, V4, V6 to V9, V11 to V13, Q1 to Q4, Q6, Q11 to Q13, Q15, Q16, Q18, Q21 to Q23, and D1 to D5, for the user of `me.local-user.json`. */
 export class FakeReview {
     review: Review;
     requests: Request[] = [];
@@ -116,16 +118,16 @@ export class FakeReview {
         return `/reviews/${this.id}/files/${path}${hash}`;
     }
 
-    seedLines(path: string, startLine: number, endLine: number, body: string): Request {
-        return this.#openRequest({ kind: startLine === endLine ? 'line' : 'range', path, range: { startLine, endLine } }, body);
+    seedLines(path: string, startLine: number, endLine: number, body: string, title: string | null = null): Request {
+        return this.#openRequest({ kind: startLine === endLine ? 'line' : 'range', path, range: { startLine, endLine } }, body, null, false, title);
     }
 
     seedSymbol(path: string, fqn: string, body: string): Request {
         return this.#openRequest({ kind: 'symbol', path, symbol: { fqn } }, body);
     }
 
-    seedGeneral(body: string, requireApproval = false): Request {
-        return this.#openRequest(null, body, null, requireApproval);
+    seedGeneral(body: string, requireApproval = false, title: string | null = null): Request {
+        return this.#openRequest(null, body, null, requireApproval, title);
     }
 
     /** A D2 draft, as if the user had written it earlier. */
@@ -196,8 +198,8 @@ export class FakeReview {
     }
 
     /** Q20: a pending suggestion of the agent. */
-    agentSuggests(input: AnchorInput | null, body: string): Request {
-        const opened = this.#openRequest(input, body);
+    agentSuggests(input: AnchorInput | null, title: string, body: string): Request {
+        const opened = this.#openRequest(input, body, null, false, title);
         this.#trackingOf(opened.id).lastAgentEventSeq = opened.lastEventSeq;
         const suggested: Request = { ...opened, author: AGENT, suggestion: 'pending', awaiting: 'user', thread: opened.thread.map((entry) => ({ ...entry, actor: AGENT })) };
         this.requests[this.requests.indexOf(opened)] = suggested;
@@ -241,9 +243,9 @@ export class FakeReview {
         return { ...request, reviewState: this.review.state, allowedActions };
     }
 
-    #openRequest(input: AnchorInput | null, body: string, batchId: string | null = null, requireApproval = false): Request {
+    #openRequest(input: AnchorInput | null, body: string, batchId: string | null = null, requireApproval = false, title: string | null = null): Request {
         const seq = ++this.#seq;
-        const opened = openedRequest(this.review, null === input ? null : this.#anchor(input), body, seq, requireApproval);
+        const opened = openedRequest(this.review, null === input ? null : this.#anchor(input), body, seq, requireApproval, title);
         const [entry] = opened.thread;
         const request = undefined === entry ? opened : { ...opened, thread: [{ ...entry, batchId }] };
         this.requests.push(request);
@@ -274,8 +276,8 @@ export class FakeReview {
             tracking.statusBeforeClaim = current.status;
         }
         tracking.wontDoBy = 'wont_do' !== status ? null : 'wont_do' === transition.status ? entry.actor.kind : tracking.wontDoBy;
-        // A pull request link or unlink is no agent event for the `awaiting` rules.
-        if ('agent' === entry.actor.kind && !['pull_request.linked', 'pull_request.unlinked'].includes(entry.type)) {
+        // A pull request link or unlink and a retitle are no agent events for the `awaiting` rules.
+        if ('agent' === entry.actor.kind && !['pull_request.linked', 'pull_request.unlinked', 'request.retitled'].includes(entry.type)) {
             tracking.lastAgentEventSeq = entry.seq;
             tracking.lastAgentEventIsQuestion = 'request.commented' === entry.type && entry.question;
         } else if ('user' === entry.actor.kind && ['request.commented', 'request.proposal_approved', 'request.proposal_rejected', 'request.suggestion_accepted'].includes(entry.type)) {
@@ -286,9 +288,12 @@ export class FakeReview {
         const proposal = proposalEnds ? null : undefined === transition.proposal ? current.proposal : transition.proposal;
         const suggestion = 'request.reopened' === entry.type && 'dismissed' === current.suggestion ? 'accepted' : (transition.suggestion ?? current.suggestion);
         const claim = 'in_progress' === status ? { claimedBy: current.claimedBy ?? entry.actor, claimedAt: current.claimedAt ?? entry.occurredAt } : { claimedBy: null, claimedAt: null };
+        const title = transition.title ?? current.title;
         const next = {
             ...current,
             ...claim,
+            title,
+            summary: title ?? current.summary,
             status,
             closed,
             proposal,
@@ -352,6 +357,14 @@ export class FakeReview {
                     resolution: 'wont_do',
                     suggestion: 'dismissed',
                 });
+            case 'title': {
+                const title = (input as TitleInput).title.trim();
+                if (title === this.find(id).title) {
+                    throw new Error('The fake changes the title only to a new one.');
+                }
+
+                return this.#apply(id, this.#entry('request.retitled', USER, title, status), { title });
+            }
             default:
                 throw new Error(`The fake knows no command ${command}.`);
         }
@@ -511,9 +524,9 @@ export class FakeReview {
             }),
         ));
         api.on('POST', `${base}/requests`, ours(({ body }) => {
-            const { anchor, body: comment, requireApproval } = body as OpenRequestInput;
+            const { anchor, title, body: comment, requireApproval } = body as OpenRequestInput;
 
-            return this.#closedError() ?? json('request.schema.json', this.#present(this.#openRequest(anchor ?? null, comment, null, requireApproval ?? false)), 201);
+            return this.#closedError() ?? json('request.schema.json', this.#present(this.#openRequest(anchor ?? null, comment, null, requireApproval ?? false, title?.trim() ?? null)), 201);
         }));
         api.on('POST', `${base}/drafts`, ours(({ body }) => this.#closedError() ?? json('draft.schema.json', this.#createDraft(body as CreateDraftInput), 201)));
         api.on('POST', `${base}/drafts/submit`, ours(({ body }) => this.#closedError() ?? this.#submitDrafts(body as SubmitDraftsInput)));
@@ -537,11 +550,12 @@ export class FakeReview {
                 if (null !== closed) {
                     return closed;
                 }
-                const { body, requireApproval } = call.body as UpdateDraftInput;
+                const { title, body, requireApproval } = call.body as UpdateDraftInput;
                 if (null != requireApproval && 'reply' === draft.kind) {
                     return apiError(422, 'invalid_input', 'Only a new request asks for a plan first.', { violations: [{ field: 'requireApproval', message: 'Only a new request asks for a plan first.' }] });
                 }
-                const updated = { ...draft, body, requireApproval: requireApproval ?? draft.requireApproval, updatedAt: now() };
+                // D3 replaces the title with the body.
+                const updated = { ...draft, title: title?.trim() ?? null, body, requireApproval: requireApproval ?? draft.requireApproval, updatedAt: now() } as Draft;
                 this.drafts = this.drafts.map((known) => (known.id === draft.id ? updated : known));
 
                 return json('draft.schema.json', updated);
@@ -615,10 +629,10 @@ export class FakeReview {
         const base = { id: newId(), reviewId: this.id, body: input.body, requireApproval: 'new_request' === input.kind && true === input.requireApproval, createdAt, updatedAt: createdAt };
         let draft: Draft;
         if ('reply' === input.kind) {
-            draft = { ...base, kind: 'reply', anchor: null, requestId: this.find(input.requestId).id };
+            draft = { ...base, kind: 'reply', anchor: null, requestId: this.find(input.requestId).id, title: null };
         } else {
             const anchor = input.anchor ?? null;
-            draft = { ...base, kind: 'new_request', anchor: null === anchor ? null : this.#anchor(anchor), requestId: null };
+            draft = { ...base, kind: 'new_request', anchor: null === anchor ? null : this.#anchor(anchor), requestId: null, title: input.title?.trim() ?? null };
             this.#draftAnchors.set(draft.id, anchor);
         }
         this.drafts.push(draft);
@@ -634,7 +648,7 @@ export class FakeReview {
             throw new Error('The fake submits new-request drafts only.');
         }
         const batchId = newId();
-        const opened = this.drafts.map((draft) => this.#openRequest(this.#draftAnchors.get(draft.id) ?? null, draft.body, batchId, draft.requireApproval));
+        const opened = this.drafts.map((draft) => this.#openRequest(this.#draftAnchors.get(draft.id) ?? null, draft.body, batchId, draft.requireApproval, draft.title));
         this.drafts = [];
 
         return json('batch-submission.schema.json', { batchId, reviewId: this.id, summary: input.summary ?? null, submittedAt: now(), seq: ++this.#seq, openedRequests: opened.map(requestSummary), replies: [] }, 201);

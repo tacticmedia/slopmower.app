@@ -1,5 +1,5 @@
 import { CommentDiscussionIcon, FileDiffIcon } from '@primer/octicons-react';
-import { Banner, Heading, Label, Link, RelativeTime, UnderlineNav } from '@primer/react';
+import { Banner, Label, Link, RelativeTime, UnderlineNav } from '@primer/react';
 import { useMemo } from 'react';
 import { Link as RouterLink, useLoaderData, useRouteLoaderData, useSearchParams } from 'react-router';
 import type { Actor } from '../../api/types/actor';
@@ -7,6 +7,7 @@ import type { Me } from '../../api/types/me';
 import type { Request as ReviewRequest } from '../../api/types/request';
 import { ThreadBox } from '../../comments/ThreadBox';
 import { threadView } from '../../comments/threadView';
+import { useDocumentTitle } from '../../layout/useDocumentTitle';
 import { suggestionButtons } from '../../requests/allowedActions';
 import { AnchorLink } from '../../requests/AnchorLink';
 import { AnchorSnapshot } from '../../requests/AnchorSnapshot';
@@ -16,6 +17,7 @@ import { LocationInfo } from '../../requests/LocationInfo';
 import { OutdatedLabel } from '../../requests/OutdatedLabel';
 import { PullRequestStateLabel } from '../../requests/PullRequestStateLabel';
 import { RequestActions } from '../../requests/RequestActions';
+import { RequestTitle } from '../../requests/RequestTitle';
 import shared from '../../requests/Requests.module.css';
 import { CHANGES_TAB } from '../../requests/requestTabs';
 import { StatusLabel } from '../../requests/StatusLabel';
@@ -33,6 +35,7 @@ export function RequestDetail() {
     const me = useRouteLoaderData<Me>('root');
     const [searchParams] = useSearchParams();
     const onChanges = CHANGES_TAB === searchParams.get('tab');
+    useDocumentTitle(request.summary);
 
     if (undefined === me) {
         throw new Error('The request detail renders inside the root route.');
@@ -44,9 +47,7 @@ export function RequestDetail() {
                 Requests of this review
             </Link>
             <header className={styles.header}>
-                <Heading as="h1" className={styles.title}>
-                    {request.summary}
-                </Heading>
+                <RequestTitle key={request.id} title={request.title} summary={request.summary} allowedActions={request.allowedActions} />
                 <div className={styles.meta}>
                     <StatusLabel status={request.status} />
                     <OutdatedLabel outdated={request.outdated} />

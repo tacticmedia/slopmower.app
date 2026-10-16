@@ -8,6 +8,7 @@
     "resolution": null,
     "closed": false,
     "anchor": null,
+    "title": null,
     "summary": "Add a CSV export of the invoice totals.",
     "author": {
       "kind": "user",
@@ -39,7 +40,7 @@
       "state": "pending"
     }
   },
-  "allowedActions": ["reply", "release", "mark_wont_do", "propose_solution"],
+  "allowedActions": ["reply", "release", "mark_wont_do", "propose_solution", "set_title"],
   "events": [
     {
       "seq": 1862,

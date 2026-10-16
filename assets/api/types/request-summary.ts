@@ -23,7 +23,9 @@ export type RequestSummary = {
     closed: boolean;
     /** Null for a general request. */
     anchor: AnchorSummary | null;
-    /** First non-blank line of the body, at most 200 characters. */
+    /** Null while the request has no title. */
+    title: string | null;
+    /** The title when set, else the first non-blank line of the body, at most 200 characters. */
     summary: string;
     author: Actor;
     commentCount: number;

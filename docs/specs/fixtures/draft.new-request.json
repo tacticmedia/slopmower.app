@@ -26,6 +26,7 @@
     }
   },
   "requestId": null,
+  "title": null,
   "body": "Use `Money` instead of `float` for totals.",
   "requireApproval": false,
   "createdAt": "2026-09-29T07:12:00Z",

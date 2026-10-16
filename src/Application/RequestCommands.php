@@ -35,6 +35,7 @@ use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\RequestCommand;
 use App\Domain\Request\Command\SetPlanRequirement;
+use App\Domain\Request\Command\SetTitle;
 use App\Domain\Request\Command\Suggest;
 use App\Domain\Request\Command\UnlinkCommit;
 use App\Domain\Request\Command\UnlinkPullRequest;
@@ -316,6 +317,14 @@ final class RequestCommands
      * @return list<RecordedEvent>
      */
     public function dismissSuggestion(DismissSuggestion $command, Actor $actor): array
+    {
+        return $this->run($this->reviewOf($command->requestId), $command, $actor);
+    }
+
+    /**
+     * @return list<RecordedEvent> Empty when the title does not change
+     */
+    public function setTitle(SetTitle $command, Actor $actor): array
     {
         return $this->run($this->reviewOf($command->requestId), $command, $actor);
     }

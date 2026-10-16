@@ -30,7 +30,7 @@ final class QueueCheckRun
     /** Triggers during the delay reuse the queued job, so this is the debounce per pull request. */
     public const int DELAY_MILLISECONDS = 5000;
 
-    private const array REQUEST_TRIGGERS = [EventType::RequestReadyForReview, EventType::RequestVerified, EventType::RequestReopened, EventType::RequestWontDo];
+    private const array REQUEST_TRIGGERS = [EventType::RequestReadyForReview, EventType::RequestVerified, EventType::RequestReopened, EventType::RequestWontDo, EventType::RequestRetitled];
 
     public function __construct(
         private readonly ReviewRepository $reviews,

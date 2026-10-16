@@ -33,6 +33,7 @@ final class DraftNormalizer implements NormalizerInterface, NormalizerAwareInter
             'kind' => $data->getKind(),
             'anchor' => null === $anchor ? null : AnchorCodec::encode($anchor),
             'requestId' => $data->getRequest()?->getId(),
+            'title' => $data->getTitle(),
             'body' => $data->getBody(),
             'requireApproval' => $data->requiresApproval(),
             'createdAt' => $data->getCreatedAt(),

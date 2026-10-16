@@ -48,6 +48,8 @@ export type Request = {
     closed: boolean;
     /** Null for a general request. */
     anchor: Anchor | null;
+    /** Null while the request has no title. */
+    title: string | null;
     summary: string;
     author: Actor;
     commentCount: number;

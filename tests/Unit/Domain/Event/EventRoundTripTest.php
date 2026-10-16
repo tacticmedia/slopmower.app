@@ -30,6 +30,7 @@ use App\Domain\Event\RequestProposedEvent;
 use App\Domain\Event\RequestReadyForReviewEvent;
 use App\Domain\Event\RequestReleasedEvent;
 use App\Domain\Event\RequestReopenedEvent;
+use App\Domain\Event\RequestRetitledEvent;
 use App\Domain\Event\RequestSuggestionAcceptedEvent;
 use App\Domain\Event\RequestSuggestionDismissedEvent;
 use App\Domain\Event\RequestVerifiedEvent;
@@ -67,6 +68,7 @@ final class EventRoundTripTest extends KernelTestCase
     private const string BATCH = '01K6B3P1Z8Y7X6W5V4T3S2R1Q0';
     private const string SOURCE_REVIEW = '01K6B3A1B2C3D4E5F6G7H8J9KM';
     private const string PROPOSAL = '01K6C2EVT00000000000001862';
+    private const string TITLED_BODY = "Add a full-screen focus mode.\n\nIt hides the file tree and the request list, so the code uses the whole window.";
 
     #[TestDox('fromPayload(toPayload(event)) equals the event')]
     #[DataProvider('events')]
@@ -105,6 +107,15 @@ final class EventRoundTripTest extends KernelTestCase
         self::assertEquals(new RequestOpenedEvent(null, 'Add a full-screen focus mode.', null), EventType::RequestOpened->decode($payload));
     }
 
+    #[TestDox('A request.opened payload without title decodes with title null')]
+    public function testDecodesRequestOpenedWithoutTitle(): void
+    {
+        $payload = self::eventFixturePayload('request.opened-titled');
+        unset($payload['title']);
+
+        self::assertEquals(new RequestOpenedEvent(null, self::TITLED_BODY, null), EventType::RequestOpened->decode($payload));
+    }
+
     /**
      * @return iterable<string, array{string, DomainEvent}>
      */
@@ -121,6 +132,13 @@ final class EventRoundTripTest extends KernelTestCase
         )];
 
         yield 'request.opened without an anchor' => ['request.opened-general', new RequestOpenedEvent(null, 'Add a full-screen focus mode.', null, requireApproval: true)];
+
+        yield 'request.opened with a title' => ['request.opened-titled', new RequestOpenedEvent(
+            null,
+            self::TITLED_BODY,
+            null,
+            title: 'Full-screen focus mode',
+        )];
 
         yield 'request.opened with carriedFrom' => ['request.opened-carried', new RequestOpenedEvent(
             null,
@@ -174,6 +192,7 @@ final class EventRoundTripTest extends KernelTestCase
             EventType::RequestPlanWaived => new RequestPlanWaivedEvent(),
             EventType::RequestSuggestionAccepted => new RequestSuggestionAcceptedEvent(true),
             EventType::RequestSuggestionDismissed => new RequestSuggestionDismissedEvent('The totals round once, by law.'),
+            EventType::RequestRetitled => new RequestRetitledEvent('Show the tax rate with four decimals'),
             EventType::BatchSubmitted => new BatchSubmittedEvent(
                 BatchId::fromString(self::BATCH),
                 'First pass over billing.',

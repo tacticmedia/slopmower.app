@@ -24,6 +24,7 @@ use App\Domain\Event\RequestProposedEvent;
 use App\Domain\Event\RequestReadyForReviewEvent;
 use App\Domain\Event\RequestReleasedEvent;
 use App\Domain\Event\RequestReopenedEvent;
+use App\Domain\Event\RequestRetitledEvent;
 use App\Domain\Event\RequestSuggestionAcceptedEvent;
 use App\Domain\Event\RequestSuggestionDismissedEvent;
 use App\Domain\Event\RequestVerifiedEvent;
@@ -52,6 +53,7 @@ use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\RequestCommand;
 use App\Domain\Request\Command\SetPlanRequirement;
+use App\Domain\Request\Command\SetTitle;
 use App\Domain\Request\Command\Suggest;
 use App\Domain\Request\Command\UnlinkCommit;
 use App\Domain\Request\Command\UnlinkPullRequest;
@@ -66,6 +68,7 @@ final class RequestDecider
 {
     public const int MAX_PENDING_SUGGESTIONS = 500;
     private const int MAX_LINKED_REQUESTS = 50;
+    private const int MAX_TITLE_CHARACTERS = 200;
 
     /**
      * @param list<RequestState> $states             The state of each request that the command names
@@ -91,11 +94,13 @@ final class RequestDecider
         }
 
         if ($command instanceof Open) {
-            return [new DecidedEvent(new RequestOpenedEvent($command->anchor, $command->body, $command->batchId, $command->carriedFrom, $command->requireApproval), RequestId::generate())];
+            $opened = new RequestOpenedEvent($command->anchor, $command->body, $command->batchId, $command->carriedFrom, $command->requireApproval, self::trimmed($command->title));
+
+            return [new DecidedEvent($opened, RequestId::generate())];
         }
 
         if ($command instanceof Suggest) {
-            return [new DecidedEvent(new RequestOpenedEvent($command->anchor, $command->body, null), RequestId::generate())];
+            return [new DecidedEvent(new RequestOpenedEvent($command->anchor, $command->body, null, title: self::trimmed($command->title)), RequestId::generate())];
         }
 
         $action = self::action($command);
@@ -132,6 +137,10 @@ final class RequestDecider
             return [];
         }
 
+        if ($command instanceof SetTitle && trim($command->title) === $state->title) {
+            return [];
+        }
+
         $event = match (true) {
             $command instanceof Reply => new RequestCommentedEvent(CommentId::generate(), $command->body, $command->question, $command->batchId),
             $command instanceof Claim => new RequestClaimedEvent(),
@@ -148,6 +157,7 @@ final class RequestDecider
             $command instanceof SetPlanRequirement => $command->requireApproval ? new RequestPlanRequiredEvent() : new RequestPlanWaivedEvent(),
             $command instanceof AcceptSuggestion => new RequestSuggestionAcceptedEvent($command->requireApproval ?? $state->requireApproval),
             $command instanceof DismissSuggestion => new RequestSuggestionDismissedEvent($command->note),
+            $command instanceof SetTitle => new RequestRetitledEvent(trim($command->title)),
             default => throw new \LogicException('No event for '.$command::class.'.'),
         };
 
@@ -205,9 +215,10 @@ final class RequestDecider
     private static function violations(RequestCommand $command, array $byId, ReviewSnapshot $review, Actor $actor, int $pendingSuggestions): array
     {
         return match (true) {
-            $command instanceof Open => self::textViolations('body', $command->body),
+            $command instanceof Open => [...self::textViolations('body', $command->body), ...self::titleViolations($command->title)],
             $command instanceof Suggest => [
                 ...self::textViolations('body', $command->body),
+                ...(null === $command->title ? [['field' => 'title', 'message' => 'Is required.']] : self::titleViolations($command->title)),
                 ...($pendingSuggestions >= self::MAX_PENDING_SUGGESTIONS
                     ? [['field' => '', 'message' => 'A review has at most 500 pending suggestions. Wait until the user accepts or dismisses some.']]
                     : []),
@@ -233,8 +244,32 @@ final class RequestDecider
                 ...self::proposalViolations($byId[$command->requestId->toString()], $command->proposalEventId),
                 ...self::textViolations('note', $command->note),
             ],
+            $command instanceof SetTitle => self::titleViolations($command->title),
             default => [],
         };
+    }
+
+    /**
+     * docs/specs/README.md section 2.2: the raw title has no line break, and the trimmed title has 1 to 200 characters.
+     *
+     * @return list<array{field: string, message: string}>
+     */
+    private static function titleViolations(?string $title): array
+    {
+        $message = match (true) {
+            null === $title => null,
+            '' === trim($title) => 'Must contain a non-whitespace character.',
+            1 === preg_match('/[\r\n]/', $title) => 'Must be one line, without CR or LF.',
+            mb_strlen(trim($title), 'UTF-8') > self::MAX_TITLE_CHARACTERS => 'Must have at most 200 characters after trimming.',
+            default => null,
+        };
+
+        return null === $message ? [] : [['field' => 'title', 'message' => $message]];
+    }
+
+    private static function trimmed(?string $title): ?string
+    {
+        return null === $title ? null : trim($title);
     }
 
     /**
@@ -389,16 +424,21 @@ final class RequestDecider
             $command instanceof SetPlanRequirement => Action::SetPlanRequirement,
             $command instanceof AcceptSuggestion => Action::AcceptSuggestion,
             $command instanceof DismissSuggestion => Action::DismissSuggestion,
+            $command instanceof SetTitle => Action::SetTitle,
             default => throw new \LogicException('No action for '.$command::class.'.'),
         };
     }
 
     /**
-     * Ends the invalid_transition message when a pending suggestion or the closed proposal gate, not the status, refuses
-     * the action.
+     * Ends the invalid_transition message when a title, a pending suggestion, or the closed proposal gate, not the status,
+     * refuses the action.
      */
     private static function closedGateReason(Action $action, RequestState $state, Actor $actor): ?string
     {
+        if (Action::SetTitle === $action) {
+            return 'the request has a title, and only the user changes it';
+        }
+
         $refusedBySuggestion = $state->suggestionPending() && match ($action) {
             Action::Claim => ActorKind::Agent === $actor->kind,
             Action::MarkWontDo => true,

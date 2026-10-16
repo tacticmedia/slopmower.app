@@ -25,6 +25,7 @@
       "normalizedHash": "sha256:09938bff856dc45843179cd6426abee27580709e3ea2c414914ed5915d64787c"
     }
   },
+  "title": null,
   "summary": "Extract the tax rounding into `TaxRounding`.",
   "author": {
     "kind": "user",
@@ -143,5 +144,5 @@
   "commits": [],
   "pullRequestUrls": [],
   "pullRequests": [],
-  "allowedActions": ["reply", "release", "link_commits", "link_pull_request", "mark_ready_for_review", "mark_wont_do", "propose_solution"]
+  "allowedActions": ["reply", "release", "link_commits", "link_pull_request", "mark_ready_for_review", "mark_wont_do", "propose_solution", "set_title"]
 }

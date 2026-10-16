@@ -28,6 +28,11 @@ final readonly class CreateDraftInput
         }, constraints: [new Assert\IsNull()])]
         #[Assert\Ulid]
         public ?string $requestId = null,
+        #[Assert\When(expression: static function (self $input): bool {
+            return DraftKind::Reply === $input->kind;
+        }, constraints: [new Assert\IsNull()])]
+        #[RequestTitle]
+        public ?string $title = null,
         #[Assert\NotBlank(normalizer: 'trim')]
         #[Assert\Length(max: 65536)]
         public ?string $body = null,

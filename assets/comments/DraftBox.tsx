@@ -4,7 +4,7 @@ import { InlineMessage } from '@primer/react/experimental';
 import { lazy, Suspense, useOptimistic, useState, useTransition } from 'react';
 import { Link as RouterLink, useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
-import { CommentBox } from './CommentBox';
+import { CommentBox, type CommentText } from './CommentBox';
 import type { CommentIntent } from './commentIntent';
 import type { DraftView } from './draftView';
 import styles from './ThreadBox.module.css';
@@ -29,6 +29,7 @@ export function DraftBox({ draft, editable }: Props) {
     const [editing, setEditing] = useState(false);
     const [savedEdit, setSavedEdit] = useState(false);
     const { draftId } = draft;
+    const newRequest = null !== draft.requireApproval;
     const error = writing ? null : (fetcher.data?.error ?? null);
 
     if (savedEdit && !writing) {
@@ -48,12 +49,12 @@ export function DraftBox({ draft, editable }: Props) {
             await fetcher.submit(intent, { method: 'post', encType: 'application/json' });
         });
     };
-    const save = (body: string, requireApproval: boolean): boolean => {
+    const save = (text: CommentText): boolean => {
         if (writing || null === draftId) {
             return false;
         }
         setSavedEdit(true);
-        submit({ intent: 'editDraft', draftId, input: null === draft.requireApproval ? { body } : { body, requireApproval } }, () => undefined);
+        submit({ intent: 'editDraft', draftId, input: newRequest ? text : { body: text.body } }, () => undefined);
 
         return true;
     };
@@ -99,7 +100,9 @@ export function DraftBox({ draft, editable }: Props) {
                         submitLabel="Update comment"
                         onSubmit={save}
                         askForPlan={draft.requireApproval ?? undefined}
+                        titled={newRequest}
                         onCancel={() => setEditing(false)}
+                        initialTitle={draft.title ?? ''}
                         initialBody={draft.body}
                         error={error}
                         busy={writing}
@@ -108,6 +111,11 @@ export function DraftBox({ draft, editable }: Props) {
                 </div>
             ) : (
                 <div className={styles.comment}>
+                    {null !== draft.title && (
+                        <p className={styles.title} data-testid="draft-title">
+                            {draft.title}
+                        </p>
+                    )}
                     <Suspense fallback={<p className={styles.plain}>{draft.body}</p>}>
                         <MarkdownBody markdown={draft.body} />
                     </Suspense>

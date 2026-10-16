@@ -19,6 +19,7 @@
         },
         "symbol": null
       },
+      "title": null,
       "summary": "Extract the tax rounding into `TaxRounding`.",
       "author": {
         "kind": "user",

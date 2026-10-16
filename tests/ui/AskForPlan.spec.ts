@@ -16,7 +16,7 @@ test.describe('AskForPlan', () => {
         await page.getByRole('button', { name: 'New request', exact: true }).click();
 
         await expect(askForPlan(page, '[data-testid="request-filters"]')).toBeChecked();
-        await page.locator('textarea[aria-label="New request"]').fill('Add a CSV export.');
+        await page.locator('form[aria-label="New request"] textarea').fill('Add a CSV export.');
         await commentBoxButton(page, 'Add single comment').click();
         await expect.poll(() => api.bodies('POST', '/api/v1/reviews/:reviewId/requests')).toEqual([{ anchor: null, body: 'Add a CSV export.', requireApproval: true }]);
     });

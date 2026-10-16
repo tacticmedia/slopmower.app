@@ -47,6 +47,9 @@ class ChangeRequest implements TenantOwned
     #[ORM\Column(type: AnchorType::NAME, nullable: true)]
     private ?Anchor $anchor;
 
+    #[ORM\Column(length: 200, nullable: true)]
+    private ?string $title = null;
+
     #[ORM\Column(type: Types::TEXT)]
     private string $body;
 
@@ -165,6 +168,7 @@ class ChangeRequest implements TenantOwned
         ?Proposal $proposal,
         ?SuggestionState $suggestionState,
         array $pullRequestUrls,
+        ?string $title,
     ): void {
         $this->status = $status;
         $this->statusBeforeClaim = $statusBeforeClaim;
@@ -183,6 +187,7 @@ class ChangeRequest implements TenantOwned
         $this->proposalState = $proposal?->state;
         $this->suggestionState = $suggestionState;
         $this->pullRequestUrls = array_map(static fn (PullRequestUrl $url): string => $url->toString(), $pullRequestUrls);
+        $this->title = $title;
     }
 
     public function getId(): RequestId
@@ -206,6 +211,11 @@ class ChangeRequest implements TenantOwned
     public function getAnchor(): ?Anchor
     {
         return $this->anchor;
+    }
+
+    public function getTitle(): ?string
+    {
+        return $this->title;
     }
 
     public function getBody(): string
