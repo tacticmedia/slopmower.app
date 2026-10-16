@@ -468,11 +468,13 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 - `page.route` cannot stream a response, so `EventSource` is replaced by `addInitScript`.
 - `context.route` also intercepts the imports of the `@pierre/diffs` worker. `page.route` is enough for `/api/v1`.
 - The worker pool renders with `useTokenTransformer`, so each code token is an element with `data-char`, its UTF-16 offset in the line. A Cmd-click is `click({ modifiers: ['ControlOrMeta'] })` on such a token.
+- `@pierre/diffs` draws no row until the worker pool of the page is ready, which takes seconds on a loaded host, and `onPostRender` also reports the empty render of the mount. A placeholder height stays until the view has a `[data-line]` row, as in `SidesDiff` of `CommitDiff.tsx`. A test waits for a row, never for a fixed time.
 
 ### Test environments and front-end builds
 
 - **Sessions.** The `test` environment uses `mock_file` sessions. A real browser must use the `e2e` environment.
 - **Build output.** `npm run build` writes the bundles to `public/build`, and it and the Vite dev server write `public/entrypoints.json`, which the dev worker watches. The E2E suite uses its own build in `public/build-e2e`.
+- **Server-sent events in a functional test.** `EventSourceHttpClient::stream()` ends with its first timeout chunk, and a timeout chunk that `isTimeout()` does not check throws "Idle timeout reached". Pass the whole wait as the stream timeout and check `isTimeout()`, as `HubIsolationTest` does.
 - **Full-stack suite, playwright-php 1.5.0:**
   - `getByRole()` without `exact: true` matches a case-insensitive substring of the name. Pass `'exact' => true`.
   - `allTextContents()` and `allInnerTexts()` fail with "Unknown action", because the Node server has no such action. Use `evaluateAll()`.

@@ -173,10 +173,23 @@ function LoadedDiff({ repositoryId, file, overflow, pendingHeight }: { repositor
         );
     }
 
-    return <SidesDiff file={file} sides={sides} overflow={overflow} />;
+    return <SidesDiff file={file} sides={sides} overflow={overflow} pendingHeight={pendingHeight} />;
 }
 
-const SidesDiff = memo(function SidesDiff({ file, sides, overflow }: { file: CommitDiffFile; sides: DiffSides; overflow: Overflow }) {
+const SidesDiff = memo(function SidesDiff({ file, sides, overflow, pendingHeight }: { file: CommitDiffFile; sides: DiffSides; overflow: Overflow; pendingHeight: string }) {
+    const [rendered, setRendered] = useState(false);
+    const options = useMemo<FileDiffOptions<undefined, undefined>>(
+        () => ({
+            ...DIFF_OPTIONS[overflow],
+            // The view has no row before the worker pool is ready, and it also reports the render of its empty mount.
+            onPostRender: (node) => {
+                if (null !== node.shadowRoot?.querySelector('[data-line]')) {
+                    setRendered(true);
+                }
+            },
+        }),
+        [overflow],
+    );
     const fileDiff = useMemo(() => {
         const oldName = file.oldPath ?? file.path;
         // With the path, the highlight cache key, as in CodeFile.
@@ -186,5 +199,5 @@ const SidesDiff = memo(function SidesDiff({ file, sides, overflow }: { file: Com
         return parseDiffFromFile(oldFile, newFile);
     }, [file, sides]);
 
-    return <FileDiff fileDiff={fileDiff} options={DIFF_OPTIONS[overflow]} />;
+    return <FileDiff fileDiff={fileDiff} options={options} style={rendered ? undefined : { minHeight: pendingHeight }} />;
 });

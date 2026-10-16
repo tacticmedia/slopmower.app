@@ -55,8 +55,9 @@ final class HubIsolationTest extends WebTestCase
         $received = [];
         $deadline = microtime(true) + self::WAIT_SECONDS;
 
-        foreach ($sse->stream($source, 0.1) as $chunk) {
-            if ($chunk instanceof ServerSentEvent && '' !== $chunk->getData()) {
+        // The stream ends with the first timeout chunk, and a timeout chunk that isTimeout() does not check throws.
+        foreach ($sse->stream($source, self::WAIT_SECONDS) as $chunk) {
+            if (!$chunk->isTimeout() && $chunk instanceof ServerSentEvent && '' !== $chunk->getData()) {
                 $received[] = json_decode($chunk->getData(), true, flags: \JSON_THROW_ON_ERROR);
             }
 

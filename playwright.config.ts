@@ -12,6 +12,10 @@ export default defineConfig({
     fullyParallel: true,
     forbidOnly: true,
     retries: 0,
+    // docs/plan/reports/F55.md has the measurements of both values under load.
+    workers: 4,
+    // The rows of the code view wait for the worker pool of the page. `MAXIMUM_SCROLL_WAIT_MS` of CodeFile waits as long.
+    expect: { timeout: 10_000 },
     reporter: [['list']],
     use: {
         ...devices['Desktop Chrome'],

@@ -29,6 +29,10 @@ Verified on 2026-10-16:
 - **Slow only:** raise `expect.timeout` in `playwright.config.ts` to a value that the measurements justify, and set `workers` to a fixed number that the measurements justify, so a loaded host does not run 8 browsers.
 - **No retries.** A retry hides a race, and the suite must stay deterministic.
 - **HubIsolationTest:** find why the hub idles out under load, and fix the cause or the timeout of that test only.
+- **Findings, 2026-10-16:**
+  - ChangesTab was a race in the code: `@pierre/diffs` draws no row until the worker pool of the page is ready, so a loaded file shrank to its header and the files below loaded too. `SidesDiff` keeps the pending height until a row exists.
+  - HubIsolationTest was a race in the test: an idle timeout of 0.1 s and an unchecked timeout chunk.
+  - The code view waits are only slow under load: `workers: 4` and `expect.timeout` 10 s, the same as `MAXIMUM_SCROLL_WAIT_MS` of CodeFile.
 
 ## Depends on
 
