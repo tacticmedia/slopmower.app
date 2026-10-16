@@ -76,7 +76,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F58 | [Request title and description](F58-request-title-and-description.md) | Planned (2026-10-16) | | |
 | F59 | [Request detail like a GitHub issue](F59-request-detail-like-a-github-issue.md) | Planned (2026-10-16) | | |
 | F60 | [Review request list like GitHub Issues](F60-review-request-list-like-github-issues.md) | Planned (2026-10-16) | | |
-| F61 | [Keyboard gutter test race](F61-keyboard-gutter-test-race.md) | Done 2026-10-16, [report](reports/F61.md) | | src 496 PHP / 33658 lines, 496 types; tests 333 PHP / 30626 lines; assets 165 TS / 9701 lines |
+| F61 | [Keyboard gutter test race](F61-keyboard-gutter-test-race.md) | Done 2026-10-16, [report](reports/F61.md) | 152468f | src 496 PHP / 33658 lines, 496 types; tests 333 PHP / 30626 lines; assets 165 TS / 9701 lines; check 3m48s |
 
 ## Candidates
 
