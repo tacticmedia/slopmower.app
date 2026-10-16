@@ -1,0 +1,11 @@
+# prod environment, worker mode. nginx in front terminates TLS and forwards /.well-known/mercure to the external hub.
+{$SERVER_NAME::80} {
+	root /app/public
+	encode zstd br gzip
+
+	php_server {
+		worker {
+			file /app/public/index.php
+		}
+	}
+}

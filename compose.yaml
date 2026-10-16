@@ -23,6 +23,9 @@ services:
         condition: service_healthy
     environment:
       SERVER_NAME: ':80'
+      # The entrypoint migrates app, app_test, and app_e2e, then starts FrankenPHP. The worker sets neither.
+      MIGRATE_DB: latest
+      MIGRATE_DB_AND_CONTINUE: 1
       HTTP_PORT: ${HTTP_PORT:-8000}
       MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET}
       APP_LOCAL_SIGN_IN: ${APP_LOCAL_SIGN_IN:-}

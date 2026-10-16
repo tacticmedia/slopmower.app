@@ -1,0 +1,43 @@
+#!/bin/sh
+# make prod-check: builds the frankenphp_prod image, lints its container, and requests /login from it (D74).
+set -eu
+
+cd "$(dirname "$0")/.."
+name=slopmower-prod-check-$$
+public_host=prod-check.example
+
+remove() {
+	status=$?
+	if [ "$status" -ne 0 ] && docker container inspect "$name" >/dev/null 2>&1; then
+		docker logs "$name"
+	fi
+	docker rm --force "$name" >/dev/null 2>&1 || true
+	docker image rm "$name" >/dev/null 2>&1 || true
+	exit "$status"
+}
+trap remove EXIT
+trap 'exit 130' INT TERM
+
+# --load: the builder of docker/setup-buildx-action keeps the image in its own store without it.
+docker build --load --target frankenphp_prod --tag "$name" .
+
+set -- --env APP_SECRET=prod-check-secret-0123456789abcdef --env APP_PUBLIC_HOST=$public_host
+
+docker run --rm "$@" "$name" bin/console lint:container
+
+docker run --detach --name "$name" "$@" "$name" >/dev/null
+seconds_left=60
+until status_code=$(docker exec "$name" curl --silent --output /dev/null --write-out '%{http_code}' --header "Host: $public_host" http://localhost/login); do
+	if [ "$seconds_left" -eq 0 ]; then
+		echo 'bin/prod-check: FrankenPHP does not answer.' >&2
+		exit 1
+	fi
+	sleep 1
+	seconds_left=$((seconds_left - 1))
+done
+
+if [ "$status_code" != 200 ]; then
+	echo "bin/prod-check: GET /login gives $status_code, not 200." >&2
+	exit 1
+fi
+echo 'bin/prod-check: GET /login gives 200.'

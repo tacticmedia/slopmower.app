@@ -1,4 +1,4 @@
-# Every gate of `make check`, plus the Composer and npm checks (D62). `make act` runs it locally.
+# Every gate of `make check`, plus the Composer and npm checks (D62) and the prod image check (D74). `make act` runs it locally.
 name: QA
 
 on:
@@ -105,6 +105,8 @@ jobs:
       - run: npm audit
         if: ${{ !cancelled() && steps.up.outcome != 'skipped' }}
       - run: npm audit --prefix symbols
+        if: ${{ !cancelled() && steps.up.outcome != 'skipped' }}
+      - run: make prod-check
         if: ${{ !cancelled() && steps.up.outcome != 'skipped' }}
 
       # The newest version that the artifact server of act 0.2.89 accepts. v6 and v7 fail the upload under act.

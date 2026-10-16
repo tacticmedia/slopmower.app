@@ -1,6 +1,6 @@
 # F37 Symbols service address
 
-Workflow, conventions, and status: [feature track](features.md). Jan asked on 2026-10-08 for the host and the port of the `symbols` service from the environment. This feature implements the candidate "Symbols service address" from [deployment](../deployment.md).
+Workflow, conventions, and status: [feature track](features.md). Jan asked on 2026-10-08 for the host and the port of the `symbols` service from the environment. This feature implements the candidate "Symbols service address" from [deployment](../deployment/manual.md#symbols-service).
 
 ## Goal
 

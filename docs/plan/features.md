@@ -65,7 +65,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F47 | [Product name Slopmower](F47-product-name-slopmower.md) | Done 2026-10-13, [report](reports/F47.md) | 91b4995 | src 435 PHP / 28870 lines, 435 types; tests 294 PHP / 26343 lines; assets 159 TS / 9202 lines; check 8m34s |
 | F48 | [Agent suggestions](F48-agent-suggestions.md) | Done 2026-10-14, [report](reports/F48.md) | 7c35379 | src 487 PHP / 33070 lines, 487 types; tests 325 PHP / 29742 lines; assets 165 TS / 9660 lines; check 3m31s |
 | F49 | [Development fixtures](F49-dev-fixtures.md) | Done 2026-10-15, [report](reports/F49.md) | 5d8a136 | src 493 PHP / 33336 lines, 493 types; tests 326 PHP / 29899 lines; assets 165 TS / 9660 lines; check 4m6s |
-| F50 | [Production image](F50-production-image.md) | Planned (2026-10-15) | | |
+| F50 | [Production image](F50-production-image.md) | Done 2026-10-16, [report](reports/F50.md) | | src 496 PHP / 33658 lines, 496 types; tests 333 PHP / 30626 lines; assets 165 TS / 9683 lines |
 | F51 | [Sentry data rules](F51-sentry-data-rules.md) | Done 2026-10-15, [report](reports/F51.md) | a272724 | src 494 PHP / 33472 lines, 494 types; tests 330 PHP / 30307 lines; assets 165 TS / 9670 lines; check 3m37s |
 | F52 | [Follow-ups of F39 to F45](F52-follow-ups-of-f39-to-f45.md) | Done 2026-10-15, [report](reports/F52.md) | d5552ec | src 493 PHP / 33395 lines, 493 types; tests 327 PHP / 30053 lines; assets 165 TS / 9670 lines; check 3m47s |
 | F53 | [Worker and MCP diagnostics](F53-worker-and-mcp-diagnostics.md) | Done 2026-10-16, [report](reports/F53.md) | c0e9512 | src 495 PHP / 33577 lines, 495 types; tests 332 PHP / 30528 lines; assets 165 TS / 9670 lines; check 4m53s |
@@ -76,7 +76,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F58 | [Request title and description](F58-request-title-and-description.md) | Planned (2026-10-16) | | |
 | F59 | [Request detail like a GitHub issue](F59-request-detail-like-a-github-issue.md) | Planned (2026-10-16) | | |
 | F60 | [Review request list like GitHub Issues](F60-review-request-list-like-github-issues.md) | Planned (2026-10-16) | | |
-| F61 | [Keyboard gutter test race](F61-keyboard-gutter-test-race.md) | Planned (2026-10-16) | | |
+| F61 | [Keyboard gutter test race](F61-keyboard-gutter-test-race.md) | In progress (2026-10-16) | | |
 
 ## Candidates
 
@@ -113,7 +113,8 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
   - No usable `.wasm`: Kotlin, Swift, GraphQL, SQL, Markdown, and Vue ship none. Dart (1.0.0, 2023) and Twig (0.8.2) ship one that web-tree-sitter 0.27 refuses. Each needs a wasm build of its own. The npm name `tree-sitter-r` is a security placeholder.
 
 - **CI maintenance.** Dependabot for the pinned action SHAs of `qa.yml`; a `concurrency` group that cancels a superseded run of the same ref; `actions/upload-artifact` v7 once act accepts it (act 0.2.89 refuses v6 and v7). From F36.
-- **Entrypoint and a stale lock.** With an out-of-date `composer.lock`, the first `composer install` of the entrypoint fails in its `post-install-cmd` `composer normalize`, the container restarts, and the next start skips the install because `vendor/` is not empty, so `make up --wait` passes or fails by timing. The entrypoint could fail clearly, or `composer normalize` could run only on `update`. From F36.
+- **Entrypoint and a stale lock.** Scheduled as F50. With an out-of-date `composer.lock`, the first `composer install` of the entrypoint fails in its `post-install-cmd` `composer normalize`, the container restarts, and the next start skips the install because `vendor/` is not empty, so `make up --wait` passes or fails by timing. The entrypoint could fail clearly, or `composer normalize` could run only on `update`. From F36.
+- **`debug:container --env-vars` and the RDS region.** The command resolves every variable of the container, and the processor `rds_region` of tacticmedia/rds-auth-bundle throws `EnvNotFoundException` while `AWS_REGION` is empty, so the command exits 1 in `dev` and in every debug container. A container without debug has no XML dump, so the command lists no variable there. F50 leaves it out of `make prod-check`. A processor that gives an empty string while RDS authentication is off would fix it. From F50.
 - **make act on a Linux host.** The containers write root-owned files into `var/act/workspace/`, and the next `bin/act-run` cannot delete them. Docker Desktop on macOS maps the owner. From F36.
 - **Mercure protocol 1.0.** `symfony/mercure-bundle` 0.5.0 uses protocol 0.x, so the production hub (Mercure 1.x) runs with `protocol_version_compatibility 8`, which needs the deprecated build tags `deprecated_claim` and `deprecated_topic`. `protocol_version: 1.0` needs the claims `iss`, `sub`, and `client_id`, an `issuer` block on the hub, and the cookie `__Secure-mercure_access_token`. The development Caddyfile uses `publisher_jwt` and `subscriber_jwt` without compatibility mode. From the production hub setup on 2026-10-12.
 - **Mirror requests as pull request review comments.** The REST API anchors a review comment to lines of the diff only, and a file comment needs a changed file. A request anchors to any line of the codebase, so a mirror covers only part of the requests. Resolving a thread is GraphQL only, and the App would need Pull requests: write. The F41 annotations show the requests in "Files changed" without these limits. From the GitHub App plan on 2026-10-09.

@@ -92,7 +92,7 @@ Then click **Copy prompt** in the review header and paste the prompt into the ag
 
 ## Run the checks
 
-The stack must be running. Before the first run, and after each new migration, create and migrate the test databases `app_test` and `app_e2e`:
+The stack must be running. `make up` creates and migrates the test databases `app_test` and `app_e2e`. After a new migration, migrate them again:
 
 ```sh
 make db-test
@@ -121,7 +121,7 @@ One test: `docker compose exec php bin/phpunit --filter StartReviewTest`. Add `-
 
 ### GitHub Actions
 
-The workflow [`.github/workflows/qa.yml`](.github/workflows/qa.yml) runs on every push and every pull request. It starts the stack with `make up` and `make db-test` on a clean runner, then runs each gate as its `make` target, plus `composer validate`, `composer audit`, and `npm audit` for both lock files. Each gate also runs after a failed gate, so one run reports all of them. A failed run keeps `test-failures/`, `var/ui/test-results/`, and `var/log/` as the artifact `failures`.
+The workflow [`.github/workflows/qa.yml`](.github/workflows/qa.yml) runs on every push and every pull request. It starts the stack with `make up` and `make db-test` on a clean runner, then runs each gate as its `make` target, plus `composer validate`, `composer audit`, `npm audit` for both lock files, and `make prod-check`, which builds the production image and requests `/login` from it. Each gate also runs after a failed gate, so one run reports all of them. A failed run keeps `test-failures/`, `var/ui/test-results/`, and `var/log/` as the artifact `failures`.
 
 `make act` runs the same workflow on your computer with act:
 

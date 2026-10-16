@@ -1,15 +1,27 @@
 #!/bin/sh
-# Adapted from https://github.com/dunglas/symfony-docker. Local development only.
+# Adapted from https://github.com/dunglas/symfony-docker. The dev and the prod image use it.
 set -e
 
-# Only the php service prepares the project. The worker starts after php is healthy.
-if [ "$1" = 'frankenphp' ]; then
-	if [ -z "$(ls -A 'vendor/' 2>/dev/null)" ]; then
+# The prod image sets APP_ENV. In dev, only the .env files set it.
+if [ "${APP_ENV:-}" = 'prod' ]; then
+	DEVELOPMENT=
+else
+	DEVELOPMENT=1
+fi
+
+# Only the php service installs, so the worker never races it on the bind mount. The md5 is written only after a
+# successful install, so a failed install runs again at the next start.
+if [ -n "$DEVELOPMENT" ] && [ "$1" = 'frankenphp' ]; then
+	LOCK_MD5=$(md5sum composer.lock | cut -d ' ' -f 1)
+	if [ "$LOCK_MD5" != "$(cat vendor/composer.lock.md5 2>/dev/null)" ]; then
 		composer install --prefer-dist --no-progress --no-interaction
+		echo "$LOCK_MD5" > vendor/composer.lock.md5
 	fi
 
 	php bin/console -V
+fi
 
+if [ -n "${MIGRATE_DB:-}" ]; then
 	echo 'Waiting for the database'
 	ATTEMPTS_LEFT_TO_REACH_DATABASE=60
 	until [ $ATTEMPTS_LEFT_TO_REACH_DATABASE -eq 0 ] || DATABASE_ERROR=$(php bin/console dbal:run-sql -q "SELECT 1" 2>&1); do
@@ -27,10 +39,23 @@ if [ "$1" = 'frankenphp' ]; then
 		exit 1
 	fi
 
-	php bin/console doctrine:migrations:migrate --no-interaction --all-or-nothing --allow-no-migration
-	php bin/console doctrine:database:create --if-not-exists --env=test
-	php bin/console doctrine:migrations:migrate --no-interaction --all-or-nothing --allow-no-migration --env=test
+	php bin/console doctrine:migrations:migrate "$MIGRATE_DB" --no-interaction --all-or-nothing --allow-no-migration
 
+	if [ -n "$DEVELOPMENT" ]; then
+		for TEST_ENVIRONMENT in test e2e; do
+			php bin/console doctrine:database:create --if-not-exists --env=$TEST_ENVIRONMENT
+			php bin/console doctrine:migrations:migrate "$MIGRATE_DB" --no-interaction --all-or-nothing --allow-no-migration --env=$TEST_ENVIRONMENT
+		done
+	fi
+
+	echo 'Migrations are done'
+
+	if [ -z "${MIGRATE_DB_AND_CONTINUE:-}" ]; then
+		exit 0
+	fi
+fi
+
+if [ -n "$DEVELOPMENT" ] && [ "$1" = 'frankenphp' ]; then
 	# Docker Desktop bind mounts on macOS do not support ACLs.
 	if setfacl -m u:www-data:rwX var 2>/dev/null; then
 		setfacl -R -m u:www-data:rwX -m u:"$(whoami)":rwX var

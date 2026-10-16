@@ -1,6 +1,6 @@
 #syntax=docker/dockerfile:1
 
-# Adapted from https://github.com/dunglas/symfony-docker. Local development only.
+# Adapted from https://github.com/dunglas/symfony-docker.
 
 FROM dunglas/frankenphp:1.12.7-php8.5-trixie AS frankenphp_upstream
 
@@ -26,6 +26,19 @@ EXPOSE 3000
 
 CMD ["node", "src/server.ts"]
 
+FROM node_upstream AS assets
+
+WORKDIR /app
+
+COPY --link package.json package-lock.json ./
+
+RUN npm ci --no-audit --no-fund && rm -rf /root/.npm
+
+COPY --link vite.config.ts tsconfig*.json ./
+COPY --link assets assets
+
+RUN npm run build
+
 FROM frankenphp_upstream AS frankenphp_base
 
 SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
@@ -43,6 +56,7 @@ RUN <<-EOF
 		@composer \
 		intl \
 		opcache \
+		pcntl \
 		pdo_pgsql \
 		zip
 	rm -rf /var/lib/apt/lists/*
@@ -83,3 +97,43 @@ RUN <<-EOF
 EOF
 
 COPY --link docker/frankenphp/conf.d/20-app.dev.ini $PHP_INI_DIR/app.conf.d/
+
+FROM frankenphp_base AS frankenphp_prod_builder
+
+ENV APP_ENV=prod
+
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+
+COPY --link docker/frankenphp/conf.d/20-app.prod.ini $PHP_INI_DIR/app.conf.d/
+
+COPY --link composer.json composer.lock symfony.lock ./
+RUN composer install --no-cache --prefer-dist --no-dev --no-autoloader --no-scripts --no-progress
+
+COPY --link --exclude=assets --exclude=docker --exclude=symbols --exclude=package*.json --exclude=tsconfig*.json --exclude=vite.config.ts . ./
+COPY --link --from=assets /app/public/build public/build
+COPY --link --from=assets /app/public/entrypoints.json /app/public/manifest.json public/
+
+RUN <<-EOF
+	composer dump-autoload --classmap-authoritative --no-dev
+	composer dump-env prod
+	composer run-script --no-dev post-install-cmd
+	mkdir -p var/sessions var/mcp-sessions
+EOF
+
+FROM frankenphp_base AS frankenphp_prod
+
+ENV APP_ENV=prod
+
+RUN <<-EOF
+	mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+	mkdir -p /srv/slopmower/tenants
+	chown -R www-data:www-data /config/caddy /data/caddy /srv/slopmower
+EOF
+
+COPY --link docker/frankenphp/conf.d/20-app.prod.ini $PHP_INI_DIR/app.conf.d/
+COPY --link docker/frankenphp/Caddyfile.prod /etc/frankenphp/Caddyfile
+
+COPY --link --exclude=var --from=frankenphp_prod_builder /app /app
+COPY --link --chown=www-data:www-data --from=frankenphp_prod_builder /app/var /app/var
+
+USER www-data

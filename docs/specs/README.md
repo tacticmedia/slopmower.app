@@ -103,7 +103,7 @@ Fixtures: one file per code, `fixtures/error.<code>.json` with `-` in place of `
 
 ### Rate limits
 
-Each call consumes one token of every limiter that applies to it. The limits are values of the instance, not of a plan. [deployment.md](../deployment.md) lists their variables.
+Each call consumes one token of every limiter that applies to it. The limits are values of the instance, not of a plan. [Deployment](../deployment/README.md#usage-and-rate-limits) lists their variables.
 
 | Limiter | Counts | Key | Default |
 |---|---|---|---|
