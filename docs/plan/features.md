@@ -76,6 +76,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F58 | [Request title and description](F58-request-title-and-description.md) | Planned (2026-10-16) | | |
 | F59 | [Request detail like a GitHub issue](F59-request-detail-like-a-github-issue.md) | Planned (2026-10-16) | | |
 | F60 | [Review request list like GitHub Issues](F60-review-request-list-like-github-issues.md) | Planned (2026-10-16) | | |
+| F61 | [Keyboard gutter test race](F61-keyboard-gutter-test-race.md) | Planned (2026-10-16) | | |
 
 ## Candidates
 
