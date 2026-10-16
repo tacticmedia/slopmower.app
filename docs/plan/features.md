@@ -72,7 +72,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F54 | [Pull request state after a late permission](F54-pull-request-state-after-a-late-permission.md) | Done 2026-10-16, [report](reports/F54.md) | a6a201a | src 494 PHP / 33541 lines, 494 types; tests 331 PHP / 30468 lines; assets 165 TS / 9670 lines; check 4m57s |
 | F55 | [Flaky tests under load](F55-flaky-tests-under-load.md) | Done 2026-10-16, [report](reports/F55.md) | 8ec7301 | src 495 PHP / 33577 lines, 495 types; tests 332 PHP / 30529 lines; assets 165 TS / 9683 lines; check 4m32s |
 | F56 | [Known issues of F54](F56-known-issues-of-f54.md) | Done 2026-10-16, [report](reports/F56.md) | fb5614f | src 496 PHP / 33658 lines, 496 types; tests 333 PHP / 30626 lines; assets 165 TS / 9683 lines |
-| F57 | [Visual review with qa-bundle](F57-visual-review-with-qa-bundle.md) | Planned (2026-10-16) | | |
+| F57 | [Visual review with qa-bundle](F57-visual-review-with-qa-bundle.md) | Done 2026-10-16, [report](reports/F57.md) | | src 496 PHP / 33658 lines, 496 types; tests 333 PHP / 30626 lines; assets 165 TS / 9701 lines |
 | F58 | [Request title and description](F58-request-title-and-description.md) | Planned (2026-10-16) | | |
 | F59 | [Request detail like a GitHub issue](F59-request-detail-like-a-github-issue.md) | Planned (2026-10-16) | | |
 | F60 | [Review request list like GitHub Issues](F60-review-request-list-like-github-issues.md) | Planned (2026-10-16) | | |

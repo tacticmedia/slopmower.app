@@ -171,6 +171,7 @@ PHP, Composer, the console, and PHPUnit run in the `php` container. `make` wraps
 | `make lint` | `lint:container`, `lint:yaml config`, `lint:twig templates`, `doctrine:schema:validate --env=test` |
 | `make front` | On the host when `package.json` exists: `npm ci --prefix symbols --ignore-scripts` when `symbols/package-lock.json` is newer than the installed packages, then `npm run typecheck && npm test` |
 | `make ui` | On the host when `package.json` exists: `npx playwright install chromium` (returns at once when the browser is present), then `npm run test:ui`: Playwright against the mocked API, on `UI_PORT` |
+| `make journeys` | On the host when `package.json` exists: `npx playwright install chromium`, then `npm run test:journeys`: the journeys of `tests/journeys/` against the mocked API, on `JOURNEY_PORT`. They write the screenshots to `var/screenshots/`, and the target prints the review URL `/_dev/screenshots`. Not a gate: `make check` and `qa.yml` do not run it. |
 | `make prod-check` | `bin/prod-check`: builds the image `frankenphp_prod`, runs `bin/console lint:container` in it, starts it with `APP_PUBLIC_HOST=prod-check.example`, and requests `/login`, which must give 200. Removes its container and its image. The QA workflow runs it. `make check` does not. |
 | `make act` | `bin/act-run`: copies the working tree without ignored files into `var/act/workspace/`, so the run installs `vendor/` and `node_modules/` as on GitHub, and runs `.github/workflows/qa.yml` with act. The job runs the compose project `slopmower-act` on the ports of `.github/act.env`. `make act` removes that project with its volumes before and after the run. Artifacts go to `var/act/artifacts/`. The action and cache servers of act keep their default directories under `~/.cache/`. One act run per Docker daemon at a time. |
 | `make check` | `cs`, `stan`, `lint`, `test`, `front`, `ui`, `e2e`, then `make act` when no green `make act` has seen the current content of `ACT_INPUTS`. A green `make act` records the hash of that content in `.git/act-verified/`, shared by every worktree. With `CI` or `ACT` set, `make check` never runs act. |
@@ -189,11 +190,13 @@ The host ports 8000 and 5432 are the defaults of `HTTP_PORT` and `DATABASE_PUBLI
 | Vite dev server | `npm run dev` on the host. The `dev` shell pages need it running, or a build from `npm run build`. |
 | MCP endpoint | `http://localhost:8000/_mcp` |
 | Public documentation | `http://localhost:8000/docs`, raw skill at `http://localhost:8000/docs/skill/SKILL.md` |
+| Screenshot review | `http://localhost:8000/_dev/screenshots`: `dev` only, the captures of `make journeys` |
 
 | Variable | Set in | Meaning |
 |---|---|---|
 | `HTTP_PORT`, `DATABASE_PUBLISHED_PORT` | `.env.make.local` (git-ignored), read by the `Makefile` | Host ports of `php` and `database`. Default 8000 and 5432. A second checkout, for example a git worktree, sets its own ports. Each line needs `export`, for example `export HTTP_PORT=8101`, or make does not pass it to compose. |
 | `UI_PORT` | `.env.make.local`, exported by the `Makefile`, read by `playwright.config.ts` | Port of the `vite preview` server of the UI suite. Default 4173. A second checkout sets its own, for example `export UI_PORT=4101`. |
+| `JOURNEY_PORT` | `.env.make.local`, exported by the `Makefile` with the default 4174, read by `playwright.journeys.config.ts` | Port of the `vite preview` server of the journeys, so that `make ui` and `make journeys` can run at the same time. A second checkout sets its own, for example `export JOURNEY_PORT=4111`. |
 | `ACT_HTTP_PORT`, `ACT_DATABASE_PUBLISHED_PORT`, `ACT_UI_PORT` | `.env.make.local`, read by `bin/act-run` | Override `HTTP_PORT`, `DATABASE_PUBLISHED_PORT`, and `UI_PORT` of the `make act` job. Defaults 8290, 5490, and 4290 in `.github/act.env`, which act reads in place of `.env`. |
 | `COMPOSER_CACHE_DIR` | `.github/workflows/qa.yml`, passed through by the compose `php` service | `/app/var/composer-cache` in the workflow, so that its cache step saves what the entrypoint downloads. Unset elsewhere. |
 | `MIGRATE_DB`, `MIGRATE_DB_AND_CONTINUE` | `compose.yaml`, the `php` service: `latest` and `1`. The `worker` service sets neither. | The entrypoint migrates to the version `MIGRATE_DB`, in dev also `app_test` and `app_e2e`, then exits 0 unless `MIGRATE_DB_AND_CONTINUE` is set (D74). [Dockerised deployment](../deployment/dockerised.md#release) uses it as the release step. |
@@ -311,6 +314,7 @@ Suite markers: **U** unit, **F** functional, **E** full-stack E2E, **V** Vitest,
   - Assert a server-side effect through the request that the page sent: `api.bodies()` or `api.callsTo()`.
   - Live updates: wait for `[data-live="connected"]`, then call `live.push()`. It delivers the update to the fake `EventSource` on its docs/specs topic.
   - CSS and text locators pierce the open shadow roots of the code view. XPath does not. Use the gesture helpers of `tests/ui/support/codeView.ts`.
+- Journeys live in `tests/journeys/*.spec.ts`, one `test.describe` per area. They are no gate and prove no behaviour. Import `test` and `expect` from `tests/journeys/support/test.ts`, which adds `captureScreen(label, content)` to the fixtures of the UI suite, and build the data with the fakes and builders of `tests/ui/support/`. One label per screen state. A feature that changes a screen updates its journey.
 - Every test method has `#[TestDox]`: one short sentence about behaviour.
 - Never mock the container. No `getContainer()->set()`, no service replacement.
   - GitHub HTTP goes through the `github.client` scoped client, mocked in `test` with responses in `tests/Fixtures/github/`. The global HTTP client is not mocked, so Mercure publishes are not caught.
@@ -367,7 +371,7 @@ The session writes it into `reports/MNN.md`:
 
 ## Verified versions
 
-Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08; the `symfony/scheduler` row on 2026-10-13; the `sentry/*` row on 2026-10-15. `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
+Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08; the `symfony/scheduler` row on 2026-10-13; the `sentry/*` row on 2026-10-15; the `tacticmedia/qa-bundle` and `@tacticmedia/qa-capture` rows on 2026-10-16. `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
 
 | Package | Version | Source |
 |---|---|---|
@@ -396,6 +400,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 | `phpunit/phpunit`, `phpstan/phpstan` | 13.4.1, 2.3.0 | https://repo.packagist.org/p2/phpunit/phpunit.json |
 | `symfony/ai-mate`, `symfony/ai-monolog-mate-extension`, `symfony/ai-symfony-mate-extension` | 0.14.0, dev only | https://repo.packagist.org/p2/symfony/ai-mate.json |
 | `playwright-php/playwright` | 1.5.0, exact pin. Its Node server uses npm `playwright` 1.63.0. | https://repo.packagist.org/p2/playwright-php/playwright.json |
+| `tacticmedia/qa-bundle` | 2.0.0, dev only, MIT. The review page `/_dev/screenshots` needs `ext-gd`, which only the `frankenphp_dev` image installs. | https://repo.packagist.org/p2/tacticmedia/qa-bundle.json |
 | `friendsofphp/php-cs-fixer` | 3.95.27 | https://repo.packagist.org/p2/friendsofphp/php-cs-fixer.json |
 | `react`, `react-dom`, `@types/react`, `@types/react-dom` | 19.3.0 | https://www.npmjs.com/package/react |
 | `react-router` | 8.4.0, Data Mode. Peers `react` and `react-dom` `>=19.2.7`. | https://www.npmjs.com/package/react-router |
@@ -405,6 +410,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 | `@primer/behaviors` | 1.11.0, the version that `@primer/react` installs, for `isEditableElement()` and `isMacOS()` | https://www.npmjs.com/package/@primer/behaviors |
 | `react-markdown`, `remark-gfm`, `vitest` | 10.1.0, 4.0.1, 5.0.2 | https://www.npmjs.com/package/react-markdown |
 | `@playwright/test`, `ajv`, `ajv-formats`, `@types/node` | 1.63.0, 8.20.0, 3.0.1, 24.19.1 | https://www.npmjs.com/package/@playwright/test |
+| `@tacticmedia/qa-capture` | 0.1.0, exact pin, dev only: the capture fixture of the journeys | https://www.npmjs.com/package/@tacticmedia/qa-capture |
 | `web-tree-sitter`, `tree-sitter-javascript`, `tree-sitter-typescript`, `tree-sitter-python`, `tree-sitter-go`, `tree-sitter-rust` | 0.27.0, 0.25.0, 0.23.2, 0.25.0, 0.25.0, 0.24.0, exact pins in `symbols/package.json`. web-tree-sitter 0.27.0 loads grammars of ABI 13 to 15. tree-sitter-typescript 0.23.2 and tree-sitter-rust 0.24.0 are ABI 14, the others ABI 15. tree-sitter-rust 0.24.1 and 0.24.2 are GitHub tags without an npm release. Install with `--ignore-scripts`: the install scripts of the grammars compile Node bindings, which need Python and a C compiler. | https://www.npmjs.com/package/web-tree-sitter |
 | `tree-sitter-java`, `tree-sitter-c-sharp`, `tree-sitter-ruby`, `tree-sitter-bash`, `tree-sitter-scala`, `@tree-sitter-grammars/tree-sitter-zig`, `@tree-sitter-grammars/tree-sitter-lua` | 0.23.5, 0.23.5, 0.23.1, 0.25.1, 0.24.0, 1.1.2, 0.4.1, exact pins in `symbols/package.json`. The Java, Ruby, Scala, and Zig grammars are ABI 14, the C#, Bash, and Lua grammars ABI 15. The C# file is `tree-sitter-c_sharp.wasm`. The Zig grammar requires a member in a container, also on its master branch, so `struct {}` is a parse error. The unscoped `tree-sitter-zig` 0.2.0 is another grammar and ships no `.wasm` file. The grammars declare the native `tree-sitter` as an optional peer dependency, so `npm install` needs no `--legacy-peer-deps`. | https://www.npmjs.com/package/tree-sitter-java |
 | Node.js in the `symbols` image | 24.21.0 from `node:24-trixie-slim`. It runs the TypeScript sources directly, with type stripping. | `node --version` in the `symbols` container |
@@ -472,6 +478,12 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 - `context.route` also intercepts the imports of the `@pierre/diffs` worker. `page.route` is enough for `/api/v1`.
 - The worker pool renders with `useTokenTransformer`, so each code token is an element with `data-char`, its UTF-16 offset in the line. A Cmd-click is `click({ modifiers: ['ControlOrMeta'] })` on such a token.
 - `@pierre/diffs` draws no row until the worker pool of the page is ready, which takes seconds on a loaded host, and `onPostRender` also reports the empty render of the mount. A placeholder height stays until the view has a `[data-line]` row, as in `SidesDiff` of `CommitDiff.tsx`. A test waits for a row, never for a fixed time.
+
+### Journeys and the screenshot review
+
+- Each journey run empties `var/screenshots/` in its global setup, also a run of one spec. The notes and crops of the review stay in `var/review/`, so a note on a screen that a later run does not capture shows as stale in the prompt.
+- `captureScreen()` waits only for its content, visible spinners, and `aria-busy`. A screen that loads more after that, for example a code view before its highlighting or a diff below the fold, waits for it in the spec before the capture.
+- The `qa` routes exist only in `dev`, because `config/bundles.php` registers `TacticMediaQaBundle` only there. The resource `routing.controllers` of `config/routes.yaml` loads the routes of every autoconfigured controller with `#[Route]`, also the controller of the bundle, so a registration in `test` adds them to `test` whatever `config/routes/qa.yaml` says. The page has no authentication, so the `dev` firewall pattern contains `_dev` and no firewall runs for it.
 
 ### Test environments and front-end builds
 

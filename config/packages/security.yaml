@@ -10,7 +10,7 @@ security:
     firewalls:
         dev:
             # Ensure dev tools and static assets are always allowed
-            pattern: ^/(_profiler|_wdt|assets|build)/
+            pattern: ^/(_profiler|_wdt|_dev|assets|build)/
             security: false
         # Public documentation, D28. Without a firewall, no token read marks the session used and the skill response private.
         docs:

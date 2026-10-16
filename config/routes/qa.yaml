@@ -1,0 +1,5 @@
+# Written by hand: the tacticmedia/qa-bundle 2.0.0 recipe is not published to symfony/recipes-contrib.
+when@dev:
+    qa:
+        resource: '@TacticMediaQaBundle/config/routes.php'
+        type: php

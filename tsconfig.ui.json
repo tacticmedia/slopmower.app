@@ -17,5 +17,5 @@
         "noUnusedParameters": true,
         "noFallthroughCasesInSwitch": true
     },
-    "include": ["playwright.config.ts", "tests/ui"]
+    "include": ["playwright.config.ts", "playwright.journeys.config.ts", "tests/ui", "tests/journeys"]
 }

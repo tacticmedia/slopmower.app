@@ -2,7 +2,7 @@ import type { Actor } from '../../../assets/api/types/actor';
 import type { Anchor, AnchorInput } from '../../../assets/api/types/anchor';
 import type { Blame } from '../../../assets/api/types/blame';
 import type { CommitLink } from '../../../assets/api/types/commit-link';
-import type { ActorKind, Awaiting, Proposal, PullRequestState, RequestStatus, Resolution, SuggestionState, ThreadEntryType } from '../../../assets/api/types/common';
+import type { ActorKind, Awaiting, OrphanReason, Proposal, PullRequestState, RequestStatus, Resolution, SuggestionState, ThreadEntryType } from '../../../assets/api/types/common';
 import type { Draft } from '../../../assets/api/types/draft';
 import type { FileContent } from '../../../assets/api/types/file-content';
 import type {
@@ -178,6 +178,11 @@ export class FakeReview {
         this.#apply(id, this.#entry('request.ready_for_review', AGENT, note, 'ready_for_review'), { status: 'ready_for_review', resolution: 'fixed' });
     }
 
+    /** Q11 of the claiming agent: the user verifies or reopens the request. */
+    agentMarksWontDo(id: string, reason: string): void {
+        this.#apply(id, this.#entry('request.wont_do', AGENT, reason, 'wont_do'), { status: 'wont_do', resolution: 'wont_do' });
+    }
+
     agentAsks(id: string, body: string): void {
         this.#apply(id, { ...this.#entry('request.commented', AGENT, body, this.find(id).status), question: true });
     }
@@ -208,6 +213,12 @@ export class FakeReview {
         }
         const { path, range } = current.anchor;
         this.requests[this.requests.indexOf(current)] = { ...current, outdated: true, location: { target: 'default_branch', targetSha, status: 'changed', path, range, confidence: 0.8, reason: null } };
+    }
+
+    /** A location recompute after a default-branch commit removed the anchored lines or file. */
+    markOrphaned(id: string, targetSha: string, reason: OrphanReason): void {
+        const current = this.find(id);
+        this.requests[this.requests.indexOf(current)] = { ...current, outdated: true, location: { target: 'default_branch', targetSha, status: 'orphaned', path: null, range: null, confidence: 0, reason } };
     }
 
     find(id: string): Request {

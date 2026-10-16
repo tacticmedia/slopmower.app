@@ -1,6 +1,8 @@
-# Per-checkout ports, for example `export HTTP_PORT=8101`, `export DATABASE_PUBLISHED_PORT=5501`, and `export UI_PORT=4101` in a worktree.
+# Per-checkout ports, for example `export HTTP_PORT=8101`, `export DATABASE_PUBLISHED_PORT=5501`, `export UI_PORT=4101`, and `export JOURNEY_PORT=4111` in a worktree.
 # `export ACT_HTTP_PORT=...`, `ACT_DATABASE_PUBLISHED_PORT`, and `ACT_UI_PORT` override the ports of make act in .github/act.env.
 -include .env.make.local
+
+export JOURNEY_PORT ?= 4174
 
 DOCKER_COMPOSE = docker compose
 PHP            = $(DOCKER_COMPOSE) exec -T php
@@ -8,7 +10,7 @@ CONSOLE        = $(PHP) bin/console
 PACKAGE_JSON   = $(wildcard package.json)
 
 .DEFAULT_GOAL = help
-.PHONY: help up down sh worker-restart console composer mate migration db-reset fixtures db-test test e2e stan cs cs-fix lint front ui prod-check act check
+.PHONY: help up down sh worker-restart console composer mate migration db-reset fixtures db-test test e2e stan cs cs-fix lint front ui journeys prod-check act check
 
 help: ## List the targets
 	@grep -hE '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "%-16s %s\n", $$1, $$2}'
@@ -98,6 +100,13 @@ ui: ## Playwright suite against the mocked API on the host, port UI_PORT
 ifneq ($(PACKAGE_JSON),)
 	npx playwright install chromium
 	npm run test:ui
+endif
+
+journeys: ## Screenshots of the journeys against the mocked API on the host, port JOURNEY_PORT, for /_dev/screenshots. Not a gate.
+ifneq ($(PACKAGE_JSON),)
+	npx playwright install chromium
+	npm run test:journeys
+	@echo "Review the screenshots at http://localhost:$(or $(HTTP_PORT),8000)/_dev/screenshots"
 endif
 
 prod-check: ## Build the frankenphp_prod image, then lint its container and request /login from it

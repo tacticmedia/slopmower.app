@@ -18,4 +18,5 @@ return [
     TacticMedia\RdsAuthBundle\RdsAuthBundle::class => ['all' => true],
     Sentry\SentryBundle\SentryBundle::class => ['prod' => true],
     Zenstruck\Foundry\ZenstruckFoundryBundle::class => ['dev' => true, 'test' => true],
+    TacticMedia\QaBundle\TacticMediaQaBundle::class => ['dev' => true],
 ];

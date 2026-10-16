@@ -89,7 +89,9 @@ COPY --link --from=node_upstream /usr/local/lib/node_modules/npm /usr/local/lib/
 
 RUN <<-EOF
 	mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
-	install-php-extensions xdebug
+	install-php-extensions \
+		gd \
+		xdebug
 	ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm
 	ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 	npx --yes "playwright@${PLAYWRIGHT_VERSION}" install-deps chromium

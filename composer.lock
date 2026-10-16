@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f852a02b376a7364a51fddc9b3d8a486",
+    "content-hash": "d3ff1b32c12af895e0ab3e9b643e36b6",
     "packages": [
         {
             "name": "async-aws/core",
@@ -15121,6 +15121,80 @@
                 }
             ],
             "time": "2026-10-07T15:50:48+00:00"
+        },
+        {
+            "name": "tacticmedia/qa-bundle",
+            "version": "2.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/tacticmedia/qa-bundle.git",
+                "reference": "aa9825d3a51b5534a8aca6795576b44e41bf4c52"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/tacticmedia/qa-bundle/zipball/aa9825d3a51b5534a8aca6795576b44e41bf4c52",
+                "reference": "aa9825d3a51b5534a8aca6795576b44e41bf4c52",
+                "shasum": ""
+            },
+            "require": {
+                "ext-gd": "*",
+                "ext-json": "*",
+                "php": ">=8.2",
+                "symfony/clock": "^6.4|^7.4|^8.1",
+                "symfony/config": "^6.4|^7.4|^8.1",
+                "symfony/dependency-injection": "^6.4|^7.4|^8.1",
+                "symfony/framework-bundle": "^6.4|^7.4|^8.1",
+                "symfony/http-foundation": "^6.4|^7.4|^8.1",
+                "symfony/http-kernel": "^6.4|^7.4|^8.1",
+                "symfony/polyfill-php84": "^1.31",
+                "symfony/routing": "^6.4|^7.4|^8.1",
+                "symfony/security-csrf": "^6.4|^7.4|^8.1",
+                "symfony/twig-bundle": "^6.4|^7.4|^8.1",
+                "symfony/uid": "^6.4|^7.4|^8.1",
+                "twig/twig": "^3.28"
+            },
+            "require-dev": {
+                "dbrekelmans/bdi": "^1.4",
+                "friendsofphp/php-cs-fixer": "^3.95",
+                "phpstan/phpstan": "^2.2",
+                "phpstan/phpstan-phpunit": "^2.0",
+                "phpunit/phpunit": "^11.5|^12.5|^13.3",
+                "playwright-php/playwright": "^1.5",
+                "symfony/browser-kit": "^6.4|^7.4|^8.1",
+                "symfony/css-selector": "^6.4|^7.4|^8.1",
+                "symfony/dom-crawler": "^6.4|^7.4|^8.1",
+                "symfony/panther": "^2.4",
+                "symfony/runtime": "^6.4|^7.4|^8.1",
+                "symfony/webpack-encore-bundle": "^2.4"
+            },
+            "suggest": {
+                "playwright-php/playwright": "Needed by the PlaywrightJourneyScreenshots capture trait, version 1.4 or later, with Node.js 20 or later; the review page does not use it.",
+                "symfony/panther": "Needed by the JourneyScreenshots capture trait; the review page does not use it."
+            },
+            "type": "symfony-bundle",
+            "autoload": {
+                "psr-4": {
+                    "TacticMedia\\QaBundle\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Full-page screenshot capture for Panther and Playwright journeys, plus a dev review page that turns visual feedback into a brief for a coding agent.",
+            "keywords": [
+                "Panther",
+                "e2e",
+                "playwright",
+                "qa",
+                "screenshots",
+                "symfony"
+            ],
+            "support": {
+                "issues": "https://github.com/tacticmedia/qa-bundle/issues",
+                "source": "https://github.com/tacticmedia/qa-bundle/tree/2.0.0"
+            },
+            "time": "2026-10-14T19:58:23+00:00"
         },
         {
             "name": "theseer/tokenizer",
