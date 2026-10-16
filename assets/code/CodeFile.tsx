@@ -53,10 +53,10 @@ const BASE_VIEW_OPTIONS = {
     enableLineSelection: true,
 } as const satisfies FileViewOptions;
 
-/** The scroll to a line corrects itself with the rendered rows, at most this often. */
+/** The scroll to a line moves the window at most this often. */
 const MAXIMUM_SCROLL_MOVES = 60;
 
-/** How long the scroll to a line waits for the view to know the lines of the file. */
+/** How long the scroll to a line waits for the rows of the line. */
 const MAXIMUM_SCROLL_WAIT_MS = 10000;
 
 /**
@@ -281,8 +281,6 @@ const FileView = memo(function FileView({
 /**
  * Centres the range below the sticky header. Before the rows exist, the position comes from the line heights that
  * the view knows; once they are rendered, from the rows themselves.
- *
- * @returns `waiting` while the view does not know the lines yet
  */
 function scrollToRange(node: HTMLElement, file: VirtualizedFile<undefined, undefined>, range: LineRange): ScrollStep {
     const headerPx = stickyHeaderPx();
@@ -294,9 +292,8 @@ function scrollToRange(node: HTMLElement, file: VirtualizedFile<undefined, undef
         if (isBelowHeader(span, headerPx, window.innerHeight)) {
             return 'done';
         }
-        window.scrollTo({ top: centredScrollTop({ top: span.top + window.scrollY, bottom: span.bottom + window.scrollY }, headerPx, window.innerHeight), behavior: 'instant' });
 
-        return 'moved';
+        return scrollWindowTo(centredScrollTop({ top: span.top + window.scrollY, bottom: span.bottom + window.scrollY }, headerPx, window.innerHeight), true);
     }
     const start = file.getLinePosition(range.start);
     const end = file.getLinePosition(range.end);
@@ -305,9 +302,23 @@ function scrollToRange(node: HTMLElement, file: VirtualizedFile<undefined, undef
         return 'waiting';
     }
     const fileTop = node.getBoundingClientRect().top + window.scrollY;
-    window.scrollTo({ top: centredScrollTop({ top: fileTop + start.top, bottom: fileTop + end.top + end.height }, headerPx, window.innerHeight), behavior: 'instant' });
 
-    return 'moved';
+    return scrollWindowTo(centredScrollTop({ top: fileTop + start.top, bottom: fileTop + end.top + end.height }, headerPx, window.innerHeight), first instanceof HTMLElement);
+}
+
+/**
+ * A window that does not move is at `top` or at the end of the page. Once the first row of the range is rendered, that
+ * ends the scroll, also of a range taller than the window. Before that row, the page can still grow.
+ */
+function scrollWindowTo(top: number, firstRowRendered: boolean): ScrollStep {
+    const fromY = window.scrollY;
+    window.scrollTo({ top, behavior: 'instant' });
+
+    if (fromY !== window.scrollY) {
+        return 'moved';
+    }
+
+    return firstRowRendered ? 'done' : 'waiting';
 }
 
 /**

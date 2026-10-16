@@ -19,6 +19,9 @@ Verified in the code on 2026-10-16:
 
 - **Count only real moves.** A step counts toward `MAXIMUM_SCROLL_MOVES` only when the view knows the lines of the file and the scroll target changed. While the view has no rows, only `MAXIMUM_SCROLL_WAIT_MS` limits the wait. The implementer reads the step results (`moved`, `done`) and picks the smallest correct change.
 - `MAXIMUM_SCROLL_MOVES` and `MAXIMUM_SCROLL_WAIT_MS` keep their values, unless a measurement shows that 60 real moves are too few for a large file.
+- **Findings, 2026-10-16:**
+  - While the worker is held, `getLinePosition()` still gives the position from the layout, and each clamped scroll returned `moved`, so 60 steps ended the loop after about 1 s.
+  - `scrollWindowTo()` returns `moved` only when `window.scrollY` changed. When the window does not move, it returns `done` once the row of the first line of the range is rendered, else `waiting`. So a range taller than the window ends as soon as its first row is below the header, and a later scroll without an input event is kept.
 
 ## Depends on
 
