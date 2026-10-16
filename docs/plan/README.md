@@ -466,6 +466,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 
 - The sticky file header covers the top rows of the code, and a row renders only after the scroll that brings it near the window. `dragFromPlus()` centers the line number, then waits until the line number and the "+" receive the pointer.
 - The window scrolls the code. The code view loads in its own chunk, so a test that scrolls waits until the page has the height of the code.
+- The scroll to the line of a `#L` hash moves the window once per frame until the row of the line is in view below the header, so it can still run when the row exists. Only user input stops it: a key, the wheel, a pointer press, or a touch. A test scrolls during it with a key, for example `page.keyboard.press('PageDown')`. The next frame undoes a scroll from `page.evaluate()`.
 - A Playwright context denies clipboard writes. A test of a copy button grants `clipboard-read` and `clipboard-write`.
 - `page.route` cannot stream a response, so `EventSource` is replaced by `addInitScript`.
 - `context.route` also intercepts the imports of the `@pierre/diffs` worker. `page.route` is enough for `/api/v1`.

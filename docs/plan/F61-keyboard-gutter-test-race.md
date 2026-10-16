@@ -20,6 +20,9 @@ Verified in the code on 2026-10-16:
 - **If the loop undoes a scroll, that is a bug for users too.** A user who scrolls while a link to a line loads gets pulled back. The loop stops when the user scrolls: a `wheel`, `touchmove`, or scroll key event, or a window scroll that the loop did not make. The test then waits for the end of the loop, or scrolls by a user event, whichever the fix makes correct.
 - **If the cause is different,** fix that cause, and record it in the report.
 - No retries and no longer timeout.
+- **Findings, 2026-10-16:**
+  - The cause was the scroll loop: in 12 of 50 failing runs, the next frame of the loop moved the window back after the test scroll.
+  - The scroll to a line ends at the first `wheel`, `touchstart`, `pointerdown`, or `keydown` on the window, in the capture phase, because the view stops the propagation of a press on the gutter "+". The same `USER_INPUT_EVENTS` stop the scroll of `RequestChanges`. A check for "a scroll the loop did not make" was rejected: the scroll corrections of the library and the scroll anchoring of the browser would also stop the loop.
 
 ## Depends on
 

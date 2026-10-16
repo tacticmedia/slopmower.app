@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router';
 import type { CommitLink } from '../../api/types/commit-link';
 import type { Request as ReviewRequest } from '../../api/types/request';
+import { USER_INPUT_EVENTS } from '../../code/scrollTarget';
 import { usePreference } from '../../layout/usePreference';
 import { LocationInfo } from '../../requests/LocationInfo';
 import shared from '../../requests/Requests.module.css';
@@ -10,8 +11,6 @@ import { commitSectionId } from '../../requests/requestTabs';
 import { shortSha } from '../../review/shortSha';
 import { useCommitDiff } from './changesData';
 import styles from './RequestChanges.module.css';
-
-const USER_INPUT_EVENTS = ['wheel', 'touchstart', 'pointerdown', 'keydown'] as const;
 
 // A separate chunk, so the diff library loads with the first diff.
 const CommitDiff = lazy(() => import('../../code/CommitDiff').then(({ CommitDiff }) => ({ default: CommitDiff })));

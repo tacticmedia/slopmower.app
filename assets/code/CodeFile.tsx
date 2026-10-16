@@ -7,7 +7,7 @@ import { characterColumn } from './characterColumn';
 import { type LineRange, lineRange } from './lineHash';
 import type { GestureRange } from './rangeSelection';
 import styles from './CodeFile.module.css';
-import { centredScrollTop, isBelowHeader, stickyHeaderPx } from './scrollTarget';
+import { centredScrollTop, isBelowHeader, stickyHeaderPx, USER_INPUT_EVENTS } from './scrollTarget';
 import { HIGHLIGHTER_OPTIONS, POOL_OPTIONS, THEME } from './workerPool';
 
 export type Overflow = 'scroll' | 'wrap';
@@ -149,6 +149,22 @@ const FileView = memo(function FileView({
             measureTopLine.current = () => undefined;
             window.removeEventListener('scroll', schedule);
             cancelAnimationFrame(frame);
+        };
+    }, []);
+
+    // The scroll to a line yields to the user. Capture, because the view stops the propagation of a press on the gutter "+".
+    useEffect(() => {
+        const yieldToUser = (): void => {
+            pendingScroll.current = null;
+        };
+        for (const type of USER_INPUT_EVENTS) {
+            window.addEventListener(type, yieldToUser, { capture: true, passive: true });
+        }
+
+        return () => {
+            for (const type of USER_INPUT_EVENTS) {
+                window.removeEventListener(type, yieldToUser, { capture: true });
+            }
         };
     }, []);
 

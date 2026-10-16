@@ -127,7 +127,7 @@ test.describe('KeyboardCommentOnLines', () => {
 
     test('The gutter + outside the visible code keeps the focus that Tab gives it, and Space opens the comment box', async ({ page, api }) => {
         const plus = await openWithPlusOnLine100(page, new FakeReview(api));
-        await page.evaluate(() => window.scrollBy(0, window.innerHeight / 2 + 60));
+        await page.keyboard.press('PageDown');
         await expect.poll(() => outsideVisibleCode(plus), 'The row of line 100 stays rendered above the visible code.').toBe(true);
 
         await tabFromHeaderTo(page, plus);

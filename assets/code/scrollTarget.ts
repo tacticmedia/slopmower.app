@@ -1,6 +1,9 @@
 /** A vertical span in page or viewport coordinates. */
 export type Span = { top: number; bottom: number };
 
+/** The input of a user who takes over the scroll. An automatic scroll stops at the first one. */
+export const USER_INPUT_EVENTS = ['wheel', 'touchstart', 'pointerdown', 'keydown'] as const;
+
 /**
  * The window scroll position that centres `span` (page coordinates) in the part of the viewport below the sticky
  * header. A span taller than that part starts right below the header.

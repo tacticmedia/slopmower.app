@@ -34,4 +34,25 @@ test.describe('LargeFile', () => {
             expect(await page.locator(`${CODE_HOST} [data-line]`).count()).toBeLessThan(MAXIMUM_RENDERED_ROWS);
         });
     }
+
+    test('A scroll of the user during the scroll to #L3000 is kept', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        // Without the worker pool of the page, the view has no rows, so the scroll to the line goes on.
+        let releaseWorker = (): void => undefined;
+        const workerHeld = new Promise<void>((resolve) => {
+            releaseWorker = resolve;
+        });
+        await page.context().route(/\/assets\/worker-[\w-]+\.js$/, async (route) => {
+            await workerHeld;
+            await route.continue();
+        });
+        await page.goto(review.fileUrl(LARGE_FILE, '#L3000'));
+        await page.waitForFunction(() => window.scrollY > 0, undefined, { polling: 'raf' });
+
+        await page.keyboard.press('Home');
+        releaseWorker();
+
+        await expect(page.locator(`${CODE_HOST} [data-line]`).first()).toBeAttached();
+        await expect.poll(() => page.evaluate(() => window.scrollY), 'The window stays at the top, where the user scrolled.').toBe(0);
+    });
 });
