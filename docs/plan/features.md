@@ -78,7 +78,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F60 | [Review request list like GitHub Issues](F60-review-request-list-like-github-issues.md) | Planned (2026-10-16) | | |
 | F61 | [Keyboard gutter test race](F61-keyboard-gutter-test-race.md) | Done 2026-10-16, [report](reports/F61.md) | 152468f | src 496 PHP / 33658 lines, 496 types; tests 333 PHP / 30626 lines; assets 165 TS / 9701 lines; check 3m48s |
 | F62 | [Scroll to a line gives up early](F62-scroll-to-a-line-gives-up-early.md) | Done 2026-10-16, [report](reports/F62.md) | 33d2547 | src 496 PHP / 33658 lines, 496 types; tests 333 PHP / 30626 lines; assets 165 TS / 9712 lines; check 4m5s |
-| F63 | [prod-check request timeout](F63-prod-check-request-timeout.md) | Done 2026-10-16, [report](reports/F63.md) | | src 496 PHP / 33658 lines, 496 types; tests 333 PHP / 30626 lines; assets 165 TS / 9712 lines |
+| F63 | [prod-check request timeout](F63-prod-check-request-timeout.md) | Done 2026-10-16, [report](reports/F63.md) | b396d88 | src 496 PHP / 33658 lines, 496 types; tests 333 PHP / 30626 lines; assets 165 TS / 9712 lines; check 3m47s |
 
 ## Candidates
 
