@@ -71,6 +71,11 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F53 | [Worker and MCP diagnostics](F53-worker-and-mcp-diagnostics.md) | Done 2026-10-16, [report](reports/F53.md) | c0e9512 | src 495 PHP / 33577 lines, 495 types; tests 332 PHP / 30528 lines; assets 165 TS / 9670 lines; check 4m53s |
 | F54 | [Pull request state after a late permission](F54-pull-request-state-after-a-late-permission.md) | Done 2026-10-16, [report](reports/F54.md) | a6a201a | src 494 PHP / 33541 lines, 494 types; tests 331 PHP / 30468 lines; assets 165 TS / 9670 lines; check 4m57s |
 | F55 | [Flaky tests under load](F55-flaky-tests-under-load.md) | In progress (2026-10-16) | | |
+| F56 | [Known issues of F54](F56-known-issues-of-f54.md) | Planned (2026-10-16) | | |
+| F57 | [Visual review with qa-bundle](F57-visual-review-with-qa-bundle.md) | Planned (2026-10-16) | | |
+| F58 | [Request title and description](F58-request-title-and-description.md) | Planned (2026-10-16) | | |
+| F59 | [Request detail like a GitHub issue](F59-request-detail-like-a-github-issue.md) | Planned (2026-10-16) | | |
+| F60 | [Review request list like GitHub Issues](F60-review-request-list-like-github-issues.md) | Planned (2026-10-16) | | |
 
 ## Candidates
 
@@ -121,14 +126,16 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **Legal links in the app.** Scheduled as F52. Link the privacy policy, the terms, and the support page from the app shell, for example in Settings or a footer, and from the docs layout. Today only the sign-in page and the docs index link them. From the F43 report.
 - **Marketplace record after account deletion.** Scheduled as F52. The tenant purge keeps the `marketplace_account` record of the personal GitHub account, so the account ID and the plan stay until GitHub reports that the plan ended. The sign-in reads the plan again, so the purge could delete the record of the personal account when no other tenant uses it. The F43 privacy policy states the current behaviour. From the F43 review.
 - **MCP tool errors in Sentry.** Scheduled as F53. `McpTools::run()` catches every Throwable of a tool, logs it on `app`, and answers `internal_error`, so a server error inside an MCP tool never reaches `kernel.exception` and Sentry. A capture through the Sentry hub in that catch would report it with the F51 data rules. From the F51 report.
-- **Pull request states after an unsuspend.** A suspended installation gets no webhook events, and its reads and check runs are skipped. `handleSuspension()` records only the suspension, so after an unsuspend every linked record can be stale: an old state, an old head SHA, and no check run on the new head until a push. A read of every linked pull request of the installation on `unsuspend` would repair them. From the F54 report and review.
-- **Permissions recorded by a sign-in.** `InstallationSync::record()` writes the listed permissions at a sign-in and queues nothing. When a sign-in runs before the worker handles a `new_permissions_accepted` job, or when that delivery fails, F54 sees no new permission and queues no read and no check run. From the F54 review.
+- **Pull request states after an unsuspend.** Scheduled as F56. A suspended installation gets no webhook events, and its reads and check runs are skipped. `handleSuspension()` records only the suspension, so after an unsuspend every linked record can be stale: an old state, an old head SHA, and no check run on the new head until a push. A read of every linked pull request of the installation on `unsuspend` would repair them. From the F54 report and review.
+- **Permissions recorded by a sign-in.** Scheduled as F56. `InstallationSync::record()` writes the listed permissions at a sign-in and queues nothing. When a sign-in runs before the worker handles a `new_permissions_accepted` job, or when that delivery fails, F54 sees no new permission and queues no read and no check run. From the F54 review.
 - **Idle worker log and memory.** Scheduled as F53. The idle dev worker writes one `app.DEBUG` line, "Worker waiting for PostgreSQL LISTEN/NOTIFY wake-up.", about once a second, roughly 9 MB a day. The rotation of F52 keeps 2 days. A log channel of its own for that listener would remove it. The idle dev worker also reaches `--memory-limit=96M` and stops: 18 times in the main `dev.log` by 2026-10-15, about every 11 to 30 minutes, and compose starts it again. The cause is not known; the debug collectors of `dev` are a guess. From the F52 report and review.
 - **Bulk triage of suggestions.** Accept or dismiss many agent suggestions at once. From F48.
 - **Suggested diff on a suggestion.** A suggestion with a diff, before the claim. The agent proposes a diff after the claim with `propose_solution`. From F48.
 - **Edit a suggestion before accepting.** The user replies in the thread instead. From F48.
 - **MCP triage tools.** Tools to accept or dismiss a suggestion or to close a review. Verify and reopen have none either. From F48.
 - **Demo fixture set for qa-bundle screenshots.** A Foundry story `demo` with the data of every view, for screenshots of each page with tacticmedia/qa-bundle. It writes reviews and requests through `ReviewCommands` and `RequestCommands`, from the `RequestScenario` states and the `acme/billing` story of `docs/specs/README.md`. From F49.
+- **Request numbers per review.** GitHub shows `#N` next to each issue title and in the issue header. A request has only its ULID. A number per review, set when the request opens, would give a short name for lists, links, and the agent prompt. From the F58 to F60 planning.
+- **Journeys of the Twig pages.** The F57 journeys run against the mocked SPA, so the sign-in page, the public docs, and the legal pages have no captures. A full-stack journey with the `PlaywrightJourneyScreenshots` trait of qa-bundle on `FullStackTestCase` would capture them. From the F57 planning.
 - **Test helpers on Foundry factories.** `TenantFixtures`, `ApiFixtures::storeToken()`, and `ApiFixtures::storeRepository()` in `tests/Support/` could use the factories of F49. From F49.
 
 ## For Jan
