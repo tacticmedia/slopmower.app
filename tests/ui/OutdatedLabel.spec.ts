@@ -3,7 +3,7 @@ import { openFile, SAVED_THREAD } from './support/codeView';
 import { FakeRepositories } from './support/fakeRepositories';
 import { FakeReview } from './support/fakeReview';
 import { SMALL_FILE } from './support/files';
-import { DETAIL, OUTDATED, openRequest, REQUEST_ROWS } from './support/requestScreens';
+import { DETAIL_SIDEBAR, OUTDATED, openRequest, REQUEST_ROWS } from './support/requestScreens';
 import { expect, test } from './support/test';
 
 /** The default-branch commit that edits line 11, inside the anchored lines 9 to 12. */
@@ -22,7 +22,7 @@ test.describe('OutdatedLabel', () => {
 
         await expect.poll(() => api.callsTo('POST', '/api/v1/repositories/:repositoryId/fetch').map(({ params }) => params.repositoryId)).toEqual([repository.id]);
         await openRequest(page, request.id);
-        await expect(page.locator(`${DETAIL} header ${OUTDATED}`)).toHaveText('Outdated');
+        await expect(page.locator(`${DETAIL_SIDEBAR} ${OUTDATED}`)).toHaveText('Outdated');
         await expect(page.locator('[data-testid="location-info"]')).toHaveAttribute('data-status', 'changed');
         await openFile(page, review, SMALL_FILE);
         await expect(page.locator(`${SAVED_THREAD} ${OUTDATED}`)).toHaveText('Outdated');

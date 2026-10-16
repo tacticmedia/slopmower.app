@@ -1,53 +1,74 @@
+/* The action bar sticks for the height of this element. `--page-gap` places its sentinel. */
 .page {
+    --page-gap: var(--base-size-16);
+
     display: flex;
     flex-direction: column;
-    gap: var(--base-size-16);
-    max-width: 1012px;
-}
-
-.back {
-    font-size: var(--text-body-size-small);
+    gap: var(--page-gap);
 }
 
 .header {
     display: flex;
     flex-direction: column;
     gap: var(--base-size-8);
-    padding-bottom: var(--base-size-16);
-    border-bottom: var(--borderWidth-thin) solid var(--borderColor-default);
 }
 
-.meta {
+.back {
+    align-self: flex-start;
+    font-size: var(--text-body-size-small);
+}
+
+.state {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--base-size-8);
-}
-
-.claim {
     margin: 0;
 }
 
-.pullRequests {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: var(--base-size-8);
-}
-
-.pullRequestLinks {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--base-size-8);
+.nextStep {
     margin: 0;
-    padding: 0;
-    list-style: none;
-    overflow-wrap: anywhere;
+    color: var(--fgColor-muted);
 }
 
-.pullRequest {
+.yourTurn {
+    color: var(--fgColor-attention);
+    font-weight: var(--base-text-weight-semibold);
+}
+
+/* Narrow: the sidebar, the tabs, and the main column in one column. */
+.layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--base-size-16);
+}
+
+.main {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--base-size-6);
+    flex-direction: column;
+    gap: var(--base-size-16);
+    min-width: 0;
+}
+
+@media (min-width: 1012px) {
+    .layout {
+        grid-template-columns: minmax(0, 1fr) 256px;
+        grid-template-areas:
+            'tabs tabs'
+            'main sidebar';
+        column-gap: var(--base-size-24);
+    }
+
+    .tabs {
+        grid-area: tabs;
+    }
+
+    .main {
+        grid-area: main;
+    }
+
+    .sidebar {
+        grid-area: sidebar;
+        align-self: start;
+    }
 }

@@ -3,7 +3,7 @@ import { fixture } from './support/builders';
 import { openFile, SAVED_THREAD } from './support/codeView';
 import { FakeReview } from './support/fakeReview';
 import { SMALL_FILE } from './support/files';
-import { DETAIL, DETAIL_THREAD, openRequest, REQUEST_ROWS, submitNoteDialog } from './support/requestScreens';
+import { DETAIL, DETAIL_NEXT_STEP, DETAIL_THREAD, openRequest, REQUEST_ROWS, submitNoteDialog } from './support/requestScreens';
 import { expect, test } from './support/test';
 
 const TITLE = 'Round half cents up';
@@ -67,7 +67,7 @@ test.describe('Suggestion', () => {
         await detailActions.getByRole('button', { name: 'Accept', exact: true }).click();
 
         await expect(page.locator(DETAIL_THREAD)).toContainText('accepted the suggestion');
-        await expect(page.locator(`${DETAIL} ${LABEL}`)).toHaveCount(0);
+        await expect(page.locator(DETAIL_NEXT_STEP)).toHaveText('Waiting for an agent to claim this.');
         await expect(detailActions).toHaveCount(0);
         expect(api.bodies('POST', ACCEPT)).toEqual([{ requireApproval: false }]);
     });
@@ -81,7 +81,7 @@ test.describe('Suggestion', () => {
 
         await expect(page.locator(DETAIL_THREAD)).toContainText('dismissed the suggestion');
         await expect(page.locator(DETAIL_THREAD)).toContainText(NOTE);
-        await expect(page.locator(`${DETAIL} ${LABEL}`)).toHaveCount(0);
+        await expect(page.locator(DETAIL_NEXT_STEP)).toHaveText("Closed as won't do.");
         expect(api.bodies('POST', '/api/v1/requests/:requestId/dismiss-suggestion')).toEqual([{ note: NOTE }]);
     });
 

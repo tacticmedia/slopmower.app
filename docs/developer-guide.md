@@ -138,7 +138,7 @@ App\Anchoring          git and cache side: Locator, LocationCacheSql, CodeExcerp
 | Allowed actions | The actions the caller may take now. Empty on a closed review. | `Domain\Request\AllowedActions::for()` |
 | Proposal | The current plan of a claim, with an optional unified diff: `pending`, `approved`, or `rejected`. Release, won't do, and reopen clear it. The proposal gate is open when it is null or approved, and approved when the request asks for a plan first (D49). | `Domain\Request\Proposal`, `ProposedDiff`, `AllowedActions::permits()` |
 | Suggestion | A request that an agent opens with `suggest`: `suggestion` is `pending` until the user accepts it, or dismisses it to `wont_do`, and null for a request of the user. A pending suggestion waits for the user and refuses `claim`, `mark_wont_do`, and `set_plan_requirement` (D72). | `Domain\Request\SuggestionState`, `RequestState::suggestionPending()`, `Domain\Request\Command\Suggest` |
-| Ask for a plan first | `requireApproval`: the request needs an approved proposal before `link_commits` and `mark_ready_for_review`. Set when the request opens. The user changes it with `set_plan_requirement` while the request is `open`, `reopened`, or `in_progress`. | `Domain\Request\RequestState::$requireApproval`, `assets/comments/CommentBox.tsx`, `assets/requests/RequestActions.tsx` |
+| Ask for a plan first | `requireApproval`: the request needs an approved proposal before `link_commits` and `mark_ready_for_review`. Set when the request opens. The user changes it with `set_plan_requirement` while the request is `open`, `reopened`, or `in_progress`. | `Domain\Request\RequestState::$requireApproval`, `assets/comments/CommentBox.tsx`, `assets/requests/RequestSidebar.tsx` |
 | Resolution | `fixed` after `ready_for_review`, `wont_do` after `wont_do`. `reopen` clears it. | `Domain\Request\Resolution` |
 | Commit link | A commit linked to a request, `pending` or `available` | `Entity\CommitLink`, `Domain\Request\LinkedCommit` |
 | `commit.found` | System event that makes pending links available after a fetch. No Domain decider writes it. | `Application\ResolvePendingCommitLinks::recordFound()` |
@@ -310,7 +310,7 @@ A user opens a request through `RequestController::open()`, `AnchorFactory::capt
 8. `EventsCommitted` goes to `QueueLocationRecompute::onEventsCommitted()`, which does nothing, because no `request.opened` is in the batch. Then `PublishCommittedEvents::__invoke()` publishes `{type: events, reviewId, seq, requestIds}` on the review topic with the ID `urn:slopmower:<tenantId>:<seq>`.
 9. The tool returns `RequestQuery::commandResult()`. The shared normalizers give the same JSON as REST Q4. A `DomainError` becomes an `isError` result with the error body.
 10. In the browser, `LiveSubscription.#receive()` gets the `events` update for the open review with a new `seq`. `#requestRevalidation()` records the `seq` and starts `#revalidate()`, which waits for `routerIdle()`. It skips the revalidation when `EventPositions` already covers every pending `seq`, which happens when the update reports a write of this browser.
-11. `router.revalidate()` runs `requestLoader()` again, which reads Q3. `ThreadBox` in `RequestDetail.tsx` shows the reply. `TurnLabel` shows the new `awaiting` value.
+11. `router.revalidate()` runs `requestLoader()` again, which reads Q3. `ThreadBox` in `RequestDetail.tsx` shows the reply, and the next-step line the new `awaiting` value.
 
 ### 4.3 A fetch moves the default branch
 

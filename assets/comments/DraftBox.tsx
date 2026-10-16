@@ -116,7 +116,7 @@ export function DraftBox({ draft, editable }: Props) {
                             {draft.title}
                         </p>
                     )}
-                    <Suspense fallback={<p className={styles.plain}>{draft.body}</p>}>
+                    <Suspense fallback={<p className={styles.plain} data-markdown-pending="">{draft.body}</p>}>
                         <MarkdownBody markdown={draft.body} />
                     </Suspense>
                     {null !== error && (

@@ -4,7 +4,11 @@ export const DETAIL = '[data-testid="request-detail"]';
 
 export const DETAIL_STATUS = `${DETAIL} header [data-testid="status-label"]`;
 
-export const DETAIL_TURN = `${DETAIL} header [data-testid="turn-label"]`;
+export const DETAIL_NEXT_STEP = `${DETAIL} [data-testid="next-step"]`;
+
+export const DETAIL_SIDEBAR = `${DETAIL} [data-testid="request-sidebar"]`;
+
+export const PLAN_STATE = `${DETAIL_SIDEBAR} [data-testid="plan-state"]`;
 
 export const DETAIL_THREAD = `${DETAIL} [data-testid="thread"]`;
 

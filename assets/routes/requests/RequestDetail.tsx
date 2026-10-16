@@ -1,5 +1,5 @@
 import { CommentDiscussionIcon, FileDiffIcon } from '@primer/octicons-react';
-import { Banner, Label, Link, RelativeTime, UnderlineNav } from '@primer/react';
+import { Banner, Link, RelativeTime, UnderlineNav } from '@primer/react';
 import { useMemo } from 'react';
 import { Link as RouterLink, useLoaderData, useRouteLoaderData, useSearchParams } from 'react-router';
 import type { Actor } from '../../api/types/actor';
@@ -8,27 +8,21 @@ import type { Request as ReviewRequest } from '../../api/types/request';
 import { ThreadBox } from '../../comments/ThreadBox';
 import { threadView } from '../../comments/threadView';
 import { useDocumentTitle } from '../../layout/useDocumentTitle';
-import { suggestionButtons } from '../../requests/allowedActions';
-import { AnchorLink } from '../../requests/AnchorLink';
+import { ActionBar } from '../../requests/ActionBar';
 import { AnchorSnapshot } from '../../requests/AnchorSnapshot';
-import { ClaimedBy } from '../../requests/ClaimedBy';
 import { CommitList } from '../../requests/CommitList';
-import { LocationInfo } from '../../requests/LocationInfo';
-import { OutdatedLabel } from '../../requests/OutdatedLabel';
-import { PullRequestStateLabel } from '../../requests/PullRequestStateLabel';
-import { RequestActions } from '../../requests/RequestActions';
+import { RequestSidebar } from '../../requests/RequestSidebar';
 import { RequestTitle } from '../../requests/RequestTitle';
 import shared from '../../requests/Requests.module.css';
+import { requestStage } from '../../requests/requestStage';
 import { CHANGES_TAB } from '../../requests/requestTabs';
 import { StatusLabel } from '../../requests/StatusLabel';
-import { SuggestionActions } from '../../requests/SuggestionActions';
-import { SuggestionLabel } from '../../requests/SuggestionLabel';
-import { TurnLabel } from '../../requests/TurnLabel';
 import styles from './RequestDetail.module.css';
 import { RequestChanges } from './RequestChanges';
 
 /**
- * A closed review gives an empty `allowedActions`, which hides the buttons and the reply box.
+ * The layout of a GitHub issue. A closed review gives an empty `allowedActions`, which hides the action bar, the plan
+ * toggle, and the reply box.
  */
 export function RequestDetail() {
     const request = useLoaderData<ReviewRequest>();
@@ -43,76 +37,43 @@ export function RequestDetail() {
 
     return (
         <article className={styles.page} data-testid="request-detail" data-request-id={request.id}>
-            <Link as={RouterLink} to={`/reviews/${request.reviewId}/requests`} className={styles.back}>
-                Requests of this review
-            </Link>
             <header className={styles.header}>
+                <Link as={RouterLink} to={`/reviews/${request.reviewId}/requests`} className={styles.back}>
+                    Requests of this review
+                </Link>
                 <RequestTitle key={request.id} title={request.title} summary={request.summary} allowedActions={request.allowedActions} />
-                <div className={styles.meta}>
+                <p className={styles.state}>
                     <StatusLabel status={request.status} />
-                    <OutdatedLabel outdated={request.outdated} />
-                    <TurnLabel awaiting={request.awaiting} />
-                    <SuggestionLabel pending={'pending' === request.suggestion} />
-                    {request.requireApproval && (
-                        <Label variant="accent" data-testid="plan-required">
-                            Plan required
-                        </Label>
-                    )}
-                    <AnchorLink reviewId={request.reviewId} anchor={request.anchor} />
-                    {null !== request.anchor && null !== request.anchor.symbol && (
-                        <code className={shared.location} data-testid="anchor-symbol">
-                            {request.anchor.symbol.fqn}
-                        </code>
-                    )}
                     <span className={shared.muted}>
-                        Opened by {request.author.name} <RelativeTime datetime={request.createdAt} />
+                        {request.author.name} opened this <RelativeTime datetime={request.createdAt} /> · {request.commentCount} {1 === request.commentCount ? 'comment' : 'comments'}
                     </span>
-                </div>
-                {null !== request.anchor && <LocationInfo location={request.location} />}
-                {'in_progress' === request.status && (
-                    <p className={styles.claim}>
-                        Claimed by <ClaimedBy claimedBy={request.claimedBy} claimedAt={request.claimedAt} />
-                    </p>
-                )}
-                {request.pullRequests.length > 0 && (
-                    <div className={styles.pullRequests} data-testid="pull-request-list">
-                        <span id="pull-requests" className={shared.muted}>
-                            Pull requests
-                        </span>
-                        <ul aria-labelledby="pull-requests" className={styles.pullRequestLinks}>
-                            {request.pullRequests.map(({ url, state, title }) => (
-                                <li key={url} className={styles.pullRequest}>
-                                    <PullRequestStateLabel state={state} />
-                                    <Link href={url} target="_blank" rel="noreferrer">
-                                        {url}
-                                    </Link>
-                                    {null !== title && <span className={shared.muted}>{title}</span>}
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
-                <RequestActions key={request.id} allowedActions={request.allowedActions} requireApproval={request.requireApproval} />
-                <SuggestionActions key={`suggestion-${request.id}`} requestId={request.id} buttons={suggestionButtons(request.allowedActions)} />
+                </p>
             </header>
+            <ActionBar id={request.id} status={request.status} summary={request.summary} allowedActions={request.allowedActions} />
+            <p className={'user' === request.awaiting ? `${styles.nextStep} ${styles.yourTurn}` : styles.nextStep} data-testid="next-step" data-awaiting={request.awaiting}>
+                {requestStage(request)}
+            </p>
             {'closed' === request.reviewState && (
                 <Banner variant="warning" title="This review is closed and read-only" data-testid="review-closed" description="The request can be read, but not changed." />
             )}
-            <UnderlineNav aria-label="Request" variant="flush">
-                <UnderlineNav.Item as={RouterLink} to={`/requests/${request.id}`} leadingVisual={<CommentDiscussionIcon />} aria-current={onChanges ? undefined : 'page'}>
-                    Conversation
-                </UnderlineNav.Item>
-                <UnderlineNav.Item
-                    as={RouterLink}
-                    to={`/requests/${request.id}?tab=${CHANGES_TAB}`}
-                    leadingVisual={<FileDiffIcon />}
-                    counter={request.commitCount}
-                    aria-current={onChanges ? 'page' : undefined}
-                >
-                    Changes
-                </UnderlineNav.Item>
-            </UnderlineNav>
-            {onChanges ? <RequestChanges request={request} /> : <Conversation request={request} caller={me.caller} />}
+            <div className={styles.layout}>
+                <RequestSidebar request={request} className={styles.sidebar} />
+                <UnderlineNav aria-label="Request" variant="flush" className={styles.tabs}>
+                    <UnderlineNav.Item as={RouterLink} to={`/requests/${request.id}`} leadingVisual={<CommentDiscussionIcon />} aria-current={onChanges ? undefined : 'page'}>
+                        Conversation
+                    </UnderlineNav.Item>
+                    <UnderlineNav.Item
+                        as={RouterLink}
+                        to={`/requests/${request.id}?tab=${CHANGES_TAB}`}
+                        leadingVisual={<FileDiffIcon />}
+                        counter={request.commitCount}
+                        aria-current={onChanges ? 'page' : undefined}
+                    >
+                        Changes
+                    </UnderlineNav.Item>
+                </UnderlineNav>
+                <div className={styles.main}>{onChanges ? <RequestChanges request={request} /> : <Conversation request={request} caller={me.caller} />}</div>
+            </div>
         </article>
     );
 }

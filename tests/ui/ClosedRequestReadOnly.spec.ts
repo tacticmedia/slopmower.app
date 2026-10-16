@@ -15,7 +15,7 @@ test.describe('ClosedRequestReadOnly', () => {
         await expect(page.locator(DETAIL_STATUS)).toHaveText('Open');
         await expect(page.locator('[data-testid="request-actions"]')).toHaveCount(0);
         // The tab navigation always renders its hidden "More" button.
-        await expect(page.locator(`${DETAIL} > :not(nav) button`)).toHaveCount(0);
+        await expect(page.locator(`${DETAIL} button:not(nav button)`)).toHaveCount(0);
         await expect(page.locator(`${DETAIL} textarea`)).toHaveCount(0);
     });
 });

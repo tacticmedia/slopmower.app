@@ -74,7 +74,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F56 | [Known issues of F54](F56-known-issues-of-f54.md) | Done 2026-10-16, [report](reports/F56.md) | fb5614f | src 496 PHP / 33658 lines, 496 types; tests 333 PHP / 30626 lines; assets 165 TS / 9683 lines |
 | F57 | [Visual review with qa-bundle](F57-visual-review-with-qa-bundle.md) | Done 2026-10-16, [report](reports/F57.md) | b517f72 | src 496 PHP / 33658 lines, 496 types; tests 333 PHP / 30626 lines; assets 165 TS / 9701 lines; check 4m30s |
 | F58 | [Request title and description](F58-request-title-and-description.md) | Done 2026-10-16, [report](reports/F58.md) | 1968423 | src 500 PHP / 33996 lines, 500 types; tests 335 PHP / 30964 lines; assets 167 TS / 9919 lines; check 4m0s |
-| F59 | [Request detail like a GitHub issue](F59-request-detail-like-a-github-issue.md) | Planned (2026-10-16) | | |
+| F59 | [Request detail like a GitHub issue](F59-request-detail-like-a-github-issue.md) | Done 2026-10-16, [report](reports/F59.md) | | src 500 PHP / 33996 lines, 500 types; tests 335 PHP / 30964 lines; assets 171 TS / 10092 lines |
 | F60 | [Review request list like GitHub Issues](F60-review-request-list-like-github-issues.md) | Planned (2026-10-16) | | |
 | F61 | [Keyboard gutter test race](F61-keyboard-gutter-test-race.md) | Done 2026-10-16, [report](reports/F61.md) | 152468f | src 496 PHP / 33658 lines, 496 types; tests 333 PHP / 30626 lines; assets 165 TS / 9701 lines; check 3m48s |
 | F62 | [Scroll to a line gives up early](F62-scroll-to-a-line-gives-up-early.md) | Done 2026-10-16, [report](reports/F62.md) | 33d2547 | src 496 PHP / 33658 lines, 496 types; tests 333 PHP / 30626 lines; assets 165 TS / 9712 lines; check 4m5s |

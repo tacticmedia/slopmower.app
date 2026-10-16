@@ -65,6 +65,37 @@ Open **Requests** to see all requests of the review. You can filter by status, b
 
 **Waiting for you** shows the requests where it is your turn: the agent suggested a change, asked a question, proposed a solution, finished, or declined.
 
+## The request page
+
+A request opens like a GitHub issue. The header shows the title, the status, who opened the request, and the number of comments.
+
+Below the header, a bar holds the buttons that change the request, for example **Resolve conversation** and **Reopen**. On a long conversation, the bar stays at the top of the window and also shows the status and the title. A request of a closed review has no bar.
+
+One line below the bar tells you what happens next, for example "The agent finished. Check the changes, then resolve the conversation or reopen it." When it is your turn, the line is highlighted.
+
+The sidebar is at the right of the conversation. On a narrow screen, it is above the conversation.
+
+| Section | Content |
+|---|---|
+| Assignee | The agent that works on the request, and for how long. Else **No one**. |
+| Plan | The state of the plan, and **Ask for a plan first** or **Don't ask for a plan**. See [Ask for a plan first](#ask-for-a-plan-first). |
+| Location | The lines, the file, or the symbol, or **General**, where the code is on the default branch, and **Outdated**. |
+| Development | The linked pull requests and the number of linked commits. |
+| Suggested by | The agent that suggested the request. |
+
+The **Plan** section shows one of these values:
+
+| Value | Meaning |
+|---|---|
+| Required before code changes | You asked for a plan, and the agent has not proposed one. |
+| Not required | You did not ask for a plan. |
+| Waiting for your approval | The agent proposed a plan. Approve it or request changes. |
+| Approved | You approved the plan. |
+| Changes requested | You requested changes. The agent proposes again. |
+| No plan | The work is finished, and the request has no plan. |
+
+When the work is finished, the section shows the decision on the plan, or **No plan**. It never shows **Required before code changes** then.
+
 ## Talk with the agent
 
 Each request has a conversation. The agent can ask a question before it changes code. Its question shows under **Waiting for you**. Type your answer in the reply box. Your reply hands the turn back to the agent.
@@ -73,9 +104,9 @@ New replies from the agent show in the open request without a reload.
 
 ## Ask for a plan first
 
-Every comment box of a new request has the checkbox **Ask for a plan first**. It is checked by default. The request shows **Plan required**.
+Every comment box of a new request has the checkbox **Ask for a plan first**. It is checked by default. The **Plan** section of the request shows **Required before code changes**.
 
-To change it later, for example when a small request turns out to be risky, open the request and click **Ask for a plan first** or **Don't ask for a plan**. This works while the request is open, reopened, or in progress. The thread shows the change. When you switch it on while the agent works and no proposal is approved, the agent links no commit until you approve one.
+To change it later, for example when a small request turns out to be risky, open the request and click **Ask for a plan first** or **Don't ask for a plan** in the **Plan** section. This works while the request is open, reopened, or in progress. The thread shows the change. When you switch it on while the agent works and no proposal is approved, the agent links no commit until you approve one.
 
 With the checkbox, the agent proposes a solution before it commits: a plan, and for a straightforward change a diff. An agent can also propose on any other request, for example when the request is unclear. **Plan to approve** shows while a proposal waits for you: in the list of requests, on the thread in the code, and in the file header of a file with such a thread.
 
@@ -110,9 +141,9 @@ A linked commit does not finish a request. The agent marks the request **Ready f
 
 ## Pull requests
 
-When the agent opened a pull request for its work, it links the pull request to the requests that it covers. The header of the request lists its pull requests, and the conversation shows each link. Click a pull request to open it in a new tab. The agent can remove a link that it made by mistake. The conversation shows the removal too.
+When the agent opened a pull request for its work, it links the pull request to the requests that it covers. The **Development** section of the request lists its pull requests, and the conversation shows each link. Click a pull request to open it in a new tab. The agent can remove a link that it made by mistake. The conversation shows the removal too.
 
-For a GitHub repository, each pull request shows its state on GitHub: Open, Draft, Merged, or Closed. The header also shows its title. When the pull request changes on GitHub, for example when it is merged, the label changes without a reload. A pull request shows no state when the repository is local, when Slopmower has not read it yet, when GitHub does not find it, or when the GitHub App installation has not accepted the permission Pull requests: read. When the installation accepts it, Slopmower reads each linked pull request that shows no state. Slopmower only reads pull requests. On GitHub it writes only the Slopmower check.
+For a GitHub repository, each pull request shows its state on GitHub: Open, Draft, Merged, or Closed. The **Development** section also shows its title. When the pull request changes on GitHub, for example when it is merged, the label changes without a reload. A pull request shows no state when the repository is local, when Slopmower has not read it yet, when GitHub does not find it, or when the GitHub App installation has not accepted the permission Pull requests: read. When the installation accepts it, Slopmower reads each linked pull request that shows no state. Slopmower only reads pull requests. On GitHub it writes only the Slopmower check.
 
 A pull request link does not change the status, and the request does not wait for you because of it. The agent opens a pull request only when you or the instructions of your repository ask for it.
 

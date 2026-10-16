@@ -482,7 +482,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 ### Journeys and the screenshot review
 
 - Each journey run empties `var/screenshots/` in its global setup, also a run of one spec. The notes and crops of the review stay in `var/review/`, so a note on a screen that a later run does not capture shows as stale in the prompt.
-- `captureScreen()` waits only for its content, visible spinners, and `aria-busy`. A screen that loads more after that, for example a code view before its highlighting or a diff below the fold, waits for it in the spec before the capture.
+- `captureScreen()` waits only for its content, visible spinners, `aria-busy`, and the plain-text fallback of a lazy `MarkdownBody` (`data-markdown-pending`). A screen that loads more after that, for example a code view before its highlighting or a diff below the fold, waits for it in the spec before the capture.
 - The `qa` routes exist only in `dev`, because `config/bundles.php` registers `TacticMediaQaBundle` only there. The resource `routing.controllers` of `config/routes.yaml` loads the routes of every autoconfigured controller with `#[Route]`, also the controller of the bundle, so a registration in `test` adds them to `test` whatever `config/routes/qa.yaml` says. The page has no authentication, so the `dev` firewall pattern contains `_dev` and no firewall runs for it.
 
 ### Test environments and front-end builds

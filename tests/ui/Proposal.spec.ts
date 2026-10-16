@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test';
 import type { ProposeSolutionInput } from '../../assets/api/types/inputs';
 import { fixture } from './support/builders';
 import { FakeReview } from './support/fakeReview';
-import { DETAIL, DETAIL_THREAD, openRequest, submitNoteDialog } from './support/requestScreens';
+import { DETAIL_THREAD, openRequest, PLAN_STATE, submitNoteDialog } from './support/requestScreens';
 import { expect, test } from './support/test';
 
 /** The plan and the diff of two files of `inputs.propose-solution.json`. */
@@ -38,7 +38,7 @@ test.describe('Proposal', () => {
         for (const index of [0, 1]) {
             await expect(files.nth(index).locator(DIFF_LINE).first()).toBeAttached();
         }
-        await expect(page.locator(`${DETAIL} [data-testid="plan-required"]`)).toHaveText('Plan required');
+        await expect(page.locator(PLAN_STATE)).toHaveText('Waiting for your approval');
     });
 
     test('A proposed diff that starts after line 1 has no expand control', async ({ page, api }) => {

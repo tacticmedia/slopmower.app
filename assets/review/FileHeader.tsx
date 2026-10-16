@@ -2,6 +2,7 @@ import { ArrowUpIcon } from '@primer/octicons-react';
 import { Button } from '@primer/react';
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
 import { CopyButton } from '../layout/CopyButton';
+import { useStuck } from '../layout/useStuck';
 import { PlanToApproveLabel } from '../requests/PlanToApproveLabel';
 import { SuggestionLabel } from '../requests/SuggestionLabel';
 import { ExpandTreeButton } from '../routes/reviews/CodeLayout';
@@ -94,24 +95,6 @@ export function FileHeader({ reviewId, repositoryName, path, directory = false, 
             <div style={{ height: toolbarPx }} />
         </header>
     );
-}
-
-/** Whether the sticky part sits at the window top: the element right above it has left the window upwards. */
-function useStuck(sentinel: RefObject<HTMLElement | null>): boolean {
-    const [stuck, setStuck] = useState(false);
-
-    useEffect(() => {
-        const element = sentinel.current;
-        if (null === element) {
-            return;
-        }
-        const observer = new IntersectionObserver(([entry]) => setStuck(undefined !== entry && !entry.isIntersecting && entry.boundingClientRect.top < 0));
-        observer.observe(element);
-
-        return () => observer.disconnect();
-    }, [sentinel]);
-
-    return stuck;
 }
 
 function useHeight(element: RefObject<HTMLElement | null>): number {

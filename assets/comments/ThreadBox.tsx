@@ -165,7 +165,7 @@ function ThreadComment({ comment, caption, onQuote, children }: { comment: Comme
                 </span>
             )}
             {null !== comment.body && (
-                <Suspense fallback={<p className={styles.plain}>{comment.body}</p>}>
+                <Suspense fallback={<p className={styles.plain} data-markdown-pending="">{comment.body}</p>}>
                     <MarkdownBody markdown={comment.body} />
                 </Suspense>
             )}

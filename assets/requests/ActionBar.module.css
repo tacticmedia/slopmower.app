@@ -1,0 +1,47 @@
+/* The flex gap of the parent also follows the sentinel, so the bar starts at the top of the sentinel. */
+.sentinel {
+    height: 1px;
+    margin-bottom: calc(-1px - var(--page-gap, 0px));
+}
+
+/* The bar also covers the side padding of the root layout, so the thread never shows beside it. */
+.bar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-8);
+    margin-inline: calc(-1 * var(--base-size-16));
+    padding: var(--base-size-8) var(--base-size-16);
+    border-bottom: var(--borderWidth-thin) solid var(--borderColor-default);
+    background-color: var(--bgColor-default);
+}
+
+.context {
+    display: flex;
+    flex: 1 1 16rem;
+    align-items: center;
+    gap: var(--base-size-8);
+    min-width: 0;
+}
+
+.summary {
+    overflow: hidden;
+    font-weight: var(--base-text-weight-semibold);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--base-size-8);
+    margin-left: auto;
+}
+
+/* A scroll to a target, for example a commit section of the Changes tab, stops below the bar. */
+:global(html):has(.bar) {
+    scroll-padding-top: var(--base-size-64);
+}

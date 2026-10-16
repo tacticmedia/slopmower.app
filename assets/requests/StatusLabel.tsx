@@ -11,9 +11,9 @@ const VARIANTS: Record<RequestStatus, NonNullable<LabelProps['variant']>> = {
     wont_do: 'secondary',
 };
 
-export function StatusLabel({ status }: { status: RequestStatus }) {
+export function StatusLabel({ status, testId = 'status-label' }: { status: RequestStatus; testId?: string }) {
     return (
-        <Label variant={VARIANTS[status]} data-testid="status-label">
+        <Label variant={VARIANTS[status]} data-testid={testId}>
             {STATUS_TEXT[status]}
         </Label>
     );

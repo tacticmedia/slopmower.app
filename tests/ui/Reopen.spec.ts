@@ -1,7 +1,7 @@
 import { commentBoxButton } from './support/codeView';
 import { FakeReview } from './support/fakeReview';
 import { SMALL_FILE } from './support/files';
-import { clickRequestButton, DETAIL, DETAIL_STATUS, DETAIL_THREAD, DETAIL_TURN, openRequest, REQUEST_ROWS, submitNoteDialog } from './support/requestScreens';
+import { clickRequestButton, DETAIL, DETAIL_NEXT_STEP, DETAIL_STATUS, DETAIL_THREAD, openRequest, REQUEST_ROWS, submitNoteDialog } from './support/requestScreens';
 import { expect, test } from './support/test';
 
 test.describe('Reopen', () => {
@@ -12,7 +12,7 @@ test.describe('Reopen', () => {
         review.agentMarksReady(request.id, 'The calculation is one line, so I left it.');
         await openRequest(page, request.id);
         await expect(page.locator(DETAIL_STATUS)).toHaveText('Ready for review');
-        await expect(page.locator(DETAIL_TURN)).toHaveText('Waiting for you');
+        await expect(page.locator(DETAIL_NEXT_STEP)).toHaveAttribute('data-awaiting', 'user');
 
         await clickRequestButton(page, 'Reopen');
         await expect(page.getByRole('dialog').locator('textarea')).toBeVisible();
@@ -20,7 +20,7 @@ test.describe('Reopen', () => {
         await submitNoteDialog(page, 'Please extract it anyway.', 'Reopen');
 
         await expect(page.locator(DETAIL_STATUS)).toHaveText('Reopened');
-        await expect(page.locator(DETAIL_TURN)).toHaveText('Waiting for the agent');
+        await expect(page.locator(DETAIL_NEXT_STEP)).toHaveAttribute('data-awaiting', 'agent');
         await expect(page.locator(DETAIL_THREAD)).toContainText('Please extract it anyway.');
         expect(api.bodies('POST', '/api/v1/requests/:requestId/reopen')).toEqual([{ note: 'Please extract it anyway.' }]);
     });
@@ -50,12 +50,12 @@ test.describe('Reopen', () => {
         review.agentClaims(request.id);
         review.agentAsks(request.id, 'Should the new method be public?');
         await openRequest(page, request.id);
-        await expect(page.locator(DETAIL_TURN)).toHaveText('Waiting for you');
+        await expect(page.locator(DETAIL_NEXT_STEP)).toHaveAttribute('data-awaiting', 'user');
 
         await page.locator(`${DETAIL} textarea[aria-label="Reply"]`).fill('No, keep it private.');
         await commentBoxButton(page, 'Reply').click();
 
-        await expect(page.locator(DETAIL_TURN)).toHaveText('Waiting for the agent');
+        await expect(page.locator(DETAIL_NEXT_STEP)).toHaveAttribute('data-awaiting', 'agent');
         await expect(page.locator(DETAIL_THREAD)).toContainText('No, keep it private.');
         await expect(page.locator(DETAIL_STATUS)).toHaveText('In progress');
         expect(api.bodies('POST', '/api/v1/requests/:requestId/comments')).toEqual([{ body: 'No, keep it private.' }]);

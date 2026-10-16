@@ -4,7 +4,7 @@ import { addedFile, commitDiff, commitLink, fixture, modifiedFile, sha1 } from '
 import { FakeReview } from '../ui/support/fakeReview';
 import { SMALL_FILE, SMALL_FILE_TEXT, SYMBOL_FILE } from '../ui/support/files';
 import { apiError, json, type MockApi, text } from '../ui/support/mockApi';
-import { DETAIL, DETAIL_STATUS, DETAIL_THREAD, openRequest } from '../ui/support/requestScreens';
+import { DETAIL, DETAIL_NEXT_STEP, DETAIL_STATUS, DETAIL_THREAD, openRequest, PLAN_STATE } from '../ui/support/requestScreens';
 import { expect, test } from './support/test';
 
 const { plan: PLAN, diff: DIFF } = fixture<Required<ProposeSolutionInput>>('inputs.propose-solution.json');
@@ -14,6 +14,16 @@ const PULL_REQUEST = 'https://github.com/acme/billing/pull/42';
 const SUGGESTION_BODY = 'Use `PHP_ROUND_HALF_UP`. `PHP_ROUND_HALF_EVEN` rounds a tax of 12.5 cents to 12 cents, and invoices round a half cent up.';
 
 const DIFF_LINE = 'diffs-container [data-line-type]';
+
+/** The agent's questions and the user's answers of a long conversation. */
+const DISCUSSION: readonly [string, string][] = [
+    ['Should every PHP file declare strict types, or only the files under `src/`?', 'Every PHP file, also the tests and the configuration.'],
+    ['`config/bundles.php` returns an array only. Does it need the declaration too?', 'Yes, the rule has no exceptions.'],
+    ['Three test fixtures compare floats with `==`. Strict types change nothing there. Should I leave them?', 'Leave them. Another request covers the comparisons.'],
+    ['Should I add a PHP-CS-Fixer rule so that new files get the declaration?', 'Yes, `declare_strict_types` with the risky rules allowed.'],
+    ['The rule also rewrites `bin/console`. Is that fine?', 'Fine.'],
+    ['One commit for all files, or one per directory?', 'One commit.'],
+];
 
 const EXTRACTED = SMALL_FILE_TEXT.replace('intdiv($net * $taxBasisPoints, 10000)', '$this->tax($net, $taxBasisPoints)');
 
@@ -47,7 +57,7 @@ test.describe('RequestStages', () => {
 
         const planned = review.seedGeneral('Add a CSV export of the invoice totals.', true, 'CSV export of the invoice totals');
         await openRequest(page, planned.id);
-        await captureScreen('Open with a plan required', page.locator(`${DETAIL} [data-testid="plan-required"]`));
+        await captureScreen('Open with a plan required', page.locator(PLAN_STATE));
 
         const asked = review.seedLines(SYMBOL_FILE, 19, 22, 'Add a test for an amount of zero.');
         review.agentClaims(asked.id);
@@ -90,6 +100,16 @@ test.describe('RequestStages', () => {
         review.agentMarksReady(ready.id, 'Extracted `tax()` and added a changelog entry.');
         await openRequest(page, ready.id);
         await captureScreen('Ready for review with a commit and a pull request', page.locator(`${DETAIL} [data-testid="pull-request-list"]`));
+
+        const discussed = review.seedLines(SMALL_FILE, 3, 3, 'Is `strict_types` needed here?', 'Strict types in every file');
+        review.agentClaims(discussed.id);
+        for (const [question, answer] of DISCUSSION) {
+            review.agentAsks(discussed.id, question);
+            review.command(discussed.id, 'comments', { body: answer });
+        }
+        review.agentMarksReady(discussed.id, 'Added `declare(strict_types=1);` to the 14 files without it.');
+        await openRequest(page, discussed.id);
+        await captureScreen('Long conversation', page.locator(DETAIL_NEXT_STEP));
 
         await page.goto(`/requests/${ready.id}?tab=changes`);
         const fileDiffs = page.locator('[data-testid="commit-diff-file"]');
