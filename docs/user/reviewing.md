@@ -50,9 +50,26 @@ To set or change the title, open the request and click **Edit**, or **Add a titl
 
 You can edit or delete a draft before you submit it. **Pending drafts** on the **Requests** tab lists all your drafts: new requests and replies. Each draft links to its lines or to the request that it replies to.
 
+## The review header
+
+The header shows the title of the review, its ref, and its commit, with these buttons:
+
+- **Quick open** finds a file or a symbol.
+- **Agent prompts** shows the review ID, the agent prompt, and the review prompt, each with a copy button, and the link **Connect your agent**.
+- **Finish your review** shows while you have drafts.
+- **Review actions**, the button with three dots, has **Carry over requests** and **Close review** while the review is open, and **Delete review**.
+
+While the symbol index runs, a progress bar shows below the title. If the index fails, the reason shows there.
+
 ## Follow the requests
 
-Open **Requests** to see all requests of the review. You can filter by status, by path, and by outdated code. **Suggestions** shows the suggestions of the agent that wait for your decision.
+Open **Requests** to see the requests of the review. Each row shows the status icon and the title, the labels **Waiting for you**, **Plan to approve**, **Suggestion**, and **Outdated** when they apply, and a muted line with the location, the author, and the agent that works on it. At the right, a row shows its comments, its linked commits, and when it changed last.
+
+- **Open** lists the requests that wait for you or for the agent. It is the default. **Closed** lists the verified requests and the requests that you closed as won't do. The two counts are the totals of the review.
+- **Status** shows one status only. **Filters** has **Outdated** and **Suggestions**, the suggestions of the agent that wait for your decision. **Sort** orders the list by the last change (the default), by age, oldest first, or by path.
+- Type a path prefix and click **Filter** to show only the requests on files below it.
+
+The address of the page keeps the filters, so a reload or a bookmark shows the same list. When no request matches, **Clear the filters** shows the open requests again.
 
 | Status | Meaning |
 |---|---|
@@ -63,7 +80,7 @@ Open **Requests** to see all requests of the review. You can filter by status, b
 | Reopened | You rejected the result. The agent works on it again. |
 | Won't do | The request was declined, with a reason |
 
-**Waiting for you** shows the requests where it is your turn: the agent suggested a change, asked a question, proposed a solution, finished, or declined.
+**Waiting for you**, on **Open**, shows the requests where it is your turn: the agent suggested a change, asked a question, proposed a solution, finished, or declined.
 
 ## The request page
 
@@ -119,14 +136,14 @@ An older proposal keeps its decision: **Approved** or **Changes requested**. An 
 
 ## Agent suggestions
 
-Your agent can review the code too. Copy the second prompt of the review header, **Review the code of Slopmower review <id> and suggest changes**, and give it to the agent, or ask the agent to review a part of a repository, for example "Review the src/Mcp directory with Slopmower and suggest changes". Without a review, the agent starts one. The agent changes no code. It opens one suggestion for each thing that it would change, on a line, a range of lines, a symbol, a file, or the whole review.
+Your agent can review the code too. Click **Agent prompts** in the review header, copy the review prompt, **Review the code of Slopmower review <id> and suggest changes**, and give it to the agent, or ask the agent to review a part of a repository, for example "Review the src/Mcp directory with Slopmower and suggest changes". Without a review, the agent starts one. The agent changes no code. It opens one suggestion for each thing that it would change, on a line, a range of lines, a symbol, a file, or the whole review.
 
 Each suggestion shows at once, marked **Suggestion**: in the list of requests, in the file header, and on its thread in the code. **Suggestions** on the **Requests** tab lists the suggestions that wait for you. You can discuss a suggestion in its thread before you decide.
 
 - **Accept** makes the suggestion an ordinary request that waits for the agent. **Ask for a plan first** is checked by default, so the agent proposes a plan before it commits.
 - **Dismiss** closes the suggestion as won't do. You can type a note that says why.
 
-To let the agent work on the accepted suggestions, give it the first prompt of the review header, **Work on Slopmower review <id>**. The agent works on the accepted suggestions and on your own requests, never on a suggestion that waits for you. **Reopen** on a dismissed suggestion accepts it.
+To let the agent work on the accepted suggestions, give it the agent prompt of **Agent prompts**, **Work on Slopmower review <id>**. The agent works on the accepted suggestions and on your own requests, never on a suggestion that waits for you. **Reopen** on a dismissed suggestion accepts it.
 
 ## Linked commits
 
@@ -248,7 +265,7 @@ A request is **Outdated** when its code changed on the default branch, or when S
 
 When the code moved on, start a new review at the later commit and take the open requests of an older review with you. On the repository page, under **Start a review**, pick the older review in **Carry over open requests from**, then click **Start review**.
 
-An open review can also take the open requests of another review of the repository, for example after the agent released a request of that review, or you clicked **Unassign** on it. Click **Carry over requests** in the review header, pick the review in **Carry over open requests from**, then click **Carry over**. The list has the open and the closed reviews of the repository. A closed review shows **(closed)**.
+An open review can also take the open requests of another review of the repository, for example after the agent released a request of that review, or you clicked **Unassign** on it. Click **Review actions** in the review header, then **Carry over requests**, pick the review in **Carry over open requests from**, then click **Carry over**. The list has the open and the closed reviews of the repository. A closed review shows **(closed)**.
 
 Slopmower finds the code of each open or reopened request at the commit of the review that takes the requests, and opens a copy of the request in that review. A list then shows every request of the other review with its outcome:
 
@@ -262,6 +279,6 @@ A copy shows **Carried from the source request**, a link to the request in the o
 
 ## Close a review
 
-When you are finished, click **Close review** in the review header. You can add a note. If you have drafts, Slopmower warns you, because closing deletes them.
+When you are finished, click **Review actions** in the review header, then **Close review**. You can add a note. If you have drafts, Slopmower warns you, because closing deletes them.
 
 A closed review is read-only. Nobody can comment, change a status, or link commits. The agent gets `review_closed` and stops. Closed reviews are hidden from the lists. Select **Show closed** to see them. A closed review cannot be opened again. Start a new review instead.

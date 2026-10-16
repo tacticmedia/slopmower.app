@@ -474,6 +474,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 - The window scrolls the code. The code view loads in its own chunk, so a test that scrolls waits until the page has the height of the code.
 - The scroll to the line of a `#L` hash moves the window once per frame until the row of the line is in view below the header, so it can still run when the row exists. Only user input stops it: a key, the wheel, a pointer press, or a touch. A test scrolls during it with a key, for example `page.keyboard.press('PageDown')`. The next frame undoes a scroll from `page.evaluate()`.
 - A Playwright context denies clipboard writes. A test of a copy button grants `clipboard-read` and `clipboard-write`.
+- A Primer `IconButton` takes its name from its tooltip through `aria-labelledby`, so a CSS `[aria-label]` selector does not find it. Use `getByRole('button', { name })`.
 - `page.route` cannot stream a response, so `EventSource` is replaced by `addInitScript`.
 - `context.route` also intercepts the imports of the `@pierre/diffs` worker. `page.route` is enough for `/api/v1`.
 - The worker pool renders with `useTokenTransformer`, so each code token is an element with `data-char`, its UTF-16 offset in the line. A Cmd-click is `click({ modifiers: ['ControlOrMeta'] })` on such a token.

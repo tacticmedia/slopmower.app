@@ -12,7 +12,7 @@ export const PLAN_STATE = `${DETAIL_SIDEBAR} [data-testid="plan-state"]`;
 
 export const DETAIL_THREAD = `${DETAIL} [data-testid="thread"]`;
 
-export const REQUEST_ROWS = '[data-testid="request-list"] tbody tr';
+export const REQUEST_ROWS = '[data-testid="request-list"] [data-testid="request-row"]';
 
 export const OUTDATED = '[data-testid="outdated-label"]';
 

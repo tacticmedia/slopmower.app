@@ -1,6 +1,7 @@
 import type { Locator, Page } from '@playwright/test';
 import { COMPOSER, commentBoxButton, dragFromPlus, FILE_THREADS, focusedCommentBoxBelow, openFile, waitForHighlighting, waitForSavedThread } from './support/codeView';
 import { FakeReview } from './support/fakeReview';
+import { chooseReviewAction } from './support/reviewHeader';
 import { SMALL_FILE } from './support/files';
 import { expect, test } from './support/test';
 
@@ -88,7 +89,7 @@ test.describe('BatchReview', () => {
         await commentOnFile(page, 'Split this class.', 'Start a review');
         await commentOnFile(page, 'Name the constants.', 'Add review comment');
 
-        await page.getByRole('button', { name: 'Close review' }).click();
+        await chooseReviewAction(page, 'Close review');
 
         await expect(page.locator('[data-testid="close-drafts-warning"]')).toContainText('You have 2 pending comments');
     });

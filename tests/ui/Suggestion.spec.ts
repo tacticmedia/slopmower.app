@@ -93,7 +93,8 @@ test.describe('Suggestion', () => {
         const rows = page.locator(REQUEST_ROWS);
         await expect(rows).toHaveCount(2);
 
-        await page.locator('[data-testid="request-filters"] label').filter({ hasText: /^Suggestions$/ }).click();
+        await page.locator('[data-testid="request-filters"]').getByRole('button', { name: 'Filters', exact: true }).click();
+        await page.getByRole('menuitemcheckbox', { name: 'Suggestions', exact: true }).click();
 
         await expect(rows).toHaveCount(1);
         await expect(rows).toContainText(TITLE);

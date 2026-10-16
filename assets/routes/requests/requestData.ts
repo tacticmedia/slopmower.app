@@ -24,28 +24,40 @@ const COMMAND_PATHS: Record<RequestCommandIntent['intent'], string> = {
     set_title: 'title',
 };
 
+export const REQUEST_SORTS = ['updated', 'created', 'path'] as const;
+
+export type RequestSort = (typeof REQUEST_SORTS)[number];
+
 /**
  * The URL filters of the request list. Their names are the Q1 query names.
  */
 export type RequestFilters = {
+    /** `awaiting=none` is Closed. Any other `awaiting` lists the open requests. */
+    closed: boolean;
     status: RequestStatus | null;
+    /** `awaiting=user`. */
     waitingForYou: boolean;
     /** Q1 rejects a leading slash. */
     path: string;
     outdated: boolean;
     /** `suggestion=pending`. */
     suggestions: boolean;
+    sort: RequestSort;
 };
 
 export function requestFilters(search: URLSearchParams): RequestFilters {
     const status = search.get('status');
+    const sort = search.get('sort');
+    const awaiting = search.get('awaiting');
 
     return {
+        closed: 'none' === awaiting,
         status: REQUEST_STATUSES.find((known) => known === status) ?? null,
-        waitingForYou: 'user' === search.get('awaiting'),
+        waitingForYou: 'user' === awaiting,
         path: (search.get('path') ?? '').replace(/^\/+/, ''),
         outdated: 'true' === search.get('outdated'),
         suggestions: 'pending' === search.get('suggestion'),
+        sort: REQUEST_SORTS.find((known) => known === sort) ?? 'updated',
     };
 }
 
@@ -55,17 +67,12 @@ export type RequestListData = RequestPage & {
     hiddenReplySummaries: Record<Ulid, string>;
 };
 
-/**
- * Most recently updated first, so the agent's latest work is on top.
- */
 export async function requestListLoader({ request, params }: LoaderFunctionArgs): Promise<RequestListData> {
-    const { status, waitingForYou, path, outdated, suggestions } = requestFilters(new URL(request.url).searchParams);
-    const query = new URLSearchParams({ sort: 'updated', limit: String(REQUEST_PAGE_LIMIT) });
+    const { closed, status, waitingForYou, path, outdated, suggestions, sort } = requestFilters(new URL(request.url).searchParams);
+    const awaiting = closed ? 'none' : waitingForYou ? 'user' : 'user,agent';
+    const query = new URLSearchParams({ awaiting, sort, limit: String(REQUEST_PAGE_LIMIT) });
     if (null !== status) {
         query.set('status', status);
-    }
-    if (waitingForYou) {
-        query.set('awaiting', 'user');
     }
     if ('' !== path) {
         query.set('path', path);
@@ -77,13 +84,10 @@ export async function requestListLoader({ request, params }: LoaderFunctionArgs)
         query.set('suggestion', 'pending');
     }
     const review = `/api/v1/reviews/${encodedRouteParam(params, 'reviewId')}`;
-    const filtered = null !== status || waitingForYou || '' !== path || outdated || suggestions;
-    const [page, drafts] = await Promise.all([
-        apiGetAllPages<RequestPage>(`${review}/requests?${query.toString()}`, request.signal),
-        filtered ? apiGet<DraftList>(`${review}/drafts`, request.signal) : null,
-    ]);
+    // Open and Closed always filter, so a reply draft can name a request that the page does not list.
+    const [page, drafts] = await Promise.all([apiGetAllPages<RequestPage>(`${review}/requests?${query.toString()}`, request.signal), apiGet<DraftList>(`${review}/drafts`, request.signal)]);
     const listed = new Set(page.items.map(({ id }) => id));
-    const hidden = new Set(drafts?.items.flatMap((draft) => ('reply' === draft.kind && !listed.has(draft.requestId) ? [draft.requestId] : [])));
+    const hidden = new Set(drafts.items.flatMap((draft) => ('reply' === draft.kind && !listed.has(draft.requestId) ? [draft.requestId] : [])));
     // A summary only labels a draft, so a failed read keeps the list and the default label.
     const summaries = await Promise.all(
         [...hidden].map((id) => apiGet<ReviewRequest>(`/api/v1/requests/${encodeURIComponent(id)}`, request.signal).then(({ summary }): [Ulid, string][] => [[id, summary]], () => [])),

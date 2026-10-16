@@ -4,20 +4,21 @@
     gap: var(--base-size-16);
 }
 
-.filters {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--base-size-12) var(--base-size-24);
+.box {
+    border: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-radius: var(--borderRadius-medium);
+    overflow: hidden;
 }
 
-.pathFilter {
-    display: flex;
-    gap: var(--base-size-8);
+.list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
 }
 
-.labels {
-    display: inline-flex;
-    flex-wrap: wrap;
-    gap: var(--base-size-4);
+.empty {
+    margin: 0;
+    padding: var(--base-size-32) var(--base-size-16);
+    color: var(--fgColor-muted);
+    text-align: center;
 }

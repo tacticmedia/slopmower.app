@@ -1,4 +1,5 @@
 import { FakeRepositories } from './support/fakeRepositories';
+import { chooseReviewAction } from './support/reviewHeader';
 import { expect, test } from './support/test';
 
 const REVIEW_LIST = '[data-testid="review-list"]';
@@ -11,7 +12,7 @@ test.describe('DeleteReviewFlow', () => {
         const deleted = repositories.addReview(repository, { review: { title: 'Deleted review' } });
         await page.goto(`/reviews/${deleted.id}`);
 
-        await page.locator('header').getByRole('button', { name: 'Delete review' }).click();
+        await chooseReviewAction(page, 'Delete review');
         await page.locator('[role="dialog"] button[type="submit"]').click();
 
         await expect(page).toHaveURL(`/repositories/${repository.id}`);

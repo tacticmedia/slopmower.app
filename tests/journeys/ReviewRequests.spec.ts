@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import type { ProposeSolutionInput } from '../../assets/api/types/inputs';
 import { commitLink, fixture, sha1 } from '../ui/support/builders';
 import { FakeReview } from '../ui/support/fakeReview';
@@ -6,8 +7,6 @@ import { REQUEST_ROWS } from '../ui/support/requestScreens';
 import { expect, test } from './support/test';
 
 const { plan: PLAN, diff: DIFF } = fixture<Required<ProposeSolutionInput>>('inputs.propose-solution.json');
-
-const TOTAL = '#requests-total';
 
 const SUGGESTION_BODY = 'Use `PHP_ROUND_HALF_UP`. `PHP_ROUND_HALF_EVEN` rounds a tax of 12.5 cents to 12 cents, and invoices round a half cent up.';
 
@@ -39,22 +38,55 @@ function reviewWithEveryStatus(review: FakeReview): void {
     review.agentSuggests({ kind: 'line', path: SMALL_FILE, range: { startLine: 11, endLine: 11 } }, 'Round half cents up', SUGGESTION_BODY);
 }
 
+function menu(page: Page, button: string) {
+    return page.locator('[data-testid="request-filters"]').getByRole('button', { name: button, exact: true });
+}
+
 test.describe('ReviewRequests', () => {
+    test('The review header keeps the agent prompts one click away', async ({ page, api, captureScreen }) => {
+        const review = new FakeReview(api);
+        reviewWithEveryStatus(review);
+
+        await page.goto(`/reviews/${review.id}/requests`);
+        await captureScreen('Review header', page.locator('header').getByRole('button', { name: 'Review actions', exact: true }));
+
+        await page.locator('header').getByRole('button', { name: 'Agent prompts', exact: true }).click();
+        await captureScreen('Agent prompts', page.getByRole('dialog', { name: 'Agent prompts' }).locator('[data-testid="suggestion-prompt"]'));
+    });
+
     test('The requests tab lists, filters, and shows the pending drafts', async ({ page, api, captureScreen }) => {
         const review = new FakeReview(api);
         reviewWithEveryStatus(review);
 
         await page.goto(`/reviews/${review.id}/requests`);
-        await expect(page.locator(REQUEST_ROWS)).toHaveCount(review.requests.length);
-        await captureScreen('Requests in every status', page.locator('[data-testid="request-list"] table'));
+        await expect(page.locator(REQUEST_ROWS)).toHaveCount(review.requests.filter(({ closed }) => !closed).length);
+        await captureScreen('Open requests', page.locator(REQUEST_ROWS).last());
 
-        await page.locator('[data-testid="request-filters"] label').filter({ hasText: /^Waiting for you$/ }).click();
+        await page.getByRole('link', { name: /^Closed/ }).click();
+        await expect(page).toHaveURL(/awaiting=none/);
+        await expect(page.locator(REQUEST_ROWS)).toHaveCount(review.requests.filter(({ closed }) => closed).length);
+        await captureScreen('Closed requests', page.locator(REQUEST_ROWS).last());
+
+        await page.getByRole('link', { name: /^Open/ }).click();
+        await page.getByRole('button', { name: 'Waiting for you', exact: true }).click();
         await expect(page).toHaveURL(/awaiting=user/);
-        await captureScreen('Requests waiting for you', page.locator(TOTAL).filter({ hasText: /^[0-9]+ requests$/ }));
+        await expect(page.locator(REQUEST_ROWS)).toHaveCount(review.requests.filter(({ awaiting }) => 'user' === awaiting).length);
+        await captureScreen('Requests waiting for you', page.locator(REQUEST_ROWS).last());
+
+        await menu(page, 'Status').click();
+        await captureScreen('Status menu', page.getByRole('menuitemradio', { name: "Won't do", exact: true }));
+        await page.keyboard.press('Escape');
+        await menu(page, 'Filters').click();
+        await captureScreen('Filters menu', page.getByRole('menuitemcheckbox', { name: 'Suggestions', exact: true }));
+        await page.keyboard.press('Escape');
+        await menu(page, 'Sort').click();
+        await captureScreen('Sort menu', page.getByRole('menuitemradio', { name: 'Path', exact: true }));
+        await page.getByRole('menuitemradio', { name: 'Path', exact: true }).click();
+        await expect(page).toHaveURL(/sort=path/);
 
         await page.getByRole('search').getByRole('textbox', { name: 'Path prefix' }).fill('docs/');
         await page.getByRole('search').getByRole('button', { name: 'Filter' }).click();
-        await captureScreen('No request matches the filters', page.locator(TOTAL).filter({ hasText: 'No request matches these filters.' }));
+        await captureScreen('No request matches the filters', page.locator('[data-testid="request-list-empty"]'));
 
         const [first] = review.requests;
         review.seedDraft({ kind: 'new_request', anchor: { kind: 'range', path: SYMBOL_FILE, range: { startLine: 11, endLine: 17 } }, body: 'Document the rounding mode.' });

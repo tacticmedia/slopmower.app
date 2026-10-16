@@ -69,6 +69,17 @@ const COMMAND_ACTIONS: Record<string, string> = {
     'dismiss-suggestion': 'dismiss_suggestion',
 };
 
+function compare(a: string, b: string): number {
+    return a < b ? -1 : a > b ? 1 : 0;
+}
+
+/** The `sort` orders of Q1. The IDs of `newId()` grow, so `id` order is creation order. */
+const REQUEST_ORDERS: Record<string, (a: Request, b: Request) => number> = {
+    created: (a, b) => compare(a.id, b.id),
+    updated: (a, b) => compare(b.updatedAt, a.updatedAt) || compare(a.id, b.id),
+    path: (a, b) => compare(a.anchor?.path ?? '', b.anchor?.path ?? '') || (a.anchor?.range?.startLine ?? 0) - (b.anchor?.range?.startLine ?? 0) || compare(a.id, b.id),
+};
+
 /** Rules 1 to 5 of architecture section 6, as `AwaitingPolicy` applies them. A proposal decision and a suggestion accept are user messages. */
 function awaitingOf(status: RequestStatus, closed: boolean, tracking: Tracking, proposal: Proposal | null, suggestion: SuggestionState | null): Awaiting {
     if (closed) {
@@ -605,10 +616,15 @@ export class FakeReview {
     #requestPage(query: URLSearchParams): MockResponse {
         const list = (name: string): string[] | null => query.get(name)?.split(',') ?? null;
         const [statuses, awaiting, path, outdated, suggestion] = [list('status'), list('awaiting'), query.get('path'), query.get('outdated'), query.get('suggestion')];
+        const order = REQUEST_ORDERS[query.get('sort') ?? 'created'];
+        if (undefined === order) {
+            return apiError(422, 'invalid_input', 'Invalid input. sort: Must be created, updated, or path.', { violations: [{ field: 'sort', message: 'Must be created, updated, or path.' }] });
+        }
         const items = this.requests
             .filter((request) => (null === statuses || statuses.includes(request.status)) && (null === awaiting || awaiting.includes(request.awaiting)))
             .filter((request) => (null === path || true === request.anchor?.path.startsWith(path)) && (null === outdated || request.outdated === ('true' === outdated)))
             .filter((request) => null === suggestion || request.suggestion === suggestion)
+            .toSorted(order)
             .map(requestSummary);
 
         return json('lists.schema.json#/$defs/RequestPage', { reviewId: this.id, reviewState: this.review.state, total: items.length, items, nextCursor: null });

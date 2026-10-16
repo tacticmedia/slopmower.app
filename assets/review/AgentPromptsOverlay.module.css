@@ -1,0 +1,6 @@
+.prompts {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-16);
+    padding: var(--base-size-16);
+}

@@ -1,0 +1,27 @@
+.icon {
+    display: inline-flex;
+}
+
+.icon[data-status='open'] {
+    color: var(--fgColor-accent);
+}
+
+.icon[data-status='in_progress'] {
+    color: var(--fgColor-attention);
+}
+
+.icon[data-status='ready_for_review'] {
+    color: var(--fgColor-success);
+}
+
+.icon[data-status='verified'] {
+    color: var(--fgColor-done);
+}
+
+.icon[data-status='reopened'] {
+    color: var(--fgColor-severe);
+}
+
+.icon[data-status='wont_do'] {
+    color: var(--fgColor-muted);
+}

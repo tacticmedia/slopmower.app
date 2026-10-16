@@ -88,7 +88,7 @@ Follow [Connect your agent](docs/user/connect-your-agent.md): create a token in 
 - MCP server: `http://localhost:8000/_mcp`
 - Skill: `http://localhost:8000/docs/skill/SKILL.md`
 
-Then click **Copy prompt** in the review header and paste the prompt into the agent.
+Then click **Agent prompts** in the review header, then **Copy prompt**, and paste the prompt into the agent.
 
 ## Run the checks
 

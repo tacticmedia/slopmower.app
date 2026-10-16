@@ -3,13 +3,14 @@ import type { CarryOverInput } from '../../assets/api/types/inputs';
 import { carryOverResult, now } from './support/builders';
 import { FakeRepositories } from './support/fakeRepositories';
 import { apiError, json } from './support/mockApi';
+import { chooseReviewAction } from './support/reviewHeader';
 import { expect, test } from './support/test';
 
 const DIALOG = '[role="dialog"]';
 const CARRY_OVER = '/api/v1/reviews/:reviewId/carry-over';
 
 function openDialog(page: Page) {
-    return page.locator('header').getByRole('button', { name: 'Carry over requests' }).click();
+    return chooseReviewAction(page, 'Carry over requests');
 }
 
 test.describe('CarryOverOpenReview', () => {

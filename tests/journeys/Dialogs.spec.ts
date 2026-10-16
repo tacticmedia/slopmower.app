@@ -5,14 +5,11 @@ import { FakeRepositories } from '../ui/support/fakeRepositories';
 import { SMALL_FILE } from '../ui/support/files';
 import { json } from '../ui/support/mockApi';
 import { clickRequestButton, openRequest } from '../ui/support/requestScreens';
+import { chooseReviewAction, reviewActions } from '../ui/support/reviewHeader';
 import { test } from './support/test';
 
 function dialog(page: Page) {
     return page.getByRole('dialog');
-}
-
-function headerButton(page: Page, name: string) {
-    return page.locator('header').getByRole('button', { name, exact: true });
 }
 
 test.describe('Dialogs', () => {
@@ -45,16 +42,18 @@ test.describe('Dialogs', () => {
 
         review.seedDraft({ kind: 'new_request', anchor: null, body: 'Add a changelog entry.' });
         await page.goto(`/reviews/${review.id}`);
-        await headerButton(page, 'Close review').click();
+        await reviewActions(page).click();
+        await captureScreen('Review actions', page.getByRole('menuitem', { name: 'Delete review', exact: true }));
+        await page.getByRole('menuitem', { name: 'Close review', exact: true }).click();
         await dialog(page).locator('textarea[name="note"]').fill('Shipped in 2.4.');
         await captureScreen('Close review', dialog(page).locator('[data-testid="close-drafts-warning"]'));
 
         await page.goto(`/reviews/${review.id}`);
-        await headerButton(page, 'Delete review').click();
+        await chooseReviewAction(page, 'Delete review');
         await captureScreen('Delete review', dialog(page).locator('button[type="submit"]'));
 
         await page.goto(`/reviews/${review.id}`);
-        await headerButton(page, 'Carry over requests').click();
+        await chooseReviewAction(page, 'Carry over requests');
         await dialog(page).locator('select[name="fromReviewId"]').selectOption({ label: source.review.title });
         await captureScreen('Carry over', dialog(page).locator('select[name="fromReviewId"]'));
 

@@ -1,5 +1,5 @@
-import { Button, Dialog, type DialogButtonProps, FormControl, Select, Spinner } from '@primer/react';
-import { type RefObject, useEffect, useId, useRef, useState } from 'react';
+import { Dialog, type DialogButtonProps, FormControl, Select, Spinner } from '@primer/react';
+import { type RefObject, useEffect, useId } from 'react';
 import { useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
 import type { CarryOverResult } from '../api/types/carry-over-result';
@@ -12,33 +12,17 @@ import { CarryOverPanel } from './CarryOverPanel';
 
 const TITLE = 'Carry over requests';
 
-/**
- * V15 into this review. The review layout renders it only while the review is open.
- */
-export function CarryOverDialog({ review }: { review: Review }) {
-    const [open, setOpen] = useState(false);
-    const openButton = useRef<HTMLButtonElement>(null);
-
-    return (
-        <>
-            <Button ref={openButton} onClick={() => setOpen(true)}>
-                {TITLE}
-            </Button>
-            {open && <OpenDialog review={review} returnFocusRef={openButton} onClose={() => setOpen(false)} />}
-        </>
-    );
-}
-
-type OpenDialogProps = {
+type Props = {
     review: Review;
-    returnFocusRef: RefObject<HTMLButtonElement | null>;
+    returnFocusRef: RefObject<HTMLElement | null>;
     onClose(): void;
 };
 
 /**
- * The fetchers live only while the dialog is open, so each opening loads the reviews again and starts with the form.
+ * V15 into this review. The fetchers live only while the dialog is open, so each opening loads the reviews again and
+ * starts with the form.
  */
-function OpenDialog({ review, returnFocusRef, onClose }: OpenDialogProps) {
+export function CarryOverDialog({ review, returnFocusRef, onClose }: Props) {
     const sources = useFetcher<CarryOverSources>();
     const carry = useFetcher<ActionResult | CarryOverResult>();
     const submitOnce = useSubmitOnce(carry.submit);

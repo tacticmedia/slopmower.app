@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 import { newId } from './support/builders';
 import { FakeRepositories } from './support/fakeRepositories';
 import { apiError, type MockApi } from './support/mockApi';
+import { chooseReviewAction, reviewActions } from './support/reviewHeader';
 import { expect, test } from './support/test';
 
 const REVIEW_LIST = '[data-testid="review-list"]';
@@ -24,12 +25,14 @@ function reviewTitles(page: Page) {
     return page.locator(`${REVIEW_LIST} tbody th`);
 }
 
-function closeButton(page: Page) {
-    return page.locator('header').getByRole('button', { name: 'Close review' });
+async function openAgentPrompts(page: Page) {
+    await page.locator('header').getByRole('button', { name: 'Agent prompts', exact: true }).click();
+
+    return page.getByRole('dialog', { name: 'Agent prompts' });
 }
 
 test.describe('ReviewLifecycle', () => {
-    test('The review page shows the review ID and the prompt snippets', async ({ page, api }) => {
+    test('Agent prompts shows the review ID and the prompt snippets', async ({ page, api }) => {
         const repository = new FakeRepositories(api).addLocal('e2e-lifecycle');
         await page.goto(`/repositories/${repository.id}`);
         await expect(page.locator(`${START_FORM} input[name="ref"]`)).toHaveValue('main');
@@ -38,24 +41,29 @@ test.describe('ReviewLifecycle', () => {
 
         await expect(page).toHaveURL(/\/reviews\/[0-9A-HJKMNP-TV-Z]{26}$/);
         const reviewId = new URL(page.url()).pathname.split('/').at(-1) ?? '';
-        await expect(page.locator('[data-testid="review-id"]')).toHaveText(reviewId);
-        await expect(page.locator('[data-testid="agent-prompt"]')).toHaveText(`Work on Slopmower review ${reviewId}`);
-        await expect(page.locator('[data-testid="suggestion-prompt"]')).toHaveText(`Review the code of Slopmower review ${reviewId} and suggest changes`);
+        const prompts = await openAgentPrompts(page);
+        await expect(prompts.locator('[data-testid="review-id"]')).toHaveText(reviewId);
+        await expect(prompts.locator('[data-testid="agent-prompt"]')).toHaveText(`Work on Slopmower review ${reviewId}`);
+        await expect(prompts.locator('[data-testid="suggestion-prompt"]')).toHaveText(`Review the code of Slopmower review ${reviewId} and suggest changes`);
         expect(api.bodies('POST', START)).toEqual([{ ref: 'main', title: null }]);
     });
 
-    test('The copy button shows Copied', async ({ page, api }) => {
+    test('The copy buttons of Agent prompts copy the review ID and both prompts', async ({ page, api }) => {
         const repositories = new FakeRepositories(api);
         const review = repositories.addReview(repositories.addLocal('e2e-lifecycle'), { review: { title: 'Copy review' } });
         // A Playwright context denies clipboard writes by default.
         await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
         await page.goto(`/reviews/${review.id}`);
-        const copyButton = page.locator('[data-testid="review-id"] + * button');
+        const prompts = await openAgentPrompts(page);
+        const copies = { 'review-id': review.id, 'agent-prompt': `Work on Slopmower review ${review.id}`, 'suggestion-prompt': `Review the code of Slopmower review ${review.id} and suggest changes` };
 
-        await copyButton.click();
+        for (const [testId, copied] of Object.entries(copies)) {
+            const copyButton = prompts.locator(`[data-testid="${testId}"] + * button`);
+            await copyButton.click();
 
-        await expect(copyButton).toContainText('Copied');
-        expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(review.id);
+            await expect(copyButton).toContainText('Copied');
+            expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(copied);
+        }
     });
 
     test('Two open reviews of one repository are listed', async ({ page, api }) => {
@@ -76,12 +84,14 @@ test.describe('ReviewLifecycle', () => {
         const review = repositories.addReview(repository, { review: { title: 'Closing review' } });
         await page.goto(`/reviews/${review.id}`);
 
-        await closeButton(page).click();
+        await chooseReviewAction(page, 'Close review');
         await page.locator('[role="dialog"] textarea[name="note"]').fill('Shipped in 2.4');
         await page.locator('[role="dialog"] button[type="submit"]').click();
 
         await expect(page.locator('[data-testid="review-closed"]')).toContainText('Shipped in 2.4');
-        await expect(closeButton(page)).toHaveCount(0);
+        await reviewActions(page).click();
+        await expect(page.getByRole('menuitem')).toHaveText(['Delete review']);
+        await page.keyboard.press('Escape');
         expect(api.bodies('POST', CLOSE)).toEqual([{ note: 'Shipped in 2.4' }]);
 
         await page.locator(`header a[href="/repositories/${repository.id}"]`).click();
@@ -110,7 +120,7 @@ test.describe('ReviewLifecycle', () => {
         const review = repositories.addReview(repositories.addLocal('e2e-lifecycle'));
         const release = hold(api, 'POST', CLOSE);
         await page.goto(`/reviews/${review.id}`);
-        await closeButton(page).click();
+        await chooseReviewAction(page, 'Close review');
         const dialog = page.getByRole('dialog');
 
         await dialog.locator('button[type="submit"]').dblclick();

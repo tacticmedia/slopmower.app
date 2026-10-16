@@ -61,7 +61,7 @@ Other agents that read Agent Skills from another directory need the file in that
 ## 5. Give your agent a review
 
 1. Open the review in Slopmower.
-2. In the review header, click **Copy prompt** next to the agent prompt. The prompt contains the review ID, for example:
+2. In the review header, click **Agent prompts**, then **Copy prompt** next to the agent prompt. The prompt contains the review ID, for example:
 
    ```text
    Work on Slopmower review 01K6B3A1B2C3D4E5F6G7H8J9KM
@@ -71,13 +71,13 @@ Other agents that read Agent Skills from another directory need the file in that
 
 The agent then lists the requests that wait for it, asks questions, and works on the requests. If you give no review ID and several reviews are open, the agent asks you which review to use.
 
-To let the agent review the code and suggest changes, copy the second prompt of the review header:
+To let the agent review the code and suggest changes, copy the review prompt of **Agent prompts**:
 
 ```text
 Review the code of Slopmower review 01K6B3A1B2C3D4E5F6G7H8J9KM and suggest changes
 ```
 
-The agent changes no code. It opens one suggestion per finding, and you accept or dismiss each one in Slopmower. The first prompt then lets the agent work on the accepted suggestions. See "Agent suggestions" in [Reviewing](reviewing.md).
+The agent changes no code. It opens one suggestion per finding, and you accept or dismiss each one in Slopmower. The agent prompt then lets the agent work on the accepted suggestions. See "Agent suggestions" in [Reviewing](reviewing.md).
 
 To let the agent keep watching the review for your replies, ask it to do so. In Claude Code you can use the `/loop` command.
 

@@ -18,14 +18,13 @@ function percentDone(index: IndexStatus): number {
     return null === index.filesTotal || 0 === index.filesTotal ? 0 : Math.floor((index.filesDone * 100) / index.filesTotal);
 }
 
-/** The review layout revalidates on `index` live updates, so `index` comes fresh from the review loader. */
+/**
+ * Only a running or failed index shows. The review layout revalidates on `index` live updates, so `index` comes fresh
+ * from the review loader.
+ */
 export function IndexProgress({ index }: { index: IndexStatus }) {
     if ('ready' === index.state) {
-        return (
-            <span className={styles.done} data-testid="index-progress" data-state={index.state}>
-                Symbol index ready: {count.format(index.filesTotal ?? 0)} files, {count.format(index.symbolsTotal)} symbols
-            </span>
-        );
+        return null;
     }
 
     if ('failed' === index.state) {

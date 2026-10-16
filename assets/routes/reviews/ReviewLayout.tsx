@@ -3,14 +3,11 @@ import { Banner, Heading, Link, RelativeTime, UnderlineNav } from '@primer/react
 import { Outlet, Link as RouterLink, useLoaderData, useMatch } from 'react-router';
 import type { Review } from '../../api/types/review';
 import { useDocumentTitle } from '../../layout/useDocumentTitle';
-import { AgentPromptSnippet } from '../../review/AgentPromptSnippet';
-import { CarryOverDialog } from '../../review/CarryOverDialog';
-import { CloseReviewDialog } from '../../review/CloseReviewDialog';
-import { DeleteReviewDialog } from '../../review/DeleteReviewDialog';
+import { AgentPromptsOverlay } from '../../review/AgentPromptsOverlay';
 import { FinishReviewOverlay } from '../../review/FinishReviewOverlay';
 import { IndexProgress } from '../../review/IndexProgress';
 import { QuickOpen } from '../../review/QuickOpen';
-import { ReviewIdCopy } from '../../review/ReviewIdCopy';
+import { ReviewActionsMenu } from '../../review/ReviewActionsMenu';
 import { shortSha } from '../../review/shortSha';
 import styles from './ReviewLayout.module.css';
 import type { ReviewData } from './reviewData';
@@ -75,15 +72,10 @@ export function ReviewLayout() {
                     </div>
                     <div className={styles.reviewActions}>
                         <QuickOpen reviewId={review.id} indexState={review.index.state} />
+                        <AgentPromptsOverlay reviewId={review.id} />
                         {'open' === review.state && drafts.length > 0 && <FinishReviewOverlay draftCount={drafts.length} />}
-                        {'open' === review.state && <CarryOverDialog review={review} />}
-                        {'open' === review.state && <CloseReviewDialog draftCount={drafts.length} />}
-                        <DeleteReviewDialog repositoryId={review.repositoryId} />
+                        <ReviewActionsMenu review={review} draftCount={drafts.length} />
                     </div>
-                </div>
-                <div className={styles.agent}>
-                    <ReviewIdCopy reviewId={review.id} />
-                    <AgentPromptSnippet reviewId={review.id} />
                 </div>
                 <IndexProgress index={review.index} />
                 <ReviewNavigation review={review} />

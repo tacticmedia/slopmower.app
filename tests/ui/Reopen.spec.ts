@@ -35,7 +35,7 @@ test.describe('Reopen', () => {
         const rows = page.locator(REQUEST_ROWS);
         await expect(rows).toHaveCount(2);
 
-        await page.locator('[data-testid="request-filters"] input[type="checkbox"]').first().click();
+        await page.locator('[data-testid="request-filters"]').getByRole('button', { name: 'Waiting for you', exact: true }).click();
 
         await expect(rows).toHaveCount(1);
         await expect(page).toHaveURL(/awaiting=user/);
