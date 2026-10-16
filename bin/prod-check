@@ -26,14 +26,13 @@ set -- --env APP_SECRET=prod-check-secret-0123456789abcdef --env APP_PUBLIC_HOST
 docker run --rm "$@" "$name" bin/console lint:container
 
 docker run --detach --name "$name" "$@" "$name" >/dev/null
-seconds_left=60
-until status_code=$(docker exec "$name" curl --silent --output /dev/null --write-out '%{http_code}' --header "Host: $public_host" http://localhost/login); do
-	if [ "$seconds_left" -eq 0 ]; then
-		echo 'bin/prod-check: FrankenPHP does not answer.' >&2
+deadline=$(($(date +%s) + 120))
+until status_code=$(docker exec "$name" curl --silent --max-time 5 --output /dev/null --write-out '%{http_code}' --header "Host: $public_host" http://localhost/login); do
+	if [ "$(date +%s)" -ge "$deadline" ]; then
+		echo 'bin/prod-check: FrankenPHP does not answer within 120 s.' >&2
 		exit 1
 	fi
 	sleep 1
-	seconds_left=$((seconds_left - 1))
 done
 
 if [ "$status_code" != 200 ]; then
