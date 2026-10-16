@@ -71,7 +71,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F53 | [Worker and MCP diagnostics](F53-worker-and-mcp-diagnostics.md) | Done 2026-10-16, [report](reports/F53.md) | c0e9512 | src 495 PHP / 33577 lines, 495 types; tests 332 PHP / 30528 lines; assets 165 TS / 9670 lines; check 4m53s |
 | F54 | [Pull request state after a late permission](F54-pull-request-state-after-a-late-permission.md) | Done 2026-10-16, [report](reports/F54.md) | a6a201a | src 494 PHP / 33541 lines, 494 types; tests 331 PHP / 30468 lines; assets 165 TS / 9670 lines; check 4m57s |
 | F55 | [Flaky tests under load](F55-flaky-tests-under-load.md) | Done 2026-10-16, [report](reports/F55.md) | 8ec7301 | src 495 PHP / 33577 lines, 495 types; tests 332 PHP / 30529 lines; assets 165 TS / 9683 lines; check 4m32s |
-| F56 | [Known issues of F54](F56-known-issues-of-f54.md) | Planned (2026-10-16) | | |
+| F56 | [Known issues of F54](F56-known-issues-of-f54.md) | Done 2026-10-16, [report](reports/F56.md) | | src 496 PHP / 33658 lines, 496 types; tests 333 PHP / 30626 lines; assets 165 TS / 9683 lines |
 | F57 | [Visual review with qa-bundle](F57-visual-review-with-qa-bundle.md) | Planned (2026-10-16) | | |
 | F58 | [Request title and description](F58-request-title-and-description.md) | Planned (2026-10-16) | | |
 | F59 | [Request detail like a GitHub issue](F59-request-detail-like-a-github-issue.md) | Planned (2026-10-16) | | |
@@ -136,6 +136,7 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **Edit a suggestion before accepting.** The user replies in the thread instead. From F48.
 - **MCP triage tools.** Tools to accept or dismiss a suggestion or to close a review. Verify and reopen have none either. From F48.
 - **Demo fixture set for qa-bundle screenshots.** A Foundry story `demo` with the data of every view, for screenshots of each page with tacticmedia/qa-bundle. It writes reviews and requests through `ReviewCommands` and `RequestCommands`, from the `RequestScenario` states and the `acme/billing` story of `docs/specs/README.md`. From F49.
+- **Pull request states after a missed unsuspend.** A sign-in whose listing clears a stored suspension, because the `unsuspend` delivery never arrived, queues no reads, so the linked records stay stale until a push. `InstallationSync` could queue the F56 unsuspend refresh for each installation whose `suspendedAt` it clears. From the F56 report.
 - **Request numbers per review.** GitHub shows `#N` next to each issue title and in the issue header. A request has only its ULID. A number per review, set when the request opens, would give a short name for lists, links, and the agent prompt. From the F58 to F60 planning.
 - **Journeys of the Twig pages.** The F57 journeys run against the mocked SPA, so the sign-in page, the public docs, and the legal pages have no captures. A full-stack journey with the `PlaywrightJourneyScreenshots` trait of qa-bundle on `FullStackTestCase` would capture them. From the F57 planning.
 - **Test helpers on Foundry factories.** `TenantFixtures`, `ApiFixtures::storeToken()`, and `ApiFixtures::storeRepository()` in `tests/Support/` could use the factories of F49. From F49.

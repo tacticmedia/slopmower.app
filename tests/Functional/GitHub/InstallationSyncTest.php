@@ -12,6 +12,7 @@ use App\Domain\Repository\SyncState;
 use App\Entity\Repository;
 use App\Entity\User;
 use App\Git\TenantDataPaths;
+use App\Message\CheckRunJob;
 use App\Message\DeleteCloneJob;
 use App\Repository\RepositoryRepository;
 use App\Tests\Support\Api\ApiFixtures;
@@ -22,6 +23,7 @@ use App\Tests\Support\Filesystem\TemporaryDirectories;
 use App\Tests\Support\Fixtures\TenantFixtures;
 use App\Tests\Support\GitHub\GitHubResponses;
 use App\Tests\Support\GitHub\GitHubRows;
+use App\Tests\Support\GitHub\LinkedPullRequests;
 use App\Tests\Support\GitHub\LocalGitHub;
 use App\Tests\Support\Live\PublishedUpdates;
 use App\Tests\Support\Messenger\QueuedMessages;
@@ -45,6 +47,7 @@ final class InstallationSyncTest extends WebTestCase
     use EnvironmentVariables;
     use GitHubRows;
     use JsonApiAssertions;
+    use LinkedPullRequests;
     use LocalGitHub;
     use PublishedUpdates;
     use QueuedMessages;
@@ -236,6 +239,38 @@ final class InstallationSyncTest extends WebTestCase
         yield 'failed' => [GitHubResponses::FAILED_LISTING_ACCESS_TOKEN];
         yield 'partial' => [GitHubResponses::PARTIAL_LISTING_ACCESS_TOKEN];
         yield 'malformed' => [GitHubResponses::MALFORMED_LISTING_ACCESS_TOKEN];
+    }
+
+    #[TestDox('A sign-in whose listing adds Pull requests: read queues the read of each linked pull request without a read state')]
+    public function testListingThatAddsPullRequestsReadQueuesReads(): void
+    {
+        $user = self::linkPullRequests(self::CONTENTS)[0];
+
+        self::sync($user, GitHubResponses::PULL_REQUESTS_LISTING_ACCESS_TOKEN);
+
+        self::assertSame([42, 44], self::queuedReads());
+        self::assertSame([], self::queued(CheckRunJob::class));
+    }
+
+    #[TestDox('A sign-in whose listing adds Checks: write also queues the check run of each record of a linked pull request')]
+    public function testListingThatAddsChecksWriteQueuesCheckRuns(): void
+    {
+        [$user, $recordIds] = self::linkPullRequests(self::PULL_REQUESTS);
+
+        self::sync($user, GitHubResponses::CHECKS_LISTING_ACCESS_TOKEN);
+
+        self::assertEqualsCanonicalizing($recordIds, array_map(static fn (CheckRunJob $job): string => $job->pullRequestId->toString(), self::queued(CheckRunJob::class)));
+        self::assertSame([42, 44], self::queuedReads());
+    }
+
+    #[TestDox('A sign-in with unchanged permissions queues nothing')]
+    public function testUnchangedPermissionsQueueNothing(): void
+    {
+        $user = self::linkPullRequests(self::CHECKS)[0];
+
+        self::sync($user, GitHubResponses::CHECKS_LISTING_ACCESS_TOKEN);
+
+        self::assertSame([], self::asyncTransport()->getSent());
     }
 
     #[TestDox('R2 lists the GitHub candidates with githubListedAt')]

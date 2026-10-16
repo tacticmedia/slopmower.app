@@ -6,12 +6,10 @@ namespace App\MessageHandler;
 
 use App\Application\FetchRepository;
 use App\Application\GitHubRepositoriesLock;
-use App\Application\QueueCheckRun;
+use App\Application\QueuePullRequestRefresh;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Identity\TenantId;
-use App\Domain\Repository\RepositoryAccess;
 use App\Domain\Repository\RepositoryName;
-use App\Domain\Request\PullRequestState;
 use App\Entity\GitHubCandidate;
 use App\Entity\GitHubInstallation;
 use App\GitHub\GitHubRequestFailed;
@@ -25,18 +23,14 @@ use App\Message\GitHubInstallationPermissionsJob;
 use App\Message\GitHubInstallationSuspensionJob;
 use App\Message\GitHubRepositoriesAddedJob;
 use App\Message\GitHubRepositoriesRemovedJob;
-use App\Message\ReadPullRequestJob;
-use App\Repository\ChangeRequestRepository;
 use App\Repository\GitHubCandidateRepository;
 use App\Repository\GitHubInstallationRepository;
-use App\Repository\PullRequestRepository;
 use App\Repository\RepositoryRepository;
 use App\Tenancy\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Serializer\Exception\ExceptionInterface as SerializerException;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface as HttpClientException;
@@ -58,11 +52,8 @@ final class GitHubInstallationHandler
         private readonly GitHubInstallationRepository $installations,
         private readonly GitHubCandidateRepository $candidates,
         private readonly RepositoryRepository $repositories,
-        private readonly ChangeRequestRepository $requests,
-        private readonly PullRequestRepository $pullRequests,
         private readonly FetchRepository $fetchRepository,
-        private readonly QueueCheckRun $queueCheckRun,
-        private readonly MessageBusInterface $bus,
+        private readonly QueuePullRequestRefresh $queuePullRequestRefresh,
         private readonly TenantContext $tenantContext,
         private readonly GitHubRepositoriesLock $repositoriesLock,
         private readonly LivePublisher $publisher,
@@ -123,17 +114,26 @@ final class GitHubInstallationHandler
         $this->publishCandidatesChanged($tenantId);
     }
 
+    /**
+     * A suspended installation gets no webhook events, so an unsuspend reads every linked pull request again.
+     */
     #[AsMessageHandler]
     public function handleSuspension(GitHubInstallationSuspensionJob $job): void
     {
-        $this->repositoriesLock->run($this->tenantContext->get(), function () use ($job): void {
-            $this->installations->findOneBy(['installationId' => $job->installationId])?->recordSuspension($job->suspendedAt);
+        $recorded = $this->repositoriesLock->run($this->tenantContext->get(), function () use ($job): bool {
+            $installation = $this->installations->findOneBy(['installationId' => $job->installationId]);
+            $installation?->recordSuspension($job->suspendedAt);
+
+            return null !== $installation;
         });
+
+        if (true === $recorded && null === $job->suspendedAt) {
+            $this->queuePullRequestRefresh->ofInstallation($job->installationId, readEvery: true, checkRuns: true);
+        }
     }
 
     /**
-     * Queues the jobs that the missing permission skipped, after the commit. Either new permission queues the reads,
-     * because a read that sets the head SHA queues the check run, see {@see PullRequestStateHandler::record()}.
+     * Either new permission queues the reads, because a read that sets the head SHA queues the check run.
      */
     #[AsMessageHandler]
     public function handlePermissions(GitHubInstallationPermissionsJob $job): void
@@ -156,25 +156,8 @@ final class GitHubInstallationHandler
         });
         [$readAdded, $checksAdded] = $added ?? [false, false];
 
-        if (!$readAdded && !$checksAdded) {
-            return;
-        }
-
-        foreach ($this->repositories->findBy(['githubInstallationId' => $job->installationId, 'access' => RepositoryAccess::Active]) as $repository) {
-            $numbers = $this->requests->findLinkedPullRequestNumbers($repository->getId());
-            $records = $this->pullRequests->findOfRepository($repository->getId(), $numbers);
-
-            foreach ($numbers as $number) {
-                $record = $records[$number] ?? null;
-
-                if (null === $record || PullRequestState::Unknown === $record->shownState()) {
-                    $this->bus->dispatch(new ReadPullRequestJob($repository->getId(), $number));
-                }
-
-                if ($checksAdded && null !== $record) {
-                    $this->queueCheckRun->request($record->getId());
-                }
-            }
+        if ($readAdded || $checksAdded) {
+            $this->queuePullRequestRefresh->ofInstallation($job->installationId, readEvery: false, checkRuns: $checksAdded);
         }
     }
 

@@ -68,6 +68,11 @@ class GitHubInstallation implements TenantOwned
         return $this->tenantId;
     }
 
+    public function getInstallationId(): int
+    {
+        return $this->installationId;
+    }
+
     public function getAccountId(): ?int
     {
         return $this->accountId;

@@ -30,6 +30,10 @@ final class GitHubResponses
     public const string FAILED_LISTING_ACCESS_TOKEN = 'ghu_failedListingToken';
     /** The installation listing of ACCESS_TOKEN, whose acme repository has no default branch. */
     public const string MALFORMED_LISTING_ACCESS_TOKEN = 'ghu_malformedListingToken';
+    /** The installation listing of ACCESS_TOKEN, whose acme installation also accepted `pull_requests: read`. */
+    public const string PULL_REQUESTS_LISTING_ACCESS_TOKEN = 'ghu_pullRequestsListingToken';
+    /** The installation listing of ACCESS_TOKEN, whose acme installation also accepted `pull_requests: read` and `checks: write`. */
+    public const string CHECKS_LISTING_ACCESS_TOKEN = 'ghu_checksListingToken';
 
     /** The token in installation-token.json, with `contents: read`. */
     public const string INSTALLATION_TOKEN = 'ghs_16C7e42F292c6912E7710c838347Ae178B4a';
@@ -92,6 +96,8 @@ final class GitHubResponses
         ] + self::LISTING,
         self::FAILED_LISTING_ACCESS_TOKEN => ['user/installations?per_page=100' => 'server-error'],
         self::MALFORMED_LISTING_ACCESS_TOKEN => ['user/installations/5551/repositories?per_page=100' => 'installation-5551-repositories-malformed'] + self::LISTING,
+        self::PULL_REQUESTS_LISTING_ACCESS_TOKEN => ['user/installations?per_page=100' => 'user-installations-pull-requests'] + self::LISTING,
+        self::CHECKS_LISTING_ACCESS_TOKEN => ['user/installations?per_page=100' => 'user-installations-checks'] + self::LISTING,
     ];
 
     /** @var list<array{string, string, array<mixed>}> Method, path below the API, and JSON body */

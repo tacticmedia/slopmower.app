@@ -55,6 +55,7 @@ final class InstallationSync
         private readonly GitHubInstallationRepository $installations,
         private readonly RepositoryRepository $repositories,
         private readonly FetchRepository $fetchRepository,
+        private readonly QueuePullRequestRefresh $queuePullRequestRefresh,
         private readonly TenantContext $tenantContext,
         private readonly GitHubRepositoriesLock $repositoriesLock,
         private readonly MarketplaceSync $marketplace,
@@ -77,8 +78,10 @@ final class InstallationSync
 
     /**
      * Replaces the installations and candidates of the tenant. A connected repository that the listing lacks loses its
-     * access, and one that lost it earlier loses a clone that is left. A failed or partial listing, and a tenant that is
-     * being deleted, change nothing. Then reads the Marketplace plans of the user account and the installation accounts.
+     * access, and one that lost it earlier loses a clone that is left. An installation whose listing adds Pull requests:
+     * read or Checks: write queues the jobs of {@see \App\MessageHandler\GitHubInstallationHandler::handlePermissions()}.
+     * A failed or partial listing, and a tenant that is being deleted, change nothing. Then reads the Marketplace plans of
+     * the user account and the installation accounts.
      */
     public function sync(User $user, #[\SensitiveParameter] string $userToken): void
     {
@@ -94,7 +97,7 @@ final class InstallationSync
 
         // The firewall authenticates before TenantContextListener runs.
         $this->tenantContext->set($tenantId);
-        [$lostAccess, $removedEarlier, $renamed] = $this->repositoriesLock->run($tenantId, fn (): array => $this->record($installations, $candidates)) ?? [[], [], []];
+        [$lostAccess, $removedEarlier, $renamed, $checksAddedByInstallation] = $this->repositoriesLock->run($tenantId, fn (): array => $this->record($installations, $candidates)) ?? [[], [], [], []];
 
         foreach ($lostAccess as $repository) {
             $this->fetchRepository->removeAccess($repository);
@@ -106,6 +109,10 @@ final class InstallationSync
 
         foreach ($renamed as $repository) {
             $this->dispatcher->dispatch(new RepositoryChanged($tenantId, $repository->getId()));
+        }
+
+        foreach ($checksAddedByInstallation as $installationId => $checksAdded) {
+            $this->queuePullRequestRefresh->ofInstallation($installationId, readEvery: false, checkRuns: $checksAdded);
         }
 
         $accountIds = [$user->getGithubUserId(), ...array_map(static fn (GitHubInstallation $installation): ?int => $installation->getAccountId(), $installations)];
@@ -132,10 +139,11 @@ final class InstallationSync
      * @param list<GitHubInstallation> $installations
      * @param list<GitHubCandidate>    $candidates
      *
-     * @return array{list<Repository>, list<Repository>, list<Repository>} The active and removed repositories that the listing lacks, and the renamed ones
+     * @return array{list<Repository>, list<Repository>, list<Repository>, array<int, bool>} The active and removed repositories that the listing lacks, the renamed ones, and {@see self::addedPermissions()}
      */
     private function record(array $installations, array $candidates): array
     {
+        $checksAddedByInstallation = self::addedPermissions($this->installations->findAll(), $installations);
         $this->candidates->deleteAll();
         $this->installations->deleteAll();
         $candidatesById = [];
@@ -177,7 +185,39 @@ final class InstallationSync
 
         $this->entityManager->flush();
 
-        return [$lostAccess, $removedEarlier, $renamed];
+        return [$lostAccess, $removedEarlier, $renamed, $checksAddedByInstallation];
+    }
+
+    /**
+     * An installation without a row had no permissions.
+     *
+     * @param list<GitHubInstallation> $stored
+     * @param list<GitHubInstallation> $listed
+     *
+     * @return array<int, bool> Whether Checks: write is new, by the ID of each listed installation that adds Pull
+     *                          requests: read or Checks: write
+     */
+    private static function addedPermissions(array $stored, array $listed): array
+    {
+        $storedById = [];
+
+        foreach ($stored as $installation) {
+            $storedById[$installation->getInstallationId()] = $installation;
+        }
+
+        $checksAddedByInstallation = [];
+
+        foreach ($listed as $installation) {
+            $before = $storedById[$installation->getInstallationId()] ?? null;
+            $readAdded = !($before?->accepts(InstallationTokenProvider::PULL_REQUESTS_READ) ?? false) && $installation->accepts(InstallationTokenProvider::PULL_REQUESTS_READ);
+            $checksAdded = !($before?->accepts(InstallationTokenProvider::CHECKS_WRITE) ?? false) && $installation->accepts(InstallationTokenProvider::CHECKS_WRITE);
+
+            if ($readAdded || $checksAdded) {
+                $checksAddedByInstallation[$installation->getInstallationId()] = $checksAdded;
+            }
+        }
+
+        return $checksAddedByInstallation;
     }
 
     /**
