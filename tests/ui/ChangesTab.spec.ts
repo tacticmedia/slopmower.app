@@ -5,7 +5,7 @@ import { addedFile, commitDiff, commitLink, modifiedFile, sha1 } from './support
 import { FakeReview } from './support/fakeReview';
 import { SMALL_FILE, SMALL_FILE_TEXT } from './support/files';
 import { apiError, json, type MockApi, text } from './support/mockApi';
-import { openRequest } from './support/requestScreens';
+import { DETAIL_SIDEBAR, openRequest } from './support/requestScreens';
 import { expect, test } from './support/test';
 
 const BLOBS = '/api/v1/repositories/:repositoryId/blobs/:blobSha';
@@ -48,6 +48,15 @@ function fileDiff(page: Page, path: string): Locator {
 
 function blobReads(api: MockApi): string[] {
     return api.callsTo('GET', BLOBS).map(({ params }) => params.blobSha ?? '');
+}
+
+async function width(locator: Locator): Promise<number> {
+    const found = await locator.boundingBox();
+    if (null === found) {
+        throw new Error(`${locator} is not visible.`);
+    }
+
+    return found.width;
 }
 
 test.describe('ChangesTab', () => {
@@ -145,5 +154,24 @@ test.describe('ChangesTab', () => {
         expect(blobReads(api)).not.toContain(sha1(chapters.at(-1)?.content ?? ''));
         await last.scrollIntoViewIfNeeded();
         await expect(last.locator(DIFF_LINE).first()).toBeAttached();
+    });
+
+    test('At 1600 px the Changes tab spans the window without the sidebar, and the Conversation tab stays 1280 px wide with it', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        const request = review.seedLines(SMALL_FILE, 9, 12, 'Extract the tax calculation.');
+        const extract = commitLink(sha1('Extract tax()'), 'Extract tax()');
+        linkCommits(api, review, request.id, [[extract, [modifiedFile(SMALL_FILE, SMALL_FILE_TEXT, EXTRACTED, true)]]], [SMALL_FILE_TEXT, EXTRACTED]);
+        await page.setViewportSize({ width: 1600, height: 900 });
+        await openRequest(page, request.id);
+
+        expect(await width(page.getByRole('main'))).toBeLessThanOrEqual(1280);
+        await expect(page.locator(DETAIL_SIDEBAR)).toBeVisible();
+
+        await page.locator('nav[aria-label="Request"] a').filter({ hasText: 'Changes' }).click();
+
+        const section = page.locator('[data-testid="commit-changes"]');
+        await expect(section).toBeVisible();
+        expect(await width(section)).toBeGreaterThan(1280);
+        await expect(page.locator(DETAIL_SIDEBAR)).toBeHidden();
     });
 });

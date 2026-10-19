@@ -36,7 +36,7 @@ export function RequestDetail() {
     }
 
     return (
-        <article className={styles.page} data-testid="request-detail" data-request-id={request.id}>
+        <article className={styles.page} data-testid="request-detail" data-request-id={request.id} data-full-width={onChanges ? '' : undefined}>
             <header className={styles.header}>
                 <Link as={RouterLink} to={`/reviews/${request.reviewId}/requests`} className={styles.back}>
                     Requests of this review

@@ -90,7 +90,7 @@ Below the header, a bar holds the buttons that change the request, for example *
 
 One line below the bar tells you what happens next, for example "The agent finished. Check the changes, then resolve the conversation or reopen it." When it is your turn, the line is highlighted.
 
-The sidebar is at the right of the conversation. On a narrow screen, it is above the conversation.
+The sidebar is at the right of the conversation. On a narrow screen, it is above the conversation. The **Changes** tab uses the full width of the window. On a wide screen, it has no sidebar.
 
 | Section | Content |
 |---|---|

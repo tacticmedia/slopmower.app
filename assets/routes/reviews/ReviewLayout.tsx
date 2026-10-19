@@ -57,7 +57,7 @@ export function ReviewLayout() {
     useDocumentTitle(review.title);
 
     return (
-        <div className={styles.page} data-code-browser={codeBrowser ? '' : undefined}>
+        <div className={styles.page} data-code-browser={codeBrowser ? '' : undefined} data-full-width={codeBrowser ? '' : undefined}>
             <header className={styles.header}>
                 <div className={styles.titleRow}>
                     <div className={styles.titleText}>

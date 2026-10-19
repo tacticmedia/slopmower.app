@@ -71,4 +71,16 @@
         grid-area: sidebar;
         align-self: start;
     }
+
+    /* The Changes tab has no sidebar, as "Files changed" on GitHub. */
+    .page[data-full-width] .layout {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            'tabs'
+            'main';
+    }
+
+    .page[data-full-width] .sidebar {
+        display: none;
+    }
 }
