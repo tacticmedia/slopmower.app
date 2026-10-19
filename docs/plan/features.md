@@ -84,7 +84,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F66 | [Local directories only when on](F66-local-directories-only-when-on.md) | Done 2026-10-19, [report](reports/F66.md) | 23b7307 | src 503 PHP / 34149 lines, 503 types; tests 336 PHP / 31279 lines; assets 178 TS / 10372 lines; check 4m55s |
 | F67 | [Full-width Changes tab](F67-full-width-changes-tab.md) | Done 2026-10-19, [report](reports/F67.md) | ece7364 | src 503 PHP / 34149 lines, 503 types; tests 336 PHP / 31279 lines; assets 178 TS / 10372 lines; check 5m12s |
 | F68 | [Latest commits on the repository page](F68-latest-commits-on-the-repository-page.md) | Done 2026-10-19, [report](reports/F68.md) | a2b2f6f | src 503 PHP / 34149 lines, 503 types; tests 336 PHP / 31279 lines; assets 178 TS / 10380 lines; check 5m17s |
-| F69 | [Onboarding](F69-onboarding.md) | Planned (2026-10-19) | | |
+| F69 | [Onboarding](F69-onboarding.md) | Done 2026-10-19, [report](reports/F69.md) | cce5734 | src 506 PHP / 34255 lines, 506 types; tests 337 PHP / 31428 lines; assets 184 TS / 11070 lines |
 | F70 | [Review tour](F70-review-tour.md) | Done 2026-10-19, [report](reports/F70.md) | 2f98e6d | src 506 PHP / 34255 lines, 506 types; tests 337 PHP / 31430 lines; assets 183 TS / 10830 lines |
 | F71 | [Help center](F71-help-center.md) | Planned (2026-10-19) | | |
 
