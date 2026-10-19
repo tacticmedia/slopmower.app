@@ -59,6 +59,12 @@ final class SkillMatchesToolsTest extends WebTestCase
         self::assertSame([], array_values(array_diff($skillCodes, $documented)));
     }
 
+    #[TestDox('The skill of this repository equals docs/user/skill/SKILL.md')]
+    public function testProjectSkillEqualsThePublicSkill(): void
+    {
+        self::assertSame(self::skill(), (string) file_get_contents(dirname(__DIR__, 3).'/.claude/skills/slopmower/SKILL.md'));
+    }
+
     /**
      * @return list<array{name: string, inputSchema: array{properties: array<string, array<string, mixed>>, required?: list<string>}, ...}>
      */
@@ -77,10 +83,14 @@ final class SkillMatchesToolsTest extends WebTestCase
      */
     private static function tableRows(string $heading): array
     {
-        $skill = (string) file_get_contents(dirname(__DIR__, 3).'/docs/user/skill/SKILL.md');
-        self::assertSame(1, preg_match('/^'.preg_quote($heading, '/').'\n(?<section>.*?)(?=^## |\z)/ms', $skill, $match));
+        self::assertSame(1, preg_match('/^'.preg_quote($heading, '/').'\n(?<section>.*?)(?=^## |\z)/ms', self::skill(), $match));
         preg_match_all('/^\| `(?<name>[a-z_]+)` \| (?<cell>[^|]*) \|/m', $match['section'], $rows);
 
         return array_combine($rows['name'], $rows['cell']);
+    }
+
+    private static function skill(): string
+    {
+        return (string) file_get_contents(dirname(__DIR__, 3).'/docs/user/skill/SKILL.md');
     }
 }

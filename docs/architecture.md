@@ -656,9 +656,9 @@ Operator commands: rebuild projections, rebuild an index, purge a tenant. `app:s
 
 ### 7.7 Agent Skill and public documentation
 
-- The skill source is [docs/user/skill/SKILL.md](user/skill/SKILL.md). The application serves it raw at `GET /docs/skill/SKILL.md`. The developer installs it into `.claude/skills/slopmower/SKILL.md` of the reviewed repository with one `curl` command. See D9 and D28.
+- The skill source is [docs/user/skill/SKILL.md](user/skill/SKILL.md). The application serves it raw at `GET /docs/skill/SKILL.md`. The developer installs it into `.claude/skills/slopmower/SKILL.md` of the reviewed repository with one `curl` command. See D9 and D28. This repository has the same file there, and `SkillMatchesToolsTest` keeps the two equal.
 - The skill teaches the agent to identify the repository, to call `list_reviews` and ask the user when several reviews are open and none was named, to poll `get_updates(review, cursor)`, to answer or ask in threads, to claim before editing, to propose a plan first when the request asks for one, with a diff for a straightforward change, to commit per request, to link commits with the full SHA, to link a pull request only when it opened one, to push for GitHub sources, to commit on a branch for local sources, to justify every refusal with evidence, and to stop on `review_closed`. When the user asks for a code review, it teaches the agent to start a review or use the named one and to call `suggest_request` once per finding with the narrowest anchor, without editing code.
-- The public pages in `docs/user/*.md` render at `/docs/<slug>` through `twig/markdown-extra` with `league/commonmark`, configured to escape raw HTML and drop unsafe links. Slugs come from a whitelist built from the directory listing. No path comes from input.
+- The public pages in `docs/user/*.md` render at `/docs/<slug>` through `twig/markdown-extra` with `league/commonmark`, configured to escape raw HTML and drop unsafe links. Each heading gets a GitHub-style `id` and no visible permalink, so a `<slug>.md#fragment` link jumps to its heading. Slugs come from a whitelist built from the directory listing. No path comes from input.
 
 ## 8. Web UI
 

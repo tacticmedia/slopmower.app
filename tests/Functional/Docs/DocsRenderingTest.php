@@ -48,6 +48,43 @@ final class DocsRenderingTest extends WebTestCase
         self::assertSame([], array_values(array_filter($hrefs, static fn (string $href): bool => str_contains($href, '.md'))));
     }
 
+    #[TestDox('Headings get GitHub-style IDs and keep their text')]
+    public function testHeadingsGetGitHubStyleIds(): void
+    {
+        $client = static::createClient();
+
+        $crawler = $client->request('GET', '/docs/reviewing');
+
+        self::assertSame('The Slopmower check', $crawler->filter('h3#the-slopmower-check')->text());
+        self::assertSame('Ask for a plan first', $crawler->filter('h2#ask-for-a-plan-first')->text());
+    }
+
+    #[TestDox('Every link with a fragment to a page of this host points to an ID of its target page')]
+    public function testEveryFragmentLinkPointsToAnIdOfItsTargetPage(): void
+    {
+        $client = static::createClient();
+        $links = [];
+
+        foreach (self::pages() as [$path]) {
+            foreach ($client->request('GET', $path)->filter('a[href*="#"]')->extract(['href']) as $href) {
+                if (null !== parse_url($href, \PHP_URL_HOST)) {
+                    continue;
+                }
+
+                [$targetPath, $fragment] = explode('#', $href, 2);
+                $links[] = ['' === $targetPath ? $path : $targetPath, $fragment, "{$href} on {$path}"];
+            }
+        }
+
+        self::assertNotSame([], $links);
+        $idsByPath = [];
+
+        foreach ($links as [$targetPath, $fragment, $link]) {
+            $idsByPath[$targetPath] ??= $client->request('GET', $targetPath)->filter('[id]')->extract(['id']);
+            self::assertContains($fragment, $idsByPath[$targetPath], $link);
+        }
+    }
+
     #[TestDox('A docs page links the privacy policy, the terms of service, and the support page')]
     public function testPageLinksTheLegalAndSupportPages(): void
     {

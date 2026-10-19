@@ -273,6 +273,40 @@ final class InstallationSyncTest extends WebTestCase
         self::assertSame([], self::asyncTransport()->getSent());
     }
 
+    /**
+     * @param array<string, string> $storedPermissions
+     */
+    #[TestDox('A sign-in whose listing clears the suspension queues the read of each linked pull request and the check run of each record once, also when it adds a permission')]
+    #[DataProvider('permissionsOfTheSuspendedInstallation')]
+    public function testListingThatClearsTheSuspensionQueuesReadsAndCheckRuns(array $storedPermissions): void
+    {
+        [$user, $recordIds] = self::linkPullRequests($storedPermissions, new \DateTimeImmutable('2026-10-01 08:00:00'));
+
+        self::sync($user, GitHubResponses::CHECKS_LISTING_ACCESS_TOKEN);
+
+        self::assertSame([42, 43, 44], self::queuedReads());
+        self::assertEqualsCanonicalizing($recordIds, array_map(static fn (CheckRunJob $job): string => $job->pullRequestId->toString(), self::queued(CheckRunJob::class)));
+    }
+
+    /**
+     * @return iterable<string, array{array<string, string>}>
+     */
+    public static function permissionsOfTheSuspendedInstallation(): iterable
+    {
+        yield 'unchanged' => [self::CHECKS];
+        yield 'without Checks: write' => [self::PULL_REQUESTS];
+    }
+
+    #[TestDox('A sign-in whose listing keeps the suspension queues nothing')]
+    public function testListingThatKeepsTheSuspensionQueuesNothing(): void
+    {
+        $user = self::linkPullRequests(self::CHECKS, new \DateTimeImmutable('2026-10-01 08:00:00'))[0];
+
+        self::sync($user, GitHubResponses::SUSPENDED_CHECKS_LISTING_ACCESS_TOKEN);
+
+        self::assertSame([], self::asyncTransport()->getSent());
+    }
+
     #[TestDox('R2 lists the GitHub candidates with githubListedAt')]
     public function testCandidatesListTheGitHubCandidates(): void
     {

@@ -47,6 +47,8 @@ services:
     # docs/user renders as on GitHub. twig/extra-bundle adds every CommonMark extension with this tag to markdown_to_html.
     League\CommonMark\Extension\GithubFlavoredMarkdownExtension:
         tags: ['twig.markdown.league_extension']
+    League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension:
+        tags: ['twig.markdown.league_extension']
 
 when@dev:
     services:
