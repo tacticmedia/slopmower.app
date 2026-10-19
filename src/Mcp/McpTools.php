@@ -264,7 +264,7 @@ final class McpTools
     #[McpTool(
         name: 'list_requests',
         title: 'List requests',
-        description: 'List the change requests of one review, oldest first, with optional filters. Returns summaries: title is null while a request has none, and summary is the title or else the first line of the body. Call get_request for the body, thread, anchor, and location.',
+        description: 'List the change requests of one review, oldest first, with optional filters. Returns summaries: title is null while a request has none, and summary is the title or else the first line of the body as plain text. Call get_request for the body, thread, anchor, and location.',
         annotations: new ToolAnnotations(readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false),
         outputSchema: BundledSchemas::REQUEST_PAGE,
     )]

@@ -169,7 +169,7 @@ public function listReviews(#[Schema(minLength: 1, maxLength: 255)] string $repo
 - **Description:**
 
 ```text
-List the change requests of one review, oldest first, with optional filters. Returns summaries: title is null while a request has none, and summary is the title or else the first line of the body. Call get_request for the body, thread, anchor, and location.
+List the change requests of one review, oldest first, with optional filters. Returns summaries: title is null while a request has none, and summary is the title or else the first line of the body as plain text. Call get_request for the body, thread, anchor, and location.
 ```
 
 ```php

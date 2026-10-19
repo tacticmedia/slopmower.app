@@ -51,8 +51,8 @@ final class DraftVisibilityTest extends WebTestCase
 
         self::assertSame(['requests' => [], 'waiting' => [], 'reviewEvents' => ['review.started']], $before);
         self::assertSame([
-            'requests' => ['Use `Money` for totals.', 'Name this constant.'],
-            'waiting' => ['Use `Money` for totals.', 'Name this constant.'],
+            'requests' => ['Use Money for totals.', 'Name this constant.'],
+            'waiting' => ['Use Money for totals.', 'Name this constant.'],
             'reviewEvents' => ['review.started', 'batch.submitted'],
         ], $after);
     }

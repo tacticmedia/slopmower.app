@@ -105,7 +105,7 @@ function AvailableCommit({ requestId, repositoryId, commitSha, located }: { requ
             <p className={styles.note}>
                 {diff.authorName} committed <RelativeTime datetime={diff.committedAt} />
             </p>
-            {located && <LocationInfo location={diff.location} />}
+            {located && <LocationInfo location={diff.location} showPath />}
             {diff.truncated && <p className={styles.note}>Only the first {diff.files.length} changed files are shown.</p>}
             {0 === diff.files.length ? (
                 <p className={styles.note}>No file changed.</p>

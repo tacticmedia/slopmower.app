@@ -24,7 +24,7 @@
         }
       },
       "title": null,
-      "summary": "Use `Money` instead of `float` for totals.",
+      "summary": "Use Money instead of float for totals.",
       "author": {
         "kind": "user",
         "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
@@ -70,7 +70,7 @@
         "symbol": null
       },
       "title": null,
-      "summary": "Extract the tax rounding into `TaxRounding`.",
+      "summary": "Extract the tax rounding into TaxRounding.",
       "author": {
         "kind": "user",
         "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",

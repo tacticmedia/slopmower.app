@@ -2,6 +2,7 @@ import { Checkbox, FormControl, Label, Link, RelativeTime } from '@primer/react'
 import { type Column, DataTable, Table } from '@primer/react/experimental';
 import { Link as RouterLink } from 'react-router';
 import type { Review } from '../../api/types/review';
+import tableStyles from '../../layout/ScrollingTable.module.css';
 import { shortSha } from '../../review/shortSha';
 
 const COLUMNS: Column<Review>[] = [
@@ -43,7 +44,7 @@ type ReviewListProps = {
 
 export function ReviewList({ reviews, showClosed, onShowClosedChange }: ReviewListProps) {
     return (
-        <Table.Container data-testid="review-list">
+        <Table.Container data-testid="review-list" className={tableStyles.container}>
             <Table.Title as="h2" id="reviews">
                 Reviews
             </Table.Title>

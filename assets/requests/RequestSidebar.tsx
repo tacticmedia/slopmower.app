@@ -33,7 +33,7 @@ export function RequestSidebar({ request, className }: { request: ReviewRequest;
                         {anchor.symbol.fqn}
                     </code>
                 )}
-                {null !== anchor && <LocationInfo location={request.location} />}
+                {null !== anchor && <LocationInfo location={request.location} showPath={false} />}
                 <OutdatedLabel outdated={request.outdated} />
             </Section>
             <Section title="Development">

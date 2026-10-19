@@ -8,6 +8,9 @@ use App\Application\Query\RequestSummaryView;
 use App\Domain\Event\Codec\AnchorCodec;
 use App\Domain\Request\CommitLinkState;
 use App\Domain\Request\LinkedCommit;
+use League\CommonMark\GithubFlavoredMarkdownConverter;
+use League\CommonMark\MarkdownConverter;
+use League\CommonMark\Util\HtmlFilter;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareTrait;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
@@ -22,6 +25,13 @@ final class RequestSummaryNormalizer implements NormalizerInterface, NormalizerA
     private const int MAX_SUMMARY_CHARACTERS = 200;
 
     private const array ANCHOR_SUMMARY_FIELDS = ['kind' => true, 'path' => true, 'range' => true, 'symbol' => true];
+
+    private readonly MarkdownConverter $markdown;
+
+    public function __construct()
+    {
+        $this->markdown = new GithubFlavoredMarkdownConverter(['html_input' => HtmlFilter::STRIP]);
+    }
 
     /**
      * @param array<string, mixed> $context
@@ -43,7 +53,7 @@ final class RequestSummaryNormalizer implements NormalizerInterface, NormalizerA
             'closed' => $state->closed(),
             'anchor' => null === $state->anchor ? null : array_intersect_key(AnchorCodec::encode($state->anchor), self::ANCHOR_SUMMARY_FIELDS),
             'title' => $state->title,
-            'summary' => $state->title ?? self::summary($state->body),
+            'summary' => $state->title ?? $this->summary($state->body),
             'author' => $state->author,
             'claimedBy' => $state->claimedBy,
             'claimedAt' => $state->claimedAt,
@@ -78,18 +88,25 @@ final class RequestSummaryNormalizer implements NormalizerInterface, NormalizerA
     }
 
     /**
-     * The first non-blank line of the body, trimmed. A longer line is cut and ends with an ellipsis.
+     * The plain text of the first non-blank line that has plain text, else the first non-blank line.
      */
-    private static function summary(string $body): string
+    private function summary(string $body): string
     {
-        foreach (explode("\n", $body) as $line) {
-            $line = trim($line);
+        $lines = array_filter(array_map(trim(...), explode("\n", $body)), static fn (string $line): bool => '' !== $line);
 
-            if ('' !== $line) {
-                return mb_strlen($line, 'UTF-8') > self::MAX_SUMMARY_CHARACTERS ? mb_substr($line, 0, self::MAX_SUMMARY_CHARACTERS - 1, 'UTF-8')."\u{2026}" : $line;
+        foreach ($lines as $line) {
+            $text = trim(html_entity_decode(strip_tags($this->markdown->convert($line)->getContent()), \ENT_QUOTES | \ENT_HTML5, 'UTF-8'));
+
+            if ('' !== $text) {
+                return self::cut($text);
             }
         }
 
-        throw new \UnexpectedValueException('A request body has a non-blank line.');
+        return self::cut(array_first($lines) ?? throw new \UnexpectedValueException('A request body has a non-blank line.'));
+    }
+
+    private static function cut(string $text): string
+    {
+        return mb_strlen($text, 'UTF-8') > self::MAX_SUMMARY_CHARACTERS ? mb_substr($text, 0, self::MAX_SUMMARY_CHARACTERS - 1, 'UTF-8')."\u{2026}" : $text;
     }
 }

@@ -1,0 +1,21 @@
+/* Primer draws the frame on the outer cells, so a table wider than its ScrollableRegion loses its right edge. The region draws the frame instead. */
+.container :global(.TableOverflowWrapper) {
+    border: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-radius: var(--borderRadius-medium);
+}
+
+.container :global(.TableOverflowWrapper .TableRow) > :first-child {
+    border-inline-start: 0;
+}
+
+.container :global(.TableOverflowWrapper .TableRow) > :last-child {
+    border-inline-end: 0;
+}
+
+.container :global(.TableOverflowWrapper .TableHead .TableRow:first-of-type) > * {
+    border-block-start: 0;
+}
+
+.container :global(.TableOverflowWrapper .TableBody:last-of-type .TableRow:last-of-type) > * {
+    border-block-end: 0;
+}

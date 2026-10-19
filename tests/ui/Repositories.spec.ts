@@ -65,6 +65,20 @@ test.describe('Repositories', () => {
         expect(api.bodies('POST', `/api/v1/repositories/${repository.id}/check-every-pull-request`)).toEqual([{ enabled: true }]);
     });
 
+    test('At 390 px and 768 px the review table of a repository does not make the page scroll sideways', async ({ page, api }) => {
+        const repositories = new FakeRepositories(api);
+        const repository = repositories.addLocal('billing');
+        repositories.addReview(repository, { review: { title: 'Invoice rounding' } });
+        await page.goto(`/repositories/${repository.id}`);
+        await expect(page.locator('[data-testid="review-list"] table')).toContainText('Invoice rounding');
+
+        for (const width of [390, 768]) {
+            await page.setViewportSize({ width, height: 900 });
+
+            await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `No sideways scroll at ${width} px.`).toBe(true);
+        }
+    });
+
     test('A notice shows when local repositories are disabled', async ({ page, api }) => {
         api.me = me({ localRepositories: false });
         const repositories = new FakeRepositories(api);

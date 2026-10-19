@@ -95,6 +95,32 @@ test.describe('RequestDetailLayout', () => {
         expect(api.bodies('POST', '/api/v1/requests/:requestId/plan-requirement')).toEqual([{ requireApproval: true }, { requireApproval: false }]);
     });
 
+    test('The Location section of the sidebar shows the path and lines of the anchor once', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        const request = review.seedLines(SMALL_FILE, 9, 12, 'Extract the tax calculation.');
+
+        await openRequest(page, request.id);
+
+        const location = page.locator(DETAIL_SIDEBAR).locator('section').filter({ has: page.getByRole('heading', { name: 'Location', exact: true }) });
+        await expect(location.getByRole('link', { name: `${SMALL_FILE}:L9-L12`, exact: true })).toBeVisible();
+        await expect(location.locator('[data-testid="location-info"]')).toHaveAttribute('data-status', 'exact');
+        expect((await location.textContent())?.split(SMALL_FILE).length).toBe(2);
+    });
+
+    test('The state line leaves out the comment count while the request has no comment', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        const silent = review.seedLines(SMALL_FILE, 9, 12, 'Extract the tax calculation.');
+        const commented = review.seedLines(SMALL_FILE, 3, 3, 'Is strict_types needed here?');
+        review.command(commented.id, 'comments', { body: 'It is.' });
+        const stateLine = page.locator(`${DETAIL} > header p`).filter({ has: page.locator('[data-testid="status-label"]') });
+
+        await openRequest(page, silent.id);
+        await expect(stateLine).not.toContainText('comment');
+
+        await openRequest(page, commented.id);
+        await expect(stateLine).toContainText('· 1 comment');
+    });
+
     test('At 390 px the sidebar follows the header before the tabs, and the page does not scroll sideways', async ({ page, api }) => {
         const review = new FakeReview(api);
         const request = review.seedSymbol(SYMBOL_FILE, ROUND_FQN, 'Round half to even.');

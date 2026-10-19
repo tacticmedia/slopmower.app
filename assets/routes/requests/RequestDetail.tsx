@@ -45,7 +45,8 @@ export function RequestDetail() {
                 <p className={styles.state}>
                     <StatusLabel status={request.status} />
                     <span className={shared.muted}>
-                        {request.author.name} opened this <RelativeTime datetime={request.createdAt} /> · {request.commentCount} {1 === request.commentCount ? 'comment' : 'comments'}
+                        {request.author.name} opened this <RelativeTime datetime={request.createdAt} />
+                        {request.commentCount > 0 && ` · ${request.commentCount} ${1 === request.commentCount ? 'comment' : 'comments'}`}
                     </span>
                 </p>
             </header>

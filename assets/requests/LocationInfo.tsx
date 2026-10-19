@@ -35,7 +35,7 @@ const REASON_TEXT: Record<OrphanReason, string> = {
 /**
  * Where the anchor is at the target commit. Q3 gives null when the server clone is gone or has no default branch.
  */
-export function LocationInfo({ location }: { location: Location | null }) {
+export function LocationInfo({ location, showPath }: { location: Location | null; showPath: boolean }) {
     if (null === location) {
         return (
             <p className={styles.locationInfo} data-testid="location-info">
@@ -54,7 +54,7 @@ export function LocationInfo({ location }: { location: Location | null }) {
                 <span>Not found: {REASON_TEXT[location.reason]}.</span>
             ) : (
                 <>
-                    <span className={styles.location}>{anchorLocation(location)}</span>
+                    {showPath && <span className={styles.location}>{anchorLocation(location)}</span>}
                     <span className={styles.muted}>Confidence {Math.round(location.confidence * 100)}%</span>
                 </>
             )}

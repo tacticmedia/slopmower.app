@@ -39,7 +39,7 @@ The list shows **General** in place of a location. No file view shows a general 
 
 A request has a description and an optional title, like a GitHub issue. A comment box that opens a request has a one-line **Title** field above the **Description**. Leave the title empty if the first line of the description says enough. A reply has no title.
 
-The heading of the request, its row in the list of requests, its thread in the code, and the browser tab show the title. A request without a title shows the first line of its description, and its heading is dimmed. Your agent gives each untitled request a title from its description before it starts work, and it gives each of its suggestions a title.
+The heading of the request, its row in the list of requests, its thread in the code, and the browser tab show the title. A request without a title shows the first line of its description as plain text, without Markdown syntax, and its heading is dimmed. Your agent gives each untitled request a title from its description before it starts work, and it gives each of its suggestions a title.
 
 To set or change the title, open the request and click **Edit**, or **Add a title** when it has none. Type the title, then press Enter or click **Save**. Escape or **Cancel** keeps the old title. A title is one line of at most 200 characters. You can change it in every status while the review is open, but you cannot remove it. The description does not change: reply in the conversation to add to it.
 
@@ -84,7 +84,7 @@ The address of the page keeps the filters, so a reload or a bookmark shows the s
 
 ## The request page
 
-A request opens like a GitHub issue. The header shows the title, the status, who opened the request, and the number of comments.
+A request opens like a GitHub issue. The header shows the title, the status, who opened the request, and the number of comments when it has any.
 
 Below the header, a bar holds the buttons that change the request, for example **Resolve conversation** and **Reopen**. On a long conversation, the bar stays at the top of the window and also shows the status and the title. A request of a closed review has no bar.
 
@@ -96,7 +96,7 @@ The sidebar is at the right of the conversation. On a narrow screen, it is above
 |---|---|
 | Assignee | The agent that works on the request, and for how long. Else **No one**. |
 | Plan | The state of the plan, and **Ask for a plan first** or **Don't ask for a plan**. See [Ask for a plan first](#ask-for-a-plan-first). |
-| Location | The lines, the file, or the symbol, or **General**, where the code is on the default branch, and **Outdated**. |
+| Location | The lines, the file, or the symbol, or **General**, whether the code is still the same on the default branch, and **Outdated**. |
 | Development | The linked pull requests and the number of linked commits. |
 | Suggested by | The agent that suggested the request. |
 

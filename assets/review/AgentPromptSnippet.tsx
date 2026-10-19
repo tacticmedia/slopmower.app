@@ -15,9 +15,7 @@ export function AgentPromptSnippet({ reviewId }: { reviewId: string }) {
                     {prompt}
                 </code>
                 <CopyButton text={prompt} label="Copy prompt" />
-                <Link href="/docs/connect-your-agent" className={styles.label}>
-                    Connect your agent
-                </Link>
+                <Link href="/docs/connect-your-agent">Connect your agent</Link>
             </div>
             <div className={styles.field}>
                 <span className={styles.label}>Review prompt</span>

@@ -48,6 +48,19 @@ test.describe('ReviewLifecycle', () => {
         expect(api.bodies('POST', START)).toEqual([{ ref: 'main', title: null }]);
     });
 
+    test('Connect your agent in Agent prompts is a link, not in the muted style of the prompt labels', async ({ page, api }) => {
+        const repositories = new FakeRepositories(api);
+        const review = repositories.addReview(repositories.addLocal('e2e-lifecycle'), { review: { title: 'Connect review' } });
+        await page.goto(`/reviews/${review.id}`);
+
+        const prompts = await openAgentPrompts(page);
+
+        const link = prompts.getByRole('link', { name: 'Connect your agent', exact: true });
+        await expect(link).toHaveAttribute('href', '/docs/connect-your-agent');
+        const colour = (text: string) => prompts.getByText(text, { exact: true }).evaluate((element) => getComputedStyle(element).color);
+        expect(await colour('Connect your agent')).not.toBe(await colour('Agent prompt'));
+    });
+
     test('The copy buttons of Agent prompts copy the review ID and both prompts', async ({ page, api }) => {
         const repositories = new FakeRepositories(api);
         const review = repositories.addReview(repositories.addLocal('e2e-lifecycle'), { review: { title: 'Copy review' } });

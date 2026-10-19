@@ -754,7 +754,7 @@ final class BundledSchemas
                         ],
                         'description' => 'Null while the request has no title.',
                     ],
-                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set, else the first non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
+                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set. Else the plain text of the first non-blank line of body: the line rendered as GitHub Flavored Markdown without raw HTML, without tags, with decoded entities, and trimmed. A line whose plain text is empty is skipped, and a body with no plain text gives its first non-blank line, trimmed. A text over 200 characters is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
                     'author' => ['$ref' => '#/$defs/Actor'],
                     'claimedBy' => [
                         'anyOf' => [
@@ -1226,7 +1226,7 @@ final class BundledSchemas
                         ],
                         'description' => 'Null while the request has no title.',
                     ],
-                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set, else the first non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
+                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set. Else the plain text of the first non-blank line of body: the line rendered as GitHub Flavored Markdown without raw HTML, without tags, with decoded entities, and trimmed. A line whose plain text is empty is skipped, and a body with no plain text gives its first non-blank line, trimmed. A text over 200 characters is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
                     'author' => ['$ref' => '#/$defs/Actor'],
                     'claimedBy' => [
                         'anyOf' => [
@@ -1396,7 +1396,7 @@ final class BundledSchemas
                 ],
                 'description' => 'Null while the request has no title.',
             ],
-            'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set, else the first non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
+            'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set. Else the plain text of the first non-blank line of body: the line rendered as GitHub Flavored Markdown without raw HTML, without tags, with decoded entities, and trimmed. A line whose plain text is empty is skipped, and a body with no plain text gives its first non-blank line, trimmed. A text over 200 characters is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
             'author' => ['$ref' => '#/$defs/Actor'],
             'claimedBy' => [
                 'anyOf' => [
@@ -2403,7 +2403,7 @@ final class BundledSchemas
                         ],
                         'description' => 'Null while the request has no title.',
                     ],
-                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set, else the first non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
+                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set. Else the plain text of the first non-blank line of body: the line rendered as GitHub Flavored Markdown without raw HTML, without tags, with decoded entities, and trimmed. A line whose plain text is empty is skipped, and a body with no plain text gives its first non-blank line, trimmed. A text over 200 characters is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
                     'author' => ['$ref' => '#/$defs/Actor'],
                     'claimedBy' => [
                         'anyOf' => [
@@ -2873,7 +2873,7 @@ final class BundledSchemas
                         ],
                         'description' => 'Null while the request has no title.',
                     ],
-                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set, else the first non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
+                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set. Else the plain text of the first non-blank line of body: the line rendered as GitHub Flavored Markdown without raw HTML, without tags, with decoded entities, and trimmed. A line whose plain text is empty is skipped, and a body with no plain text gives its first non-blank line, trimmed. A text over 200 characters is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
                     'author' => ['$ref' => '#/$defs/Actor'],
                     'claimedBy' => [
                         'anyOf' => [
@@ -3339,7 +3339,7 @@ final class BundledSchemas
                         ],
                         'description' => 'Null while the request has no title.',
                     ],
-                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set, else the first non-blank line of body, trimmed. A longer line is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
+                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set. Else the plain text of the first non-blank line of body: the line rendered as GitHub Flavored Markdown without raw HTML, without tags, with decoded entities, and trimmed. A line whose plain text is empty is skipped, and a body with no plain text gives its first non-blank line, trimmed. A text over 200 characters is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
                     'author' => ['$ref' => '#/$defs/Actor'],
                     'claimedBy' => [
                         'anyOf' => [

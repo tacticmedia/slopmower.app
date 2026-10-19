@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { now, token } from './support/builders';
 import { FakeRepositories } from './support/fakeRepositories';
 import { FakeTokens } from './support/fakeTokens';
 import type { MockApi } from './support/mockApi';
@@ -54,6 +55,19 @@ async function tokenCell(page: Page, name: string, column: string): Promise<stri
 }
 
 test.describe('TokenSettings', () => {
+    test('At 390 px and 768 px the token table does not make the page scroll sideways', async ({ page, api }) => {
+        const tokens = new FakeTokens(api, new FakeRepositories(api));
+        tokens.tokens = [token({ name: TOKEN_NAME, lastUsedAt: now(-120), expiresAt: now(30 * 86_400) })];
+        await page.goto('/settings');
+        await expect(tokenRow(page, TOKEN_NAME)).toHaveCount(1);
+
+        for (const width of [390, 768]) {
+            await page.setViewportSize({ width, height: 900 });
+
+            await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `No sideways scroll at ${width} px.`).toBe(true);
+        }
+    });
+
     test('The secret is shown once and matches the token format', async ({ page, api }) => {
         await openSettings(page, api);
 

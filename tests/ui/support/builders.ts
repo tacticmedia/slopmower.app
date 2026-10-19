@@ -1,5 +1,9 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { toString as plainText } from 'mdast-util-to-string';
+import remarkGfm from 'remark-gfm';
+import remarkParse from 'remark-parse';
+import { unified } from 'unified';
 import type { AgentActor, UserActor } from '../../../assets/api/types/actor';
 import type { Anchor, ContentSnapshot, LineRange } from '../../../assets/api/types/anchor';
 import type { ApiToken, ApiTokenWithSecret } from '../../../assets/api/types/api-token';
@@ -24,6 +28,10 @@ import type { ThreadEntry } from '../../../assets/api/types/thread-entry';
 const FIXTURE_DIRECTORY = new URL('../../../docs/specs/fixtures/', import.meta.url);
 
 const SNAPSHOT_CONTEXT_LINES = 3;
+
+const MAX_SUMMARY_CHARACTERS = 200;
+
+const MARKDOWN = unified().use(remarkParse).use(remarkGfm);
 
 /** A fresh copy of a docs/specs fixture. */
 export function fixture<T>(name: string): T {
@@ -181,9 +189,16 @@ export function request(review: Review, anchor: Anchor | null, body: string, seq
     };
 }
 
-/** The first non-blank line, at most 200 characters. */
+/** The `summary` rule of docs/specs/schemas/request-summary.schema.json. */
 function summaryText(body: string): string {
-    return (body.split('\n').find((line) => '' !== line.trim()) ?? body).trim().slice(0, 200);
+    const lines = body
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => '' !== line);
+    const text = lines.map((line) => plainText(MARKDOWN.parse(line), { includeHtml: false, includeImageAlt: false }).trim()).find((line) => '' !== line) ?? lines[0] ?? '';
+    const characters = [...text];
+
+    return characters.length > MAX_SUMMARY_CHARACTERS ? `${characters.slice(0, MAX_SUMMARY_CHARACTERS - 1).join('')}\u2026` : text;
 }
 
 /** The `allowedActions` of a user caller on an open review: docs/specs/rest-api-requests.md section 1. */

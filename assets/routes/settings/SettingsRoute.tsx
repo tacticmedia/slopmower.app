@@ -3,6 +3,7 @@ import { Table } from '@primer/react/experimental';
 import { useState } from 'react';
 import { useLoaderData, useRouteLoaderData } from 'react-router';
 import type { Me } from '../../api/types/me';
+import tableStyles from '../../layout/ScrollingTable.module.css';
 import { CreateTokenDialog } from '../../settings/CreateTokenDialog';
 import { DeleteAccountDialog } from '../../settings/DeleteAccountDialog';
 import { PlanSummary } from '../../settings/PlanSummary';
@@ -25,7 +26,7 @@ export function SettingsRoute() {
     return (
         <>
             <Heading as="h1">Settings</Heading>
-            <Table.Container>
+            <Table.Container className={tableStyles.container}>
                 <Table.Title as="h2" id="api-tokens">
                     API tokens
                 </Table.Title>

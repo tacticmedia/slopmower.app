@@ -13,6 +13,8 @@ use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Environment\EnvironmentVariables;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
 use App\Tests\Support\Git\GitRepositoryBuilder;
+use App\Tests\Support\Mcp\McpAssertions;
+use App\Tests\Support\Mcp\McpTestClient;
 use App\Tests\Support\Messenger\QueuedMessages;
 use App\Tests\Support\Source\LocalSources;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -27,6 +29,7 @@ final class OpenRequestTest extends WebTestCase
     use EnvironmentVariables;
     use JsonApiAssertions;
     use LocalSources;
+    use McpAssertions;
     use QueuedMessages;
     use RequestApiFixtures;
     use ResetDatabase;
@@ -126,21 +129,42 @@ final class OpenRequestTest extends WebTestCase
         );
     }
 
-    #[TestDox('A request opened with a title stores it trimmed, and the title is its summary')]
+    #[TestDox('A request opened with a title stores it trimmed, and the title with its Markdown syntax is its summary')]
     public function testTitleIsTheSummary(): void
     {
-        $opened = self::openRequest($this->client, $this->reviewId, title: '  Money totals  ');
+        $opened = self::openRequest($this->client, $this->reviewId, title: '  Fix `Foo::bar()` in **all** places  ');
 
-        self::assertSame(['Money totals', 'Money totals'], [$opened['title'], $opened['summary']]);
+        self::assertSame(['Fix `Foo::bar()` in **all** places', 'Fix `Foo::bar()` in **all** places'], [$opened['title'], $opened['summary']]);
     }
 
-    #[TestDox('The summary is the first non-blank line, trimmed and cut at 200 characters')]
-    public function testSummaryIsFirstNonBlankLineCutAt200Characters(): void
+    #[TestDox('Without a title, Q1, Q3, and MCP get_request give the plain text of the first non-blank line as the summary')]
+    public function testSummaryIsThePlainTextOfTheFirstNonBlankLine(): void
     {
-        $short = self::openRequest($this->client, $this->reviewId, body: "\n  \t\n  Use `Money`.  \nThe totals lose cents.");
-        $long = self::openRequest($this->client, $this->reviewId, body: str_repeat('é', 201));
+        $requestId = (string) self::openRequest($this->client, $this->reviewId, body: "\n  \t\n  Fix `Foo::bar()` in **all** places  \nThe totals lose cents.")['id'];
+        [, $secret] = self::storeToken($this->user);
 
-        self::assertSame('Use `Money`.', $short['summary']);
-        self::assertSame(str_repeat('é', 199)."\u{2026}", $long['summary']);
+        $page = self::assertApiResponse(self::apiRequest($this->client, 'GET', "/api/v1/reviews/{$this->reviewId}/requests"), 200, 'lists.schema.json#/$defs/RequestPage');
+        $read = self::readRequest($this->client, $requestId);
+        $mcp = new McpTestClient($this->client, $secret);
+        $fetched = self::assertToolResult($mcp, $mcp->callTool('get_request', ['id' => $requestId]), 'get_request');
+
+        self::assertSame(array_fill(0, 3, 'Fix Foo::bar() in all places'), [$page['items'][0]['summary'] ?? null, $read['summary'], $fetched['summary']]);
+    }
+
+    #[TestDox('The summary is cut at 200 characters after the Markdown syntax is removed')]
+    public function testSummaryIsCutAt200CharactersAfterTheStrip(): void
+    {
+        $opened = self::openRequest($this->client, $this->reviewId, body: '**'.str_repeat('é', 250).'**');
+
+        self::assertSame(str_repeat('é', 199)."\u{2026}", $opened['summary']);
+    }
+
+    #[TestDox('The summary skips a line without plain text, and a body without plain text gives its first non-blank line')]
+    public function testSummarySkipsLinesWithoutPlainText(): void
+    {
+        $skipped = self::openRequest($this->client, $this->reviewId, body: "<!-- generated -->\n---\nFix it.");
+        $raw = self::openRequest($this->client, $this->reviewId, body: "  ---  \n<br>");
+
+        self::assertSame(['Fix it.', '---'], [$skipped['summary'], $raw['summary']]);
     }
 }
