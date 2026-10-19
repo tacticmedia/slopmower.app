@@ -85,7 +85,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F67 | [Full-width Changes tab](F67-full-width-changes-tab.md) | Done 2026-10-19, [report](reports/F67.md) | ece7364 | src 503 PHP / 34149 lines, 503 types; tests 336 PHP / 31279 lines; assets 178 TS / 10372 lines; check 5m12s |
 | F68 | [Latest commits on the repository page](F68-latest-commits-on-the-repository-page.md) | Done 2026-10-19, [report](reports/F68.md) | a2b2f6f | src 503 PHP / 34149 lines, 503 types; tests 336 PHP / 31279 lines; assets 178 TS / 10380 lines; check 5m17s |
 | F69 | [Onboarding](F69-onboarding.md) | Planned (2026-10-19) | | |
-| F70 | [Review tour](F70-review-tour.md) | Planned (2026-10-19) | | |
+| F70 | [Review tour](F70-review-tour.md) | Done 2026-10-19, [report](reports/F70.md) | 2f98e6d | src 506 PHP / 34255 lines, 506 types; tests 337 PHP / 31430 lines; assets 183 TS / 10830 lines |
 | F71 | [Help center](F71-help-center.md) | Planned (2026-10-19) | | |
 
 ## Candidates
@@ -159,6 +159,7 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **Test helpers on Foundry factories.** `TenantFixtures`, `ApiFixtures::storeToken()`, and `ApiFixtures::storeRepository()` in `tests/Support/` could use the factories of F49. From F49.
 - **V1 default-branch resolution.** V1 resolves the default branch by its bare name (`ReviewCommands.php:251`), and R9 resolves `refs/heads/<name>`, as `ServerClone` computes `defaultBranchHead`. A tag with the name of the default branch wins in V1. From the F68 planning.
 - **Help search.** A search over the `/docs` pages of F71. From the F71 planning.
+- **Tour highlight in journey captures after a resize.** Joyride places the spotlight again 100 ms after a resize, and qa-capture does not wait, so a capture at another viewport shows the highlight at its old place. The tooltip is placed right. From the F70 report.
 - **Right edge of the other tables on a phone.** At 390 px, the Usage and Repository data tables of Settings and the repository lists lose their right edge when they scroll, as the review and token tables did. F64 moves the frame to the scroll region with `assets/layout/ScrollingTable.module.css` for those two only. From the F64 report.
 - **"Run it locally" in the docs of a hosted instance.** `local-run.md` describes a self-hosted run with local directories, which a SaaS instance never offers. The docs of a hosted instance could leave it out. From the F66 planning.
 
