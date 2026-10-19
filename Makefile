@@ -120,7 +120,7 @@ act: ## .github/workflows/qa.yml with act, in var/act/workspace, on its own comp
 ACT_INPUTS = $(wildcard .github/workflows/*) .actrc .github/act.env bin/act-run bin/prod-check .dockerignore \
 	Makefile compose.yaml compose.override.yaml Dockerfile $(shell find docker -type f) \
 	phpunit.dist.xml phpstan.dist.neon .php-cs-fixer.dist.php playwright.config.ts vite.config.ts $(wildcard tsconfig*.json) \
-	package.json package-lock.json symbols/package.json symbols/package-lock.json composer.json composer.lock \
+	package.json package-lock.json bin/patch-react-router.mjs symbols/package.json symbols/package-lock.json composer.json composer.lock \
 	.env.test .env.e2e
 
 # In the git directory that every worktree shares, so a checkout whose ACT_INPUTS a green make act has seen skips act.

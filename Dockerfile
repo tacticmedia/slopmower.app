@@ -31,6 +31,7 @@ FROM node_upstream AS assets
 WORKDIR /app
 
 COPY --link package.json package-lock.json ./
+COPY --link bin/patch-react-router.mjs bin/
 
 RUN npm ci --no-audit --no-fund && rm -rf /root/.npm
 

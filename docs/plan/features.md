@@ -87,7 +87,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F69 | [Onboarding](F69-onboarding.md) | Done 2026-10-19, [report](reports/F69.md) | cce5734 | src 506 PHP / 34255 lines, 506 types; tests 337 PHP / 31428 lines; assets 184 TS / 11070 lines |
 | F70 | [Review tour](F70-review-tour.md) | Done 2026-10-19, [report](reports/F70.md) | 2f98e6d | src 506 PHP / 34255 lines, 506 types; tests 337 PHP / 31430 lines; assets 183 TS / 10830 lines |
 | F71 | [Help center](F71-help-center.md) | Done 2026-10-20, [report](reports/F71.md) | 9b4c73e | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31486 lines; assets 186 TS / 11177 lines |
-| F72 | [Vertical slice flake after the onboarding connect](F72-vertical-slice-flake-after-the-onboarding-connect.md) | Planned (2026-10-20) | | |
+| F72 | [Vertical slice flake after the onboarding connect](F72-vertical-slice-flake-after-the-onboarding-connect.md) | Done 2026-10-20, [report](reports/F72.md) | | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31486 lines; assets 186 TS / 11177 lines; check 12m15s with act |
 | F73 | [Agent watch](F73-agent-watch.md) | Done 2026-10-20, [report](reports/F73.md) | c7a8b42 | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31486 lines; assets 186 TS / 11177 lines |
 
 ## Candidates
@@ -177,6 +177,7 @@ Decisions or actions that only Jan can take. Each comes from a report or a revie
 - **Upstream reports:**
   - `@pierre/diffs` blank-view bug: `finalizeRender()` compares files by identity, but `cacheKey` elsewhere. Unchanged in 1.5.2, the pinned and latest version (F18). `CodeFile.tsx` keeps the file object, so the app is not affected.
   - playwright-php 1.5.0: there is no `allTextContents()`, and `filter(['has'])` takes CSS only.
+  - React Router 8.4.0 and 8.5.0: a fetcher redirect does not abort a load that is still running. `startRedirectNavigation()` sets `pendingNavigationController = null` before `startNavigation()`, which would abort it. The stale load then pushes its own URL with the redirect's `PUSH`, and the redirect target renders without a history entry. `assets/fetcherRedirect.test.ts` reproduces it with `createRouter`, `revalidate()`, and `fetch()`. Fix: `if (isNavigation) pendingNavigationController = null;`. The app carries it as `bin/patch-react-router.mjs` (F72, D82); drop the patch when a release fixes it.
   - Symfony: a `_failure_path` that starts with "http" but is not a URL becomes a route name, and the GitHub callback answers 500.
   - Symfony 8.1: `SameOriginCsrfListener` writes the CSRF strategies of the logout request, those of the old session included, into the session that logout starts. The new session then refuses a same-origin form that sends no double-submit token. F34 makes every form send one, so the app is not affected.
   - tree-sitter-zig (`@tree-sitter-grammars/tree-sitter-zig` 1.1.2, also on master): `_container_members` uses `repeat1`, so an empty `struct {}`, `enum {}`, `union {}`, or `opaque {}` is a syntax error, and such a Zig file has no symbols (F32).

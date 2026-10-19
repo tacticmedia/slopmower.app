@@ -22,10 +22,22 @@ Verified on 2026-10-20 in the F71 stack (port 8271):
 - **Live updates ruled out:** a throwaway UI spec delayed V1 and pushed a `repository` live update during the delay. The redirect went to `/reviews/<id>`, and no revalidation ran during V1.
 - **Other `waitForURL` calls:** in `SignInTest` and `DeleteAccountFlowTest` they wait for `/login`, which is a full document load.
 
+- **Cause** (found on 2026-10-20 with a log of `pushState`, `replaceState`, `popstate`, `fetch`, and live updates around the clicks; the first instrumented run failed at a load average of 8):
+  - 476 ms: the Connect redirect pushes `/repositories/<id>`. 477 ms: a live `repository` update revalidates. `router.revalidate()` on an idle router starts an uninterrupted revalidation, so `navigation.state` stays `idle`.
+  - 551 ms: "Start review" posts V1. 766 ms: V1 answers, and the fetcher redirect starts the navigation to `/reviews/<id>`.
+  - 825 ms: the stale revalidation completes and pushes `/repositories/<id>`. About 1056 ms: the review navigation completes without a history entry. The review renders, and the URL names the repository.
+  - React Router 8.4.0 `startRedirectNavigation()` sets `pendingNavigationController = null` (`router.js:1044`) before `startNavigation()`, which aborts that controller (`router.js:503`). For a fetcher redirect, the controller belongs to the running revalidation or navigation, so nothing aborts it. Its `completeNavigation()` then runs with the redirect's `pendingAction` `PUSH` and resets it to `POP`. 8.5.0 (2026-10-19) has the same code (`router.js:1125`).
+  - Every action that a fetcher submits and that redirects has the bug: Start review (`StartReviewForm`, `LatestCommits`), the onboarding Connect (`CandidateConnection` with `openRepository`), and Delete review (`DeleteReviewDialog`). A user navigation that is still loading has it too.
+
 ## Decisions
 
 - Find the cause first. Log `location.href`, `history.length`, and the router state (`navigation`, `fetchers`, `location`) around the click, then decide.
 - Do not raise a timeout and do not add retries (plan README, journeys and UI rules).
+- **Fix in React Router (D82).** `bin/patch-react-router.mjs`, the `postinstall` of `npm ci`, patches `startRedirectNavigation()` in `dist/development` and `dist/production`: `if (isNavigation) pendingNavigationController = null;`. A fetcher redirect then aborts the running load, as every other navigation does. A navigation's own redirect keeps its request. The script fails for another React Router version, so an upgrade forces a check.
+- **No patch-package.** 8.0.1 depends on `braces` 3.0.3 through `find-yarn-workspace-root` and `micromatch`, and GHSA-vfj7-8cjw-p6xm (high) has no fixed `braces`, so `npm audit` in CI fails.
+- The fetchers stay. React Router documents fetcher redirects, and two of the four forms show an error per row.
+- Jan reports the bug upstream (For Jan). The patch goes when a release fixes it.
+- The temporary instrumentation of `VerticalSliceTest` is removed. The test was right.
 
 ## Depends on
 
@@ -34,6 +46,9 @@ F69.
 ## In scope
 
 - `tests/E2E/VerticalSliceTest.php`. If the cause is in the app: the repository page, `StartReviewForm`, `LatestCommits`, the onboarding connect, and their tests.
+- `bin/patch-react-router.mjs`, `package.json` (`postinstall`), the `assets` stage of `Dockerfile`, `ACT_INPUTS` of the `Makefile`.
+- One Vitest test of the patched router.
+- `docs/architecture.md` D82, `docs/developer-guide.md` (the patch), `features.md` For Jan (the upstream report).
 
 ## Out of scope
 
@@ -43,6 +58,7 @@ F69.
 
 - **E2E:** `VerticalSliceTest` passes 30 of 30 runs while the UI suite runs in parallel on the host.
 - **UI:** if the cause is in the app, one spec that reproduces it against the mocked API.
+- **Vitest** `assets/fetcherRedirect.test.ts` instead of a UI spec: a fetcher redirect during a held `revalidate()` ends at its target in `router.state.location` and in the history. It fails without the patch on every run. A UI spec against the mocked API could only fail by timing, because the stale load must complete between the redirect start and the review load.
 
 ## Verification
 
