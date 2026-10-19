@@ -80,7 +80,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F62 | [Scroll to a line gives up early](F62-scroll-to-a-line-gives-up-early.md) | Done 2026-10-16, [report](reports/F62.md) | 33d2547 | src 496 PHP / 33658 lines, 496 types; tests 333 PHP / 30626 lines; assets 165 TS / 9712 lines; check 4m5s |
 | F63 | [prod-check request timeout](F63-prod-check-request-timeout.md) | Done 2026-10-16, [report](reports/F63.md) | b396d88 | src 496 PHP / 33658 lines, 496 types; tests 333 PHP / 30626 lines; assets 165 TS / 9712 lines; check 3m47s |
 | F64 | [Known issues of F57 to F60](F64-known-issues-of-f57-to-f60.md) | Planned (2026-10-19) | | |
-| F65 | [Known issues: docs anchors, skill copy, missed unsuspend](F65-known-issues-docs-anchors-skill-unsuspend.md) | Planned (2026-10-19) | | |
+| F65 | [Known issues: docs anchors, skill copy, missed unsuspend](F65-known-issues-docs-anchors-skill-unsuspend.md) | Done 2026-10-19, [report](reports/F65.md) | 4e12071 | src 500 PHP / 34008 lines, 500 types; tests 335 PHP / 31048 lines; assets 176 TS / 10242 lines |
 | F66 | [Local directories only when on](F66-local-directories-only-when-on.md) | Planned (2026-10-19) | | |
 | F67 | [Full-width Changes tab](F67-full-width-changes-tab.md) | Planned (2026-10-19) | | |
 | F68 | [Latest commits on the repository page](F68-latest-commits-on-the-repository-page.md) | Planned (2026-10-19) | | |
