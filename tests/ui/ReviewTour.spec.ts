@@ -76,9 +76,15 @@ test.describe('ReviewTour', () => {
         await openFile(page, review, SMALL_FILE);
 
         await expectStep(page, 'Comment on code', '1 of 3');
-        const number = await lineNumber(page, 1).boundingBox();
-        const tooltip = await tour(page).boundingBox();
-        expect(null !== number && null !== tooltip && tooltip.x >= number.x + number.width && tooltip.y <= number.y && number.y <= tooltip.y + tooltip.height).toBe(true);
+        // Joyride shows the tooltip at opacity 0 until it is placed, and Playwright counts that as visible.
+        await expect
+            .poll(async () => {
+                const number = await lineNumber(page, 1).boundingBox();
+                const tooltip = await tour(page).boundingBox();
+
+                return null !== number && null !== tooltip && tooltip.x >= number.x + number.width && tooltip.y <= number.y && number.y <= tooltip.y + tooltip.height;
+            })
+            .toBe(true);
         await tour(page).getByRole('button', { name: 'Next' }).click();
         await expectStep(page, 'Symbols', '2 of 3');
         await tour(page).getByRole('button', { name: 'Next' }).click();
