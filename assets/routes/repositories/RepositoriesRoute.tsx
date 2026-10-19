@@ -53,7 +53,7 @@ export function RepositoriesRoute() {
             {null !== candidates.githubConfigureUrl && (
                 <GitHubCandidates candidates={githubCandidates} configureUrl={candidates.githubConfigureUrl} listedAt={candidates.githubListedAt} />
             )}
-            <LocalCandidates enabled={me.features.localRepositories} candidates={localCandidates} />
+            {me.features.localRepositories && <LocalCandidates candidates={localCandidates} />}
             {candidates.truncated && <p className={styles.note}>The list shows the first 1,000 candidates.</p>}
         </div>
     );

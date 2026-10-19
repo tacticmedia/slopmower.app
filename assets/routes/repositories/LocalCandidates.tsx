@@ -1,4 +1,3 @@
-import { Banner } from '@primer/react';
 import { type Column, DataTable, Table } from '@primer/react/experimental';
 import type { RepositoryCandidate } from '../../api/types/repository-candidate';
 import { CandidateConnection } from './CandidateConnection';
@@ -14,20 +13,13 @@ const COLUMNS: Column<CandidateRow>[] = [
     { id: 'action', header: 'Connection', renderCell: ({ candidate }) => <CandidateConnection candidate={candidate} /> },
 ];
 
-export function LocalCandidates({ enabled, candidates }: { enabled: boolean; candidates: LocalCandidate[] }) {
+export function LocalCandidates({ candidates }: { candidates: LocalCandidate[] }) {
     return (
         <Table.Container data-testid="local-candidates">
             <Table.Title as="h2" id="local-candidates">
                 Local directories
             </Table.Title>
-            {!enabled ? (
-                <Banner
-                    variant="info"
-                    title="Local repositories are off"
-                    description="This instance does not connect local directories. The operator turns them on with APP_LOCAL_REPOSITORIES_DIR."
-                    data-testid="local-repositories-off"
-                />
-            ) : 0 === candidates.length ? (
+            {0 === candidates.length ? (
                 <Table.Subtitle as="p" id="local-candidates-empty">
                     The local repositories directory contains no git repository.
                 </Table.Subtitle>

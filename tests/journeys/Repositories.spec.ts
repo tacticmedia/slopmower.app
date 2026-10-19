@@ -1,6 +1,6 @@
 import type { CandidateList } from '../../assets/api/types/lists';
 import type { Repository } from '../../assets/api/types/repository';
-import { fixture, newId, now, sha1 } from '../ui/support/builders';
+import { fixture, me, newId, now, sha1 } from '../ui/support/builders';
 import { FakeRepositories } from '../ui/support/fakeRepositories';
 import { test } from './support/test';
 
@@ -47,5 +47,17 @@ test.describe('Repositories', () => {
 
         await page.goto(`/repositories/${repository.id}`);
         await captureScreen('Repository with latest commits', page.locator('[data-testid="latest-commits"] ul'));
+    });
+
+    test('An instance without local repositories lists the GitHub candidates only', async ({ page, api, captureScreen }) => {
+        api.me = me({ localRepositories: false });
+        const repositories = new FakeRepositories(api);
+        const candidates = fixture<CandidateList>('lists.candidate-list.json');
+        repositories.repositories = [fixture<Repository>('repository.github-cloning.json')];
+        repositories.candidates = candidates.items.filter(({ source }) => 'github' === source);
+        repositories.candidateFields = { localEnabled: false, githubListedAt: now(-600), githubConfigureUrl: candidates.githubConfigureUrl };
+
+        await page.goto('/repositories');
+        await captureScreen('Without local repositories', page.locator('[data-testid="github-candidates"] table'));
     });
 });

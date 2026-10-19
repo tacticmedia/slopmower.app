@@ -79,14 +79,14 @@ test.describe('Repositories', () => {
         }
     });
 
-    test('A notice shows when local repositories are disabled', async ({ page, api }) => {
+    test('The page has no local directories section while local repositories are off', async ({ page, api }) => {
         api.me = me({ localRepositories: false });
-        const repositories = new FakeRepositories(api);
-        repositories.candidateFields = { localEnabled: false };
+        new FakeRepositories(api).candidateFields = { localEnabled: false };
 
         await page.goto('/repositories');
 
-        await expect(page.locator('[data-testid="local-repositories-off"]')).toBeVisible();
-        await expect(page.locator(`${CANDIDATES} table`)).toHaveCount(0);
+        await expect(page.locator(CONNECTED)).toBeVisible();
+        await expect(page.locator(CANDIDATES)).toHaveCount(0);
+        await expect(page.locator('[data-testid="local-repositories-off"]')).toHaveCount(0);
     });
 });
