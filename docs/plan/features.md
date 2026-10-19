@@ -83,7 +83,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F65 | [Known issues: docs anchors, skill copy, missed unsuspend](F65-known-issues-docs-anchors-skill-unsuspend.md) | Done 2026-10-19, [report](reports/F65.md) | 4e12071 | src 500 PHP / 34008 lines, 500 types; tests 335 PHP / 31048 lines; assets 176 TS / 10242 lines |
 | F66 | [Local directories only when on](F66-local-directories-only-when-on.md) | Planned (2026-10-19) | | |
 | F67 | [Full-width Changes tab](F67-full-width-changes-tab.md) | Planned (2026-10-19) | | |
-| F68 | [Latest commits on the repository page](F68-latest-commits-on-the-repository-page.md) | Planned (2026-10-19) | | |
+| F68 | [Latest commits on the repository page](F68-latest-commits-on-the-repository-page.md) | Done 2026-10-19, [report](reports/F68.md) | a2b2f6f | src 503 PHP / 34149 lines, 503 types; tests 336 PHP / 31279 lines; assets 178 TS / 10380 lines; check 5m17s |
 | F69 | [Onboarding](F69-onboarding.md) | Planned (2026-10-19) | | |
 | F70 | [Review tour](F70-review-tour.md) | Planned (2026-10-19) | | |
 | F71 | [Help center](F71-help-center.md) | Planned (2026-10-19) | | |
@@ -159,6 +159,7 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **Test helpers on Foundry factories.** `TenantFixtures`, `ApiFixtures::storeToken()`, and `ApiFixtures::storeRepository()` in `tests/Support/` could use the factories of F49. From F49.
 - **V1 default-branch resolution.** V1 resolves the default branch by its bare name (`ReviewCommands.php:251`), and R9 resolves `refs/heads/<name>`, as `ServerClone` computes `defaultBranchHead`. A tag with the name of the default branch wins in V1. From the F68 planning.
 - **Help search.** A search over the `/docs` pages of F71. From the F71 planning.
+- **Developer guide flow 4.1.** Step 3 says that V1 refuses an agent, which D72 changed: agents may start reviews. From the F68 report.
 - **Right edge of the other tables on a phone.** At 390 px, the Usage and Repository data tables of Settings and the repository lists lose their right edge when they scroll, as the review and token tables did. F64 moves the frame to the scroll region with `assets/layout/ScrollingTable.module.css` for those two only. From the F64 report.
 - **"Run it locally" in the docs of a hosted instance.** `local-run.md` describes a self-hosted run with local directories, which a SaaS instance never offers. The docs of a hosted instance could leave it out. From the F66 planning.
 
