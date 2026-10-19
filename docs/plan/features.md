@@ -87,7 +87,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F69 | [Onboarding](F69-onboarding.md) | Done 2026-10-19, [report](reports/F69.md) | cce5734 | src 506 PHP / 34255 lines, 506 types; tests 337 PHP / 31428 lines; assets 184 TS / 11070 lines |
 | F70 | [Review tour](F70-review-tour.md) | Done 2026-10-19, [report](reports/F70.md) | 2f98e6d | src 506 PHP / 34255 lines, 506 types; tests 337 PHP / 31430 lines; assets 183 TS / 10830 lines |
 | F71 | [Help center](F71-help-center.md) | Done 2026-10-20, [report](reports/F71.md) | 9b4c73e | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31486 lines; assets 186 TS / 11177 lines |
-| F72 | [Vertical slice flake after the onboarding connect](F72-vertical-slice-flake-after-the-onboarding-connect.md) | Done 2026-10-20, [report](reports/F72.md) | | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31486 lines; assets 186 TS / 11177 lines; check 12m15s with act |
+| F72 | [Vertical slice flake after the onboarding connect](F72-vertical-slice-flake-after-the-onboarding-connect.md) | Done 2026-10-20, [report](reports/F72.md) | d92968e | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31486 lines; assets 186 TS / 11177 lines; check 12m15s with act |
 | F73 | [Agent watch](F73-agent-watch.md) | Done 2026-10-20, [report](reports/F73.md) | c7a8b42 | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31486 lines; assets 186 TS / 11177 lines |
 
 ## Candidates
