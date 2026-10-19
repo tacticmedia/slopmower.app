@@ -290,4 +290,4 @@ A copy shows **Carried from the source request**, a link to the request in the o
 
 When you are finished, click **Review actions** in the review header, then **Close review**. You can add a note. If you have drafts, Slopmower warns you, because closing deletes them.
 
-A closed review is read-only. Nobody can comment, change a status, or link commits. The agent gets `review_closed` and stops. Closed reviews are hidden from the lists. Select **Show closed** to see them. A closed review cannot be opened again. Start a new review instead.
+A closed review is read-only. Nobody can comment, change a status, or link commits. The agent gets `review_closed` and stops. Closed reviews are hidden from the lists. Select **Show closed** to see them. While a repository has no open review, click **Show closed reviews** on its page. A closed review cannot be opened again. Start a new review instead.

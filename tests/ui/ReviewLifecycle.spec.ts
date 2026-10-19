@@ -108,9 +108,10 @@ test.describe('ReviewLifecycle', () => {
         expect(api.bodies('POST', CLOSE)).toEqual([{ note: 'Shipped in 2.4' }]);
 
         await page.locator(`header a[href="/repositories/${repository.id}"]`).click();
-        await expect(page.locator(REVIEW_LIST)).toContainText('This repository has no open reviews.');
-        await page.locator(`${REVIEW_LIST} input[type="checkbox"]`).click();
+        await expect(page.locator(REVIEW_LIST)).toHaveCount(0);
+        await page.getByRole('link', { name: 'Show closed reviews' }).click();
 
+        await expect(page.locator(`${REVIEW_LIST} input[type="checkbox"]`)).toBeChecked();
         await expect(page.locator(`${REVIEW_LIST} table`)).toContainText('Closing review');
         await expect(reviewTitles(page)).toHaveText(['Closing review']);
         await expect(page.locator(`${REVIEW_LIST} table`)).toContainText('Closed');

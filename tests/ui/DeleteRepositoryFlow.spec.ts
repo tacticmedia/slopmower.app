@@ -1,5 +1,4 @@
 import { FakeRepositories } from './support/fakeRepositories';
-import { FakeTokens } from './support/fakeTokens';
 import { expect, test } from './support/test';
 
 const REPOSITORY_DATA = 'table[aria-labelledby="repository-data"]';
@@ -7,7 +6,6 @@ const REPOSITORY_DATA = 'table[aria-labelledby="repository-data"]';
 test.describe('DeleteRepositoryFlow', () => {
     test('Typing the repository name and confirming removes the repository from the list', async ({ page, api }) => {
         const repositories = new FakeRepositories(api);
-        new FakeTokens(api, repositories);
         const kept = repositories.addLocal('e2e-kept');
         const deleted = repositories.addLocal('e2e-deleted');
         await page.goto('/settings');

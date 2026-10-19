@@ -309,7 +309,7 @@ Suite markers: **U** unit, **F** functional, **E** full-stack E2E, **V** Vitest,
   - Wait for conditions. Never sleep.
 - Vitest tests cover pure TypeScript only. They live in `*.test.ts` files next to the code.
 - UI tests live in `tests/ui/*.spec.ts`. Playwright Test runs them against the SPA that `tests/ui/vite.config.ts` builds, with no PHP, database, or git. Each spec has one `test.describe`, and each title is one short sentence about behaviour.
-  - Import `test` and `expect` from `tests/ui/support/test.ts`. Its `api` fixture answers `/api/v1/**` and `POST /logout` through one `page.route` dispatcher. Register routes, or the fakes `FakeReview`, `FakeRepositories`, and `FakeTokens`, before `page.goto()`. The fakes follow the docs/specs rules: statuses, refusals, and the `awaiting` rules of architecture section 6.
+  - Import `test` and `expect` from `tests/ui/support/test.ts`. Its `api` fixture answers `/api/v1/**` and `POST /logout` through one `page.route` dispatcher. Register routes, or the fakes `FakeReview` and `FakeRepositories`, before `page.goto()`. `FakeRepositories.tokens` is the `FakeTokens` of T1 to T3, because the repository screens read T1 for the getting started steps. The fakes follow the docs/specs rules: statuses, refusals, and the `awaiting` rules of architecture section 6.
   - Bodies come from `tests/ui/support/builders.ts`, which starts from `docs/specs/fixtures/` and uses the types of `assets/api/types/`. `json()` validates each body against `docs/specs/schemas/`.
   - A request without a route, a write without the double-submit CSRF proof, a body that does not validate, or an uncaught page error fails the test.
   - Assert a server-side effect through the request that the page sent: `api.bodies()` or `api.callsTo()`.

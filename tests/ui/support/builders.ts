@@ -88,6 +88,19 @@ export function localRepository(directory: string): Repository {
     return repository({ name: directory, local: { directory }, openReviewCount: 0, createdAt: now() } as Partial<Repository>);
 }
 
+/** R3 of a GitHub candidate: the clone runs. */
+export function githubRepository(candidate: Extract<RepositoryCandidate, { source: 'github' }>): Repository {
+    const { repositoryId, installationId, owner, private: isPrivate, htmlUrl } = candidate.github;
+
+    return {
+        ...fixture<Repository>('repository.github-cloning.json'),
+        id: newId(),
+        name: candidate.name,
+        github: { repositoryId, installationId, owner, private: isPrivate, htmlUrl, checkEveryPullRequest: false },
+        createdAt: now(),
+    } as Repository;
+}
+
 export function localCandidate(directory: string, connectedRepositoryId: string | null = null): RepositoryCandidate {
     return { source: 'local', name: directory, connectedRepositoryId, github: null, local: { directory, bare: false, headBranch: 'main' } };
 }

@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { now, token } from './support/builders';
 import { FakeRepositories } from './support/fakeRepositories';
-import { FakeTokens } from './support/fakeTokens';
+import type { FakeTokens } from './support/fakeTokens';
 import type { MockApi } from './support/mockApi';
 import { expect, test } from './support/test';
 
@@ -10,7 +10,7 @@ const SECRET = '[data-testid="token-secret"]';
 const TOKENS_TABLE = 'table[aria-labelledby="api-tokens"]';
 
 async function openSettings(page: Page, api: MockApi): Promise<FakeTokens> {
-    const tokens = new FakeTokens(api, new FakeRepositories(api));
+    const { tokens } = new FakeRepositories(api);
     await page.goto('/settings');
     await expect(page.locator('#api-tokens')).toBeVisible();
 
@@ -56,7 +56,7 @@ async function tokenCell(page: Page, name: string, column: string): Promise<stri
 
 test.describe('TokenSettings', () => {
     test('At 390 px and 768 px the token table does not make the page scroll sideways', async ({ page, api }) => {
-        const tokens = new FakeTokens(api, new FakeRepositories(api));
+        const { tokens } = new FakeRepositories(api);
         tokens.tokens = [token({ name: TOKEN_NAME, lastUsedAt: now(-120), expiresAt: now(30 * 86_400) })];
         await page.goto('/settings');
         await expect(tokenRow(page, TOKEN_NAME)).toHaveCount(1);

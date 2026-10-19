@@ -1,10 +1,9 @@
 import { FakeRepositories } from './support/fakeRepositories';
-import { FakeTokens } from './support/fakeTokens';
 import { expect, test } from './support/test';
 
 test.describe('SettingsTour', () => {
     test('The switch shows whether the tour shows, and each change sends A4', async ({ page, api }) => {
-        new FakeTokens(api, new FakeRepositories(api));
+        new FakeRepositories(api);
         await page.goto('/settings');
         const toggle = page.getByRole('button', { name: 'Show the review tour' });
         await expect(toggle).toHaveAttribute('aria-pressed', 'false');

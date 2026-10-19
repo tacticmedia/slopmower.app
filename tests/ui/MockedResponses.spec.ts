@@ -1,4 +1,5 @@
 import { me } from './support/builders';
+import { FakeRepositories } from './support/fakeRepositories';
 import { json } from './support/mockApi';
 import { SchemaViolation } from './support/schemas';
 import { expect, test } from './support/test';
@@ -8,6 +9,7 @@ test.describe('MockedResponses', () => {
         const invalidMe = { ...me(), user: { ...me().user, login: 42 } };
         expect(() => json('me.schema.json', invalidMe)).toThrow(SchemaViolation);
         api.on('GET', '/api/v1/me', () => json('me.schema.json', invalidMe));
+        new FakeRepositories(api);
 
         await page.goto('/');
 

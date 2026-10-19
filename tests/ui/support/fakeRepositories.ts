@@ -3,15 +3,17 @@ import type { CheckEveryPullRequestInput, ConnectRepositoryInput, StartReviewInp
 import type { CandidateList } from '../../../assets/api/types/lists';
 import type { Repository } from '../../../assets/api/types/repository';
 import type { RepositoryCandidate } from '../../../assets/api/types/repository-candidate';
-import { candidateList, commits, localCandidate, localRepository, now, sha1 } from './builders';
+import { candidateList, commits, githubRepository, localRepository, now, sha1 } from './builders';
 import { FakeReview, type FakeReviewOptions } from './fakeReview';
+import { FakeTokens } from './fakeTokens';
 import { type ApiCall, apiError, json, type MockApi, type MockResponse, noContent } from './mockApi';
 
 /**
  * The repositories of the user in memory: R1 to R3, R5, R6, R8, R9, V1, and V2. Each review of a repository is a
- * {@link FakeReview}.
+ * {@link FakeReview}. The tokens answer T1, which the getting started steps read.
  */
 export class FakeRepositories {
+    readonly tokens: FakeTokens;
     repositories: Repository[] = [];
     candidates: RepositoryCandidate[] = [];
     /** The fields of R2 besides `items`. */
@@ -25,6 +27,7 @@ export class FakeRepositories {
 
     constructor(api: MockApi) {
         this.#api = api;
+        this.tokens = new FakeTokens(api, this);
         api.on('GET', '/api/v1/repositories', () => json('lists.schema.json#/$defs/RepositoryPage', { items: this.repositories, nextCursor: null }));
         api.on('GET', '/api/v1/repositories/candidates', () => json('lists.schema.json#/$defs/CandidateList', candidateList(this.candidates, this.candidateFields)));
         api.on('POST', '/api/v1/repositories', ({ body }) => this.#connect(body as ConnectRepositoryInput));
@@ -91,23 +94,25 @@ export class FakeRepositories {
     }
 
     #connect(input: ConnectRepositoryInput): MockResponse {
-        if ('local' !== input.source) {
-            throw new Error('The fake connects local directories only.');
-        }
-        if (false === this.candidateFields.localEnabled) {
+        if ('local' === input.source && false === this.candidateFields.localEnabled) {
             return apiError(422, 'invalid_input', 'Local repositories are off.', { violations: [{ field: 'source', message: 'Local repositories are off.' }] });
         }
-        const candidate = this.candidates.find((known) => 'local' === known.source && known.local.directory === input.directory);
+        const candidate = this.candidates.find((known) =>
+            'local' === input.source ? 'local' === known.source && known.local.directory === input.directory : 'github' === known.source && known.github.repositoryId === input.githubRepositoryId,
+        );
         if (undefined === candidate) {
-            return apiError(404, 'not_found', `The directory ${input.directory} is not a local candidate.`);
+            return apiError(404, 'not_found', 'local' === input.source ? `The directory ${input.directory} is not a local candidate.` : `The GitHub repository ${input.githubRepositoryId} is not a candidate.`);
         }
         const connected = this.repositories.find(({ id }) => id === candidate.connectedRepositoryId);
         if (undefined !== connected) {
             return json('repository.schema.json', connected);
         }
-        const repository = { ...localRepository(input.directory), access: 'active', defaultBranch: null, sync: { state: 'cloning', lastFetchedAt: null, lastError: null, defaultBranchHead: null } } as Repository;
+        const repository =
+            'local' === candidate.source
+                ? ({ ...localRepository(candidate.local.directory), access: 'active', defaultBranch: null, sync: { state: 'cloning', lastFetchedAt: null, lastError: null, defaultBranchHead: null } } as Repository)
+                : githubRepository(candidate);
         this.repositories.push(repository);
-        this.candidates = this.candidates.map((known) => (known === candidate ? localCandidate(input.directory, repository.id) : known));
+        this.candidates = this.candidates.map((known) => (known === candidate ? { ...known, connectedRepositoryId: repository.id } : known));
 
         return json('repository.schema.json', repository, 201);
     }

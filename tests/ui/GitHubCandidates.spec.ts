@@ -9,6 +9,7 @@ test.describe('GitHubCandidates', () => {
     test('GitHub candidates and the Configure on GitHub link show on the repositories screen', async ({ page, api }) => {
         const candidates = fixture<CandidateList>('lists.candidate-list.json');
         const repositories = new FakeRepositories(api);
+        repositories.addLocal('billing');
         repositories.candidates = candidates.items.filter(({ source }) => 'github' === source).map((candidate) => ({ ...candidate, connectedRepositoryId: null }));
         repositories.candidateFields = { githubListedAt: candidates.githubListedAt, githubConfigureUrl: candidates.githubConfigureUrl };
 

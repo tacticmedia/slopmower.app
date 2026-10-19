@@ -4,7 +4,7 @@
 
 | Topic | Page |
 |---|---|
-| Sign in, install the GitHub App, connect a repository, and start a review | [Getting started](getting-started.md) |
+| Sign in, install the GitHub App, connect a repository, start a review, and connect your agent | [Getting started](getting-started.md) |
 | Tokens, the MCP server, the skill, and the errors that your agent reports | [Connect your agent](connect-your-agent.md) |
 | Comments, requests, verification, and the end of a review | [Reviewing](reviewing.md) |
 | Slopmower on your own computer | [Run it locally](local-run.md) |

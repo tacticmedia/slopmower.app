@@ -8,7 +8,7 @@ Your coding agent, for example Claude Code, reads the change requests from Slopm
 
 | Page | What it tells you |
 |---|---|
-| [Getting started](getting-started.md) | Sign in with GitHub, connect a repository, and start a review |
+| [Getting started](getting-started.md) | Sign in with GitHub, connect a repository, start a review, and connect your agent |
 | [Run it locally](local-run.md) | Start Slopmower with Docker on your computer and review repositories on your disk, without GitHub |
 | [Connect your agent](connect-your-agent.md) | Create a token, configure the MCP server, install the skill, and give your agent a review |
 | [Reviewing](reviewing.md) | Comment, go to declarations, open files and symbols by name, work with the agent, verify, reopen, and close a review |

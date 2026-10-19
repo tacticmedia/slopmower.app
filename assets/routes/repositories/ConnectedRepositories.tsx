@@ -23,19 +23,14 @@ const COLUMNS: Column<Repository>[] = [
     { id: 'openReviewCount', header: 'Open reviews', width: 'auto', align: 'end', renderCell: (repository) => repository.openReviewCount },
 ];
 
+/** Without a repository, the onboarding shows in place of this table. */
 export function ConnectedRepositories({ repositories }: { repositories: Repository[] }) {
     return (
         <Table.Container data-testid="connected-repositories">
             <Table.Title as="h2" id="connected-repositories">
                 Connected repositories
             </Table.Title>
-            {0 === repositories.length ? (
-                <Table.Subtitle as="p" id="connected-repositories-empty">
-                    No repository is connected. Connect one of the candidates below.
-                </Table.Subtitle>
-            ) : (
-                <DataTable aria-labelledby="connected-repositories" data={repositories} columns={COLUMNS} />
-            )}
+            <DataTable aria-labelledby="connected-repositories" data={repositories} columns={COLUMNS} />
         </Table.Container>
     );
 }

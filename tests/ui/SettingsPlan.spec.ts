@@ -1,13 +1,12 @@
 import type { Me } from '../../assets/api/types/me';
 import { fixture, me } from './support/builders';
 import { FakeRepositories } from './support/fakeRepositories';
-import { FakeTokens } from './support/fakeTokens';
 import { expect, test } from './support/test';
 
 test.describe('SettingsPlan', () => {
     test('Settings shows the plan, the trial end, the pending change, and the listing link', async ({ page, api }) => {
         api.me = { ...me(), plan: fixture<Me>('me.agent.json').plan };
-        new FakeTokens(api, new FakeRepositories(api));
+        new FakeRepositories(api);
 
         await page.goto('/settings');
 

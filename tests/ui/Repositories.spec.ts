@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 import type { Repository } from '../../assets/api/types/repository';
 import { fixture, localCandidate, me, newId } from './support/builders';
 import { FakeRepositories } from './support/fakeRepositories';
+import type { MockApi } from './support/mockApi';
 import { expect, test } from './support/test';
 
 const CANDIDATES = '[data-testid="local-candidates"]';
@@ -12,9 +13,17 @@ function connectButton(page: Page, directory: string) {
     return page.locator(`${CANDIDATES} button[aria-label="Connect ${directory}"]`);
 }
 
+/** A connected repository, so that the screen shows the lists in place of the onboarding. */
+function withConnectedRepository(api: MockApi): FakeRepositories {
+    const repositories = new FakeRepositories(api);
+    repositories.addLocal('billing');
+
+    return repositories;
+}
+
 test.describe('Repositories', () => {
     test('A repository that the test created is listed as a candidate', async ({ page, api }) => {
-        new FakeRepositories(api).candidates = [localCandidate(DIRECTORY)];
+        withConnectedRepository(api).candidates = [localCandidate(DIRECTORY)];
 
         await page.goto('/repositories');
 
@@ -23,21 +32,22 @@ test.describe('Repositories', () => {
     });
 
     test('Connect adds it to the connected repositories', async ({ page, api, live }) => {
-        const repositories = new FakeRepositories(api);
+        const repositories = withConnectedRepository(api);
         repositories.candidates = [localCandidate(DIRECTORY)];
         await page.goto('/repositories');
         await expect(page.locator('[data-live="connected"]')).toBeAttached();
 
         await connectButton(page, DIRECTORY).click();
 
-        await expect(page.locator(`${CONNECTED} table`)).toContainText(DIRECTORY);
-        await expect(page.locator(`${CONNECTED} [data-testid="sync-state"]`)).toContainText('Cloning');
+        const row = page.locator(`${CONNECTED} tr`).filter({ hasText: DIRECTORY });
+        await expect(row.locator('[data-testid="sync-state"]')).toContainText('Cloning');
         await expect(page.locator(`${CANDIDATES} table`)).toContainText('Connected');
+        await expect(page).toHaveURL('/repositories');
         expect(api.bodies('POST', '/api/v1/repositories')).toEqual([{ source: 'local', directory: DIRECTORY }]);
-        const [repository] = repositories.repositories;
+        const repository = repositories.repositories.at(-1);
         repositories.finishClone(repository?.id ?? '');
         await live.push({ type: 'repository', repositoryId: repository?.id ?? '' });
-        await expect(page.locator(`${CONNECTED} [data-testid="sync-state"]`)).toContainText('Ready');
+        await expect(row.locator('[data-testid="sync-state"]')).toContainText('Ready');
     });
 
     test('A GitHub repository shows its owner, its visibility, and a link to GitHub', async ({ page, api }) => {
@@ -81,7 +91,7 @@ test.describe('Repositories', () => {
 
     test('The page has no local directories section while local repositories are off', async ({ page, api }) => {
         api.me = me({ localRepositories: false });
-        new FakeRepositories(api).candidateFields = { localEnabled: false };
+        withConnectedRepository(api).candidateFields = { localEnabled: false };
 
         await page.goto('/repositories');
 

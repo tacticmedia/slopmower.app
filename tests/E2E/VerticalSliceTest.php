@@ -77,16 +77,14 @@ final class VerticalSliceTest extends FullStackTestCase
     }
 
     /**
-     * Connects the source on the repositories screen and starts a review at main on the repository screen.
+     * Connects the source in the first onboarding step, which opens the repository screen, and starts a review at main.
      */
     private function connectAndStartReview(string $directory): ReviewId
     {
         $this->visit('/repositories');
-        $this->page->locator("[data-testid=\"local-candidates\"] button[aria-label=\"Connect {$directory}\"]")->click();
-        $connected = $this->page->locator('[data-testid="connected-repositories"]');
-        $this->expect($connected->locator('[data-testid="sync-state"]'))->toContainText('Ready');
+        $this->page->locator("[data-testid=\"onboarding-local\"] button[aria-label=\"Connect {$directory}\"]")->click();
+        $this->page->waitForURL(self::BASE_URI.'/repositories/*');
 
-        $connected->getByRole('link', ['name' => $directory, 'exact' => true])->click();
         $this->expect($this->page->locator('[data-testid="start-review-form"] input[name="ref"][value="main"]'))->toBeAttached();
         $this->page->locator('[data-testid="start-review-form"] button[type="submit"]')->click();
         $this->page->waitForURL(self::BASE_URI.'/reviews/*');

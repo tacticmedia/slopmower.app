@@ -1,7 +1,6 @@
 import type { LimitUsage } from '../../assets/api/types/me';
 import { me } from './support/builders';
 import { FakeRepositories } from './support/fakeRepositories';
-import { FakeTokens } from './support/fakeTokens';
 import { expect, test } from './support/test';
 
 const USAGE: LimitUsage[] = [
@@ -15,7 +14,7 @@ const USAGE: LimitUsage[] = [
 test.describe('SettingsUsage', () => {
     test('Settings shows the use and the limit of each item', async ({ page, api }) => {
         api.me = { ...me(), usage: USAGE };
-        new FakeTokens(api, new FakeRepositories(api));
+        new FakeRepositories(api);
 
         await page.goto('/settings');
 

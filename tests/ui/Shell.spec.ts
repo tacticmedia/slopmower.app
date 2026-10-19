@@ -1,11 +1,13 @@
 import type { Page } from '@playwright/test';
 import { FakeRepositories } from './support/fakeRepositories';
-import { redirect } from './support/mockApi';
+import { type MockApi, redirect } from './support/mockApi';
 import { expect, test } from './support/test';
 
 const CURRENT_USER = '[data-testid="current-user"]';
 
-async function openShell(page: Page): Promise<void> {
+/** `/` opens the repositories screen. */
+async function openShell(page: Page, api: MockApi): Promise<void> {
+    new FakeRepositories(api);
     await page.goto('/');
     await expect(page.locator(CURRENT_USER)).toHaveText('jan');
 }
@@ -19,25 +21,24 @@ function windowMarker(page: Page): Promise<unknown> {
 }
 
 test.describe('Shell', () => {
-    test('The header shows the login of the signed-in user', async ({ page }) => {
-        await openShell(page);
+    test('The header shows the login of the signed-in user', async ({ page, api }) => {
+        await openShell(page, api);
 
         await expect(page.locator(`header ${CURRENT_USER}`)).toHaveText('jan');
     });
 
     test('Client-side navigation keeps a window marker', async ({ page, api }) => {
-        new FakeRepositories(api);
-        await openShell(page);
+        await openShell(page, api);
         await markWindow(page);
 
-        await page.locator('nav[aria-label="Main"] a[href="/repositories"]').click();
+        await page.locator('nav[aria-label="Main"] a[href="/settings"]').click();
 
-        await expect(page).toHaveURL('/repositories');
+        await expect(page).toHaveURL('/settings');
         expect(await windowMarker(page)).toBe('kept');
     });
 
-    test('Client-side navigation to an unknown path shows the error boundary', async ({ page }) => {
-        await openShell(page);
+    test('Client-side navigation to an unknown path shows the error boundary', async ({ page, api }) => {
+        await openShell(page, api);
         await markWindow(page);
 
         await page.evaluate(() => {
@@ -51,7 +52,7 @@ test.describe('Shell', () => {
 
     test('Sign out posts the CSRF token to /logout and lands on /login', async ({ page, api }) => {
         api.on('POST', '/logout', () => redirect('/login'));
-        await openShell(page);
+        await openShell(page, api);
 
         await page.locator('header form[action="/sign-out"] button').click();
 

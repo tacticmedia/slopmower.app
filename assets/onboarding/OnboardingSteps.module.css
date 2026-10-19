@@ -1,0 +1,138 @@
+.full,
+.compact {
+    border: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-radius: var(--borderRadius-large);
+    background-color: var(--bgColor-default);
+}
+
+.full {
+    --marker-size: var(--base-size-32);
+    --panel-padding: var(--base-size-24);
+    --step-gap: var(--base-size-24);
+}
+
+.compact {
+    --marker-size: var(--base-size-24);
+    --panel-padding: var(--base-size-16);
+    --step-gap: var(--base-size-16);
+}
+
+.heading {
+    margin: 0;
+    padding: var(--base-size-12) var(--panel-padding);
+    border-bottom: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-start-start-radius: inherit;
+    border-start-end-radius: inherit;
+    background-color: var(--bgColor-muted);
+    font-size: var(--text-body-size-medium);
+    font-weight: var(--base-text-weight-semibold);
+}
+
+.steps {
+    margin: 0;
+    padding: var(--panel-padding);
+    list-style: none;
+}
+
+.step {
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--marker-size) minmax(0, 1fr);
+    column-gap: var(--base-size-12);
+    padding-bottom: var(--step-gap);
+}
+
+.step:last-child {
+    padding-bottom: 0;
+}
+
+/* The line from this marker to the next one. */
+.step:not(:last-child)::before {
+    position: absolute;
+    top: calc(var(--marker-size) + var(--base-size-4));
+    bottom: var(--base-size-4);
+    left: calc(var(--marker-size) / 2 - var(--borderWidth-thick) / 2);
+    width: var(--borderWidth-thick);
+    border-radius: var(--borderRadius-full);
+    background-color: var(--borderColor-default);
+    content: '';
+}
+
+.step[data-state='done']:not(:last-child)::before {
+    background-color: var(--borderColor-success-emphasis);
+}
+
+.marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--marker-size);
+    height: var(--marker-size);
+    border: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-radius: var(--borderRadius-full);
+    background-color: var(--bgColor-default);
+    color: var(--fgColor-muted);
+    font-size: var(--text-body-size-small);
+    font-weight: var(--base-text-weight-semibold);
+}
+
+.step[data-state='current'] .marker {
+    border-color: var(--borderColor-accent-emphasis);
+    background-color: var(--bgColor-accent-emphasis);
+    box-shadow: 0 0 0 var(--base-size-4) var(--bgColor-accent-muted);
+    color: var(--fgColor-onEmphasis);
+}
+
+.step[data-state='done'] .marker {
+    border-color: var(--borderColor-success-emphasis);
+    background-color: var(--bgColor-success-emphasis);
+    color: var(--fgColor-onEmphasis);
+}
+
+.body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-4);
+    min-width: 0;
+}
+
+.title {
+    display: flex;
+    align-items: center;
+    min-height: var(--marker-size);
+    margin: 0;
+    font-size: var(--text-title-size-small);
+    font-weight: var(--base-text-weight-semibold);
+}
+
+.compact .title {
+    font-size: var(--text-body-size-medium);
+}
+
+.step[data-state='upcoming'] .title {
+    color: var(--fgColor-muted);
+}
+
+.description {
+    margin: 0;
+    color: var(--fgColor-muted);
+    font-size: var(--text-body-size-medium);
+}
+
+.compact .description {
+    font-size: var(--text-body-size-small);
+}
+
+.learnMore {
+    white-space: nowrap;
+}
+
+.actions {
+    margin-top: var(--base-size-12);
+}
+
+@media (width < 544px) {
+    .full {
+        --panel-padding: var(--base-size-16);
+    }
+}

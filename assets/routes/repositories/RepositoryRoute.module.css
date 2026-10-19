@@ -58,3 +58,17 @@
 .carryOverResult {
     margin-top: var(--base-size-16);
 }
+
+.gettingStarted {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--base-size-24);
+    align-items: start;
+}
+
+@media (width >= 1012px) {
+    .gettingStarted {
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: var(--base-size-32);
+    }
+}

@@ -6,11 +6,17 @@ import { ActionErrorMessage } from '../../layout/ActionErrorMessage';
 import { useSubmitOnce } from '../../layout/useSubmitOnce';
 import styles from './CandidateConnection.module.css';
 
+type Props = {
+    candidate: RepositoryCandidate;
+    /** The onboarding opens the repository after the connect. */
+    openRepository?: boolean;
+};
+
 /**
  * The "Connection" cell of a candidate table: a link to the connected repository, else a Connect form for the route
- * action, which reads `directory` or `githubRepositoryId`.
+ * action, which reads `directory` or `githubRepositoryId`, and `openRepository`.
  */
-export function CandidateConnection({ candidate }: { candidate: RepositoryCandidate }) {
+export function CandidateConnection({ candidate, openRepository = false }: Props) {
     const fetcher = useFetcher<ActionResult>();
     const submitOnce = useSubmitOnce(fetcher.submit);
 
@@ -29,6 +35,7 @@ export function CandidateConnection({ candidate }: { candidate: RepositoryCandid
             ) : (
                 <input type="hidden" name="directory" value={candidate.local.directory} />
             )}
+            {openRepository && <input type="hidden" name="openRepository" value="true" />}
             <Button type="submit" size="small" aria-label={`Connect ${candidate.name}`} loading={'idle' !== fetcher.state}>
                 Connect
             </Button>

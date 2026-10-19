@@ -52,11 +52,10 @@ To stop Slopmower, run `make down`. Your reviews stay in the database volume.
 
 ## Connect a repository and start a review
 
-1. Open **Repositories**. The **Local directories** table shows the git repositories in your directory.
-2. Click **Connect** next to a repository. The repository appears under **Connected repositories**.
-3. When its status is **Ready**, click its name.
-4. Under **Start a review**, keep the default branch in **Ref**, or type another branch, tag, or commit SHA.
-5. Click **Start review**. The file tree opens.
+1. Open **Repositories**. While no repository is connected, the first step of [Getting started](getting-started.md) lists the git repositories in your directory. After that, the **Local directories** table lists them.
+2. Click **Connect** next to a repository. From the first step, the repository page opens. From the table, the repository appears under **Connected repositories**. Click its name to open it.
+3. When its status is **Ready**, keep the default branch in **Ref** under **Start a review**, or type another branch, tag, or commit SHA.
+4. Click **Start review**. The file tree opens.
 
 Then [connect your agent](connect-your-agent.md). In `.mcp.json`, use `http://localhost:8000/_mcp` as the URL.
 

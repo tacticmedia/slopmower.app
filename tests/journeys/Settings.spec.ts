@@ -1,7 +1,6 @@
 import type { LimitUsage, Me } from '../../assets/api/types/me';
 import { fixture, me, now, token } from '../ui/support/builders';
 import { FakeRepositories } from '../ui/support/fakeRepositories';
-import { FakeTokens } from '../ui/support/fakeTokens';
 import { test } from './support/test';
 
 const USAGE: LimitUsage[] = [
@@ -17,7 +16,7 @@ test.describe('Settings', () => {
         const repositories = new FakeRepositories(api);
         const billing = repositories.addLocal('billing');
         repositories.addLocal('shipping');
-        const tokens = new FakeTokens(api, repositories);
+        const { tokens } = repositories;
         tokens.tokens = [
             token({ name: 'claude-code laptop', lastUsedAt: now(-120) }),
             token({ name: 'ci billing', scope: 'repository', repositoryId: billing.id, repositoryName: billing.name, expiresAt: now(30 * 86_400) }),

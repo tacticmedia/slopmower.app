@@ -1,10 +1,9 @@
 import { FakeRepositories } from './support/fakeRepositories';
-import { FakeTokens } from './support/fakeTokens';
 import { expect, test } from './support/test';
 
 test.describe('SettingsLegalLinks', () => {
     test('Settings links the privacy policy, the terms of service, and the support page', async ({ page, api }) => {
-        new FakeTokens(api, new FakeRepositories(api));
+        new FakeRepositories(api);
 
         await page.goto('/settings');
 

@@ -1,11 +1,10 @@
-import { createBrowserRouter, type LoaderFunctionArgs, redirectDocument } from 'react-router';
+import { createBrowserRouter, type LoaderFunctionArgs, redirect, redirectDocument } from 'react-router';
 import { apiGet, signOut } from './api/client';
 import type { Me } from './api/types/me';
 import { commentAction } from './comments/commentAction';
 import { LoadingPage } from './layout/LoadingPage';
 import { RootLayout } from './layout/RootLayout';
 import { RouteError } from './layout/RouteError';
-import { HomeRoute } from './routes/HomeRoute';
 import { RepositoriesRoute, repositoriesAction, repositoriesLoader } from './routes/repositories/RepositoriesRoute';
 import { RepositoryRoute, repositoryAction, repositoryLoader } from './routes/repositories/RepositoryRoute';
 import { commitDiffLoader, diffSidesLoader, shouldRevalidateChanges } from './routes/requests/changesData';
@@ -37,7 +36,7 @@ export const router = createBrowserRouter([
             {
                 errorElement: <RouteError embedded />,
                 children: [
-                    { index: true, element: <HomeRoute /> },
+                    { index: true, loader: () => redirect('/repositories') },
                     { path: 'repositories', loader: repositoriesLoader, action: repositoriesAction, element: <RepositoriesRoute /> },
                     { path: 'repositories/:repositoryId', loader: repositoryLoader, action: repositoryAction, element: <RepositoryRoute /> },
                     {
