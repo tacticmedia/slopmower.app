@@ -3,6 +3,8 @@ import { Table } from '@primer/react/experimental';
 import { useState } from 'react';
 import { useLoaderData, useRouteLoaderData } from 'react-router';
 import type { Me } from '../../api/types/me';
+import { HelpLink } from '../../layout/HelpLink';
+import { HELP } from '../../layout/helpLinks';
 import tableStyles from '../../layout/ScrollingTable.module.css';
 import { CreateTokenDialog } from '../../settings/CreateTokenDialog';
 import { DeleteAccountDialog } from '../../settings/DeleteAccountDialog';
@@ -32,7 +34,7 @@ export function SettingsRoute() {
                     API tokens
                 </Table.Title>
                 <Table.Subtitle as="p" id="api-tokens-subtitle">
-                    Agents connect to the MCP server with a token. The token name is the agent name.
+                    Agents connect to the MCP server with a token. The token name is the agent name. <HelpLink href={HELP.apiTokens} />
                 </Table.Subtitle>
                 <Table.Actions>
                     <Button variant="primary" onClick={() => setCreating(true)}>
@@ -50,7 +52,7 @@ export function SettingsRoute() {
                     </Table.Title>
                     <Table.Subtitle as="p" id="usage-subtitle">
                         The use of your account and the limits of your plan. Requests per review and the size of one repository show the largest open review and the largest
-                        repository.
+                        repository. <HelpLink href={HELP.usage} />
                     </Table.Subtitle>
                     <UsageTable usage={me.usage} labelledBy="usage" describedBy="usage-subtitle" />
                 </Table.Container>
@@ -61,7 +63,7 @@ export function SettingsRoute() {
                         Repository data
                     </Table.Title>
                     <Table.Subtitle as="p" id="repository-data-subtitle">
-                        Deleting the data of a repository deletes its reviews, its symbol index, and its server clone.
+                        Deleting the data of a repository deletes its reviews, its symbol index, and its server clone. <HelpLink href={HELP.repositoryData} />
                     </Table.Subtitle>
                     <RepositoryDataTable repositories={repositories} labelledBy="repository-data" describedBy="repository-data-subtitle" />
                 </Table.Container>
@@ -71,7 +73,9 @@ export function SettingsRoute() {
                 <Heading as="h2" id="delete-account-title" className={styles.pageSectionTitle}>
                     Delete account
                 </Heading>
-                <p className={styles.note}>Deletes your account and all its data. You cannot undo this.</p>
+                <p className={styles.note}>
+                    Deletes your account and all its data. You cannot undo this. <HelpLink href={HELP.deleteAccount} />
+                </p>
                 <DeleteAccountDialog user={me.user} />
             </section>
             <nav className={styles.pageSection} aria-labelledby="legal-title">
@@ -79,9 +83,9 @@ export function SettingsRoute() {
                     Legal and support
                 </Heading>
                 <p className={styles.linkList}>
-                    <Link href="/docs/privacy">Privacy policy</Link>
-                    <Link href="/docs/terms">Terms of service</Link>
-                    <Link href="/docs/support">Support</Link>
+                    <Link href={HELP.privacy}>Privacy policy</Link>
+                    <Link href={HELP.terms}>Terms of service</Link>
+                    <Link href={HELP.support}>Support</Link>
                 </p>
             </nav>
             {creating && <CreateTokenDialog repositories={repositories} mcpUrl={me.links.mcpUrl} onClose={() => setCreating(false)} />}

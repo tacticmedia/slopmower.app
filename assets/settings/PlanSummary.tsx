@@ -1,5 +1,7 @@
 import { Heading, Link } from '@primer/react';
 import type { TenantPlan } from '../api/types/me';
+import { HelpLink } from '../layout/HelpLink';
+import { HELP } from '../layout/helpLinks';
 import styles from './Settings.module.css';
 
 /** GitHub sends the trial end and the change date as UTC midnight. */
@@ -29,7 +31,7 @@ export function PlanSummary({ plan }: { plan: TenantPlan }) {
                         It changes to <strong>{plan.pendingChange.name}</strong> on <Day value={plan.pendingChange.effectiveAt} />.
                     </>
                 )}{' '}
-                It is the highest plan of your GitHub account and of the accounts where the Slopmower GitHub App is installed.
+                It is the highest plan of your GitHub account and of the accounts where the Slopmower GitHub App is installed. <HelpLink href={HELP.plan} />
             </p>
             {null !== plan.listingUrl && (
                 <p className={styles.note}>

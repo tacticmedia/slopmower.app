@@ -1,6 +1,8 @@
 import { Heading, ToggleSwitch } from '@primer/react';
 import { TOURS } from '../api/types/common';
 import { ActionErrorMessage } from '../layout/ActionErrorMessage';
+import { HelpLink } from '../layout/HelpLink';
+import { HELP } from '../layout/helpLinks';
 import { useTours } from '../tour/useTours';
 import styles from './Settings.module.css';
 
@@ -19,7 +21,10 @@ export function ReviewTourSetting() {
             <Heading as="h2" id="review-tour-title" className={styles.pageSectionTitle}>
                 Review tour
             </Heading>
-            <p className={styles.note}>The tour shows the main actions of a review, one short part at a time. Your account remembers the parts that you finished or skipped.</p>
+            <p className={styles.note}>
+                The tour shows the main actions of a review, one short part at a time. Your account remembers the parts that you finished or skipped.{' '}
+                <HelpLink href={HELP.reviewTour} />
+            </p>
             <div className={styles.setting}>
                 <span id={LABEL_ID}>Show the review tour</span>
                 <ToggleSwitch

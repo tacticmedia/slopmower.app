@@ -4,6 +4,8 @@ import { Link as RouterLink, useLoaderData, useRouteLoaderData } from 'react-rou
 import type { Draft } from '../../api/types/draft';
 import type { Me } from '../../api/types/me';
 import type { DraftView } from '../../comments/draftView';
+import { HelpLink } from '../../layout/HelpLink';
+import { HELP } from '../../layout/helpLinks';
 import { ThreadList } from '../../comments/ThreadList';
 import type { ThreadView } from '../../comments/threadView';
 import { anchorHref, anchorLocation } from '../../requests/anchorLocation';
@@ -70,7 +72,8 @@ export function RequestList() {
                         No request matches these filters.{' '}
                         <Link as={RouterLink} to={{ search: '' }}>
                             Clear the filters
-                        </Link>
+                        </Link>{' '}
+                        <HelpLink href={HELP.comment} />
                     </p>
                 ) : (
                     <ul className={styles.list} aria-label="Requests" data-testid="request-list">

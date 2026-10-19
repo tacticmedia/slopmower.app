@@ -227,7 +227,7 @@ A row counts the PHP files of its namespace and of the sub-namespaces without a 
 
 | Folder | Files | Purpose |
 |---|---|---|
-| `assets/app.tsx`, `router.tsx`, `layout/` | 11 | Entry, the one data router, `RootLayout` with the live hook (D29), `usePreference` for per-browser UI preferences, `useSubmitOnce` for write forms, `modShortcut` for the Cmd or Ctrl keyboard shortcuts, `useDocumentTitle` for the browser title |
+| `assets/app.tsx`, `router.tsx`, `layout/` | 13 | Entry, the one data router, `RootLayout` with the live hook (D29) and the Help menu, `helpLinks` with every link into `/docs` and `HelpLink` (D79), `usePreference` for per-browser UI preferences, `useSubmitOnce` for write forms, `modShortcut` for the Cmd or Ctrl keyboard shortcuts, `useDocumentTitle` for the browser title |
 | `assets/api/` | 34 | `fetch` client with the CSRF header, `ApiError`, TypeScript types written from the schemas |
 | `assets/routes/` | 31 | Screens. Loaders read and actions write. Most actions branch on an `intent` field. |
 | `assets/code/` | 10 | `CodeFile` and `CommitDiff`, the only wrappers around the pinned `@pierre/diffs` (D1): `CommitDiff.tsx` also exports `ProposalDiff`. Their shared `workerPool` options. |

@@ -2,6 +2,8 @@ import { ToggleSwitch } from '@primer/react';
 import { useFetcher } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
 import { ActionErrorMessage } from '../../layout/ActionErrorMessage';
+import { HelpLink } from '../../layout/HelpLink';
+import { HELP } from '../../layout/helpLinks';
 import styles from './RepositoryRoute.module.css';
 
 const LABEL_ID = 'check-every-pull-request';
@@ -27,6 +29,7 @@ export function CheckEveryPullRequestSwitch({ enabled }: { enabled: boolean }) {
                     }
                 }}
             />
+            <HelpLink href={HELP.checkEveryPullRequest} />
             <ActionErrorMessage result={fetcher.data} />
         </div>
     );

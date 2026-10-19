@@ -1,5 +1,7 @@
-import { Heading, Link } from '@primer/react';
+import { Heading } from '@primer/react';
 import { CopyButton } from '../layout/CopyButton';
+import { HelpLink } from '../layout/HelpLink';
+import { HELP } from '../layout/helpLinks';
 import styles from './Settings.module.css';
 import { skillInstallCommand } from './skillInstallCommand';
 
@@ -16,7 +18,7 @@ export function SkillInstall({ skillUrl }: { skillUrl: string }) {
             </div>
             <p className={styles.note}>
                 Run this command in the root of your repository to install the Slopmower skill.{' '}
-                <Link href="/docs/connect-your-agent">Connect your agent</Link> shows every step.
+                <HelpLink href={HELP.connectYourAgent}>Connect your agent</HelpLink> shows every step.
             </p>
             <pre className={styles.code} data-testid="skill-install">
                 <code>{command}</code>

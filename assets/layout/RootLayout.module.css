@@ -38,3 +38,31 @@
 .page:has([data-code-browser]) .main {
     padding-bottom: 0;
 }
+
+/* The header is dark in both colour modes. */
+.help {
+    --button-invisible-iconColor-rest: var(--header-fgColor-logo);
+    --button-invisible-iconColor-hover: var(--header-fgColor-logo);
+    --button-invisible-bgColor-hover: var(--bgColor-neutral-muted);
+    --button-invisible-bgColor-active: var(--bgColor-neutral-muted);
+}
+
+/* Below the sm breakpoint of Primer, the header fits 390 px only with less space and the login for screen readers only. */
+@media (max-width: 543.98px) {
+    .header {
+        padding-inline: var(--base-size-12);
+    }
+
+    .header > :not(:last-child) {
+        margin-right: var(--base-size-8);
+    }
+
+    .login {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+}

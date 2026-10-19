@@ -35,8 +35,12 @@ final class DocsController extends AbstractController
     #[Route('/{slug}', name: 'docs_page', methods: ['GET'])]
     public function page(string $slug): Response
     {
+        $markdown = $this->catalog->pageMarkdown($slug) ?? throw $this->createNotFoundException();
+
         return $this->render('docs/page.html.twig', [
-            'markdown' => $this->catalog->pageMarkdown($slug) ?? throw $this->createNotFoundException(),
+            'markdown' => $markdown,
+            'title' => DocsCatalog::title($markdown),
+            'slug' => $slug,
         ]);
     }
 

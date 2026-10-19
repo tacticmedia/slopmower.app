@@ -3,6 +3,7 @@ import { IconButton, PageLayout } from '@primer/react';
 import { useMemo } from 'react';
 import { type LoaderFunctionArgs, Outlet, useLoaderData, useOutletContext, useParams, useRouteLoaderData } from 'react-router';
 import type { TreeListing } from '../../api/types/lists';
+import type { Me } from '../../api/types/me';
 import { usePreference } from '../../layout/usePreference';
 import { FileTree } from '../../review/FileTree';
 import { ReviewTour } from '../../tour/ReviewTour';
@@ -35,6 +36,8 @@ export function CodeLayout() {
     const currentPath = useParams()['*'] || null;
     const [treeCollapsed, setTreeCollapsed] = usePreference('treeCollapsed');
     const codeBrowser = useMemo<CodeBrowser>(() => ({ treeCollapsed, setTreeCollapsed }), [treeCollapsed, setTreeCollapsed]);
+    // "Take the review tour" empties the stored list. The new key drops the parts that ended in this visit.
+    const noTourCompleted = 0 === useRouteLoaderData<Me>('root')?.preferences.completedTours.length;
 
     return (
         <>
@@ -61,7 +64,7 @@ export function CodeLayout() {
                     <Outlet context={codeBrowser} />
                 </PageLayout.Content>
             </PageLayout>
-            <ReviewTour />
+            <ReviewTour key={String(noTourCompleted)} />
         </>
     );
 }

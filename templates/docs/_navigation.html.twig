@@ -1,0 +1,47 @@
+{# Every page of docs/user, by section. DocsRenderingTest checks that it lists each page once. #}
+{% set sections = [
+    {title: 'Start', pages: [
+        {slug: 'index', title: 'Help center'},
+        {slug: 'getting-started', title: 'Getting started'},
+        {slug: 'connect-your-agent', title: 'Connect your agent'},
+    ]},
+    {title: 'Repositories', pages: [
+        {slug: 'repositories', title: 'Repositories'},
+    ]},
+    {title: 'Reviewing', pages: [
+        {slug: 'reviewing', title: 'Reviewing'},
+        {slug: 'browse-code', title: 'Browse the code'},
+        {slug: 'comment', title: 'Comment on code'},
+        {slug: 'requests', title: 'Requests'},
+        {slug: 'pull-requests', title: 'Pull requests'},
+    ]},
+    {title: 'Reference', pages: [
+        {slug: 'keyboard-shortcuts', title: 'Keyboard shortcuts'},
+    ]},
+    {title: 'Account', pages: [
+        {slug: 'account', title: 'Settings'},
+    ]},
+    {title: 'Self-hosting', pages: [
+        {slug: 'local-run', title: 'Run it locally'},
+    ]},
+    {title: 'Legal', pages: [
+        {slug: 'support', title: 'Support'},
+        {slug: 'privacy', title: 'Privacy policy'},
+        {slug: 'terms', title: 'Terms of service'},
+    ]},
+] %}
+<nav class="docs-nav" aria-label="Help pages">
+    <details class="docs-nav-menu">
+        <summary>Help pages</summary>
+        {% for section in sections %}
+            <p class="docs-nav-title" id="docs-nav-{{ loop.index }}">{{ section.title }}</p>
+            <ul aria-labelledby="docs-nav-{{ loop.index }}">
+                {% for page in section.pages %}
+                    <li>
+                        <a href="{{ 'index' == page.slug ? path('docs_index') : path('docs_page', {slug: page.slug}) }}"{% if page.slug == slug %} aria-current="page"{% endif %}>{{ page.title }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endfor %}
+    </details>
+</nav>

@@ -4,11 +4,11 @@ This page shows the four steps from your first sign-in to the first request that
 
 To sign in, open Slopmower in your browser, click **Sign in with GitHub**, and approve the sign-in on GitHub. The first sign-in creates your account. Only you can see your repositories, reviews, and requests.
 
-After the sign-in, **Repositories** shows the four steps until you connect a repository. The repository page then shows them until its first review starts. Each step has a **Learn more** link to its section of this page.
+After the sign-in, **Repositories** shows the four steps until you connect a repository. The repository page then shows them while it has no open review. Each step has a **Learn more** link to its section of this page.
 
 ## 1. Connect a repository
 
-Slopmower reads your code through the Slopmower GitHub App. The App gets read-only access to the contents and the pull requests of the repositories that you choose. It cannot write to them. It can write checks, so a pull request shows which requests it covers, as [Reviewing](reviewing.md#the-slopmower-check) shows.
+Slopmower reads your code through the Slopmower GitHub App. The App gets read-only access to the contents and the pull requests of the repositories that you choose. It cannot write to them. It can write checks, so a pull request shows which requests it covers, as [The Slopmower check](pull-requests.md#the-slopmower-check) shows.
 
 1. Click **Install the GitHub App**.
 2. On GitHub, choose the account or organization, then choose **Only select repositories** and select the repositories to review.
@@ -46,4 +46,4 @@ You can do this step at any time. It is done while you have an active API token.
 
 ## Next steps
 
-Read [Reviewing](reviewing.md) to learn how to comment, verify, and close a review.
+Read [Comment on code](comment.md) to learn how to comment, and [Requests](requests.md) to learn how to verify, reopen, and close a review.

@@ -33,6 +33,14 @@ final readonly class DocsCatalog
         return null === $path ? null : self::read($path);
     }
 
+    /**
+     * The text of the first level-1 heading.
+     */
+    public static function title(string $markdown): ?string
+    {
+        return 1 === preg_match('/^# (.+)$/m', $markdown, $heading) ? trim($heading[1]) : null;
+    }
+
     public function skillMarkdown(): string
     {
         return self::read($this->docsDirectory.'/user/skill/SKILL.md');

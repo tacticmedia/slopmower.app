@@ -3,6 +3,8 @@ import { Link, VisuallyHidden } from '@primer/react';
 import { type ReactNode, useId } from 'react';
 import { Link as RouterLink } from 'react-router';
 import type { ApiToken } from '../api/types/api-token';
+import { HelpLink } from '../layout/HelpLink';
+import { HELP, type HelpUrl } from '../layout/helpLinks';
 import styles from './OnboardingSteps.module.css';
 
 type StepState = 'done' | 'current' | 'upcoming';
@@ -10,8 +12,8 @@ type StepState = 'done' | 'current' | 'upcoming';
 type Step = {
     title: string;
     description: ReactNode;
-    /** The ID of the step heading in docs/user/getting-started.md. */
-    docsFragment: string;
+    /** The section of the step in docs/user/getting-started.md. */
+    help: HelpUrl;
     state: StepState;
 };
 
@@ -32,19 +34,19 @@ export function OnboardingSteps({ form, tokens, actions }: Props) {
         {
             title: 'Connect a repository',
             description: 'Slopmower makes its own copy of the code and does not change your repository.',
-            docsFragment: '1-connect-a-repository',
+            help: HELP.connectRepository,
             state: repositoryConnected ? 'done' : 'current',
         },
         {
             title: 'Pick a point to review',
             description: 'Choose a branch, a tag, or one of the latest commits.',
-            docsFragment: '2-pick-a-point-to-review',
+            help: HELP.pickAPoint,
             state: repositoryConnected ? 'current' : 'upcoming',
         },
         {
             title: 'Start a review',
             description: 'The review stays on one commit, so each comment points to the code that you read.',
-            docsFragment: '3-start-a-review',
+            help: HELP.startAReview,
             state: 'upcoming',
         },
         {
@@ -55,10 +57,10 @@ export function OnboardingSteps({ form, tokens, actions }: Props) {
                     <Link as={RouterLink} to="/settings">
                         Settings
                     </Link>
-                    , then follow <Link href="/docs/connect-your-agent">the agent guide</Link>.
+                    , then follow <HelpLink href={HELP.connectYourAgent}>the agent guide</HelpLink>.
                 </>
             ),
-            docsFragment: '4-connect-your-agent',
+            help: HELP.connectAgentStep,
             state: tokens.some(({ state }) => 'active' === state) ? 'done' : 'upcoming',
         },
     ];
@@ -72,7 +74,7 @@ export function OnboardingSteps({ form, tokens, actions }: Props) {
             <ol className={styles.steps}>
                 {steps.map((step, index) => (
                     <li
-                        key={step.docsFragment}
+                        key={step.help}
                         className={styles.step}
                         data-testid="onboarding-step"
                         data-state={step.state}
@@ -88,9 +90,7 @@ export function OnboardingSteps({ form, tokens, actions }: Props) {
                             </h3>
                             <p className={styles.description}>
                                 {step.description}{' '}
-                                <Link href={`/docs/getting-started#${step.docsFragment}`} aria-label={`Learn more: ${step.title}`} className={styles.learnMore}>
-                                    Learn more
-                                </Link>
+                                <HelpLink href={step.help} label={`Learn more: ${step.title}`} />
                             </p>
                             {'current' === step.state && undefined !== actions && <div className={styles.actions}>{actions}</div>}
                         </div>

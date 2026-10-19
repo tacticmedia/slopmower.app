@@ -3,6 +3,8 @@ import { InlineMessage } from '@primer/react/experimental';
 import { type ReactNode, useId } from 'react';
 import { Link as RouterLink } from 'react-router';
 import type { Request as ReviewRequest } from '../api/types/request';
+import { HelpLink } from '../layout/HelpLink';
+import { HELP } from '../layout/helpLinks';
 import { AnchorLink } from './AnchorLink';
 import { ClaimedBy } from './ClaimedBy';
 import { LocationInfo } from './LocationInfo';
@@ -63,7 +65,9 @@ function PlanSection({ request }: { request: ReviewRequest }) {
 
     return (
         <Section title="Plan">
-            <span data-testid="plan-state">{planState(request)}</span>
+            <span>
+                <span data-testid="plan-state">{planState(request)}</span> <HelpLink href={HELP.planFirst} />
+            </span>
             {request.allowedActions.includes('set_plan_requirement') && (
                 <Button size="small" onClick={() => send({ intent: 'set_plan_requirement', input: { requireApproval: !requireApproval } })} loading={'set_plan_requirement' === sent} disabled={busy}>
                     {requireApproval ? "Don't ask for a plan" : 'Ask for a plan first'}

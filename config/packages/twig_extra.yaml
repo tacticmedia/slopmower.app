@@ -1,10 +1,18 @@
-# Written by hand: the twig/extra-bundle recipe writes no configuration. Decision D28.
+# Written by hand: the twig/extra-bundle recipe writes no configuration. Decisions D28 and D79.
 twig_extra:
     commonmark:
         html_input: escape
         allow_unsafe_links: false
+        # The table of contents reads the permalink nodes, so they are inserted, with no visible symbol.
         heading_permalink:
-            insert: none
+            insert: after
+            symbol: ''
             apply_id_to_heading: true
             id_prefix: ''
             fragment_prefix: ''
+        # "On this page": the line "<!-- On this page -->" of a long page, which GitHub does not show.
+        table_of_contents:
+            position: placeholder
+            placeholder: '<!-- On this page -->'
+            min_heading_level: 2
+            max_heading_level: 2

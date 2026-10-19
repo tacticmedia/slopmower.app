@@ -74,12 +74,11 @@ To stop Slopmower, run `make down`. The database and the clones stay in Docker v
 
 ## Review a local repository
 
-1. Open **Repositories**. The **Local directories** table lists the git repositories directly under `LOCAL_REPOSITORIES_HOST_DIR`.
-2. Click **Connect** next to a repository.
-3. When the status under **Connected repositories** is **Ready**, click the repository name.
-4. Under **Start a review**, keep the default branch in **Ref**, or type a branch, tag, or commit SHA. Click **Start review**. The file tree opens.
+1. Open **Repositories**. While no repository is connected, step 1 of **Getting started** lists the git repositories directly under `LOCAL_REPOSITORIES_HOST_DIR`. Later, the **Local directories** table lists them.
+2. Click **Connect** next to a repository. From **Getting started**, the repository page opens. From the table, click the repository name when its status is **Ready**.
+3. Under **Start a review**, keep the default branch in **Ref**, or type a branch, tag, or commit SHA, and click **Start review**. Or click **Start review** next to one of the latest commits. The file tree opens.
 
-[Reviewing](docs/user/reviewing.md) tells you how to comment, verify, reopen, and close.
+[Comment on code](docs/user/comment.md) tells you how to comment, and [Requests](docs/user/requests.md) how to verify, reopen, and close.
 
 ## Connect your agent
 

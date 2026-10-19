@@ -123,10 +123,6 @@
     font-size: var(--text-body-size-small);
 }
 
-.learnMore {
-    white-space: nowrap;
-}
-
 .actions {
     margin-top: var(--base-size-12);
 }

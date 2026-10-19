@@ -291,6 +291,7 @@ make up
   - Per-browser UI preferences (the collapsed file tree, line wrapping) go through `assets/layout/usePreference.ts`, which reads and writes `localStorage` inside `try`/`catch`. The only other browser storage is the width of the tree pane, which Primer `PageLayout.Pane` keeps under its `widthStorageKey`, and the dismissal of the cookie notice in `templates/base.html.twig`. `docs/user/privacy.md` lists every cookie and storage key with its purpose and lifetime.
   - A write form, `fetcher.Form`, takes `onSubmit` from `assets/layout/useSubmitOnce.ts`. Primer's `loading` and the fetcher state, which commits in a transition, do not stop a quick second click or Enter.
   - Primer for components. CSS modules for our layout CSS.
+  - Every link into `/docs` is a constant of `assets/layout/helpLinks.ts`. A help link renders through `HelpLink`, which opens a new tab (D79).
   - `@pierre/diffs` only inside `assets/code/CodeFile.tsx`, `assets/code/CommitDiff.tsx`, and their worker pool options in `assets/code/workerPool.ts`.
   - API types in `assets/api/types/`, written from docs/specs and checked against `docs/specs/fixtures/`.
 - A PHP, TypeScript, or CSS file has at most 800 lines. `FileSizeLimitTest` enforces it. Generated files are exempt. One class per file.

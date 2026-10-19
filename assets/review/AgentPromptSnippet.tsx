@@ -1,5 +1,6 @@
-import { Link } from '@primer/react';
 import { CopyButton } from '../layout/CopyButton';
+import { HelpLink } from '../layout/HelpLink';
+import { HELP } from '../layout/helpLinks';
 import styles from './CopyField.module.css';
 import { agentPrompt, suggestionPrompt } from './promptSnippet';
 
@@ -15,7 +16,7 @@ export function AgentPromptSnippet({ reviewId }: { reviewId: string }) {
                     {prompt}
                 </code>
                 <CopyButton text={prompt} label="Copy prompt" />
-                <Link href="/docs/connect-your-agent">Connect your agent</Link>
+                <HelpLink href={HELP.connectYourAgent}>Connect your agent</HelpLink>
             </div>
             <div className={styles.field}>
                 <span className={styles.label}>Review prompt</span>

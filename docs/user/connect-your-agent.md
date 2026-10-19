@@ -77,7 +77,7 @@ To let the agent review the code and suggest changes, copy the review prompt of 
 Review the code of Slopmower review 01K6B3A1B2C3D4E5F6G7H8J9KM and suggest changes
 ```
 
-The agent changes no code. It opens one suggestion per finding, and you accept or dismiss each one in Slopmower. The agent prompt then lets the agent work on the accepted suggestions. See "Agent suggestions" in [Reviewing](reviewing.md).
+The agent changes no code. It opens one suggestion per finding, and you accept or dismiss each one in Slopmower. The agent prompt then lets the agent work on the accepted suggestions. See [Agent suggestions](requests.md#agent-suggestions).
 
 To let the agent keep watching the review for your replies, ask it to do so. In Claude Code you can use the `/loop` command.
 
