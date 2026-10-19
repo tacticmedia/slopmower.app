@@ -82,7 +82,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F64 | [Known issues of F57 to F60](F64-known-issues-of-f57-to-f60.md) | Done 2026-10-19, [report](reports/F64.md) | 612dcae | src 500 PHP / 34025 lines, 500 types; tests 335 PHP / 31072 lines; assets 176 TS / 10243 lines; check 11m45s |
 | F65 | [Known issues: docs anchors, skill copy, missed unsuspend](F65-known-issues-docs-anchors-skill-unsuspend.md) | Done 2026-10-19, [report](reports/F65.md) | 4e12071 | src 500 PHP / 34008 lines, 500 types; tests 335 PHP / 31048 lines; assets 176 TS / 10242 lines |
 | F66 | [Local directories only when on](F66-local-directories-only-when-on.md) | Done 2026-10-19, [report](reports/F66.md) | 23b7307 | src 503 PHP / 34149 lines, 503 types; tests 336 PHP / 31279 lines; assets 178 TS / 10372 lines; check 4m55s |
-| F67 | [Full-width Changes tab](F67-full-width-changes-tab.md) | Planned (2026-10-19) | | |
+| F67 | [Full-width Changes tab](F67-full-width-changes-tab.md) | Done 2026-10-19, [report](reports/F67.md) | ece7364 | src 503 PHP / 34149 lines, 503 types; tests 336 PHP / 31279 lines; assets 178 TS / 10372 lines; check 5m12s |
 | F68 | [Latest commits on the repository page](F68-latest-commits-on-the-repository-page.md) | Done 2026-10-19, [report](reports/F68.md) | a2b2f6f | src 503 PHP / 34149 lines, 503 types; tests 336 PHP / 31279 lines; assets 178 TS / 10380 lines; check 5m17s |
 | F69 | [Onboarding](F69-onboarding.md) | Planned (2026-10-19) | | |
 | F70 | [Review tour](F70-review-tour.md) | Planned (2026-10-19) | | |
