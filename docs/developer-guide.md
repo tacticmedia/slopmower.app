@@ -284,7 +284,7 @@ Change the specs first when a contract changes. The plan forbids a wire format t
 
 1. `repositoryAction()` in `assets/routes/repositories/RepositoryRoute.tsx` gets intent `start` and calls `apiWrite('POST', '/api/v1/repositories/{id}/reviews')`. This is endpoint V1.
 2. The `api` firewall restores the session. `TenantUserProvider::loadUserByIdentifier()` finds the user inside `TenantFilter::suspend()` and calls `TenantContext::set()`. `TenantContextListener::__invoke()` sets the same tenant at priority 7.
-3. `#[MapEntity]` loads the `Repository` through the tenant filter, so an ID of another tenant gives 404. `ApiCsrfListener` checks the double-submit token. `#[IsGranted(User::ROLE)]` refuses an agent.
+3. `#[MapEntity]` loads the `Repository` through the tenant filter, so an ID of another tenant gives 404. `ApiCsrfListener` checks the double-submit token. V1 has no `#[IsGranted]`, because an agent may start a review too (D72).
 4. `ReviewController::start()` calls `RefName::fromString()` for a given ref, then `ReviewCommands::start()` with `CurrentActor::get()`, which gives `Actor::user()`.
 5. `FetchRepository::readyClonePath()` throws `RepositoryUnavailable` when the sync state is `cloning`, `failed`, or `unavailable`.
 6. When the ref is not a full SHA in the clone, `FetchRepository::fetchNow()` waits for the `fetch:<repositoryId>` lock in `RepositoryLock::acquire()` and calls `ServerClone::fetch()`, both within 60 s. After the lock is released, `ServerClone::synced()` dispatches `RepositoryFetched` for a successful fetch, so steps 6 to 11 of flow 4.3 follow.
