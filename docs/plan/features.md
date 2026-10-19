@@ -79,6 +79,14 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F61 | [Keyboard gutter test race](F61-keyboard-gutter-test-race.md) | Done 2026-10-16, [report](reports/F61.md) | 152468f | src 496 PHP / 33658 lines, 496 types; tests 333 PHP / 30626 lines; assets 165 TS / 9701 lines; check 3m48s |
 | F62 | [Scroll to a line gives up early](F62-scroll-to-a-line-gives-up-early.md) | Done 2026-10-16, [report](reports/F62.md) | 33d2547 | src 496 PHP / 33658 lines, 496 types; tests 333 PHP / 30626 lines; assets 165 TS / 9712 lines; check 4m5s |
 | F63 | [prod-check request timeout](F63-prod-check-request-timeout.md) | Done 2026-10-16, [report](reports/F63.md) | b396d88 | src 496 PHP / 33658 lines, 496 types; tests 333 PHP / 30626 lines; assets 165 TS / 9712 lines; check 3m47s |
+| F64 | [Known issues of F57 to F60](F64-known-issues-of-f57-to-f60.md) | Planned (2026-10-19) | | |
+| F65 | [Known issues: docs anchors, skill copy, missed unsuspend](F65-known-issues-docs-anchors-skill-unsuspend.md) | Planned (2026-10-19) | | |
+| F66 | [Local directories only when on](F66-local-directories-only-when-on.md) | Planned (2026-10-19) | | |
+| F67 | [Full-width Changes tab](F67-full-width-changes-tab.md) | Planned (2026-10-19) | | |
+| F68 | [Latest commits on the repository page](F68-latest-commits-on-the-repository-page.md) | Planned (2026-10-19) | | |
+| F69 | [Onboarding](F69-onboarding.md) | Planned (2026-10-19) | | |
+| F70 | [Review tour](F70-review-tour.md) | Planned (2026-10-19) | | |
+| F71 | [Help center](F71-help-center.md) | Planned (2026-10-19) | | |
 
 ## Candidates
 
@@ -141,14 +149,17 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **Edit a suggestion before accepting.** The user replies in the thread instead. From F48.
 - **MCP triage tools.** Tools to accept or dismiss a suggestion or to close a review. Verify and reopen have none either. From F48.
 - **Demo fixture set for qa-bundle screenshots.** A Foundry story `demo` with the data of every view, for screenshots of each page with tacticmedia/qa-bundle. It writes reviews and requests through `ReviewCommands` and `RequestCommands`, from the `RequestScenario` states and the `acme/billing` story of `docs/specs/README.md`. From F49.
-- **Pull request states after a missed unsuspend.** A sign-in whose listing clears a stored suspension, because the `unsuspend` delivery never arrived, queues no reads, so the linked records stay stale until a push. `InstallationSync` could queue the F56 unsuspend refresh for each installation whose `suspendedAt` it clears. From the F56 report.
-- **Markdown in summaries.** An untitled request's `summary` is the raw first line of its Markdown body, so the list, the h1, the code-view thread header, and the browser title show backticks and other syntax. Inline rendering, or a plain-text strip of the first line, would fix it; a title avoids it. From the F58 report.
+- **Pull request states after a missed unsuspend.** Scheduled as F65. A sign-in whose listing clears a stored suspension, because the `unsuspend` delivery never arrived, queues no reads, so the linked records stay stale until a push. `InstallationSync` could queue the F56 unsuspend refresh for each installation whose `suspendedAt` it clears. From the F56 report.
+- **Markdown in summaries.** Scheduled as F64. An untitled request's `summary` is the raw first line of its Markdown body, so the list, the h1, the code-view thread header, and the browser title show backticks and other syntax. Inline rendering, or a plain-text strip of the first line, would fix it; a title avoids it. From the F58 report.
 - **Thread header links to its request.** The code-view thread header shows the summary as text. A link to the request detail would match GitHub's review comment headers. An untitled thread also repeats its first comment line in the header. From the F58 report.
-- **Request detail sidebar polish.** The Location section shows the anchor path twice: the `AnchorLink`, then the location of `LocationInfo`, also when the status is `exact`. The state line says "0 comments" for a thread with agent events, because `commentCount` counts replies only. From the F59 merge review.
+- **Request detail sidebar polish.** Scheduled as F64. The Location section shows the anchor path twice: the `AnchorLink`, then the location of `LocationInfo`, also when the status is `exact`. The state line says "0 comments" for a thread with agent events, because `commentCount` counts replies only. From the F59 merge review.
 - **Active filters above the request list.** The Status, Filters, and Sort menus show their selection only as check marks inside the menus. GitHub shows a filtered list's query and a "Clear current search query, filters, and sorts" link above the rows. From the F60 report.
 - **Request numbers per review.** GitHub shows `#N` next to each issue title and in the issue header. A request has only its ULID. A number per review, set when the request opens, would give a short name for lists, links, and the agent prompt. From the F58 to F60 planning.
 - **Journeys of the Twig pages.** The F57 journeys run against the mocked SPA, so the sign-in page, the public docs, and the legal pages have no captures. A full-stack journey with the `PlaywrightJourneyScreenshots` trait of qa-bundle on `FullStackTestCase` would capture them. From the F57 planning.
 - **Test helpers on Foundry factories.** `TenantFixtures`, `ApiFixtures::storeToken()`, and `ApiFixtures::storeRepository()` in `tests/Support/` could use the factories of F49. From F49.
+- **V1 default-branch resolution.** V1 resolves the default branch by its bare name (`ReviewCommands.php:251`), and R9 resolves `refs/heads/<name>`, as `ServerClone` computes `defaultBranchHead`. A tag with the name of the default branch wins in V1. From the F68 planning.
+- **Help search.** A search over the `/docs` pages of F71. From the F71 planning.
+- **"Run it locally" in the docs of a hosted instance.** `local-run.md` describes a self-hosted run with local directories, which a SaaS instance never offers. The docs of a hosted instance could leave it out. From the F66 planning.
 
 ## For Jan
 
