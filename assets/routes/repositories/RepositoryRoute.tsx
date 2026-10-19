@@ -1,11 +1,12 @@
 import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect, useLoaderData, useSearchParams } from 'react-router';
 import { actionError, type ActionResult, optionalText, writeResult } from '../../api/actionResult';
-import { apiGetAllPages, apiWrite } from '../../api/client';
+import { ApiError, apiGet, apiGetAllPages, apiWrite } from '../../api/client';
 import type { CarryOverResult } from '../../api/types/carry-over-result';
 import type { CarryOverInput, CheckEveryPullRequestInput, StartReviewInput } from '../../api/types/inputs';
-import type { ReviewPage } from '../../api/types/lists';
+import type { CommitLog, ReviewPage } from '../../api/types/lists';
 import type { Review } from '../../api/types/review';
 import { encodedRouteParam } from '../encodedRouteParam';
+import { LatestCommits, type LatestCommitsData } from './LatestCommits';
 import { RepositoryHeader } from './RepositoryHeader';
 import styles from './RepositoryRoute.module.css';
 import { ReviewList } from './ReviewList';
@@ -14,10 +15,33 @@ import { type StartedWithCarryOver, StartReviewForm } from './StartReviewForm';
 /** The shell query parameter of "Show closed", named after the `state` query of V2. */
 const SHOW_CLOSED = { state: 'all' } as const;
 
-export function repositoryLoader({ request, params }: LoaderFunctionArgs): Promise<ReviewPage> {
-    const state = SHOW_CLOSED.state === new URL(request.url).searchParams.get('state') ? 'all' : 'open';
+export type RepositoryData = {
+    page: ReviewPage;
+    /** Null while the repository has no default branch. */
+    commits: LatestCommitsData | null;
+};
 
-    return apiGetAllPages<ReviewPage>(`/api/v1/repositories/${encodedRouteParam(params, 'repositoryId')}/reviews?state=${state}&limit=100`, request.signal);
+/** R9 follows V2, which gives the default branch. */
+export async function repositoryLoader({ request, params }: LoaderFunctionArgs): Promise<RepositoryData> {
+    const repositoryPath = `/api/v1/repositories/${encodedRouteParam(params, 'repositoryId')}`;
+    const state = SHOW_CLOSED.state === new URL(request.url).searchParams.get('state') ? 'all' : 'open';
+    const page = await apiGetAllPages<ReviewPage>(`${repositoryPath}/reviews?state=${state}&limit=100`, request.signal);
+    const branch = page.repository.defaultBranch;
+
+    return { page, commits: null === branch ? null : await latestCommits(repositoryPath, branch, request.signal) };
+}
+
+/** A clone that is not ready, 409, or a branch that the clone lacks, 422, keeps the page. */
+async function latestCommits(repositoryPath: string, branch: string, signal: AbortSignal): Promise<LatestCommitsData> {
+    try {
+        return { branch, log: await apiGet<CommitLog>(`${repositoryPath}/commits`, signal), error: null };
+    } catch (error) {
+        if (error instanceof ApiError && (409 === error.status || 422 === error.status)) {
+            return { branch, log: null, error };
+        }
+
+        throw error;
+    }
 }
 
 export async function repositoryAction({ request, params }: ActionFunctionArgs): Promise<ActionResult | StartedWithCarryOver | Response> {
@@ -62,19 +86,30 @@ async function carryOver(review: Review, fromReviewId: string): Promise<ActionRe
     }
 }
 
+/** The open reviews come first when there are any. */
 export function RepositoryRoute() {
-    const { repository, items } = useLoaderData<ReviewPage>();
+    const {
+        page: { repository, items },
+        commits,
+    } = useLoaderData<RepositoryData>();
     const [searchParams, setSearchParams] = useSearchParams();
+    const openReviews = items.filter((review) => 'open' === review.state);
+    const reviewList = (
+        <ReviewList
+            reviews={items}
+            showClosed={SHOW_CLOSED.state === searchParams.get('state')}
+            onShowClosedChange={(showClosed) => setSearchParams(showClosed ? SHOW_CLOSED : {})}
+        />
+    );
 
     return (
         <div className={styles.page}>
             <RepositoryHeader repository={repository} />
-            <StartReviewForm key={repository.defaultBranch} defaultBranch={repository.defaultBranch} openReviews={items.filter((review) => 'open' === review.state)} />
-            <ReviewList
-                reviews={items}
-                showClosed={SHOW_CLOSED.state === searchParams.get('state')}
-                onShowClosedChange={(showClosed) => setSearchParams(showClosed ? SHOW_CLOSED : {})}
-            />
+            {0 < openReviews.length && reviewList}
+            <StartReviewForm key={repository.defaultBranch} defaultBranch={repository.defaultBranch} openReviews={openReviews}>
+                {null !== commits && <LatestCommits commits={commits} lastFetchedAt={repository.sync.lastFetchedAt} />}
+            </StartReviewForm>
+            {0 === openReviews.length && reviewList}
         </div>
     );
 }

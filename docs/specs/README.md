@@ -11,7 +11,7 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 | [rest-api-requests.md](rest-api-requests.md) | REST requests, updates, drafts, API tokens, and the routes outside `/api/v1` |
 | [mcp.md](mcp.md) | MCP endpoint, server instructions, the 18 tools, error mapping, parity with REST |
 | [webhooks-and-live-updates.md](webhooks-and-live-updates.md) | GitHub webhooks, fetch triggers and post-fetch steps, Mercure live updates |
-| [schemas/](schemas/) | 32 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
+| [schemas/](schemas/) | 33 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
 | [fixtures/](fixtures/) | One realistic example per response shape, error code, live-update type, and request body. See [section 11](#11-fixtures). |
 
 ## 2. Conventions
@@ -75,7 +75,7 @@ The body is `{"error": {"code", "message", "details"}}`. `message` is English an
 | `invalid_transition` | 409 | The status of the request, the claim holder, or the proposal state does not allow the command | `{requestId, action, status, claimedBy, allowedActions}` |
 | `review_closed` | 409 | A write on a closed review or on one of its requests | `{reviewId, closedAt}` |
 | `commits_not_available` | 409 | `mark_ready_for_review` while a linked commit is still `pending` after one fetch, or a commit diff of a pending link | `{pendingCommits: [sha]}` |
-| `commit_not_found` | 422 | A ref or commit that the caller named, such as `at` or the review `ref`, is not in the server clone after one fetch | `{commit}` |
+| `commit_not_found` | 422 | A ref or commit that the caller named, such as `at` or the review `ref`, is not in the server clone after one fetch. An endpoint that does not fetch, such as [R9](rest-api.md#r9-list-the-latest-commits), checks the clone as it is. | `{commit}` |
 | `repository_unavailable` | 409 | The operation needs the clone or a fetch, and the repository is cloning, its clone failed, its fetch failed, or its access was removed | `{repositoryId, reason: cloning\|clone_failed\|fetch_failed\|removed}` |
 | `rate_limited` | 429 | A rate limit refused the call. See [Rate limits](#rate-limits). | `{retryAfterSeconds, limit}` |
 | `limit_exceeded` | 409 | The call would pass a usage limit of the tenant. See [Usage limits](#usage-limits). | `{limit, max, current}` |
@@ -139,7 +139,7 @@ The [plan of the tenant](webhooks-and-live-updates.md#marketplace-plans) sets ea
 
 - Lists that can grow take `limit` and `cursor` and return `nextCursor`. `nextCursor` is null on the last page.
 - A cursor is opaque: base64url JSON of the sort key of the last item, plus a hash of the filters. It never expires. A cursor sent with other filters gets 422 `invalid_input`.
-- Bounded lists are not paginated: drafts, tokens, viewed files, candidates, symbols, declarations, and search hits. Candidates stop at 1,000 items and set `truncated`.
+- Bounded lists are not paginated: drafts, tokens, viewed files, candidates, symbols, declarations, search hits, and commits. Candidates stop at 1,000 items and set `truncated`.
 - `GET /api/v1/reviews/{reviewId}/updates` uses a different cursor: the integer event number. See [rest-api-requests.md](rest-api-requests.md#4-updates).
 
 ## 6. Caching and ETags
@@ -230,6 +230,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Agent suggestions, decision D72: the endpoints Q20, Q21, and Q22, the tools `start_review` and `suggest_request`, the `Action` values `accept_suggestion` and `dismiss_suggestion`, the `EventType` and `ThreadEntryType` values `request.suggestion_accepted` and `request.suggestion_dismissed`, the inputs `SuggestRequestInput`, `AcceptSuggestionInput`, and `DismissSuggestionInput`, the closed set `SuggestionState` on the new property `suggestion`, and the filter `suggestion` of Q1 and `list_requests`. All are additive. V1 also accepts `B`. A `request.opened` with an agent actor opens a suggestion with the same payload, and one with a user actor gives `suggestion: null`, so stored events need no change. While a suggestion is pending, `claim`, `mark_wont_do`, and `set_plan_requirement` are refused, `awaiting` rule 3 matches it, and rule 2 counts an accept as a user message. V15 does not carry a pending suggestion.
     - Request titles, decision D75: the endpoint Q23 and the tool `set_request_title`, the `Action` value `set_title`, the `EventType` and `ThreadEntryType` value `request.retitled`, the input `TitleInput`, the property `title` of `Request`, `RequestSummary`, and `Draft`, and the optional input `title` of Q2, D2, and D3. These are additive. Not additive: the required `title` of Q20 and `suggest_request`, and the new meaning of `summary`, which is the title when one is set. `request.opened` has the payload field `title`, read as null when missing, so stored events need no change.
     - Plain-text summary, decision D80: without a title, `summary` is the plain text of the first non-blank line of the body, without Markdown syntax. It is a changed meaning of an existing field. The wire format does not change.
+    - Latest commits, decision D76: the endpoint R9 and the schemas `Commit` and `CommitLog`. All are additive.
 
 ## 9. Contract tests
 
@@ -263,6 +264,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [event.schema.json](schemas/event.schema.json) | `https://slopmower.invalid/schemas/v1/event.schema.json` | One event of the review event log |
 | [commit-link.schema.json](schemas/commit-link.schema.json) | `https://slopmower.invalid/schemas/v1/commit-link.schema.json` | A commit linked to a request |
 | [commit-diff.schema.json](schemas/commit-diff.schema.json) | `https://slopmower.invalid/schemas/v1/commit-diff.schema.json` | Diff data of one linked commit, plus `CommitDiffFile` |
+| [commit.schema.json](schemas/commit.schema.json) | `https://slopmower.invalid/schemas/v1/commit.schema.json` | One commit of a commit list |
 | [tree-entry.schema.json](schemas/tree-entry.schema.json) | `https://slopmower.invalid/schemas/v1/tree-entry.schema.json` | One entry of a tree listing |
 | [file-content.schema.json](schemas/file-content.schema.json) | `https://slopmower.invalid/schemas/v1/file-content.schema.json` | File metadata at the review commit |
 | [blame.schema.json](schemas/blame.schema.json) | `https://slopmower.invalid/schemas/v1/blame.schema.json` | The blame of a file at the review commit, plus `BlameRange` and `BlameCommit` |
@@ -298,7 +300,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [draft.new-general-request.json](fixtures/draft.new-general-request.json) | `draft.schema.json` | D2 |
 | [draft.new-request.json](fixtures/draft.new-request.json) | `draft.schema.json` | D2, D3 |
 | [draft.reply.json](fixtures/draft.reply.json) | `draft.schema.json` | D2, D3 |
-| [error.commit-not-found.json](fixtures/error.commit-not-found.json) | `error.schema.json` | V1, Q3, `get_request`, `start_review` |
+| [error.commit-not-found.json](fixtures/error.commit-not-found.json) | `error.schema.json` | R9, V1, Q3, `get_request`, `start_review` |
 | [error.commits-not-available.json](fixtures/error.commits-not-available.json) | `error.schema.json` | Q9, Q10, `mark_ready_for_review` |
 | [error.forbidden.json](fixtures/error.forbidden.json) | `error.schema.json` | Any `S`-only endpoint called with a token |
 | [error.internal-error.json](fixtures/error.internal-error.json) | `error.schema.json` | Any endpoint and tool |
@@ -308,7 +310,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [error.limit-exceeded.json](fixtures/error.limit-exceeded.json) | `error.schema.json` | R3, V1, V15, Q2, Q20, D5 |
 | [error.not-found.json](fixtures/error.not-found.json) | `error.schema.json` | Any invisible ID |
 | [error.rate-limited.json](fixtures/error.rate-limited.json) | `error.schema.json` | Any endpoint and tool, the MCP transport |
-| [error.repository-unavailable.json](fixtures/error.repository-unavailable.json) | `error.schema.json` | R5, V1, V6 to V9, V14, V17, Q2, Q3, Q9, Q10, Q20 |
+| [error.repository-unavailable.json](fixtures/error.repository-unavailable.json) | `error.schema.json` | R5, R9, V1, V6 to V9, V14, V17, Q2, Q3, Q9, Q10, Q20 |
 | [error.review-closed.json](fixtures/error.review-closed.json) | `error.schema.json` | Writes on a closed review |
 | [error.unauthorized.json](fixtures/error.unauthorized.json) | `error.schema.json` | Any endpoint, the MCP transport |
 | [file-content.php.json](fixtures/file-content.php.json) | `file-content.schema.json` | V7 |
@@ -346,6 +348,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [link-commits-result.pending.json](fixtures/link-commits-result.pending.json) | `link-commits-result.schema.json` | Q7, `link_commits` |
 | [link-pull-request-result.linked.json](fixtures/link-pull-request-result.linked.json) | `link-pull-request-result.schema.json` | Q17, `link_pull_request` |
 | [lists.candidate-list.json](fixtures/lists.candidate-list.json) | `lists.schema.json#/$defs/CandidateList` | R2 |
+| [lists.commit-list.json](fixtures/lists.commit-list.json) | `lists.schema.json#/$defs/CommitLog` | R9 |
 | [lists.declaration-list.json](fixtures/lists.declaration-list.json) | `lists.schema.json#/$defs/DeclarationList` | V14 |
 | [lists.draft-list.json](fixtures/lists.draft-list.json) | `lists.schema.json#/$defs/DraftList` | D1 |
 | [lists.mercure-authorization.json](fixtures/lists.mercure-authorization.json) | `lists.schema.json#/$defs/MercureAuthorization` | A3 |

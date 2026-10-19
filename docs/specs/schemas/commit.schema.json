@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://slopmower.invalid/schemas/v1/commit.schema.json",
+  "title": "Commit",
+  "description": "One commit of a commit list.",
+  "type": "object",
+  "required": ["sha", "subject", "authorName", "authoredAt", "committedAt"],
+  "properties": {
+    "sha": {
+      "$ref": "common.schema.json#/$defs/CommitSha"
+    },
+    "subject": {
+      "type": "string",
+      "description": "The subject of the commit message: its first paragraph on one line. Empty for an empty message."
+    },
+    "authorName": {
+      "type": "string",
+      "description": "As the commit records it, without a mailmap."
+    },
+    "authoredAt": {
+      "$ref": "common.schema.json#/$defs/DateTime"
+    },
+    "committedAt": {
+      "$ref": "common.schema.json#/$defs/DateTime"
+    }
+  }
+}

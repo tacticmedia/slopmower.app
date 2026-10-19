@@ -127,6 +127,35 @@ final class GitReader implements ResetInterface
     }
 
     /**
+     * `git log` from the commit in its default order, without the mailmap, as {@see blame()}. Invalid UTF-8 is replaced.
+     *
+     * @return list<LogCommit> Newest first
+     *
+     * @throws GitFailed
+     */
+    public function log(string $gitDir, CommitSha $from, int $limit): array
+    {
+        $output = $this->git->run($gitDir, ['log', '--no-mailmap', '-z', '-n', (string) $limit, '--format=format:%H%x00%an%x00%at%x00%ct%x00%s', '--end-of-options', $from->toString()]);
+
+        if ('' === $output) {
+            return [];
+        }
+
+        // With -z, NUL also separates the commits, so each record is 5 fields. A subject can be empty.
+        return array_map(static function (array $fields): LogCommit {
+            [$sha, $authorName, $authoredAtUnixSeconds, $committedAtUnixSeconds, $subject] = $fields + ['', '', '0', '0', ''];
+
+            return new LogCommit(
+                CommitSha::fromString($sha),
+                mb_scrub($subject, 'UTF-8'),
+                mb_scrub($authorName, 'UTF-8'),
+                new \DateTimeImmutable('@'.$authoredAtUnixSeconds),
+                new \DateTimeImmutable('@'.$committedAtUnixSeconds),
+            );
+        }, array_chunk(explode("\0", $output), 5));
+    }
+
+    /**
      * `diff-tree -r -M --raw --numstat` of the commit against its first parent, or against the empty tree.
      *
      * @return list<ChangedFile> In git's order

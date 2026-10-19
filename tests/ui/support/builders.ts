@@ -8,13 +8,14 @@ import type { AgentActor, UserActor } from '../../../assets/api/types/actor';
 import type { Anchor, ContentSnapshot, LineRange } from '../../../assets/api/types/anchor';
 import type { ApiToken, ApiTokenWithSecret } from '../../../assets/api/types/api-token';
 import type { CarryOverResult } from '../../../assets/api/types/carry-over-result';
+import type { Commit } from '../../../assets/api/types/commit';
 import type { CommitLink } from '../../../assets/api/types/commit-link';
 import type { Action, ActorKind, Proposal, RequestStatus, SuggestionState, ThreadEntryType } from '../../../assets/api/types/common';
 import type { CommitDiff, CommitDiffFile } from '../../../assets/api/types/commit-diff';
 import type { Declaration } from '../../../assets/api/types/declaration';
 import type { ErrorBody, ErrorDetails } from '../../../assets/api/types/error';
 import type { Event } from '../../../assets/api/types/event';
-import type { CandidateList, DeclarationList, MercureAuthorization, ReviewPage, SearchHitList } from '../../../assets/api/types/lists';
+import type { CandidateList, CommitLog, DeclarationList, MercureAuthorization, ReviewPage, SearchHitList } from '../../../assets/api/types/lists';
 import type { Me } from '../../../assets/api/types/me';
 import type { Repository } from '../../../assets/api/types/repository';
 import type { RepositoryCandidate } from '../../../assets/api/types/repository-candidate';
@@ -93,6 +94,11 @@ export function localCandidate(directory: string, connectedRepositoryId: string 
 
 export function candidateList(items: RepositoryCandidate[], overrides: Partial<CandidateList> = {}): CandidateList {
     return { items, truncated: false, localEnabled: true, githubListedAt: null, githubConfigureUrl: null, ...overrides };
+}
+
+/** The R9 items of `lists.commit-list.json`, newest first. */
+export function commits(): Commit[] {
+    return fixture<CommitLog>('lists.commit-list.json').items;
 }
 
 /** V14 with the targets that the test resolves the name to. */

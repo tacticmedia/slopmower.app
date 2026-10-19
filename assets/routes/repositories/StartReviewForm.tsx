@@ -1,4 +1,5 @@
 import { Button, FormControl, Select, TextInput } from '@primer/react';
+import type { ReactNode } from 'react';
 import { useFetcher } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
 import type { CarryOverResult } from '../../api/types/carry-over-result';
@@ -15,9 +16,11 @@ type Props = {
     defaultBranch: string | null;
     /** The reviews that the new review can carry requests over from. */
     openReviews: Review[];
+    /** Other ways to start, below the form. */
+    children?: ReactNode;
 };
 
-export function StartReviewForm({ defaultBranch, openReviews }: Props) {
+export function StartReviewForm({ defaultBranch, openReviews, children }: Props) {
     const start = useFetcher<ActionResult | StartedWithCarryOver>();
     const submitOnce = useSubmitOnce(start.submit);
     const data = start.data ?? null;
@@ -67,6 +70,7 @@ export function StartReviewForm({ defaultBranch, openReviews }: Props) {
                     <CarryOverPanel result={started.carryOver} linkToReview />
                 </div>
             )}
+            {children}
         </section>
     );
 }

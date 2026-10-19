@@ -31,6 +31,7 @@ Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json). 
 | [R6](#r6-delete-repository-data) | DELETE | `/api/v1/repositories/{repositoryId}?confirm={name}` | S | 202 | none |
 | [R7](#r7-get-a-blob) | GET | `/api/v1/repositories/{repositoryId}/blobs/{blobSha}` | S, B | 200 or 304 | bytes |
 | [R8](#r8-check-every-pull-request) | POST | `/api/v1/repositories/{repositoryId}/check-every-pull-request` | S | 200 | [`repository.schema.json`](schemas/repository.schema.json) |
+| [R9](#r9-list-the-latest-commits) | GET | `/api/v1/repositories/{repositoryId}/commits` | S, B | 200 | [`lists.schema.json#/$defs/CommitLog`](schemas/lists.schema.json) |
 | [V1](#v1-start-a-review) | POST | `/api/v1/repositories/{repositoryId}/reviews` | S, B | 201 | [`review.schema.json`](schemas/review.schema.json) |
 | [V2](#v2-list-reviews) | GET | `/api/v1/repositories/{repositoryId}/reviews` | S, B | 200 | [`lists.schema.json#/$defs/ReviewPage`](schemas/lists.schema.json) |
 | [V3](#v3-get-a-review) | GET | `/api/v1/reviews/{reviewId}` | S, B | 200 | [`review.schema.json`](schemas/review.schema.json) |
@@ -310,6 +311,42 @@ The verify view uses this endpoint for the old and the new side of a `FileDiff`.
 - **Errors:** 422 `invalid_input` for a local repository, which has no check runs.
 
 The value says which pull requests of a GitHub repository get the check of the user, see [webhooks-and-live-updates.md](webhooks-and-live-updates.md#check-run). Off, the default: only the pull requests that a request of the tenant links. On: every pull request, and the others get a `neutral` run, so a required check does not block them. A change publishes the live update `repository`. No MCP tool changes the value.
+
+### R9 List the latest commits
+
+- **Request:** `GET /api/v1/repositories/{repositoryId}/commits?ref=&limit=`
+- **Authentication:** S, B
+- **Success:** 200 [`CommitLog`](schemas/lists.schema.json)
+- **Errors:**
+  - 422 `invalid_input`: a malformed `ref`, a `limit` outside 1 to 50, or no `ref` while the repository has no default branch;
+  - 409 `repository_unavailable`: `cloning`, `clone_failed`, or `removed`;
+  - 422 `commit_not_found`: the ref is not in the server clone;
+  - 422 `invalid_input`: an ambiguous SHA prefix.
+
+| Query | Type | Default | Notes |
+|---|---|---|---|
+| `ref` | string, 1 to 255 characters | the default branch | A branch, a tag, or a SHA. The ref validation of [V1](#v1-start-a-review). |
+| `limit` | integer 1-50 | 10 | |
+
+Rules:
+
+- The server reads the clone as it is and does not fetch, see decision D76 in [architecture.md](../architecture.md). `sync.lastFetchedAt` of the repository is the time of that state. [R5](#r5-fetch-a-repository) fetches.
+- Without `ref`, the server resolves `refs/heads/<defaultBranch>`, so the first item is `sync.defaultBranchHead`, and `ref` is the name of the branch. With `ref`, it resolves `git rev-parse --verify --end-of-options <ref>^{commit}`, as V1 does, and `ref` is the value as given.
+- `items` holds the first `limit` commits of `git log` from the resolved commit, newest first, in the default order of `git log` through all parents. The list is not paginated.
+- `subject` is the subject of the commit message, `%s` of `git log`: its first paragraph on one line. `authorName` is the author name as the commit records it, without a mailmap, as in [V17](#v17-get-the-blame-of-a-file). Invalid UTF-8 is replaced.
+
+Example response, [fixtures/lists.commit-list.json](fixtures/lists.commit-list.json):
+
+```json
+{
+  "repositoryId": "01K6B2Z0R3P0S1T2V3W4X5Y6Z7",
+  "ref": "main",
+  "items": [
+    {"sha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091", "subject": "Round tax per line", "authorName": "Grace Hopper", "authoredAt": "2026-09-28T16:40:12Z", "committedAt": "2026-09-28T16:42:03Z"},
+    {"sha": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d", "subject": "Add invoice totals", "authorName": "Ada Lovelace", "authoredAt": "2026-03-02T09:14:05Z", "committedAt": "2026-03-02T09:14:05Z"}
+  ]
+}
+```
 
 ## 5. Reviews and code
 

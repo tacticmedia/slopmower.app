@@ -9,19 +9,23 @@ use App\Application\ConnectLocalRepository;
 use App\Application\Event\RepositoryChanged;
 use App\Application\FetchRepository;
 use App\Application\GitHubRepositoriesLock;
+use App\Application\Query\CommitLog;
 use App\Application\Query\RepositoryQuery;
 use App\Application\UsageLimits;
 use App\Controller\Api\Input\CheckEveryPullRequestInput;
+use App\Controller\Api\Input\CommitListQuery;
 use App\Controller\Api\Input\ConfirmQuery;
 use App\Controller\Api\Input\ConnectRepositoryInput;
 use App\Controller\Api\Input\RepositoryListQuery;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Error\LimitExceeded;
 use App\Domain\Error\NotFound;
+use App\Domain\Git\RefName;
 use App\Domain\Repository\RepositorySource;
 use App\Entity\Repository;
 use App\Entity\User;
 use App\EventStore\CommandExecutor;
+use App\Git\GitReader;
 use App\Live\LivePublisher;
 use App\Live\LiveTopics;
 use App\Message\DeleteCloneJob;
@@ -44,7 +48,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
- * R1, R3 to R6, and R8 of docs/specs/rest-api.md section 4. A path ID that the SQL filter hides resolves to 404.
+ * R1, R3 to R6, R8, and R9 of docs/specs/rest-api.md section 4. A path ID that the SQL filter hides resolves to 404.
  */
 #[Route('/api/v1/repositories', name: 'api_repository_')]
 final class RepositoryController extends AbstractController
@@ -126,6 +130,30 @@ final class RepositoryController extends AbstractController
         $this->fetchRepository->request($repository->getId());
 
         return $this->json($this->repositories->get($repository->getId()), Response::HTTP_ACCEPTED);
+    }
+
+    /**
+     * Reads the clone without a fetch. The default branch resolves as `refs/heads/<branch>`, as `defaultBranchHead`.
+     */
+    #[Route('/{repositoryId}/commits', name: 'commits', methods: ['GET'])]
+    public function commits(
+        #[MapEntity(id: 'repositoryId')] Repository $repository,
+        GitReader $reader,
+        #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)]
+        CommitListQuery $query = new CommitListQuery(),
+    ): JsonResponse {
+        if (null !== $query->ref) {
+            $ref = RefName::fromString($query->ref);
+            $name = $ref->toString();
+        } else {
+            $name = $repository->getDefaultBranch() ?? throw InvalidInput::field('ref', 'The repository has no default branch. Name a ref.');
+            $ref = RefName::fromString("refs/heads/{$name}");
+        }
+
+        $gitDir = $this->fetchRepository->readyClonePath($repository->getId());
+        $commit = $reader->resolveCommit($gitDir, $ref);
+
+        return $this->json(new CommitLog($repository->getId(), $name, $reader->log($gitDir, $commit, $query->limit)));
     }
 
     #[Route('/{repositoryId}/check-every-pull-request', name: 'check_every_pull_request', methods: ['POST'])]

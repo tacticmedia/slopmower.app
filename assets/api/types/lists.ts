@@ -1,4 +1,5 @@
 import type { ApiToken } from './api-token';
+import type { Commit } from './commit';
 import type { CommitSha, Cursor, DateTime, ObjectSha, RepoPath, ReviewState, Ulid } from './common';
 import type { Declaration } from './declaration';
 import type { Draft } from './draft';
@@ -31,6 +32,14 @@ export type ReviewPage = {
     repository: Repository;
     items: Review[];
     nextCursor: NextCursor;
+};
+
+/** R9: newest first, at most 50 items. */
+export type CommitLog = {
+    repositoryId: Ulid;
+    /** The ref as given, or the name of the default branch for a query without a ref. */
+    ref: string;
+    items: Commit[];
 };
 
 export type RequestPage = {

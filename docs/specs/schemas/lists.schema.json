@@ -79,6 +79,29 @@
         }
       }
     },
+    "CommitLog": {
+      "type": "object",
+      "required": ["repositoryId", "ref", "items"],
+      "properties": {
+        "repositoryId": {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "The ref as given, or the name of the default branch for a query without a ref."
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "$ref": "commit.schema.json"
+          },
+          "description": "Newest first, in the order of git log."
+        }
+      }
+    },
     "RequestPage": {
       "type": "object",
       "required": ["reviewId", "reviewState", "total", "items", "nextCursor"],

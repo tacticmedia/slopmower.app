@@ -41,4 +41,11 @@ test.describe('Repositories', () => {
         await page.locator(CONNECTED).getByRole('link', { name: local.name, exact: true }).click();
         await captureScreen('Repository with open reviews', page.locator('[data-testid="review-list"] table'));
     });
+
+    test('A repository lists the latest commits of its default branch', async ({ page, api, captureScreen }) => {
+        const repository = new FakeRepositories(api).addLocal('billing');
+
+        await page.goto(`/repositories/${repository.id}`);
+        await captureScreen('Repository with latest commits', page.locator('[data-testid="latest-commits"] ul'));
+    });
 });

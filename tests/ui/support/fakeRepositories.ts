@@ -1,13 +1,14 @@
+import type { Commit } from '../../../assets/api/types/commit';
 import type { CheckEveryPullRequestInput, ConnectRepositoryInput, StartReviewInput } from '../../../assets/api/types/inputs';
 import type { CandidateList } from '../../../assets/api/types/lists';
 import type { Repository } from '../../../assets/api/types/repository';
 import type { RepositoryCandidate } from '../../../assets/api/types/repository-candidate';
-import { candidateList, localCandidate, localRepository, now, sha1 } from './builders';
+import { candidateList, commits, localCandidate, localRepository, now, sha1 } from './builders';
 import { FakeReview, type FakeReviewOptions } from './fakeReview';
 import { type ApiCall, apiError, json, type MockApi, type MockResponse, noContent } from './mockApi';
 
 /**
- * The repositories of the user in memory: R1 to R3, R5, R6, R8, V1, and V2. Each review of a repository is a
+ * The repositories of the user in memory: R1 to R3, R5, R6, R8, R9, V1, and V2. Each review of a repository is a
  * {@link FakeReview}.
  */
 export class FakeRepositories {
@@ -16,6 +17,8 @@ export class FakeRepositories {
     /** The fields of R2 besides `items`. */
     candidateFields: Partial<CandidateList> = {};
     readonly reviews: FakeReview[] = [];
+    /** The R9 commits of the default branch by repository ID, newest first. Without an entry, those of the fixture. */
+    readonly commits = new Map<string, Commit[]>();
     /** Runs when R5 fetches the repository, as the server recomputes the locations. */
     onFetch: (repository: Repository) => void = () => undefined;
     readonly #api: MockApi;
@@ -27,6 +30,7 @@ export class FakeRepositories {
         api.on('POST', '/api/v1/repositories', ({ body }) => this.#connect(body as ConnectRepositoryInput));
         api.on('GET', '/api/v1/repositories/:repositoryId/reviews', (call) => this.#with(call, (repository) => this.#reviewPage(repository, call.query.get('state'))));
         api.on('POST', '/api/v1/repositories/:repositoryId/reviews', (call) => this.#with(call, (repository) => this.#startReview(repository, call.body as StartReviewInput)));
+        api.on('GET', '/api/v1/repositories/:repositoryId/commits', (call) => this.#with(call, (repository) => this.#commitLog(repository, call.query)));
         api.on('POST', '/api/v1/repositories/:repositoryId/fetch', (call) =>
             this.#with(call, (repository) => {
                 this.onFetch(repository);
@@ -117,15 +121,39 @@ export class FakeRepositories {
         return json('lists.schema.json#/$defs/ReviewPage', { repository, items, nextCursor: null });
     }
 
-    /** Only the default branch resolves. */
+    /** Only the default branch and the full SHAs of its R9 commits resolve. */
     #startReview(repository: Repository, input: StartReviewInput): MockResponse {
         const ref = input.ref ?? repository.defaultBranch ?? 'main';
-        if (ref !== repository.defaultBranch) {
+        const commit = this.#commitsOf(repository).find(({ sha }) => sha === ref);
+        if (ref !== repository.defaultBranch && undefined === commit) {
             return apiError(422, 'commit_not_found', `The commit ${ref} is not in the server clone.`, { commit: ref });
         }
-        const review = this.addReview(repository, { review: { ref, createdAt: now() } });
-        review.review = { ...review.review, title: input.title ?? `${ref} @ ${review.review.commitSha.slice(0, 12)}` };
+        const review = this.addReview(repository, { review: { ref, createdAt: now(), ...(undefined === commit ? {} : { commitSha: commit.sha }) } });
+        const shortSha = review.review.commitSha.slice(0, 12);
+        review.review = { ...review.review, title: input.title ?? (undefined === commit ? `${ref} @ ${shortSha}` : shortSha) };
 
         return json('review.schema.json', review.review, 201);
+    }
+
+    /** 409 while cloning. Only the default branch and the full SHAs of its commits resolve. */
+    #commitLog(repository: Repository, query: URLSearchParams): MockResponse {
+        if ('cloning' === repository.sync.state) {
+            return apiError(409, 'repository_unavailable', `The repository ${repository.name} is cloning.`, { repositoryId: repository.id, reason: 'cloning' });
+        }
+        const ref = query.get('ref') ?? repository.defaultBranch;
+        if (null === ref) {
+            return apiError(422, 'invalid_input', 'The repository has no default branch. Name a ref.', { violations: [{ field: 'ref', message: 'The repository has no default branch. Name a ref.' }] });
+        }
+        const all = this.#commitsOf(repository);
+        const start = ref === repository.defaultBranch ? 0 : all.findIndex(({ sha }) => sha === ref);
+        if (-1 === start) {
+            return apiError(422, 'commit_not_found', `The commit ${ref} is not in the server clone.`, { commit: ref });
+        }
+
+        return json('lists.schema.json#/$defs/CommitLog', { repositoryId: repository.id, ref, items: all.slice(start, start + Number(query.get('limit') ?? 10)) });
+    }
+
+    #commitsOf(repository: Repository): Commit[] {
+        return this.commits.get(repository.id) ?? commits();
     }
 }

@@ -14,6 +14,7 @@ use App\Git\Blob;
 use App\Git\GitFailed;
 use App\Git\GitReader;
 use App\Git\GitRunner;
+use App\Git\LogCommit;
 use App\Git\ObjectType;
 use App\Git\TreeEntry;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
@@ -119,6 +120,22 @@ final class GitReaderTest extends KernelTestCase
         self::assertSame(['src/App.php', null, null, null], [$entryAt('src/App.php')?->path, $entryAt('src/Missing.php'), $entryAt('missing/App.php'), $entryAt('README.md/App.php')]);
         $this->expectException(GitFailed::class);
         $this->reader->entryAt($this->temporaryDirectory().'/missing.git', $this->commit, RepoPath::fromString('src/App.php'));
+    }
+
+    #[TestDox('The log keeps an empty subject at the end of the output')]
+    public function testLogKeepsEmptySubject(): void
+    {
+        $git = new GitRunner(new NullLogger());
+        $source = GitRepositoryBuilder::init($this->temporaryDirectory());
+        $source->git('commit', '--quiet', '--allow-empty', '--allow-empty-message', '--message=');
+        $head = $source->commit(message: 'Second');
+        $clone = $this->temporaryDirectory().'/log.git';
+        new BareClone($git)->init($clone);
+        new BareClone($git)->fetch($clone, $source->url());
+
+        $log = $this->reader->log($clone, CommitSha::fromString($head), 10);
+
+        self::assertSame(['Second', ''], array_map(static fn (LogCommit $commit): string => $commit->subject, $log));
     }
 
     private function blobAt(string $path): Blob

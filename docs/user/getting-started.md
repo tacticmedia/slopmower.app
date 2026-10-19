@@ -38,6 +38,8 @@ Without a paid plan, you have the free plan. To get higher limits, buy a plan fo
 2. Under **Start a review**, keep the default branch in **Ref**, or type another branch, tag, or commit SHA. You can also give the review a **Title**.
 3. Click **Start review**.
 
+To start at one of the latest commits of the default branch, click **Start review** next to the commit under **Latest commits on** the branch. The list shows the commits as of the last fetch. **Refresh** fetches new commits.
+
 Slopmower pins the review to the commit that the ref points to when the review starts. The file tree opens. The progress bar shows the index progress.
 
 ## Next steps
