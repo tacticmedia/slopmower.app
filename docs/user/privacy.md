@@ -26,6 +26,7 @@ Send every privacy question and request to this email address.
 | Your reviews, requests, comments, replies, drafts, linked commits, and viewed files, and the history of each change | You and your coding agent | To give you the reviews | Contract |
 | The pull requests of your requests: number, title, state, head commit, and head repository | GitHub | To show the pull request of a request | Contract |
 | API tokens: the name, the first characters, a hash, the repository scope, and the times of creation, expiry, last use, and revocation | You | To let your coding agent use Slopmower | Contract |
+| The parts of the review tour that you finished or skipped | You | To show each part of the tour until you finish or skip it, in every browser | Contract |
 | Your plan, for each GitHub account: the Marketplace plan, the billing cycle, the end of the trial, and a pending plan change | GitHub Marketplace | To apply the limits of your plan | Contract |
 | Usage: the number of repositories, open reviews, and requests, and the size of each copy | Slopmower | To apply the limits of your plan | Contract |
 | Rate limit counters for each token, user, repository, and account | Slopmower | To protect the service from overload | Legitimate interests |

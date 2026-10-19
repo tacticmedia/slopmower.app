@@ -198,6 +198,17 @@
         }
       ],
       "description": "Open set. A usage limit of the plan of the tenant."
+    },
+    "Tour": {
+      "anyOf": [
+        {
+          "enum": ["code_browser", "file"]
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "Open set. A part of the review tour of the web UI: code_browser on a directory, file on a file view."
     }
   }
 }

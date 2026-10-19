@@ -5,27 +5,35 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Application\Plans;
+use App\Application\Query\Preferences;
 use App\Application\UsageLimits;
+use App\Controller\Api\Input\PreferencesInput;
 use App\Entity\User;
 use App\GitHub\GitHubApp;
 use App\Repository\ApiTokenRepository;
 use App\Repository\UserRepository;
 use App\Security\AgentUser;
 use App\Security\CurrentActor;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+/**
+ * A1 and A4 of docs/specs/rest-api.md section 3.
+ */
 final class MeController extends AbstractController
 {
     /**
      * The links come from the request, not from DEFAULT_URI.
      */
     #[Route('/api/v1/me', name: 'api_me', methods: ['GET'])]
-    public function __invoke(
+    public function get(
         #[CurrentUser] User|AgentUser $caller,
         CurrentActor $currentActor,
         UserRepository $users,
@@ -77,6 +85,24 @@ final class MeController extends AbstractController
                 'docsUrl' => $request->getUriForPath('/docs'),
                 'skillUrl' => $request->getUriForPath('/docs/skill/SKILL.md'),
             ],
+            'preferences' => new Preferences($user->getCompletedTours()),
         ]);
+    }
+
+    #[Route('/api/v1/me/preferences', name: 'api_me_preferences', methods: ['PATCH'])]
+    #[IsGranted(User::ROLE, message: CurrentActor::SESSION_ONLY)]
+    public function updatePreferences(
+        #[MapRequestPayload(acceptFormat: 'json')] PreferencesInput $input,
+        CurrentActor $currentActor,
+        EntityManagerInterface $entityManager,
+    ): JsonResponse {
+        $user = $currentActor->sessionUser();
+
+        if (null !== $input->completedTours) {
+            $user->setCompletedTours($input->completedTours);
+            $entityManager->flush();
+        }
+
+        return $this->json(new Preferences($user->getCompletedTours()));
     }
 }

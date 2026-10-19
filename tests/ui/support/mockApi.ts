@@ -1,6 +1,7 @@
 import type { Page, Request as BrowserRequest, Route } from '@playwright/test';
-import type { ErrorCode } from '../../../assets/api/types/common';
+import { type ErrorCode, TOURS } from '../../../assets/api/types/common';
 import type { ErrorDetails } from '../../../assets/api/types/error';
+import type { PreferencesInput } from '../../../assets/api/types/inputs';
 import type { Me } from '../../../assets/api/types/me';
 import { errorBody, me, mercureAuthorization } from './builders';
 import { assertMatchesSchema, type SchemaRef } from './schemas';
@@ -51,7 +52,7 @@ export function redirect(location: string): MockResponse {
  * not validate are problems: the page gets a 500, and the test fails at the end.
  */
 export class MockApi {
-    /** The body of A1. */
+    /** The body of A1. A4 changes its `preferences`. */
     me: Me = me();
     readonly calls: ApiCall[] = [];
     readonly #routes: MockRoute[] = [];
@@ -64,6 +65,14 @@ export class MockApi {
 
     async install(): Promise<void> {
         this.on('GET', '/api/v1/me', () => json('me.schema.json', this.me));
+        this.on('PATCH', '/api/v1/me/preferences', ({ body }) => {
+            const { completedTours } = body as PreferencesInput;
+            if (null !== completedTours && undefined !== completedTours) {
+                this.me = { ...this.me, preferences: { completedTours: TOURS.filter((tour) => completedTours.includes(tour)) } };
+            }
+
+            return json('me.schema.json#/$defs/Preferences', this.me.preferences);
+        });
         this.on('POST', '/api/v1/mercure/authorize', () => json('lists.schema.json#/$defs/MercureAuthorization', mercureAuthorization()));
         this.#page.on('pageerror', (error) => this.#problems.push(`Uncaught in the page: ${error.message}`));
         await this.#page.route('**/api/v1/**', (route) => this.#dispatch(route));

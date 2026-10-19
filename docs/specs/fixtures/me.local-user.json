@@ -56,5 +56,11 @@
     "mcpUrl": "http://localhost:8000/_mcp",
     "docsUrl": "http://localhost:8000/docs",
     "skillUrl": "http://localhost:8000/docs/skill/SKILL.md"
+  },
+  "preferences": {
+    "completedTours": [
+      "code_browser",
+      "file"
+    ]
   }
 }

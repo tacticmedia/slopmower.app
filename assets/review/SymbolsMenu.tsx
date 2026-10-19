@@ -58,7 +58,7 @@ export function SymbolsMenu({ symbols, failed, onChoose }: Props) {
     if (null !== unavailable) {
         return (
             <Tooltip text={unavailable} type="description">
-                <Button size="small" trailingAction={TriangleDownIcon} aria-disabled>
+                <Button size="small" trailingAction={TriangleDownIcon} aria-disabled data-tour="symbols">
                     Symbols
                 </Button>
             </Tooltip>
@@ -69,7 +69,7 @@ export function SymbolsMenu({ symbols, failed, onChoose }: Props) {
         <SelectPanel
             title="Symbols"
             renderAnchor={(anchorProps) => (
-                <Button {...anchorProps} size="small" trailingAction={TriangleDownIcon} disabled={null === symbols}>
+                <Button {...anchorProps} size="small" trailingAction={TriangleDownIcon} disabled={null === symbols} data-tour="symbols">
                     Symbols
                 </Button>
             )}

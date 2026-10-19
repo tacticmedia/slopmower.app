@@ -516,6 +516,19 @@
           "description": "Null: no expiry. Else from now + 1 minute to now + 366 days."
         }
       }
+    },
+    "PreferencesInput": {
+      "type": "object",
+      "properties": {
+        "completedTours": {
+          "type": ["array", "null"],
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/Tour"
+          },
+          "description": "Replaces the completed tours. Absent or null keeps them. An unknown name or a name twice answers 422."
+        }
+      }
     }
   }
 }

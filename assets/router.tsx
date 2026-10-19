@@ -22,12 +22,14 @@ import { shouldRevalidateSymbols, symbolsLoader } from './routes/reviews/symbols
 import { directoryLoader, treeLoader } from './routes/reviews/treeData';
 import { SettingsRoute } from './routes/settings/SettingsRoute';
 import { settingsAction, settingsLoader } from './routes/settings/settingsData';
+import { preferencesAction, shouldRevalidateRoot, tourTokensLoader } from './tour/useTours';
 
 export const router = createBrowserRouter([
     {
         id: 'root',
         path: '/',
         loader: ({ request }: LoaderFunctionArgs): Promise<Me> => apiGet<Me>('/api/v1/me', request.signal),
+        shouldRevalidate: shouldRevalidateRoot,
         element: <RootLayout />,
         errorElement: <RouteError />,
         hydrateFallbackElement: <LoadingPage />,
@@ -95,6 +97,8 @@ export const router = createBrowserRouter([
                     { path: 'settings', loader: settingsLoader, action: settingsAction, element: <SettingsRoute /> },
                 ],
             },
+            { path: 'preferences', action: preferencesAction },
+            { path: 'tour-tokens', loader: tourTokensLoader },
             {
                 path: 'sign-out',
                 action: async (): Promise<Response> => {

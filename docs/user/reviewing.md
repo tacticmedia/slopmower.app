@@ -2,6 +2,15 @@
 
 This page shows how to comment on code, work with your agent, and finish a review. The review view works like a GitHub pull request review, but it shows the full files at the review commit.
 
+## The review tour
+
+Your first review shows a short tour of the review screen, in two parts:
+
+- On the **Code** tab with a folder: the file tree, the table of folders and files, **Quick open**, the **Requests** tab, and **Agent prompts**. Without an API token, the last step links to **Settings**.
+- On the first file that you open in an open review: the line numbers with the **+** that comments, **Symbols**, and **Go to declaration**.
+
+**Next** and **Back** move through the steps. **Done** on the last step, the close button, Escape, and a click that opens another page end the part. **Skip tour** ends both parts. Your account remembers the parts that you finished or skipped, so they do not show again, also in another browser. To see the tour again, turn on **Show the review tour** in **Settings**.
+
 ## Comment on code
 
 You can comment on a line, a range of lines, a symbol, or a file. Each comment opens a change request.

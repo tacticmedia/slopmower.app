@@ -14,7 +14,7 @@ export function AgentPromptsOverlay({ reviewId }: { reviewId: string }) {
             onOpen={() => setOpen(true)}
             onClose={() => setOpen(false)}
             renderAnchor={(anchorProps) => (
-                <Button {...anchorProps} leadingVisual={TerminalIcon}>
+                <Button {...anchorProps} leadingVisual={TerminalIcon} data-tour="agent-prompts">
                     Agent prompts
                 </Button>
             )}

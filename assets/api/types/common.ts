@@ -187,3 +187,8 @@ export type ErrorCode = OpenSet<KnownErrorCode>;
 export const USAGE_LIMITS = ['repositories', 'open_reviews', 'requests_per_review', 'repository_size', 'tenant_storage'] as const;
 export type KnownUsageLimit = (typeof USAGE_LIMITS)[number];
 export type UsageLimit = OpenSet<KnownUsageLimit>;
+
+/** The parts of the review tour. */
+export const TOURS = ['code_browser', 'file'] as const;
+export type KnownTour = (typeof TOURS)[number];
+export type Tour = OpenSet<KnownTour>;

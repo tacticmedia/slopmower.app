@@ -74,5 +74,10 @@
     "mcpUrl": "https://slopmower.example/_mcp",
     "docsUrl": "https://slopmower.example/docs",
     "skillUrl": "https://slopmower.example/docs/skill/SKILL.md"
+  },
+  "preferences": {
+    "completedTours": [
+      "code_browser"
+    ]
   }
 }

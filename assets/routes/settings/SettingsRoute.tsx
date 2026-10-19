@@ -8,6 +8,7 @@ import { CreateTokenDialog } from '../../settings/CreateTokenDialog';
 import { DeleteAccountDialog } from '../../settings/DeleteAccountDialog';
 import { PlanSummary } from '../../settings/PlanSummary';
 import { RepositoryDataTable } from '../../settings/RepositoryDataTable';
+import { ReviewTourSetting } from '../../settings/ReviewTourSetting';
 import styles from '../../settings/Settings.module.css';
 import { SkillInstall } from '../../settings/SkillInstall';
 import { TokenTable } from '../../settings/TokenTable';
@@ -65,6 +66,7 @@ export function SettingsRoute() {
                     <RepositoryDataTable repositories={repositories} labelledBy="repository-data" describedBy="repository-data-subtitle" />
                 </Table.Container>
             </div>
+            <ReviewTourSetting />
             <section className={styles.pageSection} aria-labelledby="delete-account-title">
                 <Heading as="h2" id="delete-account-title" className={styles.pageSectionTitle}>
                     Delete account

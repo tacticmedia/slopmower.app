@@ -1,6 +1,6 @@
 import type { Actor } from './actor';
 import type { ApiToken } from './api-token';
-import type { DateTime, Ulid, UsageLimit } from './common';
+import type { DateTime, Tour, Ulid, UsageLimit } from './common';
 
 export const SIGN_IN_METHODS = ['github', 'local'] as const;
 export type SignInMethod = (typeof SIGN_IN_METHODS)[number];
@@ -21,6 +21,12 @@ export type TenantPlan = {
     pendingChange: { name: string; effectiveAt: DateTime } | null;
     /** The GitHub Marketplace listing. Null when the instance has none. */
     listingUrl: string | null;
+};
+
+/** Per account. A bearer call gets those of the token owner. */
+export type Preferences = {
+    /** Finished or dismissed, in the order of `Tour`. */
+    completedTours: Tour[];
 };
 
 export type Me = {
@@ -45,4 +51,5 @@ export type Me = {
         docsUrl: string;
         skillUrl: string;
     };
+    preferences: Preferences;
 };

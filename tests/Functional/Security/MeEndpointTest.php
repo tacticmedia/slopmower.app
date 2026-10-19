@@ -30,7 +30,7 @@ final class MeEndpointTest extends WebTestCase
         self::assertFalse($client->getResponse()->headers->has('Set-Cookie'), 'An anonymous API call starts no session.');
     }
 
-    #[TestDox('A signed-in user gets the user, the tenant, a user caller, a null token, the features, and the links')]
+    #[TestDox('A signed-in user gets the user, the tenant, a user caller, a null token, the features, the links, and no completed tour')]
     public function testSignedInUserGetsTheCaller(): void
     {
         $client = static::createClient();
@@ -54,6 +54,7 @@ final class MeEndpointTest extends WebTestCase
                     'docsUrl' => 'http://slopmower.example:8443/docs',
                     'skillUrl' => 'http://slopmower.example:8443/docs/skill/SKILL.md',
                 ],
+                'preferences' => ['completedTours' => []],
             ],
             // TenantPlanTest covers plan, and UsageTest covers usage.
             array_diff_key($me, ['plan' => true, 'usage' => true]),

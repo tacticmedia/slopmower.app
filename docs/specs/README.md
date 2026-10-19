@@ -181,7 +181,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
    - new endpoints and tools;
    - new optional input fields or query parameters whose absence keeps the old behaviour;
    - new response properties;
-   - new values in **open** sets: `Action`, `EventType`, `ThreadEntryType`, `ErrorCode`, `SymbolKind`, `UsageLimit`, `language`, the live-update `type`, and the search hit `kind`;
+   - new values in **open** sets: `Action`, `EventType`, `ThreadEntryType`, `ErrorCode`, `SymbolKind`, `UsageLimit`, `Tour`, `language`, the live-update `type`, and the search hit `kind`;
    - new error codes for new situations;
    - relaxed validation, for example higher limits;
    - new headers.
@@ -229,8 +229,9 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Product name, decision D14: the MCP server name, `serverInfo.name`, the skill name, the Bearer realm, the pin refs, the live update ID, and the schema `$id` base use `slopmower`. Token secrets start with `sm_`.
     - Agent suggestions, decision D72: the endpoints Q20, Q21, and Q22, the tools `start_review` and `suggest_request`, the `Action` values `accept_suggestion` and `dismiss_suggestion`, the `EventType` and `ThreadEntryType` values `request.suggestion_accepted` and `request.suggestion_dismissed`, the inputs `SuggestRequestInput`, `AcceptSuggestionInput`, and `DismissSuggestionInput`, the closed set `SuggestionState` on the new property `suggestion`, and the filter `suggestion` of Q1 and `list_requests`. All are additive. V1 also accepts `B`. A `request.opened` with an agent actor opens a suggestion with the same payload, and one with a user actor gives `suggestion: null`, so stored events need no change. While a suggestion is pending, `claim`, `mark_wont_do`, and `set_plan_requirement` are refused, `awaiting` rule 3 matches it, and rule 2 counts an accept as a user message. V15 does not carry a pending suggestion.
     - Request titles, decision D75: the endpoint Q23 and the tool `set_request_title`, the `Action` value `set_title`, the `EventType` and `ThreadEntryType` value `request.retitled`, the input `TitleInput`, the property `title` of `Request`, `RequestSummary`, and `Draft`, and the optional input `title` of Q2, D2, and D3. These are additive. Not additive: the required `title` of Q20 and `suggest_request`, and the new meaning of `summary`, which is the title when one is set. `request.opened` has the payload field `title`, read as null when missing, so stored events need no change.
-    - Plain-text summary, decision D80: without a title, `summary` is the plain text of the first non-blank line of the body, without Markdown syntax. It is a changed meaning of an existing field. The wire format does not change.
     - Latest commits, decision D76: the endpoint R9 and the schemas `Commit` and `CommitLog`. All are additive.
+    - Review tour, decision D77: the endpoint A4, the input `PreferencesInput`, the open set `Tour`, and the property `preferences` of `Me` with the schema `Preferences`. All are additive. A4 records no event.
+    - Plain-text summary, decision D80: without a title, `summary` is the plain text of the first non-blank line of the body, without Markdown syntax. It is a changed meaning of an existing field. The wire format does not change.
 
 ## 9. Contract tests
 
@@ -279,7 +280,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [request-command-result.schema.json](schemas/request-command-result.schema.json) | `https://slopmower.invalid/schemas/v1/request-command-result.schema.json` | Result of a request command |
 | [link-commits-result.schema.json](schemas/link-commits-result.schema.json) | `https://slopmower.invalid/schemas/v1/link-commits-result.schema.json` | Result of `link_commits` |
 | [link-pull-request-result.schema.json](schemas/link-pull-request-result.schema.json) | `https://slopmower.invalid/schemas/v1/link-pull-request-result.schema.json` | Result of `link_pull_request` |
-| [me.schema.json](schemas/me.schema.json) | `https://slopmower.invalid/schemas/v1/me.schema.json` | The caller, the tenant, the features, the plan, the usage, and the links, plus `TenantPlan` and `LimitUsage` |
+| [me.schema.json](schemas/me.schema.json) | `https://slopmower.invalid/schemas/v1/me.schema.json` | The caller, the tenant, the features, the plan, the usage, the links, and the preferences, plus `TenantPlan`, `LimitUsage`, and `Preferences` |
 | [lists.schema.json](schemas/lists.schema.json) | `https://slopmower.invalid/schemas/v1/lists.schema.json` | `$defs` only: every page and list, and `MercureAuthorization` |
 | [inputs.schema.json](schemas/inputs.schema.json) | `https://slopmower.invalid/schemas/v1/inputs.schema.json` | `$defs` only: every REST request body |
 | [live-update.schema.json](schemas/live-update.schema.json) | `https://slopmower.invalid/schemas/v1/live-update.schema.json` | Data of one Mercure update, IDs only |
@@ -332,6 +333,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.open-request-approval.json](fixtures/inputs.open-request-approval.json) | `inputs.schema.json#/$defs/OpenRequestInput` | Q2 with "Ask for a plan first" |
 | [inputs.open-request.json](fixtures/inputs.open-request.json) | `inputs.schema.json#/$defs/OpenRequestInput` | Q2 |
 | [inputs.plan-requirement.json](fixtures/inputs.plan-requirement.json) | `inputs.schema.json#/$defs/PlanRequirementInput` | Q18 |
+| [inputs.preferences.json](fixtures/inputs.preferences.json) | `inputs.schema.json#/$defs/PreferencesInput` | A4 |
 | [inputs.propose-solution.json](fixtures/inputs.propose-solution.json) | `inputs.schema.json#/$defs/ProposeSolutionInput` | Q14, `propose_solution` |
 | [inputs.ready.json](fixtures/inputs.ready.json) | `inputs.schema.json#/$defs/RequiredNoteInput` | Q10, Q13 |
 | [inputs.reject-proposal.json](fixtures/inputs.reject-proposal.json) | `inputs.schema.json#/$defs/RejectProposalInput` | Q16 |
@@ -370,6 +372,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [live-update.repository.json](fixtures/live-update.repository.json) | `live-update.schema.json` | Repositories topic |
 | [me.agent.json](fixtures/me.agent.json) | `me.schema.json` | A1 with a scoped token |
 | [me.local-user.json](fixtures/me.local-user.json) | `me.schema.json` | A1 with a local sign-in session |
+| [me.preferences.json](fixtures/me.preferences.json) | `me.schema.json#/$defs/Preferences` | A4 |
 | [repository.github-cloning.json](fixtures/repository.github-cloning.json) | `repository.schema.json` | R3, R4, R5 |
 | [repository.local-idle.json](fixtures/repository.local-idle.json) | `repository.schema.json` | R3, R4, R5 |
 | [request-command-result.claim.json](fixtures/request-command-result.claim.json) | `request-command-result.schema.json` | Q5, `claim_request` |

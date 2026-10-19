@@ -3,7 +3,7 @@
   "$id": "https://slopmower.invalid/schemas/v1/me.schema.json",
   "title": "Me",
   "type": "object",
-  "required": ["user", "tenantId", "caller", "token", "features", "plan", "usage", "links"],
+  "required": ["user", "tenantId", "caller", "token", "features", "plan", "usage", "links", "preferences"],
   "properties": {
     "user": {
       "type": "object",
@@ -100,9 +100,27 @@
           "format": "uri"
         }
       }
+    },
+    "preferences": {
+      "$ref": "#/$defs/Preferences"
     }
   },
   "$defs": {
+    "Preferences": {
+      "type": "object",
+      "description": "The preferences of the user. They belong to the account, not to a browser. A bearer call gets those of the token owner.",
+      "required": ["completedTours"],
+      "properties": {
+        "completedTours": {
+          "type": "array",
+          "uniqueItems": true,
+          "description": "The parts of the review tour that the user finished or dismissed, in the order of Tour. The web UI shows the other parts.",
+          "items": {
+            "$ref": "common.schema.json#/$defs/Tour"
+          }
+        }
+      }
+    },
     "TenantPlan": {
       "type": "object",
       "description": "The plan whose limits the tenant has: the plan with the highest rank among the GitHub accounts of the user and of the installations of the tenant. An account without a Marketplace plan has the free plan.",

@@ -23,6 +23,7 @@ Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json). 
 | [A1](#a1-get-the-caller) | GET | `/api/v1/me` | S, B | 200 | [`me.schema.json`](schemas/me.schema.json) |
 | [A2](#a2-delete-the-account) | DELETE | `/api/v1/account?confirm={login}` | S | 202 | none |
 | [A3](#a3-authorize-live-updates) | POST | `/api/v1/mercure/authorize` | S | 200 | [`lists.schema.json#/$defs/MercureAuthorization`](schemas/lists.schema.json) |
+| [A4](#a4-update-the-preferences) | PATCH | `/api/v1/me/preferences` | S | 200 | [`me.schema.json#/$defs/Preferences`](schemas/me.schema.json) |
 | [R1](#r1-list-repositories) | GET | `/api/v1/repositories` | S, B | 200 | [`lists.schema.json#/$defs/RepositoryPage`](schemas/lists.schema.json) |
 | [R2](#r2-list-repository-candidates) | GET | `/api/v1/repositories/candidates` | S | 200 | [`lists.schema.json#/$defs/CandidateList`](schemas/lists.schema.json) |
 | [R3](#r3-connect-a-repository) | POST | `/api/v1/repositories` | S | 201 or 200 | [`repository.schema.json`](schemas/repository.schema.json) |
@@ -107,6 +108,7 @@ The response holds:
 - `plan`: the [plan of the tenant](webhooks-and-live-updates.md#marketplace-plans) with its name, the end of a free trial, a pending downgrade or cancellation, and the GitHub Marketplace listing. `listingUrl` is null when the instance has no listing.
 - `usage`: the use of the tenant and the limit of its plan for each [usage limit](README.md#usage-limits). A token scoped to one repository also gets the use of the whole tenant.
 - the links `mcpUrl`, `docsUrl`, and `skillUrl`.
+- `preferences`: the [preferences](#a4-update-the-preferences) of the user. A bearer call gets those of the token owner.
 
 Agents use this endpoint to check the scope of their token.
 
@@ -121,7 +123,8 @@ Example response for a bearer call, [fixtures/me.agent.json](fixtures/me.agent.j
   "features": {"localRepositories":true,"githubApp":{"slug":"slopmower","installUrl":"https://github.com/apps/slopmower/installations/new"}},
   "plan": {"name":"Pro","trialEndsAt":"2026-10-13T00:00:00Z","pendingChange":{"name":"Team","effectiveAt":"2026-11-13T00:00:00Z"},"listingUrl":"https://github.com/marketplace/slopmower"},
   "usage": [{"limit":"repositories","max":100,"current":3},{"limit":"open_reviews","max":100,"current":2},{"limit":"requests_per_review","max":5000,"current":14},{"limit":"repository_size","max":4294967296,"current":48234496},{"limit":"tenant_storage","max":53687091200,"current":61865984}],
-  "links": {"mcpUrl":"https://slopmower.example/_mcp","docsUrl":"https://slopmower.example/docs","skillUrl":"https://slopmower.example/docs/skill/SKILL.md"}
+  "links": {"mcpUrl":"https://slopmower.example/_mcp","docsUrl":"https://slopmower.example/docs","skillUrl":"https://slopmower.example/docs/skill/SKILL.md"},
+  "preferences": {"completedTours":["code_browser"]}
 }
 ```
 
@@ -166,6 +169,22 @@ Example response, [fixtures/lists.mercure-authorization.json](fixtures/lists.mer
   "topics": ["https://slopmower.example/tenants/01K6AZZ0TENANT000000000001/repositories","https://slopmower.example/tenants/01K6AZZ0TENANT000000000001/reviews/{reviewId}"],
   "expiresAt": "2026-09-29T08:31:12Z"
 }
+```
+
+### A4 Update the preferences
+
+- **Request:** `PATCH /api/v1/me/preferences`
+- **Authentication:** S
+- **Body:** [`PreferencesInput`](schemas/inputs.schema.json), `{completedTours?}`. A list replaces the stored list. An absent or null `completedTours` keeps it. Example: [fixtures/inputs.preferences.json](fixtures/inputs.preferences.json).
+- **Success:** 200 [`Preferences`](schemas/me.schema.json)
+- **Errors:** 422 `invalid_input` for an unknown `Tour` name or a name twice.
+
+The preferences belong to the account, not to a browser. `completedTours` lists the parts of the review tour that the user finished or dismissed, in the order of `Tour`. The web UI shows each other part, so a new user sees the whole tour, and `[]` shows it again. A stored name that the server no longer knows is left out of the responses. The write records no event and sends no live update.
+
+Example response, [fixtures/me.preferences.json](fixtures/me.preferences.json):
+
+```json
+{"completedTours": ["code_browser"]}
 ```
 
 ## 4. Repositories

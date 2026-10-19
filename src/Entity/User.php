@@ -53,6 +53,10 @@ class User implements TenantOwned, UserInterface
     #[ORM\Column]
     private \DateTimeImmutable $lastSignInAt;
 
+    /** @var list<string> Names of {@see Tour}. A name that `Tour` no longer knows stays stored and reads as absent. */
+    #[ORM\Column(type: Types::JSONB, options: ['default' => '[]'])]
+    private array $completedTours = [];
+
     private function __construct(
         TenantId $tenantId,
         SignInMethod $signInMethod,
@@ -135,6 +139,25 @@ class User implements TenantOwned, UserInterface
     public function getAvatarUrl(): ?string
     {
         return $this->avatarUrl;
+    }
+
+    /**
+     * @return list<Tour>
+     */
+    public function getCompletedTours(): array
+    {
+        return array_values(array_filter(array_map(Tour::tryFrom(...), $this->completedTours)));
+    }
+
+    /**
+     * Stores the tours in the order of {@see Tour}.
+     *
+     * @param list<Tour> $tours
+     */
+    public function setCompletedTours(array $tours): void
+    {
+        $completed = array_filter(Tour::cases(), static fn (Tour $tour): bool => \in_array($tour, $tours, true));
+        $this->completedTours = array_values(array_map(static fn (Tour $tour): string => $tour->value, $completed));
     }
 
     public function getUserIdentifier(): string

@@ -61,6 +61,12 @@
     margin-top: var(--base-size-32);
 }
 
+.setting {
+    display: flex;
+    align-items: center;
+    gap: var(--base-size-8);
+}
+
 .pageSectionTitle {
     margin: 0;
     font-size: var(--text-body-size-medium);

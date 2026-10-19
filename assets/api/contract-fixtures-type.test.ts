@@ -39,6 +39,7 @@ import inputsOpenGeneralRequest from '../../docs/specs/fixtures/inputs.open-gene
 import inputsOpenRequestApproval from '../../docs/specs/fixtures/inputs.open-request-approval.json';
 import inputsOpenRequest from '../../docs/specs/fixtures/inputs.open-request.json';
 import inputsPlanRequirement from '../../docs/specs/fixtures/inputs.plan-requirement.json';
+import inputsPreferences from '../../docs/specs/fixtures/inputs.preferences.json';
 import inputsProposeSolution from '../../docs/specs/fixtures/inputs.propose-solution.json';
 import inputsReady from '../../docs/specs/fixtures/inputs.ready.json';
 import inputsRejectProposal from '../../docs/specs/fixtures/inputs.reject-proposal.json';
@@ -77,6 +78,7 @@ import liveUpdateRepositoryDeleted from '../../docs/specs/fixtures/live-update.r
 import liveUpdateRepository from '../../docs/specs/fixtures/live-update.repository.json';
 import meAgent from '../../docs/specs/fixtures/me.agent.json';
 import meLocalUser from '../../docs/specs/fixtures/me.local-user.json';
+import mePreferences from '../../docs/specs/fixtures/me.preferences.json';
 import repositoryGithubCloning from '../../docs/specs/fixtures/repository.github-cloning.json';
 import repositoryLocalIdle from '../../docs/specs/fixtures/repository.local-idle.json';
 import requestCommandResultClaim from '../../docs/specs/fixtures/request-command-result.claim.json';
@@ -122,6 +124,7 @@ import type {
     OpenRequestInput,
     OptionalNoteInput,
     PlanRequirementInput,
+    PreferencesInput,
     ProposeSolutionInput,
     RejectProposalInput,
     RequiredNoteInput,
@@ -152,7 +155,7 @@ import type {
     ViewedFiles,
 } from './types/lists';
 import type { LiveUpdate } from './types/live-update';
-import type { Me } from './types/me';
+import type { Me, Preferences } from './types/me';
 import type { Repository } from './types/repository';
 import type { Request } from './types/request';
 import type { RequestCommandResult } from './types/request-command-result';
@@ -212,6 +215,7 @@ const checkedFixtures = {
     'inputs.open-request-approval.json': inputsOpenRequestApproval satisfies Widen<OpenRequestInput>,
     'inputs.open-request.json': inputsOpenRequest satisfies Widen<OpenRequestInput>,
     'inputs.plan-requirement.json': inputsPlanRequirement satisfies Widen<PlanRequirementInput>,
+    'inputs.preferences.json': inputsPreferences satisfies Widen<PreferencesInput>,
     'inputs.propose-solution.json': inputsProposeSolution satisfies Widen<ProposeSolutionInput>,
     'inputs.ready.json': inputsReady satisfies Widen<RequiredNoteInput>,
     'inputs.reject-proposal.json': inputsRejectProposal satisfies Widen<RejectProposalInput>,
@@ -250,6 +254,7 @@ const checkedFixtures = {
     'live-update.repository.json': liveUpdateRepository satisfies WidenedLiveUpdate<'repository'>,
     'me.agent.json': meAgent satisfies Widen<Me>,
     'me.local-user.json': meLocalUser satisfies Widen<Me>,
+    'me.preferences.json': mePreferences satisfies Widen<Preferences>,
     'repository.github-cloning.json': repositoryGithubCloning satisfies Widen<Repository>,
     'repository.local-idle.json': repositoryLocalIdle satisfies Widen<Repository>,
     'request-command-result.claim.json': requestCommandResultClaim satisfies Widen<RequestCommandResult>,

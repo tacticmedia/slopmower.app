@@ -5,6 +5,7 @@ import { type LoaderFunctionArgs, Outlet, useLoaderData, useOutletContext, usePa
 import type { TreeListing } from '../../api/types/lists';
 import { usePreference } from '../../layout/usePreference';
 import { FileTree } from '../../review/FileTree';
+import { ReviewTour } from '../../tour/ReviewTour';
 import { encodedRouteParam } from '../encodedRouteParam';
 import styles from './CodeLayout.module.css';
 import type { ReviewData } from './reviewData';
@@ -36,29 +37,32 @@ export function CodeLayout() {
     const codeBrowser = useMemo<CodeBrowser>(() => ({ treeCollapsed, setTreeCollapsed }), [treeCollapsed, setTreeCollapsed]);
 
     return (
-        <PageLayout containerWidth="full" padding="none" rowGap="none" columnGap="none" className={styles.layout}>
-            <PageLayout.Pane
-                position="start"
-                sticky
-                resizable
-                widthStorageKey="slopmower.tree-width"
-                width={TREE_WIDTH}
-                hidden={treeCollapsed}
-                aria-label="File tree"
-                className={styles.pane}
-            >
-                <div className={styles.paneHeader}>
-                    <IconButton icon={SidebarExpandIcon} aria-label="Collapse file tree" variant="invisible" onClick={() => setTreeCollapsed(true)} />
-                    <h2 className={styles.paneTitle}>Files</h2>
-                </div>
-                <div className={styles.tree}>
-                    <FileTree reviewId={reviewId} entries={items} currentPath={currentPath} viewed={viewed} />
-                </div>
-            </PageLayout.Pane>
-            <PageLayout.Content as="div" padding="condensed">
-                <Outlet context={codeBrowser} />
-            </PageLayout.Content>
-        </PageLayout>
+        <>
+            <PageLayout containerWidth="full" padding="none" rowGap="none" columnGap="none" className={styles.layout}>
+                <PageLayout.Pane
+                    position="start"
+                    sticky
+                    resizable
+                    widthStorageKey="slopmower.tree-width"
+                    width={TREE_WIDTH}
+                    hidden={treeCollapsed}
+                    aria-label="File tree"
+                    className={styles.pane}
+                >
+                    <div className={styles.paneHeader}>
+                        <IconButton icon={SidebarExpandIcon} aria-label="Collapse file tree" variant="invisible" onClick={() => setTreeCollapsed(true)} />
+                        <h2 className={styles.paneTitle}>Files</h2>
+                    </div>
+                    <div className={styles.tree}>
+                        <FileTree reviewId={reviewId} entries={items} currentPath={currentPath} viewed={viewed} />
+                    </div>
+                </PageLayout.Pane>
+                <PageLayout.Content as="div" padding="condensed">
+                    <Outlet context={codeBrowser} />
+                </PageLayout.Content>
+            </PageLayout>
+            <ReviewTour />
+        </>
     );
 }
 

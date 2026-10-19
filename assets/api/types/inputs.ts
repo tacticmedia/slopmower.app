@@ -1,6 +1,6 @@
 import type { AnchorInput } from './anchor';
 import type { TokenName } from './api-token';
-import type { CommitSha, DateTime, Markdown, PullRequestUrl, RepoPath, Ulid, UnifiedDiff } from './common';
+import type { CommitSha, DateTime, Markdown, PullRequestUrl, RepoPath, Tour, Ulid, UnifiedDiff } from './common';
 import type { LocalDirectory } from './repository';
 
 export type ConnectRepositoryInput =
@@ -138,4 +138,9 @@ export type CreateTokenInput = {
     repositoryId?: Ulid | null;
     /** Null: no expiry. Else from now + 1 minute to now + 366 days. */
     expiresAt?: DateTime | null;
+};
+
+export type PreferencesInput = {
+    /** Replaces the list. Absent or null keeps it. */
+    completedTours?: Tour[] | null;
 };

@@ -39,7 +39,7 @@ export function QuickOpen({ reviewId, indexState }: Props) {
 
     return (
         <>
-            <Button leadingVisual={SearchIcon} trailingVisual={<KeybindingHint keys={hintKeys(SHORTCUT)} />} aria-keyshortcuts={ariaKeyShortcuts(SHORTCUT)} onClick={() => setOpen(true)}>
+            <Button leadingVisual={SearchIcon} trailingVisual={<KeybindingHint keys={hintKeys(SHORTCUT)} />} aria-keyshortcuts={ariaKeyShortcuts(SHORTCUT)} onClick={() => setOpen(true)} data-tour="quick-open">
                 Quick open
             </Button>
             {open && <QuickOpenDialog reviewId={reviewId} indexState={indexState} onClose={() => setOpen(false)} />}
