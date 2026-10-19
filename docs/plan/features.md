@@ -88,6 +88,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F70 | [Review tour](F70-review-tour.md) | Done 2026-10-19, [report](reports/F70.md) | 2f98e6d | src 506 PHP / 34255 lines, 506 types; tests 337 PHP / 31430 lines; assets 183 TS / 10830 lines |
 | F71 | [Help center](F71-help-center.md) | Done 2026-10-20, [report](reports/F71.md) | 9b4c73e | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31486 lines; assets 186 TS / 11177 lines |
 | F72 | [Vertical slice flake after the onboarding connect](F72-vertical-slice-flake-after-the-onboarding-connect.md) | Planned (2026-10-20) | | |
+| F73 | [Agent watch](F73-agent-watch.md) | Done 2026-10-20, [report](reports/F73.md) | | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31486 lines; assets 186 TS / 11177 lines |
 
 ## Candidates
 
@@ -164,6 +165,9 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 - **Cookie notice in dark mode.** The cookie notice of `templates/base.html.twig` stays light in dark mode in the app. The docs layout of F71 styles it. From the F71 report.
 - **Right edge of the other tables on a phone.** At 390 px, the Usage and Repository data tables of Settings and the repository lists lose their right edge when they scroll, as the review and token tables did. F64 moves the frame to the scroll region with `assets/layout/ScrollingTable.module.css` for those two only. From the F64 report.
 - **"Run it locally" in the docs of a hosted instance.** `local-run.md` describes a self-hosted run with local directories, which a SaaS instance never offers. The docs of a hosted instance could leave it out. From the F66 planning.
+- **Push to agents through Mercure.** The F73 watch polls V10 every 30 s. A Monitor on a Mercure SSE subscription would wake the agent within about 1 s. It needs a subscriber JWT for a bearer token, scoped to one review topic (`MercureAuthorizeController` is session-only), the actor in the `events` update so that the watch can skip the agent's own events, and the production hub of the candidate "Mercure protocol 1.0". From the F73 planning.
+- **Claude Code channel bridge.** A stdio MCP server in the plugin of [skill-plugin](../backlog/skill-plugin.md) that pushes each user action into the session as `notifications/claude/channel`, with a true wake and no poll in the agent. Channels are a research preview: a custom channel needs `--dangerously-load-development-channels`, and Team and Enterprise organizations block channels by default. From the F73 planning.
+- **Agent run per user action.** Slopmower fires a Claude Code routine or a GitHub Actions workflow when the user acts, so a new cloud session works on the request without a running agent. From the F73 planning.
 
 ## For Jan
 

@@ -79,7 +79,7 @@ Review the code of Slopmower review 01K6B3A1B2C3D4E5F6G7H8J9KM and suggest chang
 
 The agent changes no code. It opens one suggestion per finding, and you accept or dismiss each one in Slopmower. The agent prompt then lets the agent work on the accepted suggestions. See [Agent suggestions](requests.md#agent-suggestions).
 
-To let the agent keep watching the review for your replies, ask it to do so. In Claude Code you can use the `/loop` command.
+To let the agent keep watching the review for your replies, ask it to do so. Claude Code then starts a watch that wakes the agent within 30 seconds of your reply, decision, or new request. The watch needs `curl` and `jq` on the agent's machine. Other agents check the review again after a pause.
 
 If you want a pull request for the work, ask the agent for one, or put the rule into the instructions of your repository, for example `CLAUDE.md` or `AGENTS.md`. The agent then links the pull request to its requests, and Slopmower shows the link on each request. For a GitHub repository, the pull request must belong to the reviewed repository.
 
@@ -91,5 +91,5 @@ If you want a pull request for the work, ask the agent for one, or put the rule 
 | The agent reports `not_found` for your repository or review | Check the scope of the token. A token for one repository cannot see other repositories. |
 | The agent reports `commits_not_available` | For a GitHub repository, push the commits. For a local repository, make sure that the commits are on a branch of the connected repository. |
 | The agent reports `review_closed` | The review is closed. Start a new review. |
-| The agent reports `rate_limited` | The agent called too often. It waits and tries again by itself. If it happens often, make the agent call less often, for example with a longer `/loop` interval. |
+| The agent reports `rate_limited` | The agent called too often. It waits and tries again by itself. If it happens often, make the agent call less often, for example with a longer pause between checks of the review. |
 | Slopmower says that a limit of your plan is reached (`limit_exceeded`) | Settings shows the use and the limit of each item. Close a review, or delete the data of a repository that you no longer review. |

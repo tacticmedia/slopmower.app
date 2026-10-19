@@ -159,8 +159,37 @@ and read their whole thread, because the user rejected an earlier result.
 Tell the user which requests you handled, with their commits, which requests
 wait for the user's answer, and which wait for the approval of your proposal.
 
-If the user asked you to keep watching, call `get_updates` with your last
-cursor again after a pause. A user reply to your question arrives there.
+If the user asked you to keep watching, watch the review:
+
+- In Claude Code, start the `Monitor` tool with the description
+  `Slopmower review <review ID>`, `timeout_ms` 1800000, and the command below.
+  Fill in the base URL, the review ID, and your last cursor. The base URL is
+  the URL of the `slopmower` MCP server without `/_mcp`, from `.mcp.json` or
+  `claude mcp get slopmower`. The command needs `curl` and `jq`.
+- Each line of the command names a request with events of the user, or a
+  review event. Call `get_updates` with your last cursor and work as in
+  section 4.
+- When the watch times out, start it again with your last cursor. On
+  `review closed`, stop. On `watch stopped`, tell the user.
+- Without the `Monitor` tool, call `get_updates` with your last cursor again
+  after a pause.
+
+```bash
+url='<base URL>/api/v1/reviews/<review ID>/updates'; cursor=<cursor>
+while :; do
+  out=$(curl -s -w '\n%{http_code}' -H "Authorization: Bearer $SLOPMOWER_TOKEN" "$url?cursor=$cursor") || { sleep 30; continue; }
+  code=${out##*$'\n'}; body=${out%$'\n'*}
+  case $code in
+    200) ;;
+    401|403|404|422) echo "watch stopped: HTTP $code"; exit 1 ;;
+    *) sleep 30; continue ;;
+  esac
+  jq -r '(.requests[] | "\(.request.id) awaiting=\(.request.awaiting) \([.newEvents[].type] | join(","))"), (.reviewEvents[] | "review \(.type)")' <<<"$body"
+  [ "$(jq -r .reviewState <<<"$body")" = closed ] && { echo "review closed"; exit 0; }
+  cursor=$(jq -r .cursor <<<"$body")
+  [ "$(jq -r .hasMore <<<"$body")" = true ] || sleep 30
+done
+```
 
 ## 6. Review code and suggest changes
 
