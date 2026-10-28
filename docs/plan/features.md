@@ -100,16 +100,14 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F82 | [Help center quote style](F82-help-center-quote-style.md) | Done 2026-10-28, [report](reports/F82.md) | dc2a932 | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31520 lines; assets 187 TS / 11230 lines |
 | F83 | [Logo and favicon](F83-logo-and-favicon.md) | Done 2026-10-28, [report](reports/F83.md) | d74c21d + eef6d59 | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31535 lines; assets 187 TS / 11231 lines |
 | F84 | [Audit must-fixes](F84-audit-must-fixes.md) | Done 2026-10-28, [report](reports/F84.md) | 96d2ade | src 506 PHP / 34312 lines, 506 types; tests 338 PHP / 31647 lines; assets 187 TS / 11231 lines |
+| F85 | [Audit fixes 4 to 6](F85-audit-fixes-4-to-6.md) | In progress | | |
 
 ## Candidates
 
 Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also be opened as a general request in Slopmower itself.
 
-Findings of the repository audit of 2026-10-28 that [F84](F84-audit-must-fixes.md) does not fix. They are known issues, so they go ahead of features that are not started:
+Findings of the repository audit of 2026-10-28 that [F84](F84-audit-must-fixes.md) and [F85](F85-audit-fixes-4-to-6.md) do not fix. They are known issues, so they go ahead of features that are not started:
 
-- **Live catch-up error replaces the page.** `LiveSubscription::catchUp()` revalidates every loader after a failed updates read. Offline after a wake, or a 429 or 5xx, shows the route error and loses the text of an open comment box. Return in the `catch`.
-- **Pending commit links never expire.** Every fetch asks the source for each pending SHA, one fetch per SHA after a failed batch (`BareClone::fetch()`). Stale SHAs push fetches past the 60 s and 600 s limits. Stop the SHA loop at the deadline and fetch only recent links.
-- **NUL in free text gives 500.** PostgreSQL refuses `\u0000` in jsonb. `CommentInput` and the other text inputs and MCP parameters need the NUL check of `SearchQuery`.
 - **Commit pin race.** `unlinkCommit()` and the failure path of `linkCommits()` check `isLinkedInRepository()` and unpin without a lock, so a parallel `link_commits` of the same SHA can lose its pin. A `pins:<repositoryId>` lock around pin, commit, check, and unpin.
 - **Server clones never run gc.** Every fetch has `--no-auto-maintenance` and nothing runs `git gc`, so unreachable objects count toward the size limits forever. `gc --auto` in the async fetch job.
 - **Clone stuck in `cloning`.** An exception outside the five types that `ServerClone::fetch()` catches leaves the row `cloning`, which `request()` never restarts. Record the failure for any throwable of a clone job.
