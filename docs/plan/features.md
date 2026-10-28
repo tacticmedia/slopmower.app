@@ -98,6 +98,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F80 | [Bug report widget](F80-bug-report-widget.md) | Done 2026-10-28, [report](reports/F80.md) | 6397361 | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31520 lines; assets 187 TS / 11230 lines |
 | F81 | [Sign-in page layout](F81-sign-in-page-layout.md) | Done 2026-10-28, [report](reports/F81.md) | 6a29ad2 | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31520 lines; assets 187 TS / 11230 lines |
 | F82 | [Help center quote style](F82-help-center-quote-style.md) | Done 2026-10-28, [report](reports/F82.md) | dc2a932 | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31520 lines; assets 187 TS / 11230 lines |
+| F83 | [Logo and favicon](F83-logo-and-favicon.md) | In progress | | |
 
 ## Candidates
 
