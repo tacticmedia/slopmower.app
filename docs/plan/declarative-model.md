@@ -89,7 +89,7 @@ Commit links and pull request links do the same: link 1 to 50 requests of one re
 
 ## Order
 
-The rule "bugs and issues before features" puts the open audit findings of the Candidates first. Then steps 1, 2, 3, and 4, before F76, because F76 otherwise adds another change of about 150 files to the pattern that step 4 removes. Steps 5 and 6 follow F74 and F76. Jan decides the schedule.
+The rule "bugs and issues before features" puts the open audit findings first, F86 and F87. Then steps 1, 2, 3, and 4, before F76, because F76 otherwise adds another change of about 150 files to the pattern that step 4 removes. Steps 5 and 6 follow F74 and F76. Jan decides the schedule.
 
 ## Estimate
 
