@@ -25,8 +25,9 @@ async function reportToSentry(page: Page): Promise<string[]> {
         // An envelope is a header line, then an item header line and a payload line per item.
         const lines = route.request().postData()?.split('\n') ?? [];
         lines.forEach((line, index) => {
-            if (line.startsWith('{"type":"event"')) {
-                events.push(lines[index + 1]);
+            const payload = lines[index + 1];
+            if (line.startsWith('{"type":"event"') && undefined !== payload) {
+                events.push(payload);
             }
         });
 
@@ -53,10 +54,11 @@ test.describe('SentryReports', () => {
         await expect(quickOpen).toContainText('The index failed.');
 
         await expect.poll(() => events.length).toBe(1);
-        const event = JSON.parse(events[0]);
+        const payload = events[0] ?? '';
+        const event = JSON.parse(payload);
         expect(event.exception.values[0].value).toBe('The index failed.');
         expect(event).toMatchObject({ release: 'test-release', environment: 'ui-test', sdk: { settings: { infer_ip: 'never' } } });
-        expect(events[0]).toContain('/search?q=[Filtered]');
-        expect(events[0]).not.toContain(SEARCH_TEXT);
+        expect(payload).toContain('/search?q=[Filtered]');
+        expect(payload).not.toContain(SEARCH_TEXT);
     });
 });
