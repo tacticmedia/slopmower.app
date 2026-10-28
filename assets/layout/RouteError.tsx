@@ -1,4 +1,6 @@
 import { Heading, Link } from '@primer/react';
+import { captureException } from '@sentry/react';
+import { useEffect } from 'react';
 import { isRouteErrorResponse, Link as RouterLink, useRouteError } from 'react-router';
 import { ApiError } from '../api/client';
 import styles from './StatusPage.module.css';
@@ -26,10 +28,18 @@ function describeError(error: unknown): ErrorDescription {
 }
 
 /**
- * `embedded` renders inside the root layout, so the error of a screen keeps the header.
+ * `embedded` renders inside the root layout, so the error of a screen keeps the header. React Router reports no error
+ * that it renders here (D86).
  */
 export function RouteError({ embedded = false }: { embedded?: boolean }) {
-    const { title, detail, signedOut } = describeError(useRouteError());
+    const error = useRouteError();
+    const { title, detail, signedOut } = describeError(error);
+
+    useEffect(() => {
+        if (!isRouteErrorResponse(error)) {
+            captureException(error);
+        }
+    }, [error]);
     const Container = embedded ? 'section' : 'main';
 
     return (

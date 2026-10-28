@@ -43,6 +43,40 @@ final class ShellRouteTest extends WebTestCase
         }
     }
 
+    /**
+     * @param array<string, string>      $environment
+     * @param array<string, string|null> $attributes
+     */
+    #[TestDox('The shell body carries the release and the browser Sentry settings only when they are set')]
+    #[DataProvider('bodyAttributes')]
+    public function testShellBodyAttributes(array $environment, array $attributes): void
+    {
+        $previous = array_intersect_key($_ENV, $environment);
+        $_ENV = [...$_ENV, ...$environment];
+
+        try {
+            $body = $this->signedInClient()->request('GET', '/repositories')->filter('body');
+        } finally {
+            $_ENV = [...array_diff_key($_ENV, $environment), ...$previous];
+        }
+
+        foreach ($attributes as $name => $value) {
+            self::assertSame($value, $body->attr($name), $name);
+        }
+    }
+
+    /**
+     * @return iterable<string, array{array<string, string>, array<string, string|null>}>
+     */
+    public static function bodyAttributes(): iterable
+    {
+        $dsn = 'https://public@sentry.example.com/1';
+
+        yield 'nothing set' => [[], ['data-release' => null, 'data-sentry-dsn' => null, 'data-sentry-environment' => null]];
+        yield 'the kernel environment' => [['APP_RELEASE' => 'abc123', 'SENTRY_DSN_FRONTEND' => $dsn], ['data-release' => 'abc123', 'data-sentry-dsn' => $dsn, 'data-sentry-environment' => 'test']];
+        yield 'an own environment' => [['SENTRY_DSN_FRONTEND' => $dsn, 'SENTRY_ENVIRONMENT' => 'staging'], ['data-release' => null, 'data-sentry-dsn' => $dsn, 'data-sentry-environment' => 'staging']];
+    }
+
     #[TestDox('An anonymous user is redirected to /login')]
     public function testAnonymousUserIsRedirectedToLogin(): void
     {

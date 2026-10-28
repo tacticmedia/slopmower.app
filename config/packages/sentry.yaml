@@ -5,6 +5,9 @@ when@prod:
         # Also stops the trace headers that the HTTP client adds to the requests to GitHub and the symbols service.
         tracing: false
         options:
+            # The same values as the browser SDK of templates/base.html.twig (D86).
+            release: '%env(default::APP_RELEASE)%'
+            environment: '%env(default:kernel.environment:SENTRY_ENVIRONMENT)%'
             before_send: App\Http\SentryClientErrorFilter
             ignore_exceptions:
                 - 'Symfony\Component\ErrorHandler\Error\FatalError'

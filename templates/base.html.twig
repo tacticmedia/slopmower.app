@@ -4,8 +4,6 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{% block title %}Slopmower{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
-        {# The double-submit CSRF proof of Twig forms (D61). The React client sends its own, assets/api/client.ts. #}
         <script>
             document.addEventListener('submit', (event) => {
                 const field = event.target.querySelector('input[name="_csrf_token"]');
@@ -38,7 +36,9 @@
         {% block javascripts %}
         {% endblock %}
     </head>
-    <body>
+    <body
+        {%- if app_release %} data-release="{{ app_release }}"{% endif %}
+        {%- if sentry_dsn %} data-sentry-dsn="{{ sentry_dsn }}" data-sentry-environment="{{ sentry_environment }}"{% endif %}>
         {# In the flow above the page, so it covers no control. Every cookie is necessary, so it asks for no consent. #}
         <section class="cookie-notice" aria-label="Cookie notice" hidden>
             <p>Slopmower uses only the cookies and browser storage that the service needs. <a href="{{ path('docs_page', {slug: 'privacy'}) }}">Privacy policy</a></p>

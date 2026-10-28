@@ -60,14 +60,29 @@ The [usage limits](../specs/README.md#usage-limits) are the values of the [plan 
 
 ## Error reporting
 
-In `prod`, the application sends server errors to Sentry (D67). Set `SENTRY_DSN` to the DSN of the Sentry project for every PHP process. Empty switches Sentry off. `SENTRY_RELEASE` names the release of each event, for example the commit SHA.
+In `prod`, the application sends server errors to Sentry (D67), and the SPA sends browser errors, traces, and session replays (D86). Set these for every PHP process:
+
+- `SENTRY_DSN`: the DSN of the Sentry project for the server. Empty switches server reports off.
+- `SENTRY_DSN_FRONTEND`: the DSN of the Sentry project for the browser. Empty switches browser reports off. It goes into the HTML at run time, so the front-end build does not change.
+- `APP_RELEASE`: the release of each event of both, for example the commit SHA. The SPA footer shows it.
+- `SENTRY_ENVIRONMENT`: the environment of each event of both, for example `production`. Empty gives `prod`.
+
+Server reports:
 
 - Each failure of a request, a Messenger job, or a console command sends an event, also a failed job that Messenger retries. A request that ends below 500 sends none, for example a 404, a 409 `limit_exceeded`, or a 429 `rate_limited`.
 - A server error inside an MCP tool sends an event with the same rules. The tool answers `internal_error`. A tool error with another code, for example `not_found`, sends none.
 - An event holds the exception with its message and stack trace, the 5 source lines around each frame of Slopmower and its packages, the server name, the environment, the release, and the installed packages. For a request, it also holds the method, the URL, the headers, and the route name once a controller takes the request. For a job: the message class, the receiver, and the bus. For a command: the command line.
 - An event holds no request body, no frame arguments, no cookies, no IP address, and no user. The values of the query parameters `q`, `name`, `confirm`, and `code`, of the forwarded IP headers, and of the credential headers, for example `Authorization`, are `[Filtered]`.
 - No tracing, no Monolog handler, and no logs go to Sentry.
-- In the Sentry project, keep the data scrubbing of the Security & Privacy settings on, and turn on the setting that stops storing IP addresses, as a second layer.
+
+Browser reports:
+
+- An uncaught error, an error that a screen shows in place of its content, and an API answer of 500 or more send an event. An API answer below 500 sends none.
+- An event holds the exception with the stack trace of the minified bundle, the page URL, the user agent, and the breadcrumbs: the API calls with their method, URL, and status, the navigations, the clicked elements, and the console messages. It holds no request or response body, no IP address, and no user. The values of the query parameters `q`, `name`, `confirm`, and `code` are `[Filtered]`.
+- Each page load and navigation sends a trace. The API calls carry the `sentry-trace` and `baggage` headers, and no other host gets them.
+- 10% of the sessions, and each session with an error, send a session replay. A replay masks all text and inputs, and blocks all images and media.
+
+In both Sentry projects, keep the data scrubbing of the Security & Privacy settings on, and turn on the setting that stops storing IP addresses, as a second layer.
 
 ## Symbols service
 

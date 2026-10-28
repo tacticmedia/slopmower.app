@@ -1,3 +1,4 @@
+import { wrapCreateBrowserRouter } from '@sentry/react';
 import { createBrowserRouter, type LoaderFunctionArgs, redirect, redirectDocument } from 'react-router';
 import { apiGet, signOut } from './api/client';
 import type { Me } from './api/types/me';
@@ -23,7 +24,7 @@ import { SettingsRoute } from './routes/settings/SettingsRoute';
 import { settingsAction, settingsLoader } from './routes/settings/settingsData';
 import { preferencesAction, shouldRevalidateRoot, tourTokensLoader } from './tour/useTours';
 
-export const router = createBrowserRouter([
+export const router = wrapCreateBrowserRouter(createBrowserRouter)([
     {
         id: 'root',
         path: '/',

@@ -92,6 +92,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F74 | [Pull requests only where the host has them](F74-pull-requests-only-where-the-host-has-them.md) | Planned | | |
 | F75 | [Submit feedback](F75-submit-feedback.md) | Planned | | |
 | F76 | [Delivery choices](F76-delivery-choices.md) | Planned | | |
+| F77 | [Browser error reporting](F77-browser-error-reporting.md) | In progress | | |
 
 ## Candidates
 

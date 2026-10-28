@@ -30,6 +30,13 @@
     padding: var(--base-size-24) var(--base-size-16);
 }
 
+.footer {
+    padding: var(--base-size-8) var(--base-size-16);
+    font-size: var(--text-body-size-small);
+    color: var(--fgColor-muted);
+    text-align: right;
+}
+
 /* ReviewLayout sets both attributes on the Code tab, and RequestDetail sets data-full-width on the Changes tab. */
 .page:has([data-full-width]) .main {
     max-width: none;

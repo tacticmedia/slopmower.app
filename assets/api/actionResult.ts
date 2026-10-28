@@ -1,3 +1,4 @@
+import { captureException } from '@sentry/react';
 import { ApiError } from './client';
 
 /**
@@ -6,10 +7,13 @@ import { ApiError } from './client';
 export type ActionResult = { error: string } | null;
 
 /**
- * A 401 and failures that are not API errors reach the error boundary.
+ * A 401 and failures that are not API errors reach the error boundary. The `beforeSend` of `assets/sentry.ts` drops
+ * the report of a status below 500.
  */
 export function actionError(error: unknown): { error: string } {
     if (error instanceof ApiError && 401 !== error.status) {
+        captureException(error);
+
         return { error: error.message };
     }
 

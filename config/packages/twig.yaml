@@ -1,5 +1,9 @@
 twig:
     file_name_pattern: '*.twig'
+    globals:
+        app_release: '%env(default::APP_RELEASE)%'
+        sentry_dsn: '%env(default::SENTRY_DSN_FRONTEND)%'
+        sentry_environment: '%env(default:kernel.environment:SENTRY_ENVIRONMENT)%'
 
 when@test:
     twig:

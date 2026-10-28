@@ -13,6 +13,7 @@ export function RootLayout() {
     const signOut = useFetcher();
     const submitOnce = useSubmitOnce(signOut.submit);
     const live = useLiveRevalidation();
+    const { release } = document.body.dataset;
 
     return (
         <div className={styles.page} data-live={live ? 'connected' : 'disconnected'}>
@@ -50,6 +51,7 @@ export function RootLayout() {
             <main className={styles.main}>
                 <Outlet />
             </main>
+            {release && <footer className={styles.footer}>Release {release}</footer>}
         </div>
     );
 }
