@@ -78,6 +78,7 @@ export class MockApi {
         await this.#page.route('**/api/v1/**', (route) => this.#dispatch(route));
         await this.#page.route('**/logout', (route) => this.#dispatch(route));
         await this.#page.route('**/login', (route) => route.fulfill({ contentType: 'text/html', body: LOGIN_PAGE }));
+        await this.#page.route('**/favicon.svg', (route) => route.fulfill({ path: 'public/favicon.svg' }));
     }
 
     /**

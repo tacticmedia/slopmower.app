@@ -11,7 +11,7 @@
 
         .login-brand { display: flex; flex-direction: column; justify-content: center; gap: 1.5rem; padding: 3rem clamp(2rem, 6vw, 6rem); color: #fafaf9; background: radial-gradient(60rem 40rem at 0% 0%, #23863633, transparent 60%), #1c1917; }
         .login-brand p { margin: 0; }
-        .login-wordmark { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.25px; }
+        .login-wordmark { display: flex; align-items: center; gap: 0.625rem; font-size: 1.25rem; font-weight: 600; letter-spacing: -0.25px; }
         .login-tagline { max-width: 30rem; font-size: clamp(1.75rem, 3.2vw, 2.75rem); font-weight: 600; line-height: 1.15; letter-spacing: -1px; }
         .login-pitch { max-width: 30rem; color: #a8a29e; font-size: 1.125rem; }
 
@@ -64,7 +64,7 @@
 {% block body %}
     <div class="login-page">
         <section class="login-brand" aria-label="About Slopmower">
-            <p class="login-wordmark">Slopmower</p>
+            <p class="login-wordmark"><img src="{{ asset('favicon.svg') }}" alt="" width="32" height="32">Slopmower</p>
             <p class="login-tagline">The slop needs mowing as fast as it keeps growing.</p>
             <p class="login-pitch">Review the whole codebase at one commit. Comment on any line, and your coding agent answers, asks, or does the work.</p>
             <div class="login-preview" aria-hidden="true">

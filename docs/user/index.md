@@ -1,7 +1,6 @@
 # Help center
 
 ## The absolute TL;DR written by a human, for humans
-
 > Slopmower is a UI bridge between your locally running AI agent and you. It lets you ask questions, comment on, and steer the entire codebase. Let me explain. 
 >
 > Whether hand-chiselled, AI-slopped, or somewhere in between, every codebase gets murky over time. Think of Slopmpower as a codebase-level code review. Not individual commits or PRs - the whole lot. 

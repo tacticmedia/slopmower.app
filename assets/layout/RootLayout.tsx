@@ -20,6 +20,7 @@ export function RootLayout() {
             <Header className={styles.header}>
                 <Header.Item>
                     <Header.Link as={NavLink} to="/" className={styles.brand}>
+                        <img src="/favicon.svg" alt="" width={24} height={24} />
                         Slopmower
                     </Header.Link>
                 </Header.Item>

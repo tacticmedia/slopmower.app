@@ -67,6 +67,22 @@ final class LoginRoutesTest extends WebTestCase
         self::assertSame(['/docs/privacy', '/docs/terms', '/docs/support'], $crawler->filter('footer a')->extract(['href']));
     }
 
+    #[TestDox('/login links the favicon, the SVG icon, and the Apple touch icon, and each file is in public/')]
+    public function testLoginLinksIconsThatExist(): void
+    {
+        $client = static::createClient();
+
+        $crawler = $client->request('GET', '/login');
+
+        $hrefs = $crawler->filter('link[rel="icon"], link[rel="apple-touch-icon"]')->extract(['href']);
+        self::assertSame(['/favicon.ico', '/favicon.svg', '/apple-touch-icon.png'], $hrefs);
+        $projectDirectory = self::getContainer()->getParameter('kernel.project_dir');
+        self::assertIsString($projectDirectory);
+        foreach ($hrefs as $href) {
+            self::assertFileExists($projectDirectory.'/public'.$href);
+        }
+    }
+
     #[TestDox('Without a client ID, /connect/github answers 404')]
     public function testWithoutClientIdTheRoutesAnswer404(): void
     {

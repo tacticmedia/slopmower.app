@@ -4,6 +4,9 @@
 }
 
 .brand {
+    display: flex;
+    align-items: center;
+    gap: var(--base-size-8);
     font-weight: var(--base-text-weight-semibold);
 }
 
