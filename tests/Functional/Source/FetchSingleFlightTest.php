@@ -127,7 +127,7 @@ final class FetchSingleFlightTest extends KernelTestCase
         self::assertTrue($this->hasCommit($newHead));
     }
 
-    #[TestDox('A synchronous caller that misses the 60-second deadline gets repository_unavailable with fetch_failed')]
+    #[TestDox('A synchronous caller that waits 5 s for a running fetch gets repository_unavailable with fetch_failed')]
     public function testSynchronousCallerMissesTheDeadline(): void
     {
         $runningFetch = self::lockInAnotherSession($this->repositoryId);
@@ -143,7 +143,7 @@ final class FetchSingleFlightTest extends KernelTestCase
             $runningFetch->release();
         }
 
-        self::assertEqualsWithDelta(60.0, (float) $clock->now()->format('U.u') - $startSeconds, 0.1);
+        self::assertEqualsWithDelta(5.0, (float) $clock->now()->format('U.u') - $startSeconds, 0.1);
     }
 
     #[TestDox('A failed job leaves fetchRequested false, so the next request queues a fetch')]

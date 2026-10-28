@@ -33,6 +33,9 @@ final class FetchRepository
 {
     public const float SYNCHRONOUS_DEADLINE_SECONDS = 60.0;
 
+    /** D93: a long fetch of another caller must not hold a web thread. */
+    public const float SYNCHRONOUS_LOCK_WAIT_SECONDS = 5.0;
+
     public function __construct(
         private readonly RepositoryRepository $repositories,
         private readonly ReviewRepository $reviews,
@@ -104,7 +107,8 @@ final class FetchRepository
     }
 
     /**
-     * Waits for a running fetch, then fetches. During a clone it throws `cloning`. The wait and the fetch share one deadline.
+     * Waits at most {@see SYNCHRONOUS_LOCK_WAIT_SECONDS} for a running fetch, then fetches within
+     * {@see SYNCHRONOUS_DEADLINE_SECONDS}. During a clone it throws `cloning`.
      *
      * @throws NotFound
      * @throws RepositoryUnavailable
@@ -115,8 +119,7 @@ final class FetchRepository
         $this->refuseOpenTransaction();
         $this->cloneReady($id);
         $this->rateLimits->consumeSyncFetch($id);
-        $deadlineUnixSeconds = $this->nowUnixSeconds() + self::SYNCHRONOUS_DEADLINE_SECONDS;
-        $lock = $this->repositoryLock->acquire($id, $deadlineUnixSeconds)
+        $lock = $this->repositoryLock->acquire($id, $this->nowUnixSeconds() + self::SYNCHRONOUS_LOCK_WAIT_SECONDS)
             ?? throw new RepositoryUnavailable($id, RepositoryUnavailableReason::FetchFailed);
 
         try {
@@ -127,7 +130,7 @@ final class FetchRepository
                 $this->dispatcher->dispatch(new RepositoryChanged($repository->getTenantId(), $id));
             }
 
-            $fetched = $this->serverClone->fetch($repository, false, $deadlineUnixSeconds - $this->nowUnixSeconds());
+            $fetched = $this->serverClone->fetch($repository, false, self::SYNCHRONOUS_DEADLINE_SECONDS);
         } finally {
             $lock->release();
         }
