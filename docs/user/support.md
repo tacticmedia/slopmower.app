@@ -10,6 +10,10 @@
 | Requests, verification, and the end of a review | [Requests](requests.md) |
 | Slopmower on your own computer | [Run it locally](local-run.md) |
 
+## Report a bug
+
+Click **Report a Bug** at the bottom right of a Slopmower page. Describe what you did, what you expected, and what happened. Add your email address if you want an answer. **Add a screenshot** asks your browser to share the tab, and you can hide parts of the screenshot before you send it.
+
 ## Contact us
 
 Send an email to [TO SUPPLY: support email]. Include:

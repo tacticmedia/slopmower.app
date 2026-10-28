@@ -1,16 +1,16 @@
-import { init, replayIntegration } from '@sentry/react';
+import { feedbackIntegration, init, replayIntegration } from '@sentry/react';
 import { reactRouterBrowserTracingIntegration } from '@sentry/react/react-router';
 import { ApiError } from './api/client';
 
 const { sentryDsn, sentryEnvironment, release } = document.body.dataset;
 
-// D86. Runs before ./router, because wrapCreateBrowserRouter() needs the initialized client.
+// D86, D87. Runs before ./router, because wrapCreateBrowserRouter() needs the initialized client.
 if (sentryDsn) {
     init({
         dsn: sentryDsn,
         environment: sentryEnvironment,
         release,
-        integrations: [reactRouterBrowserTracingIntegration(), replayIntegration()],
+        integrations: [reactRouterBrowserTracingIntegration(), replayIntegration(), feedbackIntegration()],
         tracesSampleRate: 1.0,
         replaysSessionSampleRate: 0.1,
         replaysOnErrorSampleRate: 1.0,

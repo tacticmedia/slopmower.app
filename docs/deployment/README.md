@@ -60,7 +60,7 @@ The [usage limits](../specs/README.md#usage-limits) are the values of the [plan 
 
 ## Error reporting
 
-In `prod`, the application sends server errors to Sentry (D67), and the SPA sends browser errors, traces, and session replays (D86). Set these for every PHP process:
+In `prod`, the application sends server errors to Sentry (D67), and the SPA sends browser errors, traces, session replays (D86), and bug reports (D87). Set these for every PHP process:
 
 - `SENTRY_DSN`: the DSN of the Sentry project for the server. Empty switches server reports off.
 - `SENTRY_DSN_FRONTEND`: the DSN of the Sentry project for the browser. Empty switches browser reports off. It goes into the HTML at run time, so the front-end build does not change.
@@ -81,6 +81,7 @@ Browser reports:
 - An event holds the exception with the stack trace of the minified bundle, the page URL, the user agent, and the breadcrumbs: the API calls with their method, URL, and status, the navigations, the clicked elements, and the console messages. It holds no request or response body, no IP address, and no user. The values of the query parameters `q`, `name`, `confirm`, and `code` are `[Filtered]`.
 - Each page load and navigation sends a trace. The API calls carry the `sentry-trace` and `baggage` headers, and no other host gets them.
 - 10% of the sessions, and each session with an error, send a session replay. A replay masks all text and inputs, and blocks all images and media.
+- Each SPA page shows a "Report a Bug" button. A bug report holds the description, the name and email address when the user types them, the screenshot when the user adds one, and the page URL. Opening the form sends the replay of the session. Sentry shows the reports under User Feedback of the browser project.
 
 In both Sentry projects, keep the data scrubbing of the Security & Privacy settings on, and turn on the setting that stops storing IP addresses, as a second layer.
 

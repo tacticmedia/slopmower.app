@@ -10,9 +10,9 @@ const SEARCH_TEXT = 'secret-needle';
 
 /**
  * Sets the `<body>` attributes of `templates/base.html.twig` before the module script runs, and returns the payload of
- * each error event that the page sends.
+ * each envelope item of the type that the page sends.
  */
-async function reportToSentry(page: Page): Promise<string[]> {
+async function reportToSentry(page: Page, type: 'event' | 'feedback'): Promise<string[]> {
     await page.addInitScript(() => {
         document.addEventListener('readystatechange', () => {
             if ('interactive' === document.readyState) {
@@ -26,7 +26,7 @@ async function reportToSentry(page: Page): Promise<string[]> {
         const lines = route.request().postData()?.split('\n') ?? [];
         lines.forEach((line, index) => {
             const payload = lines[index + 1];
-            if (line.startsWith('{"type":"event"') && undefined !== payload) {
+            if (line.startsWith(`{"type":"${type}"`) && undefined !== payload) {
                 events.push(payload);
             }
         });
@@ -39,7 +39,7 @@ async function reportToSentry(page: Page): Promise<string[]> {
 
 test.describe('SentryReports', () => {
     test('A client error sends no event, and a server error sends one with the release and environment, and no search text or IP address', async ({ page, api }) => {
-        const events = await reportToSentry(page);
+        const events = await reportToSentry(page, 'event');
         const review = new FakeReview(api);
         api.on('GET', SEARCH, (call) => (SEARCH_TEXT === call.query.get('q') ? apiError(500, 'internal_error', 'The index failed.') : apiError(422, 'invalid_input', 'The query is too short.')));
         await openFile(page, review, SMALL_FILE);
@@ -60,5 +60,22 @@ test.describe('SentryReports', () => {
         expect(event).toMatchObject({ release: 'test-release', environment: 'ui-test', sdk: { settings: { infer_ip: 'never' } } });
         expect(payload).toContain('/search?q=[Filtered]');
         expect(payload).not.toContain(SEARCH_TEXT);
+    });
+
+    test('"Report a Bug" sends one feedback with the description, the release and environment, and no IP address', async ({ page, api }) => {
+        const feedback = await reportToSentry(page, 'feedback');
+        await openFile(page, new FakeReview(api), SMALL_FILE);
+
+        await page.getByRole('button', { name: 'Report a Bug' }).click();
+        await page.getByLabel('Description').fill('The diff does not load.');
+        await page.getByRole('button', { name: 'Send Bug Report' }).click();
+
+        await expect.poll(() => feedback.length).toBe(1);
+        expect(JSON.parse(feedback[0] ?? '')).toMatchObject({
+            contexts: { feedback: { message: 'The diff does not load.', source: 'widget' } },
+            release: 'test-release',
+            environment: 'ui-test',
+            sdk: { settings: { infer_ip: 'never' } },
+        });
     });
 });
