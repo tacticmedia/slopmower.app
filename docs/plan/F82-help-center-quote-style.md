@@ -15,7 +15,7 @@ Verified on 2026-10-28:
 
 ## Decisions
 
-- A quote has the accent colours of Primer: the `bgColor-accent-muted` background, a 4 px `borderColor-accent-emphasis` bar on the left, rounded corners, and the default text colour. The token values come from `@primer/primitives` 11.10.0.
+- A quote has neutral gray colours of Primer, not blue (Jan: "less blue please. More gray or stone"): the `bgColor-muted` background, a `borderColor-default` border with a 4 px `borderColor-emphasis` bar on the left, rounded corners, and the default text colour. The token values come from `@primer/primitives` 11.10.0.
 
 ## Depends on
 
