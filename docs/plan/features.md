@@ -92,12 +92,14 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F74 | [Pull requests only where the host has them](F74-pull-requests-only-where-the-host-has-them.md) | Planned | | |
 | F75 | [Submit feedback](F75-submit-feedback.md) | Planned | | |
 | F76 | [Delivery choices](F76-delivery-choices.md) | Planned | | |
-| F77 | [Browser error reporting](F77-browser-error-reporting.md) | In progress | | |
+| F77 | [Browser error reporting](F77-browser-error-reporting.md) | Done 2026-10-28, [report](reports/F77.md) | ff4dfac | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31520 lines; assets 187 TS / 11216 lines |
 
 ## Candidates
 
 Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also be opened as a general request in Slopmower itself.
 
+- **Source maps for browser reports.** A browser report shows the stack of the minified bundle. `build.sourcemap: 'hidden'` and an upload with a Sentry auth token at deployment, for example `@sentry/vite-plugin`, give the source lines. From the F77 planning.
+- **Lazy Sentry in the SPA.** `@sentry/react` adds about 87 KB gzip to the entry chunk, also without `SENTRY_DSN_FRONTEND`. A dynamic import when the DSN is set keeps it out, but the router must then wait for it, because `wrapCreateBrowserRouter()` needs the client. From the F77 planning.
 - **Other git hosts.** A git remote with an uploaded SSH key or access token, GitHub Enterprise, GitLab, and Bitbucket. [D83](../architecture.md#11-decisions) lists the integration levels, the plug-in points of a new source, and the GitHub couplings that a new host must lift. From Jan on 2026-10-20 (F74).
 - **Batch thread read.** The file view makes one Q1 call per 200 requests under the path prefix and one Q3 call per request on the file, because only Q3 returns a thread. A batch read, for example `thread` on Q1 with an exact path, makes it one call. A Q1 filter by request IDs would also replace the Q3 reads of hidden reply drafts. Developer guide ledger, row "Front end".
 - **Name resolution at the selection.** "Go to declaration" with a typed name resolves with the namespace and the imports at the end of the file, so a file with several namespaces uses the last one. The namespace at the selection needs the line in V14. From the F04 report.
