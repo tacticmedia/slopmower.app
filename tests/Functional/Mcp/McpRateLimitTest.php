@@ -54,6 +54,22 @@ final class McpRateLimitTest extends WebTestCase
         self::assertSame('rate_limited', json_decode($response->getContent(), true, flags: \JSON_THROW_ON_ERROR)['error']['code']);
     }
 
+    #[TestDox('Two tokens of one user share the mcp_http bucket')]
+    public function testTokensOfOneUserShareTheTransportLimit(): void
+    {
+        $this->setEnvironmentVariable('APP_RATE_LIMIT_MCP_HTTP_PER_MINUTE', '1');
+        self::mockTime('2026-10-13 09:00:00');
+        $client = static::createClient();
+        $user = TenantFixtures::of(self::getContainer())->create();
+        [, $first] = self::storeToken($user);
+        [, $second] = self::storeToken($user, name: 'second laptop');
+        new McpTestClient($client, $first)->initializeResponse();
+
+        $response = new McpTestClient($client, $second)->initializeResponse();
+
+        self::assertSame(429, $response->getStatusCode());
+    }
+
     private function mcpClient(): McpTestClient
     {
         self::mockTime('2026-10-13 09:00:00');

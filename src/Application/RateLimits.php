@@ -63,7 +63,7 @@ final class RateLimits
         $caller = $this->security->getUser();
 
         if ($caller instanceof AgentUser) {
-            $this->consume($this->mcpHttpLimiter, $caller->tokenId->toString());
+            $this->consume($this->mcpHttpLimiter, $caller->userId->toString());
         }
     }
 

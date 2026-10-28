@@ -20,6 +20,10 @@ framework:
             symbols.client:
                 base_uri: '%env(SYMBOLS_URL)%'
                 timeout: 10
+                # A parse is safe to repeat, so a restart of the symbols service does not fail the index job.
+                retry_failed:
+                    http_codes: { 0: ['POST'], 502: ['POST'], 503: ['POST'] }
+                    max_retries: 4
 
 when@test:
     framework:
