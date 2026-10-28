@@ -1,8 +1,27 @@
 # Help center
 
-Slopmower lets you review a full codebase at one commit, not only a diff. You read the code in a view that works like a GitHub pull request review. You leave comments on lines, line ranges, symbols, or files. Each comment is a change request.
+## The absolute TL;DR written by a human, for humans
 
-Your coding agent, for example Claude Code, reads the change requests from Slopmower. It asks questions in the request threads, makes the changes, and links its commits. You then verify or reopen each request.
+> Slopmower is a UI bridge between your locally running AI agent and you. It lets you ask questions, comment on, and steer the entire codebase. Let me explain. 
+>
+> Whether hand-chiselled, AI-slopped, or somewhere in between, every codebase gets murky over time. Think of Slopmpower as a codebase-level code review. Not individual commits or PRs - the whole lot. 
+>
+> The main use cases are: (a) you inherit a legacy codebase and intend to use your coding agent to do something about it, and (b) you let your agent work for a while - it looks like it works, but then you open the code and [wtfs per minute](https://www.osnews.com/story/19266/wtfsm/) skyrocket.
+>
+> How do you communicate with the agent? Make a list of things you found? What, using Markdown? How do you refer to the exact spot? Wasted context. How do you keep track of things? Wasted human lifetime. It's a lot. Once you want to talk about more than one topic, you need to treat each topic as a conversation on an individual timeline. 
+> 
+> That's where Slopmower comes in.
+> 
+> It tries to mimic GitHub's pull request experience, letting you float through your codebase and type your thoughts. It exposes an MCP endpoint you point your local coding agent at, and the agent uses it to find your comments and take action, whether that is answering a question, proposing a code change, or anything else. 
+> 
+> You can even ask your agent to review the code for you and record findings in Slopmower for you to review. It’s all up to you.
+> 
+> It's an absolute experiment. A different workflow. I spent over 20 years writing software nearly every day. I still read code. Slopmower is my attempt to fix the problem I see emerging: too much code, too hard to steer. Maybe I’m doing it wrong, but I’m not ready to let go of the code control and trust a probability machine to do a good job. 
+> 
+> Try it, and please let me know what you think.
+>
+> &mdash; Jan Klan, someone who still reads the code
+---
 
 ## How it works
 
