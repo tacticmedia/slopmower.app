@@ -15,6 +15,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('IS_AUTHENTICATED')]
 final class ShellController extends AbstractController
 {
+    /** D94: Markdown of agents and READMEs loads no image from another host. */
+    private const string CONTENT_SECURITY_POLICY = "img-src 'self' data: https://avatars.githubusercontent.com";
+
     #[Route('/', name: 'shell_home', methods: ['GET'])]
     #[Route('/repositories', name: 'shell_repositories', methods: ['GET'])]
     #[Route('/repositories/{id}', name: 'shell_repository', methods: ['GET'])]
@@ -27,6 +30,9 @@ final class ShellController extends AbstractController
     #[Route('/settings', name: 'shell_settings', methods: ['GET'])]
     public function __invoke(): Response
     {
-        return $this->render('shell.html.twig');
+        $response = $this->render('shell.html.twig');
+        $response->headers->set('Content-Security-Policy', self::CONTENT_SECURITY_POLICY);
+
+        return $response;
     }
 }
