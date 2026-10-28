@@ -206,7 +206,7 @@ Decisions or actions that only Jan can take. Each comes from a report or a revie
     5. **Go public.** Set "Any account". A public App cannot become private again while other accounts have it installed.
     6. **Draft listing.**
        - A very short description of 40 to 80 characters, an introduction of 150 to 250, and details of up to 1,000.
-       - A logo of at least 200 x 200 px, a feature card of 965 x 482 px, and 1 to 5 screenshots at least 1,200 px wide.
+       - A logo of at least 200 x 200 px (`rsvg-convert -w 512 -h 512 public/favicon.svg` renders the F83 mark), a feature card of 965 x 482 px, and 1 to 5 screenshots at least 1,200 px wide.
        - Categories, and the support, privacy, and terms URLs of F43.
        - The Marketplace webhook `https://<host>/webhook/github`, JSON, with the secret, set to Active.
     7. **Plans.** Launch with the free plan. Add the flat-rate paid plans, monthly and yearly, after about 100 installations, when publisher verification is done. A published plan cannot be edited, only replaced.

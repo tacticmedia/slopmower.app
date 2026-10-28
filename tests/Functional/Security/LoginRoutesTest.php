@@ -77,7 +77,6 @@ final class LoginRoutesTest extends WebTestCase
         $hrefs = $crawler->filter('link[rel="icon"], link[rel="apple-touch-icon"]')->extract(['href']);
         self::assertSame(['/favicon.ico', '/favicon.svg', '/apple-touch-icon.png'], $hrefs);
         $projectDirectory = self::getContainer()->getParameter('kernel.project_dir');
-        self::assertIsString($projectDirectory);
         foreach ($hrefs as $href) {
             self::assertFileExists($projectDirectory.'/public'.$href);
         }
