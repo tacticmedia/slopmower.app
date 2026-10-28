@@ -99,10 +99,32 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F81 | [Sign-in page layout](F81-sign-in-page-layout.md) | Done 2026-10-28, [report](reports/F81.md) | 6a29ad2 | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31520 lines; assets 187 TS / 11230 lines |
 | F82 | [Help center quote style](F82-help-center-quote-style.md) | Done 2026-10-28, [report](reports/F82.md) | dc2a932 | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31520 lines; assets 187 TS / 11230 lines |
 | F83 | [Logo and favicon](F83-logo-and-favicon.md) | Done 2026-10-28, [report](reports/F83.md) | d74c21d + eef6d59 | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31535 lines; assets 187 TS / 11231 lines |
+| F84 | [Audit must-fixes](F84-audit-must-fixes.md) | In progress | | |
 
 ## Candidates
 
 Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also be opened as a general request in Slopmower itself.
+
+Findings of the repository audit of 2026-10-28 that [F84](F84-audit-must-fixes.md) does not fix. They are known issues, so they go ahead of features that are not started:
+
+- **Live catch-up error replaces the page.** `LiveSubscription::catchUp()` revalidates every loader after a failed updates read. Offline after a wake, or a 429 or 5xx, shows the route error and loses the text of an open comment box. Return in the `catch`.
+- **Pending commit links never expire.** Every fetch asks the source for each pending SHA, one fetch per SHA after a failed batch (`BareClone::fetch()`). Stale SHAs push fetches past the 60 s and 600 s limits. Stop the SHA loop at the deadline and fetch only recent links.
+- **NUL in free text gives 500.** PostgreSQL refuses `\u0000` in jsonb. `CommentInput` and the other text inputs and MCP parameters need the NUL check of `SearchQuery`.
+- **Commit pin race.** `unlinkCommit()` and the failure path of `linkCommits()` check `isLinkedInRepository()` and unpin without a lock, so a parallel `link_commits` of the same SHA can lose its pin. A `pins:<repositoryId>` lock around pin, commit, check, and unpin.
+- **Server clones never run gc.** Every fetch has `--no-auto-maintenance` and nothing runs `git gc`, so unreachable objects count toward the size limits forever. `gc --auto` in the async fetch job.
+- **Clone stuck in `cloning`.** An exception outside the five types that `ServerClone::fetch()` catches leaves the row `cloning`, which `request()` never restarts. Record the failure for any throwable of a clone job.
+- **Symbols service error fails the index.** One transport error or 5xx of `symbols.client` fails the whole index for good. `retry_failed` for POST on transport errors, 502, and 503.
+- **Quick open scans the commit per keystroke.** `IndexSql::SEARCH` matches `LIKE '%a%b%'` over every file and symbol and ranks in PHP, and `useSearch()` has no debounce. Debounce, and a prefix query first.
+- **Synchronous fetch holds a web thread 60 s.** `fetchNow()` polls the repository lock up to the deadline. Several callers during a long fetch take every FrankenPHP thread. A short lock wait.
+- **Agent Markdown loads images from any host.** `MarkdownBody` keeps every `https:` image, and the shell sends no CSP. An `img-src` policy on the shell response.
+- **MCP sessions limited per token.** `mcp_http` is keyed by token ID, and each `initialize` writes a session file. Key it by user.
+- **Index job dispatched after the commit.** A crash between `recordStarted()` and the `IndexReview` dispatch leaves the index `pending` for good. Dispatch inside the transaction.
+- **README link with a bad escape.** `readmeUrl.ts` `resolve()` calls `decodeURIComponent()` without a `try`, so `%PUBLIC_URL%` breaks the directory view.
+- **Tree reloads on every live event.** `tree-entries` and `CodeLayout` have no `shouldRevalidate`, though the tree of a pinned commit never changes.
+- **Rename detection per anchor.** `GitReader::pathAfter()` runs `git diff -M` over the range for each moved anchor of the same two commits. Keep the map per `(gitDir, from, to)`.
+- **`get_updates` reads one thread per request.** `UpdatesQuery` calls `ThreadQuery::entries()` per returned request, up to 500 queries.
+- **Unused Composer packages.** `helgesverre/toon` belongs in `require-dev` (only `symfony/ai-mate` uses it), `symfony/intl` has no user, and `symfony/form` comes with `hwi/oauth-bundle`.
+- **Smaller audit findings.** A `CheckRunJob` that fails before it clears `checkRunRequested` blocks that pull request; webhooks apply in arrival order (two pull request events in one second, Marketplace redeliveries, suspension); a draft edit during a submit is lost; a commit dated after 9999 breaks linking; token expiry depends on `date.timezone` on a manual install; an index job longer than `redeliver_timeout` runs twice; large directories load and render whole; a revoke error replaces Settings; a "Viewed" error stays after a file change; two byte formatters.
 
 - **Source maps for browser reports.** A browser report shows the stack of the minified bundle. `build.sourcemap: 'hidden'` and an upload with a Sentry auth token at deployment, for example `@sentry/vite-plugin`, give the source lines. From the F77 planning.
 - **Lazy Sentry in the SPA.** `@sentry/react` adds about 87 KB gzip to the entry chunk, also without `SENTRY_DSN_FRONTEND`. A dynamic import when the DSN is set keeps it out, but the router must then wait for it, because `wrapCreateBrowserRouter()` needs the client. From the F77 planning.
