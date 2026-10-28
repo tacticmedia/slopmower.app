@@ -48,22 +48,28 @@ final class IndexSql
         AND listed.commit_sha = :commitSha AND parsed.language = 'php'
         SQL;
     /**
-     * The V16 candidates. `name` is the last path segment of a file, the short name of a symbol. Mode 160000 is a
-     * submodule. A name that contains the query or matches it by word starts holds its characters in order, so it
-     * matches the LIKE pattern `:characters`.
+     * The V16 candidates, with the condition on the file in `%1$s` and on the symbol in `%2$s`. `name` is the last path
+     * segment of a file, the short name of a symbol. Mode 160000 is a submodule.
      */
     private const string SEARCH = <<<'SQL'
         SELECT 'file' AS kind, listed.path, split_part(listed.path, '/', -1) AS name, NULL AS fqn, NULL AS symbol_kind, NULL AS declaration_start_line
         FROM indexed_file listed
         WHERE listed.tenant_id = :tenantId AND listed.repository_id = :repositoryId AND listed.commit_sha = :commitSha AND listed.mode <> '160000'
-        AND (strpos(lower(listed.path), lower(:query)) > 0 OR lower(split_part(listed.path, '/', -1)) LIKE lower(:characters))
+        AND %1$s
         UNION ALL
         SELECT 'symbol', listed.path, stored.name, stored.fqn, stored.kind, stored.declaration_start_line
         FROM indexed_file listed
         JOIN symbol stored ON stored.tenant_id = listed.tenant_id AND stored.repository_id = listed.repository_id AND stored.blob_sha = listed.blob_sha
         WHERE listed.tenant_id = :tenantId AND listed.repository_id = :repositoryId AND listed.commit_sha = :commitSha
-        AND lower(stored.name) LIKE lower(:characters)
+        AND %2$s
         SQL;
+    /**
+     * Every candidate: a name that contains the query or matches it by word starts holds its characters in order, so it
+     * matches the LIKE pattern `:characters`.
+     */
+    private const array ALL_MATCHES = ["(strpos(lower(listed.path), lower(:query)) > 0 OR lower(split_part(listed.path, '/', -1)) LIKE lower(:characters))", 'lower(stored.name) LIKE lower(:characters)'];
+    /** The names of order groups 1 and 2 of {@see SearchRank::top()}. */
+    private const array PREFIX_MATCHES = ["lower(split_part(listed.path, '/', -1)) LIKE lower(:prefix)", 'lower(stored.name) LIKE lower(:prefix)'];
     private const string DELETE_SYMBOLS = 'DELETE FROM symbol WHERE tenant_id = :tenantId AND repository_id = :repositoryId';
     private const string DELETE_BLOBS = 'DELETE FROM indexed_blob WHERE tenant_id = :tenantId AND repository_id = :repositoryId';
 
@@ -217,15 +223,19 @@ final class IndexSql
      */
     public function search(TenantId $tenantId, RepositoryId $repositoryId, CommitSha $commit, string $query, int $limit): array
     {
-        $characters = '%'.implode('%', array_map(static fn (string $character): string => addcslashes($character, '%_\\'), mb_str_split($query))).'%';
-        $candidates = $this->connection->iterateAssociative(
-            self::SEARCH,
-            ['tenantId' => $tenantId->toRfc4122(), 'repositoryId' => $repositoryId->toRfc4122(), 'commitSha' => $commit->toString(), 'query' => $query, 'characters' => $characters],
-        );
+        $escaped = static fn (string $text): string => addcslashes($text, '%_\\');
+        $scope = ['tenantId' => $tenantId->toRfc4122(), 'repositoryId' => $repositoryId->toRfc4122(), 'commitSha' => $commit->toString()];
+        // The prefix hits rank first, so when they fill $limit, the full scan cannot change the result.
+        $top = SearchRank::top($this->connection->iterateAssociative(sprintf(self::SEARCH, ...self::PREFIX_MATCHES), [...$scope, 'prefix' => $escaped($query).'%']), $query, $limit);
+
+        if (count($top) < $limit) {
+            $characters = '%'.implode('%', array_map($escaped, mb_str_split($query))).'%';
+            $top = SearchRank::top($this->connection->iterateAssociative(sprintf(self::SEARCH, ...self::ALL_MATCHES), [...$scope, 'query' => $query, 'characters' => $characters]), $query, $limit);
+        }
 
         return array_map(static fn (array $row): FileHit|SymbolHit => 'file' === $row['kind']
             ? new FileHit(RepoPath::fromString((string) $row['path']))
-            : new SymbolHit(RepoPath::fromString((string) $row['path']), (string) $row['fqn'], SymbolKind::from((string) $row['symbol_kind']), (int) $row['declaration_start_line']), SearchRank::top($candidates, $query, $limit));
+            : new SymbolHit(RepoPath::fromString((string) $row['path']), (string) $row['fqn'], SymbolKind::from((string) $row['symbol_kind']), (int) $row['declaration_start_line']), $top);
     }
 
     /**

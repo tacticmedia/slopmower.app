@@ -48,7 +48,7 @@ test.describe('QuickOpen', () => {
 
         await expect.poll(() => location(page)).toBe(review.fileUrl(NESTED_FILE));
         await expect(dialog(page)).toHaveCount(0);
-        expect(api.callsTo('GET', SEARCH).at(-1)?.query.get('q')).toBe('TaxRate');
+        expect(api.callsTo('GET', SEARCH).map((call) => call.query.get('q')), 'Keystrokes within 150 ms load once.').toEqual(['TaxRate']);
     });
 
     test('A symbol hit opens its file with the declaration line selected', async ({ page, api }) => {

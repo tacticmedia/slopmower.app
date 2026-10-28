@@ -23,18 +23,25 @@ export function shouldRevalidateSearch(): boolean {
     return false;
 }
 
+/** Keystrokes within this time load one search. */
+const SEARCH_DELAY_MILLISECONDS = 150;
+
 /**
- * V16 for a non-empty query. `result` is null until the answer to this query arrives, so Enter never chooses a hit of
- * an earlier query.
+ * V16 for a non-empty query, {@link SEARCH_DELAY_MILLISECONDS} after its last change. `result` is null until the
+ * answer to this query arrives, so Enter never chooses a hit of an earlier query.
  */
 export function useSearch(reviewId: string, query: string): { result: SearchResult | null; loading: boolean } {
-    const { load, data, state } = useFetcher<SearchResult>();
+    const { load, data } = useFetcher<SearchResult>();
 
     useEffect(() => {
-        if ('' !== query) {
-            void load(`/reviews/${encodeURIComponent(reviewId)}/search?${new URLSearchParams({ q: query }).toString()}`);
+        if ('' === query) {
+            return;
         }
-    }, [reviewId, query, load]);
+        const timer = setTimeout(() => void load(`/reviews/${encodeURIComponent(reviewId)}/search?${new URLSearchParams({ q: query }).toString()}`), SEARCH_DELAY_MILLISECONDS);
 
-    return { result: '' !== query && data?.q === query ? data : null, loading: 'idle' !== state };
+        return () => clearTimeout(timer);
+    }, [reviewId, query, load]);
+    const answered = '' !== query && data?.q === query;
+
+    return { result: answered ? data : null, loading: '' !== query && !answered };
 }

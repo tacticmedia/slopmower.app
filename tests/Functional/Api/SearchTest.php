@@ -12,6 +12,7 @@ use App\Tests\Support\Environment\EnvironmentVariables;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
 use App\Tests\Support\Messenger\QueuedMessages;
 use App\Tests\Support\Source\LocalSources;
+use Doctrine\Bundle\DoctrineBundle\DataCollector\DoctrineDataCollector;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -84,6 +85,22 @@ final class SearchTest extends WebTestCase
             ['kind' => 'symbol', 'path' => 'src/Billing/Invoice.php', 'fqn' => 'App\Billing\Invoice', 'symbolKind' => 'class', 'declarationStartLine' => 5],
             ['kind' => 'file', 'path' => 'src/Billing/Invoice.php'],
         ], $this->search('CE')['items']);
+    }
+
+    #[TestDox('Prefix hits that fill the limit are the first hits of the full order, and the full scan does not run')]
+    public function testPrefixHitsThatFillTheLimit(): void
+    {
+        self::runQueuedMessages();
+        $firstThree = array_slice($this->search('MONEY')['items'], 0, 3);
+        $this->client->enableProfiler();
+
+        $limited = self::assertApiResponse(self::apiRequest($this->client, 'GET', "/api/v1/reviews/{$this->reviewId}/search?q=MONEY&limit=3"), 200, 'lists.schema.json#/$defs/SearchHitList');
+
+        self::assertSame($firstThree, $limited['items']);
+        $collector = $this->client->getProfile()?->getCollector('db');
+        self::assertInstanceOf(DoctrineDataCollector::class, $collector);
+        $searches = array_filter(array_merge(...array_values($collector->getQueries())), static fn (array $query): bool => str_contains((string) $query['sql'], 'FROM indexed_file listed'));
+        self::assertSame([false], array_values(array_map(static fn (array $query): bool => str_contains((string) $query['sql'], 'strpos('), $searches)));
     }
 
     #[TestDox('The result is partial while the index is not ready')]
