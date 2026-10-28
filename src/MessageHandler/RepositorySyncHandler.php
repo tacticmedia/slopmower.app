@@ -58,7 +58,7 @@ final class RepositorySyncHandler
         try {
             $repository = $this->repositories->findFresh($job->repositoryId);
             $fetching = null !== $repository && $this->repositories->startFetch($job->repositoryId) ? $repository : null;
-            $fetched = null === $fetching ? null : $this->serverClone->fetch($fetching, false, self::TIMEOUT_SECONDS);
+            $fetched = null === $fetching ? null : $this->serverClone->fetch($fetching, false, self::TIMEOUT_SECONDS, collectGarbage: true);
         } finally {
             $lock->release();
         }

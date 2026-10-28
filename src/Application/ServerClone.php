@@ -49,6 +49,8 @@ final class ServerClone
 
     private const string GITHUB_NO_ACCESS = 'The GitHub user has no access to this repository';
 
+    private const string UNEXPECTED_FAILURE = 'The sync failed.';
+
     private const int BYTES_PER_KIB = 1024;
 
     private const int PENDING_FETCH_DAYS = 7;
@@ -76,12 +78,16 @@ final class ServerClone
 
     /**
      * A clone above a size limit fails and is deleted. A fetch that passes a size limit keeps the clone and fails, and
-     * so does each fetch of a clone that is above a size limit.
+     * so does each fetch of a clone that is above a size limit. An unexpected exception is recorded as a failure too,
+     * then rethrown, so no row stays in `cloning`.
+     *
+     * @param bool $collectGarbage D92, for the asynchronous fetch
      *
      * @return RepositoryFetched|null Null after a failure, which the row records in `lastError`
      */
-    public function fetch(Repository $repository, bool $clone, float $timeoutSeconds): ?RepositoryFetched
+    public function fetch(Repository $repository, bool $clone, float $timeoutSeconds, bool $collectGarbage = false): ?RepositoryFetched
     {
+        $deadlineNanoseconds = hrtime(true) + (int) ($timeoutSeconds * 1e9);
         $id = $repository->getId();
         $tenantId = $repository->getTenantId();
         $gitDir = $this->paths->clonePath($tenantId, $id);
@@ -108,9 +114,25 @@ final class ServerClone
             }
 
             $this->bareClone->fetch($gitDir, $command->url, $this->pendingShas($id), $timeoutSeconds, $command->secretConfiguration, $command->uploadPack);
+
+            if ($collectGarbage) {
+                $this->collectGarbage($gitDir, $id, ($deadlineNanoseconds - hrtime(true)) / 1e9);
+            }
+
             $sizeBytes = $this->bareClone->objectSizeBytes($gitDir);
             $this->repositories->recordCloneSize($id, $sizeBytes);
             $this->usageLimits->checkCloneSize($tenantId, $id, $sizeBytes);
+            $defaultBranch = $this->reader->headBranch($gitDir);
+
+            try {
+                $head = null === $defaultBranch ? null : $this->reader->resolveCommit($gitDir, RefName::fromString("refs/heads/{$defaultBranch}"));
+            } catch (CommitNotFound|InvalidInput) {
+                // Git accepts branch names that RefName refuses, for example names longer than 255 characters.
+                $head = null;
+            }
+
+            // An unborn branch is not a default branch yet.
+            $this->repositories->recordSuccess($id, $this->clock->now(), null === $head ? null : $defaultBranch, $head);
         } catch (GitFailed|SourceUnavailable|GitHubRequestFailed|IOExceptionInterface|LimitExceeded $failure) {
             $this->logger->warning('The sync of repository {repositoryId} failed.', ['repositoryId' => $id->toString(), 'exception' => $failure]);
             // Recorded first, so a failing removal cannot leave the row in `cloning`.
@@ -121,19 +143,15 @@ final class ServerClone
             }
 
             return null;
+        } catch (\Throwable $failure) {
+            $this->repositories->recordFailure($id, self::UNEXPECTED_FAILURE);
+
+            if ($clone) {
+                $filesystem->remove($gitDir);
+            }
+
+            throw $failure;
         }
-
-        $defaultBranch = $this->reader->headBranch($gitDir);
-
-        try {
-            $head = null === $defaultBranch ? null : $this->reader->resolveCommit($gitDir, RefName::fromString("refs/heads/{$defaultBranch}"));
-        } catch (CommitNotFound|InvalidInput) {
-            // Git accepts branch names that RefName refuses, for example names longer than 255 characters.
-            $head = null;
-        }
-
-        // An unborn branch is not a default branch yet.
-        $this->repositories->recordSuccess($id, $this->clock->now(), null === $head ? null : $defaultBranch, $head);
 
         return new RepositoryFetched($repository->getTenantId(), $id, $repository->getDefaultBranchHead(), $head);
     }
@@ -152,6 +170,19 @@ final class ServerClone
             }
         } finally {
             $this->dispatcher->dispatch(new RepositoryChanged($repository->getTenantId(), $repository->getId()));
+        }
+    }
+
+    private function collectGarbage(string $gitDir, RepositoryId $id, float $remainingSeconds): void
+    {
+        if ($remainingSeconds <= 0) {
+            return;
+        }
+
+        try {
+            $this->bareClone->collectGarbage($gitDir, $remainingSeconds);
+        } catch (GitFailed $failure) {
+            $this->logger->warning('The gc of repository {repositoryId} failed.', ['repositoryId' => $id->toString(), 'exception' => $failure]);
         }
     }
 

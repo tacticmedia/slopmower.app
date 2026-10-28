@@ -96,6 +96,17 @@ final class BareClone
     }
 
     /**
+     * D92: the fetches run without auto maintenance. In the foreground, so it ends before the caller releases the
+     * {@see RepositoryLock}.
+     *
+     * @throws GitFailed
+     */
+    public function collectGarbage(string $gitDir, float $timeoutSeconds): void
+    {
+        $this->git->run($gitDir, ['-c', 'gc.autoDetach=false', 'gc', '--auto', '--quiet'], $timeoutSeconds);
+    }
+
+    /**
      * `size` and `size-pack` of `git count-objects -v`: git keeps the objects of a fetch of fewer than 100 objects
      * loose (`fetch.unpackLimit`).
      *

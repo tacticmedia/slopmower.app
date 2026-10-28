@@ -11,6 +11,7 @@ use App\Tests\Support\Filesystem\TemporaryDirectories;
 use App\Tests\Support\Messenger\QueuedMessages;
 use App\Tests\Support\Persistence\ReviewDataFixtures;
 use App\Tests\Support\Source\LocalSources;
+use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Filesystem\Filesystem;
@@ -59,5 +60,44 @@ final class CloneFailureTest extends KernelTestCase
         $repository = self::freshRepository($repositoryId);
         self::assertSame(SyncState::Failed, $repository->getSyncState());
         self::assertStringStartsWith('Failed to create "[redacted]": ', (string) $repository->getLastError());
+    }
+
+    #[TestDox('An unexpected exception during a clone sets failed, removes the partial clone, and fails the job')]
+    public function testUnexpectedExceptionSetsFailed(): void
+    {
+        $this->useTemporaryLocalSources();
+        $this->newSource();
+        self::enterNewTenant();
+        $repositoryId = self::connect()->getId();
+        $connection = self::getContainer()->get(Connection::class);
+        // A database error after the clone directory exists. The failure record sets clone_size_bytes to NULL.
+        $connection->executeStatement(<<<'SQL'
+            CREATE FUNCTION test_refuse_clone_size() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'The database refuses the clone size.'; END $$;
+            CREATE TRIGGER test_refuse_clone_size BEFORE UPDATE OF clone_size_bytes ON repository FOR EACH ROW WHEN (NEW.clone_size_bytes IS NOT NULL) EXECUTE FUNCTION test_refuse_clone_size();
+            SQL);
+
+        try {
+            self::runQueuedMessages();
+            self::fail('The clone job did not fail.');
+        } catch (\Throwable $failure) {
+            self::assertStringContainsString('The database refuses the clone size.', self::messages($failure));
+        } finally {
+            $connection->executeStatement('DROP TRIGGER test_refuse_clone_size ON repository; DROP FUNCTION test_refuse_clone_size()');
+        }
+
+        $repository = self::freshRepository($repositoryId);
+        self::assertSame([SyncState::Failed, 'The sync failed.'], [$repository->getSyncState(), $repository->getLastError()]);
+        self::assertDirectoryDoesNotExist(self::clonePath($repository));
+    }
+
+    private static function messages(\Throwable $failure): string
+    {
+        $messages = [];
+
+        for (; null !== $failure; $failure = $failure->getPrevious()) {
+            $messages[] = $failure->getMessage();
+        }
+
+        return implode("\n", $messages);
     }
 }
