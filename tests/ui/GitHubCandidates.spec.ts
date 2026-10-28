@@ -6,7 +6,7 @@ import { expect, test } from './support/test';
 const SECTION = '[data-testid="github-candidates"]';
 
 test.describe('GitHubCandidates', () => {
-    test('GitHub candidates and the Configure on GitHub link show on the repositories screen', async ({ page, api }) => {
+    test('GitHub candidates, Refresh to the setup URL, and the Configure on GitHub link show on the repositories screen', async ({ page, api }) => {
         const candidates = fixture<CandidateList>('lists.candidate-list.json');
         const repositories = new FakeRepositories(api);
         repositories.addLocal('billing');
@@ -19,5 +19,6 @@ test.describe('GitHubCandidates', () => {
         await expect(page.locator(`${SECTION} table`)).toContainText('acme/billing');
         await expect(page.locator(`${SECTION} [data-testid="github-configure"]`)).toHaveAttribute('href', 'https://github.com/apps/slopmower/installations/new');
         await expect(page.locator(`${SECTION} [data-testid="github-configure"]`)).toContainText('Configure on GitHub');
+        await expect(page.locator(SECTION).getByRole('link', { name: 'Refresh' })).toHaveAttribute('href', '/github/installed');
     });
 });

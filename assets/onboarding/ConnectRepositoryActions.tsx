@@ -5,6 +5,7 @@ import type { CandidateList } from '../api/types/lists';
 import type { Me } from '../api/types/me';
 import type { RepositoryCandidate } from '../api/types/repository-candidate';
 import { CandidateConnection } from '../routes/repositories/CandidateConnection';
+import { GitHubRefreshButton } from '../routes/repositories/GitHubCandidates';
 import styles from './ConnectRepositoryActions.module.css';
 
 type Props = {
@@ -41,9 +42,12 @@ export function ConnectRepositoryActions({ features, candidates }: Props) {
                 ) : (
                     <CandidateGroup title="GitHub repositories" candidates={github} testId="onboarding-github">
                         {null !== candidates.githubConfigureUrl && (
-                            <Button as="a" href={candidates.githubConfigureUrl} size="small" trailingVisual={LinkExternalIcon}>
-                                Add repositories on GitHub
-                            </Button>
+                            <div className={styles.actions}>
+                                <GitHubRefreshButton />
+                                <Button as="a" href={candidates.githubConfigureUrl} size="small" trailingVisual={LinkExternalIcon}>
+                                    Add repositories on GitHub
+                                </Button>
+                            </div>
                         )}
                     </CandidateGroup>
                 ))}

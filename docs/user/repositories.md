@@ -13,11 +13,11 @@ Slopmower reads your code through the Slopmower GitHub App. The App gets read-on
 3. On GitHub, choose the account or organization, then choose **Only select repositories** and select the repositories to review.
 4. Click **Install**. GitHub sends you back to Slopmower.
 
-**GitHub repositories** lists the repositories that the App can read, as of your last sign-in. When GitHub sends you back after an installation, Slopmower lists them again. Each row shows the visibility, the default branch, and the account where the App is installed.
+**GitHub repositories** lists the repositories that the App can read, as of your last sign-in. When GitHub sends you back after an installation, Slopmower lists them again. After another change on GitHub, click **Refresh**: Slopmower signs you in through GitHub again and lists them again. Each row shows the visibility, the default branch, and the account where the App is installed.
 
 While no repository is connected, the first step of Getting started has **Install the GitHub App** in place of **Configure on GitHub**. After the installation, the step lists the repositories, with **Add repositories on GitHub**.
 
-To add or remove repositories later, click **Configure on GitHub** again. When you remove a repository from the App, Slopmower deletes its copy of the code. Your reviews stay until you delete them.
+To add or remove repositories later, click **Configure on GitHub** again, then **Refresh**. When you remove a repository from the App, Slopmower deletes its copy of the code. Your reviews stay until you delete them.
 
 To review the repositories on your own disk, without GitHub, see [Run it locally](local-run.md). Then **Repositories** also shows **Local directories**.
 

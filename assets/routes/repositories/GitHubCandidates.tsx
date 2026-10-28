@@ -1,5 +1,5 @@
 import { Button, Label, Link, RelativeTime } from '@primer/react';
-import { LinkExternalIcon } from '@primer/octicons-react';
+import { LinkExternalIcon, SyncIcon } from '@primer/octicons-react';
 import { type Column, DataTable, Table } from '@primer/react/experimental';
 import type { RepositoryCandidate } from '../../api/types/repository-candidate';
 import { CandidateConnection } from './CandidateConnection';
@@ -30,6 +30,15 @@ const COLUMNS: Column<CandidateRow>[] = [
     { id: 'action', header: 'Connection', renderCell: ({ candidate }) => <CandidateConnection candidate={candidate} /> },
 ];
 
+/** The setup URL signs in again, which lists the repositories again (R2). */
+export function GitHubRefreshButton() {
+    return (
+        <Button as="a" href="/github/installed" size="small" leadingVisual={SyncIcon}>
+            Refresh
+        </Button>
+    );
+}
+
 type GitHubCandidatesProps = {
     candidates: GitHubCandidate[];
     configureUrl: string;
@@ -52,6 +61,7 @@ export function GitHubCandidates({ candidates, configureUrl, listedAt }: GitHubC
                 )}
             </Table.Subtitle>
             <Table.Actions>
+                <GitHubRefreshButton />
                 <Button as="a" href={configureUrl} size="small" trailingVisual={LinkExternalIcon} data-testid="github-configure">
                     Configure on GitHub
                 </Button>

@@ -15,7 +15,7 @@ Slopmower reads your code through the Slopmower GitHub App. The App gets read-on
 3. Click **Install**. GitHub sends you back to Slopmower, and the step lists the repositories that the App can read.
 4. Click **Connect** next to a repository. The repository page opens.
 
-To add or remove repositories later, click **Add repositories on GitHub** in the step, or **Configure on GitHub** on **Repositories**. When you remove a repository from the App, Slopmower deletes its copy of the code. Your reviews stay until you delete them.
+To add or remove repositories later, click **Add repositories on GitHub** in the step, or **Configure on GitHub** on **Repositories**. Then click **Refresh** next to it. When you remove a repository from the App, Slopmower deletes its copy of the code. Your reviews stay until you delete them.
 
 Slopmower makes its own copy of the repository. The status on the repository page shows the progress. When the status is **Ready**, you can start a review.
 

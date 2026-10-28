@@ -12,6 +12,12 @@
     gap: var(--base-size-8);
 }
 
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--base-size-8);
+}
+
 .groupTitle {
     margin: 0;
     font-size: var(--text-body-size-medium);

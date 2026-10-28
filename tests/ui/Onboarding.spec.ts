@@ -45,6 +45,18 @@ test.describe('Onboarding', () => {
         expect(api.bodies('POST', '/api/v1/repositories')).toEqual([{ source: 'github', githubRepositoryId: 812399 }]);
     });
 
+    test('With GitHub candidates, Refresh links to the setup URL', async ({ page, api }) => {
+        const repositories = hosted(api);
+        repositories.candidates = fixture<CandidateList>('lists.candidate-list.json')
+            .items.filter(({ source }) => 'github' === source)
+            .map((candidate) => ({ ...candidate, connectedRepositoryId: null }));
+        repositories.candidateFields = { ...repositories.candidateFields, githubListedAt: now(-600) };
+
+        await page.goto('/repositories');
+
+        await expect(page.locator('[data-testid="onboarding-github"]').getByRole('link', { name: 'Refresh' })).toHaveAttribute('href', '/github/installed');
+    });
+
     test('Local candidates show with Connect', async ({ page, api }) => {
         new FakeRepositories(api).candidates = [localCandidate('billing'), localCandidate('shipping')];
 
