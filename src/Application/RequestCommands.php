@@ -50,6 +50,7 @@ use App\EventStore\CommandExecutor;
 use App\Git\GitFailed;
 use App\Git\GitReader;
 use App\Git\PinRefs;
+use App\Git\RepositoryLock;
 use App\Git\TenantDataPaths;
 use App\Message\ReadPullRequestJob;
 use App\Projection\RequestStateMapper;
@@ -78,6 +79,7 @@ final class RequestCommands
         private readonly UsageLimits $usageLimits,
         private readonly GitReader $reader,
         private readonly PinRefs $pins,
+        private readonly RepositoryLock $repositoryLock,
         private readonly TenantDataPaths $paths,
         private readonly MessageBusInterface $bus,
         private readonly LoggerInterface $logger,
@@ -129,8 +131,8 @@ final class RequestCommands
     }
 
     /**
-     * Q7. A commit that the server clone has is pinned before the transaction. A missing one stays pending and queues
-     * a fetch, which {@see ResolvePendingCommitLinks} follows.
+     * Q7. A commit that the server clone has is pinned before the transaction, both under the pin lock (D91). A missing
+     * one stays pending and queues a fetch, which {@see ResolvePendingCommitLinks} follows.
      *
      * @throws NotFound|InvalidInput|ReviewClosed|InvalidTransition
      */
@@ -143,19 +145,21 @@ final class RequestCommands
         $gitDir = $this->paths->clonePath($repository->getTenantId(), $repository->getId());
         $commit = $this->reader->hasCommit($gitDir, $commitSha) ? $this->reader->commitInfo($gitDir, $commitSha) : null;
 
-        if (null !== $commit) {
-            $this->pins->pinCommit($gitDir, $commitSha);
-        }
-
-        try {
-            $events = $this->run($review->getId(), $command, $actor, null === $commit ? [] : [$commit]);
-        } catch (\Throwable $failure) {
-            if (null !== $commit && !$this->links->isLinkedInRepository($repository->getId(), $commitSha)) {
-                $this->pins->unpinCommit($gitDir, $commitSha);
+        $events = $this->repositoryLock->withPinLock($repository->getId(), function () use ($command, $actor, $review, $repository, $gitDir, $commit, $commitSha): array {
+            if (null !== $commit) {
+                $this->pins->pinCommit($gitDir, $commitSha);
             }
 
-            throw $failure;
-        }
+            try {
+                return $this->run($review->getId(), $command, $actor, null === $commit ? [] : [$commit]);
+            } catch (\Throwable $failure) {
+                if (null !== $commit && !$this->links->isLinkedInRepository($repository->getId(), $commitSha)) {
+                    $this->pins->unpinCommit($gitDir, $commitSha);
+                }
+
+                throw $failure;
+            }
+        });
 
         if (null === $commit) {
             $this->requestFetch($repository->getId());
@@ -203,7 +207,8 @@ final class RequestCommands
     }
 
     /**
-     * Q8. Deletes the pin of the commit after the transaction, when no other link in the repository names it.
+     * Q8. Deletes the pin of the commit after the transaction, when no other link in the repository names it. The check
+     * and the delete hold the pin lock (D91).
      *
      * @return list<RecordedEvent>
      *
@@ -214,14 +219,16 @@ final class RequestCommands
         $events = $this->run($this->reviewOf($command->requestId), $command, $actor);
         $repository = ($this->requests->findFresh($command->requestId) ?? throw new NotFound())->getReview()->getRepository();
 
-        if (!$this->links->isLinkedInRepository($repository->getId(), $command->commitSha)) {
-            try {
-                $this->pins->unpinCommit($this->paths->clonePath($repository->getTenantId(), $repository->getId()), $command->commitSha);
-            } catch (GitFailed $failure) {
-                // The unlink is committed. A removed repository has no clone left.
-                $this->logger->warning('The pin of commit {commitSha} could not be deleted.', ['commitSha' => $command->commitSha->toString(), 'exception' => $failure]);
+        $this->repositoryLock->withPinLock($repository->getId(), function () use ($command, $repository): void {
+            if (!$this->links->isLinkedInRepository($repository->getId(), $command->commitSha)) {
+                try {
+                    $this->pins->unpinCommit($this->paths->clonePath($repository->getTenantId(), $repository->getId()), $command->commitSha);
+                } catch (GitFailed $failure) {
+                    // The unlink is committed. A removed repository has no clone left.
+                    $this->logger->warning('The pin of commit {commitSha} could not be deleted.', ['commitSha' => $command->commitSha->toString(), 'exception' => $failure]);
+                }
             }
-        }
+        });
 
         return $events;
     }

@@ -10,7 +10,7 @@ use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Lock\LockInterface;
 
 /**
- * Fetch, clone, and clone deletion hold it. Pin writes and reads do not.
+ * Fetch, clone, and clone deletion hold it. Pin writes and reads do not: they take {@see withPinLock()}.
  */
 final class RepositoryLock
 {
@@ -50,5 +50,27 @@ final class RepositoryLock
         }
 
         return $lock;
+    }
+
+    /**
+     * D91: a pin with the transaction that links its commit, and the link check with the unpin. Taken before the
+     * tenant row lock, never inside it.
+     *
+     * @template T
+     *
+     * @param \Closure(): T $work
+     *
+     * @return T
+     */
+    public function withPinLock(RepositoryId $repositoryId, \Closure $work): mixed
+    {
+        $lock = $this->lockFactory->createLock("pins:{$repositoryId}", ttl: null);
+        $lock->acquire(true);
+
+        try {
+            return $work();
+        } finally {
+            $lock->release();
+        }
     }
 }

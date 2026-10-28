@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
+use App\Application\RequestCommands;
+use App\Domain\Actor\Actor;
+use App\Domain\Git\CommitSha;
+use App\Domain\Identity\RequestId;
+use App\Domain\Request\Command\UnlinkCommit;
 use App\Entity\User;
 use App\Git\PinRefs;
+use App\Tenancy\TenantContext;
 use App\Tests\Support\Api\AgentApiFixtures;
 use App\Tests\Support\Api\ApiFixtures;
 use App\Tests\Support\Api\RequestApiFixtures;
@@ -16,9 +22,15 @@ use App\Tests\Support\Environment\EnvironmentVariables;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
 use App\Tests\Support\Messenger\QueuedMessages;
 use App\Tests\Support\Source\LocalSources;
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Exception\DriverException;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Lock\Exception\LockAcquiringException;
+use Symfony\Component\Lock\LockFactory;
+use Symfony\Component\Lock\Store\DoctrineDbalPostgreSqlStore;
 
 /**
  * Q8. The agent claimed two requests of a review and linked the review commit to both.
@@ -35,6 +47,8 @@ final class UnlinkCommitTest extends WebTestCase
     use ResetDatabase;
     use ReviewApiFixtures;
     use TemporaryDirectories;
+    /** SQLSTATE lock_not_available. */
+    private const string LOCK_TIMEOUT = '55P03';
 
     private string $reviewCommit;
 
@@ -79,6 +93,38 @@ final class UnlinkCommitTest extends WebTestCase
         self::assertSame($this->reviewCommit, $pinsWhileUsed[PinRefs::COMMITS.$this->reviewCommit] ?? null, 'The second request still uses the pin.');
         self::assertArrayNotHasKey(PinRefs::COMMITS.$this->reviewCommit, self::pins($this->user, $this->repositoryId));
         self::assertSame([], self::readRequest($this->client, $this->second)['commits']);
+    }
+
+    #[TestDox('The unlink of the last link checks and unpins under the pin lock, so a link that holds the lock keeps its pin')]
+    public function testUnlinkWaitsForThePinLock(): void
+    {
+        self::agentRequest($this->client, $this->secret, 'DELETE', "/api/v1/requests/{$this->second}/commits/{$this->reviewCommit}");
+        // A link_commits of the same SHA between its pin and its commit.
+        $linking = DriverManager::getConnection(self::getContainer()->get(Connection::class)->getParams());
+        $pinLock = new LockFactory(new DoctrineDbalPostgreSqlStore($linking))->createLock("pins:{$this->repositoryId}", ttl: null);
+        self::assertTrue($pinLock->acquire());
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->executeStatement("SET lock_timeout = '200ms'");
+        self::getContainer()->get(TenantContext::class)->set($this->user->getTenantId());
+
+        try {
+            self::getContainer()->get(RequestCommands::class)->unlinkCommit(
+                new UnlinkCommit(RequestId::fromString($this->first), CommitSha::fromString($this->reviewCommit)),
+                Actor::agent($this->user->getId(), 'claude-code laptop'),
+            );
+            self::fail('The unlink did not wait for the pin lock.');
+        } catch (LockAcquiringException $failure) {
+            $timeout = $failure->getPrevious();
+            self::assertInstanceOf(DriverException::class, $timeout);
+            self::assertSame(self::LOCK_TIMEOUT, $timeout->getSQLState());
+        } finally {
+            $connection->executeStatement('RESET lock_timeout');
+            $pinLock->release();
+            $linking->close();
+        }
+
+        self::assertSame([], self::readRequest($this->client, $this->first)['commits'], 'The unlink is committed.');
+        self::assertSame($this->reviewCommit, self::pins($this->user, $this->repositoryId)[PinRefs::COMMITS.$this->reviewCommit] ?? null);
     }
 
     #[TestDox('Unlinking a commit that is not linked gives invalid_input')]

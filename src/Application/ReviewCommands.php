@@ -29,6 +29,7 @@ use App\EventStore\CommandExecutor;
 use App\Git\GitFailed;
 use App\Git\GitReader;
 use App\Git\PinRefs;
+use App\Git\RepositoryLock;
 use App\Git\TenantDataPaths;
 use App\Message\IndexReview;
 use App\Repository\CommitLinkRepository;
@@ -60,6 +61,7 @@ final class ReviewCommands
         private readonly UsageLimits $usageLimits,
         private readonly GitReader $reader,
         private readonly PinRefs $pins,
+        private readonly RepositoryLock $repositoryLock,
         private readonly MessageBusInterface $bus,
         private readonly DeletionSql $deletion,
         private readonly CommitLinkRepository $links,
@@ -200,7 +202,7 @@ final class ReviewCommands
     }
 
     /**
-     * After the commit. A commit pin stays while another link in the repository names the commit.
+     * After the commit. A commit pin stays while another link in the repository names the commit (D91).
      *
      * @param list<CommitSha> $linkedShas
      */
@@ -212,12 +214,13 @@ final class ReviewCommands
 
         try {
             $this->pins->unpinReview($gitDir, $reviewId);
-
-            foreach ($linkedShas as $commitSha) {
-                if (!$this->links->isLinkedInRepository($repositoryId, $commitSha)) {
-                    $this->pins->unpinCommit($gitDir, $commitSha);
+            $this->repositoryLock->withPinLock($repositoryId, function () use ($gitDir, $repositoryId, $linkedShas): void {
+                foreach ($linkedShas as $commitSha) {
+                    if (!$this->links->isLinkedInRepository($repositoryId, $commitSha)) {
+                        $this->pins->unpinCommit($gitDir, $commitSha);
+                    }
                 }
-            }
+            });
         } catch (GitFailed $failure) {
             // The rows are deleted. A clone that DeleteCloneJob removes meanwhile has no pins left.
             $this->logger->warning('The pins of the deleted review {reviewId} could not be deleted.', ['reviewId' => $reviewId->toString(), 'exception' => $failure]);
