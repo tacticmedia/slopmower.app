@@ -18,7 +18,8 @@ Verified on 2026-10-28:
 
 - Two panes from 768 px: a dark brand pane on the left, the sign-in pane on the right. Below 768 px the brand pane is a compact band above the sign-in pane, without the preview.
 - The brand pane has the wordmark "Slopmower" as text, Jan's tagline as the large line, one sentence from the help center about the workflow, and a static preview: a code excerpt with a comment thread between a user and an agent. The preview is `aria-hidden`, because it only illustrates the sentence.
-- The brand pane uses the dark Primer tokens of `@primer/primitives` 11.10.0 in both colour modes. In dark mode its background is `bgColor-inset`, so it stays apart from the sign-in pane.
+- The brand pane is dark in both colour modes, in warm stone grays with a faint green glow, not the blue-black of Primer (Jan: "less blue please. More gray or stone"). The code excerpt uses the dark syntax colours of `@primer/primitives` 11.10.0. The sign-in pane keeps the Primer tokens of `_theme.html.twig`.
+- Below 768 px the page is a flex column, not a grid, so the brand band keeps its content height and the sign-in pane takes the rest.
 - Jan's copy stays as it is. The `h1`, the buttons, the error alert, and the footer keep their markup for the tests.
 - No logo. F78 keeps it out of scope.
 
