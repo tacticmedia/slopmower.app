@@ -70,7 +70,8 @@ Never verify, reopen, accept or dismiss suggestions, or decide on proposals. Ope
   - `ULID = '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'`
   - `FULL_SHA = '^([0-9a-f]{40}|[0-9a-f]{64})$'`
   - `SHA_PREFIX = '^[0-9a-f]{7,64}$'`
-  - `PULL_REQUEST_URL = '^https://\S+$'`
+  - `PULL_REQUEST_URL = '^https://[^\s\x00]+$'`
+  - `NO_NUL = '^[^\x00]*$'`: every other string parameter. PostgreSQL cannot store a NUL byte.
 - **Schema generation.** In SDK 0.8.1, `?string $x = null` generates `{"type":["null","string"],"default":null}`, and `?int` generates `["null","integer"]`: null comes first. A nullable backed enum generates `{"type":["string","null"],"enum":[..., null],"default":null}`. A parameter without a default is required. An empty `required` list is left out. The docblock type `list<string>` produces an empty `items` schema `{}`, so array parameters need `#[Schema(items: ...)]`.
 
 ## 4. Tools
@@ -115,12 +116,12 @@ List the repositories that this token can see: id, source (github or local), nam
  * @param int     $limit  Page size
  */
 #[McpTool(name: 'list_repositories', title: 'List repositories', annotations: new ToolAnnotations(readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false), outputSchema: BundledSchemas::REPOSITORY_PAGE)]
-public function listRepositories(#[Schema(minLength: 1)] ?string $cursor = null, #[Schema(minimum: 1, maximum: 500)] int $limit = 100): array
+public function listRepositories(#[Schema(pattern: self::NO_NUL, minLength: 1)] ?string $cursor = null, #[Schema(minimum: 1, maximum: 500)] int $limit = 100): array
 ```
 
 ```json
 {"type":"object","properties":{
- "cursor":{"type":["null","string"],"description":"nextCursor of the previous page","default":null,"minLength":1},
+ "cursor":{"type":["null","string"],"description":"nextCursor of the previous page","default":null,"minLength":1,"pattern":"^[^\\x00]*$"},
  "limit":{"type":"integer","description":"Page size","default":100,"minimum":1,"maximum":500}}}
 ```
 
@@ -146,14 +147,14 @@ List the reviews of one repository, newest first. Only open reviews unless inclu
  * @param int     $limit         Page size
  */
 #[McpTool(name: 'list_reviews', title: 'List reviews', annotations: new ToolAnnotations(readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false), outputSchema: BundledSchemas::REVIEW_PAGE)]
-public function listReviews(#[Schema(minLength: 1, maxLength: 255)] string $repository, bool $includeClosed = false, #[Schema(minLength: 1)] ?string $cursor = null, #[Schema(minimum: 1, maximum: 100)] int $limit = 50): array
+public function listReviews(#[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 255)] string $repository, bool $includeClosed = false, #[Schema(pattern: self::NO_NUL, minLength: 1)] ?string $cursor = null, #[Schema(minimum: 1, maximum: 100)] int $limit = 50): array
 ```
 
 ```json
 {"type":"object","properties":{
- "repository":{"type":"string","description":"Repository ID, GitHub owner/name, or local directory name","minLength":1,"maxLength":255},
+ "repository":{"type":"string","description":"Repository ID, GitHub owner/name, or local directory name","minLength":1,"maxLength":255,"pattern":"^[^\\x00]*$"},
  "includeClosed":{"type":"boolean","description":"Also list closed reviews","default":false},
- "cursor":{"type":["null","string"],"description":"nextCursor of the previous page","default":null,"minLength":1},
+ "cursor":{"type":["null","string"],"description":"nextCursor of the previous page","default":null,"minLength":1,"pattern":"^[^\\x00]*$"},
  "limit":{"type":"integer","description":"Page size","default":50,"minimum":1,"maximum":100}},
  "required":["repository"]}
 ```
@@ -184,7 +185,7 @@ List the change requests of one review, oldest first, with optional filters. Ret
  * @param int              $limit      Page size
  */
 #[McpTool(name: 'list_requests', title: 'List requests', annotations: new ToolAnnotations(readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false), outputSchema: BundledSchemas::REQUEST_PAGE)]
-public function listRequests(#[Schema(pattern: self::ULID)] string $review, ?RequestStatus $status = null, ?Awaiting $awaiting = null, #[Schema(minLength: 1, maxLength: 4096)] ?string $path = null, ?bool $outdated = null, ?SuggestionState $suggestion = null, #[Schema(minLength: 1)] ?string $cursor = null, #[Schema(minimum: 1, maximum: 200)] int $limit = 50): array
+public function listRequests(#[Schema(pattern: self::ULID)] string $review, ?RequestStatus $status = null, ?Awaiting $awaiting = null, #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 4096)] ?string $path = null, ?bool $outdated = null, ?SuggestionState $suggestion = null, #[Schema(pattern: self::NO_NUL, minLength: 1)] ?string $cursor = null, #[Schema(minimum: 1, maximum: 200)] int $limit = 50): array
 ```
 
 ```json
@@ -192,10 +193,10 @@ public function listRequests(#[Schema(pattern: self::ULID)] string $review, ?Req
  "review":{"type":"string","description":"Review ID from list_reviews","pattern":"^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"},
  "status":{"type":["string","null"],"description":"Only requests with this status","default":null,"enum":["open","in_progress","ready_for_review","verified","reopened","wont_do",null]},
  "awaiting":{"type":["string","null"],"description":"Only requests where it is this party's turn; \"agent\" means you","default":null,"enum":["agent","user","none",null]},
- "path":{"type":["null","string"],"description":"Only requests whose file path starts with this prefix; general requests never match","default":null,"minLength":1,"maxLength":4096},
+ "path":{"type":["null","string"],"description":"Only requests whose file path starts with this prefix; general requests never match","default":null,"minLength":1,"maxLength":4096,"pattern":"^[^\\x00]*$"},
  "outdated":{"type":["null","boolean"],"description":"Only requests whose code changed (true) or did not change (false) on the default branch","default":null},
  "suggestion":{"type":["string","null"],"description":"Only suggestions in this state; requests that the user opened never match","default":null,"enum":["pending","accepted","dismissed",null]},
- "cursor":{"type":["null","string"],"description":"nextCursor of the previous page","default":null,"minLength":1},
+ "cursor":{"type":["null","string"],"description":"nextCursor of the previous page","default":null,"minLength":1,"pattern":"^[^\\x00]*$"},
  "limit":{"type":"integer","description":"Page size","default":50,"minimum":1,"maximum":200}},
  "required":["review"]}
 ```
@@ -308,13 +309,13 @@ Give back a request that you claimed but will not finish. Its status returns to 
  * @param ?string $note Why you stop, for the user
  */
 #[McpTool(name: 'release_request', title: 'Release request', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false), outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT)]
-public function releaseRequest(#[Schema(pattern: self::ULID)] string $id, #[Schema(maxLength: 65536)] ?string $note = null): array
+public function releaseRequest(#[Schema(pattern: self::ULID)] string $id, #[Schema(pattern: self::NO_NUL, maxLength: 65536)] ?string $note = null): array
 ```
 
 ```json
 {"type":"object","properties":{
  "id":{"type":"string","description":"Request ID","pattern":"^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"},
- "note":{"type":["null","string"],"description":"Why you stop, for the user","default":null,"maxLength":65536}},
+ "note":{"type":["null","string"],"description":"Why you stop, for the user","default":null,"maxLength":65536,"pattern":"^[^\\x00]*$"}},
  "required":["id"]}
 ```
 
@@ -339,13 +340,13 @@ Add a comment to a request's thread, in any status. Set question to true when yo
  * @param bool   $question True when you need an answer from the user
  */
 #[McpTool(name: 'reply_to_request', title: 'Reply to request', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false), outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT)]
-public function replyToRequest(#[Schema(pattern: self::ULID)] string $id, #[Schema(minLength: 1, maxLength: 65536)] string $body, bool $question = false): array
+public function replyToRequest(#[Schema(pattern: self::ULID)] string $id, #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 65536)] string $body, bool $question = false): array
 ```
 
 ```json
 {"type":"object","properties":{
  "id":{"type":"string","description":"Request ID","pattern":"^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"},
- "body":{"type":"string","description":"Markdown comment","minLength":1,"maxLength":65536},
+ "body":{"type":"string","description":"Markdown comment","minLength":1,"maxLength":65536,"pattern":"^[^\\x00]*$"},
  "question":{"type":"boolean","description":"True when you need an answer from the user","default":false}},
  "required":["id","body"]}
 ```
@@ -374,7 +375,7 @@ Record that a commit implements one or more requests that you hold (status in_pr
 public function linkCommits(
     #[Schema(pattern: self::FULL_SHA)] string $commitSha,
     #[Schema(items: ['type' => 'string', 'pattern' => self::ULID], minItems: 1, maxItems: 50, uniqueItems: true)] array $requestIds,
-    #[Schema(maxLength: 65536)] ?string $note = null,
+    #[Schema(pattern: self::NO_NUL, maxLength: 65536)] ?string $note = null,
 ): array
 ```
 
@@ -382,7 +383,7 @@ public function linkCommits(
 {"type":"object","properties":{
  "commitSha":{"type":"string","description":"Full commit SHA","pattern":"^([0-9a-f]{40}|[0-9a-f]{64})$"},
  "requestIds":{"type":"array","description":"Every request that this commit covers, all from one review","items":{"type":"string","pattern":"^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"},"minItems":1,"maxItems":50,"uniqueItems":true},
- "note":{"type":["null","string"],"description":"Optional note shown with the link","default":null,"maxLength":65536}},
+ "note":{"type":["null","string"],"description":"Optional note shown with the link","default":null,"maxLength":65536,"pattern":"^[^\\x00]*$"}},
  "required":["commitSha","requestIds"]}
 ```
 
@@ -436,13 +437,13 @@ Tell the user that a request you hold is done. The note says what you changed an
  * @param string $note What you changed and how you tested it
  */
 #[McpTool(name: 'mark_ready_for_review', title: 'Mark ready for review', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false), outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT)]
-public function markReadyForReview(#[Schema(pattern: self::ULID)] string $id, #[Schema(minLength: 1, maxLength: 65536)] string $note): array
+public function markReadyForReview(#[Schema(pattern: self::ULID)] string $id, #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 65536)] string $note): array
 ```
 
 ```json
 {"type":"object","properties":{
  "id":{"type":"string","description":"Request ID","pattern":"^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"},
- "note":{"type":"string","description":"What you changed and how you tested it","minLength":1,"maxLength":65536}},
+ "note":{"type":"string","description":"What you changed and how you tested it","minLength":1,"maxLength":65536,"pattern":"^[^\\x00]*$"}},
  "required":["id","note"]}
 ```
 
@@ -466,13 +467,13 @@ Decline an open or reopened request, or one that you hold. Give evidence that th
  * @param string $reason Checkable justification, at least 20 characters
  */
 #[McpTool(name: 'mark_wont_do', title: "Mark won't do", annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false), outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT)]
-public function markWontDo(#[Schema(pattern: self::ULID)] string $id, #[Schema(minLength: 20, maxLength: 65536)] string $reason): array
+public function markWontDo(#[Schema(pattern: self::ULID)] string $id, #[Schema(pattern: self::NO_NUL, minLength: 20, maxLength: 65536)] string $reason): array
 ```
 
 ```json
 {"type":"object","properties":{
  "id":{"type":"string","description":"Request ID","pattern":"^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"},
- "reason":{"type":"string","description":"Checkable justification, at least 20 characters","minLength":20,"maxLength":65536}},
+ "reason":{"type":"string","description":"Checkable justification, at least 20 characters","minLength":20,"maxLength":65536,"pattern":"^[^\\x00]*$"}},
  "required":["id","reason"]}
 ```
 
@@ -497,14 +498,14 @@ Propose how you will solve a request that you hold, before you link commits. Req
  * @param ?string $diff Optional unified diff of the change from `git diff`, at most 9 files
  */
 #[McpTool(name: 'propose_solution', title: 'Propose solution', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false), outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT)]
-public function proposeSolution(#[Schema(pattern: self::ULID)] string $id, #[Schema(minLength: 1, maxLength: 65536)] string $plan, #[Schema(minLength: 1, maxLength: 65536)] ?string $diff = null): array
+public function proposeSolution(#[Schema(pattern: self::ULID)] string $id, #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 65536)] string $plan, #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 65536)] ?string $diff = null): array
 ```
 
 ```json
 {"type":"object","properties":{
  "id":{"type":"string","description":"Request ID","pattern":"^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"},
- "plan":{"type":"string","description":"Markdown plan: what you will change, and why","minLength":1,"maxLength":65536},
- "diff":{"type":["null","string"],"description":"Optional unified diff of the change from `git diff`, at most 9 files","default":null,"minLength":1,"maxLength":65536}},
+ "plan":{"type":"string","description":"Markdown plan: what you will change, and why","minLength":1,"maxLength":65536,"pattern":"^[^\\x00]*$"},
+ "diff":{"type":["null","string"],"description":"Optional unified diff of the change from `git diff`, at most 9 files","default":null,"minLength":1,"maxLength":65536,"pattern":"^[^\\x00]*$"}},
  "required":["id","plan"]}
 ```
 
@@ -532,15 +533,15 @@ Record that a pull request implements one or more requests: each one in_progress
 public function linkPullRequest(
     #[Schema(pattern: self::PULL_REQUEST_URL, maxLength: 2048)] string $url,
     #[Schema(items: ['type' => 'string', 'pattern' => self::ULID], minItems: 1, maxItems: 50, uniqueItems: true)] array $requestIds,
-    #[Schema(maxLength: 65536)] ?string $note = null,
+    #[Schema(pattern: self::NO_NUL, maxLength: 65536)] ?string $note = null,
 ): array
 ```
 
 ```json
 {"type":"object","properties":{
- "url":{"type":"string","description":"Pull request URL","maxLength":2048,"pattern":"^https://\\S+$"},
+ "url":{"type":"string","description":"Pull request URL","maxLength":2048,"pattern":"^https://[^\\s\\x00]+$"},
  "requestIds":{"type":"array","description":"Every request that this pull request covers, all from one review","items":{"type":"string","pattern":"^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"},"minItems":1,"maxItems":50,"uniqueItems":true},
- "note":{"type":["null","string"],"description":"Optional note shown with the link","default":null,"maxLength":65536}},
+ "note":{"type":["null","string"],"description":"Optional note shown with the link","default":null,"maxLength":65536,"pattern":"^[^\\x00]*$"}},
  "required":["url","requestIds"]}
 ```
 
@@ -569,7 +570,7 @@ public function unlinkPullRequest(#[Schema(pattern: self::PULL_REQUEST_URL, maxL
 
 ```json
 {"type":"object","properties":{
- "url":{"type":"string","description":"Pull request URL","maxLength":2048,"pattern":"^https://\\S+$"},
+ "url":{"type":"string","description":"Pull request URL","maxLength":2048,"pattern":"^https://[^\\s\\x00]+$"},
  "requestId":{"type":"string","description":"Request ID","pattern":"^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"}},
  "required":["url","requestId"]}
 ```
@@ -595,14 +596,14 @@ Start a review of one repository, pinned to one commit, when the user asks you t
  * @param ?string $title      Review title; null for "<ref> @ <short SHA>"
  */
 #[McpTool(name: 'start_review', title: 'Start review', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false), outputSchema: BundledSchemas::REVIEW)]
-public function startReview(#[Schema(minLength: 1, maxLength: 255)] string $repository, #[Schema(minLength: 1, maxLength: 255)] ?string $ref = null, #[Schema(minLength: 1, maxLength: 200)] ?string $title = null): array
+public function startReview(#[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 255)] string $repository, #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 255)] ?string $ref = null, #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 200)] ?string $title = null): array
 ```
 
 ```json
 {"type":"object","properties":{
- "repository":{"type":"string","description":"Repository ID, GitHub owner/name, or local directory name","minLength":1,"maxLength":255},
- "ref":{"type":["null","string"],"description":"Branch, tag, or commit SHA to pin; null for the default branch","default":null,"minLength":1,"maxLength":255},
- "title":{"type":["null","string"],"description":"Review title; null for \"<ref> @ <short SHA>\"","default":null,"minLength":1,"maxLength":200}},
+ "repository":{"type":"string","description":"Repository ID, GitHub owner/name, or local directory name","minLength":1,"maxLength":255,"pattern":"^[^\\x00]*$"},
+ "ref":{"type":["null","string"],"description":"Branch, tag, or commit SHA to pin; null for the default branch","default":null,"minLength":1,"maxLength":255,"pattern":"^[^\\x00]*$"},
+ "title":{"type":["null","string"],"description":"Review title; null for \"<ref> @ <short SHA>\"","default":null,"minLength":1,"maxLength":200,"pattern":"^[^\\x00]*$"}},
  "required":["repository"]}
 ```
 
@@ -634,26 +635,26 @@ Suggest one change while you review code. The suggestion is a request that waits
 #[McpTool(name: 'suggest_request', title: 'Suggest request', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false), outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT)]
 public function suggestRequest(
     #[Schema(pattern: self::ULID)] string $review,
-    #[Schema(minLength: 1, maxLength: 200)] string $title,
-    #[Schema(minLength: 1, maxLength: 65536)] string $body,
+    #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 200)] string $title,
+    #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 65536)] string $body,
     ?AnchorKind $anchorKind = null,
-    #[Schema(minLength: 1, maxLength: 4096)] ?string $path = null,
+    #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 4096)] ?string $path = null,
     #[Schema(minimum: 1)] ?int $startLine = null,
     #[Schema(minimum: 1)] ?int $endLine = null,
-    #[Schema(minLength: 1, maxLength: 1024)] ?string $symbol = null,
+    #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 1024)] ?string $symbol = null,
 ): array
 ```
 
 ```json
 {"type":"object","properties":{
  "review":{"type":"string","description":"Review ID from start_review or list_reviews","pattern":"^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"},
- "title":{"type":"string","description":"One line of at most 80 characters that summarizes the body","minLength":1,"maxLength":200},
- "body":{"type":"string","description":"Markdown: what to change, and why","minLength":1,"maxLength":65536},
+ "title":{"type":"string","description":"One line of at most 80 characters that summarizes the body","minLength":1,"maxLength":200,"pattern":"^[^\\x00]*$"},
+ "body":{"type":"string","description":"Markdown: what to change, and why","minLength":1,"maxLength":65536,"pattern":"^[^\\x00]*$"},
  "anchorKind":{"type":["string","null"],"description":"line, range, symbol, or file; null for a general request","default":null,"enum":["line","range","symbol","file",null]},
- "path":{"type":["null","string"],"description":"File path at the review commit; required with anchorKind","default":null,"minLength":1,"maxLength":4096},
+ "path":{"type":["null","string"],"description":"File path at the review commit; required with anchorKind","default":null,"minLength":1,"maxLength":4096,"pattern":"^[^\\x00]*$"},
  "startLine":{"type":["null","integer"],"description":"First line, for line and range","default":null,"minimum":1},
  "endLine":{"type":["null","integer"],"description":"Last line, for line and range; equal to startLine for line","default":null,"minimum":1},
- "symbol":{"type":["null","string"],"description":"Fully qualified name of the symbol, for symbol","default":null,"minLength":1,"maxLength":1024}},
+ "symbol":{"type":["null","string"],"description":"Fully qualified name of the symbol, for symbol","default":null,"minLength":1,"maxLength":1024,"pattern":"^[^\\x00]*$"}},
  "required":["review","title","body"]}
 ```
 
@@ -677,13 +678,13 @@ Set the title of a request whose title is null: one line of at most 80 character
  * @param string $title One line of at most 80 characters that summarizes the body
  */
 #[McpTool(name: 'set_request_title', title: 'Set request title', annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false), outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT)]
-public function setRequestTitle(#[Schema(pattern: self::ULID)] string $id, #[Schema(minLength: 1, maxLength: 200)] string $title): array
+public function setRequestTitle(#[Schema(pattern: self::ULID)] string $id, #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 200)] string $title): array
 ```
 
 ```json
 {"type":"object","properties":{
  "id":{"type":"string","description":"Request ID","pattern":"^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"},
- "title":{"type":"string","description":"One line of at most 80 characters that summarizes the body","minLength":1,"maxLength":200}},
+ "title":{"type":"string","description":"One line of at most 80 characters that summarizes the body","minLength":1,"maxLength":200,"pattern":"^[^\\x00]*$"}},
  "required":["id","title"]}
 ```
 

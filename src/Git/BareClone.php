@@ -38,8 +38,8 @@ final class BareClone
     }
 
     /**
-     * Fetches the heads and tags, then the pending SHAs into their pins, then points HEAD at the default branch.
-     * The timeout covers all of it.
+     * Fetches the heads and tags, points HEAD at the default branch, then fetches the pending SHAs into their pins.
+     * The timeout covers all of it. The pending SHAs stop at the timeout without failing the fetch (D90).
      *
      * @param list<CommitSha>       $pendingShas
      * @param array<string, string> $secretConfiguration
@@ -64,31 +64,34 @@ final class BareClone
         $remoteOptions = self::remoteOptions($uploadPack);
         $run(...self::fetchArguments($url, $uploadPack));
 
-        if ([] !== $pendingShas) {
-            $refspecs = array_map(static fn (CommitSha $sha): string => "{$sha}:".PinRefs::COMMITS.$sha, $pendingShas);
-
-            try {
-                $run('fetch', ...$remoteOptions, ...['--no-auto-maintenance', '--end-of-options', $url, ...$refspecs]);
-            } catch (GitFailed $failure) {
-                if ($hasTimedOut()) {
-                    throw $failure;
-                }
-
-                // One SHA that the source does not have fails the whole fetch.
-                foreach ($refspecs as $refspec) {
-                    try {
-                        $run('fetch', ...$remoteOptions, ...['--no-auto-maintenance', '--end-of-options', $url, $refspec]);
-                    } catch (GitFailed $failure) {
-                        if ($hasTimedOut()) {
-                            throw $failure;
-                        }
-                    }
-                }
-            }
-        }
-
         if (1 === preg_match('~^ref: (refs/heads/\S+)\tHEAD$~m', $run('ls-remote', ...$remoteOptions, ...['--symref', '--end-of-options', $url, 'HEAD']), $match)) {
             $run('symbolic-ref', 'HEAD', $match[1]);
+        }
+
+        if ([] === $pendingShas) {
+            return;
+        }
+
+        $refspecs = array_map(static fn (CommitSha $sha): string => "{$sha}:".PinRefs::COMMITS.$sha, $pendingShas);
+
+        try {
+            $run('fetch', ...$remoteOptions, ...['--no-auto-maintenance', '--end-of-options', $url, ...$refspecs]);
+
+            return;
+        } catch (GitFailed) {
+            // One SHA that the source does not have fails the whole fetch.
+        }
+
+        foreach ($refspecs as $refspec) {
+            if ($hasTimedOut()) {
+                return;
+            }
+
+            try {
+                $run('fetch', ...$remoteOptions, ...['--no-auto-maintenance', '--end-of-options', $url, $refspec]);
+            } catch (GitFailed) {
+                // The source does not have this SHA, or the timeout ended the fetch.
+            }
         }
     }
 

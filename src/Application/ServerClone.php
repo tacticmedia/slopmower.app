@@ -51,6 +51,8 @@ final class ServerClone
 
     private const int BYTES_PER_KIB = 1024;
 
+    private const int PENDING_FETCH_DAYS = 7;
+
     public function __construct(
         private readonly RepositoryRepository $repositories,
         private readonly CommitLinkRepository $links,
@@ -154,14 +156,20 @@ final class ServerClone
     }
 
     /**
-     * @return list<CommitSha> The commits of the pending links, which {@see ResolvePendingCommitLinks} resolves
+     * D90: an older pending link still resolves through {@see ResolvePendingCommitLinks} when a branch or tag brings
+     * its commit.
+     *
+     * @return list<CommitSha> The commits of the pending links of the last {@see self::PENDING_FETCH_DAYS} days
      */
     private function pendingShas(RepositoryId $id): array
     {
+        $since = $this->clock->now()->modify('-'.self::PENDING_FETCH_DAYS.' days');
         $shas = [];
 
         foreach ($this->links->findFreshPendingOfRepository($id) as $link) {
-            $shas[$link->getCommitSha()->toString()] = $link->getCommitSha();
+            if ($link->getLinkedAt() >= $since) {
+                $shas[$link->getCommitSha()->toString()] = $link->getCommitSha();
+            }
         }
 
         return array_values($shas);

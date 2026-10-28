@@ -203,6 +203,27 @@ describe('UseLiveRevalidationTest', () => {
         expect(revalidate).toHaveBeenCalledTimes(1);
     });
 
+    it('A failed read of the missed events causes no revalidation, and the next reconnect catches up', async () => {
+        positions.seen(REVIEW, 1800);
+        readUpdates.mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValueOnce(page(1850, false));
+        const source = await watching(REVIEW);
+        source.open();
+
+        source.drop();
+        source.open();
+        await settle();
+        expect(revalidate).not.toHaveBeenCalled();
+
+        source.drop();
+        source.open();
+        await settle();
+        expect(readUpdates.mock.calls).toEqual([
+            [REVIEW, 1800],
+            [REVIEW, 1800],
+        ]);
+        expect(revalidate).toHaveBeenCalledTimes(1);
+    });
+
     it('A failing A3 retries after 10 s, then 20 s, and a 401 stops the retries', async () => {
         vi.useFakeTimers();
         const authorize = vi

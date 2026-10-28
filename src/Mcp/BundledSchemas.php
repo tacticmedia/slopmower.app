@@ -1187,7 +1187,7 @@ final class BundledSchemas
             'ProposalState' => [
                 'enum' => ['pending', 'approved', 'rejected'],
             ],
-            'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://\\S+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
+            'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://[^\\s\\x00]+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
@@ -1936,7 +1936,7 @@ final class BundledSchemas
                 'enum' => ['open', 'draft', 'merged', 'closed', 'unknown'],
                 'description' => 'unknown: a local repository, a state not read yet, a pull request that GitHub does not find, or an installation without the permission Pull requests: read.',
             ],
-            'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://\\S+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
+            'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://[^\\s\\x00]+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
@@ -2364,7 +2364,7 @@ final class BundledSchemas
             'ProposalState' => [
                 'enum' => ['pending', 'approved', 'rejected'],
             ],
-            'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://\\S+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
+            'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://[^\\s\\x00]+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
@@ -2834,7 +2834,7 @@ final class BundledSchemas
             'ProposalState' => [
                 'enum' => ['pending', 'approved', 'rejected'],
             ],
-            'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://\\S+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
+            'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://[^\\s\\x00]+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
@@ -3300,7 +3300,7 @@ final class BundledSchemas
             'ProposalState' => [
                 'enum' => ['pending', 'approved', 'rejected'],
             ],
-            'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://\\S+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
+            'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://[^\\s\\x00]+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],

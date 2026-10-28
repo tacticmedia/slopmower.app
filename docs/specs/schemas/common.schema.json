@@ -33,8 +33,13 @@
     "PullRequestUrl": {
       "type": "string",
       "maxLength": 2048,
-      "pattern": "^https://\\S+$",
+      "pattern": "^https://[^\\s\\x00]+$",
       "description": "An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review's repository."
+    },
+    "NoNulText": {
+      "type": "string",
+      "pattern": "^[^\\x00]*$",
+      "description": "Text without a NUL byte (U+0000), which PostgreSQL cannot store. Every string input holds none."
     },
     "DateTime": {
       "type": "string",

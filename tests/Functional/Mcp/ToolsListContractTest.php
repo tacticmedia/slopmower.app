@@ -27,11 +27,22 @@ final class ToolsListContractTest extends WebTestCase
     /** The definition of each tool input that has a pattern, by input name. */
     private const array PATTERN_DEFINITIONS = [
         'at' => 'common.schema.json#/$defs/CommitShaPrefix',
+        'body' => 'common.schema.json#/$defs/NoNulText',
         'commitSha' => 'common.schema.json#/$defs/CommitSha',
+        'cursor' => 'common.schema.json#/$defs/NoNulText',
+        'diff' => 'common.schema.json#/$defs/NoNulText',
         'id' => 'common.schema.json#/$defs/Ulid',
+        'note' => 'common.schema.json#/$defs/NoNulText',
+        'path' => 'common.schema.json#/$defs/NoNulText',
+        'plan' => 'common.schema.json#/$defs/NoNulText',
+        'reason' => 'common.schema.json#/$defs/NoNulText',
+        'ref' => 'common.schema.json#/$defs/NoNulText',
+        'repository' => 'common.schema.json#/$defs/NoNulText',
         'requestId' => 'common.schema.json#/$defs/Ulid',
         'requestIds' => 'common.schema.json#/$defs/Ulid',
         'review' => 'common.schema.json#/$defs/Ulid',
+        'symbol' => 'common.schema.json#/$defs/NoNulText',
+        'title' => 'common.schema.json#/$defs/NoNulText',
         'url' => 'common.schema.json#/$defs/PullRequestUrl',
     ];
 

@@ -112,7 +112,9 @@ export class LiveSubscription {
         try {
             await this.#readMissedEvents();
         } catch {
-            // The revalidation reloads what the read missed.
+            // The loaders would fail too, and their route error would replace an unsent comment. The next open,
+            // visibility change, or live event catches up.
+            return;
         }
 
         this.#requestRevalidation(null);

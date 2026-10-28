@@ -74,7 +74,8 @@ final class McpTools
     private const string ULID = '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$';
     private const string FULL_SHA = '^([0-9a-f]{40}|[0-9a-f]{64})$';
     private const string SHA_PREFIX = '^[0-9a-f]{7,64}$';
-    private const string PULL_REQUEST_URL = '^https://\S+$';
+    private const string PULL_REQUEST_URL = '^https://[^\s\x00]+$';
+    private const string NO_NUL = '^[^\x00]*$';
 
     public function __construct(
         private readonly RequestCommands $commands,
@@ -186,7 +187,7 @@ final class McpTools
     public function linkCommits(
         #[Schema(pattern: self::FULL_SHA)] string $commitSha,
         #[Schema(items: ['type' => 'string', 'pattern' => self::ULID], minItems: 1, maxItems: 50, uniqueItems: true)] array $requestIds,
-        #[Schema(maxLength: 65536)] ?string $note = null,
+        #[Schema(pattern: self::NO_NUL, maxLength: 65536)] ?string $note = null,
     ): array {
         return $this->run('link_commits', fn (): LinkCommitsResult => $this->commands->linkCommits(
             new LinkCommits(
@@ -217,7 +218,7 @@ final class McpTools
     public function linkPullRequest(
         #[Schema(pattern: self::PULL_REQUEST_URL, maxLength: 2048)] string $url,
         #[Schema(items: ['type' => 'string', 'pattern' => self::ULID], minItems: 1, maxItems: 50, uniqueItems: true)] array $requestIds,
-        #[Schema(maxLength: 65536)] ?string $note = null,
+        #[Schema(pattern: self::NO_NUL, maxLength: 65536)] ?string $note = null,
     ): array {
         return $this->run('link_pull_request', fn (): LinkPullRequestResult => $this->commands->linkPullRequest(
             $url,
@@ -242,7 +243,7 @@ final class McpTools
         annotations: new ToolAnnotations(readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false),
         outputSchema: BundledSchemas::REPOSITORY_PAGE,
     )]
-    public function listRepositories(#[Schema(minLength: 1)] ?string $cursor = null, #[Schema(minimum: 1, maximum: 500)] int $limit = 100): array
+    public function listRepositories(#[Schema(pattern: self::NO_NUL, minLength: 1)] ?string $cursor = null, #[Schema(minimum: 1, maximum: 500)] int $limit = 100): array
     {
         return $this->run('list_repositories', fn (): RepositoryPage => $this->repositories->list(null, null, $limit, $cursor));
     }
@@ -272,10 +273,10 @@ final class McpTools
         #[Schema(pattern: self::ULID)] string $review,
         ?RequestStatus $status = null,
         ?Awaiting $awaiting = null,
-        #[Schema(minLength: 1, maxLength: 4096)] ?string $path = null,
+        #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 4096)] ?string $path = null,
         ?bool $outdated = null,
         ?SuggestionState $suggestion = null,
-        #[Schema(minLength: 1)] ?string $cursor = null,
+        #[Schema(pattern: self::NO_NUL, minLength: 1)] ?string $cursor = null,
         #[Schema(minimum: 1, maximum: 200)] int $limit = 50,
     ): array {
         return $this->run('list_requests', function () use ($review, $status, $awaiting, $path, $outdated, $suggestion, $cursor, $limit): RequestPage {
@@ -311,7 +312,7 @@ final class McpTools
         annotations: new ToolAnnotations(readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false),
         outputSchema: BundledSchemas::REVIEW_PAGE,
     )]
-    public function listReviews(#[Schema(minLength: 1, maxLength: 255)] string $repository, bool $includeClosed = false, #[Schema(minLength: 1)] ?string $cursor = null, #[Schema(minimum: 1, maximum: 100)] int $limit = 50): array
+    public function listReviews(#[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 255)] string $repository, bool $includeClosed = false, #[Schema(pattern: self::NO_NUL, minLength: 1)] ?string $cursor = null, #[Schema(minimum: 1, maximum: 100)] int $limit = 50): array
     {
         return $this->run('list_reviews', function () use ($repository, $includeClosed, $cursor, $limit): ReviewPage {
             $match = $this->repositories->list($repository, null, 1, null)->items[0] ?? throw new NotFound();
@@ -335,7 +336,7 @@ final class McpTools
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
         outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT,
     )]
-    public function markReadyForReview(#[Schema(pattern: self::ULID)] string $id, #[Schema(minLength: 1, maxLength: 65536)] string $note): array
+    public function markReadyForReview(#[Schema(pattern: self::ULID)] string $id, #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 65536)] string $note): array
     {
         return $this->requestCommand('mark_ready_for_review', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->markReadyForReview(new MarkReadyForReview($requestId, $note), $actor));
     }
@@ -355,7 +356,7 @@ final class McpTools
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
         outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT,
     )]
-    public function markWontDo(#[Schema(pattern: self::ULID)] string $id, #[Schema(minLength: 20, maxLength: 65536)] string $reason): array
+    public function markWontDo(#[Schema(pattern: self::ULID)] string $id, #[Schema(pattern: self::NO_NUL, minLength: 20, maxLength: 65536)] string $reason): array
     {
         return $this->requestCommand('mark_wont_do', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->markWontDo(new MarkWontDo($requestId, $reason), $actor));
     }
@@ -376,7 +377,7 @@ final class McpTools
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
         outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT,
     )]
-    public function proposeSolution(#[Schema(pattern: self::ULID)] string $id, #[Schema(minLength: 1, maxLength: 65536)] string $plan, #[Schema(minLength: 1, maxLength: 65536)] ?string $diff = null): array
+    public function proposeSolution(#[Schema(pattern: self::ULID)] string $id, #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 65536)] string $plan, #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 65536)] ?string $diff = null): array
     {
         return $this->requestCommand('propose_solution', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->propose(new ProposeSolution($requestId, $plan, $diff), $actor));
     }
@@ -396,7 +397,7 @@ final class McpTools
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
         outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT,
     )]
-    public function releaseRequest(#[Schema(pattern: self::ULID)] string $id, #[Schema(maxLength: 65536)] ?string $note = null): array
+    public function releaseRequest(#[Schema(pattern: self::ULID)] string $id, #[Schema(pattern: self::NO_NUL, maxLength: 65536)] ?string $note = null): array
     {
         return $this->requestCommand('release_request', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->release(new Release($requestId, $note), $actor));
     }
@@ -417,7 +418,7 @@ final class McpTools
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
         outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT,
     )]
-    public function replyToRequest(#[Schema(pattern: self::ULID)] string $id, #[Schema(minLength: 1, maxLength: 65536)] string $body, bool $question = false): array
+    public function replyToRequest(#[Schema(pattern: self::ULID)] string $id, #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 65536)] string $body, bool $question = false): array
     {
         return $this->requestCommand('reply_to_request', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->reply(new Reply($requestId, $body, $question), $actor));
     }
@@ -437,7 +438,7 @@ final class McpTools
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
         outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT,
     )]
-    public function setRequestTitle(#[Schema(pattern: self::ULID)] string $id, #[Schema(minLength: 1, maxLength: 200)] string $title): array
+    public function setRequestTitle(#[Schema(pattern: self::ULID)] string $id, #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 200)] string $title): array
     {
         return $this->requestCommand('set_request_title', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->setTitle(new SetTitle($requestId, $title), $actor));
     }
@@ -458,7 +459,7 @@ final class McpTools
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
         outputSchema: BundledSchemas::REVIEW,
     )]
-    public function startReview(#[Schema(minLength: 1, maxLength: 255)] string $repository, #[Schema(minLength: 1, maxLength: 255)] ?string $ref = null, #[Schema(minLength: 1, maxLength: 200)] ?string $title = null): array
+    public function startReview(#[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 255)] string $repository, #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 255)] ?string $ref = null, #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 200)] ?string $title = null): array
     {
         return $this->run('start_review', function () use ($repository, $ref, $title): ReviewView {
             $match = $this->repositories->list($repository, null, 1, null)->items[0] ?? throw new NotFound();
@@ -491,13 +492,13 @@ final class McpTools
     )]
     public function suggestRequest(
         #[Schema(pattern: self::ULID)] string $review,
-        #[Schema(minLength: 1, maxLength: 200)] string $title,
-        #[Schema(minLength: 1, maxLength: 65536)] string $body,
+        #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 200)] string $title,
+        #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 65536)] string $body,
         ?AnchorKind $anchorKind = null,
-        #[Schema(minLength: 1, maxLength: 4096)] ?string $path = null,
+        #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 4096)] ?string $path = null,
         #[Schema(minimum: 1)] ?int $startLine = null,
         #[Schema(minimum: 1)] ?int $endLine = null,
-        #[Schema(minLength: 1, maxLength: 1024)] ?string $symbol = null,
+        #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 1024)] ?string $symbol = null,
     ): array {
         return $this->run('suggest_request', function () use ($review, $title, $body, $anchorKind, $path, $startLine, $endLine, $symbol): RequestCommandResult {
             $found = $this->reviewRepository->findFresh(ReviewId::fromString($review, 'review')) ?? throw new NotFound();

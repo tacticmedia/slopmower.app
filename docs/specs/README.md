@@ -28,6 +28,7 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 | Times | RFC 3339 in UTC with `Z`, second precision: `2026-09-29T07:31:12Z` |
 | Nulls | Responses contain every property of their schema. An empty value is `null` or `[]`, never left out. A map is never serialized as `[]`. |
 | Unknown input | Unknown body properties and query parameters are ignored. Optional body properties may be left out or sent as `null`. |
+| Strings | No input string holds a NUL byte (U+0000), because PostgreSQL cannot store one: no query value, no string in a JSON body, and no MCP argument. REST answers 422 `invalid_input` with the field as a dotted path, for example `anchor.path`. MCP answers -32602, because each string parameter has the pattern of `NoNulText` in [common.schema.json](schemas/common.schema.json), or a pattern that excludes it. |
 | Query values | Booleans: `true`, `false`, `1`, `0`. Lists: comma-separated, for example `status=open,reopened`. |
 | CORS | None. The browser UI is same-origin. Bearer clients are not browsers. |
 
@@ -169,7 +170,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 - **Uniqueness.** Names are unique per tenant: GitHub names always contain `/`, local names never do. A second connect of the same source identity returns the existing repository.
 - **Local directories.** The server resolves the directory with `realpath()`. Its parent must equal `realpath(APP_LOCAL_REPOSITORIES_DIR)`, so symlinks cannot escape the mount. For a local source, the `git upload-pack` command that reads the source runs with `-c safe.directory=<realpath>` and `-c safe.directory=<realpath>/.git`. The server never writes to the source directory.
 - **Server clone.** Every repository has one bare clone at `$APP_TENANT_DATA_DIR/<tenantId>/repositories/<repositoryId>.git`. Two tenants that connect the same source get two clones.
-- **Fetch.** A fetch from the source takes `+refs/heads/*:refs/heads/*` and `+refs/tags/*:refs/tags/*` with `--prune`, never `--mirror`. A second `git fetch` then gets the pending linked SHAs by ID into `refs/slopmower/commits/<sha>`. One unknown SHA fails a whole `git fetch`, so when the second fetch fails, the server fetches one SHA per command and ignores the failures.
+- **Fetch.** A fetch from the source takes `+refs/heads/*:refs/heads/*` and `+refs/tags/*:refs/tags/*` with `--prune`, never `--mirror`. A second `git fetch` then gets the pending linked SHAs of links from the last 7 days by ID into `refs/slopmower/commits/<sha>`. One unknown SHA fails a whole `git fetch`, so when the second fetch fails, the server fetches one SHA per command and ignores the failures. The pending SHAs come after the heads, the tags, and `HEAD`, and they stop at the timeout of the fetch without failing it. An older pending link stays `pending` until a branch or a tag brings its commit.
 - **Pin refs.** At review start the server writes `refs/slopmower/reviews/<reviewId>` to the review commit. When a linked commit is present in the clone, the server writes `refs/slopmower/commits/<sha>`. The fetch refspecs never touch the `refs/slopmower/` namespace, so force-pushes, pruning, and `git gc` cannot remove reviewed or linked commits. Deleting a review, unlinking the last link of a commit, or deleting the repository data deletes the matching pin refs.
 - **Available.** A commit is *available* when `git cat-file -e <sha>^{commit}` succeeds in the clone. For a local source, a local commit becomes available at the next fetch, without a push. For a GitHub source, the commit must be pushed.
 - **When fetches run.** See [webhooks-and-live-updates.md](webhooks-and-live-updates.md#2-fetches-and-commit-availability).
@@ -232,6 +233,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Latest commits, decision D76: the endpoint R9 and the schemas `Commit` and `CommitLog`. All are additive.
     - Review tour, decision D77: the endpoint A4, the input `PreferencesInput`, the open set `Tour`, and the property `preferences` of `Me` with the schema `Preferences`. All are additive. A4 records no event.
     - Plain-text summary, decision D80: without a title, `summary` is the plain text of the first non-blank line of the body, without Markdown syntax. It is a changed meaning of an existing field. The wire format does not change.
+    - NUL bytes, F85: an input string with U+0000 gets 422 `invalid_input` in REST and -32602 in MCP, where it gave 500 `internal_error` or, for a name lookup, an empty result. `PullRequestUrl` excludes it too. It is tighter validation, so it is listed here.
 
 ## 9. Contract tests
 
@@ -251,7 +253,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 
 | File | `$id` | Content |
 |---|---|---|
-| [common.schema.json](schemas/common.schema.json) | `https://slopmower.invalid/schemas/v1/common.schema.json` | `$defs` only: IDs, SHAs, paths, times, cursors, `Markdown`, `Title`, `UnifiedDiff`, `Proposal`, and the shared enums |
+| [common.schema.json](schemas/common.schema.json) | `https://slopmower.invalid/schemas/v1/common.schema.json` | `$defs` only: IDs, SHAs, paths, times, cursors, `NoNulText`, `Markdown`, `Title`, `UnifiedDiff`, `Proposal`, and the shared enums |
 | [error.schema.json](schemas/error.schema.json) | `https://slopmower.invalid/schemas/v1/error.schema.json` | Error body and the `details` shape per code |
 | [actor.schema.json](schemas/actor.schema.json) | `https://slopmower.invalid/schemas/v1/actor.schema.json` | Actor: user, agent, or system |
 | [anchor.schema.json](schemas/anchor.schema.json) | `https://slopmower.invalid/schemas/v1/anchor.schema.json` | Anchor of a request with a code location, plus `LineRange`, `SymbolRef`, `ContentSnapshot`, `AnchorSummary`, `AnchorInput`. A general request has no anchor. |

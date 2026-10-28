@@ -59,15 +59,30 @@ final class PendingShaFetchTest extends KernelTestCase
         );
     }
 
+    #[TestDox('Pending SHAs that pass the timeout stop without failing the fetch, after the heads and HEAD')]
+    public function testPendingShasStopAtTheTimeout(): void
+    {
+        // One git process per unknown SHA takes far longer than 3 s for 1,000 of them.
+        $unknownShas = array_map(static fn (int $number): string => sprintf('%040x', $number), range(1, 1000));
+
+        $clone = $this->fetchClone([$this->outsideHeads, ...$unknownShas], timeoutSeconds: 3.0);
+
+        self::assertSame(
+            ['refs/heads/main', PinRefs::COMMITS.$this->outsideHeads],
+            explode("\n", trim($this->git->run($clone, ['for-each-ref', '--format=%(refname)']))),
+        );
+        self::assertSame('refs/heads/main', trim($this->git->run($clone, ['symbolic-ref', 'HEAD'])));
+    }
+
     /**
      * @param list<string> $pendingShas
      */
-    private function fetchClone(array $pendingShas): string
+    private function fetchClone(array $pendingShas, float $timeoutSeconds = GitRunner::TIMEOUT_SECONDS): string
     {
         $clone = $this->temporaryDirectory().'/clone.git';
         $bareClone = new BareClone($this->git);
         $bareClone->init($clone);
-        $bareClone->fetch($clone, $this->source->url(), array_map(CommitSha::fromString(...), $pendingShas));
+        $bareClone->fetch($clone, $this->source->url(), array_map(CommitSha::fromString(...), $pendingShas), $timeoutSeconds);
 
         return $clone;
     }

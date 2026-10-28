@@ -107,7 +107,7 @@ An MCP tool name also stands for its REST endpoint.
 
 1. Set `lastFetchedAt`, clear `lastError`, and read `defaultBranch`, which is the remote HEAD, and `defaultBranchHead`.
 2. If `defaultBranchHead` changed, queue `RecomputeLocations(reviewId)` for each open review. The job recomputes the default-branch location of each request with an anchor. When at least one `outdated` flag changed, it publishes `outdated` with the IDs of those requests. `outdated` means that the location at the default-branch head is `changed` or `orphaned`. This step comes before step 3: a retried fetch finds the head unchanged, so a failed step 3 must not skip it.
-3. Resolve pending links. The fetch has already fetched each pending linked SHA by ID into `refs/slopmower/commits/<sha>`. For each pending `CommitLink` of the repository whose SHA is now present:
+3. Resolve pending links. The fetch has already fetched each pending linked SHA of the last 7 days by ID into `refs/slopmower/commits/<sha>`. An older pending SHA is present only when a branch or a tag brought it. For each pending `CommitLink` of the repository whose SHA is now present:
    - set it to `available`;
    - make sure that the pin ref `refs/slopmower/commits/<sha>` exists;
    - write one `commit.found` event per review, in its own transaction. The actor is `system`, and the stored payload is `{commitSha, requestIds, subject, committedAt}` for the requests linked in that review.
@@ -156,5 +156,5 @@ Client behaviour in the web UI:
 3. **Revalidate.** On an update, call `revalidate()` of the data router that `createBrowserRouter` of React Router 8.4.0 creates. It runs the loaders of the active routes again, and they read fresh data through REST. Only one revalidation runs at a time. Updates that arrive during a revalidation cause one more revalidation after it.
    - `events`, `outdated`, `index`, and `pull_request`: when `reviewId` is the open review.
    - `repository`, `repository_deleted`, and `candidates_changed`: always.
-4. **Catch up after a reconnect.** On every EventSource `open` after an error, and when the tab becomes visible again, call `GET /api/v1/reviews/{id}/updates?cursor=<lastSeq>&includeOwn=true` until `hasMore` is false. Set `lastSeq` to the last `cursor`, then revalidate once. The UI does not rely on `Last-Event-ID` replay. Hub history is not part of the contract.
+4. **Catch up after a reconnect.** On every EventSource `open` after an error, and when the tab becomes visible again, call `GET /api/v1/reviews/{id}/updates?cursor=<lastSeq>&includeOwn=true` until `hasMore` is false. Set `lastSeq` to the last `cursor`, then revalidate once. After a failed read, do not revalidate: the loaders would fail too, and their error would replace the page. The next open, visibility change, or live update catches up. The UI does not rely on `Last-Event-ID` replay. Hub history is not part of the contract.
 5. **Request detail.** The loader of the request detail view reads `GET /api/v1/requests/{id}`, so a revalidation also refreshes the thread and `allowedActions`. `allowedActions` depends on the caller, so it is never in a live payload.

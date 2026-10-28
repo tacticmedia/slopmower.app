@@ -51,6 +51,17 @@ final class McpErrorMappingTest extends WebTestCase
         self::assertSame(['/status'], array_column($error['data']['validation_errors'], 'pointer'));
     }
 
+    #[TestDox('A NUL byte in a text argument gives JSON-RPC error -32602 before the tool runs')]
+    public function testNulByteGivesInvalidParams(): void
+    {
+        [, $mcp] = $this->mcpClient();
+
+        $error = self::assertJsonRpcError($mcp->callToolResponse('reply_to_request', ['id' => (string) new Ulid(), 'body' => "Keep\0this."]), -32602);
+
+        self::assertIsArray($error['data']);
+        self::assertSame(['/body'], array_column($error['data']['validation_errors'], 'pointer'));
+    }
+
     #[TestDox('A value that passes the input schema but breaks a rule of the REST query gives isError with invalid_input')]
     public function testSemanticCheckGivesInvalidInput(): void
     {
