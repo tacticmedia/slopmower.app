@@ -77,6 +77,25 @@ final class FetchSingleFlightTest extends KernelTestCase
         self::assertSame(SyncState::Idle, self::freshRepository($this->repositoryId)->getSyncState());
     }
 
+    #[TestDox('A request while the queued fetch waits for the lock reuses that fetch')]
+    public function testRequestWhileQueuedFetchWaitsReusesIt(): void
+    {
+        $runningFetch = self::lockInAnotherSession($this->repositoryId);
+        self::fetchRepository()->request($this->repositoryId);
+        $newHead = '';
+        Clock::set(new SleepHookClock(function () use ($runningFetch, &$newHead): void {
+            $newHead = $this->source->commit(['later.txt' => "Later\n"]);
+            self::fetchRepository()->request($this->repositoryId);
+            $runningFetch->release();
+        }));
+
+        self::runQueuedMessages();
+
+        self::assertSame(1, self::sentFetchJobs());
+        self::assertTrue($this->hasCommit($newHead));
+        self::assertFalse(self::freshRepository($this->repositoryId)->isFetchRequested());
+    }
+
     #[TestDox('A second asynchronous request while a fetch is queued dispatches nothing')]
     public function testSecondRequestWhileQueuedDispatchesNothing(): void
     {

@@ -29,8 +29,8 @@ final class InstallationTokenProvider
         'X-GitHub-Api-Version' => '2026-03-10',
     ];
 
-    /** A clone, a fetch, and a repository read. */
-    public const array CONTENTS_READ = ['contents' => 'read'];
+    /** A clone, a fetch, a repository read, and the permission read of D88, which needs Metadata: read. */
+    public const array CONTENTS_READ = ['contents' => 'read', 'metadata' => 'read'];
 
     public const array PULL_REQUESTS_READ = ['pull_requests' => 'read'];
 

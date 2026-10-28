@@ -10,10 +10,11 @@ use Symfony\Component\HttpClient\Response\MockResponse;
  * The mock_response_factory of github.client in the test environment. Serves the recorded responses in tests/Fixtures/github.
  * The user token selects the user and the installation listing. The installation token endpoint answers 201 only for a
  * bearer token in JWT form and a token limited to one repository and one permission set of
- * {@see self::TOKEN_FIXTURE_BY_PERMISSIONS}, as the jobs ask for it. A repository read answers only the
- * `contents: read` token, and a pull request read only the `pull_requests: read` token. The check run calls answer only
- * the `checks: write` token, and {@see self::checkRunCalls()} keeps them. The Marketplace account read answers only the
- * App JWT.
+ * {@see self::TOKEN_FIXTURE_BY_PERMISSIONS}, as the jobs ask for it. A repository read and a permission read answer only
+ * the `contents: read` token, and a pull request read only the `pull_requests: read` token. The permission read answers
+ * `none` for {@see self::FORMER_MEMBER_LOGIN}, 404 for {@see self::UNKNOWN_LOGIN}, and `write` for any other login. The
+ * check run calls answer only the `checks: write` token, and {@see self::checkRunCalls()} keeps them. The Marketplace
+ * account read answers only the App JWT.
  */
 final class GitHubResponses
 {
@@ -46,8 +47,14 @@ final class GitHubResponses
     /** The token in installation-token-checks.json, with `checks: write`. */
     public const string CHECKS_INSTALLATION_TOKEN = 'ghs_checksWrite16C7e42F292c6912E7710c8383';
 
+    /** A login whose permission on every repository is `none`. */
+    public const string FORMER_MEMBER_LOGIN = 'former-member';
+
+    /** A login that GitHub does not know, for example the old login after a rename. */
+    public const string UNKNOWN_LOGIN = 'renamed-away';
+
     private const array TOKEN_FIXTURE_BY_PERMISSIONS = [
-        'installation-token' => ['contents' => 'read'],
+        'installation-token' => ['contents' => 'read', 'metadata' => 'read'],
         'installation-token-pull-requests' => ['pull_requests' => 'read'],
         'installation-token-checks' => ['checks' => 'write'],
     ];
@@ -122,6 +129,9 @@ final class GitHubResponses
                 ? self::PULL_REQUEST_FIXTURES[substr($url, \strlen(self::API))] ?? 'pull-request-not-found'
                 : 'user-unauthorized',
             1 === preg_match('~^(POST|PATCH) https://api\.github\.com/repos/[^/]+/[^/]+/check-runs(/\d+)?$~', $request) => $this->checkRunFixture($method, $url, $options),
+            1 === preg_match('~^GET https://api\.github\.com/repos/[^/]+/[^/]+/collaborators/([^/]+)/permission$~', $request, $collaborator) => self::INSTALLATION_TOKEN === self::bearerToken($options)
+                ? self::permissionFixture($collaborator[1])
+                : 'user-unauthorized',
             str_starts_with($request, 'GET '.self::API.'repos/') => self::INSTALLATION_TOKEN === self::bearerToken($options)
                 ? self::REPOSITORY_FIXTURES[substr($url, \strlen(self::API))] ?? 'repository-not-found'
                 : 'user-unauthorized',
@@ -161,6 +171,15 @@ final class GitHubResponses
         $this->checkRunCalls[] = [$method, $path, \is_array($body) ? $body : []];
 
         return 'POST' === $method ? 'check-run-created' : 'check-run-updated';
+    }
+
+    private static function permissionFixture(string $login): string
+    {
+        return match ($login) {
+            self::FORMER_MEMBER_LOGIN => 'repository-permission-none',
+            self::UNKNOWN_LOGIN => 'user-not-found',
+            default => 'repository-permission-write',
+        };
     }
 
     /**

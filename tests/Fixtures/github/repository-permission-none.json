@@ -1,0 +1,24 @@
+{
+    "status": 200,
+    "headers": {
+        "content-type": "application/json; charset=utf-8"
+    },
+    "body": {
+        "permission": "none",
+        "role_name": "none",
+        "user": {
+            "login": "former-member",
+            "id": 7,
+            "type": "User",
+            "site_admin": false,
+            "permissions": {
+                "admin": false,
+                "maintain": false,
+                "push": false,
+                "triage": false,
+                "pull": false
+            },
+            "role_name": "none"
+        }
+    }
+}

@@ -43,13 +43,17 @@ final class RepositorySyncHandler
     }
 
     /**
-     * Clears the flag first, so a request from now on queues one more job, and a failure here cannot leave it set.
+     * Clears the flag once it holds the lock, so a request during the wait reuses this job, and a request during the
+     * fetch queues one more. A failed acquisition clears it too.
      */
     #[AsMessageHandler]
     public function handleFetch(FetchRepositoryJob $job): void
     {
-        $this->repositories->clearFetchRequest($job->repositoryId);
-        $lock = $this->repositoryLock->acquire($job->repositoryId);
+        try {
+            $lock = $this->repositoryLock->acquire($job->repositoryId);
+        } finally {
+            $this->repositories->clearFetchRequest($job->repositoryId);
+        }
 
         try {
             $repository = $this->repositories->findFresh($job->repositoryId);

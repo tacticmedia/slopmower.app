@@ -25,6 +25,7 @@ use App\GitHub\InstallationTokenProvider;
 use App\Repository\CommitLinkRepository;
 use App\Repository\GitHubInstallationRepository;
 use App\Repository\RepositoryRepository;
+use App\Repository\UserRepository;
 use App\Source\FetchCommand;
 use App\Source\LocalRepositoryDiscovery;
 use Psr\Clock\ClockInterface;
@@ -46,6 +47,8 @@ final class ServerClone
 {
     private const string GITHUB_SUSPENDED = 'GitHub App installation suspended';
 
+    private const string GITHUB_NO_ACCESS = 'The GitHub user has no access to this repository';
+
     private const int BYTES_PER_KIB = 1024;
 
     public function __construct(
@@ -56,6 +59,7 @@ final class ServerClone
         private readonly LocalRepositoryDiscovery $discovery,
         private readonly GitHubInstallationRepository $installations,
         private readonly InstallationTokenProvider $installationTokens,
+        private readonly UserRepository $users,
         #[Target('github.client')]
         private readonly HttpClientInterface $githubClient,
         private readonly UsageLimits $usageLimits,
@@ -192,7 +196,7 @@ final class ServerClone
      * `size` of the repository in the GitHub API must be within the size limits. The size of the clone is checked after
      * the clone anyway, so a failed read skips this check.
      *
-     * @throws SourceUnavailable   While the installation is suspended
+     * @throws SourceUnavailable   While the installation is suspended, or without access of the user
      * @throws GitHubRequestFailed
      * @throws LimitExceeded
      */
@@ -205,6 +209,7 @@ final class ServerClone
         }
 
         $token = $this->installationTokens->forRepository($installationId, (int) $repository->getGithubRepositoryId(), InstallationTokenProvider::CONTENTS_READ);
+        $this->checkUserAccess($repository, $token);
 
         $sizeBytes = $clone ? $this->gitHubSizeBytes($repository, $token) : null;
 
@@ -213,6 +218,42 @@ final class ServerClone
         }
 
         return FetchCommand::gitHub($this->gitHubGitBaseUrl, $repository->getName(), $token);
+    }
+
+    /**
+     * D88: the installation token reaches the repository also after the user lost access, for example after the removal
+     * from an organization. Only a sign-in removes access (D22).
+     *
+     * @throws SourceUnavailable   Without access
+     * @throws GitHubRequestFailed
+     */
+    private function checkUserAccess(Repository $repository, #[\SensitiveParameter] string $token): void
+    {
+        $user = $this->users->findOneBy(['tenantId' => $repository->getTenantId()]);
+
+        if (null === $user?->getGithubUserId()) {
+            throw new SourceUnavailable(self::GITHUB_NO_ACCESS);
+        }
+
+        try {
+            $response = $this->githubClient->request('GET', InstallationTokenProvider::API."repos/{$repository->getName()}/collaborators/".rawurlencode($user->getLogin()).'/permission', [
+                'auth_bearer' => $token,
+                'headers' => InstallationTokenProvider::API_HEADERS,
+            ]);
+            $status = $response->getStatusCode();
+            $permission = 200 === $status ? ($response->toArray()['permission'] ?? null) : null;
+        } catch (HttpClientException $failure) {
+            throw new GitHubRequestFailed('The repository permission request failed.', 0, $failure);
+        }
+
+        // A 404 also follows a login rename. The next sign-in updates the login.
+        if (404 === $status || 'none' === $permission) {
+            throw new SourceUnavailable(self::GITHUB_NO_ACCESS);
+        }
+
+        if (!\is_string($permission)) {
+            throw new GitHubRequestFailed("GitHub answered {$status} to the repository permission request.");
+        }
     }
 
     /**

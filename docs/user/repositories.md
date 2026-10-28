@@ -44,6 +44,8 @@ Your plan limits the number of connected repositories and the size of the copies
 
 After the first fetch, the status also shows when Slopmower fetched last. When a copy or a fetch fails, the error shows below the status until the next one succeeds.
 
+Before each copy or fetch of a GitHub repository, Slopmower checks on GitHub that your GitHub account can still read it. When it cannot, for example after an organization removed you, the error is "The GitHub user has no access to this repository" and Slopmower gets no new commits. Sign in again. Slopmower then removes the repository, or, when you still have access, for example after you renamed your GitHub account, the next fetch works again.
+
 ## Get new commits
 
 For a GitHub repository, GitHub tells Slopmower about each push, and Slopmower fetches the new commits. A local repository sends no notifications. [When Slopmower sees new commits](local-run.md#when-slopmower-sees-new-commits) lists when Slopmower fetches from your disk.
