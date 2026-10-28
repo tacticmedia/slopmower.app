@@ -11,7 +11,7 @@ import { RepositoryRoute, repositoryAction, repositoryLoader } from './routes/re
 import { commitDiffLoader, diffSidesLoader, shouldRevalidateChanges } from './routes/requests/changesData';
 import { requestAction, requestListLoader, requestLoader } from './routes/requests/requestData';
 import { carryOverSourcesLoader } from './routes/reviews/carryOverData';
-import { CodeLayout, codeLayoutLoader } from './routes/reviews/CodeLayout';
+import { CodeLayout, codeLayoutLoader, shouldRevalidateCodeLayout } from './routes/reviews/CodeLayout';
 import { declarationsLoader, shouldRevalidateDeclarations } from './routes/reviews/declarationsData';
 import { DirectoryRoute } from './routes/reviews/DirectoryRoute';
 import { blameLoader, fileAction, fileLoader } from './routes/reviews/fileData';
@@ -19,7 +19,7 @@ import { ReviewLayout } from './routes/reviews/ReviewLayout';
 import { reviewAction, reviewLoader } from './routes/reviews/reviewData';
 import { searchLoader, shouldRevalidateSearch } from './routes/reviews/searchData';
 import { shouldRevalidateSymbols, symbolsLoader } from './routes/reviews/symbolsData';
-import { directoryLoader, treeLoader } from './routes/reviews/treeData';
+import { directoryLoader, shouldRevalidateTree, treeLoader } from './routes/reviews/treeData';
 import { SettingsRoute } from './routes/settings/SettingsRoute';
 import { settingsAction, settingsLoader } from './routes/settings/settingsData';
 import { preferencesAction, shouldRevalidateRoot, tourTokensLoader } from './tour/useTours';
@@ -49,6 +49,7 @@ export const router = wrapCreateBrowserRouter(createBrowserRouter)([
                         children: [
                             {
                                 loader: codeLayoutLoader,
+                                shouldRevalidate: shouldRevalidateCodeLayout,
                                 element: <CodeLayout />,
                                 errorElement: <RouteError embedded />,
                                 children: [
@@ -71,7 +72,7 @@ export const router = wrapCreateBrowserRouter(createBrowserRouter)([
                                     },
                                 ],
                             },
-                            { path: 'tree-entries', loader: treeLoader },
+                            { path: 'tree-entries', loader: treeLoader, shouldRevalidate: shouldRevalidateTree },
                             { path: 'symbols', loader: symbolsLoader, shouldRevalidate: shouldRevalidateSymbols },
                             { path: 'declarations', loader: declarationsLoader, shouldRevalidate: shouldRevalidateDeclarations },
                             { path: 'search', loader: searchLoader, shouldRevalidate: shouldRevalidateSearch },

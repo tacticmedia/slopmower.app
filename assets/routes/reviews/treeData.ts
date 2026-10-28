@@ -29,6 +29,11 @@ export function treeHref(reviewId: string, dir: string): string {
     return `/reviews/${encodeURIComponent(reviewId)}/tree-entries?dir=${encodeURIComponent(dir)}`;
 }
 
+/** The tree of a review commit never changes. */
+export function shouldRevalidateTree(): boolean {
+    return false;
+}
+
 export async function treeLoader({ request, params }: LoaderFunctionArgs): Promise<TreeResult> {
     try {
         return await listDirectory(encodedRouteParam(params, 'reviewId'), new URL(request.url).searchParams.get('dir') ?? '', request.signal);

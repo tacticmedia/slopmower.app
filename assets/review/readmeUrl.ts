@@ -39,9 +39,18 @@ function resolve(dir: string, relative: string): string {
         if ('..' === segment) {
             segments.pop();
         } else if ('' !== segment && '.' !== segment) {
-            segments.push(decodeURIComponent(segment));
+            segments.push(decoded(segment));
         }
     }
 
     return segments.join('/');
+}
+
+/** A malformed escape, for example `%PU` of `%PUBLIC_URL%`, stays as it is. */
+function decoded(segment: string): string {
+    try {
+        return decodeURIComponent(segment);
+    } catch {
+        return segment;
+    }
 }

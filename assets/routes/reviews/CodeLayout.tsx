@@ -1,7 +1,7 @@
 import { SidebarCollapseIcon, SidebarExpandIcon } from '@primer/octicons-react';
 import { IconButton, PageLayout } from '@primer/react';
 import { useMemo } from 'react';
-import { type LoaderFunctionArgs, Outlet, useLoaderData, useOutletContext, useParams, useRouteLoaderData } from 'react-router';
+import { type LoaderFunctionArgs, Outlet, type ShouldRevalidateFunctionArgs, useLoaderData, useOutletContext, useParams, useRouteLoaderData } from 'react-router';
 import type { TreeListing } from '../../api/types/lists';
 import type { Me } from '../../api/types/me';
 import { usePreference } from '../../layout/usePreference';
@@ -23,6 +23,11 @@ const TREE_WIDTH = { min: '256px', default: '320px', max: '640px' } as const;
 
 export function codeLayoutLoader({ request, params }: LoaderFunctionArgs): Promise<TreeListing> {
     return listDirectory(encodedRouteParam(params, 'reviewId'), '', request.signal);
+}
+
+/** The root of a review commit never changes. */
+export function shouldRevalidateCodeLayout({ currentParams, nextParams }: ShouldRevalidateFunctionArgs): boolean {
+    return currentParams.reviewId !== nextParams.reviewId;
 }
 
 /**

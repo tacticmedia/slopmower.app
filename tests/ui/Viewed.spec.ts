@@ -22,4 +22,16 @@ test.describe('Viewed', () => {
         await expect(page.locator(TREE_MARK)).toBeVisible();
         await expect(page.locator(CHECKBOX)).toBeChecked();
     });
+
+    test('A write does not load the tree of the review commit again', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        await openFile(page, review, SMALL_FILE);
+        await expect(page.locator(TREE_ITEM)).toBeVisible();
+        const treeReads = api.callsTo('GET', '/api/v1/reviews/:reviewId/tree').length;
+
+        await page.locator(CHECKBOX).click();
+        await expect(page.locator(TREE_MARK)).toBeVisible();
+
+        expect(api.callsTo('GET', '/api/v1/reviews/:reviewId/tree')).toHaveLength(treeReads);
+    });
 });

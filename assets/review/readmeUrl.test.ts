@@ -20,6 +20,10 @@ describe('ReadmeUrlTest', () => {
         expect(readmeUrl('./img/logo%20big.png', 'src', BASE)).toBe('/api/v1/reviews/R1/raw?path=docs%2Fimg%2Flogo%20big.png');
     });
 
+    it('Keeps a segment with a malformed escape as it is', () => {
+        expect(readmeUrl('%PUBLIC_URL%/logo.png', 'src', BASE)).toBe('/api/v1/reviews/R1/raw?path=docs%2F%25PUBLIC_URL%25%2Flogo.png');
+    });
+
     it('Keeps absolute URLs and in-page anchors', () => {
         for (const url of ['https://symfony.com', 'mailto:a@b.c', '//cdn.example/x.png', '#installation']) {
             expect(readmeUrl(url, 'href', BASE)).toBe(url);
