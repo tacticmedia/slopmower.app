@@ -93,6 +93,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F75 | [Submit feedback](F75-submit-feedback.md) | Planned | | |
 | F76 | [Delivery choices](F76-delivery-choices.md) | Planned | | |
 | F77 | [Browser error reporting](F77-browser-error-reporting.md) | Done 2026-10-28, [report](reports/F77.md) | ff4dfac | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31520 lines; assets 187 TS / 11216 lines |
+| F78 | [Sign-in page design](F78-sign-in-page-design.md) | In progress | | |
 
 ## Candidates
 

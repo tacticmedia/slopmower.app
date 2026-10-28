@@ -2,30 +2,62 @@
 
 {% block title %}Sign in - Slopmower{% endblock %}
 
+{% block stylesheets %}
+    {{ include('_theme.html.twig') }}
+    <style>
+        body { display: flex; flex-direction: column; min-height: 100vh; }
+        .login { flex: 1; width: 100%; max-width: 22rem; margin: 0 auto; padding: 5rem 1rem 2rem; }
+        .login h1 { margin: 0; font-size: 1.5rem; font-weight: 400; letter-spacing: -0.5px; text-align: center; }
+        .login-lead { margin: 0.5rem 0 1.5rem; color: var(--fgColor-muted); font-size: 0.875rem; text-align: center; }
+        .login-box { display: grid; gap: 0.75rem; padding: 1rem; border: 1px solid var(--borderColor-default); border-radius: 6px; background: var(--bgColor-muted); font-size: 0.875rem; }
+        .login-box p, .login-box form { margin: 0; }
+        .login-box .login-alert { padding: 0.75rem 1rem; border: 1px solid var(--borderColor-danger-muted); border-radius: 6px; background: var(--bgColor-danger-muted); }
+        .login-button { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; height: 2.5rem; padding: 0 1rem; border: 1px solid var(--borderColor-default); border-radius: 6px; color: var(--button-default-fgColor-rest); background: var(--button-default-bgColor-rest); box-shadow: var(--shadow-resting-small); font: inherit; font-size: 0.875rem; font-weight: 500; text-decoration: none; cursor: pointer; }
+        .login-button:hover { background: var(--button-default-bgColor-hover); }
+        .login-button:active { background: var(--button-default-bgColor-active); }
+        .login-button.primary { border-color: var(--button-primary-borderColor-rest); color: var(--button-primary-fgColor-rest); background: var(--button-primary-bgColor-rest); }
+        .login-button.primary:hover { background: var(--button-primary-bgColor-hover); }
+        .login-button.primary:active { background: var(--button-primary-bgColor-active); }
+        .login-button svg { fill: currentColor; }
+        .login-new { margin: 1rem 0 0; padding: 1rem; border: 1px solid var(--borderColor-default); border-radius: 6px; font-size: 0.875rem; text-align: center; }
+        .login-footer { padding: 1.5rem 1rem; font-size: 0.75rem; }
+        .login-footer nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem 1.5rem; }
+        .login-footer a { color: var(--fgColor-muted); }
+    </style>
+{% endblock %}
+
 {% block body %}
-    <main>
+    <main class="login">
         <h1>Sign in to Slopmower</h1>
+        <p class="login-lead">Review a full codebase at one commit. Your coding agent works through every comment.</p>
 
-        {% if error %}
-            <p role="alert">{{ error.messageKey|trans(error.messageData, 'security') }}</p>
-        {% endif %}
+        <div class="login-box">
+            {% if error %}
+                <p class="login-alert" role="alert">{{ error.messageKey|trans(error.messageData, 'security') }}</p>
+            {% endif %}
 
-        {% if github_sign_in %}
-            <p><a href="{{ path('hwi_oauth_service_redirect', {service: 'github'}) }}" role="button">Sign in with GitHub</a></p>
-        {% endif %}
+            {% if github_sign_in %}
+                <a class="login-button primary" href="{{ path('hwi_oauth_service_redirect', {service: 'github'}) }}" role="button">
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><path d="M6.766 11.328c-2.063-.25-3.516-1.734-3.516-3.656 0-.781.281-1.625.75-2.188-.203-.515-.172-1.609.063-2.062.625-.078 1.468.25 1.968.703.594-.187 1.219-.281 1.985-.281.765 0 1.39.094 1.953.265.484-.437 1.344-.765 1.969-.687.218.422.25 1.515.046 2.047.5.593.766 1.39.766 2.203 0 1.922-1.453 3.375-3.547 3.64.531.344.89 1.094.89 1.954v1.625c0 .468.391.734.86.547C13.781 14.359 16 11.53 16 8.03 16 3.61 12.406 0 7.984 0 3.563 0 0 3.61 0 8.031a7.88 7.88 0 0 0 5.172 7.422c.422.156.828-.125.828-.547v-1.25c-.219.094-.5.156-.75.156-1.031 0-1.64-.562-2.078-1.609-.172-.422-.36-.672-.719-.719-.187-.015-.25-.093-.25-.187 0-.188.313-.328.625-.328.453 0 .844.281 1.25.86.313.452.64.655 1.031.655s.641-.14 1-.5c.266-.265.47-.5.657-.656"/></svg>
+                    Sign in with GitHub
+                </a>
+            {% endif %}
 
-        {% if local_login %}
-            <form method="post" action="{{ path('app_login_local') }}">
-                <input type="hidden" name="_csrf_token" value="{{ csrf_token(csrf_token_id) }}">
-                <button type="submit">Sign in as {{ local_login }}</button>
-            </form>
-        {% endif %}
+            {% if local_login %}
+                <form method="post" action="{{ path('app_login_local') }}">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token(csrf_token_id) }}">
+                    <button class="login-button" type="submit">Sign in as {{ local_login }}</button>
+                </form>
+            {% endif %}
 
-        {% if not github_sign_in and not local_login %}
-            <p>No sign-in method is configured.</p>
-        {% endif %}
+            {% if not github_sign_in and not local_login %}
+                <p>No sign-in method is configured.</p>
+            {% endif %}
+        </div>
+
+        <p class="login-new">New to Slopmower? The first sign-in creates your account. <a href="{{ path('docs_index') }}">How it works</a></p>
     </main>
-    <footer>
+    <footer class="login-footer">
         {{ include('_legal_links.html.twig') }}
     </footer>
 {% endblock %}

@@ -1,0 +1,67 @@
+{# The colours are Primer tokens of @primer/primitives, light and dark. #}
+<style>
+    :root {
+        color-scheme: light;
+        --fgColor-default: #1f2328;
+        --fgColor-muted: #59636e;
+        --fgColor-accent: #0969da;
+        --bgColor-default: #ffffff;
+        --bgColor-muted: #f6f8fa;
+        --bgColor-neutral-muted: #818b981f;
+        --bgColor-danger-muted: #ffebe9;
+        --borderColor-default: #d1d9e0;
+        --borderColor-muted: #d1d9e0b3;
+        --borderColor-accent-emphasis: #0969da;
+        --borderColor-danger-muted: #ff818266;
+        --header-bgColor: #25292e;
+        --header-fgColor-default: #ffffffb3;
+        --header-fgColor-logo: #ffffff;
+        --header-borderColor-divider: #818b98;
+        --button-default-fgColor-rest: #25292e;
+        --button-default-bgColor-rest: #f6f8fa;
+        --button-default-bgColor-hover: #eff2f5;
+        --button-default-bgColor-active: #e6eaef;
+        --button-primary-fgColor-rest: #ffffff;
+        --button-primary-bgColor-rest: #1f883d;
+        --button-primary-bgColor-hover: #1c8139;
+        --button-primary-bgColor-active: #197935;
+        --button-primary-borderColor-rest: #1f232826;
+        --shadow-resting-small: 0 1px 1px 0 #1f23280a, 0 1px 2px 0 #1f232808;
+    }
+    @media (prefers-color-scheme: dark) {
+        :root {
+            color-scheme: dark;
+            --fgColor-default: #f0f6fc;
+            --fgColor-muted: #9198a1;
+            --fgColor-accent: #4493f8;
+            --bgColor-default: #0d1117;
+            --bgColor-muted: #151b23;
+            --bgColor-neutral-muted: #656c7633;
+            --bgColor-danger-muted: #f851491a;
+            --borderColor-default: #3d444d;
+            --borderColor-muted: #3d444db3;
+            --borderColor-accent-emphasis: #1f6feb;
+            --borderColor-danger-muted: #f8514966;
+            --header-bgColor: #151b23;
+            --header-fgColor-logo: #f0f6fc;
+            --header-borderColor-divider: #656c76;
+            --button-default-fgColor-rest: #f0f6fc;
+            --button-default-bgColor-rest: #212830;
+            --button-default-bgColor-hover: #262c36;
+            --button-default-bgColor-active: #2a313c;
+            --button-primary-bgColor-rest: #238636;
+            --button-primary-bgColor-hover: #29903b;
+            --button-primary-bgColor-active: #2e9a40;
+            --button-primary-borderColor-rest: #ffffff26;
+            --shadow-resting-small: 0 1px 1px 0 #01040999, 0 1px 3px 0 #01040999;
+        }
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif; color: var(--fgColor-default); background: var(--bgColor-default); }
+    a { color: var(--fgColor-accent); text-underline-offset: 0.2em; }
+    :focus-visible { outline: 2px solid var(--borderColor-accent-emphasis); outline-offset: 2px; }
+    .cookie-notice { color: var(--fgColor-default); background: var(--bgColor-muted); border-bottom-color: var(--borderColor-default); }
+    .cookie-notice a { color: var(--fgColor-accent); }
+    .cookie-notice button { padding: 0.125rem 0.75rem; border: 1px solid var(--borderColor-default); border-radius: 6px; color: var(--button-default-fgColor-rest); background: var(--button-default-bgColor-rest); font: inherit; font-weight: 500; cursor: pointer; }
+    .cookie-notice button:hover { background: var(--button-default-bgColor-hover); }
+</style>
