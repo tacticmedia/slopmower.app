@@ -98,12 +98,10 @@ final class ReviewCommands
             $this->fetchRepository->fetchNow($repositoryId);
         }
 
-        if (null === $ref) {
-            $ref = $this->defaultBranch($repositoryId);
-            $commit = $this->reader->resolveCommit($gitDir, RefName::fromString("refs/heads/{$ref->toString()}"));
-        } else {
-            $commit = $this->reader->resolveCommit($gitDir, $ref);
-        }
+        $defaultBranch = ($this->repositories->findFresh($repositoryId) ?? throw new NotFound())->getDefaultBranch();
+        $ref ??= null === $defaultBranch ? throw InvalidInput::field('ref', 'The repository has no default branch. Name a ref.') : RefName::fromString($defaultBranch);
+        // In rev-parse a tag of the same name wins over the branch.
+        $commit = $this->reader->resolveCommit($gitDir, $defaultBranch === $ref->toString() ? RefName::fromString("refs/heads/{$defaultBranch}") : $ref);
         $reviewId = ReviewId::generate();
         $this->pins->pinReview($gitDir, $reviewId, $commit);
 
@@ -254,17 +252,6 @@ final class ReviewCommands
         } catch (InvalidInput) {
             return null;
         }
-    }
-
-    /**
-     * @throws NotFound
-     * @throws InvalidInput
-     */
-    private function defaultBranch(RepositoryId $repositoryId): RefName
-    {
-        $branch = ($this->repositories->findFresh($repositoryId) ?? throw new NotFound())->getDefaultBranch();
-
-        return null === $branch ? throw InvalidInput::field('ref', 'The repository has no default branch. Name a ref.') : RefName::fromString($branch);
     }
 
     /**
