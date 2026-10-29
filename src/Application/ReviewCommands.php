@@ -110,7 +110,12 @@ final class ReviewCommands
             throw $failure;
         }
 
-        $this->bus->dispatch(new IndexReview($reviewId));
+        try {
+            $this->bus->dispatch(new IndexReview($reviewId));
+        } catch (\Throwable $failure) {
+            // The review exists, and the hourly StalledIndexHandler queues the job (D95).
+            $this->logger->error('The index job of the review {reviewId} could not be queued.', ['reviewId' => $reviewId->toString(), 'exception' => $failure]);
+        }
 
         return $reviewId;
     }

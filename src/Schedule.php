@@ -6,6 +6,7 @@ namespace App;
 
 use App\Message\PruneRateLimiterCacheJob;
 use App\Message\PurgeFailedMessagesJob;
+use App\Message\QueueStalledIndexesJob;
 use Symfony\Component\Scheduler\Attribute\AsSchedule;
 use Symfony\Component\Scheduler\RecurringMessage;
 use Symfony\Component\Scheduler\Schedule as SymfonySchedule;
@@ -31,6 +32,7 @@ final class Schedule implements ScheduleProviderInterface
             ->add(
                 RecurringMessage::every('1 day', new PruneRateLimiterCacheJob(), $dailyFrom),
                 RecurringMessage::every('1 day', new PurgeFailedMessagesJob(), $dailyFrom),
+                RecurringMessage::every('1 hour', new QueueStalledIndexesJob()),
             );
     }
 }
