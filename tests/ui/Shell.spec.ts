@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { me } from './support/builders';
 import { FakeRepositories } from './support/fakeRepositories';
 import { type MockApi, redirect } from './support/mockApi';
 import { expect, test } from './support/test';
@@ -25,6 +26,21 @@ test.describe('Shell', () => {
         await openShell(page, api);
 
         await expect(page.locator(`header ${CURRENT_USER}`)).toHaveText('jan');
+    });
+
+    test('At 320, 360, and 390 px the header does not scroll, and Sign out is inside the window', async ({ page, api }) => {
+        const caller = me();
+        api.me = { ...caller, user: { ...caller.user, avatarUrl: 'https://avatars.githubusercontent.com/u/1?v=4' } };
+        await openShell(page, api);
+        const header = page.locator('header', { has: page.locator('form[action="/sign-out"]') });
+
+        for (const width of [320, 360, 390]) {
+            await page.setViewportSize({ width, height: 800 });
+
+            await expect.poll(() => header.evaluate((element) => element.scrollWidth <= element.clientWidth), `No header scroll at ${width} px.`).toBe(true);
+            expect(await header.locator('form[action="/sign-out"] button').evaluate((button) => button.getBoundingClientRect().right), `Sign out inside at ${width} px.`).toBeLessThanOrEqual(width);
+        }
+        await expect(page.getByRole('link', { name: 'Slopmower', exact: true })).toBeVisible();
     });
 
     test('Client-side navigation keeps a window marker', async ({ page, api }) => {

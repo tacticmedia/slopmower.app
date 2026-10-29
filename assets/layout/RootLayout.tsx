@@ -21,7 +21,7 @@ export function RootLayout() {
                 <Header.Item>
                     <Header.Link as={NavLink} to="/" className={styles.brand}>
                         <img src="/favicon.svg" alt="" width={24} height={24} />
-                        Slopmower
+                        <span className={styles.brandName}>Slopmower</span>
                     </Header.Link>
                 </Header.Item>
                 <Header.Item full>
@@ -38,7 +38,7 @@ export function RootLayout() {
                     <HelpMenu />
                 </Header.Item>
                 <Header.Item className={styles.user}>
-                    {null !== me.user.avatarUrl && <Avatar src={me.user.avatarUrl} alt="" size={20} />}
+                    {null !== me.user.avatarUrl && <Avatar src={me.user.avatarUrl} alt="" size={20} className={styles.avatar} />}
                     <span data-testid="current-user" className={styles.login}>
                         {me.user.login}
                     </span>

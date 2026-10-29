@@ -57,16 +57,21 @@
     --button-invisible-bgColor-active: var(--bgColor-neutral-muted);
 }
 
-/* Below the sm breakpoint of Primer, the header fits 390 px only with less space and the login for screen readers only. */
+/* Below the sm breakpoint of Primer, the header fits 320 px only with less space, no avatar, and the product name and the login for screen readers only. */
 @media (max-width: 543.98px) {
     .header {
-        padding-inline: var(--base-size-12);
+        padding-inline: var(--base-size-8);
     }
 
     .header > :not(:last-child) {
         margin-right: var(--base-size-8);
     }
 
+    .avatar {
+        display: none;
+    }
+
+    .brandName,
     .login {
         position: absolute;
         width: 1px;
