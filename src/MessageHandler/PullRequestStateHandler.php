@@ -24,6 +24,7 @@ use App\Repository\RepositoryRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Serializer\Exception\ExceptionInterface as SerializerException;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface as HttpClientException;
@@ -48,6 +49,7 @@ final class PullRequestStateHandler
         private readonly LivePublisher $publisher,
         private readonly LiveTopics $topics,
         private readonly QueueCheckRun $queueCheckRun,
+        private readonly MessageBusInterface $bus,
     ) {
     }
 
@@ -91,8 +93,10 @@ final class PullRequestStateHandler
     {
         $repository = $this->repositories->findGitHub($job->githubRepositoryId);
 
-        if (null !== $repository) {
-            $this->record($repository, $job->pullRequest);
+        // Two changes in one second carry the same updated_at, and the later one can arrive first. A read gives the
+        // current state.
+        if (null !== $repository && $this->record($repository, $job->pullRequest)) {
+            $this->bus->dispatch(new ReadPullRequestJob($repository->getId(), $job->pullRequest->number));
         }
     }
 
@@ -124,14 +128,17 @@ final class PullRequestStateHandler
 
     /**
      * Publishes and queues the check run after the commit, so a view that reloads and the job read the new state.
+     *
+     * @return bool Whether the payload has the time of the record and another state
      */
-    private function record(Repository $repository, PullRequestPayload $pullRequest): void
+    private function record(Repository $repository, PullRequestPayload $pullRequest): bool
     {
         $headSha = CommitSha::fromString($pullRequest->headSha, 'head.sha');
-        [$record, $headBefore, $openBefore, $changed] = $this->entityManager->wrapInTransaction(function () use ($repository, $pullRequest, $headSha): array {
+        [$record, $headBefore, $openBefore, $changed, $tie] = $this->entityManager->wrapInTransaction(function () use ($repository, $pullRequest, $headSha): array {
             $record = $this->pullRequests->findForUpdate($repository->getId(), $pullRequest->number);
             $headBefore = $record?->getHeadSha();
             $openBefore = $record?->isOpen() ?? false;
+            $tie = $record?->isTie($pullRequest->state, $pullRequest->merged(), $pullRequest->draft, $pullRequest->updatedAt) ?? false;
             $changed = $record?->record(
                 $pullRequest->title,
                 $pullRequest->state,
@@ -142,7 +149,7 @@ final class PullRequestStateHandler
                 $pullRequest->updatedAt,
             ) ?? false;
 
-            return [$record, $headBefore, $openBefore, $changed];
+            return [$record, $headBefore, $openBefore, $changed, $tie];
         });
         $newHead = null !== $record?->getHeadSha() && !($headBefore?->equals($record->getHeadSha()) ?? false);
 
@@ -152,7 +159,7 @@ final class PullRequestStateHandler
         }
 
         if (!$changed) {
-            return;
+            return $tie;
         }
 
         $reviews = [];
@@ -171,5 +178,7 @@ final class PullRequestStateHandler
                 'requestIds' => $requestIds[$reviewId],
             ]);
         }
+
+        return $tie;
     }
 }

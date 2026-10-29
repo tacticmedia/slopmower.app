@@ -156,6 +156,16 @@ class PullRequest implements TenantOwned
     }
 
     /**
+     * GitHub's `updated_at` has whole seconds, so two changes in one second carry the time of the record.
+     *
+     * @param string $state The GitHub `state`: `open` or `closed`
+     */
+    public function isTie(string $state, bool $merged, bool $draft, \DateTimeImmutable $githubUpdatedAt): bool
+    {
+        return $githubUpdatedAt == $this->githubUpdatedAt && PullRequestState::ofGitHub($state, $merged, $draft) !== $this->shownState();
+    }
+
+    /**
      * A state older than the stored one changes nothing, so deliveries and reads may arrive in any order.
      *
      * @param string $state The GitHub `state`: `open` or `closed`

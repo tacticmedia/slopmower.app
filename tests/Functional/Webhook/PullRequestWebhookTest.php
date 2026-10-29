@@ -86,6 +86,15 @@ final class PullRequestWebhookTest extends WebTestCase
         self::assertSame('open', $this->pullRequests()[0]['state'] ?? null);
     }
 
+    #[TestDox('A payload with the updated_at of the record and another state reads the pull request again, whose state wins')]
+    public function testSameSecondPayloadReadsAgain(): void
+    {
+        self::deliverFixture($this->client, 'pull_request.closed', ['pull_request' => ['updated_at' => '2026-09-29T07:46:00Z']]);
+        self::runQueuedMessages();
+
+        self::assertSame('open', $this->pullRequests()[0]['state'] ?? null);
+    }
+
     /**
      * @return list<array<string, mixed>> `Request.pullRequests` of Q3
      */
