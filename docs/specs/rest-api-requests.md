@@ -531,7 +531,7 @@ The user sets or changes the title in every status while the review is open. A t
 |---|---|---|---|
 | `cursor` | integer, 0 or more | none | The `cursor` of the previous response |
 | `limit` | integer 1-500 | 100 | Events in cursor mode, requests in null mode |
-| `includeOwn` | boolean | false | REST only. The UI sets it to true when it catches up: after a live-update reconnect, and when the tab becomes visible again. |
+| `includeOwn` | boolean | false | REST only. The UI sets it to true when it catches up: on the first live-update open of a review, after a reconnect, and when the tab becomes visible again. |
 
 Algorithm. It runs in one read-only REPEATABLE READ transaction:
 
