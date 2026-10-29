@@ -734,7 +734,7 @@ These documents cover the local development environment, the QA workflow (D62), 
 | Service | Runs | Notes |
 |---|---|---|
 | `php` | FrankenPHP 1.12.7 with the built-in Mercure hub | The `dev` application at `http://localhost:8000` over HTTP, in worker mode. The `e2e` site on `:8081` in the same container, in classic mode, for the full-stack E2E tests. |
-| `worker` | `messenger:consume async scheduler_default` | Same image and volumes as `php`. It also runs the daily jobs of `App\Schedule`: it prunes `rate_limiter.cache` and deletes the messages of the queue `failed` that are older than 30 days. Its own cache directory, `APP_CACHE_DIR=var/cache/worker`, so a rebuild of the `php` container's cache does not remove files that it loads. |
+| `worker` | `messenger:consume async scheduler_default` | Same image and volumes as `php`. It also runs the jobs of `App\Schedule`: each day it prunes `rate_limiter.cache` and deletes the messages of the queue `failed` that are older than 30 days, and each hour it queues the lost index jobs (D95). Its own cache directory, `APP_CACHE_DIR=var/cache/worker`, so a rebuild of the `php` container's cache does not remove files that it loads. |
 | `symbols` | Node 24 with web-tree-sitter, the `symbols` stage of the Dockerfile | The symbol extraction of every [symbol language](#symbol-languages) but PHP (D56), on port 3000 inside the network. Compose mounts `symbols/src` and `symbols/queries` read-only and runs `node --watch`. `php` starts after its health check passes. |
 | `database` | `postgres:18-alpine` | The data volume mounts `/var/lib/postgresql`. One database role. |
 
