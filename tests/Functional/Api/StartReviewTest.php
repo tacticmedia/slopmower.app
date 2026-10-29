@@ -96,6 +96,18 @@ final class StartReviewTest extends WebTestCase
         self::assertSame(['title' => 'main @ '.substr($head, 0, 12), 'ref' => 'main', 'commitSha' => $head], $started->event->toPayload());
     }
 
+    #[TestDox('Without a ref, the review pins the head of the default branch, also when a tag has the name of the branch')]
+    public function testDefaultBranchWinsOverTagOfTheSameName(): void
+    {
+        $this->source->git('tag', 'main');
+        $head = $this->source->commit(['later.txt' => "Later\n"]);
+        $repositoryId = self::connectAndClone($this->client);
+
+        $review = self::startReviewThroughApi($this->client, $repositoryId, []);
+
+        self::assertSame(['main', $head, 'main @ '.substr($head, 0, 12)], [$review['ref'], $review['commitSha'], $review['title']]);
+    }
+
     #[TestDox('A token starts a review with the agent as startedBy')]
     public function testTokenStartsReviewAsAgent(): void
     {

@@ -98,8 +98,12 @@ final class ReviewCommands
             $this->fetchRepository->fetchNow($repositoryId);
         }
 
-        $ref ??= $this->defaultBranch($repositoryId);
-        $commit = $this->reader->resolveCommit($gitDir, $ref);
+        if (null === $ref) {
+            $ref = $this->defaultBranch($repositoryId);
+            $commit = $this->reader->resolveCommit($gitDir, RefName::fromString("refs/heads/{$ref->toString()}"));
+        } else {
+            $commit = $this->reader->resolveCommit($gitDir, $ref);
+        }
         $reviewId = ReviewId::generate();
         $this->pins->pinReview($gitDir, $reviewId, $commit);
 
