@@ -34,6 +34,18 @@ final class CookieNoticeTest extends FullStackTestCase
         $this->expect($this->notice())->toBeHidden();
     }
 
+    #[TestDox('In dark mode, the notice of an app page has the dark colours')]
+    public function testNoticeOfAppPageFollowsDarkMode(): void
+    {
+        $this->page->emulateMedia(['colorScheme' => 'dark']);
+        $this->signInAs('jan');
+
+        $this->visit('/settings');
+
+        $this->expect($this->notice())->toBeVisible();
+        $this->expect($this->notice())->toHaveCSS('background-color', 'rgb(21, 27, 35)');
+    }
+
     /**
      * CSS, not a role: a role locator matches no hidden element, and an expect() on a missing element waits 30 s.
      */

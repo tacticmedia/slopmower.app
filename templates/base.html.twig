@@ -32,6 +32,14 @@
             .cookie-notice[hidden] { display: none; }
             .cookie-notice p { margin: 0; }
             .cookie-notice a { color: #0969da; }
+            .cookie-notice button { padding: 0.125rem 0.75rem; border: 1px solid #d1d9e0; border-radius: 6px; color: #25292e; background: #f6f8fa; font: inherit; font-weight: 500; cursor: pointer; }
+            .cookie-notice button:hover { background: #eff2f5; }
+            @media (prefers-color-scheme: dark) {
+                .cookie-notice { color: #f0f6fc; background: #151b23; border-bottom-color: #3d444d; }
+                .cookie-notice a { color: #4493f8; }
+                .cookie-notice button { border-color: #3d444d; color: #f0f6fc; background: #212830; }
+                .cookie-notice button:hover { background: #262c36; }
+            }
         </style>
         {% block stylesheets %}
         {% endblock %}
