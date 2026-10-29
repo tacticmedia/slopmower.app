@@ -23,13 +23,32 @@ final class ThreadQuery
      */
     public function entries(ReviewId $reviewId, RequestId $requestId, ?int $upToSeq = null): array
     {
-        $state = null;
-        $entries = [];
+        return $this->entriesOfRequests($reviewId, [$requestId], $upToSeq)[$requestId->toString()];
+    }
 
-        foreach ($this->events->findThread($reviewId, $requestId, $upToSeq) as $event) {
+    /**
+     * One query for all requests.
+     *
+     * @param list<RequestId> $requestIds
+     *
+     * @return array<string, list<ThreadEntry>> The {@see entries()} by request ID
+     */
+    public function entriesOfRequests(ReviewId $reviewId, array $requestIds, ?int $upToSeq = null): array
+    {
+        $entries = array_fill_keys(array_map(strval(...), $requestIds), []);
+        $states = [];
+
+        foreach ($this->events->findThreads($reviewId, $requestIds, $upToSeq) as $event) {
             $recorded = $event->toRecordedEvent();
-            $state = RequestReducer::apply($state, $recorded);
-            $entries[] = new ThreadEntry($requestId, $recorded, $state->status);
+
+            foreach ($recorded->requestIds() as $requestId) {
+                $key = $requestId->toString();
+
+                if (isset($entries[$key])) {
+                    $states[$key] = RequestReducer::apply($states[$key] ?? null, $recorded);
+                    $entries[$key][] = new ThreadEntry($requestId, $recorded, $states[$key]->status);
+                }
+            }
         }
 
         return $entries;
@@ -40,12 +59,16 @@ final class ThreadQuery
      */
     public function entriesBySeq(ReviewId $reviewId, RequestId $requestId, ?int $upToSeq = null): array
     {
-        $bySeq = [];
+        return self::bySeq($this->entries($reviewId, $requestId, $upToSeq));
+    }
 
-        foreach ($this->entries($reviewId, $requestId, $upToSeq) as $entry) {
-            $bySeq[$entry->event->seq] = $entry;
-        }
-
-        return $bySeq;
+    /**
+     * @param list<ThreadEntry> $entries
+     *
+     * @return array<int, ThreadEntry>
+     */
+    public static function bySeq(array $entries): array
+    {
+        return array_combine(array_map(static fn (ThreadEntry $entry): int => $entry->event->seq, $entries), $entries);
     }
 }

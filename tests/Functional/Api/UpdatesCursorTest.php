@@ -22,6 +22,7 @@ use App\Tests\Support\Environment\EnvironmentVariables;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
 use App\Tests\Support\Messenger\QueuedMessages;
 use App\Tests\Support\Source\LocalSources;
+use Doctrine\Bundle\DoctrineBundle\DataCollector\DoctrineDataCollector;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -79,8 +80,10 @@ final class UpdatesCursorTest extends WebTestCase
             $commands->markWontDo(new MarkWontDo($r2, 'The totals already use integer cents.'), $agent);
         });
 
+        $this->client->enableProfiler();
         $page = $this->updates('');
 
+        self::assertSame(1, $this->threadQueries(), 'One query reads the threads of both requests.');
         self::assertSame([[$r1->toString(), 10, 3], [$r2->toString(), 1, 0]], array_map(
             static fn (array $updated): array => [$updated['request']['id'], count($updated['newEvents']), $updated['omittedEvents']],
             $page['requests'],
@@ -123,7 +126,10 @@ final class UpdatesCursorTest extends WebTestCase
             $page['requests'],
         );
         $withoutOwn = $this->updates("?cursor={$this->cursor}");
+        $this->client->enableProfiler();
         $withOwn = $this->updates("?cursor={$this->cursor}&includeOwn=true");
+
+        self::assertSame(1, $this->threadQueries(), 'One query reads the threads of both requests.');
 
         self::assertSame([
             [$r1->toString(), ['request.claimed', 'commit.linked', 'request.commented'], 0],
@@ -172,6 +178,17 @@ final class UpdatesCursorTest extends WebTestCase
         $error = self::assertApiError(self::apiRequest($this->client, 'GET', "/api/v1/reviews/{$this->reviewId}/updates?cursor={$ahead}"), 422, 'invalid_input');
 
         self::assertSame('cursor', $error['details']['violations'][0]['field'] ?? null);
+    }
+
+    /**
+     * The thread reads of the last request, which enabled the profiler.
+     */
+    private function threadQueries(): int
+    {
+        $collector = $this->client->getProfile()?->getCollector('db');
+        self::assertInstanceOf(DoctrineDataCollector::class, $collector);
+
+        return count(array_filter(array_merge(...array_values($collector->getQueries())), static fn (array $query): bool => str_contains((string) $query['sql'], '@> CAST(')));
     }
 
     /**

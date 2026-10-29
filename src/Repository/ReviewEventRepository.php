@@ -30,18 +30,30 @@ final class ReviewEventRepository extends ServiceEntityRepository
     }
 
     /**
-     * The thread entries of a request: every event that names it, except batch.submitted.
+     * The thread entries of the requests: every event that names one of them, except batch.submitted.
+     *
+     * @param list<RequestId> $requestIds
      *
      * @return list<ReviewEvent> In seq order
      */
-    public function findThread(ReviewId $reviewId, RequestId $requestId, ?int $upToSeq = null): array
+    public function findThreads(ReviewId $reviewId, array $requestIds, ?int $upToSeq = null): array
     {
+        if ([] === $requestIds) {
+            return [];
+        }
+
         $builder = $this->ofReview($reviewId)
-            ->andWhere('JSONB_CONTAINS(event.requestIds, :requestIds) = TRUE')
             ->andWhere('event.type <> :batchSubmitted')
             ->orderBy('event.seq')
-            ->setParameter('requestIds', json_encode([$requestId->toString()], \JSON_THROW_ON_ERROR))
             ->setParameter('batchSubmitted', EventType::BatchSubmitted->value);
+        $namesOne = $builder->expr()->orX();
+
+        foreach ($requestIds as $index => $requestId) {
+            $namesOne->add("JSONB_CONTAINS(event.requestIds, :requestIds{$index}) = TRUE");
+            $builder->setParameter("requestIds{$index}", json_encode([$requestId->toString()], \JSON_THROW_ON_ERROR));
+        }
+
+        $builder->andWhere($namesOne);
 
         if (null !== $upToSeq) {
             $builder->andWhere('event.seq <= :upToSeq')->setParameter('upToSeq', $upToSeq);

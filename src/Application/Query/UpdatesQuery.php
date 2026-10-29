@@ -83,9 +83,11 @@ final class UpdatesQuery
             ->setHint(Query::HINT_REFRESH, true)
             ->getResult();
         $updated = [];
+        $summaries = $this->requests->summaries($requests);
+        $threads = $this->threads->entriesOfRequests($reviewId, array_map(static fn (RequestSummaryView $summary): RequestId => $summary->state->id, $summaries), $eventSeq);
 
-        foreach ($this->requests->summaries($requests) as $summary) {
-            $thread = $this->threads->entries($reviewId, $summary->state->id, $eventSeq);
+        foreach ($summaries as $summary) {
+            $thread = $threads[$summary->state->id->toString()];
             $unseen = $thread;
 
             foreach ($thread as $index => $entry) {
@@ -129,9 +131,11 @@ final class UpdatesQuery
         }
 
         $updated = [];
+        $summaries = $this->requests->summaries($this->requestsInOrder(array_map(strval(...), array_keys($groups))));
+        $threads = $this->threads->entriesOfRequests($reviewId, array_map(static fn (RequestSummaryView $summary): RequestId => $summary->state->id, $summaries), $eventSeq);
 
-        foreach ($this->requests->summaries($this->requestsInOrder(array_map(strval(...), array_keys($groups)))) as $summary) {
-            $thread = $this->threads->entriesBySeq($reviewId, $summary->state->id, $eventSeq);
+        foreach ($summaries as $summary) {
+            $thread = ThreadQuery::bySeq($threads[$summary->state->id->toString()]);
             $updated[] = new UpdatedRequest($summary, array_map(
                 static fn (RecordedEvent $event): EventView => ($thread[$event->seq] ?? throw new \LogicException("The event {$event->seq} is not in the thread of {$summary->state->id}."))->eventView(),
                 $groups[$summary->state->id->toString()],
