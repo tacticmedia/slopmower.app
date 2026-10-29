@@ -95,6 +95,14 @@ final class CheckRunOutputTest extends KernelTestCase
         self::assertSame(['Money totals'], array_column($output->annotations, 'title'));
     }
 
+    #[TestDox('A headline cut inside a code span closes the span before the ellipsis')]
+    public function testCutHeadlineClosesCodeSpan(): void
+    {
+        $output = CheckRunOutput::of([self::request(RequestStatus::Open, body: 'Rename `'.str_repeat('a', 100).'` to a shorter name.')]);
+
+        self::assertSame(['Rename `'.str_repeat('a', 68).'`...'], array_column($output->annotations, 'title'));
+    }
+
     private static function request(RequestStatus $status, ?ActorKind $wontDoBy = null, bool $reviewClosed = false, string $body = 'Use `Money` for totals.', ?string $title = null): CheckedRequest
     {
         $location = Location::exact(CommitSha::fromString(self::HEAD), RepoPath::fromString('src/Invoice.php'), LineRange::of(3, 4));

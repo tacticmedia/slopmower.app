@@ -194,13 +194,19 @@ final readonly class CheckRunOutput
     }
 
     /**
-     * The title, or the first line with text of the body, cut to HEADLINE_CHARACTERS.
+     * The title, or the first line with text of the body, cut to HEADLINE_CHARACTERS. A cut code span is closed.
      */
     private static function headline(CheckedRequest $request): string
     {
         $line = $request->title ?? trim(array_find(explode("\n", $request->body), static fn (string $line): bool => '' !== trim($line)) ?? '');
 
-        return mb_strlen($line) > self::HEADLINE_CHARACTERS ? mb_substr($line, 0, self::HEADLINE_CHARACTERS - 3).'...' : $line;
+        if (mb_strlen($line) <= self::HEADLINE_CHARACTERS) {
+            return $line;
+        }
+
+        $cut = mb_substr($line, 0, self::HEADLINE_CHARACTERS - 4);
+
+        return $cut.(1 === substr_count($cut, '`') % 2 ? '`' : mb_substr($line, self::HEADLINE_CHARACTERS - 4, 1)).'...';
     }
 
     private static function linkText(string $text): string
