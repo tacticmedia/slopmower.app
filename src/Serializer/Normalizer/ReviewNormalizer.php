@@ -40,6 +40,8 @@ final class ReviewNormalizer implements NormalizerInterface, NormalizerAwareInte
             'closedAt' => $review->getClosedAt(),
             'closedBy' => $review->getClosedBy(),
             'closeNote' => $review->getCloseNote(),
+            'delivery' => $review->getDelivery()->toPayload(),
+            'capabilities' => ['pullRequests' => $review->getRepository()->getSource()->hasPullRequests()],
             'index' => IndexStatus::of($review),
             'counts' => [
                 'total' => array_sum($data->requestsByStatus),

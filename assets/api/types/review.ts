@@ -1,5 +1,5 @@
 import type { Actor } from './actor';
-import type { Awaiting, CommitSha, DateTime, EventSeq, IndexState, RequestStatus, Ulid } from './common';
+import type { Awaiting, Capabilities, CommitSha, DateTime, Delivery, EventSeq, IndexState, RequestStatus, Ulid } from './common';
 
 export type IndexStatus = {
     state: IndexState;
@@ -33,6 +33,9 @@ export type Review = {
     commitSha: CommitSha;
     startedBy: Actor;
     createdAt: DateTime;
+    /** The latest choice of Submit feedback. */
+    delivery: Delivery;
+    capabilities: Capabilities;
     index: IndexStatus;
     counts: RequestCounts;
     lastEventSeq: EventSeq;

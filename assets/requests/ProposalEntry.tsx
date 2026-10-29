@@ -1,9 +1,10 @@
 import { DownloadIcon } from '@primer/octicons-react';
-import { Button, Label, Link, Spinner } from '@primer/react';
+import { Button, Checkbox, FormControl, Label, Link, Spinner } from '@primer/react';
 import { InlineMessage } from '@primer/react/experimental';
-import { lazy, Suspense } from 'react';
-import { Link as RouterLink } from 'react-router';
+import { lazy, Suspense, useState } from 'react';
+import { Link as RouterLink, useRouteLoaderData } from 'react-router';
 import type { Ulid } from '../api/types/common';
+import type { Request } from '../api/types/request';
 import type { ProposalView } from '../comments/threadView';
 import { usePreference } from '../layout/usePreference';
 import { NoteDialog } from './NoteDialog';
@@ -91,15 +92,30 @@ function download(diff: string, fileName: string): void {
 }
 
 /**
- * "Approve" sends Q15 at once, "Request changes" sends Q16 with a required note.
+ * "Approve" sends Q15 at once, with the pull request choice when the host has pull requests (D85). "Request changes"
+ * sends Q16 with a required note. It renders on the request detail only.
  */
 function ProposalDecision({ proposalEventId }: { proposalEventId: Ulid }) {
     const { busy, sent, error, dialog, opener, send, openDialog, closeDialog } = useRequestCommand<'reject_proposal'>();
+    const request = useRouteLoaderData<Request>('request');
+    const pullRequests = true === request?.capabilities.pullRequests;
+    const [pullRequest, setPullRequest] = useState(true === request?.delivery.pullRequest);
 
     return (
         <div className={styles.proposalDecision} data-testid="proposal-decision">
+            {pullRequests && (
+                <FormControl disabled={busy}>
+                    <Checkbox checked={pullRequest} onChange={(event) => setPullRequest(event.target.checked)} />
+                    <FormControl.Label>Send as a pull request</FormControl.Label>
+                </FormControl>
+            )}
             <div className={styles.buttons}>
-                <Button variant="primary" onClick={() => send({ intent: 'approve_proposal', input: { proposalEventId } })} loading={'approve_proposal' === sent} disabled={busy}>
+                <Button
+                    variant="primary"
+                    onClick={() => send({ intent: 'approve_proposal', input: { proposalEventId, ...(pullRequests ? { pullRequest } : {}) } })}
+                    loading={'approve_proposal' === sent}
+                    disabled={busy}
+                >
                     Approve
                 </Button>
                 <Button onClick={(event) => openDialog('reject_proposal', event)} disabled={busy}>

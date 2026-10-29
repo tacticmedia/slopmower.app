@@ -50,6 +50,8 @@ use App\Domain\Identity\ReviewId;
 use App\Domain\Request\CarriedFrom;
 use App\Domain\Request\ProposedDiff;
 use App\Domain\Request\PullRequestUrl;
+use App\Domain\Review\Delivery;
+use App\Domain\Review\Workspace;
 use App\Tests\Support\Domain\EventFixtures;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -114,6 +116,30 @@ final class EventRoundTripTest extends KernelTestCase
         unset($payload['title']);
 
         self::assertEquals(new RequestOpenedEvent(null, self::TITLED_BODY, null), EventType::RequestOpened->decode($payload));
+    }
+
+    #[TestDox('A batch.submitted payload without delivery decodes with delivery null')]
+    public function testDecodesBatchSubmittedWithoutDelivery(): void
+    {
+        $payload = self::eventFixturePayload('batch.submitted');
+        unset($payload['delivery']);
+
+        $event = EventType::BatchSubmitted->decode($payload);
+
+        self::assertInstanceOf(BatchSubmittedEvent::class, $event);
+        self::assertNull($event->delivery);
+    }
+
+    #[TestDox('A request.proposal_approved payload without pullRequest decodes with pullRequest null')]
+    public function testDecodesProposalApprovedWithoutPullRequest(): void
+    {
+        $payload = self::eventFixturePayload('request.proposal_approved');
+        unset($payload['pullRequest']);
+
+        $event = EventType::RequestProposalApproved->decode($payload);
+
+        self::assertInstanceOf(RequestProposalApprovedEvent::class, $event);
+        self::assertNull($event->pullRequest);
     }
 
     /**
@@ -186,7 +212,7 @@ final class EventRoundTripTest extends KernelTestCase
                 'Extract `TaxRounding` and call it from `total()` and `tax()`.',
                 ProposedDiff::fromString("diff --git a/src/Billing/InvoiceTotals.php b/src/Billing/InvoiceTotals.php\n--- a/src/Billing/InvoiceTotals.php\n+++ b/src/Billing/InvoiceTotals.php\n@@ -40 +40 @@\n-        \$sum = 0.0;\n+        \$sum = Money::zero();\n"),
             ),
-            EventType::RequestProposalApproved => new RequestProposalApprovedEvent(EventId::fromString(self::PROPOSAL), null),
+            EventType::RequestProposalApproved => new RequestProposalApprovedEvent(EventId::fromString(self::PROPOSAL), null, false),
             EventType::RequestProposalRejected => new RequestProposalRejectedEvent(EventId::fromString(self::PROPOSAL), 'Put the export into `InvoiceTotals` itself. One class is enough.'),
             EventType::RequestPlanRequired => new RequestPlanRequiredEvent(),
             EventType::RequestPlanWaived => new RequestPlanWaivedEvent(),
@@ -198,6 +224,7 @@ final class EventRoundTripTest extends KernelTestCase
                 'First pass over billing.',
                 [RequestId::fromString(self::REQUEST_A), RequestId::fromString(self::REQUEST_B)],
                 [CommentId::fromString(self::COMMENT)],
+                new Delivery(Workspace::NewBranch, true),
             ),
         };
     }

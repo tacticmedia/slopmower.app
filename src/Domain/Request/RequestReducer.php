@@ -103,7 +103,7 @@ final class RequestReducer
                 'suggestion' => SuggestionState::Dismissed === $state->suggestion ? SuggestionState::Accepted : $state->suggestion,
             ],
             $event instanceof RequestProposedEvent => ['proposal' => new Proposal($recorded->id, ProposalState::Pending)],
-            $event instanceof RequestProposalApprovedEvent => ['proposal' => self::decided($state, $event->proposalEventId, ProposalState::Approved)],
+            $event instanceof RequestProposalApprovedEvent => ['proposal' => self::decided($state, $event->proposalEventId, ProposalState::Approved, $event->pullRequest)],
             $event instanceof RequestProposalRejectedEvent => ['proposal' => self::decided($state, $event->proposalEventId, ProposalState::Rejected)],
             $event instanceof RequestPlanRequiredEvent => ['requireApproval' => true],
             $event instanceof RequestPlanWaivedEvent => ['requireApproval' => false],
@@ -164,7 +164,7 @@ final class RequestReducer
         )->with(self::tracking($recorded));
     }
 
-    private static function decided(RequestState $state, EventId $proposalEventId, ProposalState $decision): Proposal
+    private static function decided(RequestState $state, EventId $proposalEventId, ProposalState $decision, ?bool $pullRequest = null): Proposal
     {
         $proposal = $state->proposal;
 
@@ -172,7 +172,7 @@ final class RequestReducer
             throw new \LogicException("The decision names {$proposalEventId}, which is not the pending proposal.");
         }
 
-        return new Proposal($proposalEventId, $decision);
+        return new Proposal($proposalEventId, $decision, $pullRequest);
     }
 
     /**

@@ -152,7 +152,7 @@ final class RequestDecider
             $command instanceof Verify => new RequestVerifiedEvent($command->note),
             $command instanceof Reopen => new RequestReopenedEvent($command->note),
             $command instanceof ProposeSolution => new RequestProposedEvent($command->plan, null === $command->diff ? null : ProposedDiff::fromString($command->diff)),
-            $command instanceof ApproveProposal => new RequestProposalApprovedEvent($command->proposalEventId, $command->note),
+            $command instanceof ApproveProposal => new RequestProposalApprovedEvent($command->proposalEventId, $command->note, $command->pullRequest),
             $command instanceof RejectProposal => new RequestProposalRejectedEvent($command->proposalEventId, $command->note),
             $command instanceof SetPlanRequirement => $command->requireApproval ? new RequestPlanRequiredEvent() : new RequestPlanWaivedEvent(),
             $command instanceof AcceptSuggestion => new RequestSuggestionAcceptedEvent($command->requireApproval ?? $state->requireApproval),

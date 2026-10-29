@@ -16,6 +16,7 @@ use App\Controller\Api\Input\RejectProposalInput;
 use App\Controller\Api\Input\RequiredNoteInput;
 use App\Controller\Api\Input\TitleInput;
 use App\Controller\Api\Input\WontDoInput;
+use App\Domain\Error\InvalidInput;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Identity\EventId;
 use App\Domain\Request\Command\AcceptSuggestion;
@@ -111,7 +112,12 @@ final class RequestCommandController extends AbstractController
         #[MapRequestPayload(acceptFormat: 'json')] ApproveProposalInput $input,
     ): JsonResponse {
         \assert(null !== $input->proposalEventId);
-        $command = new ApproveProposal($request->getId(), EventId::fromString($input->proposalEventId), $input->note);
+
+        if (true === $input->pullRequest && !$request->getReview()->getRepository()->getSource()->hasPullRequests()) {
+            throw InvalidInput::field('pullRequest', 'This repository has no pull requests.');
+        }
+
+        $command = new ApproveProposal($request->getId(), EventId::fromString($input->proposalEventId), $input->note, $input->pullRequest);
 
         return $this->result($request, $this->commands->execute($command, $this->currentActor->get()));
     }

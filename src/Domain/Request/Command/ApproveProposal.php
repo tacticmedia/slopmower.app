@@ -13,6 +13,7 @@ final readonly class ApproveProposal implements EventOnlyCommand
         public RequestId $requestId,
         public EventId $proposalEventId,
         public ?string $note = null,
+        public ?bool $pullRequest = null,
     ) {
     }
 

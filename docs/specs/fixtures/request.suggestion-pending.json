@@ -89,5 +89,12 @@
   "commits": [],
   "pullRequestUrls": [],
   "pullRequests": [],
-  "allowedActions": ["reply", "accept_suggestion", "dismiss_suggestion", "set_title"]
+  "allowedActions": ["reply", "accept_suggestion", "dismiss_suggestion", "set_title"],
+  "delivery": {
+    "workspace": null,
+    "pullRequest": null
+  },
+  "capabilities": {
+    "pullRequests": true
+  }
 }

@@ -55,7 +55,7 @@ test.describe('BatchReview', () => {
             { kind: 'new_request', anchor: { kind: 'file', path: SMALL_FILE }, body: 'Split this class.', requireApproval: true },
             { kind: 'new_request', anchor: { kind: 'line', path: SMALL_FILE, range: { startLine: 10, endLine: 10 } }, body: 'Use a named constant.', requireApproval: true },
         ]);
-        expect(api.bodies('POST', `${DRAFTS}/submit`)).toEqual([{ summary: 'First pass.' }]);
+        expect(api.bodies('POST', `${DRAFTS}/submit`)).toEqual([{ summary: 'First pass.', delivery: { workspace: null, pullRequest: null } }]);
     });
 
     test('A draft can be edited and deleted before the submission', async ({ page, api }) => {

@@ -183,7 +183,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
    - new endpoints and tools;
    - new optional input fields or query parameters whose absence keeps the old behaviour;
    - new response properties;
-   - new values in **open** sets: `Action`, `EventType`, `ThreadEntryType`, `ErrorCode`, `SymbolKind`, `UsageLimit`, `Tour`, `language`, the live-update `type`, and the search hit `kind`;
+   - new values in **open** sets: `Action`, `EventType`, `ThreadEntryType`, `ErrorCode`, `SymbolKind`, `UsageLimit`, `Tour`, `Workspace`, `language`, the live-update `type`, and the search hit `kind`;
    - new error codes for new situations;
    - relaxed validation, for example higher limits;
    - new headers.
@@ -236,6 +236,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Plain-text summary, decision D80: without a title, `summary` is the plain text of the first non-blank line of the body, without Markdown syntax. It is a changed meaning of an existing field. The wire format does not change.
     - NUL bytes, F85: an input string with U+0000 gets 422 `invalid_input` in REST and -32602 in MCP, where it gave 500 `internal_error` or, for a name lookup, an empty result. `PullRequestUrl` excludes it too. It is tighter validation, so it is listed here.
     - Pull request hosts, decision D83: Q17 and `link_pull_request` refuse a review of a local repository with 422 `invalid_input` on `url`, where they stored any https URL. Q19 and `unlink_pull_request` still remove a stored link, and `allowedActions` does not change. Not additive: it is tighter validation.
+    - Delivery choices, decision D85: the properties `delivery` and `capabilities` of `Review` and `Request`, the schemas `Delivery`, `DeliveryInput`, and `Capabilities`, the open set `Workspace`, the optional inputs `delivery` of D5 and `pullRequest` of Q15, and the payload fields `delivery` of `batch.submitted` and `pullRequest` of `request.proposal_approved`, read as null when missing. All are additive. The API `Event` does not change.
     - MCP transport limit and sync fetch wait, F86: `mcp_http` counts per user, not per token, so all tokens of a user share one bucket. A synchronous fetch answers `fetch_failed` after waiting 5 s for a running fetch, where it waited up to 60 s (D93). Both are tighter limits, so they are listed here.
 
 ## 9. Contract tests

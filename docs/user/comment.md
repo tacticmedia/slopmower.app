@@ -51,6 +51,13 @@ To set or change the title, open the request and click **Edit**, or **Add a titl
 
 **Add comment** keeps a new comment as a draft. Only you can see drafts. When your comments are ready, click **Submit feedback** in the review header. Type an optional summary and click **Submit feedback**. Each draft then opens a change request, and the agent sees them together the next time it checks for updates.
 
+The dialog also says how your agent delivers the work:
+
+- **Branch**: **Agent decides**, **Current branch**, **New branch**, which is one branch for the review, or **Worktree**, a git worktree with its own branch.
+- **Pull request**: **Agent decides**, **Open one**, or **None**. It shows for a GitHub repository only, because a local repository has no pull requests.
+
+The review keeps your choice, and the next dialog starts from it. It counts for every request of the review. When you approve a plan, you can decide on the pull request for that request, as [Ask for a plan first](requests.md#ask-for-a-plan-first) shows.
+
 Submitting feedback does not end the review. You can add more comments and submit feedback again. To end the review, close it, as [Close a review](requests.md#close-a-review) shows.
 
 A reply in a thread is not a draft. **Reply** sends it at once, because the agent often waits for your answer. The buttons of a request, for example **Verify** or **Approve**, also act at once.

@@ -12,9 +12,11 @@ use App\Domain\Git\CommitSha;
 use App\Domain\Git\RefName;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Identity\TenantId;
+use App\Domain\Review\Delivery;
 use App\Domain\Review\IndexState;
 use App\Domain\Review\ReviewSnapshot;
 use App\Domain\Review\ReviewState;
+use App\Domain\Review\Workspace;
 use App\Repository\ReviewRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -63,6 +65,12 @@ class Review implements TenantOwned
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $closeNote = null;
+
+    #[ORM\Column(nullable: true, enumType: Workspace::class)]
+    private ?Workspace $deliveryWorkspace = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?bool $deliveryPullRequest = null;
 
     #[ORM\Column(type: Types::BIGINT)]
     private int $lastEventSeq;
@@ -128,6 +136,8 @@ class Review implements TenantOwned
         $this->closedAt = $snapshot->closedAt;
         $this->closedBy = ActorEmbeddable::of($snapshot->closedBy);
         $this->closeNote = $snapshot->closeNote;
+        $this->deliveryWorkspace = $snapshot->delivery->workspace;
+        $this->deliveryPullRequest = $snapshot->delivery->pullRequest;
         $this->lastEventSeq = $lastEventSeq;
     }
 
@@ -169,6 +179,11 @@ class Review implements TenantOwned
         $this->indexFinishedAt = $finishedAt;
     }
 
+    public function getDelivery(): Delivery
+    {
+        return new Delivery($this->deliveryWorkspace, $this->deliveryPullRequest);
+    }
+
     public function toSnapshot(): ReviewSnapshot
     {
         return new ReviewSnapshot(
@@ -181,6 +196,7 @@ class Review implements TenantOwned
             closedAt: $this->closedAt,
             closedBy: $this->getClosedBy(),
             closeNote: $this->closeNote,
+            delivery: $this->getDelivery(),
         );
     }
 

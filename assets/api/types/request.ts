@@ -4,8 +4,10 @@ import type { CommitLink } from './commit-link';
 import type {
     Action,
     Awaiting,
+    Capabilities,
     CommitSha,
     DateTime,
+    Delivery,
     EventSeq,
     Markdown,
     Proposal,
@@ -79,4 +81,7 @@ export type Request = {
     pullRequests: PullRequest[];
     /** For the caller. Empty when the review is closed. */
     allowedActions: Action[];
+    /** The pull request choice of an approved proposal wins over that of the review. */
+    delivery: Delivery;
+    capabilities: Capabilities;
 } & RequestClaim;

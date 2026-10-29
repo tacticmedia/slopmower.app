@@ -152,6 +152,7 @@ Example response, [fixtures/lists.request-page.json](fixtures/lists.request-page
   - `commit.linked` and `pull_request.linked` events whose `requestIds` contain it;
   - `commit.found` events for commits linked to it.
 - `commits` is sorted by `linkedAt`. `pullRequestUrls` is in link order.
+- `delivery` is the effective delivery choice (D85): `workspace` of `Review.delivery`, and `pullRequest` of the approved proposal when its approval set one, else of `Review.delivery`. `capabilities` is `Review.capabilities`. The agent reads both before the claim and after an approval.
 - `pullRequests` has one entry `{url, state, title}` per URL of `pullRequestUrls`, in the same order. For a GitHub repository, `state` is `draft` for an open draft, `merged` for a closed pull request that was merged, else `open` or `closed`, and `title` is the title on GitHub. `state` is `unknown`, with `title` null, for a local repository, a state that the server has not read yet, a pull request that GitHub does not find, and an installation that has not accepted Pull requests: read. [webhooks-and-live-updates.md](webhooks-and-live-updates.md#pull-request-state) says when the server reads the state. Example: [fixtures/request.pull-request.json](fixtures/request.pull-request.json).
 - `carriedFrom` names the source request of a request that [V15](rest-api.md#v15-carry-over-open-requests) carried over, else it is null. Example: [fixtures/request.carried.json](fixtures/request.carried.json).
 
@@ -198,7 +199,9 @@ Example response for `GET /api/v1/requests/01K6B3P2A9QRSTVWXYZ0123456?at=a1b2c3d
   ],
   "pullRequestUrls": [],
   "pullRequests": [],
-  "allowedActions": ["reply","release","link_commits","unlink_commit","link_pull_request","mark_ready_for_review","mark_wont_do","propose_solution","set_title"]
+  "allowedActions": ["reply","release","link_commits","unlink_commit","link_pull_request","mark_ready_for_review","mark_wont_do","propose_solution","set_title"],
+  "delivery": {"workspace":"new_branch","pullRequest":true},
+  "capabilities": {"pullRequests":true}
 }
 ```
 
@@ -416,9 +419,11 @@ The proposal replaces the current one, also an approved one. The request then wa
 
 - **Request:** `POST /api/v1/requests/{requestId}/approve-proposal`
 - **Authentication:** S
-- **Body:** [`ApproveProposalInput`](schemas/inputs.schema.json), `{proposalEventId, note?}`. Example: [fixtures/inputs.approve-proposal.json](fixtures/inputs.approve-proposal.json).
+- **Body:** [`ApproveProposalInput`](schemas/inputs.schema.json), `{proposalEventId, note?, pullRequest?}`. Example: [fixtures/inputs.approve-proposal.json](fixtures/inputs.approve-proposal.json).
 - **Success:** 200 `RequestCommandResult` with one `request.proposal_approved` event. `proposal.state` becomes `approved`, and the request waits for the agent.
-- **Errors:** 422 `invalid_input`: `proposalEventId` is not the pending proposal; 409 `invalid_transition`: no proposal is pending; 409 `review_closed`.
+- **Errors:** 422 `invalid_input`: `proposalEventId` is not the pending proposal, or `pullRequest` is true and the repository has no pull requests (D83); 409 `invalid_transition`: no proposal is pending; 409 `review_closed`.
+
+`pullRequest` decides for this request whether its work goes into a pull request, and `Request.delivery.pullRequest` shows it while the proposal stays approved. Absent or null leaves the choice of the review. The web UI sends it whenever `capabilities.pullRequests` is true (D85). A release, a won't do, or a reopen clears the proposal with its choice.
 
 ### Q16 Reject a proposal
 
@@ -613,16 +618,18 @@ The anchor cannot change. To move a draft, delete it and create a new one.
 
 - **Request:** `POST /api/v1/reviews/{reviewId}/drafts/submit`
 - **Authentication:** S
-- **Body:** [`SubmitDraftsInput`](schemas/inputs.schema.json), `{summary?}`. Example: [fixtures/inputs.submit-drafts.json](fixtures/inputs.submit-drafts.json).
+- **Body:** [`SubmitDraftsInput`](schemas/inputs.schema.json), `{summary?, delivery?}`. Example: [fixtures/inputs.submit-drafts.json](fixtures/inputs.submit-drafts.json).
 - **Success:** 201 [`BatchSubmission`](schemas/batch-submission.schema.json)
-- **Errors:** 422 `invalid_input` when there are no drafts; 409 `review_closed`; 409 `limit_exceeded` with `limit: requests_per_review` when the `new_request` drafts would pass the limit.
+- **Errors:** 422 `invalid_input` when there are no drafts, or when `delivery.pullRequest` is true and the repository has no pull requests (D83); 409 `review_closed`; 409 `limit_exceeded` with `limit: requests_per_review` when the `new_request` drafts would pass the limit.
 
 One transaction:
 
 1. takes all drafts of the caller in the review, sorted by `createdAt`, and creates a `batchId`;
 2. for each draft, writes `request.opened` or `request.commented` with that `batchId`. A `new_request` draft opens its request with its title, and a general draft opens a general request;
-3. writes `batch.submitted` with `summary`, `requestIds`, and `commentIds`;
+3. writes `batch.submitted` with `summary`, `delivery`, `requestIds`, and `commentIds`;
 4. deletes the drafts.
+
+`delivery` replaces `Review.delivery` (D85). A missing key of it is null. An absent or null `delivery` keeps the stored choice, and so does a `batch.submitted` event without the field. The choice counts for every request of the review, also for one opened before. An approval can set `pullRequest` for one request ([Q15](#q15-approve-a-proposal)).
 
 Example response, [fixtures/batch-submission.submitted.json](fixtures/batch-submission.submitted.json):
 

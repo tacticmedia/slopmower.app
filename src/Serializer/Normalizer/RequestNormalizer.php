@@ -40,6 +40,8 @@ final class RequestNormalizer implements NormalizerInterface, NormalizerAwareInt
             'pullRequestUrls' => $state->pullRequestUrls,
             'pullRequests' => $data->pullRequests,
             'allowedActions' => $data->allowedActions,
+            'delivery' => $state->delivery($review->getDelivery())->toPayload(),
+            'capabilities' => ['pullRequests' => $review->getRepository()->getSource()->hasPullRequests()],
         ], $format, $context);
         \assert(\is_array($summary) && \is_array($details));
 

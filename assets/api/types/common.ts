@@ -192,3 +192,19 @@ export type UsageLimit = OpenSet<KnownUsageLimit>;
 export const TOURS = ['code_browser', 'file'] as const;
 export type KnownTour = (typeof TOURS)[number];
 export type Tour = OpenSet<KnownTour>;
+
+/** Where the agent commits. */
+export const WORKSPACES = ['current_branch', 'new_branch', 'worktree'] as const;
+export type KnownWorkspace = (typeof WORKSPACES)[number];
+export type Workspace = OpenSet<KnownWorkspace>;
+
+/** How the agent delivers its work (D85). Null lets the agent decide. */
+export type Delivery = {
+    workspace: Workspace | null;
+    pullRequest: boolean | null;
+};
+
+/** What the host of the repository offers. */
+export type Capabilities = {
+    pullRequests: boolean;
+};

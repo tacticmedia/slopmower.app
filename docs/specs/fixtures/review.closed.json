@@ -23,6 +23,13 @@
     "avatarUrl": "https://avatars.githubusercontent.com/u/1?v=4"
   },
   "closeNote": "Shipped in 2.4",
+  "delivery": {
+    "workspace": null,
+    "pullRequest": null
+  },
+  "capabilities": {
+    "pullRequests": true
+  },
   "index": {
     "state": "ready",
     "filesTotal": 1240,

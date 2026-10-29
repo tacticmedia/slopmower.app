@@ -55,6 +55,13 @@ final readonly class PayloadReader
         return is_bool($value) ? $value : throw $this->violation($key, 'Must be a boolean.');
     }
 
+    public function nullableBool(string $key): ?bool
+    {
+        $value = $this->data[$key] ?? null;
+
+        return null === $value || is_bool($value) ? $value : throw $this->violation($key, 'Must be a boolean or null.');
+    }
+
     public function boolOr(string $key, bool $default): bool
     {
         return array_key_exists($key, $this->data) ? $this->bool($key) : $default;

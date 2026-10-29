@@ -1,3 +1,8 @@
+/* Primer puts each portal in a wrapper with z-index 1, below the sticky headers of the pages. */
+:global(#__primerPortalRoot__) {
+    z-index: var(--zIndex-overlay);
+}
+
 .page {
     min-height: 100vh;
     background-color: var(--bgColor-default);

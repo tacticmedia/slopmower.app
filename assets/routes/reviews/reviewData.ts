@@ -58,7 +58,12 @@ export async function reviewAction({ request, params }: ActionFunctionArgs): Pro
     }
 
     if ('submit' === intent) {
-        const input: SubmitDraftsInput = { summary: optionalText(form.get('summary')) };
+        const workspace = form.get('workspace');
+        const pullRequest = form.get('pullRequest');
+        const input: SubmitDraftsInput = {
+            summary: optionalText(form.get('summary')),
+            delivery: { workspace: 'string' === typeof workspace && '' !== workspace ? workspace : null, pullRequest: 'true' === pullRequest ? true : 'false' === pullRequest ? false : null },
+        };
 
         return writeResult(async () => {
             const submission = await apiWrite<BatchSubmission>('POST', `${review}/drafts/submit`, input);

@@ -414,6 +414,8 @@ Example response, [fixtures/review.open.json](fixtures/review.open.json):
   "closedAt": null,
   "closedBy": null,
   "closeNote": null,
+  "delivery": {"workspace":null,"pullRequest":null},
+  "capabilities": {"pullRequests":true},
   "index": {"state":"pending","filesTotal":null,"filesDone":0,"symbolsTotal":0,"startedAt":null,"finishedAt":null,"error":null},
   "counts": {"total":0,"byStatus":{"open":0,"in_progress":0,"ready_for_review":0,"verified":0,"reopened":0,"wont_do":0},"byAwaiting":{"agent":0,"user":0,"none":0},"outdated":0},
   "lastEventSeq": 1801
@@ -441,7 +443,7 @@ Example response: [fixtures/lists.review-page.json](fixtures/lists.review-page.j
 
 - **Request:** `GET /api/v1/reviews/{reviewId}`
 - **Authentication:** S, B
-- **Success:** 200 [`Review`](schemas/review.schema.json), with counts and index state.
+- **Success:** 200 [`Review`](schemas/review.schema.json), with counts and index state. `delivery` is the latest choice of [D5](rest-api-requests.md#d5-submit-drafts), and `capabilities.pullRequests` says whether the host has pull requests (D83).
 - **Errors:** common errors only.
 
 Examples: [fixtures/review.open.json](fixtures/review.open.json), [fixtures/review.closed.json](fixtures/review.closed.json).

@@ -184,7 +184,7 @@ A row counts the PHP files of its namespace and of the sub-namespaces without a 
 | `App` | 2 | Kernel. Allows the `e2e` environment. Makes the HWIOAuth GitHub resource owner non-shared, and gives each rate limiter the advisory-lock `LockFactory`. The schedule of the daily retention jobs and the hourly index recovery. | `Kernel`, `Schedule` | FrameworkBundle, Message |
 | `App\Domain\Request` | 22 | Request state machine: decide, fold, awaiting, allowed actions, and the errors `InvalidTransition` and `CommitsNotAvailable` of the decider. The output of the check run of a pull request. | `RequestDecider`, `RequestReducer`, `RequestState`, `AllowedActions`, `AwaitingPolicy`, `CheckRunOutput` | Domain only |
 | `App\Domain\Request\Command` | 21 | Input DTOs of the 20 request commands | `RequestCommand`, `Open`, `Claim`, `Reply`, `LinkCommits` | Domain only |
-| `App\Domain\Review` | 7 | Review start and close, with the same decider and reducer shape | `ReviewDecider`, `ReviewReducer`, `ReviewSnapshot` | Domain only |
+| `App\Domain\Review` | 9 | Review start and close, and the delivery choice of D85, with the same decider and reducer shape | `ReviewDecider`, `ReviewReducer`, `ReviewSnapshot` | Domain only |
 | `App\Domain\Event` | 29 | The 24 event types, the two envelopes, and `WontDoReason`, a payload value | `DomainEvent`, `EventType`, `DecidedEvent`, `RecordedEvent` | Domain only |
 | `App\Domain\Event\Codec` | 5 | Stored JSON format of payloads (D37). The shared normalizers also use `AnchorCodec` and `TimeCodec`. | `PayloadReader`, `AnchorCodec`, `PayloadJson`, `TimeCodec` | Domain only |
 | `App\Domain\Anchor` | 7 | Anchor value object and capture rules | `Anchor`, `ContentSnapshot`, `SnapshotCapture`, `LineRange` | Domain only |

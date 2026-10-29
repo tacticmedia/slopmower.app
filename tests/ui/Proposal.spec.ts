@@ -69,16 +69,32 @@ test.describe('Proposal', () => {
         expect(await readFile(await download.path(), 'utf8')).toBe(DIFF);
     });
 
-    test('Approve sends Q15 with the current proposal', async ({ page, api }) => {
-        const review = new FakeReview(api);
+    test('Approve sends Q15 with the current proposal and the pull request checkbox, which starts from the review choice', async ({ page, api }) => {
+        const review = new FakeReview(api, { review: { delivery: { workspace: null, pullRequest: true } } });
         const requestId = claimedRequest(review);
         const { eventId } = review.agentProposes(requestId, PLAN, DIFF);
         await openRequest(page, requestId);
+        const pullRequest = proposal(page, eventId).getByRole('checkbox', { name: 'Send as a pull request', exact: true });
+        await expect(pullRequest).toBeChecked();
 
+        await pullRequest.uncheck();
         await proposal(page, eventId).getByRole('button', { name: 'Approve', exact: true }).click();
 
         await expect(proposal(page, eventId).locator('[data-testid="proposal-state"]')).toHaveText('Approved');
         await expect(page.locator(DETAIL_THREAD)).toContainText('approved the proposal');
+        expect(api.bodies('POST', '/api/v1/requests/:requestId/approve-proposal')).toEqual([{ proposalEventId: eventId, pullRequest: false }]);
+    });
+
+    test('On a local repository, Approve has no pull request checkbox and sends no choice', async ({ page, api }) => {
+        const review = new FakeReview(api, { review: { capabilities: { pullRequests: false } } });
+        const requestId = claimedRequest(review);
+        const { eventId } = review.agentProposes(requestId, PLAN, DIFF);
+        await openRequest(page, requestId);
+
+        await expect(proposal(page, eventId).getByRole('checkbox')).toHaveCount(0);
+        await proposal(page, eventId).getByRole('button', { name: 'Approve', exact: true }).click();
+
+        await expect(proposal(page, eventId).locator('[data-testid="proposal-state"]')).toHaveText('Approved');
         expect(api.bodies('POST', '/api/v1/requests/:requestId/approve-proposal')).toEqual([{ proposalEventId: eventId }]);
     });
 

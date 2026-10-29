@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Review;
 
+use App\Domain\Event\BatchSubmittedEvent;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Event\ReviewClosedEvent;
 use App\Domain\Event\ReviewStartedEvent;
@@ -42,6 +43,10 @@ final class ReviewReducer
             throw new \LogicException("{$recorded->type->value} needs its started review.");
         }
 
+        if ($event instanceof BatchSubmittedEvent && null !== $event->delivery) {
+            return $review->withDelivery($event->delivery);
+        }
+
         if (!$event instanceof ReviewClosedEvent) {
             return $review;
         }
@@ -56,6 +61,7 @@ final class ReviewReducer
             closedAt: $recorded->occurredAt,
             closedBy: $recorded->actor,
             closeNote: $event->note,
+            delivery: $review->delivery,
         );
     }
 }

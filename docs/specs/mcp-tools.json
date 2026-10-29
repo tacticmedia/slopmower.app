@@ -28,7 +28,7 @@
         {
             "name": "get_request",
             "title": "Get request",
-            "description": "Return one request in full: title, body, thread, anchor with a code snapshot at the review commit, linked commits, location, and the actions you may take now (allowedActions). `at` locates the anchor at another commit that the server's clone has (pushed, or committed in a local repository); by default the location is at the default-branch head. Your working tree can differ: find the code with anchor.snapshot, its before and after lines, and anchor.symbol.fqn. A general request has anchor, location, and excerpt null. It belongs to the whole review, and its body and thread say what to change. A request with title null has no title: give it one with set_request_title before you claim it.",
+            "description": "Return one request in full: title, body, thread, anchor with a code snapshot at the review commit, linked commits, location, how to deliver the work (delivery), and the actions you may take now (allowedActions). `at` locates the anchor at another commit that the server's clone has (pushed, or committed in a local repository); by default the location is at the default-branch head. Your working tree can differ: find the code with anchor.snapshot, its before and after lines, and anchor.symbol.fqn. A general request has anchor, location, and excerpt null. It belongs to the whole review, and its body and thread say what to change. A request with title null has no title: give it one with set_request_title before you claim it.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -160,7 +160,7 @@
         {
             "name": "link_pull_request",
             "title": "Link pull request",
-            "description": "Record that a pull request implements one or more requests: each one in_progress and held by you, or ready_for_review. For a GitHub repository the URL is https://github.com/{owner}/{name}/pull/{number} of the reviewed repository. A local repository has no pull requests. Linking does not change the status. Open a pull request only when the user or the repository's instructions ask for it.",
+            "description": "Record that a pull request implements one or more requests: each one in_progress and held by you, or ready_for_review. For a GitHub repository the URL is https://github.com/{owner}/{name}/pull/{number} of the reviewed repository. A local repository has no pull requests. Linking does not change the status. Open a pull request when delivery.pullRequest of get_request is true; when it is null, only when the user or the repository's instructions ask for it.",
             "inputSchema": {
                 "type": "object",
                 "properties": {

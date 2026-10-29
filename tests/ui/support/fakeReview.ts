@@ -110,6 +110,8 @@ export class FakeReview {
     readonly #symbols: Record<string, CodeSymbol[]>;
     readonly #draftAnchors = new Map<string, AnchorInput | null>();
     readonly #tracking = new Map<string, Tracking>();
+    /** The pull request choice of the latest approval per request (D85). */
+    readonly #approvalChoices = new Map<string, boolean | null>();
     #seq: number;
 
     constructor(api: MockApi, options: FakeReviewOptions = {}) {
@@ -253,7 +255,10 @@ export class FakeReview {
     #present(request: Request): Request {
         const allowedActions = 'closed' === this.review.state ? [] : userActions(request.status, this.#trackingOf(request.id).wontDoBy, request.proposal, request.suggestion);
 
-        return { ...request, reviewState: this.review.state, allowedActions };
+        const approved = 'approved' === request.proposal?.state ? (this.#approvalChoices.get(request.id) ?? null) : null;
+        const delivery = { workspace: this.review.delivery.workspace, pullRequest: approved ?? this.review.delivery.pullRequest };
+
+        return { ...request, reviewState: this.review.state, allowedActions, delivery, capabilities: this.review.capabilities };
     }
 
     #openRequest(input: AnchorInput | null, body: string, batchId: string | null = null, requireApproval = false, title: string | null = null): Request {
@@ -342,7 +347,8 @@ export class FakeReview {
             case 'verify':
                 return this.#apply(id, this.#entry('request.verified', USER, (input as OptionalNoteInput).note ?? null, 'verified'), { status: 'verified' });
             case 'approve-proposal': {
-                const { proposalEventId, note } = input as ApproveProposalInput;
+                const { proposalEventId, note, pullRequest } = input as ApproveProposalInput;
+                this.#approvalChoices.set(id, pullRequest ?? null);
 
                 return this.#apply(id, this.#entry('request.proposal_approved', USER, note ?? null, status), { proposal: { eventId: proposalEventId, state: 'approved' } });
             }
@@ -670,6 +676,12 @@ export class FakeReview {
         }
         if (this.drafts.some(({ kind }) => 'reply' === kind)) {
             throw new Error('The fake submits new-request drafts only.');
+        }
+        if (true === input.delivery?.pullRequest && !this.review.capabilities.pullRequests) {
+            return apiError(422, 'invalid_input', 'This repository has no pull requests.', { violations: [{ field: 'delivery.pullRequest', message: 'This repository has no pull requests.' }] });
+        }
+        if (null != input.delivery) {
+            this.review = { ...this.review, delivery: { workspace: input.delivery.workspace ?? null, pullRequest: input.delivery.pullRequest ?? null } };
         }
         const batchId = newId();
         const opened = this.drafts.map((draft) => this.#openRequest(this.#draftAnchors.get(draft.id) ?? null, draft.body, batchId, draft.requireApproval, draft.title));

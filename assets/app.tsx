@@ -2,6 +2,7 @@ import '@primer/primitives/dist/css/functional/themes/light.css';
 import '@primer/primitives/dist/css/functional/themes/dark.css';
 // Motion, size, space, and typography tokens.
 import '@primer/primitives/dist/css/primitives.css';
+import '@primer/primitives/dist/css/functional/size/z-index.css';
 import { BaseStyles } from '@primer/react';
 import { ThemeProvider } from '@primer/react/next';
 import { StrictMode } from 'react';

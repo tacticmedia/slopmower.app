@@ -10,18 +10,21 @@ use App\Domain\Identity\BatchId;
 use App\Domain\Identity\CommentId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\UniqueIds;
+use App\Domain\Review\Delivery;
 
 final readonly class BatchSubmittedEvent implements DomainEvent
 {
     /**
      * @param list<RequestId> $requestIds The opened and the commented requests
      * @param list<CommentId> $commentIds
+     * @param Delivery|null   $delivery   Null keeps the delivery of the review
      */
     public function __construct(
         public BatchId $batchId,
         public ?string $summary,
         public array $requestIds,
         public array $commentIds,
+        public ?Delivery $delivery = null,
     ) {
         $violations = [
             ...UniqueIds::violations($requestIds, 'requestIds'),
@@ -45,18 +48,21 @@ final readonly class BatchSubmittedEvent implements DomainEvent
             'summary' => $this->summary,
             'requestIds' => array_map(static fn (RequestId $id): string => $id->toString(), $this->requestIds),
             'commentIds' => array_map(static fn (CommentId $id): string => $id->toString(), $this->commentIds),
+            'delivery' => $this->delivery?->toPayload(),
         ];
     }
 
     public static function fromPayload(array $payload): self
     {
         $reader = PayloadReader::of($payload);
+        $delivery = $reader->nullableObject('delivery');
 
         return $reader->build(static fn (): self => new self(
             $reader->id('batchId', BatchId::class),
             $reader->nullableString('summary'),
             $reader->idList('requestIds', RequestId::class),
             $reader->idList('commentIds', CommentId::class),
+            null === $delivery ? null : Delivery::fromPayload($delivery),
         ));
     }
 }

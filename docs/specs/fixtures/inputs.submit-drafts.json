@@ -1,3 +1,7 @@
 {
-  "summary": "First pass over billing."
+  "summary": "First pass over billing.",
+  "delivery": {
+    "workspace": "new_branch",
+    "pullRequest": false
+  }
 }

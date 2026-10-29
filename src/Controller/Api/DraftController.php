@@ -174,6 +174,10 @@ final class DraftController extends AbstractController
         UsageLimits $usageLimits,
         #[MapRequestPayload(acceptFormat: 'json')] SubmitDraftsInput $input = new SubmitDraftsInput(),
     ): JsonResponse {
+        if (true === $input->delivery?->pullRequest && !$review->getRepository()->getSource()->hasPullRequests()) {
+            throw InvalidInput::field('delivery.pullRequest', 'This repository has no pull requests.');
+        }
+
         $actor = $this->currentActor->get();
         $batchId = BatchId::generate();
         /** @var list<Draft> $drafts */
@@ -194,7 +198,7 @@ final class DraftController extends AbstractController
                 $opened = array_filter($decided, static fn (DecidedEvent $event): bool => $event->event instanceof RequestOpenedEvent);
                 $usageLimits->checkNewRequests($review->getTenantId(), $review->getId(), \count($opened));
 
-                return [...$decided, new DecidedEvent(self::batchSubmitted($batchId, $input->summary, $decided))];
+                return [...$decided, new DecidedEvent(self::batchSubmitted($batchId, $input, $decided))];
             },
             function () use (&$drafts): void {
                 foreach ($drafts as $draft) {
@@ -243,7 +247,7 @@ final class DraftController extends AbstractController
     /**
      * @param list<DecidedEvent> $decided The request events of the batch
      */
-    private static function batchSubmitted(BatchId $batchId, ?string $summary, array $decided): BatchSubmittedEvent
+    private static function batchSubmitted(BatchId $batchId, SubmitDraftsInput $input, array $decided): BatchSubmittedEvent
     {
         $requestIds = [];
         $commentIds = [];
@@ -257,7 +261,7 @@ final class DraftController extends AbstractController
             }
         }
 
-        return new BatchSubmittedEvent($batchId, $summary, array_values($requestIds), $commentIds);
+        return new BatchSubmittedEvent($batchId, $input->summary, array_values($requestIds), $commentIds, $input->delivery);
     }
 
     /**

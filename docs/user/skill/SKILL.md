@@ -84,7 +84,7 @@ Handle every request whose `awaiting` is `agent`. Do `reopened` requests first,
 and read their whole thread, because the user rejected an earlier result.
 
 1. Call `get_request` with `id`. Read `title`, `body`, `thread`, `anchor`,
-   `location`, and `allowedActions`.
+   `location`, `delivery`, and `allowedActions`.
    - A request with `title` null has no title. Before you claim it, call
      `set_request_title` with one line of at most 80 characters that
      summarizes its body.
@@ -123,14 +123,21 @@ and read their whole thread, because the user rejected an earlier result.
      `request.proposed` entry from `get_request`, and `git stash drop` the entry
      that `git stash list` names `slopmower <requestId>`. If
      `git apply --index` fails, implement the approved plan by hand, then drop
-     the stash entry. Without a diff, implement the approved plan. Go on with
-     step 5.
+     the stash entry. Without a diff, implement the approved plan. Call
+     `get_request` again, because the approval can set
+     `delivery.pullRequest`. Go on with step 5.
    - Changes requested (`rejected`): drop that stash entry, read the note of the
      `request.proposal_rejected` entry, and propose again.
    - Link no commit while the proposal is pending or rejected, or while
      `requireApproval` is true and no proposal is approved. The server refuses
      with `invalid_transition`.
-5. Make the smallest change that does what the request asks. Run the tests and
+5. Work where `delivery.workspace` says:
+   - `current_branch`: commit on the checked-out branch.
+   - `new_branch`: one branch per review, named by you.
+   - `worktree`: a git worktree with its own branch.
+   - null: your choice.
+
+   Make the smallest change that does what the request asks. Run the tests and
    the static analysis that the project uses.
 6. Commit. Use one commit per request when possible. One commit may cover
    several requests when the changes cannot be separated. Put the request IDs in
@@ -144,9 +151,11 @@ and read their whole thread, because the user rejected an earlier result.
    - Local repository: the commit must be on a branch of the connected
      repository. Committing is enough. A commit in a worktree of that
      repository counts. Do not push.
-9. If you opened a pull request for the work, link it with
-   `link_pull_request`: its URL and every request ID that it covers. Open one
-   only when the user or the repository's instructions ask for it. The URL
+9. Open a pull request when `delivery.pullRequest` is true, never when it is
+   false, and when it is null only when the user or the repository's
+   instructions ask for it. With `current_branch` on the default branch and
+   `pullRequest` true, ask in the thread first. Link the pull request with
+   `link_pull_request`: its URL and every request ID that it covers. The URL
    must be a pull request of the GitHub repository. A local repository has no
    pull requests. While the request is in progress, the proposal rule of step 4
    applies as for commits. You can also link it after step 10.

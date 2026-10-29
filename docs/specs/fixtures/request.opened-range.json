@@ -89,5 +89,12 @@
   "commits": [],
   "pullRequestUrls": [],
   "pullRequests": [],
-  "allowedActions": ["reply", "mark_wont_do", "set_plan_requirement", "set_title"]
+  "allowedActions": ["reply", "mark_wont_do", "set_plan_requirement", "set_title"],
+  "delivery": {
+    "workspace": null,
+    "pullRequest": null
+  },
+  "capabilities": {
+    "pullRequests": true
+  }
 }

@@ -17,6 +17,7 @@ final readonly class ApproveProposalInput
         public ?string $proposalEventId = null,
         #[Assert\Length(max: 65536)]
         public ?string $note = null,
+        public ?bool $pullRequest = null,
     ) {
     }
 }

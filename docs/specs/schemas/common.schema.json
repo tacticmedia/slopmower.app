@@ -131,6 +131,39 @@
         }
       }
     },
+    "Delivery": {
+      "type": "object",
+      "required": ["workspace", "pullRequest"],
+      "properties": {
+        "workspace": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Workspace"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Null: the agent decides."
+        },
+        "pullRequest": {
+          "type": ["boolean", "null"],
+          "description": "True: push, open a pull request, and link it. False: open none. Null: the agent decides."
+        }
+      },
+      "description": "How the agent delivers its work (D85)."
+    },
+    "Capabilities": {
+      "type": "object",
+      "required": ["pullRequests"],
+      "properties": {
+        "pullRequests": {
+          "type": "boolean",
+          "description": "The repository host has pull requests (D83)."
+        }
+      },
+      "description": "What the host of the repository offers."
+    },
     "PullRequestState": {
       "enum": ["open", "draft", "merged", "closed", "unknown"],
       "description": "unknown: a local repository, a state not read yet, a pull request that GitHub does not find, or an installation without the permission Pull requests: read."
@@ -214,6 +247,17 @@
         }
       ],
       "description": "Open set. A part of the review tour of the web UI: code_browser on a directory, file on a file view."
+    },
+    "Workspace": {
+      "anyOf": [
+        {
+          "enum": ["current_branch", "new_branch", "worktree"]
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "Open set. Where the agent commits: current_branch, the checked-out branch; new_branch, one branch per review that the agent names; worktree, a git worktree with its own branch."
     }
   }
 }

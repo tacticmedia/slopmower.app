@@ -237,9 +237,35 @@ final class BundledSchemas
             'ActorKind' => [
                 'enum' => ['user', 'agent', 'system'],
             ],
+            'Capabilities' => [
+                'type' => 'object',
+                'required' => ['pullRequests'],
+                'properties' => [
+                    'pullRequests' => ['type' => 'boolean', 'description' => 'The repository host has pull requests (D83).'],
+                ],
+                'description' => 'What the host of the repository offers.',
+            ],
             'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
+            'Delivery' => [
+                'type' => 'object',
+                'required' => ['workspace', 'pullRequest'],
+                'properties' => [
+                    'workspace' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Workspace'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Null: the agent decides.',
+                    ],
+                    'pullRequest' => [
+                        'type' => ['boolean', 'null'],
+                        'description' => 'True: push, open a pull request, and link it. False: open none. Null: the agent decides.',
+                    ],
+                ],
+                'description' => 'How the agent delivers its work (D85).',
+            ],
             'EventSeq' => ['type' => 'integer', 'minimum' => 0, 'description' => 'Per-tenant event number, gapless, in commit order.'],
             'IndexState' => [
                 'enum' => ['pending', 'running', 'ready', 'failed'],
@@ -402,7 +428,7 @@ final class BundledSchemas
             'Review' => [
                 'title' => 'Review',
                 'type' => 'object',
-                'required' => ['id', 'repositoryId', 'repositoryName', 'title', 'ref', 'commitSha', 'state', 'startedBy', 'createdAt', 'closedAt', 'closedBy', 'closeNote', 'index', 'counts', 'lastEventSeq'],
+                'required' => ['id', 'repositoryId', 'repositoryName', 'title', 'ref', 'commitSha', 'state', 'startedBy', 'createdAt', 'closedAt', 'closedBy', 'closeNote', 'delivery', 'capabilities', 'index', 'counts', 'lastEventSeq'],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
                     'repositoryId' => ['$ref' => '#/$defs/Ulid'],
@@ -429,6 +455,8 @@ final class BundledSchemas
                         'type' => ['string', 'null'],
                         'maxLength' => 65536,
                     ],
+                    'delivery' => ['$ref' => '#/$defs/Delivery', 'description' => 'The latest choice of Submit feedback (D5). Both values are null until the user picks one.'],
+                    'capabilities' => ['$ref' => '#/$defs/Capabilities'],
                     'index' => ['$ref' => '#/$defs/IndexStatus'],
                     'counts' => ['$ref' => '#/$defs/RequestCounts'],
                     'lastEventSeq' => ['$ref' => '#/$defs/EventSeq'],
@@ -486,6 +514,15 @@ final class BundledSchemas
                 ],
             ],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'Workspace' => [
+                'anyOf' => [
+                    [
+                        'enum' => ['current_branch', 'new_branch', 'worktree'],
+                    ],
+                    ['type' => 'string'],
+                ],
+                'description' => 'Open set. Where the agent commits: current_branch, the checked-out branch; new_branch, one branch per review that the agent names; worktree, a git worktree with its own branch.',
+            ],
         ],
     ];
 
@@ -1367,7 +1404,7 @@ final class BundledSchemas
         'type' => 'object',
         'required' => [
             'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'title', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq',
-            'carriedFrom', 'requireApproval', 'suggestion', 'proposal', 'body', 'reviewState', 'reviewCommitSha', 'location', 'excerpt', 'thread', 'commits', 'pullRequestUrls', 'pullRequests', 'allowedActions',
+            'carriedFrom', 'requireApproval', 'suggestion', 'proposal', 'body', 'reviewState', 'reviewCommitSha', 'location', 'excerpt', 'thread', 'commits', 'pullRequestUrls', 'pullRequests', 'allowedActions', 'delivery', 'capabilities',
         ],
         'properties' => [
             'id' => ['$ref' => '#/$defs/Ulid'],
@@ -1482,6 +1519,8 @@ final class BundledSchemas
                 'items' => ['$ref' => '#/$defs/Action'],
                 'description' => 'For the caller. Empty when the review is closed.',
             ],
+            'delivery' => ['$ref' => '#/$defs/Delivery', 'description' => 'The effective choice: workspace from the review, pullRequest from the approved proposal when it has one, else from the review.'],
+            'capabilities' => ['$ref' => '#/$defs/Capabilities'],
         ],
         'allOf' => [
             [
@@ -1641,6 +1680,14 @@ final class BundledSchemas
             'Awaiting' => [
                 'enum' => ['agent', 'user', 'none'],
             ],
+            'Capabilities' => [
+                'type' => 'object',
+                'required' => ['pullRequests'],
+                'properties' => [
+                    'pullRequests' => ['type' => 'boolean', 'description' => 'The repository host has pull requests (D83).'],
+                ],
+                'description' => 'What the host of the repository offers.',
+            ],
             'CarriedFrom' => [
                 'type' => 'object',
                 'required' => ['reviewId', 'requestId'],
@@ -1756,6 +1803,24 @@ final class BundledSchemas
                 ],
             ],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
+            'Delivery' => [
+                'type' => 'object',
+                'required' => ['workspace', 'pullRequest'],
+                'properties' => [
+                    'workspace' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Workspace'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Null: the agent decides.',
+                    ],
+                    'pullRequest' => [
+                        'type' => ['boolean', 'null'],
+                        'description' => 'True: push, open a pull request, and link it. False: open none. Null: the agent decides.',
+                    ],
+                ],
+                'description' => 'How the agent delivers its work (D85).',
+            ],
             'EventSeq' => ['type' => 'integer', 'minimum' => 0, 'description' => 'Per-tenant event number, gapless, in commit order.'],
             'KindRules' => [
                 'allOf' => [
@@ -2043,6 +2108,15 @@ final class BundledSchemas
             ],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
             'UnifiedDiff' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
+            'Workspace' => [
+                'anyOf' => [
+                    [
+                        'enum' => ['current_branch', 'new_branch', 'worktree'],
+                    ],
+                    ['type' => 'string'],
+                ],
+                'description' => 'Open set. Where the agent commits: current_branch, the checked-out branch; new_branch, one branch per review that the agent names; worktree, a git worktree with its own branch.',
+            ],
         ],
     ];
 
@@ -3462,7 +3536,7 @@ final class BundledSchemas
     public const array REVIEW = [
         'title' => 'Review',
         'type' => 'object',
-        'required' => ['id', 'repositoryId', 'repositoryName', 'title', 'ref', 'commitSha', 'state', 'startedBy', 'createdAt', 'closedAt', 'closedBy', 'closeNote', 'index', 'counts', 'lastEventSeq'],
+        'required' => ['id', 'repositoryId', 'repositoryName', 'title', 'ref', 'commitSha', 'state', 'startedBy', 'createdAt', 'closedAt', 'closedBy', 'closeNote', 'delivery', 'capabilities', 'index', 'counts', 'lastEventSeq'],
         'properties' => [
             'id' => ['$ref' => '#/$defs/Ulid'],
             'repositoryId' => ['$ref' => '#/$defs/Ulid'],
@@ -3489,6 +3563,8 @@ final class BundledSchemas
                 'type' => ['string', 'null'],
                 'maxLength' => 65536,
             ],
+            'delivery' => ['$ref' => '#/$defs/Delivery', 'description' => 'The latest choice of Submit feedback (D5). Both values are null until the user picks one.'],
+            'capabilities' => ['$ref' => '#/$defs/Capabilities'],
             'index' => ['$ref' => '#/$defs/IndexStatus'],
             'counts' => ['$ref' => '#/$defs/RequestCounts'],
             'lastEventSeq' => ['$ref' => '#/$defs/EventSeq'],
@@ -3589,8 +3665,34 @@ final class BundledSchemas
             'ActorKind' => [
                 'enum' => ['user', 'agent', 'system'],
             ],
+            'Capabilities' => [
+                'type' => 'object',
+                'required' => ['pullRequests'],
+                'properties' => [
+                    'pullRequests' => ['type' => 'boolean', 'description' => 'The repository host has pull requests (D83).'],
+                ],
+                'description' => 'What the host of the repository offers.',
+            ],
             'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
+            'Delivery' => [
+                'type' => 'object',
+                'required' => ['workspace', 'pullRequest'],
+                'properties' => [
+                    'workspace' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Workspace'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Null: the agent decides.',
+                    ],
+                    'pullRequest' => [
+                        'type' => ['boolean', 'null'],
+                        'description' => 'True: push, open a pull request, and link it. False: open none. Null: the agent decides.',
+                    ],
+                ],
+                'description' => 'How the agent delivers its work (D85).',
+            ],
             'EventSeq' => ['type' => 'integer', 'minimum' => 0, 'description' => 'Per-tenant event number, gapless, in commit order.'],
             'IndexState' => [
                 'enum' => ['pending', 'running', 'ready', 'failed'],
@@ -3657,6 +3759,15 @@ final class BundledSchemas
                 'enum' => ['open', 'closed'],
             ],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'Workspace' => [
+                'anyOf' => [
+                    [
+                        'enum' => ['current_branch', 'new_branch', 'worktree'],
+                    ],
+                    ['type' => 'string'],
+                ],
+                'description' => 'Open set. Where the agent commits: current_branch, the checked-out branch; new_branch, one branch per review that the agent names; worktree, a git worktree with its own branch.',
+            ],
         ],
     ];
 
@@ -3679,7 +3790,7 @@ final class BundledSchemas
         [
             'name' => 'get_request',
             'title' => 'Get request',
-            'description' => 'Return one request in full: title, body, thread, anchor with a code snapshot at the review commit, linked commits, location, and the actions you may take now (allowedActions). `at` locates the anchor at another commit that the server\'s clone has (pushed, or committed in a local repository); by default the location is at the default-branch head. Your working tree can differ: find the code with anchor.snapshot, its before and after lines, and anchor.symbol.fqn. A general request has anchor, location, and excerpt null. It belongs to the whole review, and its body and thread say what to change. A request with title null has no title: give it one with set_request_title before you claim it.',
+            'description' => 'Return one request in full: title, body, thread, anchor with a code snapshot at the review commit, linked commits, location, how to deliver the work (delivery), and the actions you may take now (allowedActions). `at` locates the anchor at another commit that the server\'s clone has (pushed, or committed in a local repository); by default the location is at the default-branch head. Your working tree can differ: find the code with anchor.snapshot, its before and after lines, and anchor.symbol.fqn. A general request has anchor, location, and excerpt null. It belongs to the whole review, and its body and thread say what to change. A request with title null has no title: give it one with set_request_title before you claim it.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
@@ -3756,7 +3867,7 @@ final class BundledSchemas
         [
             'name' => 'link_pull_request',
             'title' => 'Link pull request',
-            'description' => 'Record that a pull request implements one or more requests: each one in_progress and held by you, or ready_for_review. For a GitHub repository the URL is https://github.com/{owner}/{name}/pull/{number} of the reviewed repository. A local repository has no pull requests. Linking does not change the status. Open a pull request only when the user or the repository\'s instructions ask for it.',
+            'description' => 'Record that a pull request implements one or more requests: each one in_progress and held by you, or ready_for_review. For a GitHub repository the URL is https://github.com/{owner}/{name}/pull/{number} of the reviewed repository. A local repository has no pull requests. Linking does not change the status. Open a pull request when delivery.pullRequest of get_request is true; when it is null, only when the user or the repository\'s instructions ask for it.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [

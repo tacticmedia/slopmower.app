@@ -17,6 +17,13 @@
   "closedAt": null,
   "closedBy": null,
   "closeNote": null,
+  "delivery": {
+    "workspace": null,
+    "pullRequest": null
+  },
+  "capabilities": {
+    "pullRequests": true
+  },
   "index": {
     "state": "pending",
     "filesTotal": null,

@@ -25,6 +25,7 @@ import {
     THREAD_ENTRY_TYPES,
     TOURS,
     USAGE_LIMITS,
+    WORKSPACES,
 } from './types/common';
 import { DRAFT_KINDS } from './types/draft';
 import { REPOSITORY_UNAVAILABLE_REASONS } from './types/error';
@@ -65,6 +66,7 @@ const ENUM_ARRAYS: [schemaFileName: string, jsonPointer: string, tsArray: readon
     ['common.schema.json', '/$defs/ErrorCode/anyOf/0/enum', ERROR_CODES],
     ['common.schema.json', '/$defs/UsageLimit/anyOf/0/enum', USAGE_LIMITS],
     ['common.schema.json', '/$defs/Tour/anyOf/0/enum', TOURS],
+    ['common.schema.json', '/$defs/Workspace/anyOf/0/enum', WORKSPACES],
     ['error.schema.json', '/$defs/RepositoryUnavailableDetails/properties/reason/enum', REPOSITORY_UNAVAILABLE_REASONS],
     ['location.schema.json', '/properties/target/enum', LOCATION_TARGETS],
     ['repository.schema.json', '/$defs/Sync/properties/state/enum', SYNC_STATES],

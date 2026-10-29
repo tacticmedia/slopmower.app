@@ -24,10 +24,16 @@ final readonly class ReviewSnapshot
         public ?\DateTimeImmutable $closedAt,
         public ?Actor $closedBy,
         public ?string $closeNote,
+        public Delivery $delivery = new Delivery(),
     ) {
         if ((null === $closedAt) !== (null === $closedBy)) {
             throw new \LogicException('closedAt and closedBy are set together.');
         }
+    }
+
+    public function withDelivery(Delivery $delivery): self
+    {
+        return clone ($this, ['delivery' => $delivery]);
     }
 
     public function isClosed(): bool

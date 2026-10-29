@@ -1,16 +1,38 @@
-import { AnchoredOverlay, Button, FormControl, Textarea } from '@primer/react';
+import { AnchoredOverlay, Button, FormControl, Select, Textarea } from '@primer/react';
 import { useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
+import type { Delivery } from '../api/types/common';
 import { ActionErrorMessage } from '../layout/ActionErrorMessage';
 import { useSubmitOnce } from '../layout/useSubmitOnce';
 import styles from './SubmitFeedbackOverlay.module.css';
 
+const WORKSPACE_OPTIONS = [
+    ['', 'Agent decides'],
+    ['current_branch', 'Current branch'],
+    ['new_branch', 'New branch'],
+    ['worktree', 'Worktree'],
+] as const;
+
+const PULL_REQUEST_OPTIONS = [
+    ['', 'Agent decides'],
+    ['true', 'Open one'],
+    ['false', 'None'],
+] as const;
+
+type Props = {
+    draftCount: number;
+    /** The stored choice, which the selects start from. */
+    delivery: Delivery;
+    /** The host has pull requests, so the pull request choice shows. */
+    pullRequests: boolean;
+};
+
 /**
- * D5 with an optional summary. The review layout renders it only while drafts exist, so a successful submission
- * unmounts it.
+ * D5 with an optional summary and the delivery choice (D85). The review layout renders it only while drafts exist, so
+ * a successful submission unmounts it.
  */
-export function SubmitFeedbackOverlay({ draftCount }: { draftCount: number }) {
+export function SubmitFeedbackOverlay({ draftCount, delivery, pullRequests }: Props) {
     const [open, setOpen] = useState(false);
     const submission = useFetcher<ActionResult>();
     const submitOnce = useSubmitOnce(submission.submit);
@@ -39,6 +61,28 @@ export function SubmitFeedbackOverlay({ draftCount }: { draftCount: number }) {
                     <Textarea ref={summary} name="summary" block resize="vertical" rows={4} placeholder="Leave a comment" readOnly={busy} />
                     <FormControl.Caption>Optional.</FormControl.Caption>
                 </FormControl>
+                <FormControl>
+                    <FormControl.Label>Branch</FormControl.Label>
+                    <Select name="workspace" defaultValue={delivery.workspace ?? ''} block disabled={busy}>
+                        {WORKSPACE_OPTIONS.map(([value, label]) => (
+                            <Select.Option key={value} value={value}>
+                                {label}
+                            </Select.Option>
+                        ))}
+                    </Select>
+                </FormControl>
+                {pullRequests && (
+                    <FormControl>
+                        <FormControl.Label>Pull request</FormControl.Label>
+                        <Select name="pullRequest" defaultValue={null === delivery.pullRequest ? '' : String(delivery.pullRequest)} block disabled={busy}>
+                            {PULL_REQUEST_OPTIONS.map(([value, label]) => (
+                                <Select.Option key={value} value={value}>
+                                    {label}
+                                </Select.Option>
+                            ))}
+                        </Select>
+                    </FormControl>
+                )}
                 <ActionErrorMessage result={submission.data} />
                 <div className={styles.actions}>
                     <Button onClick={() => setOpen(false)} disabled={busy}>

@@ -3,7 +3,7 @@
   "$id": "https://slopmower.invalid/schemas/v1/review.schema.json",
   "title": "Review",
   "type": "object",
-  "required": ["id", "repositoryId", "repositoryName", "title", "ref", "commitSha", "state", "startedBy", "createdAt", "closedAt", "closedBy", "closeNote", "index", "counts", "lastEventSeq"],
+  "required": ["id", "repositoryId", "repositoryName", "title", "ref", "commitSha", "state", "startedBy", "createdAt", "closedAt", "closedBy", "closeNote", "delivery", "capabilities", "index", "counts", "lastEventSeq"],
   "properties": {
     "id": {
       "$ref": "common.schema.json#/$defs/Ulid"
@@ -61,6 +61,13 @@
     "closeNote": {
       "type": ["string", "null"],
       "maxLength": 65536
+    },
+    "delivery": {
+      "$ref": "common.schema.json#/$defs/Delivery",
+      "description": "The latest choice of Submit feedback (D5). Both values are null until the user picks one."
+    },
+    "capabilities": {
+      "$ref": "common.schema.json#/$defs/Capabilities"
     },
     "index": {
       "$ref": "#/$defs/IndexStatus"

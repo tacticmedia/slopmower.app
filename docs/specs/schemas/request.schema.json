@@ -4,7 +4,7 @@
   "title": "Request",
   "description": "A request in full. Same fields as RequestSummary, with the full anchor and more.",
   "type": "object",
-  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "title", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq", "carriedFrom", "requireApproval", "suggestion", "proposal", "body", "reviewState", "reviewCommitSha", "location", "excerpt", "thread", "commits", "pullRequestUrls", "pullRequests", "allowedActions"],
+  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "title", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq", "carriedFrom", "requireApproval", "suggestion", "proposal", "body", "reviewState", "reviewCommitSha", "location", "excerpt", "thread", "commits", "pullRequestUrls", "pullRequests", "allowedActions", "delivery", "capabilities"],
   "properties": {
     "id": {
       "$ref": "common.schema.json#/$defs/Ulid"
@@ -209,6 +209,13 @@
         "$ref": "common.schema.json#/$defs/Action"
       },
       "description": "For the caller. Empty when the review is closed."
+    },
+    "delivery": {
+      "$ref": "common.schema.json#/$defs/Delivery",
+      "description": "The effective choice: workspace from the review, pullRequest from the approved proposal when it has one, else from the review."
+    },
+    "capabilities": {
+      "$ref": "common.schema.json#/$defs/Capabilities"
     }
   },
   "allOf": [

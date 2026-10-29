@@ -1,6 +1,6 @@
 import type { AnchorInput } from './anchor';
 import type { TokenName } from './api-token';
-import type { CommitSha, DateTime, Markdown, PullRequestUrl, RepoPath, Tour, Ulid, UnifiedDiff } from './common';
+import type { CommitSha, DateTime, Delivery, Markdown, PullRequestUrl, RepoPath, Tour, Ulid, UnifiedDiff } from './common';
 import type { LocalDirectory } from './repository';
 
 export type ConnectRepositoryInput =
@@ -67,6 +67,8 @@ export type ApproveProposalInput = {
     /** Request.proposal.eventId. */
     proposalEventId: Ulid;
     note?: string | null;
+    /** True needs Request.capabilities.pullRequests. */
+    pullRequest?: boolean | null;
 };
 
 export type RejectProposalInput = {
@@ -123,8 +125,13 @@ export type UpdateDraftInput = {
     requireApproval?: boolean | null;
 };
 
+/** A missing key is null. */
+export type DeliveryInput = Partial<Delivery>;
+
 export type SubmitDraftsInput = {
     summary?: string | null;
+    /** Absent or null keeps the delivery of the review. */
+    delivery?: DeliveryInput | null;
 };
 
 export type ViewedFileInput = {
