@@ -1,4 +1,5 @@
 import type { CommitDiffFile } from '../api/types/commit-diff';
+import { formatSize, MAX_RENDERED_BYTES } from '../layout/byteSize';
 
 const SUBMODULE_MODE = '160000';
 
@@ -14,7 +15,7 @@ export function diffPlaceholder(file: CommitDiffFile): string | null {
     }
 
     if (file.tooLarge) {
-        return 'File not shown: a side is above the 1 MiB limit.';
+        return `File not shown: a side is above the ${formatSize(MAX_RENDERED_BYTES)} limit.`;
     }
 
     if (SUBMODULE_MODE === file.oldMode || SUBMODULE_MODE === file.newMode) {

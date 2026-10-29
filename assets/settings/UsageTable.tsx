@@ -1,6 +1,7 @@
 import { type Column, DataTable } from '@primer/react/experimental';
 import type { KnownUsageLimit } from '../api/types/common';
 import type { LimitUsage } from '../api/types/me';
+import { formatSize } from '../layout/byteSize';
 
 type Props = {
     usage: LimitUsage[];
@@ -20,24 +21,10 @@ const ITEM_NAMES: Record<KnownUsageLimit, string> = {
 
 const SIZE_LIMITS: ReadonlySet<string> = new Set<KnownUsageLimit>(['repository_size', 'tenant_storage']);
 
-const BYTE_UNITS = ['B', 'KiB', 'MiB', 'GiB', 'TiB'] as const;
-
 const count = new Intl.NumberFormat('en-US');
 
-function formatBytes(bytes: number): string {
-    let value = bytes;
-    let unit = 0;
-
-    while (value >= 1024 && unit < BYTE_UNITS.length - 1) {
-        value /= 1024;
-        unit += 1;
-    }
-
-    return `${Number.isInteger(value) ? value : value.toFixed(1)} ${BYTE_UNITS[unit]}`;
-}
-
 function formatAmount(limit: string, amount: number): string {
-    return SIZE_LIMITS.has(limit) ? formatBytes(amount) : count.format(amount);
+    return SIZE_LIMITS.has(limit) ? formatSize(amount) : count.format(amount);
 }
 
 export function UsageTable({ usage, labelledBy, describedBy }: Props) {

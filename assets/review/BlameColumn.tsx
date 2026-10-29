@@ -2,6 +2,7 @@ import { RelativeTime, VisuallyHidden } from '@primer/react';
 import { type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import type { Blame, BlameCommit } from '../api/types/blame';
 import type { LineGeometry } from '../code/CodeFile';
+import { linesText } from '../comments/threadView';
 import styles from './BlameColumn.module.css';
 import { blameAgeScale } from './blameAge';
 
@@ -40,7 +41,7 @@ type BlockProps = { commit: BlameCommit; startLine: number; endLine: number; top
 
 function BlameBlock({ commit, startLine, endLine, topPx, heightPx, now }: BlockProps) {
     const scale = blameAgeScale(commit.authoredAt, now);
-    const lines = startLine === endLine ? `Line ${startLine}` : `Lines ${startLine} to ${endLine}`;
+    const lines = linesText({ start: startLine, end: endLine });
 
     return (
         <div

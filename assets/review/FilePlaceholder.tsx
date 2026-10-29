@@ -1,7 +1,6 @@
 import type { FileContent } from '../api/types/file-content';
+import { formatSize, MAX_RENDERED_BYTES } from '../layout/byteSize';
 import styles from './FilePlaceholder.module.css';
-
-const BYTES_PER_MIB = 1048576;
 
 /**
  * Stands in for the code of a file that V7 marks as not renderable.
@@ -23,5 +22,5 @@ function reason({ type, symlinkTarget, binary, sizeBytes }: FileContent): string
         return 'Binary file not shown.';
     }
 
-    return `File not shown: ${(sizeBytes / BYTES_PER_MIB).toFixed(1)} MiB is above the 1 MiB limit.`;
+    return `File not shown: ${formatSize(sizeBytes)} is above the ${formatSize(MAX_RENDERED_BYTES)} limit.`;
 }

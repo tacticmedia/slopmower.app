@@ -23,8 +23,8 @@ test.describe('SettingsUsage', () => {
             /^Connected repositories\s*3\s*25$/,
             /^Open reviews\s*2\s*20$/,
             /^Requests per review\s*14\s*1,000$/,
-            /^Size of one repository\s*46 MiB\s*2 GiB$/,
-            /^Size of all repositories\s*59 MiB\s*No limit$/,
+            /^Size of one repository\s*46 MB\s*2 GB$/,
+            /^Size of all repositories\s*59 MB\s*No limit$/,
         ]);
     });
 });

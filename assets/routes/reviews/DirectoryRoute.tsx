@@ -5,7 +5,7 @@ import { Link as RouterLink, useLoaderData, useRouteLoaderData } from 'react-rou
 import type { TreeEntry } from '../../api/types/tree-entry';
 import { FileHeader } from '../../review/FileHeader';
 import { directoryHref, fileHref } from '../../review/fileHref';
-import { formatSize } from '../../review/pathSegments';
+import { formatSize } from '../../layout/byteSize';
 import { readmeUrl } from '../../review/readmeUrl';
 import styles from './DirectoryRoute.module.css';
 import type { ReviewData } from './reviewData';

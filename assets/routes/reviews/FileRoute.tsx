@@ -25,7 +25,7 @@ import { FileHeader } from '../../review/FileHeader';
 import { blameHref, fileHref } from '../../review/fileHref';
 import { FilePlaceholder } from '../../review/FilePlaceholder';
 import { GoToDeclaration } from '../../review/GoToDeclaration';
-import { formatSize } from '../../review/pathSegments';
+import { formatSize } from '../../layout/byteSize';
 import { ScopeLines } from '../../review/ScopeLines';
 import { SymbolsMenu } from '../../review/SymbolsMenu';
 import { ViewedCheckbox } from '../../review/ViewedCheckbox';
