@@ -143,8 +143,8 @@ final class GitReaderTest extends KernelTestCase
     {
         $source = GitRepositoryBuilder::init($this->temporaryDirectory());
         $from = CommitSha::fromString($source->commit([
-            'src/Invoice.php' => "<?php\n\nfinal class Invoice\n{\n    public int $total = 0;\n}\n",
-            'src/Money.php' => "<?php\n\nfinal class Money\n{\n    public int $cents = 0;\n}\n",
+            'src/Invoice.php' => "<?php\n\nfinal class Invoice\n{\n    public int \$total = 0;\n}\n",
+            'src/Money.php' => "<?php\n\nfinal class Money\n{\n    public int \$cents = 0;\n}\n",
             'src/Tax.php' => "<?php\n\nfinal class Tax\n{\n}\n",
         ]));
         $source->git('mv', 'src', 'billing');

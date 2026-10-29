@@ -16,6 +16,7 @@ use Doctrine\Bundle\DoctrineBundle\DataCollector\DoctrineDataCollector;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpKernel\Profiler\Profile;
 
 final class SearchTest extends WebTestCase
 {
@@ -97,7 +98,9 @@ final class SearchTest extends WebTestCase
         $limited = self::assertApiResponse(self::apiRequest($this->client, 'GET', "/api/v1/reviews/{$this->reviewId}/search?q=MONEY&limit=3"), 200, 'lists.schema.json#/$defs/SearchHitList');
 
         self::assertSame($firstThree, $limited['items']);
-        $collector = $this->client->getProfile()?->getCollector('db');
+        $profile = $this->client->getProfile();
+        self::assertInstanceOf(Profile::class, $profile);
+        $collector = $profile->getCollector('db');
         self::assertInstanceOf(DoctrineDataCollector::class, $collector);
         $searches = array_filter(array_merge(...array_values($collector->getQueries())), static fn (array $query): bool => str_contains((string) $query['sql'], 'FROM indexed_file listed'));
         self::assertSame([false], array_values(array_map(static fn (array $query): bool => str_contains((string) $query['sql'], 'strpos('), $searches)));

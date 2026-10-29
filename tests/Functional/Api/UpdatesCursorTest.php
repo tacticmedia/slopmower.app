@@ -26,6 +26,7 @@ use Doctrine\Bundle\DoctrineBundle\DataCollector\DoctrineDataCollector;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpKernel\Profiler\Profile;
 
 /**
  * The user opened r1, r2, and r3. Each test starts at the cursor after them.
@@ -185,7 +186,9 @@ final class UpdatesCursorTest extends WebTestCase
      */
     private function threadQueries(): int
     {
-        $collector = $this->client->getProfile()?->getCollector('db');
+        $profile = $this->client->getProfile();
+        self::assertInstanceOf(Profile::class, $profile);
+        $collector = $profile->getCollector('db');
         self::assertInstanceOf(DoctrineDataCollector::class, $collector);
 
         return count(array_filter(array_merge(...array_values($collector->getQueries())), static fn (array $query): bool => str_contains((string) $query['sql'], '@> CAST(')));
