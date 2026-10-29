@@ -36,6 +36,8 @@ final class SearchTest extends WebTestCase
         'src/Billing/Wallet/MoneyBag.php' => "<?php\n\nnamespace App\\Billing\\Wallet;\n\nfinal class MoneyBag\n{\n}\n",
         'src/EventStore/CommandExecutor.php' => "<?php\n\nnamespace App\\EventStore;\n\nfinal class CommandExecutor\n{\n}\n",
         'docs/money/README.md' => "# Money\n",
+        // A byte-identical copy at a path that is not PHP.
+        'config/Invoice.php.dist' => "<?php\n\nnamespace App\Billing;\n\nfinal class Invoice\n{\n    public function toMoney(): Money\n    {\n        return new Money();\n    }\n}\n",
     ];
 
     private KernelBrowser $client;
@@ -85,6 +87,7 @@ final class SearchTest extends WebTestCase
             ['kind' => 'file', 'path' => 'src/EventStore/CommandExecutor.php'],
             ['kind' => 'symbol', 'path' => 'src/Billing/Invoice.php', 'fqn' => 'App\Billing\Invoice', 'symbolKind' => 'class', 'declarationStartLine' => 5],
             ['kind' => 'file', 'path' => 'src/Billing/Invoice.php'],
+            ['kind' => 'file', 'path' => 'config/Invoice.php.dist'],
         ], $this->search('CE')['items']);
     }
 
@@ -104,6 +107,18 @@ final class SearchTest extends WebTestCase
         self::assertInstanceOf(DoctrineDataCollector::class, $collector);
         $searches = array_filter(array_merge(...array_values($collector->getQueries())), static fn (array $query): bool => str_contains((string) $query['sql'], 'FROM indexed_file listed'));
         self::assertSame([false], array_values(array_map(static fn (array $query): bool => str_contains((string) $query['sql'], 'strpos('), $searches)));
+    }
+
+    #[TestDox('A symbol of a blob that is also at a path of another language is a hit only at the path of its language')]
+    public function testSymbolsOnlyAtAPathOfTheirLanguage(): void
+    {
+        self::runQueuedMessages();
+
+        self::assertSame([
+            ['kind' => 'symbol', 'path' => 'src/Billing/Invoice.php', 'fqn' => 'App\Billing\Invoice', 'symbolKind' => 'class', 'declarationStartLine' => 5],
+            ['kind' => 'file', 'path' => 'src/Billing/Invoice.php'],
+            ['kind' => 'file', 'path' => 'config/Invoice.php.dist'],
+        ], $this->search('Invoice')['items']);
     }
 
     #[TestDox('The result is partial while the index is not ready')]

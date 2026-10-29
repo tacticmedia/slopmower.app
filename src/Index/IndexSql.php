@@ -41,7 +41,7 @@ final class IndexSql
         SQL;
     /** V14 resolves PHP names, so a file-local FQN of another language is no declaration. */
     private const string DECLARATIONS = <<<'SQL'
-        SELECT listed.path, stored.fqn, stored.kind, stored.start_line, stored.end_line, stored.declaration_start_line FROM symbol stored
+        SELECT listed.path, stored.fqn, stored.kind, stored.start_line, stored.end_line, stored.declaration_start_line, parsed.language FROM symbol stored
         JOIN indexed_blob parsed ON parsed.tenant_id = stored.tenant_id AND parsed.repository_id = stored.repository_id AND parsed.blob_sha = stored.blob_sha
         JOIN indexed_file listed ON listed.tenant_id = stored.tenant_id AND listed.repository_id = stored.repository_id AND listed.blob_sha = stored.blob_sha
         WHERE stored.tenant_id = :tenantId AND stored.repository_id = :repositoryId AND stored.fqn_sha256 IN (:fqnSha256s) AND stored.fqn IN (:fqns)
@@ -52,14 +52,15 @@ final class IndexSql
      * segment of a file, the short name of a symbol. Mode 160000 is a submodule.
      */
     private const string SEARCH = <<<'SQL'
-        SELECT 'file' AS kind, listed.path, split_part(listed.path, '/', -1) AS name, NULL AS fqn, NULL AS symbol_kind, NULL AS declaration_start_line
+        SELECT 'file' AS kind, listed.path, split_part(listed.path, '/', -1) AS name, NULL AS fqn, NULL AS symbol_kind, NULL AS declaration_start_line, NULL AS language
         FROM indexed_file listed
         WHERE listed.tenant_id = :tenantId AND listed.repository_id = :repositoryId AND listed.commit_sha = :commitSha AND listed.mode <> '160000'
         AND %1$s
         UNION ALL
-        SELECT 'symbol', listed.path, stored.name, stored.fqn, stored.kind, stored.declaration_start_line
+        SELECT 'symbol', listed.path, stored.name, stored.fqn, stored.kind, stored.declaration_start_line, parsed.language
         FROM indexed_file listed
         JOIN symbol stored ON stored.tenant_id = listed.tenant_id AND stored.repository_id = listed.repository_id AND stored.blob_sha = listed.blob_sha
+        JOIN indexed_blob parsed ON parsed.tenant_id = stored.tenant_id AND parsed.repository_id = stored.repository_id AND parsed.blob_sha = stored.blob_sha
         WHERE listed.tenant_id = :tenantId AND listed.repository_id = :repositoryId AND listed.commit_sha = :commitSha
         AND %2$s
         SQL;
@@ -192,7 +193,7 @@ final class IndexSql
             ['fqnSha256s' => ArrayParameterType::STRING, 'fqns' => ArrayParameterType::STRING],
         );
 
-        foreach ($rows as $row) {
+        foreach (self::ofPathLanguage($rows) as $row) {
             $fqn = (string) $row['fqn'];
             $range = LineRange::of((int) $row['start_line'], (int) $row['end_line']);
             $byFqn[$fqn][] = new Declaration(RepoPath::fromString((string) $row['path']), $fqn, SymbolKind::from((string) $row['kind']), $range, (int) $row['declaration_start_line']);
@@ -226,11 +227,11 @@ final class IndexSql
         $escaped = static fn (string $text): string => addcslashes($text, '%_\\');
         $scope = ['tenantId' => $tenantId->toRfc4122(), 'repositoryId' => $repositoryId->toRfc4122(), 'commitSha' => $commit->toString()];
         // The prefix hits rank first, so when they fill $limit, the full scan cannot change the result.
-        $top = SearchRank::top($this->connection->iterateAssociative(sprintf(self::SEARCH, ...self::PREFIX_MATCHES), [...$scope, 'prefix' => $escaped($query).'%']), $query, $limit);
+        $top = SearchRank::top(self::ofPathLanguage($this->connection->iterateAssociative(sprintf(self::SEARCH, ...self::PREFIX_MATCHES), [...$scope, 'prefix' => $escaped($query).'%'])), $query, $limit);
 
         if (count($top) < $limit) {
             $characters = '%'.implode('%', array_map($escaped, mb_str_split($query))).'%';
-            $top = SearchRank::top($this->connection->iterateAssociative(sprintf(self::SEARCH, ...self::ALL_MATCHES), [...$scope, 'query' => $query, 'characters' => $characters]), $query, $limit);
+            $top = SearchRank::top(self::ofPathLanguage($this->connection->iterateAssociative(sprintf(self::SEARCH, ...self::ALL_MATCHES), [...$scope, 'query' => $query, 'characters' => $characters])), $query, $limit);
         }
 
         return array_map(static fn (array $row): FileHit|SymbolHit => 'file' === $row['kind']
@@ -275,5 +276,22 @@ final class IndexSql
         $placeholders = '('.implode(', ', array_fill(0, count($rows[0]), '?')).')';
 
         return $insertInto.implode(', ', array_fill(0, count($rows), $placeholders)).self::ON_CONFLICT;
+    }
+
+    /**
+     * Drops a symbol row at a path of another language than its parsed blob, for example the PHP classes of a
+     * byte-identical `config.php.dist`. A file row has no language.
+     *
+     * @param iterable<array<string, mixed>> $rows
+     *
+     * @return \Generator<array<string, mixed>>
+     */
+    private static function ofPathLanguage(iterable $rows): \Generator
+    {
+        foreach ($rows as $row) {
+            if (null === $row['language'] || FileLanguage::of(RepoPath::fromString((string) $row['path'])) === $row['language']) {
+                yield $row;
+            }
+        }
     }
 }
