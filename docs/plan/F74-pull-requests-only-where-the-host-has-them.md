@@ -10,16 +10,16 @@ Workflow, conventions, and status: [feature track](features.md). Requested by Ja
 
 ## Facts
 
-Verified on 2026-10-20:
+Verified on 2026-10-20, and again on 2026-10-29 after F89 to F91, with the line numbers of that day:
 
 - **Link paths:**
-  - Q17 (`PullRequestLinkController.php:31`) and MCP `link_pull_request` (`McpTools.php:222`) reach `RequestCommands.php:175`, then `RequestDecider.php:232` and `:321`, then `PullRequestUrl::forRepository()` (`src/Domain/Request/PullRequestUrl.php:38-54`).
+  - Q17 (`PullRequestLinkController.php:31`) and MCP `link_pull_request` (`McpTools.php:159`) reach `RequestCommands.php:151`, then `RequestDecider.php:231` and `:321`, then `PullRequestUrl::forRepository()` (`src/Domain/Request/PullRequestUrl.php:38-54`).
   - For a non-GitHub source, `forRepository()` accepts any `https` URL.
-  - Unlink calls `forRepository()` too (`RequestDecider.php:355`), and its catch recovers only for GitHub (`:357-359`).
+  - Unlink calls `forRepository()` too (`RequestDecider.php:355`), and its catch recovers only for GitHub (`:356-359`).
   - `RequestDecider::pullRequestUrlViolations()` (`:318`) is used by link only.
 - **Already GitHub only:**
   - R8 refuses a local repository (`src/Entity/Repository.php:198-205`), and the SPA hides its switch (`RepositoryHeader.tsx:34`).
-  - State reads are queued for GitHub only (`RequestCommands.php:184`), and check runs skip other sources (`CheckRunHandler.php:180`).
+  - State reads are queued for GitHub only (`RequestCommands.php:160`), and check runs skip other sources (`CheckRunHandler.php:180`).
   - The request sidebar "Development" section lists only `request.pullRequests`, and the SPA has no link control.
 - **The agent's view:** `AllowedActions` (`src/Domain/Request/AllowedActions.php:46`) lists `link_pull_request` from the request state only. `ClaimReleaseToolTest.php:66` asserts this on a local source.
 - **GitHub coupling:**
@@ -65,7 +65,7 @@ Nothing.
   - `docs/specs/mcp.md` sections 2 and 4.
   - The 8.10 amendment entry in `docs/specs/README.md`. It starts with "Not additive:", because this is tighter validation, as in the D75 entry.
 - **Code:** `RepositorySource::hasPullRequests()`, and the refusal in `RequestDecider::pullRequestUrlViolations()`.
-- **MCP:** the server instructions in `config/services.yaml:29`, the `link_pull_request` description at `McpTools.php:213`, and `tests/Fixtures/mcp/tools-list.json`.
+- **MCP:** the server instructions in `config/services.yaml:29`, and the `link_pull_request` description in `docs/specs/mcp-tools.json` with the generated `src/Mcp/BundledSchemas.php` (D99).
 - **Docs:**
   - `docs/user/skill/SKILL.md` and its byte-equal copy `.claude/skills/slopmower/SKILL.md`: a local repository has no pull requests.
   - `docs/user/pull-requests.md`.
