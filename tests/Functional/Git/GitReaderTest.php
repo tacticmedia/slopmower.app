@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Git;
 
+use App\Domain\Event\Codec\TimeCodec;
 use App\Domain\Git\BlobSha;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\CommitShaPrefix;
@@ -136,6 +137,20 @@ final class GitReaderTest extends KernelTestCase
         $log = $this->reader->log($clone, CommitSha::fromString($head), 10);
 
         self::assertSame(['Second', ''], array_map(static fn (LogCommit $commit): string => $commit->subject, $log));
+    }
+
+    #[TestDox('A committer time after the year 9999 gives the last second of 9999, which events store')]
+    public function testCommitInfoClampsTheCommitterTime(): void
+    {
+        $source = GitRepositoryBuilder::init($this->temporaryDirectory());
+        $far = CommitSha::fromString($source->commitWithCommitterTime('far', 300_000_000_000));
+        $gitDir = $this->temporaryDirectory().'/far.git';
+        new BareClone(new GitRunner(new NullLogger()))->init($gitDir);
+        new BareClone(new GitRunner(new NullLogger()))->fetch($gitDir, $source->url());
+
+        $committedAt = $this->reader->commitInfo($gitDir, $far)->committedAt;
+
+        self::assertSame('9999-12-31T23:59:59Z', TimeCodec::encode($committedAt));
     }
 
     #[TestDox('pathAfter reads the renames of a commit range once, until reset')]

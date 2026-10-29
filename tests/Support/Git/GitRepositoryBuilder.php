@@ -97,6 +97,21 @@ final class GitRepositoryBuilder
         }
     }
 
+    /**
+     * A commit on the empty tree at the branch, with a committer time that `git commit --date` refuses.
+     */
+    public function commitWithCommitterTime(string $branch, int $unixSeconds): string
+    {
+        $emptyTree = trim($this->gitWithInput('', 'hash-object', '-t', 'tree', '-w', '--stdin'));
+        $commit = trim($this->gitWithInput(
+            "tree {$emptyTree}\nauthor Test <test@example.invalid> {$unixSeconds} +0000\ncommitter Test <test@example.invalid> {$unixSeconds} +0000\n\nFar future\n",
+            'hash-object', '-t', 'commit', '-w', '--stdin',
+        ));
+        $this->git('branch', $branch, $commit);
+
+        return $commit;
+    }
+
     public function revParse(string $revision): string
     {
         return trim($this->git('rev-parse', '--verify', '--end-of-options', $revision));

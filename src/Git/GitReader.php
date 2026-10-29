@@ -22,6 +22,10 @@ final class GitReader implements ResetInterface
 {
     private const string HEADS = 'refs/heads/';
 
+    /** 0000-01-01T00:00:00Z and 9999-12-31T23:59:59Z, the range of {@see \App\Domain\Event\Codec\TimeCodec}. */
+    private const int FIRST_EVENT_TIME_UNIX_SECONDS = -62167219200;
+    private const int LAST_EVENT_TIME_UNIX_SECONDS = 253402300799;
+
     /** @var array<string, CatFileBatch> */
     private array $batches = [];
 
@@ -85,7 +89,8 @@ final class GitReader implements ResetInterface
     }
 
     /**
-     * The committer time, and the subject with invalid UTF-8 replaced, because event payloads are JSON.
+     * The committer time within the years that events store, and the subject with invalid UTF-8 replaced, because event
+     * payloads are JSON.
      *
      * @throws CommitNotFound
      */
@@ -98,8 +103,9 @@ final class GitReader implements ResetInterface
         }
 
         [$committedAtUnixSeconds, $subject] = explode("\0", rtrim($output, "\n"), 2) + [1 => ''];
+        $committedAt = max(self::FIRST_EVENT_TIME_UNIX_SECONDS, min(self::LAST_EVENT_TIME_UNIX_SECONDS, (int) $committedAtUnixSeconds));
 
-        return new CommitInfo($commit, mb_scrub($subject, 'UTF-8'), new \DateTimeImmutable('@'.$committedAtUnixSeconds));
+        return new CommitInfo($commit, mb_scrub($subject, 'UTF-8'), new \DateTimeImmutable("@{$committedAt}"));
     }
 
     /**
