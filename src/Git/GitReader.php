@@ -15,7 +15,8 @@ use App\Domain\Git\RepoPath;
 use Symfony\Contracts\Service\ResetInterface;
 
 /**
- * Keeps one `cat-file --batch` process per clone until {@see reset()}, which runs between requests and messages.
+ * Keeps one `cat-file --batch` process per clone, and the renames of each commit range, until {@see reset()}, which
+ * runs between requests and messages.
  */
 final class GitReader implements ResetInterface
 {
@@ -23,6 +24,9 @@ final class GitReader implements ResetInterface
 
     /** @var array<string, CatFileBatch> */
     private array $batches = [];
+
+    /** @var array<string, array<string, string|null>> {@see changedPaths()} by git directory and commit range */
+    private array $changedPaths = [];
 
     public function __construct(private readonly GitRunner $git)
     {
@@ -306,25 +310,39 @@ final class GitReader implements ResetInterface
      */
     public function pathAfter(string $gitDir, CommitSha $from, CommitSha $to, RepoPath $path): ?string
     {
+        $changedPaths = $this->changedPaths["{$gitDir}\0{$from}\0{$to}"] ??= $this->changedPaths($gitDir, $from, $to);
+
+        return array_key_exists($path->toString(), $changedPaths) ? $changedPaths[$path->toString()] : $path->toString();
+    }
+
+    /**
+     * @return array<string, string|null> The path at $to by the changed path at $from, null when it is deleted
+     *
+     * @throws GitFailed
+     */
+    private function changedPaths(string $gitDir, CommitSha $from, CommitSha $to): array
+    {
         $records = explode("\0", rtrim($this->git->run($gitDir, ['diff', '--name-status', '-M', '-z', '--no-color', '--end-of-options', $from->toString(), $to->toString(), '--']), "\0"));
+        $changedPaths = [];
         $index = 0;
 
         // A record is the status and one path, or for a rename the status, the old path, and the new path.
         while (isset($records[$index + 1])) {
             $status = $records[$index][0] ?? '';
+            $path = $records[$index + 1];
 
-            if ($records[$index + 1] === $path->toString()) {
-                return match ($status) {
+            if (!array_key_exists($path, $changedPaths)) {
+                $changedPaths[$path] = match ($status) {
                     'D' => null,
                     'R' => $records[$index + 2] ?? throw new GitFailed('git diff --name-status returned a rename without a new path.'),
-                    default => $path->toString(),
+                    default => $path,
                 };
             }
 
             $index += 'R' === $status ? 3 : 2;
         }
 
-        return $path->toString();
+        return $changedPaths;
     }
 
     /**
@@ -439,6 +457,7 @@ final class GitReader implements ResetInterface
         }
 
         $this->batches = [];
+        $this->changedPaths = [];
     }
 
     /**

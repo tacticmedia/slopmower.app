@@ -138,6 +138,38 @@ final class GitReaderTest extends KernelTestCase
         self::assertSame(['Second', ''], array_map(static fn (LogCommit $commit): string => $commit->subject, $log));
     }
 
+    #[TestDox('pathAfter reads the renames of a commit range once, until reset')]
+    public function testPathAfterReadsTheRenamesOnce(): void
+    {
+        $source = GitRepositoryBuilder::init($this->temporaryDirectory());
+        $from = CommitSha::fromString($source->commit([
+            'src/Invoice.php' => "<?php\n\nfinal class Invoice\n{\n    public int $total = 0;\n}\n",
+            'src/Money.php' => "<?php\n\nfinal class Money\n{\n    public int $cents = 0;\n}\n",
+            'src/Tax.php' => "<?php\n\nfinal class Tax\n{\n}\n",
+        ]));
+        $source->git('mv', 'src', 'billing');
+        $source->git('rm', '--quiet', '--force', 'billing/Tax.php');
+        $source->git('commit', '--quiet', '--message=Move');
+        $to = CommitSha::fromString($source->revParse('HEAD'));
+        $gitDir = $this->temporaryDirectory().'/renames.git';
+        new BareClone(new GitRunner(new NullLogger()))->init($gitDir);
+        new BareClone(new GitRunner(new NullLogger()))->fetch($gitDir, $source->url());
+
+        $invoice = $this->reader->pathAfter($gitDir, $from, $to, RepoPath::fromString('src/Invoice.php'));
+        // Without the kept renames, the next calls fail.
+        rename($gitDir, "{$gitDir}.moved");
+        $afterFirstRead = [
+            $this->reader->pathAfter($gitDir, $from, $to, RepoPath::fromString('src/Money.php')),
+            $this->reader->pathAfter($gitDir, $from, $to, RepoPath::fromString('src/Tax.php')),
+            $this->reader->pathAfter($gitDir, $from, $to, RepoPath::fromString('README.md')),
+        ];
+        $this->reader->reset();
+
+        self::assertSame(['billing/Invoice.php', 'billing/Money.php', null, 'README.md'], [$invoice, ...$afterFirstRead]);
+        $this->expectException(GitFailed::class);
+        $this->reader->pathAfter($gitDir, $from, $to, RepoPath::fromString('src/Money.php'));
+    }
+
     private function blobAt(string $path): Blob
     {
         $entry = array_find($this->reader->lsTreeRecursive($this->clone, $this->commit), static fn (TreeEntry $entry): bool => $entry->path === $path) ?? self::fail("No entry {$path}");
