@@ -66,7 +66,7 @@ final class CommitDiffController extends AbstractController
             throw new CommitsNotAvailable([$sha]);
         }
 
-        $anchor = $request->getAnchor();
+        $anchor = $request->getState()->anchor;
         $openedEventId = $events->findOpenedEventIds($review->getId())[$request->getId()->toString()] ?? null;
         $location = null === $openedEventId || null === $anchor ? null : $locator->locate($repository, $openedEventId, $anchor, $commit->sha);
         $changes = $this->reader->changedFiles($gitDir, $commit->parentSha, $commit->sha);

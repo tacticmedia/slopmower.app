@@ -11,7 +11,6 @@ use App\Domain\Error\NotFound;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
-use App\Domain\Identity\UserId;
 use App\Domain\Request\Awaiting;
 use App\Domain\Request\RequestStatus;
 use App\Entity\ChangeRequest;
@@ -164,9 +163,9 @@ final class UpdatesQuery
             });
 
         if (ActorKind::Agent === $caller->kind && null !== $caller->userId) {
-            $builder->andWhere('request.status <> :inProgress OR (request.claimedBy.userId = :callerUserId AND request.claimedBy.agentName = :callerAgentName)')
+            $builder->andWhere("request.status <> :inProgress OR (JSONB_PATH_TEXT(request.state, 'claimedBy', 'userId') = :callerUserId AND JSONB_PATH_TEXT(request.state, 'claimedBy', 'agentName') = :callerAgentName)")
                 ->setParameter('inProgress', RequestStatus::InProgress->value)
-                ->setParameter('callerUserId', $caller->userId, UserId::class)
+                ->setParameter('callerUserId', $caller->userId->toString())
                 ->setParameter('callerAgentName', $caller->agentName);
         }
 

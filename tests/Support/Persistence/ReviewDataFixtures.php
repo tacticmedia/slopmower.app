@@ -18,7 +18,6 @@ use App\Entity\CommitLink;
 use App\Entity\Repository;
 use App\Entity\Review;
 use App\EventStore\EventStoreSql;
-use App\Projection\RequestStateMapper;
 use App\Tenancy\TenantContext;
 use App\Tests\Support\Domain\RequestScenario;
 use App\Tests\Support\Fixtures\TenantFixtures;
@@ -68,7 +67,7 @@ trait ReviewDataFixtures
     private static function persistScenario(TenantId $tenantId, RequestScenario $scenario): RequestId
     {
         $state = $scenario->state();
-        $request = RequestStateMapper::toEntity(self::newReview($tenantId, $scenario->review()->id), $state);
+        $request = new ChangeRequest(self::newReview($tenantId, $scenario->review()->id), $state);
         self::entityManager()->persist($request);
 
         foreach (array_reverse(self::commitLinks($request, $state)) as $link) {

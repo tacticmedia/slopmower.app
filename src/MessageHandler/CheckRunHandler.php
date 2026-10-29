@@ -307,17 +307,18 @@ final class CheckRunHandler
         foreach ($requests as $request) {
             $review = $request->getReview();
             $reviewId = $review->getId();
-            $anchor = $request->getAnchor();
+            $state = $request->getState();
+            $anchor = $state->anchor;
             $unlocated = new CheckedRequest(
                 $reviewId,
                 $review->getTitle(),
                 $this->reviewUrl($reviewId),
                 ReviewState::Closed === $review->getState(),
                 $this->urlGenerator->generate('shell_request', ['id' => $request->getId()->toString()], UrlGeneratorInterface::ABSOLUTE_URL),
-                $request->getTitle(),
-                $request->getBody(),
-                $request->getStatus(),
-                $request->getWontDoBy(),
+                $state->title,
+                $state->body,
+                $state->status,
+                $state->wontDoBy,
                 null === $anchor,
                 null,
             );

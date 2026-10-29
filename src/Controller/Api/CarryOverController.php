@@ -34,7 +34,6 @@ use App\Domain\Request\CarriedFrom;
 use App\Domain\Request\Command\Open;
 use App\Domain\Request\RequestDecider;
 use App\Domain\Request\RequestStatus;
-use App\Domain\Request\SuggestionState;
 use App\Entity\ChangeRequest;
 use App\Entity\Review;
 use App\Entity\User;
@@ -123,7 +122,7 @@ final class CarryOverController extends AbstractController
             static fn (ChangeRequest $request): bool => !isset($copies[$request->getId()->toString()]) && self::canCarry($request),
         );
 
-        if ([] !== array_filter($carriable, static fn (ChangeRequest $request): bool => null !== $request->getAnchor())) {
+        if ([] !== array_filter($carriable, static fn (ChangeRequest $request): bool => null !== $request->getState()->anchor)) {
             // The caller of Locator::locate() checks the clone.
             $this->fetchRepository->cloneReady($target->getRepository()->getId());
         }
@@ -133,7 +132,7 @@ final class CarryOverController extends AbstractController
 
         foreach ($carriable as $request) {
             $id = $request->getId()->toString();
-            $anchor = $request->getAnchor();
+            $anchor = $request->getState()->anchor;
             $plans[$id] = null === $anchor
                 ? ['anchor' => null, 'comment' => null, 'location' => null]
                 : $this->reanchor($target, $anchor, $openedEventIds[$id] ?? throw new \LogicException("The request {$id} has no request.opened event."));
@@ -231,7 +230,8 @@ final class CarryOverController extends AbstractController
                     continue;
                 }
 
-                $open = new Open($plan['anchor'], $source->getBody(), carriedFrom: new CarriedFrom($source->getReview()->getId(), $source->getId()), requireApproval: $source->requiresApproval(), title: $source->getTitle());
+                $sourceState = $source->getState();
+                $open = new Open($plan['anchor'], $sourceState->body, carriedFrom: new CarriedFrom($sourceState->reviewId, $sourceState->id), requireApproval: $sourceState->requireApproval, title: $sourceState->title);
                 $opened = RequestDecider::decide($open, [], $review, $actor)[0] ?? throw new \LogicException('Open decides one event.');
                 $requestId = $opened->requestId ?? throw new \LogicException('request.opened has a requestId.');
                 $carried[$id] = $requestId;
@@ -291,7 +291,7 @@ final class CarryOverController extends AbstractController
         $copies = [];
 
         foreach ($this->requests->findFreshOfReview($targetId) as $request) {
-            $carriedFrom = $request->getCarriedFrom();
+            $carriedFrom = $request->getState()->carriedFrom;
 
             if (null !== $carriedFrom) {
                 $copies[$carriedFrom->requestId->toString()] = $request->getId();
@@ -306,7 +306,9 @@ final class CarryOverController extends AbstractController
      */
     private static function canCarry(ChangeRequest $request): bool
     {
-        return \in_array($request->getStatus(), [RequestStatus::Open, RequestStatus::Reopened], true) && SuggestionState::Pending !== $request->getSuggestionState();
+        $state = $request->getState();
+
+        return \in_array($state->status, [RequestStatus::Open, RequestStatus::Reopened], true) && !$state->suggestionPending();
     }
 
     private static function changedComment(CommitSha $source, CommitSha $target): string

@@ -27,8 +27,10 @@ final class FreshStateTest extends KernelTestCase
         $stale = self::getContainer()->get(ChangeRequestRepository::class)->find($requestId) ?? self::fail('The request is missing.');
 
         // Another process verifies the request after this one loaded it.
-        self::getContainer()->get(Connection::class)->executeStatement("UPDATE change_request SET status = 'verified', resolution = 'fixed' WHERE id = ?", [$requestId->toRfc4122()]);
-        self::assertSame(RequestStatus::Open, $stale->getStatus());
+        self::getContainer()->get(Connection::class)->executeStatement(<<<'SQL'
+            UPDATE change_request SET status = 'verified', state = state || '{"status": "verified", "resolution": "fixed"}' WHERE id = ?
+            SQL, [$requestId->toRfc4122()]);
+        self::assertSame(RequestStatus::Open, $stale->getState()->status);
 
         $this->expectException(InvalidTransition::class);
         self::requestCommands()->claim(new Claim($requestId), RequestScenario::claimingAgent());

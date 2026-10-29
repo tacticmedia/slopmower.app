@@ -71,7 +71,11 @@ final class ProjectionConsistencyTest extends KernelTestCase
         self::assertSame(['available', $linkedAvailable['linked_at']], [$linkedAvailable['state'], $linkedAvailable['found_at']]);
 
         $connection->executeStatement("UPDATE review SET title = 'Tampered', last_event_seq = 0 WHERE tenant_id = ?", $tenant);
-        $connection->executeStatement("UPDATE change_request SET status = 'open', body = 'Tampered', awaiting = 'none', last_event_seq = 0, require_approval = false, proposal_state = NULL, suggestion_state = NULL, pull_request_urls = '[]', title = NULL WHERE tenant_id = ?", $tenant);
+        $connection->executeStatement(<<<'SQL'
+            UPDATE change_request SET status = 'open', awaiting = 'none', last_event_seq = 0, suggestion_state = NULL,
+                state = state || '{"body": "Tampered", "lastEventSeq": 0, "requireApproval": false, "proposal": null, "suggestion": null, "pullRequestUrls": [], "title": null}'
+            WHERE tenant_id = ?
+            SQL, $tenant);
         $connection->executeStatement("UPDATE commit_link SET state = 'pending', found_at = NULL WHERE tenant_id = ?", $tenant);
         $connection->executeStatement('DELETE FROM comment WHERE tenant_id = ?', $tenant);
 

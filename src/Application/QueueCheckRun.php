@@ -97,7 +97,7 @@ final class QueueCheckRun
         return match (true) {
             $event instanceof PullRequestLinkedEvent, $event instanceof PullRequestUnlinkedEvent => [$event->url],
             EventType::ReviewClosed === $recorded->type => $this->linkedByRequestsOf($recorded->reviewId),
-            \in_array($recorded->type, self::REQUEST_TRIGGERS, true) && null !== $recorded->requestId => $this->requests->findFresh($recorded->requestId)?->getPullRequestUrls() ?? [],
+            \in_array($recorded->type, self::REQUEST_TRIGGERS, true) && null !== $recorded->requestId => $this->requests->findFresh($recorded->requestId)?->getState()->pullRequestUrls ?? [],
             default => [],
         };
     }
@@ -107,7 +107,7 @@ final class QueueCheckRun
      */
     private function linkedByRequestsOf(ReviewId $reviewId): array
     {
-        return array_merge(...array_map(static fn (ChangeRequest $request): array => $request->getPullRequestUrls(), $this->requests->findFreshOfReview($reviewId)));
+        return array_merge(...array_map(static fn (ChangeRequest $request): array => $request->getState()->pullRequestUrls, $this->requests->findFreshOfReview($reviewId)));
     }
 
     /**

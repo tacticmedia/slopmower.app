@@ -11,7 +11,6 @@ use App\Domain\Request\PullRequestUrl;
 use App\Domain\Request\SuggestionState;
 use App\Entity\ChangeRequest;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Query;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -72,7 +71,7 @@ final class ChangeRequestRepository extends ServiceEntityRepository
     {
         return array_values(array_filter(
             $this->findLinkingInRepository($repositoryId),
-            static fn (ChangeRequest $request): bool => array_any($request->getPullRequestUrls(), static fn (PullRequestUrl $url): bool => $number === $url->gitHubNumber()),
+            static fn (ChangeRequest $request): bool => array_any($request->getState()->pullRequestUrls, static fn (PullRequestUrl $url): bool => $number === $url->gitHubNumber()),
         ));
     }
 
@@ -82,7 +81,7 @@ final class ChangeRequestRepository extends ServiceEntityRepository
      */
     public function findLinkedPullRequestNumbers(RepositoryId $repositoryId): array
     {
-        $urls = array_merge(...array_map(static fn (ChangeRequest $request): array => $request->getPullRequestUrls(), $this->findLinkingInRepository($repositoryId)));
+        $urls = array_merge(...array_map(static fn (ChangeRequest $request): array => $request->getState()->pullRequestUrls, $this->findLinkingInRepository($repositoryId)));
 
         return array_values(array_unique(array_filter(array_map(static fn (PullRequestUrl $url): ?int => $url->gitHubNumber(), $urls), static fn (?int $number): bool => null !== $number)));
     }
@@ -96,9 +95,8 @@ final class ChangeRequestRepository extends ServiceEntityRepository
         $linking = $this->createQueryBuilder('request')
             ->join('request.review', 'review')
             ->where('review.repository = :repository')
-            ->andWhere('request.pullRequestUrls != :none')
+            ->andWhere("JSONB_PATH_TEXT(request.state, 'pullRequestUrls', '0') IS NOT NULL")
             ->setParameter('repository', $repositoryId, RepositoryId::class)
-            ->setParameter('none', [], Types::JSONB)
             ->orderBy('request.id')
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)

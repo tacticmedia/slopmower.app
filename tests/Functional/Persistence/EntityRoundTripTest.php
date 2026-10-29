@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Persistence;
 
 use App\Domain\Actor\Actor;
-use App\Domain\Actor\ActorKind;
 use App\Domain\Anchor\Anchor;
 use App\Domain\Anchor\AnchorKind;
 use App\Domain\Anchor\ContentSnapshot;
@@ -28,13 +27,6 @@ use App\Domain\Identity\BatchId;
 use App\Domain\Identity\CommentId;
 use App\Domain\Identity\EventId;
 use App\Domain\Identity\RequestId;
-use App\Domain\Request\Awaiting;
-use App\Domain\Request\Proposal;
-use App\Domain\Request\ProposalState;
-use App\Domain\Request\PullRequestUrl;
-use App\Domain\Request\RequestStatus;
-use App\Domain\Request\Resolution;
-use App\Domain\Request\SuggestionState;
 use App\Domain\Review\ReviewSnapshot;
 use App\Entity\ChangeRequest;
 use App\Entity\Comment;
@@ -63,17 +55,18 @@ final class EntityRoundTripTest extends KernelTestCase
         $tenantId = self::enterNewTenant();
         $agent = RequestScenario::claimingAgent();
         $time = new \DateTimeImmutable('2026-09-29T08:15:30Z');
-        $review = self::newReview($tenantId);
+        $scenario = RequestScenario::inState('proposal pending');
+        $claimedId = $scenario->requestId();
+        $otherId = $scenario->open();
+        $review = self::newReview($tenantId, $scenario->review()->id);
         $review->project(new ReviewSnapshot($review->getId(), $review->getTitle(), $review->getRef(), $review->getCommitSha(), $review->getStartedBy(), $review->getCreatedAt(), $time, RequestScenario::user(), 'Shipped in 2.4'), 9);
-        $claimed = self::newRequest($review, self::symbolAnchor());
-        $claimed->project(RequestStatus::InProgress, RequestStatus::Reopened, $agent, $time, null, null, Awaiting::Agent, 7, 6, true, 8, $time, true, new Proposal(EventId::generate(), ProposalState::Pending), SuggestionState::Accepted, [PullRequestUrl::fromString(RequestScenario::PULL_REQUEST)], 'Use Money for totals');
-        $wontDo = self::newRequest($review, self::symbolAnchor());
-        $wontDo->project(RequestStatus::WontDo, null, null, null, ActorKind::Agent, Resolution::WontDo, Awaiting::User, null, 5, false, 5, $time, false, null, null, [], null);
+        $claimed = new ChangeRequest($review, $scenario->state($claimedId));
+        $other = new ChangeRequest($review, $scenario->state($otherId));
         $comment = new Comment(CommentId::generate(), $claimed, $agent, 'Should this also cover the shipping totals?', true, BatchId::generate(), $time);
         $pending = new CommitLink($claimed, CommitSha::fromString(RequestScenario::OTHER_COMMIT), $agent, $time, 'Extracted TaxRounding.');
         $available = new CommitLink($claimed, CommitSha::fromString(RequestScenario::LINKED_COMMIT), $agent, $time, null);
         $available->found($time->modify('+1 minute'), 'Use Money for invoice totals', new \DateTimeImmutable('2026-09-29T07:44:10Z'));
-        $entities = [$review->getRepository(), $review, $claimed, $wontDo, $comment, $pending, $available];
+        $entities = [$review->getRepository(), $review, $claimed, $other, $comment, $pending, $available];
 
         foreach ($entities as $entity) {
             self::entityManager()->persist($entity);
@@ -91,7 +84,7 @@ final class EntityRoundTripTest extends KernelTestCase
         }
 
         $requestId = $claimed->getId();
-        $otherRequestId = $wontDo->getId();
+        $otherRequestId = $other->getId();
         $linkedSha = CommitSha::fromString(RequestScenario::LINKED_COMMIT);
         $events = [
             self::recorded($review, 1, $requestId, new RequestClaimedEvent()),
@@ -125,7 +118,7 @@ final class EntityRoundTripTest extends KernelTestCase
 
         $reloaded = self::entityManager()->find(ChangeRequest::class, self::entityManager()->getClassMetadata(ChangeRequest::class)->getIdentifierValues($request));
 
-        self::assertEquals($anchor, $reloaded?->getAnchor() ?? self::fail('The request did not reload.'));
+        self::assertEquals($anchor, $reloaded?->getState()->anchor ?? self::fail('The request did not reload.'));
     }
 
     /**
@@ -170,7 +163,7 @@ final class EntityRoundTripTest extends KernelTestCase
 
     private static function newRequest(Review $review, Anchor $anchor): ChangeRequest
     {
-        return new ChangeRequest(RequestId::generate(), $review, $anchor, 'Use `Money` instead of `float` for totals.', RequestScenario::user(), new \DateTimeImmutable(self::TIME));
+        return new ChangeRequest($review, RequestScenario::openedState($review->getId(), $anchor, RequestScenario::user(), new \DateTimeImmutable(self::TIME)));
     }
 
     private static function symbolAnchor(): Anchor

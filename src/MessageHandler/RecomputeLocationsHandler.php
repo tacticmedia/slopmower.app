@@ -61,7 +61,7 @@ final class RecomputeLocationsHandler
 
         foreach ($this->requests->findFreshOfReview($review->getId()) as $request) {
             $openedEventId = $openedEventIds[$request->getId()->toString()] ?? null;
-            $anchor = $request->getAnchor();
+            $anchor = $request->getState()->anchor;
 
             // A general request is never located, so its flag stays null.
             if (null === $openedEventId || null === $anchor) {

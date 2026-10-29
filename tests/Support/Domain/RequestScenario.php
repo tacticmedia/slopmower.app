@@ -50,6 +50,7 @@ use App\Domain\Request\Command\Verify;
 use App\Domain\Request\RequestDecider;
 use App\Domain\Request\RequestReducer;
 use App\Domain\Request\RequestState;
+use App\Domain\Request\RequestStatus;
 use App\Domain\Review\Command\CloseReview;
 use App\Domain\Review\Command\StartReview;
 use App\Domain\Review\ReviewDecider;
@@ -234,6 +235,14 @@ final class RequestScenario
             'set_title' => new SetTitle($id, 'Use Money for totals'),
             default => throw new \LogicException("Unknown command {$command}."),
         };
+    }
+
+    /**
+     * An open request without events, for a row that a test stores directly.
+     */
+    public static function openedState(ReviewId $reviewId, ?Anchor $anchor, Actor $author, \DateTimeImmutable $time): RequestState
+    {
+        return new RequestState(RequestId::generate(), $reviewId, $anchor, 'Use `Money` instead of `float` for totals.', $author, $time, RequestStatus::Open, null, null, null, null, null, [], [], null, null, false, 0, $time);
     }
 
     public function open(bool $requireApproval = false): RequestId

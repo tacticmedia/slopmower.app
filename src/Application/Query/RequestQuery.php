@@ -32,7 +32,6 @@ use App\Entity\Repository;
 use App\Entity\Review;
 use App\Git\GitReader;
 use App\Http\Cursor;
-use App\Projection\RequestStateMapper;
 use App\Repository\PullRequestRepository;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Types\Types;
@@ -49,10 +48,10 @@ use Symfony\Component\Uid\Ulid;
 final class RequestQuery
 {
     /** One expression for the filter, the order, and the cursor. A general request gets `''`, which is never a valid path. */
-    private const string ANCHOR_PATH = "COALESCE(JSONB_PATH_TEXT(request.anchor, 'path'), '')";
+    private const string ANCHOR_PATH = "COALESCE(JSONB_PATH_TEXT(request.state, 'anchor', 'path'), '')";
 
     /** File anchors and general requests have no range, so they sort first. */
-    private const string ANCHOR_START_LINE = "COALESCE(JSONB_PATH_INTEGER(request.anchor, 'range', 'startLine'), 0)";
+    private const string ANCHOR_START_LINE = "COALESCE(JSONB_PATH_INTEGER(request.state, 'anchor', 'range', 'startLine'), 0)";
 
     private const string LIKE_ESCAPE = '!';
 
@@ -101,7 +100,7 @@ final class RequestQuery
     public function get(RequestId $id, Actor $caller, ?CommitShaPrefix $at = null, ?int $contextLines = null): RequestView
     {
         $request = $this->fresh($id);
-        $anchor = $request->getAnchor();
+        $anchor = $request->getState()->anchor;
         // A general request is never located, so `at` is not resolved.
         $target = null === $anchor ? null : $this->target($request, $at);
 
@@ -111,7 +110,7 @@ final class RequestQuery
         }
 
         $links = $this->linksByRequest([$request])[$id->toString()] ?? [];
-        $summary = $this->summary($request, $links, $this->commentCounts([$request])[$id->toRfc4122()] ?? 0);
+        $summary = $this->summary($request, $this->commentCounts([$request])[$id->toRfc4122()] ?? 0);
         $thread = $this->threads->entries($request->getReview()->getId(), $id);
         // request.opened, whose ID is the cache key of the location.
         $opened = $thread[0]->event ?? null;
@@ -188,7 +187,7 @@ final class RequestQuery
     }
 
     /**
-     * Two queries for all requests: their links and their comment counts.
+     * One query for the comment counts of all requests.
      *
      * @param list<ChangeRequest> $requests Loaded with a refresh
      *
@@ -196,14 +195,9 @@ final class RequestQuery
      */
     public function summaries(array $requests): array
     {
-        $links = $this->linksByRequest($requests);
         $commentCounts = $this->commentCounts($requests);
 
-        return array_map(fn (ChangeRequest $request): RequestSummaryView => $this->summary(
-            $request,
-            $links[$request->getId()->toString()] ?? [],
-            $commentCounts[$request->getId()->toRfc4122()] ?? 0,
-        ), $requests);
+        return array_map(fn (ChangeRequest $request): RequestSummaryView => $this->summary($request, $commentCounts[$request->getId()->toRfc4122()] ?? 0), $requests);
     }
 
     /**
@@ -239,12 +233,9 @@ final class RequestQuery
         return null === $head ? null : [LocationTarget::DefaultBranch, $head];
     }
 
-    /**
-     * @param list<CommitLink> $links
-     */
-    private function summary(ChangeRequest $request, array $links, int $commentCount): RequestSummaryView
+    private function summary(ChangeRequest $request, int $commentCount): RequestSummaryView
     {
-        return new RequestSummaryView($request, RequestStateMapper::toState($request, $links), $commentCount);
+        return new RequestSummaryView($request, $request->getState(), $commentCount);
     }
 
     /**
@@ -339,7 +330,7 @@ final class RequestQuery
 
         return match ($sort) {
             RequestSort::Created, RequestSort::Path => [$id],
-            RequestSort::Updated => [$request->getUpdatedAt()->getTimestamp(), $id],
+            RequestSort::Updated => [$request->getState()->updatedAt->getTimestamp(), $id],
         };
     }
 
@@ -374,7 +365,7 @@ final class RequestQuery
             ->setParameter('review', $review->getId(), ReviewId::class)
             ->getQuery()
             ->getOneOrNullResult();
-        $anchor = $last instanceof ChangeRequest ? $last->getAnchor() : throw Cursor::malformed();
+        $anchor = $last instanceof ChangeRequest ? $last->getState()->anchor : throw Cursor::malformed();
 
         return [$anchor?->path->toString() ?? '', $anchor?->range->startLine ?? 0, $key[0]];
     }

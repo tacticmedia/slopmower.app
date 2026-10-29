@@ -67,6 +67,13 @@ final readonly class PayloadReader
         return is_int($value) ? $value : throw $this->violation($key, 'Must be an integer.');
     }
 
+    public function nullableInt(string $key): ?int
+    {
+        $value = $this->data[$key] ?? null;
+
+        return null === $value || is_int($value) ? $value : throw $this->violation($key, 'Must be an integer or null.');
+    }
+
     /**
      * @return list<string>
      */
@@ -100,6 +107,20 @@ final readonly class PayloadReader
     }
 
     /**
+     * @return list<self>
+     */
+    public function objectList(string $key): array
+    {
+        $value = $this->required($key);
+
+        if (!is_array($value) || !array_is_list($value)) {
+            throw $this->violation($key, 'Must be a list of objects.');
+        }
+
+        return array_map(fn (int $index): self => $this->asObject("{$key}.{$index}", $value[$index]), array_keys($value));
+    }
+
+    /**
      * @template T of \BackedEnum
      *
      * @param class-string<T> $enum A string-backed enum
@@ -117,6 +138,18 @@ final readonly class PayloadReader
         }
 
         return $case;
+    }
+
+    /**
+     * @template T of \BackedEnum
+     *
+     * @param class-string<T> $enum A string-backed enum
+     *
+     * @return T|null
+     */
+    public function nullableEnum(string $key, string $enum): ?\BackedEnum
+    {
+        return null === ($this->data[$key] ?? null) ? null : $this->enum($key, $enum);
     }
 
     public function dateTime(string $key): \DateTimeImmutable

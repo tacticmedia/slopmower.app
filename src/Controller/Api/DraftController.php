@@ -33,9 +33,7 @@ use App\Entity\DraftKind;
 use App\Entity\Review;
 use App\Entity\User;
 use App\EventStore\CommandExecutor;
-use App\Projection\RequestStateMapper;
 use App\Repository\ChangeRequestRepository;
-use App\Repository\CommitLinkRepository;
 use App\Repository\DraftRepository;
 use App\Repository\ReviewRepository;
 use App\Security\CurrentActor;
@@ -172,7 +170,6 @@ final class DraftController extends AbstractController
         CommandExecutor $executor,
         ReviewRepository $reviews,
         ChangeRequestRepository $requests,
-        CommitLinkRepository $links,
         RequestQuery $requestQuery,
         UsageLimits $usageLimits,
         #[MapRequestPayload(acceptFormat: 'json')] SubmitDraftsInput $input = new SubmitDraftsInput(),
@@ -185,7 +182,7 @@ final class DraftController extends AbstractController
         $events = $this->draftLock->run($review->getId(), $this->currentActor->sessionUser()->getId(), fn (): array => $executor->execute(
             $review->getId(),
             $actor,
-            function () use ($review, $reviews, $requests, $links, $usageLimits, $batchId, $input, $actor, &$drafts): array {
+            function () use ($review, $reviews, $requests, $usageLimits, $batchId, $input, $actor, &$drafts): array {
                 $snapshot = ($reviews->findFresh($review->getId()) ?? throw new NotFound())->toSnapshot();
                 $drafts = $this->drafts->findOfUser($this->currentActor->sessionUser()->getId(), $review->getId());
 
@@ -193,7 +190,7 @@ final class DraftController extends AbstractController
                     throw InvalidInput::field('', 'There are no drafts to submit.');
                 }
 
-                $decided = array_map(static fn (Draft $draft): DecidedEvent => self::decideDraft($draft, $batchId, $snapshot, $actor, $requests, $links), $drafts);
+                $decided = array_map(static fn (Draft $draft): DecidedEvent => self::decideDraft($draft, $batchId, $snapshot, $actor, $requests), $drafts);
                 $opened = array_filter($decided, static fn (DecidedEvent $event): bool => $event->event instanceof RequestOpenedEvent);
                 $usageLimits->checkNewRequests($review->getTenantId(), $review->getId(), \count($opened));
 
@@ -231,14 +228,14 @@ final class DraftController extends AbstractController
         );
     }
 
-    private static function decideDraft(Draft $draft, BatchId $batchId, ReviewSnapshot $review, Actor $actor, ChangeRequestRepository $requests, CommitLinkRepository $links): DecidedEvent
+    private static function decideDraft(Draft $draft, BatchId $batchId, ReviewSnapshot $review, Actor $actor, ChangeRequestRepository $requests): DecidedEvent
     {
         $replyTo = $draft->getRequest();
         $request = null === $replyTo ? null : $requests->findFresh($replyTo->getId()) ?? throw new NotFound();
         $command = null === $request
             ? new Open($draft->getAnchor(), $draft->getBody(), $batchId, requireApproval: $draft->requiresApproval(), title: $draft->getTitle())
             : new Reply($request->getId(), $draft->getBody(), batchId: $batchId);
-        $states = null === $request ? [] : [RequestStateMapper::toState($request, $links->findFreshOf($request))];
+        $states = null === $request ? [] : [$request->getState()];
 
         return RequestDecider::decide($command, $states, $review, $actor)[0] ?? throw new \LogicException('A draft decides one event.');
     }

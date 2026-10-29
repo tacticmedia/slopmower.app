@@ -27,8 +27,6 @@ final class RollbackTest extends KernelTestCase
     use CommandFixtures;
     use ResetDatabase;
 
-    private const string STORED_BODY = 'Use `Money` instead of `float` for totals.';
-
     #[TestDox('A decider that throws leaves event_seq, the events, and the projections unchanged and dispatches nothing')]
     public function testThrowingDeciderLeavesNoTrace(): void
     {
@@ -49,7 +47,7 @@ final class RollbackTest extends KernelTestCase
 
         self::failToDecide($reviewId, $requestId);
 
-        self::assertSame(self::STORED_BODY, self::request($requestId)->getBody());
+        self::assertNull(self::request($requestId)->getState()->title);
     }
 
     #[TestDox('A failure after the append and a projection leaves event_seq, the events, and the projections unchanged')]
@@ -93,7 +91,7 @@ final class RollbackTest extends KernelTestCase
         try {
             self::executor()->execute($reviewId, RequestScenario::user(), static function () use ($requestId, $refusal): array {
                 $request = self::request($requestId);
-                $request->opened($request->getAnchor(), 'Changed in memory.', $request->getAuthor(), $request->getCreatedAt());
+                $request->project($request->getState()->with(['title' => 'Changed in memory.']));
 
                 throw $refusal;
             });

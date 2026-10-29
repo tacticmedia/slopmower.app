@@ -7,9 +7,15 @@ namespace App\Domain\Request;
 use App\Domain\Actor\Actor;
 use App\Domain\Actor\ActorKind;
 use App\Domain\Anchor\Anchor;
+use App\Domain\Event\Codec\AnchorCodec;
+use App\Domain\Event\Codec\CorruptPayload;
+use App\Domain\Event\Codec\PayloadReader;
+use App\Domain\Event\Codec\TimeCodec;
 use App\Domain\Git\CommitSha;
+use App\Domain\Identity\EventId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
+use App\Domain\Identity\UserId;
 use App\Domain\Repository\RepositorySource;
 
 /**
@@ -61,6 +67,83 @@ final readonly class RequestState
         return $state;
     }
 
+    /**
+     * The value of `change_request.state` (D98). The row holds `id` and `reviewId`.
+     *
+     * @return array<string, mixed>
+     */
+    public function toPayload(): array
+    {
+        return [
+            'anchor' => null === $this->anchor ? null : AnchorCodec::encode($this->anchor),
+            'title' => $this->title,
+            'body' => $this->body,
+            'author' => self::actorPayload($this->author),
+            'createdAt' => TimeCodec::encode($this->createdAt),
+            'status' => $this->status->value,
+            'statusBeforeClaim' => $this->statusBeforeClaim?->value,
+            'claimedBy' => null === $this->claimedBy ? null : self::actorPayload($this->claimedBy),
+            'claimedAt' => null === $this->claimedAt ? null : TimeCodec::encode($this->claimedAt),
+            'wontDoBy' => $this->wontDoBy?->value,
+            'resolution' => $this->resolution?->value,
+            'links' => array_map(static fn (LinkedCommit $link): array => ['commitSha' => $link->commitSha->toString(), 'state' => $link->state->value], $this->links),
+            'pullRequestUrls' => array_map(static fn (PullRequestUrl $url): string => $url->toString(), $this->pullRequestUrls),
+            'lastUserCommentSeq' => $this->lastUserCommentSeq,
+            'lastAgentEventSeq' => $this->lastAgentEventSeq,
+            'lastAgentEventIsQuestion' => $this->lastAgentEventIsQuestion,
+            'lastEventSeq' => $this->lastEventSeq,
+            'updatedAt' => TimeCodec::encode($this->updatedAt),
+            'carriedFrom' => null === $this->carriedFrom ? null : ['reviewId' => $this->carriedFrom->reviewId->toString(), 'requestId' => $this->carriedFrom->requestId->toString()],
+            'requireApproval' => $this->requireApproval,
+            'proposal' => null === $this->proposal ? null : ['eventId' => $this->proposal->eventId->toString(), 'state' => $this->proposal->state->value],
+            'suggestion' => $this->suggestion?->value,
+        ];
+    }
+
+    /**
+     * @param array<mixed> $payload Of {@see self::toPayload()}
+     *
+     * @throws CorruptPayload
+     */
+    public static function fromPayload(RequestId $id, ReviewId $reviewId, array $payload): self
+    {
+        $reader = PayloadReader::of($payload);
+        $anchor = $reader->nullableObject('anchor');
+        $claimedBy = $reader->nullableObject('claimedBy');
+        $carriedFrom = $reader->nullableObject('carriedFrom');
+        $proposal = $reader->nullableObject('proposal');
+
+        return new self(
+            id: $id,
+            reviewId: $reviewId,
+            anchor: null === $anchor ? null : AnchorCodec::decode($anchor),
+            body: $reader->string('body'),
+            author: self::actorOf($reader->object('author')),
+            createdAt: $reader->dateTime('createdAt'),
+            status: $reader->enum('status', RequestStatus::class),
+            statusBeforeClaim: $reader->nullableEnum('statusBeforeClaim', RequestStatus::class),
+            claimedBy: null === $claimedBy ? null : self::actorOf($claimedBy),
+            claimedAt: $reader->nullableDateTime('claimedAt'),
+            wontDoBy: $reader->nullableEnum('wontDoBy', ActorKind::class),
+            resolution: $reader->nullableEnum('resolution', Resolution::class),
+            links: array_map(static fn (PayloadReader $link): LinkedCommit => new LinkedCommit(
+                $link->build(static fn (): CommitSha => CommitSha::fromString($link->string('commitSha'))),
+                $link->enum('state', CommitLinkState::class),
+            ), $reader->objectList('links')),
+            pullRequestUrls: array_map(static fn (string $url): PullRequestUrl => $reader->build(static fn (): PullRequestUrl => PullRequestUrl::fromString($url)), $reader->stringList('pullRequestUrls')),
+            lastUserCommentSeq: $reader->nullableInt('lastUserCommentSeq'),
+            lastAgentEventSeq: $reader->nullableInt('lastAgentEventSeq'),
+            lastAgentEventIsQuestion: $reader->bool('lastAgentEventIsQuestion'),
+            lastEventSeq: $reader->int('lastEventSeq'),
+            updatedAt: $reader->dateTime('updatedAt'),
+            carriedFrom: null === $carriedFrom ? null : new CarriedFrom($carriedFrom->id('reviewId', ReviewId::class), $carriedFrom->id('requestId', RequestId::class)),
+            requireApproval: $reader->bool('requireApproval'),
+            proposal: null === $proposal ? null : new Proposal($proposal->id('eventId', EventId::class), $proposal->enum('state', ProposalState::class)),
+            suggestion: $reader->nullableEnum('suggestion', SuggestionState::class),
+            title: $reader->nullableString('title'),
+        );
+    }
+
     public function closed(): bool
     {
         return $this->status->isClosed($this->wontDoBy);
@@ -106,6 +189,23 @@ final readonly class RequestState
     public function suggestionPending(): bool
     {
         return SuggestionState::Pending === $this->suggestion;
+    }
+
+    /**
+     * @return array{kind: string, userId: string|null, agentName: string|null}
+     */
+    private static function actorPayload(Actor $actor): array
+    {
+        return ['kind' => $actor->kind->value, 'userId' => $actor->userId?->toString(), 'agentName' => $actor->agentName];
+    }
+
+    private static function actorOf(PayloadReader $actor): Actor
+    {
+        $kind = $actor->enum('kind', ActorKind::class);
+        $userId = $actor->nullableId('userId', UserId::class);
+        $agentName = $actor->nullableString('agentName');
+
+        return $actor->build(static fn (): Actor => Actor::of($kind, $userId, $agentName));
     }
 
     private function assertConsistent(): void

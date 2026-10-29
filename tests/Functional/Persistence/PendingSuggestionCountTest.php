@@ -7,8 +7,8 @@ namespace App\Tests\Functional\Persistence;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\RefName;
 use App\Domain\Request\Command\AcceptSuggestion;
+use App\Entity\ChangeRequest;
 use App\Entity\Review;
-use App\Projection\RequestStateMapper;
 use App\Repository\ChangeRequestRepository;
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Domain\RequestScenario;
@@ -35,10 +35,10 @@ final class PendingSuggestionCountTest extends KernelTestCase
         $other = RequestScenario::inState('suggestion pending');
         $otherReview = new Review($other->review()->id, $review->getRepository(), 'main @ 79f8595a4c1e', RefName::fromString('main'), CommitSha::fromString(self::REVIEW_COMMIT), RequestScenario::user(), new \DateTimeImmutable(self::TIME), 1);
         self::entityManager()->persist($otherReview);
-        self::entityManager()->persist(RequestStateMapper::toEntity($otherReview, $other->state()));
+        self::entityManager()->persist(new ChangeRequest($otherReview, $other->state()));
 
         foreach ([$userRequest, $firstPending, $accepted, $secondPending] as $id) {
-            self::entityManager()->persist(RequestStateMapper::toEntity($review, $scenario->state($id)));
+            self::entityManager()->persist(new ChangeRequest($review, $scenario->state($id)));
         }
 
         self::entityManager()->flush();

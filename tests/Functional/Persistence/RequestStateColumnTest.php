@@ -9,8 +9,6 @@ use App\Domain\Request\AwaitingPolicy;
 use App\Domain\Request\Command\LinkCommits;
 use App\Domain\Request\Command\Reply;
 use App\Entity\ChangeRequest;
-use App\Projection\RequestStateMapper;
-use App\Repository\CommitLinkRepository;
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Domain\RequestScenario;
 use App\Tests\Support\Persistence\ReviewDataFixtures;
@@ -18,12 +16,12 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-final class RequestStateMapperTest extends KernelTestCase
+final class RequestStateColumnTest extends KernelTestCase
 {
     use ResetDatabase;
     use ReviewDataFixtures;
 
-    #[TestDox('States from the M04 scenarios survive the round trip')]
+    #[TestDox('States from the M04 scenarios survive the round trip through change_request.state, and awaiting is stored next to it')]
     #[DataProvider('scenarios')]
     public function testStatesSurviveTheRoundTrip(\Closure $scenario): void
     {
@@ -34,9 +32,8 @@ final class RequestStateMapperTest extends KernelTestCase
         $requestId = self::persistScenario($tenantId, $built);
 
         $request = self::entityManager()->find(ChangeRequest::class, $requestId) ?? self::fail('The request did not reload.');
-        $links = self::getContainer()->get(CommitLinkRepository::class)->findBy(['request' => $request]);
 
-        self::assertEquals($state, RequestStateMapper::toState($request, $links));
+        self::assertEquals($state, $request->getState());
         self::assertSame(AwaitingPolicy::evaluate($state), $request->getAwaiting());
     }
 

@@ -53,7 +53,6 @@ use App\Git\PinRefs;
 use App\Git\RepositoryLock;
 use App\Git\TenantDataPaths;
 use App\Message\ReadPullRequestJob;
-use App\Projection\RequestStateMapper;
 use App\Repository\ChangeRequestRepository;
 use App\Repository\CommitLinkRepository;
 use App\Repository\ReviewRepository;
@@ -364,9 +363,7 @@ final class RequestCommands
 
     private function state(RequestId $requestId): RequestState
     {
-        $request = $this->requests->findFresh($requestId) ?? throw new NotFound();
-
-        return RequestStateMapper::toState($request, $this->links->findFreshOf($request));
+        return ($this->requests->findFresh($requestId) ?? throw new NotFound())->getState();
     }
 
     private function requestFetch(RepositoryId $repositoryId): void

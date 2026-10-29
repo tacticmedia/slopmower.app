@@ -87,13 +87,12 @@ final class RequestProjector
         if (null === $request) {
             $review = $this->entityManager->getReference(Review::class, $state->reviewId)
                 ?? throw new \LogicException("The review {$state->reviewId} has no row.");
-            $this->entityManager->persist(RequestStateMapper::toEntity($review, $state));
+            $this->entityManager->persist(new ChangeRequest($review, $state));
 
             return;
         }
 
-        $request->opened($state->anchor, $state->body, $state->author, $state->createdAt, $state->carriedFrom);
-        RequestStateMapper::update($request, $state);
+        $request->project($state);
     }
 
     /**
@@ -102,10 +101,9 @@ final class RequestProjector
     private function apply(RequestId $requestId, RecordedEvent $recorded): array
     {
         $request = $this->requests->findFresh($requestId) ?? throw new \LogicException("The request {$requestId} has no row.");
-        $links = $this->links->findFreshOf($request);
-        RequestStateMapper::update($request, RequestReducer::apply(RequestStateMapper::toState($request, $links), $recorded));
+        $request->project(RequestReducer::apply($request->getState(), $recorded));
 
-        return [$request, $links];
+        return [$request, $this->links->findFreshOf($request)];
     }
 
     /**
