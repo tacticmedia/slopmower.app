@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useOptimistic, useRef, useState, useTransition } from 'react';
 import { useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
-import type { Actor } from '../api/types/actor';
 import type { Symbol as CodeSymbol } from '../api/types/symbol';
 import type { LineRange } from '../code/lineHash';
 import { anchorInput } from '../code/rangeSelection';
 import type { CommentText } from './CommentBox';
 import type { CommentIntent } from './commentIntent';
 import { type DraftView, pendingDraft } from './draftView';
-import { pendingThread, type ThreadView } from './threadView';
+import type { ThreadView } from './threadView';
 
 export type Composer = {
     /** A new key remounts the comment box with `initialBody`. */
@@ -24,14 +23,10 @@ export type Composer = {
     error: string | null;
 };
 
-/** `single` opens a request at once with Q2, `draft` adds a pending comment with D2. */
-export type SubmitMode = 'single' | 'draft';
-
 type Options = {
     path: string;
     threads: ThreadView[];
     drafts: DraftView[];
-    caller: Actor;
     /** Sets the line selection. Gap G1: while a selection exists, the "+" stays on its last line. */
     select(range: LineRange | null): void;
 };
@@ -39,13 +34,12 @@ type Options = {
 type Sent = { path: string; range: LineRange | null; symbol: CodeSymbol | null; text: CommentText };
 
 /**
- * The one comment box of a file, Q2, and D2. The new thread or pending comment shows at once; when the write fails,
- * the box opens again with the text, the error, and the line selection.
+ * The one comment box of a file and D2 (D84). The pending comment shows at once; when the write fails, the box opens
+ * again with the text, the error, and the line selection.
  */
-export function useFileComments({ path, threads, drafts, caller, select }: Options) {
+export function useFileComments({ path, threads, drafts, select }: Options) {
     const fetcher = useFetcher<ActionResult>();
     const [sending, startSending] = useTransition();
-    const [shownThreads, addThread] = useOptimistic(threads, (current: ThreadView[], added: ThreadView) => [...current, added]);
     const [shownDrafts, addDraft] = useOptimistic(drafts, (current: DraftView[], added: DraftView) => [...current, added]);
     const opened = useRef(0);
     const [composer, setComposer] = useState<(Composer & { path: string }) | null>(null);
@@ -86,7 +80,7 @@ export function useFileComments({ path, threads, drafts, caller, select }: Optio
     }, [select]);
 
     const submit = useCallback(
-        (text: CommentText, mode: SubmitMode): boolean => {
+        (text: CommentText): boolean => {
             if (sending || null === shownComposer) {
                 return false;
             }
@@ -94,21 +88,16 @@ export function useFileComments({ path, threads, drafts, caller, select }: Optio
             setComposer(null);
             select(null);
             setSent({ path, range, symbol, text });
-            const anchor = anchorInput(path, range, symbol?.fqn ?? null);
-            const intent: CommentIntent = 'draft' === mode ? { intent: 'draft', input: { kind: 'new_request', anchor, ...text } } : { intent: 'open', input: { anchor, ...text } };
+            const intent: CommentIntent = { intent: 'draft', input: { kind: 'new_request', anchor: anchorInput(path, range, symbol?.fqn ?? null), ...text } };
             startSending(async () => {
-                if ('draft' === mode) {
-                    addDraft(pendingDraft(range, text));
-                } else {
-                    addThread(pendingThread(range, symbol?.fqn ?? null, text.title ?? null, text.body, caller));
-                }
+                addDraft(pendingDraft(range, text));
                 await fetcher.submit(intent, { method: 'post', encType: 'application/json' });
             });
 
             return true;
         },
-        [sending, shownComposer, path, caller, select, addThread, addDraft, fetcher.submit],
+        [sending, shownComposer, path, select, addDraft, fetcher.submit],
     );
 
-    return { threads: shownThreads, drafts: shownDrafts, composer: shownComposer, open, cancel, submit };
+    return { threads, drafts: shownDrafts, composer: shownComposer, open, cancel, submit };
 }

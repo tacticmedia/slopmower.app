@@ -121,7 +121,7 @@ These two principles control all decisions.
 - A web UI that follows Principle B.
 - Screens: repositories from both sources, the file tree at the pinned SHA, the file view with inline threads, the list of requests with filters for status, "Waiting for you", path, outdated, and "Suggestions", the request detail with the conversation and the linked commits, and settings.
 - Actions: comment on a line, range, symbol, or file, with the "Ask for a plan first" checkbox, checked by default; open a general request with "New request" on the list of requests; reply; approve a proposal with "Approve", or reject it with "Request changes" and a note; switch the plan requirement of an unfinished request with "Ask for a plan first" or "Don't ask for a plan"; accept a suggestion, with "Ask for a plan first" checked by default, or dismiss it with an optional note; verify with "Resolve conversation"; reopen with a note; close as won't do; unassign a stale claim.
-- A pending review: drafts that the user submits as one batch. The agent sees nothing before the submission. The list of requests also lists the pending drafts.
+- A pending review: every new request from the web UI is a draft, and the user submits the drafts as one batch with "Submit feedback", as often as needed. The agent sees nothing before the submission. Replies and state changes act at once. The list of requests also lists the pending drafts.
 - Per-file "Viewed" marks that stay for the whole review.
 - Live updates: an agent reply or suggestion shows in the open view without a reload.
 

@@ -43,7 +43,7 @@ const ADD_TOTALS = commit('Add invoice totals', 'Ada Lovelace', 500);
 const ROUND_TAX = commit('Round tax per line', 'Grace Hopper', 3);
 
 test.describe('CodeBrowser', () => {
-    test('A reviewer reads the code and its blame, searches, and finishes the review', async ({ page, api, captureScreen }) => {
+    test('A reviewer reads the code and its blame, searches, and submits feedback', async ({ page, api, captureScreen }) => {
         const review = new FakeReview(api, { files: { ...codeViewFiles(), 'README.md': README } });
         review.viewedPaths = ['README.md'];
         api.on('GET', '/api/v1/reviews/:reviewId/search', () => json('lists.schema.json#/$defs/SearchHitList', searchHitList(review.id, HITS)));
@@ -84,8 +84,8 @@ test.describe('CodeBrowser', () => {
         review.seedDraft({ kind: 'new_request', anchor: null, body: 'Add a changelog entry.' });
         await openFile(page, review, SMALL_FILE);
         await waitForHighlighting(page, 13);
-        await page.locator('[data-testid="finish-review"]').click();
-        await page.locator('[data-testid="finish-review-form"] textarea[name="summary"]').fill('First pass over the billing code.');
-        await captureScreen('Finish review with drafts', page.locator('[data-testid="finish-review-form"]'));
+        await page.locator('[data-testid="submit-feedback"]').click();
+        await page.locator('[data-testid="submit-feedback-form"] textarea[name="summary"]').fill('First pass over the billing code.');
+        await captureScreen('Submit feedback with drafts', page.locator('[data-testid="submit-feedback-form"]'));
     });
 });

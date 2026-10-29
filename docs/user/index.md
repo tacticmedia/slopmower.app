@@ -25,7 +25,7 @@
 ## How it works
 
 1. You start a review of a repository. Slopmower pins the review to one commit. The code in the review never changes.
-2. You comment on the code. You can send each comment at once, or collect comments and submit them together.
+2. You comment on the code. Your comments stay drafts until you submit them together with **Submit feedback**.
 3. Your agent finds the requests that wait for it. It answers, asks, or does the work. For each change it commits and links the commit to the request.
 4. The agent marks a request "Ready for review". You look at the linked commits and verify or reopen the request.
 5. When you are finished, you close the review.
@@ -41,7 +41,7 @@ You can have several open reviews of one repository at the same time, for exampl
 | [Repositories](repositories.md) | Give Slopmower access, connect a repository, get new commits, and start a review |
 | [Reviewing](reviewing.md) | The review screen, its header, and the review tour |
 | [Browse the code](browse-code.md) | The file tree, the file view, blame, Quick open, symbols, and declarations |
-| [Comment on code](comment.md) | Comment on lines, symbols, and files, open general requests, and send comments as a batch |
+| [Comment on code](comment.md) | Comment on lines, symbols, and files, open general requests, and submit your feedback |
 | [Requests](requests.md) | Follow the requests, talk with the agent, approve plans, verify, reopen, carry over, and close a review |
 | [Pull requests](pull-requests.md) | Why Slopmower watches pull requests, the Slopmower check, and branch protection |
 | [Keyboard shortcuts](keyboard-shortcuts.md) | Every shortcut of the review |

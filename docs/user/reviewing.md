@@ -19,7 +19,7 @@ The header shows the repository, which links to the repository page, the title o
 
 - **Quick open** finds a file or a symbol. See [Quick open](browse-code.md#quick-open).
 - **Agent prompts** shows the review ID, the agent prompt, and the review prompt, each with a copy button, and the link **Connect your agent**. See [Give your agent a review](connect-your-agent.md#5-give-your-agent-a-review).
-- **Finish your review** shows while you have drafts. See [Send comments one by one or as a batch](comment.md#send-comments-one-by-one-or-as-a-batch).
+- **Submit feedback** shows while you have drafts. See [Submit feedback](comment.md#submit-feedback).
 - **Review actions**, the button with three dots, has **Carry over requests** and **Close review** while the review is open, and **Delete review**. See [Carry over open requests](requests.md#carry-over-open-requests) and [Close a review](requests.md#close-a-review).
 
 While the symbol index runs, a progress bar shows below the title. If the index fails, the reason shows there.
@@ -38,7 +38,7 @@ To see the tour again, open a page of a review, click **Help** in the header, th
 ## Keep going
 
 - [Browse the code](browse-code.md): the file tree, the file view, blame, Quick open, symbols, and declarations.
-- [Comment on code](comment.md): comment on lines, symbols, and files, and send comments as a batch.
+- [Comment on code](comment.md): comment on lines, symbols, and files, and submit your feedback.
 - [Requests](requests.md): follow the requests, talk with the agent, verify, reopen, carry over, and close a review.
 - [Pull requests](pull-requests.md): the pull requests of your agent and the Slopmower check.
 - [Keyboard shortcuts](keyboard-shortcuts.md): every shortcut of the review.

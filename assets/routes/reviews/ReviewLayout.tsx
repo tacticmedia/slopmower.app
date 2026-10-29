@@ -4,7 +4,7 @@ import { Outlet, Link as RouterLink, useLoaderData, useMatch } from 'react-route
 import type { Review } from '../../api/types/review';
 import { useDocumentTitle } from '../../layout/useDocumentTitle';
 import { AgentPromptsOverlay } from '../../review/AgentPromptsOverlay';
-import { FinishReviewOverlay } from '../../review/FinishReviewOverlay';
+import { SubmitFeedbackOverlay } from '../../review/SubmitFeedbackOverlay';
 import { IndexProgress } from '../../review/IndexProgress';
 import { QuickOpen } from '../../review/QuickOpen';
 import { ReviewActionsMenu } from '../../review/ReviewActionsMenu';
@@ -73,7 +73,7 @@ export function ReviewLayout() {
                     <div className={styles.reviewActions}>
                         <QuickOpen reviewId={review.id} indexState={review.index.state} />
                         <AgentPromptsOverlay reviewId={review.id} />
-                        {'open' === review.state && drafts.length > 0 && <FinishReviewOverlay draftCount={drafts.length} />}
+                        {'open' === review.state && drafts.length > 0 && <SubmitFeedbackOverlay draftCount={drafts.length} />}
                         <ReviewActionsMenu review={review} draftCount={drafts.length} />
                     </div>
                 </div>

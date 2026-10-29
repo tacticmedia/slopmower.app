@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { commitDiff, commitLink, modifiedFile, sha1 } from './support/builders';
-import { addSingleComment, CODE_HOST, dragFromPlus, focusedCommentBoxBelow, openFile, shiftClickLines, turnOnWrap, waitForHighlighting, wrapToggle } from './support/codeView';
+import { CODE_HOST, commentAndSubmit, dragFromPlus, focusedCommentBoxBelow, openFile, shiftClickLines, turnOnWrap, waitForHighlighting, wrapToggle } from './support/codeView';
 import { FakeReview } from './support/fakeReview';
 import { codeViewFiles } from './support/files';
 import { apiError, json, type MockApi, text } from './support/mockApi';
@@ -51,10 +51,10 @@ test.describe('LineWrap', () => {
 
         await shiftClickLines(page, 3, 4);
         await dragFromPlus(page, 4, 4);
-        await addSingleComment(page, await focusedCommentBoxBelow(page, 4), 'Split the price list.', '[slot="annotation-4"]');
+        await commentAndSubmit(page, await focusedCommentBoxBelow(page, 4), 'Split the price list.', '[slot="annotation-4"]');
 
-        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/requests')).toEqual([
-            { anchor: { kind: 'range', path: LONG_LINE_FILE, range: { startLine: 3, endLine: 4 } }, body: 'Split the price list.', requireApproval: true },
+        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/drafts')).toEqual([
+            { kind: 'new_request', anchor: { kind: 'range', path: LONG_LINE_FILE, range: { startLine: 3, endLine: 4 } }, body: 'Split the price list.', requireApproval: true },
         ]);
     });
 

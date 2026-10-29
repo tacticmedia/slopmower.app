@@ -3,7 +3,7 @@ import { SMALL_FILE } from './support/files';
 import { expect, test } from './support/test';
 
 const PENDING_DRAFTS = '[data-testid="pending-drafts"] [data-testid="draft"][data-draft-id]';
-const FINISH = '[data-testid="finish-review"]';
+const SUBMIT_FEEDBACK = '[data-testid="submit-feedback"]';
 
 test.describe('PendingDrafts', () => {
     test('The Requests tab lists every pending draft with its label, and a line draft links to its lines', async ({ page, api }) => {
@@ -20,7 +20,7 @@ test.describe('PendingDrafts', () => {
         await expect(drafts.nth(0)).toContainText(`${SMALL_FILE}:L9-L12`);
         await expect(drafts.nth(1)).toContainText('Reply to Is strict_types needed here?');
         await expect(drafts.nth(2)).toContainText('General');
-        await expect(page.locator(FINISH)).toContainText('3');
+        await expect(page.locator(SUBMIT_FEEDBACK)).toContainText('3');
 
         await drafts.nth(0).getByRole('link', { name: `${SMALL_FILE}:L9-L12`, exact: true }).click();
 

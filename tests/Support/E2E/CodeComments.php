@@ -99,13 +99,23 @@ trait CodeComments
     }
 
     /**
-     * Types into the comment box and clicks "Add single comment", then waits for the saved thread.
+     * Types into the comment box, clicks "Add comment", and submits the feedback, then waits for the saved thread.
      */
-    private function addSingleComment(LocatorInterface $textarea, string $body, string $container): void
+    private function commentAndSubmit(LocatorInterface $textarea, string $body, string $container): void
     {
         $textarea->fill($body);
-        $this->page->locator('form[data-testid="comment-box"]')->getByRole('button', ['name' => 'Add single comment', 'exact' => true])->click();
+        $this->page->locator('form[data-testid="comment-box"]')->getByRole('button', ['name' => 'Add comment', 'exact' => true])->click();
+        $this->submitFeedback();
         $this->expect($this->page->locator("{$container} ".self::SAVED_THREAD)->filter(['hasText' => $body]))->toHaveCount(1);
+    }
+
+    /**
+     * The header button shows once D2 has saved a draft.
+     */
+    private function submitFeedback(): void
+    {
+        $this->page->locator('[data-testid="submit-feedback"]')->click();
+        $this->page->locator('form[data-testid="submit-feedback-form"]')->getByRole('button', ['name' => 'Submit feedback', 'exact' => true])->click();
     }
 
     private function seededRequest(int $startLine, int $endLine, string $body): RequestId

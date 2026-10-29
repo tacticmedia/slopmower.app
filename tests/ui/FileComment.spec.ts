@@ -1,16 +1,18 @@
 import type { Page } from '@playwright/test';
-import { addSingleComment, CODE_HOST, COMPOSER, commentBoxButton, FILE_THREADS, lineNumber, openFile, waitForHighlighting, waitForSavedThread } from './support/codeView';
+import { CODE_HOST, commentAndSubmit, commentBoxButton, COMPOSER, FILE_THREADS, lineNumber, openFile, waitForHighlighting, waitForSavedDraft, waitForSavedThread } from './support/codeView';
 import { FakeReview } from './support/fakeReview';
 import { BINARY_FILE, SMALL_FILE } from './support/files';
 import { expect, test } from './support/test';
 
 const REQUESTS = '/api/v1/reviews/:reviewId/requests';
 
+const DRAFTS = '/api/v1/reviews/:reviewId/drafts';
+
 async function commentOnFile(page: Page, body: string): Promise<void> {
     await page.getByRole('button', { name: 'Comment on file' }).click();
     const textarea = page.locator(`${FILE_THREADS} ${COMPOSER}`);
     await expect(textarea).toBeVisible();
-    await addSingleComment(page, textarea, body, FILE_THREADS);
+    await commentAndSubmit(page, textarea, body, FILE_THREADS);
 }
 
 test.describe('FileComment', () => {
@@ -23,9 +25,9 @@ test.describe('FileComment', () => {
         await expect(page.locator('[data-testid="file-placeholder"]')).toBeVisible();
         await commentOnFile(page, 'Use an SVG.');
 
-        expect(api.bodies('POST', REQUESTS)).toEqual([
-            { anchor: { kind: 'file', path: SMALL_FILE }, body: 'Split this class.', requireApproval: true },
-            { anchor: { kind: 'file', path: BINARY_FILE }, body: 'Use an SVG.', requireApproval: true },
+        expect(api.bodies('POST', DRAFTS)).toEqual([
+            { kind: 'new_request', anchor: { kind: 'file', path: SMALL_FILE }, body: 'Split this class.', requireApproval: true },
+            { kind: 'new_request', anchor: { kind: 'file', path: BINARY_FILE }, body: 'Use an SVG.', requireApproval: true },
         ]);
         await page.reload();
         await waitForSavedThread(page, FILE_THREADS, 'Use an SVG.');
@@ -46,7 +48,7 @@ test.describe('FileComment', () => {
         await expect(page.locator(`${CODE_HOST} [data-utility-button]`)).toHaveCount(0);
     });
 
-    test('Escape cancels the comment box, and Ctrl+Enter sends it', async ({ page, api }) => {
+    test('Escape cancels the comment box, and Ctrl+Enter adds a draft, not a request', async ({ page, api }) => {
         const review = new FakeReview(api);
         await openFile(page, review, SMALL_FILE);
         const composer = page.locator(`${FILE_THREADS} ${COMPOSER}`);
@@ -57,10 +59,12 @@ test.describe('FileComment', () => {
         await expect(composer).toHaveCount(0);
         await page.getByRole('button', { name: 'Comment on file' }).click();
         await composer.fill('Split this class.');
+        await expect(page.locator('form[data-testid="comment-box"]').getByRole('button')).toHaveText(['Cancel', 'Add comment']);
         await composer.press('ControlOrMeta+Enter');
 
-        await waitForSavedThread(page, FILE_THREADS, 'Split this class.');
-        expect(api.bodies('POST', REQUESTS)).toEqual([{ anchor: { kind: 'file', path: SMALL_FILE }, body: 'Split this class.', requireApproval: true }]);
+        await waitForSavedDraft(page, FILE_THREADS, 'Split this class.');
+        expect(api.bodies('POST', DRAFTS)).toEqual([{ kind: 'new_request', anchor: { kind: 'file', path: SMALL_FILE }, body: 'Split this class.', requireApproval: true }]);
+        expect(api.callsTo('POST', REQUESTS), 'The web UI opens no request with Q2.').toEqual([]);
     });
 
     test('A failed comment opens its box again with the text and the error', async ({ page, api }) => {
@@ -72,11 +76,11 @@ test.describe('FileComment', () => {
         review.close();
 
         await composer.fill('Too late.');
-        await commentBoxButton(page, 'Add single comment').click();
+        await commentBoxButton(page, 'Add comment').click();
 
         await expect(page.locator(`${FILE_THREADS} [data-testid="comment-error"]`)).toBeVisible();
         await expect(composer).toHaveValue('Too late.');
-        await expect(page.locator('[data-testid="thread"]')).toHaveCount(0);
-        expect(api.bodies('POST', REQUESTS)).toEqual([{ anchor: { kind: 'file', path: SMALL_FILE }, body: 'Too late.', requireApproval: true }]);
+        await expect(page.locator('[data-testid="draft"]')).toHaveCount(0);
+        expect(api.bodies('POST', DRAFTS)).toEqual([{ kind: 'new_request', anchor: { kind: 'file', path: SMALL_FILE }, body: 'Too late.', requireApproval: true }]);
     });
 });

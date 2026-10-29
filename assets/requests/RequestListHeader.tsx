@@ -3,7 +3,6 @@ import { ActionList, ActionMenu, Button, CounterLabel, Link, TextInput } from '@
 import type { FormEvent } from 'react';
 import { Link as RouterLink, useSearchParams } from 'react-router';
 import { REQUEST_STATUSES, type RequestStatus } from '../api/types/common';
-import type { Draft } from '../api/types/draft';
 import type { RequestCounts } from '../api/types/review';
 import { type RequestSort, requestFilters } from '../routes/requests/requestData';
 import { NewRequestBox } from './NewRequestBox';
@@ -37,12 +36,12 @@ function changedSearch(current: URLSearchParams, changes: Changes): URLSearchPar
 type Props = {
     /** The review totals, independent of the filters. */
     byAwaiting: RequestCounts['byAwaiting'];
-    /** Null when the review is closed. */
-    drafts: readonly Draft[] | null;
+    /** False when the review is closed. */
+    commentable: boolean;
 };
 
 /** Every filter is a URL search parameter with its Q1 name. */
-export function RequestListHeader({ byAwaiting, drafts }: Props) {
+export function RequestListHeader({ byAwaiting, commentable }: Props) {
     const [searchParams, setSearchParams] = useSearchParams();
     const filters = requestFilters(searchParams);
     const change = (changes: Changes): void => setSearchParams((current) => changedSearch(current, changes));
@@ -112,7 +111,7 @@ export function RequestListHeader({ byAwaiting, drafts }: Props) {
                     </Button>
                 </form>
             </div>
-            {null !== drafts && <NewRequestBox drafts={drafts} />}
+            {commentable && <NewRequestBox />}
         </div>
     );
 }

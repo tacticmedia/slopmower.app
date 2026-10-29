@@ -3,17 +3,15 @@ import { Button } from '@primer/react';
 import { useState, useTransition } from 'react';
 import { useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
-import type { Draft } from '../api/types/draft';
 import { CommentBox } from '../comments/CommentBox';
 import type { CommentIntent } from '../comments/commentIntent';
-import { reviewLabel } from '../comments/draftView';
 import shared from './Requests.module.css';
 
 /**
- * Opens a general request with Q2, or adds it to the pending review with D2. The box closes when the write succeeds
- * and keeps the text when it fails.
+ * Adds a general request to the pending feedback with D2. The box closes when the write succeeds and keeps the text
+ * when it fails.
  */
-export function NewRequestBox({ drafts }: { drafts: readonly Draft[] }) {
+export function NewRequestBox() {
     const fetcher = useFetcher<ActionResult>();
     const [writing, startWrite] = useTransition();
     const [open, setOpen] = useState(false);
@@ -62,12 +60,8 @@ export function NewRequestBox({ drafts }: { drafts: readonly Draft[] }) {
             <CommentBox
                 label="New request"
                 labelVisible
-                submitLabel="Add single comment"
-                onSubmit={(text) => submit({ intent: 'open', input: { anchor: null, ...text } })}
-                alternative={{
-                    label: reviewLabel(drafts),
-                    onSubmit: (text) => submit({ intent: 'draft', input: { kind: 'new_request', anchor: null, ...text } }),
-                }}
+                submitLabel="Add comment"
+                onSubmit={(text) => submit({ intent: 'draft', input: { kind: 'new_request', anchor: null, ...text } })}
                 askForPlan
                 titled
                 onCancel={() => setOpen(false)}

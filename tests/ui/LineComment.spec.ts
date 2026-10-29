@@ -1,4 +1,4 @@
-import { addSingleComment, CODE_HOST, commentBoxButton, dragFromPlus, focusedCommentBoxBelow, openFile, waitForHighlighting, waitForSavedThread } from './support/codeView';
+import { CODE_HOST, commentAndSubmit, commentBoxButton, dragFromPlus, focusedCommentBoxBelow, openFile, waitForHighlighting, waitForSavedThread } from './support/codeView';
 import { FakeReview } from './support/fakeReview';
 import { SMALL_FILE } from './support/files';
 import { expect, test } from './support/test';
@@ -10,10 +10,10 @@ test.describe('LineComment', () => {
         await waitForHighlighting(page, 10);
 
         await dragFromPlus(page, 10, 10);
-        await addSingleComment(page, await focusedCommentBoxBelow(page, 10), 'Use a named constant.', '[slot="annotation-10"]');
+        await commentAndSubmit(page, await focusedCommentBoxBelow(page, 10), 'Use a named constant.', '[slot="annotation-10"]');
 
-        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/requests'), 'A comment without a title sends no title key.').toEqual([
-            { anchor: { kind: 'line', path: SMALL_FILE, range: { startLine: 10, endLine: 10 } }, body: 'Use a named constant.', requireApproval: true },
+        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/drafts'), 'A comment without a title sends no title key.').toEqual([
+            { kind: 'new_request', anchor: { kind: 'line', path: SMALL_FILE, range: { startLine: 10, endLine: 10 } }, body: 'Use a named constant.', requireApproval: true },
         ]);
         expect(await page.evaluate(() => location.hash), 'The submit clears the selection and its line hash.').toBe('');
 
@@ -32,7 +32,7 @@ test.describe('LineComment', () => {
         review.close();
 
         await textarea.fill('Too late.');
-        await commentBoxButton(page, 'Add single comment').click();
+        await commentBoxButton(page, 'Add comment').click();
 
         await expect(page.locator('[slot="annotation-9"] [data-testid="comment-error"]')).toBeVisible();
         await expect.poll(() => page.evaluate(() => location.hash)).toBe('#L5-L9');

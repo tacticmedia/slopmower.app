@@ -14,9 +14,9 @@ import { bottomLine, type GestureRange } from '../../code/rangeSelection';
 import { enclosingScopes, matchingSymbol, symbolKindLabel } from '../../code/symbolMatch';
 import { CommentBox, type CommentText } from '../../comments/CommentBox';
 import { CommentOnLinesForm } from '../../comments/CommentOnLinesForm';
-import { type DraftView, fileDraftViews, reviewLabel as reviewButtonLabel } from '../../comments/draftView';
+import { type DraftView, fileDraftViews } from '../../comments/draftView';
 import { ThreadList } from '../../comments/ThreadList';
-import { type Composer, type SubmitMode, useFileComments } from '../../comments/useFileComments';
+import { type Composer, useFileComments } from '../../comments/useFileComments';
 import { CopyButton } from '../../layout/CopyButton';
 import { usePreference } from '../../layout/usePreference';
 import { BlameColumn } from '../../review/BlameColumn';
@@ -51,12 +51,11 @@ export function FileRoute() {
     const { review, drafts, viewedPaths } = loaded(useRouteLoaderData<ReviewData>('review'), 'review');
     const fileDrafts = useMemo(() => fileDraftViews(drafts, content.path), [drafts, content.path]);
     const selection = useLineSelection(content.path, content.lineCount);
-    const comments = useFileComments({ path: content.path, threads, drafts: fileDrafts, caller, select: selection.select });
+    const comments = useFileComments({ path: content.path, threads, drafts: fileDrafts, select: selection.select });
     const commentable = 'open' === review.state;
     // The blame view keeps one row height, so it has no threads and no line wrap.
     const blameMode = null !== blame;
     const writable = commentable && !blameMode;
-    const reviewLabel = reviewButtonLabel(drafts);
     const { symbols, failed: symbolsFailed } = useFileSymbols(review.id, content.path, null !== text);
     const fileThreads = useMemo(() => comments.threads.filter((thread) => null === thread.range), [comments.threads]);
     const filePendingDrafts = useMemo(() => comments.drafts.filter((draft) => null === draft.range), [comments.drafts]);
@@ -145,7 +144,7 @@ export function FileRoute() {
             {!blameMode && (fileThreads.length > 0 || filePendingDrafts.length > 0 || null !== fileComposer) && (
                 <div className={styles.fileThreads} data-testid="file-threads">
                     <ThreadList threads={fileThreads} caller={caller} drafts={filePendingDrafts} draftsEditable={commentable}>
-                        {null !== fileComposer && <ComposerBox composer={fileComposer} reviewLabel={reviewLabel} onSubmit={comments.submit} onCancel={comments.cancel} />}
+                        {null !== fileComposer && <ComposerBox composer={fileComposer} onSubmit={comments.submit} onCancel={comments.cancel} />}
                     </ThreadList>
                 </div>
             )}
@@ -162,7 +161,6 @@ export function FileRoute() {
                     caller={caller}
                     onComment={writable ? openLines : null}
                     onNavigate={navigable ? goTo.atPosition : null}
-                    reviewLabel={reviewLabel}
                     overflow={wrap && !blameMode ? 'wrap' : 'scroll'}
                     onTopLineChange={followTopLine}
                     blame={blame}
@@ -218,7 +216,6 @@ type CodeProps = {
     onComment: ((range: LineRange) => void) | null;
     /** Null for a file that is not PHP. */
     onNavigate: ((position: NamePosition) => void) | null;
-    reviewLabel: string;
     overflow: Overflow;
     onTopLineChange(line: number): void;
     /** Set in the blame view, which shows no threads. */
@@ -227,7 +224,7 @@ type CodeProps = {
 
 const draftLine = (draft: DraftView): number | null => (null === draft.range ? null : bottomLine(draft.range));
 
-function Code({ content, text, selection, comments, caller, onComment, onNavigate, reviewLabel, overflow, onTopLineChange, blame }: CodeProps) {
+function Code({ content, text, selection, comments, caller, onComment, onNavigate, overflow, onTopLineChange, blame }: CodeProps) {
     const { composer, threads, drafts, submit, cancel } = comments;
     const commentable = null !== onComment;
     const composerLine = null !== composer && null !== composer.range ? bottomLine(composer.range) : null;
@@ -248,11 +245,11 @@ function Code({ content, text, selection, comments, caller, onComment, onNavigat
 
             return undefined === line && undefined === lineDrafts ? null : (
                 <ThreadList threads={line?.threads ?? []} caller={caller} drafts={lineDrafts} draftsEditable={commentable}>
-                    {true === line?.composer && null !== composer && <ComposerBox composer={composer} reviewLabel={reviewLabel} onSubmit={submit} onCancel={cancel} />}
+                    {true === line?.composer && null !== composer && <ComposerBox composer={composer} onSubmit={submit} onCancel={cancel} />}
                 </ThreadList>
             );
         },
-        [lines, draftLines, caller, commentable, composer, reviewLabel, submit, cancel],
+        [lines, draftLines, caller, commentable, composer, submit, cancel],
     );
     const comment = useCallback((gesture: GestureRange) => onComment?.(lineRange(gesture.start, gesture.end)), [onComment]);
     const beside = useCallback((geometry: LineGeometry | null) => (null === blame ? null : <BlameColumn blame={blame} geometry={geometry} />), [blame]);
@@ -288,21 +285,18 @@ function Code({ content, text, selection, comments, caller, onComment, onNavigat
 
 type ComposerBoxProps = {
     composer: Composer;
-    /** "Start a review" or "Add review comment". */
-    reviewLabel: string;
-    onSubmit(text: CommentText, mode: SubmitMode): boolean;
+    onSubmit(text: CommentText): boolean;
     onCancel(): void;
 };
 
-function ComposerBox({ composer, reviewLabel, onSubmit, onCancel }: ComposerBoxProps) {
+function ComposerBox({ composer, onSubmit, onCancel }: ComposerBoxProps) {
     return (
         <CommentBox
             key={composer.key}
             label={composerLabel(composer)}
             labelVisible
-            submitLabel="Add single comment"
-            onSubmit={(text) => onSubmit(text, 'single')}
-            alternative={{ label: reviewLabel, onSubmit: (text) => onSubmit(text, 'draft') }}
+            submitLabel="Add comment"
+            onSubmit={onSubmit}
             askForPlan={composer.requireApproval}
             titled
             onCancel={onCancel}

@@ -66,7 +66,7 @@ export function RequestList() {
                 </section>
             )}
             <div className={styles.box}>
-                <RequestListHeader byAwaiting={reviewData.review.counts.byAwaiting} drafts={commentable ? reviewData.drafts : null} />
+                <RequestListHeader byAwaiting={reviewData.review.counts.byAwaiting} commentable={commentable} />
                 {0 === reviewData.review.counts.total ? (
                     <p className={styles.empty} data-testid="request-list-empty">
                         No requests yet. <HelpLink href={HELP.comment} />

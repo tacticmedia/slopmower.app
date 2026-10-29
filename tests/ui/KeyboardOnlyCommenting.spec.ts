@@ -1,4 +1,4 @@
-import { commentBoxHeader, focusedCommentBoxBelow, keyboardComment, openFile, tabToButton, waitForSymbols } from './support/codeView';
+import { commentBoxHeader, focusedCommentBoxBelow, keyboardDraft, openFile, tabToButton, waitForSymbols } from './support/codeView';
 import { FakeReview } from './support/fakeReview';
 import { ROUND_FQN, SYMBOL_FILE } from './support/files';
 import { expect, test } from './support/test';
@@ -19,8 +19,8 @@ test.describe('KeyboardOnlyCommenting', () => {
         await page.keyboard.press('Enter');
         await focusedCommentBoxBelow(page, 17);
         await expect(commentBoxHeader(page, 17)).toHaveText(`Comment on method ${ROUND_FQN}`);
-        await keyboardComment(page, 'Round half to even.', '[slot="annotation-17"]');
+        await keyboardDraft(page, 'Round half to even.', '[slot="annotation-17"]');
 
-        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/requests')).toEqual([{ anchor: { kind: 'symbol', path: SYMBOL_FILE, symbol: { fqn: ROUND_FQN } }, body: 'Round half to even.', requireApproval: true }]);
+        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/drafts')).toEqual([{ kind: 'new_request', anchor: { kind: 'symbol', path: SYMBOL_FILE, symbol: { fqn: ROUND_FQN } }, body: 'Round half to even.', requireApproval: true }]);
     });
 });

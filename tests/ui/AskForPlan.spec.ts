@@ -9,7 +9,7 @@ function askForPlan(page: Page, container: string) {
 }
 
 test.describe('AskForPlan', () => {
-    test('The checkbox of a new request is checked by default, and Q2 carries it', async ({ page, api }) => {
+    test('The checkbox of a new request is checked by default, and D2 carries it', async ({ page, api }) => {
         const review = new FakeReview(api);
         await page.goto(`/reviews/${review.id}/requests`);
 
@@ -17,8 +17,8 @@ test.describe('AskForPlan', () => {
 
         await expect(askForPlan(page, '[data-testid="request-filters"]')).toBeChecked();
         await page.locator('form[aria-label="New request"] textarea').fill('Add a CSV export.');
-        await commentBoxButton(page, 'Add single comment').click();
-        await expect.poll(() => api.bodies('POST', '/api/v1/reviews/:reviewId/requests')).toEqual([{ anchor: null, body: 'Add a CSV export.', requireApproval: true }]);
+        await commentBoxButton(page, 'Add comment').click();
+        await expect.poll(() => api.bodies('POST', '/api/v1/reviews/:reviewId/drafts')).toEqual([{ kind: 'new_request', anchor: null, body: 'Add a CSV export.', requireApproval: true }]);
     });
 
     test('An unchecked box sends false in D2', async ({ page, api }) => {
@@ -28,7 +28,7 @@ test.describe('AskForPlan', () => {
         await page.getByRole('button', { name: 'Comment on file', exact: true }).click();
         await askForPlan(page, FILE_THREADS).uncheck();
         await page.locator(`${FILE_THREADS} textarea`).fill('Split this class.');
-        await commentBoxButton(page, 'Start a review').click();
+        await commentBoxButton(page, 'Add comment').click();
 
         await expect(page.locator(`${FILE_THREADS} [data-testid="draft"][data-draft-id]`)).toContainText('Split this class.');
         expect(api.bodies('POST', '/api/v1/reviews/:reviewId/drafts')).toEqual([{ kind: 'new_request', anchor: { kind: 'file', path: SMALL_FILE }, body: 'Split this class.', requireApproval: false }]);

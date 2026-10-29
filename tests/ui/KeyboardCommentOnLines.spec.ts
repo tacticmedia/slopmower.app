@@ -1,10 +1,10 @@
 import type { Locator, Page } from '@playwright/test';
-import { CODE_HOST, COMPOSER, FILE_THREADS, focusedCommentBoxBelow, keyboardComment, openFile, tabToButton, tabUntil, waitForHighlighting } from './support/codeView';
+import { CODE_HOST, COMPOSER, FILE_THREADS, focusedCommentBoxBelow, keyboardDraft, openFile, tabToButton, tabUntil, waitForHighlighting } from './support/codeView';
 import { FakeReview } from './support/fakeReview';
 import { LARGE_FILE, SMALL_FILE } from './support/files';
 import { expect, test } from './support/test';
 
-const REQUESTS = '/api/v1/reviews/:reviewId/requests';
+const DRAFTS = '/api/v1/reviews/:reviewId/drafts';
 const PLUS = `${CODE_HOST} [data-utility-button]`;
 
 async function commentOnLines(page: Page, startLine: number, endLine: number): Promise<void> {
@@ -71,15 +71,15 @@ async function tabFromHeaderTo(page: Page, plus: Locator): Promise<void> {
 
 /** Decision D31. Every step uses the keyboard, none uses the mouse. */
 test.describe('KeyboardCommentOnLines', () => {
-    test('Comment on lines 3 to 4 creates a range request with the keyboard only', async ({ page, api }) => {
+    test('Comment on lines 3 to 4 adds a range draft with the keyboard only', async ({ page, api }) => {
         const review = new FakeReview(api);
         await openFile(page, review, SMALL_FILE);
 
         await commentOnLines(page, 3, 4);
         await focusedCommentBoxBelow(page, 4);
-        await keyboardComment(page, 'Merge these lines.', '[slot="annotation-4"]');
+        await keyboardDraft(page, 'Merge these lines.', '[slot="annotation-4"]');
 
-        expect(api.bodies('POST', REQUESTS)).toEqual([{ anchor: { kind: 'range', path: SMALL_FILE, range: { startLine: 3, endLine: 4 } }, body: 'Merge these lines.', requireApproval: true }]);
+        expect(api.bodies('POST', DRAFTS)).toEqual([{ kind: 'new_request', anchor: { kind: 'range', path: SMALL_FILE, range: { startLine: 3, endLine: 4 } }, body: 'Merge these lines.', requireApproval: true }]);
     });
 
     test('The comment box has focus when it opens', async ({ page, api }) => {
@@ -100,9 +100,9 @@ test.describe('KeyboardCommentOnLines', () => {
         await tabToButton(page, 'Comment on file');
         await page.keyboard.press('Enter');
         await expect(page.locator(`${FILE_THREADS} ${COMPOSER}`)).toBeFocused();
-        await keyboardComment(page, 'Add a class docblock.', FILE_THREADS);
+        await keyboardDraft(page, 'Add a class docblock.', FILE_THREADS);
 
-        expect(api.bodies('POST', REQUESTS)).toEqual([{ anchor: { kind: 'file', path: SMALL_FILE }, body: 'Add a class docblock.', requireApproval: true }]);
+        expect(api.bodies('POST', DRAFTS)).toEqual([{ kind: 'new_request', anchor: { kind: 'file', path: SMALL_FILE }, body: 'Add a class docblock.', requireApproval: true }]);
     });
 
     /** The library adds the "+" only under the pointer or on the last selected line, so the keyboard reaches it only on a selection. */
@@ -114,15 +114,15 @@ test.describe('KeyboardCommentOnLines', () => {
 
         const rangeName = await pressGutterPlus(page, review, '#L3-L4', 4, 'Enter');
         await focusedCommentBoxBelow(page, 4);
-        await keyboardComment(page, 'Join these lines.', '[slot="annotation-4"]');
+        await keyboardDraft(page, 'Join these lines.', '[slot="annotation-4"]');
         const lineName = await pressGutterPlus(page, review, '#L6', 6, 'Space');
         await focusedCommentBoxBelow(page, 6);
-        await keyboardComment(page, 'Remove this blank line.', '[slot="annotation-6"]');
+        await keyboardDraft(page, 'Remove this blank line.', '[slot="annotation-6"]');
 
         expect([rangeName, lineName]).toEqual(['Comment on lines 3 to 4', 'Comment on line 6']);
-        expect(api.bodies('POST', REQUESTS)).toEqual([
-            { anchor: { kind: 'range', path: SMALL_FILE, range: { startLine: 3, endLine: 4 } }, body: 'Join these lines.', requireApproval: true },
-            { anchor: { kind: 'line', path: SMALL_FILE, range: { startLine: 6, endLine: 6 } }, body: 'Remove this blank line.', requireApproval: true },
+        expect(api.bodies('POST', DRAFTS)).toEqual([
+            { kind: 'new_request', anchor: { kind: 'range', path: SMALL_FILE, range: { startLine: 3, endLine: 4 } }, body: 'Join these lines.', requireApproval: true },
+            { kind: 'new_request', anchor: { kind: 'line', path: SMALL_FILE, range: { startLine: 6, endLine: 6 } }, body: 'Remove this blank line.', requireApproval: true },
         ]);
     });
 

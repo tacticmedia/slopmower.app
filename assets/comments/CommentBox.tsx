@@ -30,8 +30,6 @@ type Props = {
      * plan first" checkbox, false without it.
      */
     onSubmit(text: CommentText): boolean;
-    /** A second write of the same text, the primary button. */
-    alternative?: { label: string; onSubmit(text: CommentText): boolean };
     /** Shows the "Ask for a plan first" checkbox of a new request, with this initial state. */
     askForPlan?: boolean;
     /** The box opens a request: a "Title" field and a "Description" text field. */
@@ -54,7 +52,6 @@ export function CommentBox({
     labelVisible = false,
     submitLabel,
     onSubmit,
-    alternative,
     askForPlan,
     titled = false,
     onCancel,
@@ -97,15 +94,15 @@ export function CommentBox({
         }
     }, [focusOnMount]);
 
-    const send = (write: (text: CommentText) => boolean): void => {
+    const send = (): void => {
         const givenTitle = title.trim();
-        if ('' !== body.trim() && !busy && write({ ...('' === givenTitle ? {} : { title: givenTitle }), body, requireApproval })) {
+        if ('' !== body.trim() && !busy && onSubmit({ ...('' === givenTitle ? {} : { title: givenTitle }), body, requireApproval })) {
             setSent(true);
         }
     };
     const submit = (event: FormEvent<HTMLFormElement>): void => {
         event.preventDefault();
-        send(onSubmit);
+        send();
     };
     const pressKey = (event: KeyboardEvent<HTMLFormElement>): void => {
         if (event.nativeEvent.isComposing) {
@@ -113,7 +110,7 @@ export function CommentBox({
         }
         if (isPressed(SUBMIT_SHORTCUT, event.nativeEvent)) {
             event.preventDefault();
-            send(onSubmit);
+            send();
         } else if ('Escape' === event.key && undefined !== onCancel && !busy) {
             event.preventDefault();
             onCancel();
@@ -179,14 +176,9 @@ export function CommentBox({
                         Cancel
                     </Button>
                 )}
-                <Button type="submit" variant={undefined === alternative ? 'primary' : 'default'} disabled={'' === body.trim()} loading={busy}>
+                <Button type="submit" variant="primary" disabled={'' === body.trim()} loading={busy}>
                     {submitLabel}
                 </Button>
-                {undefined !== alternative && (
-                    <Button variant="primary" onClick={() => send(alternative.onSubmit)} disabled={'' === body.trim()} loading={busy}>
-                        {alternative.label}
-                    </Button>
-                )}
             </div>
         </form>
     );

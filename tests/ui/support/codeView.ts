@@ -9,6 +9,10 @@ export const COMPOSER = 'form[aria-label^="Comment on"] textarea';
 
 export const SAVED_THREAD = '[data-testid="thread"][data-request-id]';
 
+export const SAVED_DRAFT = '[data-testid="draft"][data-draft-id]';
+
+export const SUBMIT_FEEDBACK = '[data-testid="submit-feedback"]';
+
 export const FILE_THREADS = '[data-testid="file-threads"]';
 
 const MAXIMUM_TABS = 40;
@@ -89,23 +93,39 @@ export function commentBoxButton(page: Page, name: string): Locator {
     return page.locator('form[data-testid="comment-box"]').getByRole('button', { name, exact: true });
 }
 
-/** Types into the comment box and clicks "Add single comment", then waits for the saved thread. */
-export async function addSingleComment(page: Page, textarea: Locator, body: string, container: string): Promise<void> {
+/** Types into the comment box, clicks "Add comment", and submits the feedback, then waits for the saved thread. */
+export async function commentAndSubmit(page: Page, textarea: Locator, body: string, container: string): Promise<void> {
     await textarea.fill(body);
-    await commentBoxButton(page, 'Add single comment').click();
+    await commentBoxButton(page, 'Add comment').click();
+    await waitForSavedDraft(page, container, body);
+    await submitFeedback(page);
     await waitForSavedThread(page, container, body);
 }
 
-/** Types into the focused comment box, then tabs to "Add single comment" and presses Enter. */
-export async function keyboardComment(page: Page, body: string, container: string): Promise<void> {
+/** Types into the focused comment box, then tabs to "Add comment", presses Enter, and waits for the saved draft. */
+export async function keyboardDraft(page: Page, body: string, container: string): Promise<void> {
     await page.keyboard.type(body);
-    await tabToButton(page, 'Add single comment');
+    await tabToButton(page, 'Add comment');
     await page.keyboard.press('Enter');
-    await waitForSavedThread(page, container, body);
+    await waitForSavedDraft(page, container, body);
+}
+
+/** Submits every draft with D5, with an optional summary. */
+export async function submitFeedback(page: Page, summary = ''): Promise<void> {
+    await page.locator(SUBMIT_FEEDBACK).click();
+    const form = page.locator('form[data-testid="submit-feedback-form"]');
+    if ('' !== summary) {
+        await form.locator('textarea[name="summary"]').fill(summary);
+    }
+    await form.getByRole('button', { name: 'Submit feedback', exact: true }).click();
 }
 
 export async function waitForSavedThread(page: Page, container: string, text: string): Promise<void> {
     await expect(page.locator(`${container} ${SAVED_THREAD}`).filter({ hasText: text })).toHaveCount(1);
+}
+
+export async function waitForSavedDraft(page: Page, container: string, text: string): Promise<void> {
+    await expect(page.locator(`${container} ${SAVED_DRAFT}`).filter({ hasText: text })).toHaveCount(1);
 }
 
 export async function tabToButton(page: Page, text: string): Promise<void> {

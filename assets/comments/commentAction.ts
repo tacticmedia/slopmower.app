@@ -19,8 +19,6 @@ export async function writeComment(reviewId: string, submitted: CommentIntent, s
     const review = `/api/v1/reviews/${reviewId}`;
 
     switch (submitted.intent) {
-        case 'open':
-            return apiWrite('POST', `${review}/requests`, submitted.input, signal);
         case 'reply':
             return rememberEvents((await apiWrite<RequestCommandResult>('POST', `/api/v1/requests/${encodeURIComponent(submitted.requestId)}/comments`, submitted.input, signal)).events);
         case 'draft':

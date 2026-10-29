@@ -260,7 +260,7 @@ All command responses except Q2, Q7, and Q17 are [`RequestCommandResult`](schema
   - 409 `repository_unavailable`: the clone is gone, for a request with an anchor;
   - 409 `limit_exceeded` with `limit: requests_per_review`.
 
-The endpoint opens a request at once, as a "single comment". Anchor capture: the server reads the blob at the review commit and captures the snapshot, as [architecture.md](../architecture.md) section 5.1 describes. An absent or null `anchor` opens a general request: there is no capture, so no anchor error and no `repository_unavailable`.
+The endpoint opens a request at once. The web UI does not call it: a new request from the web UI is a D2 draft, see decision D84 in [architecture.md](../architecture.md#11-decisions). Anchor capture: the server reads the blob at the review commit and captures the snapshot, as [architecture.md](../architecture.md) section 5.1 describes. An absent or null `anchor` opens a general request: there is no capture, so no anchor error and no `repository_unavailable`.
 
 - A `symbol` anchor looks up `symbol.fqn` in the symbol table of the file. It must match exactly one symbol. The range of that symbol, including the doc comment, becomes `anchor.range`.
 - `line` requires `startLine == endLine`.

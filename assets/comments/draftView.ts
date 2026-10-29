@@ -39,11 +39,6 @@ export function fileDraftViews(drafts: readonly Draft[], path: string): DraftVie
     return views;
 }
 
-/** The review button of a comment box. */
-export function reviewLabel(drafts: readonly Draft[]): string {
-    return 0 === drafts.length ? 'Start a review' : 'Add review comment';
-}
-
 let pendingCount = 0;
 
 export function pendingDraft(range: LineRange | null, { title, body, requireApproval }: CommentText): DraftView {
