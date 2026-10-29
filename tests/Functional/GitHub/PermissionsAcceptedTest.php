@@ -6,10 +6,11 @@ namespace App\Tests\Functional\GitHub;
 
 use App\Domain\Identity\TenantId;
 use App\Message\CheckRunJob;
-use App\Message\GitHubInstallationPermissionsJob;
+use App\Message\GitHubInstallationChangedJob;
 use App\Messenger\TenantStamp;
 use App\Tenancy\TenantContext;
 use App\Tests\Support\Database\ResetDatabase;
+use App\Tests\Support\GitHub\GitHubResponses;
 use App\Tests\Support\GitHub\GitHubRows;
 use App\Tests\Support\GitHub\LinkedPullRequests;
 use App\Tests\Support\Messenger\QueuedMessages;
@@ -62,13 +63,15 @@ final class PermissionsAcceptedTest extends KernelTestCase
     }
 
     /**
-     * Handles the job as the worker does, without running the jobs that it queues.
+     * GitHub answers the installation with $permissions, then the worker handles the job, without running the jobs that
+     * it queues.
      *
      * @param array<string, string> $permissions
      */
     private static function acceptPermissions(TenantId $tenantId, array $permissions): void
     {
+        self::getContainer()->get(GitHubResponses::class)->answerInstallation(null, $permissions);
         self::getContainer()->get(TenantContext::class)->reset();
-        self::getContainer()->get(MessageBusInterface::class)->dispatch(new GitHubInstallationPermissionsJob(5551, $permissions), [new TenantStamp($tenantId), new ReceivedStamp('async')]);
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new GitHubInstallationChangedJob(5551), [new TenantStamp($tenantId), new ReceivedStamp('async')]);
     }
 }

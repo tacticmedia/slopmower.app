@@ -21,6 +21,7 @@ use App\Tests\Support\Environment\EnvironmentVariables;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
 use App\Tests\Support\Fixtures\TenantFixtures;
 use App\Tests\Support\GitHub\ClonedGitHubRepositories;
+use App\Tests\Support\GitHub\GitHubResponses;
 use App\Tests\Support\GitHub\GitHubRows;
 use App\Tests\Support\GitHub\GitHubWebhooks;
 use App\Tests\Support\GitHub\LocalGitHub;
@@ -80,6 +81,7 @@ final class InstallationWebhookTest extends WebTestCase
         }
 
         self::deliverFixture($client, 'installation.new_permissions_accepted');
+        self::getContainer()->get(GitHubResponses::class)->answerInstallation(null, ['contents' => 'read', 'metadata' => 'read', 'pull_requests' => 'read']);
         self::runQueuedMessages();
 
         foreach ($tenantIds as $tenantId) {
@@ -116,6 +118,7 @@ final class InstallationWebhookTest extends WebTestCase
         $repository = self::clonedGitHubRepository(1);
 
         self::deliverFixture($client, 'installation.suspend');
+        self::getContainer()->get(GitHubResponses::class)->answerInstallation('2026-10-01T08:00:00Z', ['contents' => 'read', 'metadata' => 'read']);
         self::runQueuedMessages();
 
         self::getContainer()->get(TenantContext::class)->set($repository->getTenantId());

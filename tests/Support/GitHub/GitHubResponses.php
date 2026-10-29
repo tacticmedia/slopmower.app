@@ -14,7 +14,8 @@ use Symfony\Component\HttpClient\Response\MockResponse;
  * the `contents: read` token, and a pull request read only the `pull_requests: read` token. The permission read answers
  * `none` for {@see self::FORMER_MEMBER_LOGIN}, 404 for {@see self::UNKNOWN_LOGIN}, and `write` for any other login. The
  * check run calls answer only the `checks: write` token, and {@see self::checkRunCalls()} keeps them. The Marketplace
- * account read answers only the App JWT.
+ * account read and the installation read answer only the App JWT. An installation read answers what
+ * {@see self::answerInstallation()} set, else 404.
  */
 final class GitHubResponses
 {
@@ -113,12 +114,20 @@ final class GitHubResponses
     /** @var list<array{string, string, array<mixed>}> Method, path below the API, and JSON body */
     private array $checkRunCalls = [];
 
+    /** @var array<int, array<string, mixed>> `GET /app/installations/{id}` bodies by installation ID */
+    private array $installations = [];
+
     /**
      * @param array{normalized_headers?: array<string, list<string>>, body?: mixed} $options
      */
     public function __invoke(string $method, string $url, array $options): MockResponse
     {
         $request = "{$method} {$url}";
+
+        if (1 === preg_match('~^GET https://api\.github\.com/app/installations/(\d+)$~', $request, $installation) && self::isAppJwt($options) && isset($this->installations[(int) $installation[1]])) {
+            return new MockResponse(json_encode($this->installations[(int) $installation[1]], \JSON_THROW_ON_ERROR), ['http_code' => 200, 'response_headers' => ['content-type' => 'application/json; charset=utf-8']]);
+        }
+
         $fixture = match (true) {
             'POST https://github.com/login/oauth/access_token' === $request => 'oauth-access-token',
             'GET https://api.github.com/user' === $request => self::USER_FIXTURE_BY_ACCESS_TOKEN[self::bearerToken($options)] ?? null,
@@ -135,6 +144,7 @@ final class GitHubResponses
             str_starts_with($request, 'GET '.self::API.'repos/') => self::INSTALLATION_TOKEN === self::bearerToken($options)
                 ? self::REPOSITORY_FIXTURES[substr($url, \strlen(self::API))] ?? 'repository-not-found'
                 : 'user-unauthorized',
+            1 === preg_match('~^GET https://api\.github\.com/app/installations/\d+$~', $request) => self::isAppJwt($options) ? 'installation-not-found' : 'user-unauthorized',
             1 === preg_match('~^GET https://api\.github\.com/marketplace_listing/accounts/(\d+)$~', $request, $account) => self::isAppJwt($options)
                 ? self::MARKETPLACE_ACCOUNT_FIXTURES[(int) $account[1]] ?? 'marketplace-account-not-found'
                 : 'user-unauthorized',
@@ -146,6 +156,21 @@ final class GitHubResponses
         $body = \is_string($recorded['body']) ? $recorded['body'] : json_encode($recorded['body'], \JSON_THROW_ON_ERROR);
 
         return new MockResponse($body, ['http_code' => $recorded['status'], 'response_headers' => $recorded['headers']]);
+    }
+
+    /**
+     * The installation 5551 of the organization acme, as `GET /app/installations/{id}` answers it from now on.
+     *
+     * @param array<string, string> $permissions
+     */
+    public function answerInstallation(?string $suspendedAt, array $permissions): void
+    {
+        $this->installations[5551] = [
+            'id' => 5551,
+            'account' => ['login' => 'acme', 'id' => 9919, 'type' => 'Organization'],
+            'suspended_at' => $suspendedAt,
+            'permissions' => $permissions,
+        ];
     }
 
     /**

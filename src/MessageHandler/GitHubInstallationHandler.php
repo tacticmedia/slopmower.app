@@ -14,13 +14,13 @@ use App\Entity\GitHubCandidate;
 use App\Entity\GitHubInstallation;
 use App\GitHub\GitHubRequestFailed;
 use App\GitHub\InstallationTokenProvider;
+use App\GitHub\Payload\InstallationPayload;
 use App\GitHub\Payload\RepositoryPayload;
 use App\Live\LivePublisher;
 use App\Live\LiveTopics;
+use App\Message\GitHubInstallationChangedJob;
 use App\Message\GitHubInstallationCreatedJob;
 use App\Message\GitHubInstallationDeletedJob;
-use App\Message\GitHubInstallationPermissionsJob;
-use App\Message\GitHubInstallationSuspensionJob;
 use App\Message\GitHubRepositoriesAddedJob;
 use App\Message\GitHubRepositoriesRemovedJob;
 use App\Repository\GitHubCandidateRepository;
@@ -115,48 +115,45 @@ final class GitHubInstallationHandler
     }
 
     /**
-     * A suspended installation gets no webhook events, so an unsuspend reads every linked pull request again.
+     * D97: records the suspension and the permissions that GitHub reads now. A suspended installation gets no webhook
+     * events, so an unsuspend reads every linked pull request again. Either new permission queues the reads, because a
+     * read that sets the head SHA queues the check run.
+     *
+     * @throws GitHubRequestFailed
      */
     #[AsMessageHandler]
-    public function handleSuspension(GitHubInstallationSuspensionJob $job): void
+    public function handleChange(GitHubInstallationChangedJob $job): void
     {
-        $recorded = $this->repositoriesLock->run($this->tenantContext->get(), function () use ($job): bool {
-            $installation = $this->installations->findOneBy(['installationId' => $job->installationId]);
-            $installation?->recordSuspension($job->suspendedAt);
+        $current = $this->readInstallation($job->installationId);
 
-            return null !== $installation;
-        });
-
-        if (true === $recorded && null === $job->suspendedAt) {
-            $this->queuePullRequestRefresh->ofInstallation($job->installationId, readEvery: true, checkRuns: true);
+        if (null === $current) {
+            return;
         }
-    }
 
-    /**
-     * Either new permission queues the reads, because a read that sets the head SHA queues the check run.
-     */
-    #[AsMessageHandler]
-    public function handlePermissions(GitHubInstallationPermissionsJob $job): void
-    {
-        $added = $this->repositoriesLock->run($this->tenantContext->get(), function () use ($job): array {
+        $changes = $this->repositoriesLock->run($this->tenantContext->get(), function () use ($job, $current): array {
             $installation = $this->installations->findOneBy(['installationId' => $job->installationId]);
 
             if (null === $installation) {
-                return [false, false];
+                return [false, false, false];
             }
 
+            $suspendedBefore = $installation->isSuspended();
             $readsBefore = $installation->accepts(InstallationTokenProvider::PULL_REQUESTS_READ);
             $writesChecksBefore = $installation->accepts(InstallationTokenProvider::CHECKS_WRITE);
-            $installation->recordPermissions($job->permissions);
+            $installation->recordSuspension($current->suspendedAt);
+            $installation->recordPermissions($current->permissions);
 
             return [
+                $suspendedBefore && !$installation->isSuspended(),
                 !$readsBefore && $installation->accepts(InstallationTokenProvider::PULL_REQUESTS_READ),
                 !$writesChecksBefore && $installation->accepts(InstallationTokenProvider::CHECKS_WRITE),
             ];
         });
-        [$readAdded, $checksAdded] = $added ?? [false, false];
+        [$unsuspended, $readAdded, $checksAdded] = $changes ?? [false, false, false];
 
-        if ($readAdded || $checksAdded) {
+        if ($unsuspended) {
+            $this->queuePullRequestRefresh->ofInstallation($job->installationId, readEvery: true, checkRuns: true);
+        } elseif ($readAdded || $checksAdded) {
             $this->queuePullRequestRefresh->ofInstallation($job->installationId, readEvery: false, checkRuns: $checksAdded);
         }
     }
@@ -276,5 +273,30 @@ final class GitHubInstallationHandler
     private function publishCandidatesChanged(TenantId $tenantId): void
     {
         $this->publisher->publish($this->topics->repositories($tenantId), ['type' => 'candidates_changed']);
+    }
+
+    /**
+     * @return InstallationPayload|null Null when GitHub does not find the installation, which the `deleted` delivery removes
+     *
+     * @throws GitHubRequestFailed
+     */
+    private function readInstallation(int $installationId): ?InstallationPayload
+    {
+        $path = "app/installations/{$installationId}";
+
+        try {
+            $response = $this->githubClient->request('GET', InstallationTokenProvider::API.$path, [
+                'auth_bearer' => $this->installationTokens->appJwt(),
+                'headers' => InstallationTokenProvider::API_HEADERS,
+            ]);
+
+            if (404 === $response->getStatusCode()) {
+                return null;
+            }
+
+            return $this->denormalizer->denormalize($response->toArray(), InstallationPayload::class);
+        } catch (HttpClientException|SerializerException $failure) {
+            throw new GitHubRequestFailed("GitHub answered GET /{$path} with a failure or an object of an unexpected shape.", 0, $failure);
+        }
     }
 }

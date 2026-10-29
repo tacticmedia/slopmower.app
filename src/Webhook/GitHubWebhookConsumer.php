@@ -20,10 +20,9 @@ use App\GitHub\Payload\MarketplacePurchasePayload;
 use App\GitHub\Payload\PullRequestPayload;
 use App\GitHub\Payload\RepositoryPayload;
 use App\Message\CheckRunJob;
+use App\Message\GitHubInstallationChangedJob;
 use App\Message\GitHubInstallationCreatedJob;
 use App\Message\GitHubInstallationDeletedJob;
-use App\Message\GitHubInstallationPermissionsJob;
-use App\Message\GitHubInstallationSuspensionJob;
 use App\Message\GitHubPullRequestJob;
 use App\Message\GitHubPushJob;
 use App\Message\GitHubRepositoriesAddedJob;
@@ -177,15 +176,7 @@ final class GitHubWebhookConsumer implements ConsumerInterface
                 ),
                 new GitHubInstallationDeletedJob($installationId),
             ),
-            'suspend', 'unsuspend' => self::jobs(
-                self::tenantIds(...$installations),
-                new GitHubInstallationSuspensionJob($installationId, 'suspend' === $action ? $this->clock->now() : null),
-            ),
-            // A tenant has only user and organization installations, whose payload denormalizes.
-            'new_permissions_accepted' => [] === $installations ? [] : self::jobs(
-                self::tenantIds(...$installations),
-                new GitHubInstallationPermissionsJob($installationId, $this->denormalizer->denormalize($payload['installation'], InstallationPayload::class)->permissions),
-            ),
+            'suspend', 'unsuspend', 'new_permissions_accepted' => self::jobs(self::tenantIds(...$installations), new GitHubInstallationChangedJob($installationId)),
             default => [],
         };
     }

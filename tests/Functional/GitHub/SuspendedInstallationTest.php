@@ -7,7 +7,7 @@ namespace App\Tests\Functional\GitHub;
 use App\Domain\Identity\TenantId;
 use App\Domain\Repository\SyncState;
 use App\Message\CheckRunJob;
-use App\Message\GitHubInstallationSuspensionJob;
+use App\Message\GitHubInstallationChangedJob;
 use App\Messenger\TenantStamp;
 use App\Repository\RepositoryRepository;
 use App\Tenancy\TenantContext;
@@ -15,10 +15,12 @@ use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Environment\EnvironmentVariables;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
 use App\Tests\Support\Fixtures\TenantFixtures;
+use App\Tests\Support\GitHub\GitHubResponses;
 use App\Tests\Support\GitHub\GitHubRows;
 use App\Tests\Support\GitHub\LinkedPullRequests;
 use App\Tests\Support\GitHub\LocalGitHub;
 use App\Tests\Support\Messenger\QueuedMessages;
+use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -58,28 +60,41 @@ final class SuspendedInstallationTest extends KernelTestCase
     {
         [$user, $recordIds] = self::linkPullRequests(self::CHECKS, new \DateTimeImmutable('2026-10-01 08:00:00'));
 
-        self::recordSuspension($user->getTenantId(), null);
+        self::receiveChange($user->getTenantId(), null);
 
         self::assertSame([42, 43, 44], self::queuedReads());
         self::assertEqualsCanonicalizing($recordIds, array_map(static fn (CheckRunJob $job): string => $job->pullRequestId->toString(), self::queued(CheckRunJob::class)));
     }
 
-    #[TestDox('A suspend queues nothing')]
+    #[TestDox('A suspend records the suspension and queues nothing')]
     public function testSuspendQueuesNothing(): void
     {
         $tenantId = self::linkPullRequests(self::CHECKS)[0]->getTenantId();
 
-        self::recordSuspension($tenantId, new \DateTimeImmutable('2026-10-01 08:00:00'));
+        self::receiveChange($tenantId, '2026-10-01T08:00:00Z');
 
         self::assertSame([], self::asyncTransport()->getSent());
+        self::assertSame('2026-10-01 08:00:00', self::getContainer()->get(Connection::class)->fetchOne('SELECT suspended_at FROM github_installation WHERE tenant_id = ?', [$tenantId->toRfc4122()]));
+    }
+
+    #[TestDox('A suspend job that runs after the unsuspend records what GitHub reads now, so the installation stays unsuspended')]
+    public function testLateSuspendKeepsTheCurrentState(): void
+    {
+        $tenantId = self::linkPullRequests(self::CHECKS)[0]->getTenantId();
+
+        self::receiveChange($tenantId, null);
+
+        self::assertNull(self::getContainer()->get(Connection::class)->fetchOne('SELECT suspended_at FROM github_installation WHERE tenant_id = ?', [$tenantId->toRfc4122()]));
     }
 
     /**
-     * Handles the job as the worker does, without running the jobs that it queues.
+     * GitHub answers the installation with $suspendedAt, then the worker handles the job, without running the jobs that
+     * it queues.
      */
-    private static function recordSuspension(TenantId $tenantId, ?\DateTimeImmutable $suspendedAt): void
+    private static function receiveChange(TenantId $tenantId, ?string $suspendedAt): void
     {
+        self::getContainer()->get(GitHubResponses::class)->answerInstallation($suspendedAt, self::CHECKS);
         self::getContainer()->get(TenantContext::class)->reset();
-        self::getContainer()->get(MessageBusInterface::class)->dispatch(new GitHubInstallationSuspensionJob(5551, $suspendedAt), [new TenantStamp($tenantId), new ReceivedStamp('async')]);
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new GitHubInstallationChangedJob(5551), [new TenantStamp($tenantId), new ReceivedStamp('async')]);
     }
 }
