@@ -105,7 +105,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F87 | [Smaller audit findings](F87-smaller-audit-findings.md) | Done 2026-10-29, [report](reports/F87.md) | e6646e1..c948354 | src 509 PHP / 34697 lines, 509 types; tests 344 PHP / 32419 lines; assets 188 TS / 11303 lines |
 | F88 | [Open bugs of the Candidates and reports](F88-open-bugs-of-candidates-and-reports.md) | Done 2026-10-29, [report](reports/F88.md) | 5a9d647..d4f498f | src 509 PHP / 34694 lines, 509 types; tests 344 PHP / 32453 lines; assets 188 TS / 11310 lines |
 | F89 | [Request state as jsonb](F89-request-state-as-jsonb.md) | Done 2026-10-29, [report](reports/F89.md) | ff85f40 | src 508 PHP / 34490 lines, 508 types; tests 344 PHP / 32455 lines; assets 188 TS / 11310 lines |
-| F90 | [One request command path](F90-one-request-command-path.md) | In progress | | |
+| F90 | [One request command path](F90-one-request-command-path.md) | Done 2026-10-29, [report](reports/F90.md) | 55ef6ca | src 509 PHP / 34398 lines, 509 types; tests 344 PHP / 32455 lines; assets 188 TS / 11310 lines |
 
 ## Candidates
 
