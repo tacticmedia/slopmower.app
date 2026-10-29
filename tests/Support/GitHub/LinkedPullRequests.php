@@ -59,7 +59,7 @@ trait LinkedPullRequests
         $entityManager->flush();
         [$opened] = $commands->open($review->getId(), new Open(null, 'Use `Money` instead of `float` for totals.'), Actor::user($user->getId()));
         $requestId = $opened->requestId ?? self::fail('request.opened has no requestId.');
-        $commands->claim(new Claim($requestId), $agent);
+        $commands->execute(new Claim($requestId), $agent);
 
         foreach ([42, 43, 44] as $number) {
             $commands->linkPullRequest("https://github.com/acme/billing/pull/{$number}", [$requestId], null, $agent);

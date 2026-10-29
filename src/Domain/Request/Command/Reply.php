@@ -7,7 +7,7 @@ namespace App\Domain\Request\Command;
 use App\Domain\Identity\BatchId;
 use App\Domain\Identity\RequestId;
 
-final readonly class Reply implements RequestCommand
+final readonly class Reply implements EventOnlyCommand
 {
     public function __construct(
         public RequestId $requestId,

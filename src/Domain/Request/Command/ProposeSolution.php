@@ -6,7 +6,7 @@ namespace App\Domain\Request\Command;
 
 use App\Domain\Identity\RequestId;
 
-final readonly class ProposeSolution implements RequestCommand
+final readonly class ProposeSolution implements EventOnlyCommand
 {
     public function __construct(
         public RequestId $requestId,

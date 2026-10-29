@@ -100,11 +100,11 @@ final class ProjectionConsistencyTest extends KernelTestCase
         $requestId = self::openRequest($reviewId, requireApproval: true);
         $user = RequestScenario::user();
 
-        $commands->claim(new Claim($requestId), $agent);
-        [$rejected] = $commands->propose(new ProposeSolution($requestId, 'Round per invoice.'), $agent);
-        $commands->rejectProposal(new RejectProposal($requestId, $rejected->id, 'Round per line.'), $user);
-        [$approved] = $commands->propose(new ProposeSolution($requestId, 'Round per line.', "diff --git a/src/Billing/InvoiceTotals.php b/src/Billing/InvoiceTotals.php\n"), $agent);
-        $commands->approveProposal(new ApproveProposal($requestId, $approved->id), $user);
+        $commands->execute(new Claim($requestId), $agent);
+        [$rejected] = $commands->execute(new ProposeSolution($requestId, 'Round per invoice.'), $agent);
+        $commands->execute(new RejectProposal($requestId, $rejected->id, 'Round per line.'), $user);
+        [$approved] = $commands->execute(new ProposeSolution($requestId, 'Round per line.', "diff --git a/src/Billing/InvoiceTotals.php b/src/Billing/InvoiceTotals.php\n"), $agent);
+        $commands->execute(new ApproveProposal($requestId, $approved->id), $user);
         self::executor()->execute($reviewId, $agent, static fn (): array => [
             new DecidedEvent(new CommitLinkedEvent($availableCommit->commitSha, [$requestId], null, true, $availableCommit->subject, $availableCommit->committedAt)),
         ]);
@@ -118,9 +118,9 @@ final class ProjectionConsistencyTest extends KernelTestCase
         $commands->linkPullRequest(RequestScenario::PULL_REQUEST, [$requestId], 'Opened for review.', $agent);
         $commands->unlinkPullRequest($requestId, RequestScenario::LINKED_PULL_REQUEST, $agent);
         $commands->markReadyForReview(new MarkReadyForReview($requestId, 'Extracted TaxRounding.'), $agent);
-        $commands->verify(new Verify($requestId), RequestScenario::user());
-        $commands->reopen(new Reopen($requestId, 'Also cover the shipping totals.'), RequestScenario::user());
-        $commands->setPlanRequirement(new SetPlanRequirement($requestId, false), $user);
+        $commands->execute(new Verify($requestId), RequestScenario::user());
+        $commands->execute(new Reopen($requestId, 'Also cover the shipping totals.'), RequestScenario::user());
+        $commands->execute(new SetPlanRequirement($requestId, false), $user);
 
         return $requestId;
     }
@@ -134,13 +134,13 @@ final class ProjectionConsistencyTest extends KernelTestCase
         $agent = RequestScenario::claimingAgent();
         $requestId = self::openRequest($reviewId);
 
-        $commands->reply(new Reply($requestId, 'Should this cover the shipping totals?', true), $agent);
-        $commands->reply(new Reply($requestId, 'Yes, see '.$fixed.'.'), RequestScenario::user());
-        $commands->setTitle(new SetTitle($requestId, 'Cover the shipping totals'), $agent);
-        $commands->setPlanRequirement(new SetPlanRequirement($requestId, true), RequestScenario::user());
-        $commands->claim(new Claim($requestId), $agent);
-        $commands->release(new Release($requestId, 'Needs a decision first.'), $agent);
-        $commands->markWontDo(new MarkWontDo($requestId, RequestScenario::REASON), $agent);
+        $commands->execute(new Reply($requestId, 'Should this cover the shipping totals?', true), $agent);
+        $commands->execute(new Reply($requestId, 'Yes, see '.$fixed.'.'), RequestScenario::user());
+        $commands->execute(new SetTitle($requestId, 'Cover the shipping totals'), $agent);
+        $commands->execute(new SetPlanRequirement($requestId, true), RequestScenario::user());
+        $commands->execute(new Claim($requestId), $agent);
+        $commands->execute(new Release($requestId, 'Needs a decision first.'), $agent);
+        $commands->execute(new MarkWontDo($requestId, RequestScenario::REASON), $agent);
 
         return $requestId;
     }

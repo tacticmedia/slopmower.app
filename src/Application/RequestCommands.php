@@ -19,27 +19,16 @@ use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Repository\RepositorySource;
-use App\Domain\Request\Command\AcceptSuggestion;
-use App\Domain\Request\Command\ApproveProposal;
 use App\Domain\Request\Command\Claim;
-use App\Domain\Request\Command\DismissSuggestion;
+use App\Domain\Request\Command\EventOnlyCommand;
 use App\Domain\Request\Command\LinkCommits;
 use App\Domain\Request\Command\LinkPullRequest;
 use App\Domain\Request\Command\MarkReadyForReview;
-use App\Domain\Request\Command\MarkWontDo;
 use App\Domain\Request\Command\Open;
-use App\Domain\Request\Command\ProposeSolution;
-use App\Domain\Request\Command\RejectProposal;
-use App\Domain\Request\Command\Release;
-use App\Domain\Request\Command\Reopen;
-use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\RequestCommand;
-use App\Domain\Request\Command\SetPlanRequirement;
-use App\Domain\Request\Command\SetTitle;
 use App\Domain\Request\Command\Suggest;
 use App\Domain\Request\Command\UnlinkCommit;
 use App\Domain\Request\Command\UnlinkPullRequest;
-use App\Domain\Request\Command\Verify;
 use App\Domain\Request\CommitLinkState;
 use App\Domain\Request\CommitsNotAvailable;
 use App\Domain\Request\InvalidTransition;
@@ -106,25 +95,9 @@ final class RequestCommands
     }
 
     /**
-     * @return list<RecordedEvent>
+     * @return list<RecordedEvent> Empty when the command changes nothing, for example a repeated claim by the holder
      */
-    public function reply(Reply $command, Actor $actor): array
-    {
-        return $this->run($this->reviewOf($command->requestId), $command, $actor);
-    }
-
-    /**
-     * @return list<RecordedEvent> Empty for a repeated claim by the holder
-     */
-    public function claim(Claim $command, Actor $actor): array
-    {
-        return $this->run($this->reviewOf($command->requestId), $command, $actor);
-    }
-
-    /**
-     * @return list<RecordedEvent>
-     */
-    public function release(Release $command, Actor $actor): array
+    public function execute(EventOnlyCommand $command, Actor $actor): array
     {
         return $this->run($this->reviewOf($command->requestId), $command, $actor);
     }
@@ -253,86 +226,6 @@ final class RequestCommands
         }
 
         return $this->run($reviewId, $command, $actor);
-    }
-
-    /**
-     * @return list<RecordedEvent>
-     */
-    public function markWontDo(MarkWontDo $command, Actor $actor): array
-    {
-        return $this->run($this->reviewOf($command->requestId), $command, $actor);
-    }
-
-    /**
-     * @return list<RecordedEvent>
-     */
-    public function verify(Verify $command, Actor $actor): array
-    {
-        return $this->run($this->reviewOf($command->requestId), $command, $actor);
-    }
-
-    /**
-     * @return list<RecordedEvent>
-     */
-    public function reopen(Reopen $command, Actor $actor): array
-    {
-        return $this->run($this->reviewOf($command->requestId), $command, $actor);
-    }
-
-    /**
-     * @return list<RecordedEvent>
-     */
-    public function propose(ProposeSolution $command, Actor $actor): array
-    {
-        return $this->run($this->reviewOf($command->requestId), $command, $actor);
-    }
-
-    /**
-     * @return list<RecordedEvent>
-     */
-    public function approveProposal(ApproveProposal $command, Actor $actor): array
-    {
-        return $this->run($this->reviewOf($command->requestId), $command, $actor);
-    }
-
-    /**
-     * @return list<RecordedEvent>
-     */
-    public function rejectProposal(RejectProposal $command, Actor $actor): array
-    {
-        return $this->run($this->reviewOf($command->requestId), $command, $actor);
-    }
-
-    /**
-     * @return list<RecordedEvent> Empty when the value does not change
-     */
-    public function setPlanRequirement(SetPlanRequirement $command, Actor $actor): array
-    {
-        return $this->run($this->reviewOf($command->requestId), $command, $actor);
-    }
-
-    /**
-     * @return list<RecordedEvent>
-     */
-    public function acceptSuggestion(AcceptSuggestion $command, Actor $actor): array
-    {
-        return $this->run($this->reviewOf($command->requestId), $command, $actor);
-    }
-
-    /**
-     * @return list<RecordedEvent>
-     */
-    public function dismissSuggestion(DismissSuggestion $command, Actor $actor): array
-    {
-        return $this->run($this->reviewOf($command->requestId), $command, $actor);
-    }
-
-    /**
-     * @return list<RecordedEvent> Empty when the title does not change
-     */
-    public function setTitle(SetTitle $command, Actor $actor): array
-    {
-        return $this->run($this->reviewOf($command->requestId), $command, $actor);
     }
 
     /**

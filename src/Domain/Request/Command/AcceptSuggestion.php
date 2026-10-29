@@ -6,7 +6,7 @@ namespace App\Domain\Request\Command;
 
 use App\Domain\Identity\RequestId;
 
-final readonly class AcceptSuggestion implements RequestCommand
+final readonly class AcceptSuggestion implements EventOnlyCommand
 {
     /**
      * @param bool|null $requireApproval Null keeps the current value

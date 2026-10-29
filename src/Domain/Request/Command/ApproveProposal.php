@@ -7,7 +7,7 @@ namespace App\Domain\Request\Command;
 use App\Domain\Identity\EventId;
 use App\Domain\Identity\RequestId;
 
-final readonly class ApproveProposal implements RequestCommand
+final readonly class ApproveProposal implements EventOnlyCommand
 {
     public function __construct(
         public RequestId $requestId,

@@ -151,9 +151,9 @@ final class CheckRunJobTest extends KernelTestCase
         self::commands()->markReadyForReview(new MarkReadyForReview($ready, 'Totals use Money now.'), $this->agent());
         self::runCheckRunJobs();
 
-        self::commands()->verify(new Verify($ready), $this->userActor());
+        self::commands()->execute(new Verify($ready), $this->userActor());
         self::runCheckRunJobs();
-        self::commands()->reply(new Reply($open, 'Keep the rounding mode.'), $this->userActor());
+        self::commands()->execute(new Reply($open, 'Keep the rounding mode.'), $this->userActor());
         self::runCheckRunJobs();
 
         $calls = array_map(static fn (array $call): array => [$call[0], $call[1], array_column($call[2]['output']['annotations'] ?? [], 'annotation_level')], self::checkRunCalls());
@@ -172,7 +172,7 @@ final class CheckRunJobTest extends KernelTestCase
         $this->claimAndLink($requestId);
         self::runCheckRunJobs();
 
-        self::commands()->setTitle(new SetTitle($requestId, 'Money totals'), $this->userActor());
+        self::commands()->execute(new SetTitle($requestId, 'Money totals'), $this->userActor());
         self::runCheckRunJobs();
 
         $calls = array_map(static fn (array $call): array => [$call[0], array_column($call[2]['output']['annotations'] ?? [], 'title')], self::checkRunCalls());
@@ -413,7 +413,7 @@ final class CheckRunJobTest extends KernelTestCase
     private function claimAndLink(RequestId ...$requestIds): void
     {
         foreach ($requestIds as $requestId) {
-            self::commands()->claim(new Claim($requestId), $this->agent());
+            self::commands()->execute(new Claim($requestId), $this->agent());
         }
 
         foreach (array_chunk($requestIds, 50) as $linked) {

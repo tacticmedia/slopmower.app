@@ -86,7 +86,7 @@ final class PushWebhookTest extends WebTestCase
         self::getContainer()->get(TenantContext::class)->set($repository->getTenantId());
         $reviewId = self::startReview($repository->getId());
         $requestId = self::openRequest($reviewId);
-        self::requestCommands()->claim(new Claim($requestId), RequestScenario::claimingAgent());
+        self::requestCommands()->execute(new Claim($requestId), RequestScenario::claimingAgent());
         $fix = $source->commit(['src/Fix.php' => "<?php\n"], 'Round totals');
         // A pending link without the fetch that Q7 queues, so the push is the only trigger.
         self::executor()->execute($reviewId, RequestScenario::claimingAgent(), static fn (): array => [

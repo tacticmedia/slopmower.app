@@ -77,8 +77,8 @@ final class RequestListFilterTest extends WebTestCase
         self::mockTime('+1 second');
         $r4 = RequestId::fromString($this->ids['r4']);
         self::asAgent($user, static function (RequestCommands $commands, Actor $agent) use ($r4): void {
-            $commands->claim(new Claim($r4), $agent);
-            $commands->reply(new Reply($r4, 'Is README.md still current?', true), $agent);
+            $commands->execute(new Claim($r4), $agent);
+            $commands->execute(new Reply($r4, 'Is README.md still current?', true), $agent);
         });
         self::mockTime('+1 second');
         self::requestCommand($this->client, $this->ids['r1'], 'comments', ['body' => 'Keep the old method as deprecated.']);

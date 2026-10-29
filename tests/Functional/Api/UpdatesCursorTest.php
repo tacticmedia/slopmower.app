@@ -71,14 +71,14 @@ final class UpdatesCursorTest extends WebTestCase
     {
         [$r1, $r2] = $this->requests;
         self::asAgent($this->user, static function (RequestCommands $commands, Actor $agent) use ($r1, $r2): void {
-            $commands->claim(new Claim($r1), $agent);
+            $commands->execute(new Claim($r1), $agent);
 
             foreach (range(1, 11) as $reply) {
-                $commands->reply(new Reply($r1, "Progress note {$reply}."), $agent);
+                $commands->execute(new Reply($r1, "Progress note {$reply}."), $agent);
             }
 
-            $commands->reply(new Reply($r1, 'Should the tax lines use `Money` too?', true), $agent);
-            $commands->markWontDo(new MarkWontDo($r2, 'The totals already use integer cents.'), $agent);
+            $commands->execute(new Reply($r1, 'Should the tax lines use `Money` too?', true), $agent);
+            $commands->execute(new MarkWontDo($r2, 'The totals already use integer cents.'), $agent);
         });
 
         $this->client->enableProfiler();
@@ -100,8 +100,8 @@ final class UpdatesCursorTest extends WebTestCase
     public function testAgentSkipsRequestsThatAnotherAgentHolds(): void
     {
         [$r1, $r2, $r3] = $this->requests;
-        self::asAgent($this->user, static fn (RequestCommands $commands, Actor $agent): array => $commands->claim(new Claim($r1), $agent), 'codex desktop');
-        self::asAgent($this->user, static fn (RequestCommands $commands, Actor $agent): array => $commands->claim(new Claim($r3), $agent));
+        self::asAgent($this->user, static fn (RequestCommands $commands, Actor $agent): array => $commands->execute(new Claim($r1), $agent), 'codex desktop');
+        self::asAgent($this->user, static fn (RequestCommands $commands, Actor $agent): array => $commands->execute(new Claim($r3), $agent));
         [, $secret] = self::storeToken($this->user, name: self::AGENT_NAME);
 
         $page = self::assertApiResponse(self::bearerRequest($this->client, $secret, 'GET', "/api/v1/reviews/{$this->reviewId}/updates"), 200, 'updates-page.schema.json');
@@ -115,12 +115,12 @@ final class UpdatesCursorTest extends WebTestCase
     {
         [$r1, $r2] = $this->requests;
         self::asAgent($this->user, static function (RequestCommands $commands, Actor $agent) use ($r1, $r2): void {
-            $commands->claim(new Claim($r1), $agent);
-            $commands->claim(new Claim($r2), $agent);
+            $commands->execute(new Claim($r1), $agent);
+            $commands->execute(new Claim($r2), $agent);
             $commands->linkCommits(new LinkCommits(CommitSha::fromString(str_repeat('e', 40)), [$r1, $r2], 'One refactoring covers both.'), $agent);
         });
         self::requestCommand($this->client, $r2->toString(), 'comments', ['body' => 'Keep the old method as deprecated.']);
-        self::asAgent($this->user, static fn (RequestCommands $commands, Actor $agent): array => $commands->reply(new Reply($r1, 'Done with the totals.'), $agent));
+        self::asAgent($this->user, static fn (RequestCommands $commands, Actor $agent): array => $commands->execute(new Reply($r1, 'Done with the totals.'), $agent));
 
         $groups = static fn (array $page): array => array_map(
             static fn (array $updated): array => [$updated['request']['id'], array_column($updated['newEvents'], 'type'), $updated['omittedEvents']],
@@ -151,7 +151,7 @@ final class UpdatesCursorTest extends WebTestCase
         [$r1] = $this->requests;
         self::asAgent($this->user, static function (RequestCommands $commands, Actor $agent) use ($r1): void {
             foreach (range(1, 5) as $reply) {
-                $commands->reply(new Reply($r1, "Progress note {$reply}."), $agent);
+                $commands->execute(new Reply($r1, "Progress note {$reply}."), $agent);
             }
         });
         $pages = [];

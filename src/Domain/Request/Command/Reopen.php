@@ -6,7 +6,7 @@ namespace App\Domain\Request\Command;
 
 use App\Domain\Identity\RequestId;
 
-final readonly class Reopen implements RequestCommand
+final readonly class Reopen implements EventOnlyCommand
 {
     public function __construct(
         public RequestId $requestId,

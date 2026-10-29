@@ -197,8 +197,8 @@ final class CarryOverTest extends WebTestCase
         $inProgress = $this->openSource(null, 'Rename the totals.');
         $ready = $this->openSource(null, 'Drop the float cast.');
         self::asAgent($this->user, static function (RequestCommands $commands, Actor $agent) use ($inProgress, $ready): void {
-            $commands->claim(new Claim(RequestId::fromString($inProgress)), $agent);
-            $commands->claim(new Claim(RequestId::fromString($ready)), $agent);
+            $commands->execute(new Claim(RequestId::fromString($inProgress)), $agent);
+            $commands->execute(new Claim(RequestId::fromString($ready)), $agent);
             $commands->markReadyForReview(new MarkReadyForReview(RequestId::fromString($ready), 'Dropped the cast.'), $agent);
         });
         $targetId = $this->startTarget([]);

@@ -33,6 +33,6 @@ final class FreshStateTest extends KernelTestCase
         self::assertSame(RequestStatus::Open, $stale->getState()->status);
 
         $this->expectException(InvalidTransition::class);
-        self::requestCommands()->claim(new Claim($requestId), RequestScenario::claimingAgent());
+        self::requestCommands()->execute(new Claim($requestId), RequestScenario::claimingAgent());
     }
 }

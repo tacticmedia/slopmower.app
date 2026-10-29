@@ -112,7 +112,7 @@ final class McpTools
     )]
     public function claimRequest(#[Schema(pattern: self::ULID)] string $id): array
     {
-        return $this->requestCommand('claim_request', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->claim(new Claim($requestId), $actor));
+        return $this->requestCommand('claim_request', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->execute(new Claim($requestId), $actor));
     }
 
     /**
@@ -358,7 +358,7 @@ final class McpTools
     )]
     public function markWontDo(#[Schema(pattern: self::ULID)] string $id, #[Schema(pattern: self::NO_NUL, minLength: 20, maxLength: 65536)] string $reason): array
     {
-        return $this->requestCommand('mark_wont_do', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->markWontDo(new MarkWontDo($requestId, $reason), $actor));
+        return $this->requestCommand('mark_wont_do', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->execute(new MarkWontDo($requestId, $reason), $actor));
     }
 
     /**
@@ -379,7 +379,7 @@ final class McpTools
     )]
     public function proposeSolution(#[Schema(pattern: self::ULID)] string $id, #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 65536)] string $plan, #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 65536)] ?string $diff = null): array
     {
-        return $this->requestCommand('propose_solution', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->propose(new ProposeSolution($requestId, $plan, $diff), $actor));
+        return $this->requestCommand('propose_solution', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->execute(new ProposeSolution($requestId, $plan, $diff), $actor));
     }
 
     /**
@@ -399,7 +399,7 @@ final class McpTools
     )]
     public function releaseRequest(#[Schema(pattern: self::ULID)] string $id, #[Schema(pattern: self::NO_NUL, maxLength: 65536)] ?string $note = null): array
     {
-        return $this->requestCommand('release_request', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->release(new Release($requestId, $note), $actor));
+        return $this->requestCommand('release_request', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->execute(new Release($requestId, $note), $actor));
     }
 
     /**
@@ -420,7 +420,7 @@ final class McpTools
     )]
     public function replyToRequest(#[Schema(pattern: self::ULID)] string $id, #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 65536)] string $body, bool $question = false): array
     {
-        return $this->requestCommand('reply_to_request', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->reply(new Reply($requestId, $body, $question), $actor));
+        return $this->requestCommand('reply_to_request', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->execute(new Reply($requestId, $body, $question), $actor));
     }
 
     /**
@@ -440,7 +440,7 @@ final class McpTools
     )]
     public function setRequestTitle(#[Schema(pattern: self::ULID)] string $id, #[Schema(pattern: self::NO_NUL, minLength: 1, maxLength: 200)] string $title): array
     {
-        return $this->requestCommand('set_request_title', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->setTitle(new SetTitle($requestId, $title), $actor));
+        return $this->requestCommand('set_request_title', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->execute(new SetTitle($requestId, $title), $actor));
     }
 
     /**

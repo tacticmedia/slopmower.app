@@ -95,8 +95,8 @@ final class UserCommandsTest extends WebTestCase
         self::requestCommand($this->client, $reopened, 'wont-do', ['reason' => self::WONT_DO_REASON]);
         self::requestCommand($this->client, $reopened, 'reopen', ['note' => 'Integer cents still round twice.']);
         self::asAgent($this->user, static function (RequestCommands $commands, Actor $agent) use ($open, $reopened): void {
-            $commands->claim(new Claim(RequestId::fromString($open)), $agent);
-            $commands->claim(new Claim(RequestId::fromString($reopened)), $agent);
+            $commands->execute(new Claim(RequestId::fromString($open)), $agent);
+            $commands->execute(new Claim(RequestId::fromString($reopened)), $agent);
         });
 
         $releasedOpen = self::requestCommand($this->client, $open, 'release');

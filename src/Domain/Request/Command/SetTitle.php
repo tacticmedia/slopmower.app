@@ -6,7 +6,7 @@ namespace App\Domain\Request\Command;
 
 use App\Domain\Identity\RequestId;
 
-final readonly class SetTitle implements RequestCommand
+final readonly class SetTitle implements EventOnlyCommand
 {
     public function __construct(
         public RequestId $requestId,

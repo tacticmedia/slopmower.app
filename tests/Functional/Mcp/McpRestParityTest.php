@@ -68,8 +68,8 @@ final class McpRestParityTest extends WebTestCase
         $this->generalRequestId = (string) self::openRequest($this->client, $this->reviewId, null)['id'];
         $claimed = RequestId::fromString($this->claimedRequestId);
         self::asAgent($user, static function (RequestCommands $commands, Actor $agent) use ($claimed): void {
-            $commands->claim(new Claim($claimed), $agent);
-            $commands->reply(new Reply($claimed, 'Should the tax lines use `Money` too?', true), $agent);
+            $commands->execute(new Claim($claimed), $agent);
+            $commands->execute(new Reply($claimed, 'Should the tax lines use `Money` too?', true), $agent);
         });
         self::requestCommand($this->client, $this->claimedRequestId, 'comments', ['body' => 'Yes, the tax lines too.']);
         [, $this->secret] = self::storeToken($user);

@@ -81,7 +81,7 @@ final class ThreadTest extends WebTestCase
         $other = (string) self::openRequest($this->client, $this->reviewId)['id'];
         $requestIds = [RequestId::fromString($this->requestId), RequestId::fromString($other)];
         self::asAgent($this->user, static function (RequestCommands $commands, Actor $agent) use ($requestIds): void {
-            array_map(static fn (RequestId $requestId): array => $commands->claim(new Claim($requestId), $agent), $requestIds);
+            array_map(static fn (RequestId $requestId): array => $commands->execute(new Claim($requestId), $agent), $requestIds);
             $commands->linkCommits(new LinkCommits(CommitSha::fromString(self::COMMIT), $requestIds, 'One refactoring covers both.'), $agent);
         });
 

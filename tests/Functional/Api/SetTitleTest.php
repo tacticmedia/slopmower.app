@@ -63,7 +63,7 @@ final class SetTitleTest extends WebTestCase
     {
         $requestId = RequestId::fromString($this->requestId);
         self::asAgent($this->user, static function (RequestCommands $commands, Actor $agent) use ($requestId): void {
-            $commands->claim(new Claim($requestId), $agent);
+            $commands->execute(new Claim($requestId), $agent);
             $commands->markReadyForReview(new MarkReadyForReview($requestId, 'Totals use Money.'), $agent);
         });
         self::requestCommand($this->client, $this->requestId, 'verify');

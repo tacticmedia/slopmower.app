@@ -46,8 +46,8 @@ final class ReviewSeparationTest extends WebTestCase
         $requestA = (string) self::openRequest($client, $reviewA)['id'];
         $requestB = (string) self::openRequest($client, $reviewB)['id'];
         self::asAgent($user, static function (RequestCommands $commands, Actor $agent) use ($requestA): void {
-            $commands->claim(new Claim(RequestId::fromString($requestA)), $agent);
-            $commands->reply(new Reply(RequestId::fromString($requestA), 'Should the tax lines use `Money` too?', true), $agent);
+            $commands->execute(new Claim(RequestId::fromString($requestA)), $agent);
+            $commands->execute(new Reply(RequestId::fromString($requestA), 'Should the tax lines use `Money` too?', true), $agent);
         });
 
         $responses = [];

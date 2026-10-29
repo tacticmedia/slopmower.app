@@ -60,7 +60,7 @@ final class RequestCommandController extends AbstractController
     ): JsonResponse {
         \assert(null !== $input->body);
 
-        return $this->result($request, $this->commands->reply(new Reply($request->getId(), $input->body, $input->question ?? false), $this->currentActor->get()), Response::HTTP_CREATED);
+        return $this->result($request, $this->commands->execute(new Reply($request->getId(), $input->body, $input->question ?? false), $this->currentActor->get()), Response::HTTP_CREATED);
     }
 
     /**
@@ -71,7 +71,7 @@ final class RequestCommandController extends AbstractController
         #[MapEntity(id: 'requestId')] ChangeRequest $request,
         #[MapRequestPayload(acceptFormat: 'json')] OptionalNoteInput $input = new OptionalNoteInput(),
     ): JsonResponse {
-        return $this->result($request, $this->commands->release(new Release($request->getId(), $input->note), $this->currentActor->get()));
+        return $this->result($request, $this->commands->execute(new Release($request->getId(), $input->note), $this->currentActor->get()));
     }
 
     #[Route('/wont-do', name: 'wont_do', methods: ['POST'])]
@@ -81,7 +81,7 @@ final class RequestCommandController extends AbstractController
     ): JsonResponse {
         \assert(null !== $input->reason);
 
-        return $this->result($request, $this->commands->markWontDo(new MarkWontDo($request->getId(), $input->reason), $this->currentActor->get()));
+        return $this->result($request, $this->commands->execute(new MarkWontDo($request->getId(), $input->reason), $this->currentActor->get()));
     }
 
     #[Route('/verify', name: 'verify', methods: ['POST'])]
@@ -90,7 +90,7 @@ final class RequestCommandController extends AbstractController
         #[MapEntity(id: 'requestId')] ChangeRequest $request,
         #[MapRequestPayload(acceptFormat: 'json')] OptionalNoteInput $input = new OptionalNoteInput(),
     ): JsonResponse {
-        return $this->result($request, $this->commands->verify(new Verify($request->getId(), $input->note), $this->currentActor->get()));
+        return $this->result($request, $this->commands->execute(new Verify($request->getId(), $input->note), $this->currentActor->get()));
     }
 
     #[Route('/reopen', name: 'reopen', methods: ['POST'])]
@@ -101,7 +101,7 @@ final class RequestCommandController extends AbstractController
     ): JsonResponse {
         \assert(null !== $input->note);
 
-        return $this->result($request, $this->commands->reopen(new Reopen($request->getId(), $input->note), $this->currentActor->get()));
+        return $this->result($request, $this->commands->execute(new Reopen($request->getId(), $input->note), $this->currentActor->get()));
     }
 
     #[Route('/approve-proposal', name: 'approve_proposal', methods: ['POST'])]
@@ -113,7 +113,7 @@ final class RequestCommandController extends AbstractController
         \assert(null !== $input->proposalEventId);
         $command = new ApproveProposal($request->getId(), EventId::fromString($input->proposalEventId), $input->note);
 
-        return $this->result($request, $this->commands->approveProposal($command, $this->currentActor->get()));
+        return $this->result($request, $this->commands->execute($command, $this->currentActor->get()));
     }
 
     #[Route('/reject-proposal', name: 'reject_proposal', methods: ['POST'])]
@@ -125,7 +125,7 @@ final class RequestCommandController extends AbstractController
         \assert(null !== $input->proposalEventId && null !== $input->note);
         $command = new RejectProposal($request->getId(), EventId::fromString($input->proposalEventId), $input->note);
 
-        return $this->result($request, $this->commands->rejectProposal($command, $this->currentActor->get()));
+        return $this->result($request, $this->commands->execute($command, $this->currentActor->get()));
     }
 
     #[Route('/plan-requirement', name: 'plan_requirement', methods: ['POST'])]
@@ -137,7 +137,7 @@ final class RequestCommandController extends AbstractController
         \assert(null !== $input->requireApproval);
         $command = new SetPlanRequirement($request->getId(), $input->requireApproval);
 
-        return $this->result($request, $this->commands->setPlanRequirement($command, $this->currentActor->get()));
+        return $this->result($request, $this->commands->execute($command, $this->currentActor->get()));
     }
 
     #[Route('/accept-suggestion', name: 'accept_suggestion', methods: ['POST'])]
@@ -148,7 +148,7 @@ final class RequestCommandController extends AbstractController
     ): JsonResponse {
         $command = new AcceptSuggestion($request->getId(), $input->requireApproval);
 
-        return $this->result($request, $this->commands->acceptSuggestion($command, $this->currentActor->get()));
+        return $this->result($request, $this->commands->execute($command, $this->currentActor->get()));
     }
 
     #[Route('/dismiss-suggestion', name: 'dismiss_suggestion', methods: ['POST'])]
@@ -159,7 +159,7 @@ final class RequestCommandController extends AbstractController
     ): JsonResponse {
         $command = new DismissSuggestion($request->getId(), $input->note);
 
-        return $this->result($request, $this->commands->dismissSuggestion($command, $this->currentActor->get()));
+        return $this->result($request, $this->commands->execute($command, $this->currentActor->get()));
     }
 
     #[Route('/title', name: 'title', methods: ['POST'])]
@@ -169,7 +169,7 @@ final class RequestCommandController extends AbstractController
     ): JsonResponse {
         \assert(null !== $input->title);
 
-        return $this->result($request, $this->commands->setTitle(new SetTitle($request->getId(), $input->title), $this->currentActor->get()));
+        return $this->result($request, $this->commands->execute(new SetTitle($request->getId(), $input->title), $this->currentActor->get()));
     }
 
     /**

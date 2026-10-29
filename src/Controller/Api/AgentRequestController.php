@@ -69,7 +69,7 @@ final class AgentRequestController extends AbstractController
     #[Route('/api/v1/requests/{requestId}/claim', name: 'claim', methods: ['POST'])]
     public function claim(#[MapEntity(id: 'requestId')] ChangeRequest $request): JsonResponse
     {
-        return $this->result($request, $this->commands->claim(new Claim($request->getId()), $this->currentActor->get()));
+        return $this->result($request, $this->commands->execute(new Claim($request->getId()), $this->currentActor->get()));
     }
 
     #[Route('/api/v1/requests/{requestId}/commits/{commitSha}', name: 'unlink_commit', methods: ['DELETE'])]
@@ -95,7 +95,7 @@ final class AgentRequestController extends AbstractController
     ): JsonResponse {
         \assert(null !== $input->plan);
 
-        return $this->result($request, $this->commands->propose(new ProposeSolution($request->getId(), $input->plan, $input->diff), $this->currentActor->get()));
+        return $this->result($request, $this->commands->execute(new ProposeSolution($request->getId(), $input->plan, $input->diff), $this->currentActor->get()));
     }
 
     #[Route('/api/v1/requests/{requestId}/unlink-pull-request', name: 'unlink_pull_request', methods: ['POST'])]
