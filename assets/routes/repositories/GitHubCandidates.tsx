@@ -2,6 +2,7 @@ import { Button, Label, Link, RelativeTime } from '@primer/react';
 import { LinkExternalIcon, SyncIcon } from '@primer/octicons-react';
 import { type Column, DataTable, Table } from '@primer/react/experimental';
 import type { RepositoryCandidate } from '../../api/types/repository-candidate';
+import tableStyles from '../../layout/ScrollingTable.module.css';
 import { CandidateConnection } from './CandidateConnection';
 
 export type GitHubCandidate = Extract<RepositoryCandidate, { source: 'github' }>;
@@ -47,7 +48,7 @@ type GitHubCandidatesProps = {
 
 export function GitHubCandidates({ candidates, configureUrl, listedAt }: GitHubCandidatesProps) {
     return (
-        <Table.Container data-testid="github-candidates">
+        <Table.Container data-testid="github-candidates" className={tableStyles.container}>
             <Table.Title as="h2" id="github-candidates">
                 GitHub repositories
             </Table.Title>

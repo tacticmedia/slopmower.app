@@ -46,7 +46,7 @@ export function SettingsRoute() {
             <SkillInstall skillUrl={me.links.skillUrl} />
             <PlanSummary plan={me.plan} />
             <div className={styles.pageSection}>
-                <Table.Container>
+                <Table.Container className={tableStyles.container}>
                     <Table.Title as="h2" id="usage">
                         Usage
                     </Table.Title>
@@ -58,7 +58,7 @@ export function SettingsRoute() {
                 </Table.Container>
             </div>
             <div className={styles.pageSection}>
-                <Table.Container>
+                <Table.Container className={tableStyles.container}>
                     <Table.Title as="h2" id="repository-data">
                         Repository data
                     </Table.Title>

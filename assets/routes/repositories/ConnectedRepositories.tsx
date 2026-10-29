@@ -2,6 +2,7 @@ import { Link } from '@primer/react';
 import { type Column, DataTable, Table } from '@primer/react/experimental';
 import { Link as RouterLink } from 'react-router';
 import type { Repository } from '../../api/types/repository';
+import tableStyles from '../../layout/ScrollingTable.module.css';
 import { SyncStatus } from './SyncStatus';
 
 export const SOURCE_NAMES: Record<Repository['source'], string> = { github: 'GitHub', local: 'Local' };
@@ -26,7 +27,7 @@ const COLUMNS: Column<Repository>[] = [
 /** Without a repository, the onboarding shows in place of this table. */
 export function ConnectedRepositories({ repositories }: { repositories: Repository[] }) {
     return (
-        <Table.Container data-testid="connected-repositories">
+        <Table.Container data-testid="connected-repositories" className={tableStyles.container}>
             <Table.Title as="h2" id="connected-repositories">
                 Connected repositories
             </Table.Title>

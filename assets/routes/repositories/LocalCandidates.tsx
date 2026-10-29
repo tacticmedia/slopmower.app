@@ -1,5 +1,6 @@
 import { type Column, DataTable, Table } from '@primer/react/experimental';
 import type { RepositoryCandidate } from '../../api/types/repository-candidate';
+import tableStyles from '../../layout/ScrollingTable.module.css';
 import { CandidateConnection } from './CandidateConnection';
 
 export type LocalCandidate = Extract<RepositoryCandidate, { source: 'local' }>;
@@ -15,7 +16,7 @@ const COLUMNS: Column<CandidateRow>[] = [
 
 export function LocalCandidates({ candidates }: { candidates: LocalCandidate[] }) {
     return (
-        <Table.Container data-testid="local-candidates">
+        <Table.Container data-testid="local-candidates" className={tableStyles.container}>
             <Table.Title as="h2" id="local-candidates">
                 Local directories
             </Table.Title>
