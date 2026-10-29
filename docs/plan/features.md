@@ -89,7 +89,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F71 | [Help center](F71-help-center.md) | Done 2026-10-20, [report](reports/F71.md) | 9b4c73e | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31486 lines; assets 186 TS / 11177 lines |
 | F72 | [Vertical slice flake after the onboarding connect](F72-vertical-slice-flake-after-the-onboarding-connect.md) | Done 2026-10-20, [report](reports/F72.md) | d92968e | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31486 lines; assets 186 TS / 11177 lines; check 12m15s with act |
 | F73 | [Agent watch](F73-agent-watch.md) | Done 2026-10-20, [report](reports/F73.md) | c7a8b42 | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31486 lines; assets 186 TS / 11177 lines |
-| F74 | [Pull requests only where the host has them](F74-pull-requests-only-where-the-host-has-them.md) | In progress | | |
+| F74 | [Pull requests only where the host has them](F74-pull-requests-only-where-the-host-has-them.md) | Done 2026-10-29, [report](reports/F74.md) | 65206a8 | src 510 PHP / 34692 lines, 510 types; tests 346 PHP / 32574 lines; assets 188 TS / 11310 lines |
 | F75 | [Submit feedback](F75-submit-feedback.md) | Planned | | |
 | F76 | [Delivery choices](F76-delivery-choices.md) | Planned | | |
 | F77 | [Browser error reporting](F77-browser-error-reporting.md) | Done 2026-10-28, [report](reports/F77.md) | ff4dfac | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31520 lines; assets 187 TS / 11216 lines |
