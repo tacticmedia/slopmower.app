@@ -95,7 +95,8 @@ Measured on 2026-10-29, after F89, with `RequestDecider` (532 lines), `AllowedAc
 - **The application passes commands through.** 13 methods of `RequestCommands` have the same body, `run(reviewOf(requestId), command, actor)`, and differ only in the command type. Revised step 2 ([F90](F90-one-request-command-path.md)): one `execute()` for the commands that need only the event transaction. It changes no contract.
 - **A single REST endpoint does not pay.** The request command actions of the controllers are about 10 lines each. One endpoint would change every client, the UI mocks, the specs, and the skill for about 150 lines. Step 3 keeps the REST paths.
 - **The MCP tool contract has three homes.** `McpTools` repeats the descriptions and input schemas of `docs/specs/mcp.md`, and `tests/Fixtures/mcp/tools-list.json` repeats them once more. Step 3 is now "MCP tools from one definition": register the tools from data through an `mcp.loader` service, so that the contract is written once. Plan it after F90 with `mcp.md` read verbatim.
-- Steps 4 to 6 stand as written.
+- Step 3 is [F91](F91-mcp-tools-from-one-definition.md).
+- **Steps 4 to 6, measured after F91.** Step 4 removes about 271 lines of domain code (4 commands, 4 events, `Proposal`, `ProposalState`, `SuggestionState`) and 83 lines of inputs. It adds an answer command and event, an upcaster so that the 4 old event types stay readable (D37), and consistency rules that depend on the kind of the ask. It changes 41 files of REST, the event model, the UI, the specs, and the skill. A question is answered by a comment, not a decision, so it does not fit the same command. F76 needs only one option on the approval. Steps 5 and 6 change contracts for fewer lines. None of them is started: they change the agent and UI contracts for a small cut, so they wait for Jan's decision. The recommendation is to drop step 4, add the F76 choice to `approve_proposal`, and take step 5 only with F74.
 
 ## Order
 
