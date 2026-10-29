@@ -91,7 +91,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F73 | [Agent watch](F73-agent-watch.md) | Done 2026-10-20, [report](reports/F73.md) | c7a8b42 | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31486 lines; assets 186 TS / 11177 lines |
 | F74 | [Pull requests only where the host has them](F74-pull-requests-only-where-the-host-has-them.md) | Done 2026-10-29, [report](reports/F74.md) | 65206a8 | src 510 PHP / 34692 lines, 510 types; tests 346 PHP / 32574 lines; assets 188 TS / 11310 lines |
 | F75 | [Submit feedback](F75-submit-feedback.md) | Done 2026-10-29, [report](reports/F75.md) | 8d3b73b | src 510 PHP / 34692 lines, 510 types; tests 346 PHP / 32585 lines; assets 188 TS / 11248 lines |
-| F76 | [Delivery choices](F76-delivery-choices.md) | Planned | | |
+| F76 | [Delivery choices](F76-delivery-choices.md) | In progress | | |
 | F77 | [Browser error reporting](F77-browser-error-reporting.md) | Done 2026-10-28, [report](reports/F77.md) | ff4dfac | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31520 lines; assets 187 TS / 11216 lines |
 | F78 | [Sign-in page design](F78-sign-in-page-design.md) | Done 2026-10-28, [report](reports/F78.md) | 06fd757 | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31520 lines; assets 187 TS / 11216 lines |
 | F79 | [Refresh the GitHub repositories](F79-refresh-github-repositories.md) | Done 2026-10-28, [report](reports/F79.md) | 367d5c5 | src 506 PHP / 34267 lines, 506 types; tests 337 PHP / 31520 lines; assets 187 TS / 11230 lines |

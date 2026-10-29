@@ -13,7 +13,15 @@ Workflow, conventions, and status: [feature track](features.md). Requested by Ja
 
 ## Facts
 
-Verified on 2026-10-20:
+Verified on 2026-10-20, and again on 2026-10-29 after F89 to F91, F74, and F75. The line numbers are those of 2026-10-20. Changes since then:
+
+- F89 (D98): `ChangeRequest` stores `RequestState::toPayload()` in the jsonb column `state`, so `Proposal` is written there as `{eventId, state}` and needs no column and no migration. `Review` keeps its event columns.
+- `PayloadReader` has `nullableEnum` since F89, but no nullable bool reader.
+- F91 (D99): the tool descriptions are in `docs/specs/mcp-tools.json`; `tests/Fixtures/mcp/tools-list.json` is gone.
+- F75 (D84): the dialog is `SubmitFeedbackOverlay`, which posts the form field `intent=submit` with `summary`.
+- The capability check of R8 is in `Repository::setCheckEveryPullRequest()`; F74 added `RepositorySource::hasPullRequests()`.
+
+Facts of 2026-10-20:
 
 - `SubmitDraftsInput` has only `summary` (`src/Controller/Api/Input/SubmitDraftsInput.php`). `ApproveProposalInput` has `proposalEventId` and `note?`, and the SPA Approve sends no note (`ProposalEntry.tsx:102`).
 - **Review events:**
@@ -46,7 +54,10 @@ Verified on 2026-10-20:
   - Q15 `ApproveProposalInput.pullRequest?`.
   - `pullRequest: true` without the capability gives 422 `invalid_input`. The check is one line in `DraftController::submit` and in `RequestCommandController.php:108-115`, as R8 does it.
 - **Events:** `batch.submitted` gets `delivery`, and `request.proposal_approved` gets `pullRequest`. Both are read as null when missing (README rule 8). The API `Event` does not change.
-- **The proposal choice:** it is a third field of `Proposal`, with one column next to `proposalState`. It is cleared with the plan.
+- **The proposal choice:** it is a third field of `Proposal`, `pullRequest: ?bool`, in the jsonb state of F89 (no migration). It is cleared with the plan.
+- **Storage of the review value:** two columns of `review`, `delivery_workspace` and `delivery_pull_request`, both nullable, with one migration. `ReviewSnapshot` carries a `Delivery` value.
+- **The effective value:** `RequestState::delivery(Delivery $review)` returns it, so the normalizer and a unit test share one rule.
+- **Schema:** `common.schema.json` defines `Delivery` with both keys required and nullable, for responses. `inputs.schema.json` defines `DeliveryInput` with both keys optional, because the server reads a missing key as null.
 - **D85:**
   - Approve always sends the checkbox value, so an approval records an explicit choice.
   - A request without a plan, or from an accepted suggestion, takes its pull request choice from the review.
@@ -75,12 +86,13 @@ Verified on 2026-10-20:
   - `mcp.md` section 2;
   - the 8.10 amendment entry;
   - D85 in architecture section 11.
-- **Generated code:** regenerate `src/Mcp/BundledSchemas.php` (`app:schema:bundle`, `BundledSchemasUpToDateTest`).
+- **Generated code:** regenerate `src/Mcp/BundledSchemas.php` (`app:schema:bundle`, `BundledSchemasUpToDateTest`), which also holds the `get_request` output schema.
 - **Back end:**
   - `PayloadReader` readers;
   - the two events and `EventRoundTripTest`;
   - `ReviewReducer`, `ReviewSnapshot`, and `Review`;
-  - `Proposal`, `RequestReducer`, and `ChangeRequest`, with one migration;
+  - `Proposal`, `RequestReducer`, and `RequestState` (payload and `delivery()`);
+  - `Review` with its migration;
   - `ReviewNormalizer` and the `Request` normalizer;
   - the two inputs and the two controller checks;
   - a PHP enum `Workspace`, plus `EnumContractTest`.
@@ -93,7 +105,7 @@ Verified on 2026-10-20:
 - **Skill:**
   - `docs/user/skill/SKILL.md` and its byte-equal copy `.claude/skills/slopmower/SKILL.md`;
   - the MCP server instructions in `config/services.yaml`;
-  - the `tools-list.json` snapshot, if a description changes.
+  - `docs/specs/mcp-tools.json`, if a description changes.
 - **User docs:** `docs/user/comment.md` (Submit feedback) and `docs/user/requests.md` (approval).
 
 ## Out of scope
