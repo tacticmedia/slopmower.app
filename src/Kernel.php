@@ -16,6 +16,16 @@ class Kernel extends BaseKernel implements CompilerPassInterface
 {
     use MicroKernelTrait;
 
+    /**
+     * The `TIMESTAMP WITHOUT TIME ZONE` columns hold UTC, and DBAL reads them in the PHP default timezone, which a host
+     * php.ini may set otherwise.
+     */
+    public function boot(): void
+    {
+        date_default_timezone_set('UTC');
+        parent::boot();
+    }
+
     public function process(ContainerBuilder $container): void
     {
         // The resource owner keeps the OAuth state of one sign-in, and has no reset. A FrankenPHP worker would share it between users.
