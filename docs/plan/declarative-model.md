@@ -1,6 +1,6 @@
 # Declarative model: proposal
 
-Status: proposed on 2026-10-29. Step 1 is [F89](F89-request-state-as-jsonb.md), scheduled by Jan on 2026-10-29. Workflow and conventions: [README](README.md). Asked by Jan on 2026-10-28: "Can it be done simpler? Not by reducing capability, but by identifying the common denominator of different-but-similar features, and then re-using the logic to serve the same purpose. Can it be simplified by moving closer to a no-code dynamic setup rather than hardcoded columns, entities, features and business logic?"
+Status: proposed on 2026-10-29. Step 1 is [F89](F89-request-state-as-jsonb.md), scheduled by Jan on 2026-10-29. Step 2 is revised and is [F90](F90-one-request-command-path.md); see [Re-assessment after step 1](#re-assessment-after-step-1). Workflow and conventions: [README](README.md). Asked by Jan on 2026-10-28: "Can it be done simpler? Not by reducing capability, but by identifying the common denominator of different-but-similar features, and then re-using the logic to serve the same purpose. Can it be simplified by moving closer to a no-code dynamic setup rather than hardcoded columns, entities, features and business logic?"
 
 ## Answer
 
@@ -86,6 +86,16 @@ Commit links and pull request links do the same: link 1 to 50 requests of one re
 
 - **Drafts as events.** A draft is edited and deleted, and the log is append-only, so the draft stays a row.
 - **Generic entities for the GitHub integration.** `GitHubInstallation`, `GitHubCandidate`, `PullRequest`, and `MarketplaceAccount` follow the GitHub API, whose rules are specific. A generic form would only hide them.
+
+## Re-assessment after step 1
+
+Measured on 2026-10-29, after F89, with `RequestDecider` (532 lines), `AllowedActions` (58), `RequestReducer` (225), `AwaitingPolicy`, `Action`, `RequestCommands` (377), `RequestCommandController` (182), and `McpTools` (622) read verbatim:
+
+- **The domain is a table already.** `AllowedActions::permits()` has one line per action, and the decider and the reducer have one `match` arm per command and per event. Their long parts are the rules of links, pull request URLs, proposals, and suggestions, which stay code in any form. A definition object per action moves these lines but removes few of them, so step 2 as written above is dropped.
+- **The application passes commands through.** 13 methods of `RequestCommands` have the same body, `run(reviewOf(requestId), command, actor)`, and differ only in the command type. Revised step 2 ([F90](F90-one-request-command-path.md)): one `execute()` for the commands that need only the event transaction. It changes no contract.
+- **A single REST endpoint does not pay.** The request command actions of the controllers are about 10 lines each. One endpoint would change every client, the UI mocks, the specs, and the skill for about 150 lines. Step 3 keeps the REST paths.
+- **The MCP tool contract has three homes.** `McpTools` repeats the descriptions and input schemas of `docs/specs/mcp.md`, and `tests/Fixtures/mcp/tools-list.json` repeats them once more. Step 3 is now "MCP tools from one definition": register the tools from data through an `mcp.loader` service, so that the contract is written once. Plan it after F90 with `mcp.md` read verbatim.
+- Steps 4 to 6 stand as written.
 
 ## Order
 
