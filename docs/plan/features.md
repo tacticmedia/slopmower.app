@@ -104,6 +104,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F86 | [Audit fixes 7 to 20](F86-audit-fixes-7-to-20.md) | Done 2026-10-29, [report](reports/F86.md) | fa506ed..60cf668 | src 509 PHP / 34608 lines, 509 types; tests 342 PHP / 32180 lines; assets 187 TS / 11260 lines |
 | F87 | [Smaller audit findings](F87-smaller-audit-findings.md) | Done 2026-10-29, [report](reports/F87.md) | e6646e1..c948354 | src 509 PHP / 34697 lines, 509 types; tests 344 PHP / 32419 lines; assets 188 TS / 11303 lines |
 | F88 | [Open bugs of the Candidates and reports](F88-open-bugs-of-candidates-and-reports.md) | Done 2026-10-29, [report](reports/F88.md) | 5a9d647..d4f498f | src 509 PHP / 34694 lines, 509 types; tests 344 PHP / 32453 lines; assets 188 TS / 11310 lines |
+| F89 | [Request state as jsonb](F89-request-state-as-jsonb.md) | In progress | | |
 
 ## Candidates
 
@@ -111,7 +112,7 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 
 The findings of the repository audit of 2026-10-28 are [F84](F84-audit-must-fixes.md) to [F87](F87-smaller-audit-findings.md).
 
-- **Declarative model.** One action table for the request lifecycle, the projection state as jsonb, one command path for REST and MCP, and one "ask" and one "link" concept in place of question, proposal, suggestion, and the two link kinds. Not a no-code model. [declarative-model.md](declarative-model.md) has the evidence, the 6 steps, and the order: after F86 and F87, steps 1 to 4 before F76. From Jan on 2026-10-28.
+- **Declarative model.** One action table for the request lifecycle, the projection state as jsonb, one command path for REST and MCP, and one "ask" and one "link" concept in place of question, proposal, suggestion, and the two link kinds. Not a no-code model. [declarative-model.md](declarative-model.md) has the evidence, the 6 steps, and the order: steps 1 to 4 before F76. Step 1 is F89. From Jan on 2026-10-28.
 - **Source maps for browser reports.** A browser report shows the stack of the minified bundle. `build.sourcemap: 'hidden'` and an upload with a Sentry auth token at deployment, for example `@sentry/vite-plugin`, give the source lines. From the F77 planning.
 - **Lazy Sentry in the SPA.** `@sentry/react` adds about 87 KB gzip to the entry chunk, also without `SENTRY_DSN_FRONTEND`. A dynamic import when the DSN is set keeps it out, but the router must then wait for it, because `wrapCreateBrowserRouter()` needs the client. From the F77 planning.
 - **Other git hosts.** A git remote with an uploaded SSH key or access token, GitHub Enterprise, GitLab, and Bitbucket. [D83](../architecture.md#11-decisions) lists the integration levels, the plug-in points of a new source, and the GitHub couplings that a new host must lift. From Jan on 2026-10-20 (F74).

@@ -1,6 +1,6 @@
 # Declarative model: proposal
 
-Status: proposed on 2026-10-29, not scheduled. Workflow and conventions: [README](README.md). Asked by Jan on 2026-10-28: "Can it be done simpler? Not by reducing capability, but by identifying the common denominator of different-but-similar features, and then re-using the logic to serve the same purpose. Can it be simplified by moving closer to a no-code dynamic setup rather than hardcoded columns, entities, features and business logic?"
+Status: proposed on 2026-10-29. Step 1 is [F89](F89-request-state-as-jsonb.md), scheduled by Jan on 2026-10-29. Workflow and conventions: [README](README.md). Asked by Jan on 2026-10-28: "Can it be done simpler? Not by reducing capability, but by identifying the common denominator of different-but-similar features, and then re-using the logic to serve the same purpose. Can it be simplified by moving closer to a no-code dynamic setup rather than hardcoded columns, entities, features and business logic?"
 
 ## Answer
 
