@@ -101,6 +101,8 @@ export class FakeReview {
     requests: Request[] = [];
     drafts: Draft[] = [];
     viewedPaths: string[] = [];
+    /** The entries of a V6 page, so a test can show a directory with more entries than one page. */
+    treePageEntries = 1000;
     /** V17 by path. A renderable file without an entry has one commit for all its lines. */
     readonly blames = new Map<string, Pick<Blame, 'ignoreRevsFile' | 'ranges' | 'commits'>>();
     deleted = false;
@@ -525,8 +527,10 @@ export class FakeReview {
         }));
         api.on('GET', `${base}/tree`, ours(({ query }) => {
             const dir = query.get('dir') ?? '';
+            const items = this.#tree(dir);
+            const nextCursor = items.length > this.treePageEntries ? 'next-page' : null;
 
-            return json('lists.schema.json#/$defs/TreeListing', { reviewId: this.id, commitSha: this.review.commitSha, dir, recursive: false, items: this.#tree(dir), nextCursor: null });
+            return json('lists.schema.json#/$defs/TreeListing', { reviewId: this.id, commitSha: this.review.commitSha, dir, recursive: false, items: items.slice(0, this.treePageEntries), nextCursor });
         }));
         api.on('GET', `${base}/file`, ours(({ query }) => this.#withFile(query, ({ content }) => json('file-content.schema.json', content))));
         api.on('GET', `${base}/raw`, ours(({ query }) => this.#withFile(query, ({ bytes }) => text(bytes))));

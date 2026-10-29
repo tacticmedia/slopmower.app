@@ -86,4 +86,16 @@ test.describe('DirectoryView', () => {
 
         await expect(page.locator('[data-testid="file-header"]')).toContainText('docs/guide.md');
     });
+
+    test('A directory with more entries than one page shows the first page and says so in the table and the tree', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        review.treePageEntries = 2;
+
+        await page.goto(`/reviews/${review.id}`);
+
+        await expect(table(page).getByRole('row')).toHaveCount(3);
+        await expect(page.getByTestId('directory-truncated')).toHaveText('Showing the first 1,000 entries.');
+        await expect(page.locator('[data-testid="file-tree"] [data-testid="tree-truncated"]')).toHaveText('Showing the first 1,000 entries.');
+        expect(api.callsTo('GET', '/api/v1/reviews/:reviewId/tree').filter(({ query }) => query.has('cursor'))).toEqual([]);
+    });
 });

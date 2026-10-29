@@ -35,7 +35,7 @@ export function shouldRevalidateCodeLayout({ currentParams, nextParams }: Should
  * the window height. It stays mounted while files change, so expanded directories stay open.
  */
 export function CodeLayout() {
-    const { reviewId, items } = useLoaderData<TreeListing>();
+    const { reviewId, items, nextCursor } = useLoaderData<TreeListing>();
     const viewedPaths = useRouteLoaderData<ReviewData>('review')?.viewedPaths;
     const viewed = useMemo(() => new Set(viewedPaths), [viewedPaths]);
     const currentPath = useParams()['*'] || null;
@@ -62,7 +62,7 @@ export function CodeLayout() {
                         <h2 className={styles.paneTitle}>Files</h2>
                     </div>
                     <div className={styles.tree}>
-                        <FileTree reviewId={reviewId} entries={items} currentPath={currentPath} viewed={viewed} />
+                        <FileTree reviewId={reviewId} entries={items} truncated={null !== nextCursor} currentPath={currentPath} viewed={viewed} />
                     </div>
                 </PageLayout.Pane>
                 <PageLayout.Content as="div" padding="condensed">

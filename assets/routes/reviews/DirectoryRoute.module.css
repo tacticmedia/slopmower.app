@@ -25,6 +25,12 @@
     border-top: var(--borderWidth-thin) solid var(--borderColor-default);
 }
 
+.truncated {
+    margin: var(--base-size-8) 0 0;
+    color: var(--fgColor-muted);
+    font-size: var(--text-body-size-small);
+}
+
 .table tbody tr:hover {
     background-color: var(--bgColor-muted);
 }

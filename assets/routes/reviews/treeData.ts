@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from 'react-router';
 import { actionError } from '../../api/actionResult';
-import { apiGetAllPages, apiGetText } from '../../api/client';
+import { apiGet, apiGetText } from '../../api/client';
 import type { TreeListing } from '../../api/types/lists';
 import type { TreeEntry } from '../../api/types/tree-entry';
 import { encodedRouteParam } from '../encodedRouteParam';
@@ -15,9 +15,14 @@ export type DirectoryView = {
 
 const README = /^readme\.md$/i;
 
-/** The direct entries of a directory, every page. `""` is the root. */
+const PAGE_ENTRIES = 1000;
+
+/** The table and the tree show one page, as GitHub does, so a directory of many files loads and renders fast. */
+export const TRUNCATED_TEXT = `Showing the first ${new Intl.NumberFormat('en-US').format(PAGE_ENTRIES)} entries.`;
+
+/** The first page of the direct entries of a directory. `""` is the root. `nextCursor` is set when it has more. */
 export function listDirectory(encodedReviewId: string, dir: string, signal: AbortSignal): Promise<TreeListing> {
-    return apiGetAllPages<TreeListing>(`/api/v1/reviews/${encodedReviewId}/tree?dir=${encodeURIComponent(dir)}&limit=1000`, signal);
+    return apiGet<TreeListing>(`/api/v1/reviews/${encodedReviewId}/tree?dir=${encodeURIComponent(dir)}&limit=${PAGE_ENTRIES}`, signal);
 }
 
 /** V8 of a path. */

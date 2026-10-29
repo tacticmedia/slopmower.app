@@ -1,20 +1,22 @@
-import { CheckIcon, FileIcon, FileSubmoduleIcon, FileSymlinkFileIcon } from '@primer/octicons-react';
+import { CheckIcon, FileIcon, FileSubmoduleIcon, FileSymlinkFileIcon, InfoIcon } from '@primer/octicons-react';
 import { TreeView } from '@primer/react';
 import { type ComponentProps, useEffect, useState } from 'react';
 import { useFetcher, useNavigate } from 'react-router';
 import type { TreeEntry } from '../api/types/tree-entry';
-import { type TreeResult, treeHref } from '../routes/reviews/treeData';
+import { TRUNCATED_TEXT, type TreeResult, treeHref } from '../routes/reviews/treeData';
 import { directoryHref, fileHref } from './fileHref';
 
 type TreeProps = {
     reviewId: string;
     entries: TreeEntry[];
+    /** The listing has more entries than it shows. */
+    truncated: boolean;
     currentPath: string | null;
     /** The paths that the caller marked as viewed. */
     viewed: ReadonlySet<string>;
 };
 
-type EntryProps = Omit<TreeProps, 'entries'> & { entry: TreeEntry };
+type EntryProps = Omit<TreeProps, 'entries' | 'truncated'> & { entry: TreeEntry };
 
 /**
  * The tree at the review commit. Directories list their entries through V6 when they expand. The open file or
@@ -30,9 +32,21 @@ export function FileTree(props: TreeProps) {
     );
 }
 
-function Entries({ entries, ...props }: TreeProps) {
-    return entries.map((entry) =>
-        'directory' === entry.type ? <DirectoryItem key={entry.path} entry={entry} {...props} /> : <LeafItem key={entry.path} entry={entry} {...props} />,
+function Entries({ entries, truncated, ...props }: TreeProps) {
+    return (
+        <>
+            {entries.map((entry) =>
+                'directory' === entry.type ? <DirectoryItem key={entry.path} entry={entry} {...props} /> : <LeafItem key={entry.path} entry={entry} {...props} />,
+            )}
+            {truncated && (
+                <TreeView.Item id={itemId(`${entries[0]?.path ?? ''}#truncated`)} data-testid="tree-truncated">
+                    <TreeView.LeadingVisual>
+                        <InfoIcon />
+                    </TreeView.LeadingVisual>
+                    {TRUNCATED_TEXT}
+                </TreeView.Item>
+            )}
+        </>
     );
 }
 
@@ -76,7 +90,7 @@ function DirectoryItem({ entry, ...props }: EntryProps) {
                 <TreeView.DirectoryIcon />
             </TreeView.LeadingVisual>
             {entry.name}
-            <TreeView.SubTree state={subTreeState(state, data)}>{undefined !== data && 'items' in data && <Entries entries={data.items} {...props} />}</TreeView.SubTree>
+            <TreeView.SubTree state={subTreeState(state, data)}>{undefined !== data && 'items' in data && <Entries entries={data.items} truncated={null !== data.nextCursor} {...props} />}</TreeView.SubTree>
             {expanded && undefined !== data && 'error' in data && (
                 <TreeView.ErrorDialog onRetry={() => void load(href)} onDismiss={() => setExpanded(false)}>
                     {data.error}

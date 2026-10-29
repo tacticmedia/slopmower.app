@@ -9,7 +9,7 @@ import { formatSize } from '../../layout/byteSize';
 import { readmeUrl } from '../../review/readmeUrl';
 import styles from './DirectoryRoute.module.css';
 import type { ReviewData } from './reviewData';
-import type { DirectoryView } from './treeData';
+import { type DirectoryView, TRUNCATED_TEXT } from './treeData';
 
 const MarkdownBody = lazy(() => import('../../comments/MarkdownBody').then(({ MarkdownBody }) => ({ default: MarkdownBody })));
 
@@ -59,6 +59,11 @@ export function DirectoryRoute() {
                     ))}
                 </tbody>
             </table>
+            {null !== listing.nextCursor && (
+                <p className={styles.truncated} data-testid="directory-truncated">
+                    {TRUNCATED_TEXT}
+                </p>
+            )}
             {null !== readme && (
                 <section className={styles.readme} aria-label={readme.entry.name}>
                     <h2 className={styles.readmeTitle}>
