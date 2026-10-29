@@ -10,6 +10,7 @@ use App\Message\DeleteCloneJob;
 use App\Message\PruneRateLimiterCacheJob;
 use App\Message\PurgeFailedMessagesJob;
 use App\Message\PurgeTenantJob;
+use App\Message\QueueStalledIndexesJob;
 use App\Messenger\FailedMessageSql;
 use App\Schedule;
 use App\Tests\Support\Database\ResetDatabase;
@@ -111,25 +112,26 @@ final class RetentionJobsTest extends KernelTestCase
         self::assertSame([], static::getContainer()->get('monolog.handler.records')->getRecords());
     }
 
-    #[TestDox('The schedule runs both jobs once a day at 03:00 UTC')]
-    public function testScheduleRunsBothJobsDaily(): void
+    #[TestDox('The schedule runs the retention jobs once a day at 03:00 UTC, and the stalled index job every hour')]
+    public function testSchedule(): void
     {
         $schedule = static::getContainer()->get(Schedule::class)->getSchedule();
-        $jobs = [];
+        $runs = [];
 
         foreach ($schedule->getRecurringMessages() as $recurringMessage) {
             $trigger = $recurringMessage->getTrigger();
             $firstRun = $trigger->getNextRunDate(new \DateTimeImmutable()) ?? self::fail('No next run.');
-
-            self::assertSame('03:00:00 UTC', $firstRun->setTimezone(new \DateTimeZone('UTC'))->format('H:i:s T'));
-            self::assertEquals($firstRun->modify('+1 day'), $trigger->getNextRunDate($firstRun));
+            $secondRun = $trigger->getNextRunDate($firstRun) ?? self::fail('No second run.');
 
             foreach ($recurringMessage->getMessages(new MessageContext('default', $recurringMessage->getId(), $trigger, $firstRun)) as $job) {
-                $jobs[] = $job::class;
+                $runs[$job::class] = [$secondRun->getTimestamp() - $firstRun->getTimestamp(), $firstRun->setTimezone(new \DateTimeZone('UTC'))->format('H:i')];
             }
         }
 
-        self::assertEqualsCanonicalizing([PruneRateLimiterCacheJob::class, PurgeFailedMessagesJob::class], $jobs);
+        self::assertEqualsCanonicalizing([PruneRateLimiterCacheJob::class, PurgeFailedMessagesJob::class, QueueStalledIndexesJob::class], array_keys($runs));
+        self::assertSame([86400, '03:00'], $runs[PruneRateLimiterCacheJob::class]);
+        self::assertSame([86400, '03:00'], $runs[PurgeFailedMessagesJob::class]);
+        self::assertSame(3600, $runs[QueueStalledIndexesJob::class][0]);
     }
 
     /**
