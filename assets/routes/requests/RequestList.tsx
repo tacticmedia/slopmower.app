@@ -67,7 +67,11 @@ export function RequestList() {
             )}
             <div className={styles.box}>
                 <RequestListHeader byAwaiting={reviewData.review.counts.byAwaiting} drafts={commentable ? reviewData.drafts : null} />
-                {0 === items.length ? (
+                {0 === reviewData.review.counts.total ? (
+                    <p className={styles.empty} data-testid="request-list-empty">
+                        No requests yet. <HelpLink href={HELP.comment} />
+                    </p>
+                ) : 0 === items.length ? (
                     <p className={styles.empty} data-testid="request-list-empty">
                         No request matches these filters.{' '}
                         <Link as={RouterLink} to={{ search: '' }}>

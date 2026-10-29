@@ -157,6 +157,15 @@ test.describe('RequestListLayout', () => {
         }
     });
 
+    test('A review without requests says so and shows no filter link', async ({ page, api }) => {
+        const review = new FakeReview(api);
+
+        await page.goto(`/reviews/${review.id}/requests`);
+
+        await expect(page.locator('[data-testid="request-list-empty"]')).toContainText('No requests yet.');
+        await expect(page.getByRole('link', { name: 'Clear the filters', exact: true })).toHaveCount(0);
+    });
+
     test('The link of the empty list clears every filter and opens Open', async ({ page, api }) => {
         const review = new FakeReview(api);
         openAndClosed(review);
