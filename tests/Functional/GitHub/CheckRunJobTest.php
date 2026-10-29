@@ -310,6 +310,26 @@ final class CheckRunJobTest extends KernelTestCase
         self::assertSame(1, self::sentCheckRunJobs() - $jobsBefore);
     }
 
+    #[TestDox('A check run request older than 10 minutes counts as gone, so a job that never cleared it blocks no trigger')]
+    public function testExpiredRequestQueuesAgain(): void
+    {
+        $this->reviewOfClonedRepository();
+        $id = $this->storePullRequest()->getId();
+        $queue = self::getContainer()->get(QueueCheckRun::class);
+        $queue->request($id);
+        // The job fails before it clears the request, for example while it takes the lock.
+        $queue->request($id);
+        $whileRequested = self::sentCheckRunJobs();
+        Clock::get()->sleep(9 * 60);
+        $queue->request($id);
+        $afterNineMinutes = self::sentCheckRunJobs();
+        Clock::get()->sleep(2 * 60);
+
+        $queue->request($id);
+
+        self::assertSame([1, 1, 2], [$whileRequested, $afterNineMinutes, self::sentCheckRunJobs()]);
+    }
+
     /**
      * A tenant with installation 5551 and the clone of acme/billing, whose main has src/Invoice.php, and a review of it.
      *

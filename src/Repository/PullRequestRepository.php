@@ -40,18 +40,24 @@ final class PullRequestRepository extends ServiceEntityRepository
      *
      * @return bool Whether a job must be queued
      */
-    public function requestCheckRun(PullRequestId $id): bool
+    /**
+     * D96: a request older than $expiredBefore counts as gone, so a job that failed before it cleared the request, or
+     * that cannot be decoded, blocks no later trigger.
+     */
+    public function requestCheckRun(PullRequestId $id, \DateTimeImmutable $now, \DateTimeImmutable $expiredBefore): bool
     {
         return 1 === $this->update($id)
-            ->set('pullRequest.checkRunRequested', 'true')
-            ->andWhere('pullRequest.checkRunRequested = false')
+            ->set('pullRequest.checkRunRequestedAt', ':now')
+            ->andWhere('pullRequest.checkRunRequestedAt IS NULL OR pullRequest.checkRunRequestedAt < :expiredBefore')
+            ->setParameter('now', $now)
+            ->setParameter('expiredBefore', $expiredBefore)
             ->getQuery()
             ->execute();
     }
 
     public function clearCheckRunRequest(PullRequestId $id): void
     {
-        $this->update($id)->set('pullRequest.checkRunRequested', 'false')->getQuery()->execute();
+        $this->update($id)->set('pullRequest.checkRunRequestedAt', 'NULL')->getQuery()->execute();
     }
 
     /**

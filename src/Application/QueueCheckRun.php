@@ -18,6 +18,7 @@ use App\Message\CheckRunJob;
 use App\Repository\ChangeRequestRepository;
 use App\Repository\PullRequestRepository;
 use App\Repository\ReviewRepository;
+use Psr\Clock\ClockInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
@@ -30,6 +31,9 @@ final class QueueCheckRun
     /** Triggers during the delay reuse the queued job, so this is the debounce per pull request. */
     public const int DELAY_MILLISECONDS = 5000;
 
+    /** D96: a job that is still queued after this failed at least twice, and a second one runs after it under the record lock. */
+    private const string REQUEST_EXPIRY = '-10 minutes';
+
     private const array REQUEST_TRIGGERS = [EventType::RequestReadyForReview, EventType::RequestVerified, EventType::RequestReopened, EventType::RequestWontDo, EventType::RequestRetitled];
 
     public function __construct(
@@ -37,6 +41,7 @@ final class QueueCheckRun
         private readonly ChangeRequestRepository $requests,
         private readonly PullRequestRepository $pullRequests,
         private readonly MessageBusInterface $bus,
+        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -67,7 +72,9 @@ final class QueueCheckRun
      */
     public function request(PullRequestId $id): void
     {
-        if (!$this->pullRequests->requestCheckRun($id)) {
+        $now = $this->clock->now();
+
+        if (!$this->pullRequests->requestCheckRun($id, $now, $now->modify(self::REQUEST_EXPIRY))) {
             return;
         }
 

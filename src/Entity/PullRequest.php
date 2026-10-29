@@ -60,9 +60,9 @@ class PullRequest implements TenantOwned
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $githubUpdatedAt = null;
 
-    /** Set while a check run job is queued. */
-    #[ORM\Column(options: ['default' => false])]
-    private bool $checkRunRequested = false;
+    /** Set while a check run job is queued (D96). */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $checkRunRequestedAt = null;
 
     #[ORM\Column(type: Types::BIGINT, nullable: true)]
     private ?int $checkRunId = null;
