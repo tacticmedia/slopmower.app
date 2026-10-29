@@ -7,11 +7,12 @@ A host install runs the PHP processes behind nginx, the [Messenger worker](#mess
 Run at least one worker that consumes both transports, under a process manager that starts it again when it exits:
 
 ```bash
-bin/console messenger:consume async scheduler_default --time-limit=3600
+bin/console messenger:consume async scheduler_default --time-limit=3600 --keepalive
 ```
 
 - `async` runs the background jobs: clones and fetches, the symbol index, the GitHub webhook jobs, and deletions. A failed job is retried 5 times over about 2 h 50 min, then it goes to the queue `failed` (D89).
-- `scheduler_default` is the schedule `App\Schedule`. Each day at 03:00 UTC, it deletes the expired rows of `rate_limiter.cache` and the messages of the queue `failed` that are older than 30 days. The purge deletes in batches of 100, and logs one record at `error` per batch with the count, and the ID and the message class of each deleted message. Both jobs are idempotent, so several workers can consume the schedule.
+- `--keepalive` renews the delivery of a running job every 5 s, so a job that runs longer than `redeliver_timeout` (1 hour by default), for example the index of a large repository, is not delivered to a second worker. It needs the `pcntl` extension.
+- `scheduler_default` is the schedule `App\Schedule`. Each day at 03:00 UTC, it deletes the expired rows of `rate_limiter.cache` and the messages of the queue `failed` that are older than 30 days. Each hour, it queues the index job again for an open review whose index is still pending 1 hour after the start (D95). The purge deletes in batches of 100, and logs one record at `error` per batch with the count, and the ID and the message class of each deleted message. The jobs are idempotent, so several workers can consume the schedule.
 - The schedule keeps its last run in the cache pool `cache.app`, under `<APP_SHARE_DIR>/<environment>/pools/app`. A worker that starts at or after 03:00 UTC after a missed run runs it once. A worker that starts before 03:00 UTC waits for 03:00. Without that directory, a missed run waits for the next day.
 - The worker reads `scheduler_default` only when `async` is empty, so a backlog in `async` makes the daily run late.
 - A failed job is not retried, because `scheduler_default` has no retry strategy and no failure transport. Messenger logs the failure at `critical`, and the job runs again the next day.

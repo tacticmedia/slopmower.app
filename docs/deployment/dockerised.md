@@ -76,7 +76,7 @@ docker run --detach --name slopmower-web --network slopmower --restart unless-st
 ```sh
 docker run --detach --name slopmower-worker --network slopmower --restart unless-stopped --no-healthcheck --stop-timeout 610 --env-file prod.env \
     --volume slopmower-tenants:/srv/slopmower/tenants --volume slopmower-share:/app/var/share \
-    slopmower:<release> bin/console messenger:consume async scheduler_default --time-limit=3600 --memory-limit=96M
+    slopmower:<release> bin/console messenger:consume async scheduler_default --time-limit=3600 --memory-limit=96M --keepalive
 ```
 
 - [Messenger worker](manual.md#messenger-worker) describes both transports and the daily jobs.
