@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Application\AnchorFactory;
+use App\Application\DraftLock;
 use App\Application\Query\BatchSubmission;
 use App\Application\Query\RequestQuery;
 use App\Application\UsageLimits;
@@ -41,13 +42,13 @@ use App\Security\CurrentActor;
 use App\Security\Voter\DraftVoter;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\EntityNotFoundException;
 use Psr\Clock\ClockInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
-use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -63,6 +64,7 @@ final class DraftController extends AbstractController
         private readonly EntityManagerInterface $entityManager,
         private readonly CurrentActor $currentActor,
         private readonly ClockInterface $clock,
+        private readonly DraftLock $draftLock,
     ) {
     }
 
@@ -78,7 +80,6 @@ final class DraftController extends AbstractController
         #[MapRequestPayload(acceptFormat: 'json')] CreateDraftInput $input,
         AnchorFactory $anchors,
         ChangeRequestRepository $requests,
-        LockFactory $lockFactory,
     ): JsonResponse {
         \assert(null !== $input->body);
         $user = $this->currentActor->sessionUser();
@@ -90,23 +91,22 @@ final class DraftController extends AbstractController
         };
 
         // The count and the insert form one step, so two parallel requests cannot pass the limit.
-        $lock = $lockFactory->createLock("drafts:{$review->getId()}:{$user->getId()}", ttl: null);
-        $lock->acquire(true);
+        $this->draftLock->run($review->getId(), $user->getId(), function () use ($review, $user, $draft): void {
+            try {
+                if ($this->drafts->countOfUser($user->getId(), $review->getId()) >= Draft::MAX_PER_USER_AND_REVIEW) {
+                    throw InvalidInput::field('', 'A user has at most 500 drafts per review. Submit or delete some first.');
+                }
 
-        try {
-            if ($this->drafts->countOfUser($user->getId(), $review->getId()) >= Draft::MAX_PER_USER_AND_REVIEW) {
-                throw InvalidInput::field('', 'A user has at most 500 drafts per review. Submit or delete some first.');
+                // A close that committed during the wait for the lock.
+                $this->entityManager->refresh($review);
+                $review->assertOpen();
+                $this->entityManager->persist($draft);
+                $this->entityManager->flush();
+            } catch (ForeignKeyConstraintViolationException|EntityNotFoundException) {
+                // A delete of the review, the request, or the user committed after the read.
+                throw new NotFound();
             }
-
-            $review->assertOpen();
-            $this->entityManager->persist($draft);
-            $this->entityManager->flush();
-        } catch (ForeignKeyConstraintViolationException) {
-            // A delete of the review, the request, or the user committed after the read.
-            throw new NotFound();
-        } finally {
-            $lock->release();
-        }
+        });
 
         return $this->json($draft, Response::HTTP_CREATED, ['Location' => $this->generateUrl('api_draft_update', ['draftId' => $draft->getId()])]);
     }
@@ -116,10 +116,13 @@ final class DraftController extends AbstractController
     public function update(#[MapEntity(id: 'draftId')] Draft $draft, #[MapRequestPayload(acceptFormat: 'json')] UpdateDraftInput $input): JsonResponse
     {
         \assert(null !== $input->body);
-        // The edit refuses title and requireApproval on a reply, and invalid_input comes before review_closed.
-        $draft->edit($input->title, $input->body, $input->requireApproval, $this->clock->now());
-        $draft->getReview()->assertOpen();
-        $this->entityManager->flush();
+        $this->inLock($draft, function (Draft $draft) use ($input): void {
+            // The edit refuses title and requireApproval on a reply, and invalid_input comes before review_closed.
+            $draft->edit($input->title, $input->body, $input->requireApproval, $this->clock->now());
+            $this->entityManager->refresh($draft->getReview());
+            $draft->getReview()->assertOpen();
+            $this->entityManager->flush();
+        });
 
         return $this->json($draft);
     }
@@ -131,10 +134,32 @@ final class DraftController extends AbstractController
     #[IsGranted(DraftVoter::OWN, subject: 'draft', statusCode: Response::HTTP_NOT_FOUND)]
     public function delete(#[MapEntity(id: 'draftId')] Draft $draft): Response
     {
-        $this->entityManager->remove($draft);
-        $this->entityManager->flush();
+        $this->inLock($draft, function (Draft $draft): void {
+            $this->entityManager->remove($draft);
+            $this->entityManager->flush();
+        });
 
         return new Response(status: Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * A submit that held the lock deleted the draft, so the work reads it again first.
+     *
+     * @param \Closure(Draft): void $work
+     *
+     * @throws NotFound
+     */
+    private function inLock(Draft $draft, \Closure $work): void
+    {
+        $this->draftLock->run($draft->getReview()->getId(), $draft->getUser()->getId(), function () use ($draft, $work): void {
+            try {
+                $this->entityManager->refresh($draft);
+            } catch (EntityNotFoundException) {
+                throw new NotFound();
+            }
+
+            $work($draft);
+        });
     }
 
     /**
@@ -157,7 +182,7 @@ final class DraftController extends AbstractController
         /** @var list<Draft> $drafts */
         $drafts = [];
 
-        $events = $executor->execute(
+        $events = $this->draftLock->run($review->getId(), $this->currentActor->sessionUser()->getId(), fn (): array => $executor->execute(
             $review->getId(),
             $actor,
             function () use ($review, $reviews, $requests, $links, $usageLimits, $batchId, $input, $actor, &$drafts): array {
@@ -179,7 +204,7 @@ final class DraftController extends AbstractController
                     $this->entityManager->remove($draft);
                 }
             },
-        );
+        ));
         $submitted = array_last($events);
         $batch = $submitted?->event;
 

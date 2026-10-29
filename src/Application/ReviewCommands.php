@@ -56,6 +56,7 @@ final class ReviewCommands
         private readonly RepositoryRepository $repositories,
         private readonly ReviewRepository $reviews,
         private readonly DraftRepository $drafts,
+        private readonly DraftLock $draftLock,
         private readonly FetchRepository $fetchRepository,
         private readonly RateLimits $rateLimits,
         private readonly UsageLimits $usageLimits,
@@ -155,7 +156,8 @@ final class ReviewCommands
     }
 
     /**
-     * Deletes the drafts of the closing user in the review, in the transaction of review.closed.
+     * Deletes the drafts of the closing user in the review, in the transaction of review.closed, under the
+     * {@see DraftLock}, so no draft is created or edited meanwhile.
      *
      * @return list<RecordedEvent>
      *
@@ -164,7 +166,9 @@ final class ReviewCommands
      */
     public function close(ReviewId $reviewId, CloseReview $command, Actor $actor): array
     {
-        return $this->executor->execute(
+        $userId = $actor->userId ?? throw new \LogicException('Only a user closes a review.');
+
+        return $this->draftLock->run($reviewId, $userId, fn (): array => $this->executor->execute(
             $reviewId,
             $actor,
             function () use ($reviewId, $command, $actor): array {
@@ -172,10 +176,10 @@ final class ReviewCommands
 
                 return ReviewDecider::decide($command, $review->toSnapshot(), $actor);
             },
-            function () use ($reviewId, $actor): void {
-                $this->drafts->deleteOfUser($actor->userId ?? throw new \LogicException('Only a user closes a review.'), $reviewId);
+            function () use ($reviewId, $userId): void {
+                $this->drafts->deleteOfUser($userId, $reviewId);
             },
-        );
+        ));
     }
 
     /**
