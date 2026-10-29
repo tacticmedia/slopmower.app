@@ -183,17 +183,40 @@ describe('UseLiveRevalidationTest', () => {
         expect(revalidate).not.toHaveBeenCalled();
     });
 
+    it('The first open reads the events after lastSeq, and revalidates only when it found any', async () => {
+        positions.seen(REVIEW, 1800);
+        readUpdates.mockResolvedValueOnce(page(1800, false)).mockResolvedValueOnce(page(1801, false));
+        const source = await watching(REVIEW);
+
+        source.open();
+        await settle();
+        expect(revalidate).not.toHaveBeenCalled();
+
+        subscription.watch(OTHER_REVIEW);
+        subscription.watch(REVIEW);
+        await settle();
+        sources.at(-1)?.open();
+        await settle();
+        expect(readUpdates.mock.calls).toEqual([
+            [REVIEW, 1800],
+            [REVIEW, 1800],
+        ]);
+        expect(revalidate).toHaveBeenCalledTimes(1);
+    });
+
     it('After a reconnect, the hook reads updates from lastSeq until hasMore is false', async () => {
         positions.seen(REVIEW, 1800);
-        readUpdates.mockResolvedValueOnce(page(1825, true)).mockResolvedValueOnce(page(1850, false));
+        readUpdates.mockResolvedValueOnce(page(1800, false)).mockResolvedValueOnce(page(1825, true)).mockResolvedValueOnce(page(1850, false));
         const source = await watching(REVIEW);
         source.open();
+        await settle();
 
         source.drop();
         source.open();
         await settle();
 
         expect(readUpdates.mock.calls).toEqual([
+            [REVIEW, 1800],
             [REVIEW, 1800],
             [REVIEW, 1825],
         ]);
@@ -205,9 +228,10 @@ describe('UseLiveRevalidationTest', () => {
 
     it('A failed read of the missed events causes no revalidation, and the next reconnect catches up', async () => {
         positions.seen(REVIEW, 1800);
-        readUpdates.mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValueOnce(page(1850, false));
+        readUpdates.mockResolvedValueOnce(page(1800, false)).mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValueOnce(page(1850, false));
         const source = await watching(REVIEW);
         source.open();
+        await settle();
 
         source.drop();
         source.open();
@@ -218,6 +242,7 @@ describe('UseLiveRevalidationTest', () => {
         source.open();
         await settle();
         expect(readUpdates.mock.calls).toEqual([
+            [REVIEW, 1800],
             [REVIEW, 1800],
             [REVIEW, 1800],
         ]);

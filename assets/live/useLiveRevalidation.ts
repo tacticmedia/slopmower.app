@@ -195,6 +195,26 @@ export class LiveSubscription {
         if (this.#reconnecting) {
             this.#reconnecting = false;
             void this.catchUp();
+        } else {
+            void this.#catchUpFirstOpen();
+        }
+    }
+
+    /**
+     * The hub does not replay an event between the loader read and the first open, so the first open reads the events
+     * after `lastSeq` too. It revalidates only when it found any.
+     */
+    async #catchUpFirstOpen(): Promise<void> {
+        const reviewId = this.#reviewId;
+        const before = null === reviewId ? undefined : this.#positions.last(reviewId);
+        try {
+            await this.#readMissedEvents();
+        } catch {
+            return;
+        }
+
+        if (null !== reviewId && before !== this.#positions.last(reviewId)) {
+            this.#requestRevalidation(null);
         }
     }
 

@@ -508,6 +508,10 @@ export class FakeReview {
 
         api.on('GET', base, ours(() => json('review.schema.json', this.#presentReview())));
         api.on('GET', `${base}/drafts`, ours(() => json('lists.schema.json#/$defs/DraftList', { reviewId: this.id, items: this.drafts })));
+        // The catch-up of a live connection: the events stay out, and the cursor says whether there were any.
+        api.on('GET', `${base}/updates`, ours(({ query }) =>
+            json('updates-page.schema.json', { reviewId: this.id, reviewState: this.review.state, cursor: Math.max(Number(query.get('cursor') ?? 0), this.#seq), hasMore: false, awaitingTotal: 0, requests: [], reviewEvents: [] }),
+        ));
         api.on('GET', `${base}/viewed-files`, ours(() => this.#viewedFiles()));
         api.on('PUT', `${base}/viewed-files`, ours(({ body }) => {
             const closed = this.#closedError();
