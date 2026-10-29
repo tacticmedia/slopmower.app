@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\ReviewId;
+use App\Domain\Review\IndexState;
 use App\Domain\Review\ReviewState;
 use App\Entity\Review;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -33,6 +34,24 @@ final class ReviewRepository extends ServiceEntityRepository
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
             ->getOneOrNullResult();
+    }
+
+    /**
+     * Of every tenant, inside {@see \App\Tenancy\TenantFilter::suspend()}.
+     *
+     * @return list<Review>
+     */
+    public function findOpenWithIndexPendingSince(\DateTimeImmutable $createdBefore): array
+    {
+        return $this->createQueryBuilder('review')
+            ->where('review.state = :open')
+            ->andWhere('review.indexState = :pending')
+            ->andWhere('review.createdAt < :createdBefore')
+            ->setParameter('open', ReviewState::Open)
+            ->setParameter('pending', IndexState::Pending)
+            ->setParameter('createdBefore', $createdBefore)
+            ->getQuery()
+            ->getResult();
     }
 
     /**
