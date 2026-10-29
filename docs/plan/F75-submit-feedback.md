@@ -11,7 +11,7 @@ Workflow, conventions, and status: [feature track](features.md). Requested by Ja
 
 ## Facts
 
-Verified on 2026-10-20:
+Verified on 2026-10-20, and again on 2026-10-29 after F89 to F91 and F74. The line numbers are those of 2026-10-20. The work of the abandoned worktree branch `f75-submit-feedback` (`4be0634`, 2026-10-20) is not merged; this run starts again from `main`.
 
 - **New comments:**
   - A new comment in the code view (`FileRoute.tsx:296-315` with `CommentBox`, submit in `useFileComments.ts:88-111`) offers two buttons:
