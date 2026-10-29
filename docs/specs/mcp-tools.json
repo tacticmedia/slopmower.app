@@ -1,6 +1,211 @@
 {
     "tools": [
         {
+            "name": "claim_request",
+            "title": "Claim request",
+            "description": "Claim an open or reopened request before you edit code for it. Status becomes in_progress. Claiming a request that you already hold succeeds and changes nothing. Fails with invalid_transition when the status does not allow it or another agent holds it: then take the next request.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Request ID",
+                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                    }
+                },
+                "required": [
+                    "id"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            },
+            "outputSchema": "request-command-result.schema.json"
+        },
+        {
+            "name": "get_request",
+            "title": "Get request",
+            "description": "Return one request in full: title, body, thread, anchor with a code snapshot at the review commit, linked commits, location, and the actions you may take now (allowedActions). `at` locates the anchor at another commit that the server's clone has (pushed, or committed in a local repository); by default the location is at the default-branch head. Your working tree can differ: find the code with anchor.snapshot, its before and after lines, and anchor.symbol.fqn. A general request has anchor, location, and excerpt null. It belongs to the whole review, and its body and thread say what to change. A request with title null has no title: give it one with set_request_title before you claim it.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Request ID",
+                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                    },
+                    "at": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "Commit SHA (7-64 hex digits) to locate the anchor at",
+                        "default": null,
+                        "pattern": "^[0-9a-f]{7,64}$"
+                    },
+                    "context": {
+                        "type": [
+                            "null",
+                            "integer"
+                        ],
+                        "description": "Lines of context around the located code to include as excerpt",
+                        "default": null,
+                        "minimum": 0,
+                        "maximum": 50
+                    }
+                },
+                "required": [
+                    "id"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": true,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            },
+            "outputSchema": "request.schema.json"
+        },
+        {
+            "name": "get_updates",
+            "title": "Get updates",
+            "description": "Return what changed in one review since `cursor`, grouped by request, leaving out your own actions. Without a cursor, return every request that waits for you with its unseen events. Always keep the returned cursor for the next call; if hasMore is true, call again at once. reviewState 'closed' means stop.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "review": {
+                        "type": "string",
+                        "description": "Review ID from list_reviews",
+                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                    },
+                    "cursor": {
+                        "type": [
+                            "null",
+                            "integer"
+                        ],
+                        "description": "The cursor from the previous call. Null returns everything that waits for you.",
+                        "default": null,
+                        "minimum": 0
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum events (with a cursor) or requests (without one)",
+                        "default": 100,
+                        "minimum": 1,
+                        "maximum": 500
+                    }
+                },
+                "required": [
+                    "review"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": true,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            },
+            "outputSchema": "updates-page.schema.json"
+        },
+        {
+            "name": "link_commits",
+            "title": "Link commits",
+            "description": "Record that a commit implements one or more requests that you hold (status in_progress). Use the full SHA from `git rev-parse HEAD`. The commit may be unpushed: the link stays pending until the server's clone has it. Linking does not finish a request.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "commitSha": {
+                        "type": "string",
+                        "description": "Full commit SHA",
+                        "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+                    },
+                    "requestIds": {
+                        "type": "array",
+                        "description": "Every request that this commit covers, all from one review",
+                        "items": {
+                            "type": "string",
+                            "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                        },
+                        "minItems": 1,
+                        "maxItems": 50,
+                        "uniqueItems": true
+                    },
+                    "note": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "Optional note shown with the link",
+                        "default": null,
+                        "maxLength": 65536,
+                        "pattern": "^[^\\x00]*$"
+                    }
+                },
+                "required": [
+                    "commitSha",
+                    "requestIds"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            },
+            "outputSchema": "link-commits-result.schema.json"
+        },
+        {
+            "name": "link_pull_request",
+            "title": "Link pull request",
+            "description": "Record that a pull request implements one or more requests: each one in_progress and held by you, or ready_for_review. For a GitHub repository the URL is https://github.com/{owner}/{name}/pull/{number} of the reviewed repository. Linking does not change the status. Open a pull request only when the user or the repository's instructions ask for it.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "Pull request URL",
+                        "maxLength": 2048,
+                        "pattern": "^https://[^\\s\\x00]+$"
+                    },
+                    "requestIds": {
+                        "type": "array",
+                        "description": "Every request that this pull request covers, all from one review",
+                        "items": {
+                            "type": "string",
+                            "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                        },
+                        "minItems": 1,
+                        "maxItems": 50,
+                        "uniqueItems": true
+                    },
+                    "note": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "Optional note shown with the link",
+                        "default": null,
+                        "maxLength": 65536,
+                        "pattern": "^[^\\x00]*$"
+                    }
+                },
+                "required": [
+                    "url",
+                    "requestIds"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            },
+            "outputSchema": "link-pull-request-result.schema.json"
+        },
+        {
             "name": "list_repositories",
             "title": "List repositories",
             "description": "List the repositories that this token can see: id, source (github or local), name, default branch, and number of open reviews. Use the name or id as `repository` in list_reviews.",
@@ -31,55 +236,8 @@
                 "destructiveHint": false,
                 "idempotentHint": true,
                 "openWorldHint": false
-            }
-        },
-        {
-            "name": "list_reviews",
-            "title": "List reviews",
-            "description": "List the reviews of one repository, newest first. Only open reviews unless includeClosed is true. Each review is pinned to one commit and holds its own requests; pass its id as `review` to get_updates and list_requests.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "repository": {
-                        "type": "string",
-                        "description": "Repository ID, GitHub owner/name, or local directory name",
-                        "minLength": 1,
-                        "maxLength": 255,
-                        "pattern": "^[^\\x00]*$"
-                    },
-                    "includeClosed": {
-                        "type": "boolean",
-                        "description": "Also list closed reviews",
-                        "default": false
-                    },
-                    "cursor": {
-                        "type": [
-                            "null",
-                            "string"
-                        ],
-                        "description": "nextCursor of the previous page",
-                        "default": null,
-                        "minLength": 1,
-                        "pattern": "^[^\\x00]*$"
-                    },
-                    "limit": {
-                        "type": "integer",
-                        "description": "Page size",
-                        "default": 50,
-                        "minimum": 1,
-                        "maximum": 100
-                    }
-                },
-                "required": [
-                    "repository"
-                ]
             },
-            "annotations": {
-                "readOnlyHint": true,
-                "destructiveHint": false,
-                "idempotentHint": true,
-                "openWorldHint": false
-            }
+            "outputSchema": "lists.schema.json#/$defs/RepositoryPage"
         },
         {
             "name": "list_requests",
@@ -184,39 +342,48 @@
                 "destructiveHint": false,
                 "idempotentHint": true,
                 "openWorldHint": false
-            }
+            },
+            "outputSchema": "lists.schema.json#/$defs/RequestPage"
         },
         {
-            "name": "get_updates",
-            "title": "Get updates",
-            "description": "Return what changed in one review since `cursor`, grouped by request, leaving out your own actions. Without a cursor, return every request that waits for you with its unseen events. Always keep the returned cursor for the next call; if hasMore is true, call again at once. reviewState 'closed' means stop.",
+            "name": "list_reviews",
+            "title": "List reviews",
+            "description": "List the reviews of one repository, newest first. Only open reviews unless includeClosed is true. Each review is pinned to one commit and holds its own requests; pass its id as `review` to get_updates and list_requests.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "review": {
+                    "repository": {
                         "type": "string",
-                        "description": "Review ID from list_reviews",
-                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                        "description": "Repository ID, GitHub owner/name, or local directory name",
+                        "minLength": 1,
+                        "maxLength": 255,
+                        "pattern": "^[^\\x00]*$"
+                    },
+                    "includeClosed": {
+                        "type": "boolean",
+                        "description": "Also list closed reviews",
+                        "default": false
                     },
                     "cursor": {
                         "type": [
                             "null",
-                            "integer"
+                            "string"
                         ],
-                        "description": "The cursor from the previous call. Null returns everything that waits for you.",
+                        "description": "nextCursor of the previous page",
                         "default": null,
-                        "minimum": 0
+                        "minLength": 1,
+                        "pattern": "^[^\\x00]*$"
                     },
                     "limit": {
                         "type": "integer",
-                        "description": "Maximum events (with a cursor) or requests (without one)",
-                        "default": 100,
+                        "description": "Page size",
+                        "default": 50,
                         "minimum": 1,
-                        "maximum": 500
+                        "maximum": 100
                     }
                 },
                 "required": [
-                    "review"
+                    "repository"
                 ]
             },
             "annotations": {
@@ -224,221 +391,8 @@
                 "destructiveHint": false,
                 "idempotentHint": true,
                 "openWorldHint": false
-            }
-        },
-        {
-            "name": "get_request",
-            "title": "Get request",
-            "description": "Return one request in full: title, body, thread, anchor with a code snapshot at the review commit, linked commits, location, and the actions you may take now (allowedActions). `at` locates the anchor at another commit that the server's clone has (pushed, or committed in a local repository); by default the location is at the default-branch head. Your working tree can differ: find the code with anchor.snapshot, its before and after lines, and anchor.symbol.fqn. A general request has anchor, location, and excerpt null. It belongs to the whole review, and its body and thread say what to change. A request with title null has no title: give it one with set_request_title before you claim it.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "description": "Request ID",
-                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
-                    },
-                    "at": {
-                        "type": [
-                            "null",
-                            "string"
-                        ],
-                        "description": "Commit SHA (7-64 hex digits) to locate the anchor at",
-                        "default": null,
-                        "pattern": "^[0-9a-f]{7,64}$"
-                    },
-                    "context": {
-                        "type": [
-                            "null",
-                            "integer"
-                        ],
-                        "description": "Lines of context around the located code to include as excerpt",
-                        "default": null,
-                        "minimum": 0,
-                        "maximum": 50
-                    }
-                },
-                "required": [
-                    "id"
-                ]
             },
-            "annotations": {
-                "readOnlyHint": true,
-                "destructiveHint": false,
-                "idempotentHint": true,
-                "openWorldHint": false
-            }
-        },
-        {
-            "name": "claim_request",
-            "title": "Claim request",
-            "description": "Claim an open or reopened request before you edit code for it. Status becomes in_progress. Claiming a request that you already hold succeeds and changes nothing. Fails with invalid_transition when the status does not allow it or another agent holds it: then take the next request.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "description": "Request ID",
-                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
-                    }
-                },
-                "required": [
-                    "id"
-                ]
-            },
-            "annotations": {
-                "readOnlyHint": false,
-                "destructiveHint": false,
-                "idempotentHint": true,
-                "openWorldHint": false
-            }
-        },
-        {
-            "name": "release_request",
-            "title": "Release request",
-            "description": "Give back a request that you claimed but will not finish. Its status returns to what it was before the claim (open or reopened).",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "description": "Request ID",
-                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
-                    },
-                    "note": {
-                        "type": [
-                            "null",
-                            "string"
-                        ],
-                        "description": "Why you stop, for the user",
-                        "default": null,
-                        "maxLength": 65536,
-                        "pattern": "^[^\\x00]*$"
-                    }
-                },
-                "required": [
-                    "id"
-                ]
-            },
-            "annotations": {
-                "readOnlyHint": false,
-                "destructiveHint": false,
-                "idempotentHint": false,
-                "openWorldHint": false
-            }
-        },
-        {
-            "name": "reply_to_request",
-            "title": "Reply to request",
-            "description": "Add a comment to a request's thread, in any status. Set question to true when you need the user's answer; the request then waits for the user and comes back through get_updates when they reply.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "description": "Request ID",
-                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
-                    },
-                    "body": {
-                        "type": "string",
-                        "description": "Markdown comment",
-                        "minLength": 1,
-                        "maxLength": 65536,
-                        "pattern": "^[^\\x00]*$"
-                    },
-                    "question": {
-                        "type": "boolean",
-                        "description": "True when you need an answer from the user",
-                        "default": false
-                    }
-                },
-                "required": [
-                    "id",
-                    "body"
-                ]
-            },
-            "annotations": {
-                "readOnlyHint": false,
-                "destructiveHint": false,
-                "idempotentHint": false,
-                "openWorldHint": false
-            }
-        },
-        {
-            "name": "link_commits",
-            "title": "Link commits",
-            "description": "Record that a commit implements one or more requests that you hold (status in_progress). Use the full SHA from `git rev-parse HEAD`. The commit may be unpushed: the link stays pending until the server's clone has it. Linking does not finish a request.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "commitSha": {
-                        "type": "string",
-                        "description": "Full commit SHA",
-                        "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
-                    },
-                    "requestIds": {
-                        "type": "array",
-                        "description": "Every request that this commit covers, all from one review",
-                        "items": {
-                            "type": "string",
-                            "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
-                        },
-                        "minItems": 1,
-                        "maxItems": 50,
-                        "uniqueItems": true
-                    },
-                    "note": {
-                        "type": [
-                            "null",
-                            "string"
-                        ],
-                        "description": "Optional note shown with the link",
-                        "default": null,
-                        "maxLength": 65536,
-                        "pattern": "^[^\\x00]*$"
-                    }
-                },
-                "required": [
-                    "commitSha",
-                    "requestIds"
-                ]
-            },
-            "annotations": {
-                "readOnlyHint": false,
-                "destructiveHint": false,
-                "idempotentHint": true,
-                "openWorldHint": false
-            }
-        },
-        {
-            "name": "unlink_commit",
-            "title": "Unlink commit",
-            "description": "Remove a commit link that you made by mistake from a request that you hold.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "commitSha": {
-                        "type": "string",
-                        "description": "Full commit SHA",
-                        "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
-                    },
-                    "requestId": {
-                        "type": "string",
-                        "description": "Request ID",
-                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
-                    }
-                },
-                "required": [
-                    "commitSha",
-                    "requestId"
-                ]
-            },
-            "annotations": {
-                "readOnlyHint": false,
-                "destructiveHint": false,
-                "idempotentHint": false,
-                "openWorldHint": false
-            }
+            "outputSchema": "lists.schema.json#/$defs/ReviewPage"
         },
         {
             "name": "mark_ready_for_review",
@@ -470,7 +424,8 @@
                 "destructiveHint": false,
                 "idempotentHint": false,
                 "openWorldHint": false
-            }
+            },
+            "outputSchema": "request-command-result.schema.json"
         },
         {
             "name": "mark_wont_do",
@@ -502,7 +457,8 @@
                 "destructiveHint": false,
                 "idempotentHint": false,
                 "openWorldHint": false
-            }
+            },
+            "outputSchema": "request-command-result.schema.json"
         },
         {
             "name": "propose_solution",
@@ -545,77 +501,34 @@
                 "destructiveHint": false,
                 "idempotentHint": false,
                 "openWorldHint": false
-            }
+            },
+            "outputSchema": "request-command-result.schema.json"
         },
         {
-            "name": "link_pull_request",
-            "title": "Link pull request",
-            "description": "Record that a pull request implements one or more requests: each one in_progress and held by you, or ready_for_review. For a GitHub repository the URL is https://github.com/{owner}/{name}/pull/{number} of the reviewed repository. Linking does not change the status. Open a pull request only when the user or the repository's instructions ask for it.",
+            "name": "release_request",
+            "title": "Release request",
+            "description": "Give back a request that you claimed but will not finish. Its status returns to what it was before the claim (open or reopened).",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "url": {
+                    "id": {
                         "type": "string",
-                        "description": "Pull request URL",
-                        "maxLength": 2048,
-                        "pattern": "^https://[^\\s\\x00]+$"
-                    },
-                    "requestIds": {
-                        "type": "array",
-                        "description": "Every request that this pull request covers, all from one review",
-                        "items": {
-                            "type": "string",
-                            "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
-                        },
-                        "minItems": 1,
-                        "maxItems": 50,
-                        "uniqueItems": true
+                        "description": "Request ID",
+                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
                     },
                     "note": {
                         "type": [
                             "null",
                             "string"
                         ],
-                        "description": "Optional note shown with the link",
+                        "description": "Why you stop, for the user",
                         "default": null,
                         "maxLength": 65536,
                         "pattern": "^[^\\x00]*$"
                     }
                 },
                 "required": [
-                    "url",
-                    "requestIds"
-                ]
-            },
-            "annotations": {
-                "readOnlyHint": false,
-                "destructiveHint": false,
-                "idempotentHint": true,
-                "openWorldHint": false
-            }
-        },
-        {
-            "name": "unlink_pull_request",
-            "title": "Unlink pull request",
-            "description": "Remove a pull request link that you made by mistake from a request: in_progress and held by you, or ready_for_review.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "url": {
-                        "type": "string",
-                        "description": "Pull request URL",
-                        "maxLength": 2048,
-                        "pattern": "^https://[^\\s\\x00]+$"
-                    },
-                    "requestId": {
-                        "type": "string",
-                        "description": "Request ID",
-                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
-                    }
-                },
-                "required": [
-                    "url",
-                    "requestId"
+                    "id"
                 ]
             },
             "annotations": {
@@ -623,7 +536,79 @@
                 "destructiveHint": false,
                 "idempotentHint": false,
                 "openWorldHint": false
-            }
+            },
+            "outputSchema": "request-command-result.schema.json"
+        },
+        {
+            "name": "reply_to_request",
+            "title": "Reply to request",
+            "description": "Add a comment to a request's thread, in any status. Set question to true when you need the user's answer; the request then waits for the user and comes back through get_updates when they reply.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Request ID",
+                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                    },
+                    "body": {
+                        "type": "string",
+                        "description": "Markdown comment",
+                        "minLength": 1,
+                        "maxLength": 65536,
+                        "pattern": "^[^\\x00]*$"
+                    },
+                    "question": {
+                        "type": "boolean",
+                        "description": "True when you need an answer from the user",
+                        "default": false
+                    }
+                },
+                "required": [
+                    "id",
+                    "body"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": false
+            },
+            "outputSchema": "request-command-result.schema.json"
+        },
+        {
+            "name": "set_request_title",
+            "title": "Set request title",
+            "description": "Set the title of a request whose title is null: one line of at most 80 characters that summarizes its body. Call it before you claim such a request. Fails with invalid_transition when the request has a title; only the user changes a title.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Request ID",
+                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "One line of at most 80 characters that summarizes the body",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "pattern": "^[^\\x00]*$"
+                    }
+                },
+                "required": [
+                    "id",
+                    "title"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": false
+            },
+            "outputSchema": "request-command-result.schema.json"
         },
         {
             "name": "start_review",
@@ -671,7 +656,8 @@
                 "destructiveHint": false,
                 "idempotentHint": false,
                 "openWorldHint": false
-            }
+            },
+            "outputSchema": "review.schema.json"
         },
         {
             "name": "suggest_request",
@@ -766,31 +752,30 @@
                 "destructiveHint": false,
                 "idempotentHint": false,
                 "openWorldHint": false
-            }
+            },
+            "outputSchema": "request-command-result.schema.json"
         },
         {
-            "name": "set_request_title",
-            "title": "Set request title",
-            "description": "Set the title of a request whose title is null: one line of at most 80 characters that summarizes its body. Call it before you claim such a request. Fails with invalid_transition when the request has a title; only the user changes a title.",
+            "name": "unlink_commit",
+            "title": "Unlink commit",
+            "description": "Remove a commit link that you made by mistake from a request that you hold.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "id": {
+                    "commitSha": {
+                        "type": "string",
+                        "description": "Full commit SHA",
+                        "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+                    },
+                    "requestId": {
                         "type": "string",
                         "description": "Request ID",
                         "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
-                    },
-                    "title": {
-                        "type": "string",
-                        "description": "One line of at most 80 characters that summarizes the body",
-                        "minLength": 1,
-                        "maxLength": 200,
-                        "pattern": "^[^\\x00]*$"
                     }
                 },
                 "required": [
-                    "id",
-                    "title"
+                    "commitSha",
+                    "requestId"
                 ]
             },
             "annotations": {
@@ -798,7 +783,40 @@
                 "destructiveHint": false,
                 "idempotentHint": false,
                 "openWorldHint": false
-            }
+            },
+            "outputSchema": "request-command-result.schema.json"
+        },
+        {
+            "name": "unlink_pull_request",
+            "title": "Unlink pull request",
+            "description": "Remove a pull request link that you made by mistake from a request: in_progress and held by you, or ready_for_review.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "Pull request URL",
+                        "maxLength": 2048,
+                        "pattern": "^https://[^\\s\\x00]+$"
+                    },
+                    "requestId": {
+                        "type": "string",
+                        "description": "Request ID",
+                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                    }
+                },
+                "required": [
+                    "url",
+                    "requestId"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": false
+            },
+            "outputSchema": "request-command-result.schema.json"
         }
     ]
 }

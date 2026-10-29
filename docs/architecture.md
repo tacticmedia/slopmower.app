@@ -614,28 +614,9 @@ Error codes for all adapters. The body is `{"error": {"code", "message", "detail
 {"mcpServers": {"slopmower": {"type": "http", "url": "https://<host>/_mcp", "headers": {"Authorization": "Bearer ${SLOPMOWER_TOKEN}"}}}}
 ```
 
-| Tool | Input | Annotations |
-|---|---|---|
-| `list_repositories` | `cursor?`, `limit?` | readOnly, idempotent |
-| `list_reviews` | `repository` (ID, GitHub `owner/name`, or local directory name), `includeClosed?`, `cursor?`, `limit?` | readOnly, idempotent |
-| `list_requests` | `review`, `status?`, `awaiting?`, `path?`, `outdated?`, `suggestion?`, `cursor?`, `limit?` | readOnly, idempotent |
-| `get_updates` | `review`, `cursor?`, `limit?` | readOnly, idempotent |
-| `get_request` | `id`, `at?` (commit SHA, 7 to 64 hex digits), `context?` | readOnly, idempotent |
-| `claim_request` | `id` | idempotent |
-| `release_request` | `id`, `note?` | |
-| `reply_to_request` | `id`, `body`, `question?` | |
-| `link_commits` | `commitSha` (full SHA), `requestIds` (1 to 50, one review), `note?` | idempotent |
-| `unlink_commit` | `commitSha` (full SHA), `requestId` | |
-| `mark_ready_for_review` | `id`, `note` | |
-| `mark_wont_do` | `id`, `reason` with `minLength: 20` | |
-| `propose_solution` | `id`, `plan`, `diff?` (unified diff, at most 9 files) | |
-| `link_pull_request` | `url` (`https`), `requestIds` (1 to 50, one review), `note?` | idempotent |
-| `unlink_pull_request` | `url` (`https`), `requestId` | |
-| `start_review` | `repository`, `ref?`, `title?` | |
-| `suggest_request` | `review`, `title`, `body`, `anchorKind?`, `path?`, `startLine?`, `endLine?`, `symbol?` (the flat fields of an anchor; none for a general suggestion) | |
-| `set_request_title` | `id`, `title`, only while the request has no title | |
+The 18 tools, their inputs, and their annotations are in [specs/mcp.md](specs/mcp.md#4-tools) and [specs/mcp-tools.json](specs/mcp-tools.json).
 
-All tools set `destructiveHint: false` and `openWorldHint: false`. Parameters are scalars, backed enums, and arrays of scalars, because the SDK does not support object parameters. Array parameters declare `items` through `#[Schema]`. A domain error becomes a `ToolCallException` with the Error JSON as text, so the result has `isError: true` and no `structuredContent`. Every other exception becomes `internal_error`. Input-schema violations give JSON-RPC error -32602 before the tool runs. `unauthorized` arrives as HTTP 401 on the transport, and `forbidden` never occurs in MCP.
+All tools set `destructiveHint: false` and `openWorldHint: false`. Parameters are scalars, backed enums, and arrays of scalars, because the SDK does not support object parameters. [specs/mcp-tools.json](specs/mcp-tools.json) holds the full contract of each tool, and `App\Mcp\ToolLoader` registers the tools from it (D99). A domain error becomes a `ToolCallException` with the Error JSON as text, so the result has `isError: true` and no `structuredContent`. Every other exception becomes `internal_error`. Input-schema violations give JSON-RPC error -32602 before the tool runs. `unauthorized` arrives as HTTP 401 on the transport, and `forbidden` never occurs in MCP.
 
 The agent polls `get_updates` with the last cursor. The server never pushes to the agent. In Claude Code, the skill's watch command polls V10 every 30 s in a `Monitor` and wakes the agent only on events of others (D81).
 
@@ -886,6 +867,7 @@ CI (D62): `.github/workflows/qa.yml` runs on every push and pull request. One jo
 | D96 | Check run request expiry | `PullRequest.checkRunRequestedAt` replaces the flag `checkRunRequested`. A trigger queues a job only when no request of the last 10 minutes is set, and the job clears it after it takes the record lock. A request older than 10 minutes counts as gone, so a job that failed before it cleared it, also one that cannot be decoded after a deployment, blocks no later trigger. A second job then runs after the first under the record lock. [F87](plan/F87-smaller-audit-findings.md). |
 | D97 | GitHub reads, not delivery order | Deliveries and their retries arrive in any order, and the operator may redeliver old ones. So an `installation` `suspend`, `unsuspend`, or `new_permissions_accepted` delivery queues one `GitHubInstallationChangedJob`, which reads `GET /app/installations/{id}` with the App JWT and stores `suspended_at` and `permissions`. A `marketplace_purchase` delivery of any action queues a job that reads the account as the sign-in does (`MarketplaceSync::syncAccount()`). A failed read is retried as any job. A `pull_request` delivery with the `updated_at` of the record and another state queues one more read. [F87](plan/F87-smaller-audit-findings.md). |
 | D98 | Request state as jsonb | `change_request.state` holds `RequestState::toPayload()`, every field of the state except `id` and `reviewId`, which the row has: IDs in base32, times in the format of `TimeCodec`, the anchor as `AnchorCodec` writes it, and the commit links and pull request URLs in link order. `RequestState::fromPayload()` reads it, so a read of the state needs one row and no `commit_link` query. The columns `status`, `awaiting`, `suggestion_state`, `updated_at`, and `last_event_seq` copy the state for SQL, and `outdated` stays a column because it is not event data. SQL reads the claim, the anchor path, and the pull request URLs with `JSONB_PATH_TEXT` and `JSONB_PATH_INTEGER` on `state`. A new state field needs no column, no migration, and no mapper. The table is a projection, so `app:projections:rebuild` rewrites the column after a change of its format. The migration of F89 cannot be reversed: a backup restores the old columns. [F89](plan/F89-request-state-as-jsonb.md). |
+| D99 | One MCP tool definition | `docs/specs/mcp-tools.json` holds each tool in the order of `tools/list`: `name`, `title`, `description`, `inputSchema`, `annotations`, and `outputSchema` as a reference into `docs/specs/schemas`. `app:schema:bundle` writes the tools into `BundledSchemas::TOOLS`, each output schema as the constant of its root, so the server reads no file of `docs/`. `App\Mcp\ToolLoader`, an `mcp.loader` service, registers each tool with the method of `McpTools` whose name is the camel case of the tool name, and the SDK casts each argument to its parameter type. `McpTools` has no MCP attribute. The bundle requires a registry pattern, so `config/packages/mcp.yaml` sets `tools: ['*']`; `ToolsListContractTest` fails when any other tool appears. A test checks that the parameters of each method are the input properties in order, with a default exactly for each optional one. [F91](plan/F91-mcp-tools-from-one-definition.md). |
 
 ## 12. Risks
 

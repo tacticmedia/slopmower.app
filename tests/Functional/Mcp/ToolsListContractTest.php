@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Mcp;
 
+use App\Mcp\BundledSchemas;
 use App\Tests\Support\Api\ApiFixtures;
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Fixtures\TenantFixtures;
@@ -13,16 +14,13 @@ use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
- * tests/Fixtures/mcp/tools-list.json holds the names, titles, descriptions, input schemas, and annotations of
- * docs/specs/mcp.md section 4, copied verbatim.
+ * The tools of docs/specs/mcp-tools.json (D99).
  */
 final class ToolsListContractTest extends WebTestCase
 {
     use ApiFixtures;
     use ResetDatabase;
     use SpecsFiles;
-
-    private const array COMPARED_MEMBERS = ['name', 'title', 'description', 'inputSchema', 'annotations'];
 
     /** The definition of each tool input that has a pattern, by input name. */
     private const array PATTERN_DEFINITIONS = [
@@ -46,22 +44,19 @@ final class ToolsListContractTest extends WebTestCase
         'url' => 'common.schema.json#/$defs/PullRequestUrl',
     ];
 
-    #[TestDox('tools/list names, input schemas, and annotations of all 18 tools equal docs/specs')]
+    #[TestDox('tools/list gives the tools of docs/specs/mcp-tools.json in its order, each with the bundled output schema of its reference')]
     public function testToolsEqualDocsSpecs(): void
     {
         $listed = $this->listedTools();
+        $expected = self::specsJson('mcp-tools.json')['tools'];
+        self::assertIsArray($expected);
 
-        $byName = array_column(array_map(static fn (array $tool): array => array_intersect_key($tool, array_flip(self::COMPARED_MEMBERS)), $listed), null, 'name');
-        /** @var array{tools: list<array<string, mixed>>} $expected */
-        $expected = json_decode((string) file_get_contents(dirname(__DIR__, 2).'/Fixtures/mcp/tools-list.json'), true, flags: \JSON_THROW_ON_ERROR);
-        $expectedByName = array_column($expected['tools'], null, 'name');
-        ksort($byName);
-        ksort($expectedByName);
+        self::assertSame(array_column($expected, 'name'), array_column($listed, 'name'));
+        self::assertSame(self::keySorted(BundledSchemas::TOOLS), self::keySorted($listed));
 
-        self::assertSame(array_keys($expectedByName), array_keys($byName), 'The listed tool names.');
-
-        foreach ($expectedByName as $name => $tool) {
-            self::assertSame($tool, array_merge(array_flip(self::COMPARED_MEMBERS), $byName[$name]), "The tool {$name}.");
+        foreach ($expected as $index => $tool) {
+            self::assertIsArray($tool);
+            self::assertSame(self::keySorted(array_diff_key($tool, ['outputSchema' => true])), self::keySorted(array_diff_key($listed[$index], ['outputSchema' => true])), "The tool {$tool['name']}.");
         }
     }
 
@@ -87,6 +82,22 @@ final class ToolsListContractTest extends WebTestCase
         }
 
         self::assertGreaterThan(0, $checked);
+    }
+
+    /**
+     * JSON object members in key order, so a comparison ignores the member order of the serializer.
+     */
+    private static function keySorted(mixed $value): mixed
+    {
+        if (!\is_array($value)) {
+            return $value;
+        }
+
+        if (!array_is_list($value)) {
+            ksort($value);
+        }
+
+        return array_map(self::keySorted(...), $value);
     }
 
     /**

@@ -10,6 +10,7 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 | [rest-api.md](rest-api.md) | REST endpoint index, account, repositories, reviews and code |
 | [rest-api-requests.md](rest-api-requests.md) | REST requests, updates, drafts, API tokens, and the routes outside `/api/v1` |
 | [mcp.md](mcp.md) | MCP endpoint, server instructions, the 18 tools, error mapping, parity with REST |
+| [mcp-tools.json](mcp-tools.json) | The name, title, description, input schema, annotations, and output schema of each MCP tool, in the order of `tools/list` |
 | [webhooks-and-live-updates.md](webhooks-and-live-updates.md) | GitHub webhooks, fetch triggers and post-fetch steps, Mercure live updates |
 | [schemas/](schemas/) | 33 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
 | [fixtures/](fixtures/) | One realistic example per response shape, error code, live-update type, and request body. See [section 11](#11-fixtures). |
