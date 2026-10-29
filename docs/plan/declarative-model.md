@@ -1,6 +1,6 @@
 # Declarative model: proposal
 
-Status: proposed on 2026-10-29. Step 1 is [F89](F89-request-state-as-jsonb.md), scheduled by Jan on 2026-10-29. Step 2 is revised and is [F90](F90-one-request-command-path.md); see [Re-assessment after step 1](#re-assessment-after-step-1). Workflow and conventions: [README](README.md). Asked by Jan on 2026-10-28: "Can it be done simpler? Not by reducing capability, but by identifying the common denominator of different-but-similar features, and then re-using the logic to serve the same purpose. Can it be simplified by moving closer to a no-code dynamic setup rather than hardcoded columns, entities, features and business logic?"
+Status: proposed on 2026-10-29. Step 1 is [F89](F89-request-state-as-jsonb.md), scheduled by Jan on 2026-10-29. Step 2 is revised and is [F90](F90-one-request-command-path.md); see [Re-assessment after step 1](#re-assessment-after-step-1). Step 3 is [F91](F91-mcp-tools-from-one-definition.md). Steps 4 to 6 are closed; see [Decision on steps 4 to 6](#decision-on-steps-4-to-6). Workflow and conventions: [README](README.md). Asked by Jan on 2026-10-28: "Can it be done simpler? Not by reducing capability, but by identifying the common denominator of different-but-similar features, and then re-using the logic to serve the same purpose. Can it be simplified by moving closer to a no-code dynamic setup rather than hardcoded columns, entities, features and business logic?"
 
 ## Answer
 
@@ -98,9 +98,17 @@ Measured on 2026-10-29, after F89, with `RequestDecider` (532 lines), `AllowedAc
 - Step 3 is [F91](F91-mcp-tools-from-one-definition.md).
 - **Steps 4 to 6, measured after F91.** Step 4 removes about 271 lines of domain code (4 commands, 4 events, `Proposal`, `ProposalState`, `SuggestionState`) and 83 lines of inputs. It adds an answer command and event, an upcaster so that the 4 old event types stay readable (D37), and consistency rules that depend on the kind of the ask. It changes 41 files of REST, the event model, the UI, the specs, and the skill. A question is answered by a comment, not a decision, so it does not fit the same command. F76 needs only one option on the approval. Steps 5 and 6 change contracts for fewer lines. None of them is started: they change the agent and UI contracts for a small cut, so they wait for Jan's decision. The recommendation is to drop step 4, add the F76 choice to `approve_proposal`, and take step 5 only with F74.
 
+## Decision on steps 4 to 6
+
+Jan decided on 2026-10-29: "drop step 4, keep going".
+
+- **Step 4 is dropped.** F76 adds its pull request choice as one optional input of `approve_proposal` (Q15), as its scope file says.
+- **Step 5 waits for the first other git host.** F74 adds no link kind: it refuses a pull request link where the host has none. The first new kind is the merge request of another host, so step 5 goes with the candidate "Other git hosts".
+- **Step 6 is dropped.** F76 keeps its delivery choice in the review events, not as a switch. One switch stays on `User` (A4) and one on `Repository` (R8), so a `settings` value per scope merges nothing.
+
 ## Order
 
-The rule "bugs and issues before features" puts the open audit findings first, F86 and F87. Then steps 1, 2, 3, and 4, before F76, because F76 otherwise adds another change of about 150 files to the pattern that step 4 removes. Steps 5 and 6 follow F74 and F76. Jan decides the schedule.
+The audit findings and the open bugs came first, as F84 to F88, then steps 1 to 3 as F89 to F91. Next: F74, F75, and F76.
 
 ## Estimate
 
