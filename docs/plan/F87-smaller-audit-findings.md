@@ -27,7 +27,19 @@ From the six audit reports of 2026-10-28. Each is verified again in the code bef
 
 ## Decisions
 
-Recorded per finding as it is fixed, in this file and, for the architecture or a contract, in architecture section 11.
+- **D96 Check run request expiry.** `PullRequest.checkRunRequested` becomes `checkRunRequestedAt`. A request older than 10 minutes counts as gone, so a job that failed before it cleared the request, also one that cannot be decoded, blocks no later trigger.
+- **Pull request tie.** A delivery whose `updated_at` equals the stored one and whose state differs queues `ReadPullRequestJob`, whose answer is the current state.
+- **D97 GitHub reads, not delivery order.** A `marketplace_purchase` delivery reads the account from GitHub (`MarketplaceSync::syncAccount()`), whatever its action. An `installation` suspension or permission delivery reads `GET /app/installations/{id}` with the App JWT and records its `suspended_at` and `permissions`. The job keeps only the IDs.
+- **Draft lock.** Update, delete, and submit of drafts take the `drafts:<review>:<user>` lock, and update and delete read the draft again under it. Create and update read the review again under the lock before `assertOpen()`, and close takes the lock of the closing user.
+- **Commit date.** `GitReader::commitInfo()` clamps the committer time to the years 0000 to 9999 that `TimeCodec` encodes.
+- **Timezone.** `Kernel::boot()` sets the PHP default timezone to UTC, so the `TIMESTAMP WITHOUT TIME ZONE` values read back as UTC on any host.
+- **Long jobs.** The worker runs with `--keepalive`, so the Doctrine transport renews `delivered_at` of a running job, and `redeliver_timeout` no longer bounds a job.
+- **Large directories.** V6 is read one page of 1,000 entries. The table and the tree say "Showing the first 1,000 entries." when more exist.
+- **Settings revoke.** The `revoke` intent answers an `ActionResult`, and the token table shows it inline.
+- **Viewed.** `ViewedCheckbox` is keyed by the path.
+- **Formatters.** One byte formatter, in GitHub's style, for the file toolbar, the placeholder, and the usage table. `BlameColumn` uses `linesText()`.
+- **First live open.** The first open of the EventSource for a review reads the events after `lastSeq`, and revalidates only when it found any.
+- **Language of a path.** V16 drops a symbol row whose path language differs from the language of its parsed blob. V14 already takes PHP blobs only, and drops PHP symbols at a path that is not PHP.
 
 ## Depends on
 
