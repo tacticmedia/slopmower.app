@@ -16,7 +16,6 @@ use App\Entity\SignInMethod;
 use App\Entity\TenantOwned;
 use App\GitHub\Payload\InstallationPayload;
 use App\GitHub\Payload\MarketplacePurchaseAction;
-use App\GitHub\Payload\MarketplacePurchasePayload;
 use App\GitHub\Payload\PullRequestPayload;
 use App\GitHub\Payload\RepositoryPayload;
 use App\Message\CheckRunJob;
@@ -386,8 +385,7 @@ final class GitHubWebhookConsumer implements ConsumerInterface
         }
 
         $accountId = self::int($payload, 'marketplace_purchase', 'account', 'id');
-        $purchase = $this->denormalizer->denormalize($payload['marketplace_purchase'], MarketplacePurchasePayload::class);
-        $jobs = [[null, new MarketplacePurchaseJob($accountId, $action, $purchase, $this->denormalizer->denormalize($payload['effective_date'] ?? null, \DateTimeImmutable::class))]];
+        $jobs = [[null, new MarketplacePurchaseJob($accountId)]];
         $user = MarketplacePurchaseAction::Cancelled === $action && 'User' === self::value($payload, 'marketplace_purchase', 'account', 'type')
             ? $this->users->findOneBy(['githubUserId' => $accountId])
             : null;

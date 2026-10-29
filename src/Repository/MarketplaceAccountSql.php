@@ -25,7 +25,6 @@ final class MarketplaceAccountSql
             pending_plan_id = EXCLUDED.pending_plan_id,
             pending_effective_at = EXCLUDED.pending_effective_at
         SQL;
-    private const string RECORD_PENDING_CHANGE = 'UPDATE marketplace_account SET pending_plan_id = :pendingPlanId, pending_effective_at = :pendingEffectiveAt WHERE account_id = :accountId';
     private const string DELETE = 'DELETE FROM marketplace_account WHERE account_id = :accountId';
     private const string DELETE_OF_TENANT_USER = <<<'SQL'
         DELETE FROM marketplace_account
@@ -61,20 +60,6 @@ final class MarketplaceAccountSql
             'pendingPlanId' => $pendingPlanId,
             'pendingEffectiveAt' => self::utc($pendingEffectiveAt),
         ], self::TYPES);
-    }
-
-    /**
-     * Changes nothing without a record.
-     *
-     * @param \DateTimeImmutable|null $effectiveAt Null clears the pending change
-     */
-    public function recordPendingChange(int $accountId, ?int $pendingPlanId, ?\DateTimeImmutable $effectiveAt): void
-    {
-        $this->connection->executeStatement(
-            self::RECORD_PENDING_CHANGE,
-            ['accountId' => $accountId, 'pendingPlanId' => null === $effectiveAt ? null : $pendingPlanId, 'pendingEffectiveAt' => self::utc($effectiveAt)],
-            self::TYPES,
-        );
     }
 
     public function delete(int $accountId): void

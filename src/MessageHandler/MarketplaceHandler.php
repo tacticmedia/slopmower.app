@@ -6,11 +6,9 @@ namespace App\MessageHandler;
 
 use App\Application\MarketplaceSync;
 use App\GitHub\GitHubRequestFailed;
-use App\GitHub\Payload\MarketplacePurchaseAction;
 use App\Message\MarketplaceCancellationJob;
 use App\Message\MarketplacePurchaseJob;
 use App\Repository\GitHubInstallationRepository;
-use App\Repository\MarketplaceAccountSql;
 use App\Tenancy\TenantContext;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\Exception\RecoverableMessageHandlingException;
@@ -24,7 +22,6 @@ final class MarketplaceHandler
     public const int RETRY_DELAY_MILLISECONDS = 3_600_000;
 
     public function __construct(
-        private readonly MarketplaceAccountSql $accounts,
         private readonly MarketplaceSync $marketplace,
         private readonly GitHubInstallationRepository $installations,
         private readonly DeletionHandler $deletion,
@@ -32,24 +29,15 @@ final class MarketplaceHandler
     ) {
     }
 
+    /**
+     * D97: whatever the action, the record takes the answer of GitHub, so an old redelivery sets no old plan.
+     *
+     * @throws GitHubRequestFailed The read failed: Messenger retries the job
+     */
     #[AsMessageHandler]
     public function handlePurchase(MarketplacePurchaseJob $job): void
     {
-        switch ($job->action) {
-            case MarketplacePurchaseAction::Purchased:
-            case MarketplacePurchaseAction::Changed:
-                $this->accounts->replace($job->accountId, $job->purchase->planId, $job->purchase->billingCycle, $job->purchase->trialEndsAt());
-                break;
-            case MarketplacePurchaseAction::PendingChange:
-                $this->accounts->recordPendingChange($job->accountId, $job->purchase->planId, $job->effectiveAt);
-                break;
-            case MarketplacePurchaseAction::PendingChangeCancelled:
-                $this->accounts->recordPendingChange($job->accountId, null, null);
-                break;
-            case MarketplacePurchaseAction::Cancelled:
-                $this->accounts->delete($job->accountId);
-                break;
-        }
+        $this->marketplace->syncAccount($job->accountId);
     }
 
     /**

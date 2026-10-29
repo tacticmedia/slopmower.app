@@ -6,6 +6,7 @@ namespace App\Tests\Functional\Deletion;
 
 use App\Domain\Identity\TenantId;
 use App\Entity\User;
+use App\Message\MarketplacePurchaseJob;
 use App\MessageHandler\MarketplaceHandler;
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Fixtures\TenantFixtures;
@@ -107,7 +108,17 @@ final class CancelledAccountPurgeTest extends WebTestCase
     {
         $user = TenantFixtures::of(self::getContainer())->withLogin('monalisa')->withGitHubUser($accountId)->create();
         self::deliverFixture($this->client, 'marketplace_purchase.cancelled', ['marketplace_purchase' => ['account' => ['id' => $accountId, 'login' => 'monalisa']]]);
-        self::runQueuedMessages();
+
+        try {
+            self::runQueuedMessages();
+        } catch (HandlerFailedException) {
+            // The account read fails, and the worker would retry the purchase job, which this test leaves out.
+            foreach ([...self::asyncTransport()->get()] as $envelope) {
+                if ($envelope->getMessage() instanceof MarketplacePurchaseJob) {
+                    self::asyncTransport()->reject($envelope);
+                }
+            }
+        }
 
         return $user;
     }
