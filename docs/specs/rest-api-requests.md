@@ -80,7 +80,7 @@ Titles: a request has an optional one-line `title`, and its Markdown `body` is t
 | `release` | `in_progress` and claimed by the caller | `in_progress` |
 | `link_commits` | `in_progress`, claimed by the caller, and the proposal gate is open | never |
 | `unlink_commit` | `in_progress`, claimed by the caller, and at least one link exists | never |
-| `link_pull_request` | `in_progress`, claimed by the caller, and the proposal gate is open, or `ready_for_review`. `request.ready_for_review` clears the claim, so any agent may link then. | never |
+| `link_pull_request` | `in_progress`, claimed by the caller, and the proposal gate is open, or `ready_for_review`. `request.ready_for_review` clears the claim, so any agent may link then. The repository source does not count: Q17 refuses the URL of a local repository as input. | never |
 | `unlink_pull_request` | `in_progress` and claimed by the caller, or `ready_for_review`, and at least one pull request is linked | never |
 | `mark_ready_for_review` | `in_progress`, claimed by the caller, and the proposal gate is open | never |
 | `mark_wont_do` | `open` without a pending suggestion, `reopened`, or `in_progress` claimed by the caller | `open` without a pending suggestion, `reopened`, `in_progress` |
@@ -433,12 +433,12 @@ The proposal replaces the current one, also an approved one. The request then wa
 - **Request:** `POST /api/v1/pull-request-links`
 - **Authentication:** B
 - **Body:** [`LinkPullRequestInput`](schemas/inputs.schema.json), `{url, requestIds, note?}`.
-  - `url` follows the rule of [README.md section 2.2](README.md#22-text-limits). For a GitHub repository it names a pull request of the review's repository, and the server stores it with the repository name as connected. So `url` in the result, the event, and `pullRequestUrls` is that form, and a URL in another letter case names a pair that is already linked. The number identifies a GitHub pull request, so a request whose link has an earlier name of the repository already links it.
+  - `url` follows the rule of [README.md section 2.2](README.md#22-text-limits). A local repository has no pull requests, so it refuses every `url`. For a GitHub repository it names a pull request of the review's repository, and the server stores it with the repository name as connected. So `url` in the result, the event, and `pullRequestUrls` is that form, and a URL in another letter case names a pair that is already linked. The number identifies a GitHub pull request, so a request whose link has an earlier name of the repository already links it.
   - `requestIds` holds 1 to 50 unique IDs, all from the same review.
 - **Success:** 200 [`LinkPullRequestResult`](schemas/link-pull-request-result.schema.json). Example: [fixtures/link-pull-request-result.linked.json](fixtures/link-pull-request-result.linked.json).
 - **Errors:**
   - 404 `not_found`: any request ID;
-  - 422 `invalid_input`: a URL that breaks the rule, or requests from more than one review. The violations of `url` and `requestIds` come together.
+  - 422 `invalid_input`: a URL that breaks the rule, a review of a local repository, or requests from more than one review. The violations of `url` and `requestIds` come together.
   - 409 `review_closed`;
   - 409 `invalid_transition`: the first request that is neither `in_progress`, claimed by the caller, with the proposal gate open, nor `ready_for_review`. Nothing is written.
 
@@ -468,7 +468,7 @@ The proposal gate uses the new value at once. On an `in_progress` request withou
 - **Success:** 200 `RequestCommandResult` with one `pull_request.unlinked` event.
 - **Errors:** 422 `invalid_input`: a URL that breaks the rule of Q17 and is not a linked URL, or a URL that is not linked to the request; 409 `invalid_transition`, 409 `review_closed`.
 
-`url` follows the rule of [Q17](#q17-link-a-pull-request-to-requests). For a GitHub repository the server matches the linked pull request by its number, so a URL in another letter case unlinks the link. A linked URL with an earlier name of the repository, in any letter case, also unlinks it. A URL that is linked exactly unlinks that URL, also when another linked URL has the same number. The event names the URL as linked. The callers and statuses are those of Q17 without the proposal gate. An unlink changes neither the status nor `awaiting`.
+`url` follows the rule of [Q17](#q17-link-a-pull-request-to-requests). For a GitHub repository the server matches the linked pull request by its number, so a URL in another letter case unlinks the link. A linked URL with an earlier name of the repository, in any letter case, also unlinks it. A URL that is linked exactly unlinks that URL, also when another linked URL has the same number. The event names the URL as linked. A local repository removes a stored link, although Q17 refuses a new one. The callers and statuses are those of Q17 without the proposal gate. An unlink changes neither the status nor `awaiting`.
 
 ### Q20 Suggest a request
 

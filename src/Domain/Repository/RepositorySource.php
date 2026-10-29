@@ -8,4 +8,9 @@ enum RepositorySource: string
 {
     case Github = 'github';
     case Local = 'local';
+
+    public function hasPullRequests(): bool
+    {
+        return self::Github === $this;
+    }
 }

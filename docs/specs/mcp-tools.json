@@ -160,7 +160,7 @@
         {
             "name": "link_pull_request",
             "title": "Link pull request",
-            "description": "Record that a pull request implements one or more requests: each one in_progress and held by you, or ready_for_review. For a GitHub repository the URL is https://github.com/{owner}/{name}/pull/{number} of the reviewed repository. Linking does not change the status. Open a pull request only when the user or the repository's instructions ask for it.",
+            "description": "Record that a pull request implements one or more requests: each one in_progress and held by you, or ready_for_review. For a GitHub repository the URL is https://github.com/{owner}/{name}/pull/{number} of the reviewed repository. A local repository has no pull requests. Linking does not change the status. Open a pull request only when the user or the repository's instructions ask for it.",
             "inputSchema": {
                 "type": "object",
                 "properties": {

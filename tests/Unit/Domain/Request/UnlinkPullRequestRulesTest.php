@@ -36,4 +36,20 @@ final class UnlinkPullRequestRulesTest extends KernelTestCase
         self::assertSame(self::NEW_NAME_URL, $decided->event->url->toString());
         self::assertSame([self::OLD_NAME_URL], array_map(static fn (PullRequestUrl $url): string => $url->toString(), $scenario->state()->pullRequestUrls));
     }
+
+    #[TestDox('A local repository unlinks a stored pull request link')]
+    public function testLocalRepositoryUnlinksAStoredLink(): void
+    {
+        $agent = RequestScenario::claimingAgent();
+        $scenario = RequestScenario::inState('in_progress', linked: false);
+        $requestId = $scenario->requestId();
+        $url = 'https://git.example.com/acme/billing/-/merge_requests/7';
+        // The decider refuses a link on a local repository, so the stored link is recorded directly.
+        $scenario->record(new DecidedEvent(new PullRequestLinkedEvent(PullRequestUrl::fromString($url), [$requestId], null)), $agent);
+
+        [$decided] = $scenario->run(new UnlinkPullRequest($requestId, $url, RepositoryName::local('billing')), $agent);
+
+        self::assertInstanceOf(PullRequestUnlinkedEvent::class, $decided->event);
+        self::assertSame([], $scenario->state()->pullRequestUrls);
+    }
 }

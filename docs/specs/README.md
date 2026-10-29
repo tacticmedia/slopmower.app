@@ -235,6 +235,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Review tour, decision D77: the endpoint A4, the input `PreferencesInput`, the open set `Tour`, and the property `preferences` of `Me` with the schema `Preferences`. All are additive. A4 records no event.
     - Plain-text summary, decision D80: without a title, `summary` is the plain text of the first non-blank line of the body, without Markdown syntax. It is a changed meaning of an existing field. The wire format does not change.
     - NUL bytes, F85: an input string with U+0000 gets 422 `invalid_input` in REST and -32602 in MCP, where it gave 500 `internal_error` or, for a name lookup, an empty result. `PullRequestUrl` excludes it too. It is tighter validation, so it is listed here.
+    - Pull request hosts, decision D83: Q17 and `link_pull_request` refuse a review of a local repository with 422 `invalid_input` on `url`, where they stored any https URL. Q19 and `unlink_pull_request` still remove a stored link, and `allowedActions` does not change. Not additive: it is tighter validation.
     - MCP transport limit and sync fetch wait, F86: `mcp_http` counts per user, not per token, so all tokens of a user share one bucket. A synchronous fetch answers `fetch_failed` after waiting 5 s for a running fetch, where it waited up to 60 s (D93). Both are tighter limits, so they are listed here.
 
 ## 9. Contract tests

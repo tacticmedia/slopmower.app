@@ -10,7 +10,7 @@ A review covers a whole codebase at one commit, but the fixes land through the n
 
 ## Linked pull requests
 
-Only your agent links a pull request to requests. When it opened a pull request for its work, it links the pull request to the requests that it covers. You never link a pull request, and Slopmower never opens one. The agent opens a pull request only when you or the instructions of your repository ask for it, as [Connect your agent](connect-your-agent.md#5-give-your-agent-a-review) shows. For a GitHub repository, the pull request must belong to the reviewed repository.
+Only your agent links a pull request to requests. When it opened a pull request for its work, it links the pull request to the requests that it covers. You never link a pull request, and Slopmower never opens one. The agent opens a pull request only when you or the instructions of your repository ask for it, as [Connect your agent](connect-your-agent.md#5-give-your-agent-a-review) shows. The pull request must belong to the reviewed GitHub repository. A local repository has no pull requests, so the agent cannot link one.
 
 The **Development** section of the request lists its pull requests, and the conversation shows each link. Click a pull request to open it in a new tab. The agent can remove a link that it made by mistake. The conversation shows the removal too.
 

@@ -317,6 +317,10 @@ final class RequestDecider
      */
     private static function pullRequestUrlViolations(LinkPullRequest $command): array
     {
+        if (!$command->repository->source()->hasPullRequests()) {
+            return [['field' => 'url', 'message' => 'This repository has no pull requests.']];
+        }
+
         try {
             PullRequestUrl::forRepository($command->url, $command->repository);
         } catch (InvalidInput $error) {

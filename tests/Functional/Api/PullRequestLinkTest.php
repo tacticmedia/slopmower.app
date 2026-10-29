@@ -24,7 +24,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Q17 and Q19. The agent claimed two requests of a review of a local repository.
+ * Q17 and Q19. The agent claimed two general requests of a review of a GitHub repository.
  */
 final class PullRequestLinkTest extends WebTestCase
 {
@@ -63,15 +63,15 @@ final class PullRequestLinkTest extends WebTestCase
 
     protected function setUp(): void
     {
+        // The local source serves the test of a host without pull requests.
         $this->useTemporaryLocalSources();
         $this->newSource()->commit(self::codeFiles());
         $this->client = static::createClient();
         $this->user = self::signIn($this->client);
-        $this->reviewId = self::startCodeReview($this->client);
-        $this->first = (string) self::openRequest($this->client, $this->reviewId)['id'];
-        $this->second = (string) self::openRequest($this->client, $this->reviewId)['id'];
         [, $this->secret] = self::storeToken($this->user);
-        self::agentRequest($this->client, $this->secret, 'POST', "/api/v1/requests/{$this->first}/claim");
+        [$reviewId, $this->first] = self::claimedGitHubRequest($this->client, $this->user, $this->secret);
+        $this->reviewId = (string) $reviewId;
+        $this->second = (string) self::openRequest($this->client, $this->reviewId, null)['id'];
         self::agentRequest($this->client, $this->secret, 'POST', "/api/v1/requests/{$this->second}/claim");
     }
 
@@ -107,23 +107,32 @@ final class PullRequestLinkTest extends WebTestCase
         self::assertSame([self::URL], self::readRequest($this->client, $this->first)['pullRequestUrls']);
     }
 
-    #[TestDox('A pull request of another GitHub repository gives 422 on a GitHub repository')]
+    #[TestDox('A pull request of another GitHub repository gives 422')]
     public function testForeignGitHubUrlGivesInvalidInput(): void
     {
-        [, $requestId] = self::claimedGitHubRequest($this->client, $this->user, $this->secret);
-
-        $error = self::assertApiError(self::bearerRequest($this->client, $this->secret, 'POST', '/api/v1/pull-request-links', ['url' => 'https://github.com/acme/ledger/pull/42', 'requestIds' => [$requestId]]), 422, 'invalid_input');
+        $error = self::assertApiError(self::bearerRequest($this->client, $this->secret, 'POST', '/api/v1/pull-request-links', ['url' => 'https://github.com/acme/ledger/pull/42', 'requestIds' => [$this->first]]), 422, 'invalid_input');
 
         self::assertSame(['url'], array_column($error['details']['violations'] ?? [], 'field'));
     }
 
-    #[TestDox('On a GitHub repository, a URL in another letter case names the linked pull request and writes no event')]
+    #[TestDox('A local repository refuses a link with invalid_input on url, and nothing is written')]
+    public function testLocalRepositoryRefusesALink(): void
+    {
+        $requestId = (string) self::openRequest($this->client, self::startCodeReview($this->client))['id'];
+        self::agentRequest($this->client, $this->secret, 'POST', "/api/v1/requests/{$requestId}/claim");
+
+        $error = self::assertApiError(self::bearerRequest($this->client, $this->secret, 'POST', '/api/v1/pull-request-links', ['url' => self::URL, 'requestIds' => [$requestId]]), 422, 'invalid_input');
+
+        self::assertSame([['field' => 'url', 'message' => 'This repository has no pull requests.']], $error['details']['violations'] ?? null);
+        self::assertSame([], self::readRequest($this->client, $requestId)['pullRequestUrls']);
+    }
+
+    #[TestDox('A URL in another letter case names the linked pull request and writes no event')]
     public function testGitHubUrlInAnotherCaseIsAlreadyLinked(): void
     {
-        [, $requestId] = self::claimedGitHubRequest($this->client, $this->user, $this->secret);
-        $this->link([$requestId]);
+        $this->link([$this->first]);
 
-        $again = self::agentRequest($this->client, $this->secret, 'POST', '/api/v1/pull-request-links', ['url' => 'https://github.com/Acme/Billing/pull/42', 'requestIds' => [$requestId]], schema: self::RESULT);
+        $again = self::agentRequest($this->client, $this->secret, 'POST', '/api/v1/pull-request-links', ['url' => 'https://github.com/Acme/Billing/pull/42', 'requestIds' => [$this->first]], schema: self::RESULT);
 
         self::assertSame([self::URL, []], [$again['url'], $again['events']]);
     }
@@ -142,7 +151,7 @@ final class PullRequestLinkTest extends WebTestCase
     #[TestDox('An open request refuses a link and nothing is written')]
     public function testOpenRequestRefusesALink(): void
     {
-        $open = (string) self::openRequest($this->client, $this->reviewId)['id'];
+        $open = (string) self::openRequest($this->client, $this->reviewId, null)['id'];
 
         $error = self::assertApiError(self::bearerRequest($this->client, $this->secret, 'POST', '/api/v1/pull-request-links', ['url' => self::URL, 'requestIds' => [$this->first, $open]]), 409, 'invalid_transition');
 
@@ -178,44 +187,41 @@ final class PullRequestLinkTest extends WebTestCase
         self::assertSame([['field' => 'url', 'message' => 'Is not linked to the request.']], $error['details']['violations'] ?? null);
     }
 
-    #[TestDox('On a GitHub repository, a URL in another letter case unlinks the linked pull request')]
+    #[TestDox('A URL in another letter case unlinks the linked pull request')]
     public function testGitHubUrlInAnotherCaseUnlinks(): void
     {
-        [, $requestId] = self::claimedGitHubRequest($this->client, $this->user, $this->secret);
-        $this->link([$requestId]);
+        $this->link([$this->first]);
 
-        $result = $this->unlink($requestId, 'https://github.com/Acme/Billing/pull/42');
+        $result = $this->unlink($this->first, 'https://github.com/Acme/Billing/pull/42');
 
         self::assertSame([self::URL], array_column($result['events'], 'pullRequestUrl'));
-        self::assertSame([], self::readRequest($this->client, $requestId)['pullRequestUrls']);
+        self::assertSame([], self::readRequest($this->client, $this->first)['pullRequestUrls']);
     }
 
     #[TestDox('After a rename of the GitHub repository, unlink with the old URL removes the link')]
     public function testOldUrlUnlinksAfterARename(): void
     {
-        [, $requestId] = self::claimedGitHubRequest($this->client, $this->user, $this->secret);
-        $this->link([$requestId]);
+        $this->link([$this->first]);
         self::deliverFixture($this->client, 'repository.renamed');
         self::runQueuedMessages();
 
-        $result = $this->unlink($requestId, self::URL);
+        $result = $this->unlink($this->first, self::URL);
 
         self::assertSame([self::URL], array_column($result['events'], 'pullRequestUrl'));
-        self::assertSame([], self::readRequest($this->client, $requestId)['pullRequestUrls']);
+        self::assertSame([], self::readRequest($this->client, $this->first)['pullRequestUrls']);
     }
 
     #[TestDox('After a rename of the GitHub repository, the URL with the new name names the pull request linked under the old name')]
     public function testNewUrlIsAlreadyLinkedAfterARename(): void
     {
-        [, $requestId] = self::claimedGitHubRequest($this->client, $this->user, $this->secret);
-        $this->link([$requestId]);
+        $this->link([$this->first]);
         self::deliverFixture($this->client, 'repository.renamed');
         self::runQueuedMessages();
 
-        $again = self::agentRequest($this->client, $this->secret, 'POST', '/api/v1/pull-request-links', ['url' => self::RENAMED_URL, 'requestIds' => [$requestId]], schema: self::RESULT);
+        $again = self::agentRequest($this->client, $this->secret, 'POST', '/api/v1/pull-request-links', ['url' => self::RENAMED_URL, 'requestIds' => [$this->first]], schema: self::RESULT);
 
         self::assertSame([self::RENAMED_URL, []], [$again['url'], $again['events']]);
-        self::assertSame([self::URL], self::readRequest($this->client, $requestId)['pullRequestUrls']);
+        self::assertSame([self::URL], self::readRequest($this->client, $this->first)['pullRequestUrls']);
     }
 
     #[TestDox('An open request refuses an unlink and keeps the link')]

@@ -11,15 +11,12 @@ use App\Tests\Support\Api\RequestApiFixtures;
 use App\Tests\Support\Api\ReviewApiFixtures;
 use App\Tests\Support\Contract\JsonApiAssertions;
 use App\Tests\Support\Database\ResetDatabase;
-use App\Tests\Support\Environment\EnvironmentVariables;
-use App\Tests\Support\Filesystem\TemporaryDirectories;
 use App\Tests\Support\GitHub\GitHubPullRequests;
 use App\Tests\Support\GitHub\GitHubRows;
 use App\Tests\Support\Live\PublishedUpdates;
 use App\Tests\Support\Mcp\McpAssertions;
 use App\Tests\Support\Mcp\McpTestClient;
 use App\Tests\Support\Messenger\QueuedMessages;
-use App\Tests\Support\Source\LocalSources;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -33,18 +30,15 @@ final class PullRequestStateTest extends WebTestCase
 {
     use AgentApiFixtures;
     use ApiFixtures;
-    use EnvironmentVariables;
     use GitHubPullRequests;
     use GitHubRows;
     use JsonApiAssertions;
-    use LocalSources;
     use McpAssertions;
     use PublishedUpdates;
     use QueuedMessages;
     use RequestApiFixtures;
     use ResetDatabase;
     use ReviewApiFixtures;
-    use TemporaryDirectories;
 
     private const string URL = 'https://github.com/acme/billing/pull/42';
 
@@ -91,22 +85,6 @@ final class PullRequestStateTest extends WebTestCase
         self::runQueuedMessages();
 
         self::assertSame($gitHubRequestsBefore, self::gitHubRequestCount());
-        self::assertSame(self::UNKNOWN, self::readRequest($this->client, $requestId)['pullRequests']);
-    }
-
-    #[TestDox('A local repository queues no read and stays unknown')]
-    public function testLocalRepositoryStaysUnknown(): void
-    {
-        $this->useTemporaryLocalSources();
-        $this->newSource()->commit(self::codeFiles());
-        $user = self::signIn($this->client);
-        $requestId = (string) self::openRequest($this->client, self::startCodeReview($this->client))['id'];
-        [, $secret] = self::storeToken($user);
-        self::agentRequest($this->client, $secret, 'POST', "/api/v1/requests/{$requestId}/claim");
-
-        self::linkGitHubPullRequest($this->client, $secret, $requestId);
-
-        self::assertSame([], self::queuedReads());
         self::assertSame(self::UNKNOWN, self::readRequest($this->client, $requestId)['pullRequests']);
     }
 

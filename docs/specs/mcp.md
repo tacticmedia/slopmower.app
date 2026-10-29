@@ -50,7 +50,7 @@ Slopmower stores change requests that the user wrote while reviewing this reposi
 4. get_updates(review) without a cursor returns what waits for you. Keep the returned cursor and pass it in the next call; if hasMore is true, call again at once.
 5. For each request with awaiting "agent", reopened ones first: get_request, then reply_to_request (question: true when you need an answer, then move on), or claim_request before you edit code. A request with `title` null has no title. Before you claim it, call set_request_title with one line of at most 80 characters that summarizes its body.
 6. When requireApproval is true, or the request is unclear or large, propose_solution after the claim and take the next request. The decision comes back through get_updates. Link no commit before proposal.state is approved; on "rejected", read the note and propose again.
-7. Commit per request, then link_commits with the full SHA and every request that the commit covers. GitHub repositories: push before mark_ready_for_review. Local repositories: committing is enough. If you opened a pull request for the work, link_pull_request with its URL and every request that it covers; unlink_pull_request removes a link made by mistake.
+7. Commit per request, then link_commits with the full SHA and every request that the commit covers. GitHub repositories: push before mark_ready_for_review. If you opened a pull request for the work, link_pull_request with its URL and every request that it covers; unlink_pull_request removes a link made by mistake. Local repositories: committing is enough, and they have no pull requests.
 8. Finish with mark_ready_for_review (what changed, how you tested it), or mark_wont_do with evidence the user can check, or release_request if you stop.
 
 Never verify, reopen, accept or dismiss suggestions, or decide on proposals. Open requests only with suggest_request. Errors are isError results whose text is {"error":{"code","message","details"}}. On invalid_transition call get_request and read allowedActions and proposal. On review_closed stop working on that review.
@@ -190,7 +190,7 @@ Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 
 - **Output:** [`link-pull-request-result.schema.json`](schemas/link-pull-request-result.schema.json).
 - **Behaviour:** REST Q17. One URL, 1 to 50 request IDs of one review. Linking an existing pair again is a no-op; for a GitHub repository the number identifies the pull request. The link changes neither the status nor `awaiting`. For a GitHub repository, the server then reads the state of the pull request for `get_request`.
-- **Errors:** `not_found`, `review_closed`, `invalid_transition`, `invalid_input` for requests from several reviews or a pull request of another GitHub repository.
+- **Errors:** `not_found`, `review_closed`, `invalid_transition`, `invalid_input` for requests from several reviews, a pull request of another GitHub repository, or a review of a local repository, which has no pull requests.
 - **Example:** arguments as in [fixtures/inputs.link-pull-request.json](fixtures/inputs.link-pull-request.json) give [fixtures/link-pull-request-result.linked.json](fixtures/link-pull-request-result.linked.json).
 
 ### 4.15 `unlink_pull_request`

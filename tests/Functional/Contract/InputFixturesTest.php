@@ -14,6 +14,7 @@ use App\Tests\Support\Contract\SchemaValidator;
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Environment\EnvironmentVariables;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
+use App\Tests\Support\GitHub\GitHubPullRequests;
 use App\Tests\Support\GitHub\GitHubRows;
 use App\Tests\Support\Messenger\QueuedMessages;
 use App\Tests\Support\Source\LocalSources;
@@ -34,6 +35,7 @@ final class InputFixturesTest extends WebTestCase
     use ClockSensitiveTrait;
     use DraftApiFixtures;
     use EnvironmentVariables;
+    use GitHubPullRequests;
     use GitHubRows;
     use JsonApiAssertions;
     use LocalSources;
@@ -60,8 +62,8 @@ final class InputFixturesTest extends WebTestCase
     /**
      * Per fixture: its schema, the endpoint, the success status and schema, whether an agent token calls, the fixture
      * requests that the agent claims first, whether a draft must exist, whether the agent proposes on the first
-     * request, whether the agent links the fixture URL to the first request, and whether the agent suggested the first
-     * request.
+     * request, whether the agent links the fixture URL to the first request, whether the agent suggested the first
+     * request, and whether the review is of the GitHub repository acme/billing, with general requests and no clone.
      */
     private const array CASES = [
         'inputs.accept-suggestion.json' => ['schema' => 'inputs.schema.json#/$defs/AcceptSuggestionInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/accept-suggestion', 'status' => 200, 'response' => self::RESULT, 'suggested' => true],
@@ -77,7 +79,7 @@ final class InputFixturesTest extends WebTestCase
         'inputs.create-token.json' => ['schema' => 'inputs.schema.json#/$defs/CreateTokenInput', 'method' => 'POST', 'path' => '/api/v1/tokens', 'status' => 201, 'response' => 'api-token.schema.json#/$defs/ApiTokenWithSecret'],
         'inputs.dismiss-suggestion.json' => ['schema' => 'inputs.schema.json#/$defs/DismissSuggestionInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/dismiss-suggestion', 'status' => 200, 'response' => self::RESULT, 'suggested' => true],
         'inputs.link-commits.json' => ['schema' => 'inputs.schema.json#/$defs/LinkCommitsInput', 'method' => 'POST', 'path' => '/api/v1/commit-links', 'status' => 200, 'response' => 'link-commits-result.schema.json', 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID, self::FIXTURE_SECOND_REQUEST_ID]],
-        'inputs.link-pull-request.json' => ['schema' => 'inputs.schema.json#/$defs/LinkPullRequestInput', 'method' => 'POST', 'path' => '/api/v1/pull-request-links', 'status' => 200, 'response' => 'link-pull-request-result.schema.json', 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID, self::FIXTURE_SECOND_REQUEST_ID]],
+        'inputs.link-pull-request.json' => ['schema' => 'inputs.schema.json#/$defs/LinkPullRequestInput', 'method' => 'POST', 'path' => '/api/v1/pull-request-links', 'status' => 200, 'response' => 'link-pull-request-result.schema.json', 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID, self::FIXTURE_SECOND_REQUEST_ID], 'github' => true],
         'inputs.open-general-request.json' => ['schema' => 'inputs.schema.json#/$defs/OpenRequestInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/requests', 'status' => 201, 'response' => 'request.schema.json'],
         'inputs.open-request-approval.json' => ['schema' => 'inputs.schema.json#/$defs/OpenRequestInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/requests', 'status' => 201, 'response' => 'request.schema.json'],
         'inputs.open-request.json' => ['schema' => 'inputs.schema.json#/$defs/OpenRequestInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/requests', 'status' => 201, 'response' => 'request.schema.json'],
@@ -91,14 +93,14 @@ final class InputFixturesTest extends WebTestCase
         'inputs.submit-drafts.json' => ['schema' => 'inputs.schema.json#/$defs/SubmitDraftsInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/drafts/submit', 'status' => 201, 'response' => 'batch-submission.schema.json', 'draft' => true],
         'inputs.suggest-request.json' => ['schema' => 'inputs.schema.json#/$defs/SuggestRequestInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/suggestions', 'status' => 201, 'response' => self::RESULT, 'bearer' => true],
         'inputs.title.json' => ['schema' => 'inputs.schema.json#/$defs/TitleInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/title', 'status' => 200, 'response' => self::RESULT, 'bearer' => true],
-        'inputs.unlink-pull-request.json' => ['schema' => 'inputs.schema.json#/$defs/UnlinkPullRequestInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/unlink-pull-request', 'status' => 200, 'response' => self::RESULT, 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID], 'linked' => true],
+        'inputs.unlink-pull-request.json' => ['schema' => 'inputs.schema.json#/$defs/UnlinkPullRequestInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/unlink-pull-request', 'status' => 200, 'response' => self::RESULT, 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID], 'linked' => true, 'github' => true],
         'inputs.update-draft.json' => ['schema' => 'inputs.schema.json#/$defs/UpdateDraftInput', 'method' => 'PATCH', 'path' => '/api/v1/drafts/{draftId}', 'status' => 200, 'response' => 'draft.schema.json', 'draft' => true],
         'inputs.viewed-file.json' => ['schema' => 'inputs.schema.json#/$defs/ViewedFileInput', 'method' => 'PUT', 'path' => '/api/v1/reviews/{reviewId}/viewed-files', 'status' => 200, 'response' => 'lists.schema.json#/$defs/ViewedFiles'],
         'inputs.wont-do.json' => ['schema' => 'inputs.schema.json#/$defs/WontDoInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/wont-do', 'status' => 200, 'response' => self::RESULT],
     ];
 
     /**
-     * @param array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true, linked?: true, suggested?: true} $case
+     * @param array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true, linked?: true, suggested?: true, github?: true} $case
      */
     #[TestDox('Every request body fixture of docs/specs is accepted by its endpoint')]
     #[DataProvider('fixtures')]
@@ -118,14 +120,22 @@ final class InputFixturesTest extends WebTestCase
         $repositoryId = self::connectAndClone($client, 'ledger');
         $reviewId = (string) self::startReviewThroughApi($client, $repositoryId)['id'];
         [, $secret] = self::storeToken($user);
-        $firstRequest = isset($case['suggested'])
-            ? self::agentRequest($client, $secret, 'POST', "/api/v1/reviews/{$reviewId}/suggestions", ['title' => 'Round half cents up', 'body' => 'Round half cents up.'], 201)['request']
-            : self::openRequest($client, $reviewId);
+
+        if (isset($case['github'])) {
+            [$gitHubReviewId, $firstRequestId] = self::claimedGitHubRequest($client, $user, $secret);
+            $reviewId = (string) $gitHubReviewId;
+            $secondRequestId = (string) self::openRequest($client, $reviewId, null)['id'];
+        } else {
+            $firstRequestId = (string) (isset($case['suggested'])
+                ? self::agentRequest($client, $secret, 'POST', "/api/v1/reviews/{$reviewId}/suggestions", ['title' => 'Round half cents up', 'body' => 'Round half cents up.'], 201)['request']
+                : self::openRequest($client, $reviewId))['id'];
+            $secondRequestId = (string) self::openRequest($client, $reviewId)['id'];
+        }
         $ids = [
             self::FIXTURE_REPOSITORY_ID => $repositoryId,
             self::FIXTURE_REVIEW_ID => $reviewId,
-            self::FIXTURE_REQUEST_ID => (string) $firstRequest['id'],
-            self::FIXTURE_SECOND_REQUEST_ID => (string) self::openRequest($client, $reviewId)['id'],
+            self::FIXTURE_REQUEST_ID => $firstRequestId,
+            self::FIXTURE_SECOND_REQUEST_ID => $secondRequestId,
         ];
 
         foreach ($case['claimed'] ?? [] as $fixtureId) {
@@ -160,7 +170,7 @@ final class InputFixturesTest extends WebTestCase
     }
 
     /**
-     * @return iterable<string, array{string, array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true, linked?: true, suggested?: true}}>
+     * @return iterable<string, array{string, array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true, linked?: true, suggested?: true, github?: true}}>
      */
     public static function fixtures(): iterable
     {

@@ -55,7 +55,7 @@ final class PullRequestUrlTest extends KernelTestCase
         }
     }
 
-    #[TestDox('A local repository accepts any https URL')]
+    #[TestDox('A local repository takes any https URL as written, so a stored link of it can be unlinked')]
     public function testLocalRepositoryAcceptsAnyHttpsUrl(): void
     {
         $url = 'https://git.example.com/acme/billing/-/merge_requests/7';

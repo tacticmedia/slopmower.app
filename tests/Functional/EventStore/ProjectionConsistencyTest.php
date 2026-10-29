@@ -55,7 +55,7 @@ final class ProjectionConsistencyTest extends KernelTestCase
     public function testRebuildReproducesTheProjections(): void
     {
         $tenantId = self::enterNewTenant();
-        $reviewId = self::startReview(self::newRepository($tenantId));
+        $reviewId = self::startReview(self::newGitHubRepository($tenantId));
         $declined = self::declinedRequest($reviewId, self::fixedRequest($reviewId));
         self::submitBatch($reviewId, $declined);
         self::suggestions($reviewId);

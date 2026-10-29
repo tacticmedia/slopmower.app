@@ -30,7 +30,19 @@ trait CommandFixtures
 
     private static function newRepository(TenantId $tenantId, string $name = 'billing'): RepositoryId
     {
-        $repository = Repository::local($tenantId, RepositoryName::local($name), $name, new \DateTimeImmutable(self::TIME));
+        return self::persistRepository(Repository::local($tenantId, RepositoryName::local($name), $name, new \DateTimeImmutable(self::TIME)));
+    }
+
+    /**
+     * acme/billing, the GitHub repository 812345 of installation 5551, without an installation row and a clone.
+     */
+    private static function newGitHubRepository(TenantId $tenantId): RepositoryId
+    {
+        return self::persistRepository(Repository::gitHub($tenantId, RepositoryName::github('acme/billing'), 812345, 5551, true, new \DateTimeImmutable(self::TIME)));
+    }
+
+    private static function persistRepository(Repository $repository): RepositoryId
+    {
         self::entityManager()->persist($repository);
         self::entityManager()->flush();
         self::entityManager()->clear();

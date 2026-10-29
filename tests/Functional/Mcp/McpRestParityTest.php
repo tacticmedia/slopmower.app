@@ -9,6 +9,8 @@ use App\Domain\Actor\Actor;
 use App\Domain\Identity\RequestId;
 use App\Domain\Request\Command\Claim;
 use App\Domain\Request\Command\Reply;
+use App\Entity\User;
+use App\Tests\Support\Api\AgentApiFixtures;
 use App\Tests\Support\Api\ApiFixtures;
 use App\Tests\Support\Api\RequestApiFixtures;
 use App\Tests\Support\Api\ReviewApiFixtures;
@@ -16,6 +18,8 @@ use App\Tests\Support\Contract\JsonApiAssertions;
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Environment\EnvironmentVariables;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
+use App\Tests\Support\GitHub\GitHubPullRequests;
+use App\Tests\Support\GitHub\GitHubRows;
 use App\Tests\Support\Mcp\McpAssertions;
 use App\Tests\Support\Mcp\McpTestClient;
 use App\Tests\Support\Messenger\QueuedMessages;
@@ -31,9 +35,12 @@ use Symfony\Component\Clock\Test\ClockSensitiveTrait;
  */
 final class McpRestParityTest extends WebTestCase
 {
+    use AgentApiFixtures;
     use ApiFixtures;
     use ClockSensitiveTrait;
     use EnvironmentVariables;
+    use GitHubPullRequests;
+    use GitHubRows;
     use JsonApiAssertions;
     use LocalSources;
     use McpAssertions;
@@ -49,6 +56,8 @@ final class McpRestParityTest extends WebTestCase
 
     private McpTestClient $mcp;
 
+    private User $user;
+
     private string $secret;
 
     private string $reviewId;
@@ -62,17 +71,17 @@ final class McpRestParityTest extends WebTestCase
         $this->useTemporaryLocalSources();
         $this->newSource()->commit(self::codeFiles());
         $this->client = static::createClient();
-        $user = self::signIn($this->client);
+        $this->user = self::signIn($this->client);
         $this->reviewId = self::startCodeReview($this->client);
         $this->claimedRequestId = (string) self::openRequest($this->client, $this->reviewId, ['kind' => 'range', 'path' => self::INVOICE_TOTALS, 'range' => ['startLine' => 3, 'endLine' => 5]])['id'];
         $this->generalRequestId = (string) self::openRequest($this->client, $this->reviewId, null)['id'];
         $claimed = RequestId::fromString($this->claimedRequestId);
-        self::asAgent($user, static function (RequestCommands $commands, Actor $agent) use ($claimed): void {
+        self::asAgent($this->user, static function (RequestCommands $commands, Actor $agent) use ($claimed): void {
             $commands->execute(new Claim($claimed), $agent);
             $commands->execute(new Reply($claimed, 'Should the tax lines use `Money` too?', true), $agent);
         });
         self::requestCommand($this->client, $this->claimedRequestId, 'comments', ['body' => 'Yes, the tax lines too.']);
-        [, $this->secret] = self::storeToken($user);
+        [, $this->secret] = self::storeToken($this->user);
         $this->mcp = new McpTestClient($this->client, $this->secret);
     }
 
@@ -207,8 +216,6 @@ final class McpRestParityTest extends WebTestCase
             [$doneByMcp, $doneByRest, 'claim_request', ['id' => $doneByMcp], 'POST', 'claim', null],
             [$doneByMcp, $doneByRest, 'reply_to_request', ['id' => $doneByMcp, 'body' => 'Rounding too?', 'question' => true], 'POST', 'comments', ['body' => 'Rounding too?', 'question' => true]],
             [$doneByMcp, $doneByRest, 'link_commits', ['commitSha' => $commit, 'requestIds' => [$doneByMcp], 'note' => $note], 'POST', '/api/v1/commit-links', ['commitSha' => $commit, 'requestIds' => [$doneByRest], 'note' => $note]],
-            [$doneByMcp, $doneByRest, 'link_pull_request', ['url' => self::PULL_REQUEST, 'requestIds' => [$doneByMcp], 'note' => $note], 'POST', '/api/v1/pull-request-links', ['url' => self::PULL_REQUEST, 'requestIds' => [$doneByRest], 'note' => $note]],
-            [$doneByMcp, $doneByRest, 'unlink_pull_request', ['url' => self::PULL_REQUEST, 'requestId' => $doneByMcp], 'POST', 'unlink-pull-request', ['url' => self::PULL_REQUEST]],
             [$doneByMcp, $doneByRest, 'unlink_commit', ['commitSha' => $commit, 'requestId' => $doneByMcp], 'DELETE', "commits/{$commit}", null],
             [$doneByMcp, $doneByRest, 'mark_ready_for_review', ['id' => $doneByMcp, 'note' => $note], 'POST', 'ready', ['note' => $note]],
             [$releasedByMcp, $releasedByRest, 'claim_request', ['id' => $releasedByMcp], 'POST', 'claim', null],
@@ -224,6 +231,35 @@ final class McpRestParityTest extends WebTestCase
 
             self::assertSame(self::canonical($mcp, $mcpRequestId, $mcpRequestId), self::canonical($rest, $restRequestId, $mcpRequestId), $tool);
         }
+    }
+
+    #[TestDox('link_pull_request and unlink_pull_request return the same bodies as Q17 and Q19 on a GitHub repository')]
+    public function testPullRequestToolsEqualQ17AndQ19(): void
+    {
+        self::mockTime('2026-09-29 07:40:00');
+        [$reviewId, $byMcp] = self::claimedGitHubRequest($this->client, $this->user, $this->secret);
+        $byRest = (string) self::openRequest($this->client, (string) $reviewId, null)['id'];
+        self::agentRequest($this->client, $this->secret, 'POST', "/api/v1/requests/{$byRest}/claim");
+        $note = 'Opened for both requests.';
+        $writes = [
+            ['link_pull_request', ['url' => self::PULL_REQUEST, 'requestIds' => [$byMcp], 'note' => $note], '/api/v1/pull-request-links', ['url' => self::PULL_REQUEST, 'requestIds' => [$byRest], 'note' => $note]],
+            ['unlink_pull_request', ['url' => self::PULL_REQUEST, 'requestId' => $byMcp], "/api/v1/requests/{$byRest}/unlink-pull-request", ['url' => self::PULL_REQUEST]],
+        ];
+
+        foreach ($writes as [$tool, $arguments, $uri, $body]) {
+            $mcp = self::assertToolResult($this->mcp, $this->mcp->callTool($tool, $arguments), $tool);
+            $rest = self::assertApiResponse(self::bearerRequest($this->client, $this->secret, 'POST', $uri, $body), 200, self::TOOL_SCHEMAS[$tool]);
+
+            self::assertSame(self::canonical($mcp, $byMcp, $byMcp), self::canonical($rest, $byRest, $byMcp), $tool);
+        }
+    }
+
+    #[TestDox('link_pull_request on a local repository gives invalid_input on url')]
+    public function testLinkPullRequestOnALocalRepositoryGivesInvalidInput(): void
+    {
+        $error = self::assertToolError($this->mcp->callTool('link_pull_request', ['url' => self::PULL_REQUEST, 'requestIds' => [$this->claimedRequestId]]), 'invalid_input');
+
+        self::assertSame([['field' => 'url', 'message' => 'This repository has no pull requests.']], $error['details']['violations'] ?? null);
     }
 
     private function openFileRequest(): string

@@ -146,10 +146,10 @@ and read their whole thread, because the user rejected an earlier result.
      repository counts. Do not push.
 9. If you opened a pull request for the work, link it with
    `link_pull_request`: its URL and every request ID that it covers. Open one
-   only when the user or the repository's instructions ask for it. For a
-   GitHub repository the URL must be a pull request of that repository. While
-   the request is in progress, the proposal rule of step 4 applies as for
-   commits. You can also link it after step 10.
+   only when the user or the repository's instructions ask for it. The URL
+   must be a pull request of the GitHub repository. A local repository has no
+   pull requests. While the request is in progress, the proposal rule of step 4
+   applies as for commits. You can also link it after step 10.
 10. Call `mark_ready_for_review` with a note: what you changed and how you
     tested it. The server fetches once. If a linked commit is still missing, it
     refuses with `commits_not_available`.
@@ -253,7 +253,7 @@ A tool error is a result with `isError: true`. Its text is JSON:
 | `unauthorized` | The token is missing, wrong, revoked, or expired. It arrives as HTTP 401 from the server, not as a tool result. | Tell the user to check `SLOPMOWER_TOKEN` and the token in Settings. Stop. |
 | `forbidden` | The caller may not do this. The MCP tools do not return it. | Tell the user |
 | `not_found` | No such repository, review, or request for this token. A token for one repository sees only that repository. | Check the ID or name, then list again. If it is still missing, tell the user. |
-| `invalid_input` | The input failed a check, for example a blank body, a reason under 20 characters after trimming, requests from several reviews, a commit that is not linked, a pull request of another repository, an ambiguous SHA prefix, an anchor that the file at the review commit does not have, a title with a line break, or more than 500 pending suggestions in a review | Read `details.violations`, fix the input, and call again |
+| `invalid_input` | The input failed a check, for example a blank body, a reason under 20 characters after trimming, requests from several reviews, a commit that is not linked, a pull request of another repository or on a local repository, an ambiguous SHA prefix, an anchor that the file at the review commit does not have, a title with a line break, or more than 500 pending suggestions in a review | Read `details.violations`, fix the input, and call again |
 | `invalid_transition` | The status, the claim holder, the proposal state, or a title that is set does not allow the action | Call `get_request` and read `allowedActions`, `proposal`, and `details.claimedBy`. `set_request_title` on a request with a title: go on without it. A pending proposal or a pending suggestion: take the next request. You hold the request, and `proposal` is null or rejected: propose with `propose_solution`. Otherwise take the next request. |
 | `review_closed` | The user closed the review | Stop working on this review. Tell the user. Do not retry. |
 | `commits_not_available` | The commits in `details.pendingCommits` are not in the server's copy after one fetch | GitHub: push them. Local: make sure that they are on a branch of the connected repository. Then call `mark_ready_for_review` again. |
