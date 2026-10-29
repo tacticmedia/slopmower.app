@@ -12,7 +12,7 @@ Open **Requests** to see the requests of the review. Each row shows the status i
 - **Status** shows one status only. **Filters** has **Outdated** and **Suggestions**, the suggestions of the agent that wait for your decision. **Sort** orders the list by the last change (the default), by age, oldest first, or by path.
 - Type a path prefix and click **Filter** to show only the requests on files below it.
 
-The address of the page keeps the filters, so a reload or a bookmark shows the same list. When no request matches, **Clear the filters** shows the open requests again.
+The address of the page keeps the filters, so a reload or a bookmark shows the same list. When no request matches, **Clear the filters** shows the open requests again. A review without any request says **No requests yet.**
 
 ## Statuses
 

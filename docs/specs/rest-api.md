@@ -374,7 +374,7 @@ Example response, [fixtures/lists.commit-list.json](fixtures/lists.commit-list.j
 - **Request:** `POST /api/v1/repositories/{repositoryId}/reviews`
 - **Authentication:** S, B
 - **Body:** [`StartReviewInput`](schemas/inputs.schema.json), for example `{"ref":"main","title":null}`.
-  - `ref` defaults to the default branch.
+  - `ref` defaults to the default branch. The name of the default branch resolves that branch, also when a tag has the same name.
   - `title` defaults to `"<ref> @ <sha 12 chars>"`, or to `"<sha 12 chars>"` when `ref` is a full SHA of 40 or 64 characters. The `<ref>` part is cut so that the title has at most 200 characters.
 - **Success:** 201 [`Review`](schemas/review.schema.json) with `Location: /api/v1/reviews/{id}`.
 - **Errors:**
