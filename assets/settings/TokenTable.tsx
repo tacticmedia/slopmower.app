@@ -2,8 +2,10 @@ import { Button, ConfirmationDialog, Label, type LabelColorOptions, VisuallyHidd
 import { type Column, DataTable } from '@primer/react/experimental';
 import { useState } from 'react';
 import { useFetcher } from 'react-router';
+import type { ActionResult } from '../api/actionResult';
 import type { ApiToken, ApiTokenState } from '../api/types/api-token';
 import type { DateTime } from '../api/types/common';
+import { ActionErrorMessage } from '../layout/ActionErrorMessage';
 import type { SettingsIntent } from '../routes/settings/settingsData';
 import styles from './Settings.module.css';
 
@@ -22,7 +24,7 @@ type Props = {
 };
 
 export function TokenTable({ tokens, labelledBy, describedBy }: Props) {
-    const revoke = useFetcher();
+    const revoke = useFetcher<ActionResult>();
     const [revoking, setRevoking] = useState<ApiToken | null>(null);
 
     const columns: Column<ApiToken>[] = [
@@ -59,6 +61,7 @@ export function TokenTable({ tokens, labelledBy, describedBy }: Props) {
 
     return (
         <>
+            <ActionErrorMessage result={revoke.data} />
             {0 === tokens.length ? (
                 <p className={styles.emptyTable}>No tokens yet. Create one to connect an agent.</p>
             ) : (

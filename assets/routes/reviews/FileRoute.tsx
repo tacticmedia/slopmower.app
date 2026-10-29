@@ -133,7 +133,8 @@ export function FileRoute() {
                         Comment on file
                     </Button>
                 )}
-                <ViewedCheckbox path={content.path} viewed={viewedPaths.includes(content.path)} disabled={!commentable} />
+                {/* The route stays mounted across files, so the key drops the result of another file. */}
+                <ViewedCheckbox key={content.path} path={content.path} viewed={viewedPaths.includes(content.path)} disabled={!commentable} />
                 <RawActions content={content} text={text} />
             </FileHeader>
             {blame?.ignoreRevsFile && (

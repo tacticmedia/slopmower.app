@@ -1,6 +1,7 @@
-import { openFile } from './support/codeView';
+import { location, openFile } from './support/codeView';
 import { FakeReview } from './support/fakeReview';
-import { SMALL_FILE } from './support/files';
+import { SMALL_FILE, SYMBOL_FILE } from './support/files';
+import { apiError } from './support/mockApi';
 import { expect, test } from './support/test';
 
 const CHECKBOX = '[data-testid="file-header"] [data-testid="viewed-checkbox"]';
@@ -33,5 +34,19 @@ test.describe('Viewed', () => {
         await expect(page.locator(TREE_MARK)).toBeVisible();
 
         expect(api.callsTo('GET', '/api/v1/reviews/:reviewId/tree')).toHaveLength(treeReads);
+    });
+
+    test('A failed mark stays with its file and is gone after opening another file', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        api.on('PUT', '/api/v1/reviews/:reviewId/viewed-files', () => apiError(503, 'internal_error', 'The server is unavailable.'));
+        await openFile(page, review, SMALL_FILE);
+
+        await page.locator(CHECKBOX).click();
+        await expect(page.getByTestId('action-error')).toHaveText('The server is unavailable.');
+        await page.locator(`[data-testid="file-tree"] [data-path="${SYMBOL_FILE}"]`).click();
+        await expect.poll(() => location(page)).toBe(review.fileUrl(SYMBOL_FILE));
+
+        await expect(page.getByTestId('action-error')).toHaveCount(0);
+        api.takeProblems();
     });
 });

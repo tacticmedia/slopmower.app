@@ -34,17 +34,15 @@ export async function settingsLoader({ request }: LoaderFunctionArgs): Promise<S
 }
 
 /**
- * Answers a create with the secret or with the input failure, for the dialog, and a delete with an ActionResult. After
- * the account delete, /login loads as a new document. Other errors go to the error page.
+ * Answers a create with the secret or with the input failure, for the dialog, and a revoke or a delete with an
+ * ActionResult. After the account delete, /login loads as a new document. Other errors go to the error page.
  */
 export async function settingsAction({ request }: ActionFunctionArgs): Promise<CreateTokenResult | ActionResult | Response> {
     const submitted = (await request.json()) as SettingsIntent;
 
     switch (submitted.intent) {
         case 'revoke':
-            await apiWrite('DELETE', `/api/v1/tokens/${encodeURIComponent(submitted.tokenId)}`, undefined, request.signal);
-
-            return null;
+            return writeResult(() => apiWrite('DELETE', `/api/v1/tokens/${encodeURIComponent(submitted.tokenId)}`, undefined, request.signal));
         case 'delete-repository':
             return writeResult(() =>
                 apiWrite('DELETE', `/api/v1/repositories/${encodeURIComponent(submitted.repositoryId)}?confirm=${encodeURIComponent(submitted.confirm)}`, undefined, request.signal),

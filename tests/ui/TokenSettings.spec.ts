@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test';
 import { now, token } from './support/builders';
 import { FakeRepositories } from './support/fakeRepositories';
 import type { FakeTokens } from './support/fakeTokens';
-import type { MockApi } from './support/mockApi';
+import { apiError, type MockApi } from './support/mockApi';
 import { expect, test } from './support/test';
 
 const TOKEN_NAME = 'claude-code laptop';
@@ -133,5 +133,19 @@ test.describe('TokenSettings', () => {
 
         await expect(tokenRow(page, TOKEN_NAME)).toContainText('Revoked');
         expect(api.callsTo('DELETE', '/api/v1/tokens/:tokenId').map(({ params }) => params.tokenId)).toEqual([tokens.tokens[0]?.id]);
+    });
+
+    test('A failed revoke shows the error above the table and keeps the page', async ({ page, api }) => {
+        await openSettings(page, api);
+        await createToken(page, TOKEN_NAME);
+        await closeIssuedToken(page);
+        api.on('DELETE', '/api/v1/tokens/:tokenId', () => apiError(503, 'internal_error', 'The server is unavailable.'));
+
+        await tokenRow(page, TOKEN_NAME).getByRole('button', { name: 'Revoke' }).click();
+        await page.getByRole('alertdialog').getByRole('button', { name: 'Revoke' }).click();
+
+        await expect(page.getByTestId('action-error')).toHaveText('The server is unavailable.');
+        expect(await tokenCell(page, TOKEN_NAME, 'State')).toBe('Active');
+        api.takeProblems();
     });
 });
