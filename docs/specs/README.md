@@ -111,7 +111,7 @@ Each call consumes one token of every limiter that applies to it. The limits are
 |---|---|---|---|
 | `api_token` | Each call under `/api/v1` with a token, and each MCP `tools/call` | Token | 300 per minute, token bucket |
 | `api_user` | Each call under `/api/v1`, and each MCP `tools/call`: the session and all tokens of the user together | User | 1,200 per minute, token bucket |
-| `mcp_http` | Each HTTP request to `/_mcp` | Token | 600 per minute, token bucket |
+| `mcp_http` | Each HTTP request to `/_mcp` | User | 600 per minute, token bucket |
 | `sync_fetch` | Each synchronous fetch: [V1](rest-api.md#v1-start-a-review), [Q3](rest-api-requests.md#q3-get-a-request) with `at`, and [Q10](rest-api-requests.md#q10-mark-ready-for-review) | Repository | 10 per minute, token bucket |
 | `review_start` | Each [V1](rest-api.md#v1-start-a-review) | Tenant | 30 per hour, token bucket |
 
@@ -234,6 +234,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Review tour, decision D77: the endpoint A4, the input `PreferencesInput`, the open set `Tour`, and the property `preferences` of `Me` with the schema `Preferences`. All are additive. A4 records no event.
     - Plain-text summary, decision D80: without a title, `summary` is the plain text of the first non-blank line of the body, without Markdown syntax. It is a changed meaning of an existing field. The wire format does not change.
     - NUL bytes, F85: an input string with U+0000 gets 422 `invalid_input` in REST and -32602 in MCP, where it gave 500 `internal_error` or, for a name lookup, an empty result. `PullRequestUrl` excludes it too. It is tighter validation, so it is listed here.
+    - MCP transport limit and sync fetch wait, F86: `mcp_http` counts per user, not per token, so all tokens of a user share one bucket. A synchronous fetch answers `fetch_failed` after waiting 5 s for a running fetch, where it waited up to 60 s (D93). Both are tighter limits, so they are listed here.
 
 ## 9. Contract tests
 
