@@ -107,6 +107,13 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F89 | [Request state as jsonb](F89-request-state-as-jsonb.md) | Done 2026-10-29, [report](reports/F89.md) | ff85f40 | src 508 PHP / 34490 lines, 508 types; tests 344 PHP / 32455 lines; assets 188 TS / 11310 lines |
 | F90 | [One request command path](F90-one-request-command-path.md) | Done 2026-10-29, [report](reports/F90.md) | 55ef6ca | src 509 PHP / 34398 lines, 509 types; tests 344 PHP / 32455 lines; assets 188 TS / 11310 lines |
 | F91 | [MCP tools from one definition](F91-mcp-tools-from-one-definition.md) | Done 2026-10-29, [report](reports/F91.md) | c84a51b | src 510 PHP / 34683 lines, 510 types; tests 345 PHP / 32496 lines; assets 188 TS / 11310 lines |
+| F92 | [Known issues: pending drafts width and two stale docs](F92-pending-drafts-width-and-stale-docs.md) | Planned | | |
+| F93 | [Warning before leaving an unsaved comment](F93-unsaved-comment-warning.md) | Planned | | |
+| F94 | [File tree entries as links](F94-file-tree-links.md) | Planned | | |
+| F95 | [Markdown editor with Write and Preview](F95-markdown-editor.md) | Planned | | |
+| F96 | [Send one draft now](F96-send-one-draft-now.md) | Planned | | |
+| F97 | [Request type: change, question, rule](F97-request-type.md) | Planned | | |
+| F98 | [Comment groups](F98-comment-groups.md) | Planned | | |
 
 ## Candidates
 
@@ -188,6 +195,10 @@ The findings of the repository audit of 2026-10-28 are [F84](F84-audit-must-fixe
 - **Push to agents through Mercure.** The F73 watch polls V10 every 30 s. A Monitor on a Mercure SSE subscription would wake the agent within about 1 s. It needs a subscriber JWT for a bearer token, scoped to one review topic (`MercureAuthorizeController` is session-only), the actor in the `events` update so that the watch can skip the agent's own events, and the production hub of the candidate "Mercure protocol 1.0". From the F73 planning.
 - **Claude Code channel bridge.** A stdio MCP server in the plugin of [skill-plugin](../backlog/skill-plugin.md) that pushes each user action into the session as `notifications/claude/channel`, with a true wake and no poll in the agent. Channels are a research preview: a custom channel needs `--dangerously-load-development-channels`, and Team and Enterprise organizations block channels by default. From the F73 planning.
 - **Agent run per user action.** Slopmower fires a Claude Code routine or a GitHub Actions workflow when the user acts, so a new cloud session works on the request without a running agent. From the F73 planning.
+- **More of the GitHub comment editor.** List continuation on Enter, a pasted URL over a selection as a link, file upload, and mentions. The same editor for `NoteDialog`, `SubmitFeedbackOverlay`, and `CloseReviewDialog`. From the F95 planning.
+- **Type and group after submit.** Change the type or the group of an open request, with an event each. From the F97 and F98 planning.
+- **Group actions.** Verify, reopen, or approve the plan of every request of a group at once. With `requireApproval`, a group needs one approval per request today. From the F98 planning.
+- **Type filter on the request list.** Show only questions or rules. From the F97 planning.
 
 ## For Jan
 
