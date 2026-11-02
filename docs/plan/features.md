@@ -114,7 +114,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F96 | [Send one draft now](F96-send-one-draft-now.md) | Planned | | |
 | F97 | [Request type: change, question, rule](F97-request-type.md) | Planned | | |
 | F98 | [Comment groups](F98-comment-groups.md) | Planned | | |
-| F99 | [Source maps for browser reports](F99-source-maps.md) | Done 2026-11-03, [report](reports/F99.md) | | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 188 TS / 11342 lines |
+| F99 | [Source maps for browser reports](F99-source-maps.md) | Done 2026-11-03, [report](reports/F99.md) | 1439303a | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 188 TS / 11342 lines |
 | F100 | [Known issue: the npm and Composer audit gates are red](F100-audit-gates.md) | Planned | | |
 
 ## Candidates
