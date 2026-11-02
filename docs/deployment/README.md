@@ -83,6 +83,13 @@ Browser reports:
 - 10% of the sessions, and each session with an error, send a session replay. A replay masks all text and inputs, and blocks all images and media.
 - Each SPA page shows a "Report a Bug" button. A bug report holds the description, the name and email address when the user types them, the screenshot when the user adds one, and the page URL. Opening the form sends the replay of the session. Sentry shows the reports under User Feedback of the browser project.
 
+Source maps (D100): the image build uploads the source maps of the SPA to the browser project, so that Sentry shows a browser report with the source files and lines. Give the image build:
+
+- `--build-arg SENTRY_ORG=<organization slug>` and `--build-arg SENTRY_PROJECT=<browser project slug>`.
+- `--secret id=SENTRY_AUTH_TOKEN`, with the token in the variable `SENTRY_AUTH_TOKEN` of the build host. Create an organization auth token. The image and its history do not hold it.
+
+Without `SENTRY_PROJECT`, the build uploads nothing, and Sentry shows the frames of the minified bundle. With it, a missing `SENTRY_ORG` or token, or a failed upload, fails the build. During a Sentry outage, build without the arguments. The maps apply to the events of the build that uploaded them, so earlier events stay minified. The image serves no source map: the build deletes the maps after the upload.
+
 In both Sentry projects, keep the data scrubbing of the Security & Privacy settings on, and turn on the setting that stops storing IP addresses, as a second layer.
 
 ## Symbols service

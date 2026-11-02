@@ -15,9 +15,15 @@ docker build --target symbols --tag slopmower-symbols:<release> .
 | `symbols` | The `symbols` service on port 3000, as `node` |
 
 - The build installs the Composer packages without the dev packages, dumps `.env.local.php` from `.env`, warms the `prod` cache, and builds the UI with Vite.
+- To upload the source maps of the UI to Sentry, add the arguments of [Error reporting](README.md#error-reporting) to the `frankenphp_prod` build:
+
+  ```sh
+  docker build --target frankenphp_prod --tag slopmower:<release> --build-arg SENTRY_ORG=<organization slug> --build-arg SENTRY_PROJECT=<browser project slug> --secret id=SENTRY_AUTH_TOKEN .
+  ```
+
 - The image has no `tests/` and no `.env.dev`. From `docs/` it has only `docs/user/` and `docs/specs/schemas/`, which `/docs` serves.
 - PHP uses `php.ini-production` with `opcache.validate_timestamps = 0` and `zend.exception_ignore_args = On`. A changed PHP file needs a new image.
-- `make prod-check` builds the image, runs `lint:container`, and requests `/login`. The QA workflow runs it on each push.
+- `make prod-check` builds the image, runs `lint:container`, checks that `public/` holds no source map, and requests `/login`. The QA workflow runs it on each push.
 
 ## Environment
 

@@ -38,7 +38,10 @@ RUN npm ci --no-audit --no-fund && rm -rf /root/.npm
 COPY --link vite.config.ts tsconfig*.json ./
 COPY --link assets assets
 
-RUN npm run build
+# D100. The secret is not part of the cache key, the arguments are, so an upload build never reuses a build without them.
+ARG SENTRY_ORG
+ARG SENTRY_PROJECT
+RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN,env=SENTRY_AUTH_TOKEN npm run build
 
 FROM frankenphp_upstream AS frankenphp_base
 

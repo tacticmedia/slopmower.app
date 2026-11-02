@@ -109,7 +109,7 @@ ifneq ($(PACKAGE_JSON),)
 	@echo "Review the screenshots at http://localhost:$(or $(HTTP_PORT),8000)/_dev/screenshots"
 endif
 
-prod-check: ## Build the frankenphp_prod image, then lint its container and request /login from it
+prod-check: ## Build the frankenphp_prod image, then lint its container, check that it has no source map, and request /login from it
 	bin/prod-check
 
 act: ## .github/workflows/qa.yml with act, in var/act/workspace, on its own compose project and ports

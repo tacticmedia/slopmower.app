@@ -373,7 +373,7 @@ The session writes it into `reports/MNN.md`:
 
 ## Verified versions
 
-Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08; the `symfony/scheduler` row on 2026-10-13; the `sentry/*` row on 2026-10-15; the `tacticmedia/qa-bundle` and `@tacticmedia/qa-capture` rows on 2026-10-16; the `react-joyride` row on 2026-10-19; the `@sentry/react` row on 2026-10-28. `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
+Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08; the `symfony/scheduler` row on 2026-10-13; the `sentry/*` row on 2026-10-15; the `tacticmedia/qa-bundle` and `@tacticmedia/qa-capture` rows on 2026-10-16; the `react-joyride` row on 2026-10-19; the `@sentry/react` row on 2026-10-28; the `@sentry/vite-plugin` row on 2026-11-03. `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
 
 | Package | Version | Source |
 |---|---|---|
@@ -412,6 +412,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 | `@primer/behaviors` | 1.11.0, the version that `@primer/react` installs, for `isEditableElement()` and `isMacOS()` | https://www.npmjs.com/package/@primer/behaviors |
 | `react-joyride` | 3.2.0 of 2026-07-09, exact pin, MIT. Peers `react` and `react-dom` 16.8 to 19. ESM with types, no CSS. | https://www.npmjs.com/package/react-joyride |
 | `@sentry/react` | 11.9.0 of 2026-10-23, exact pin, MIT. Peers `react` 17 to 19 and `react-router` 6 to 8. Adds about 87 KB gzip to the entry chunk. | https://www.npmjs.com/package/@sentry/react |
+| `@sentry/vite-plugin` | 11.10.0 of 2026-10-28, exact pin, dev only, MIT, Node.js 20.19, 22.12, or 23.2 and later. It installs the CLI `sentry` 0.45.0, license FSL-1.1-Apache-2.0, and `glob` 13 and `minimatch`, which `npm audit` reports (F100). | https://www.npmjs.com/package/@sentry/vite-plugin |
 | `react-markdown`, `remark-gfm`, `vitest` | 10.1.0, 4.0.1, 5.0.2 | https://www.npmjs.com/package/react-markdown |
 | `@playwright/test`, `ajv`, `ajv-formats`, `@types/node` | 1.63.0, 8.20.0, 3.0.1, 24.19.1 | https://www.npmjs.com/package/@playwright/test |
 | `@tacticmedia/qa-capture` | 0.1.0, exact pin, dev only: the capture fixture of the journeys | https://www.npmjs.com/package/@tacticmedia/qa-capture |

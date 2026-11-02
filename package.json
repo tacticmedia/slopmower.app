@@ -30,6 +30,7 @@
     },
     "devDependencies": {
         "@playwright/test": "1.63.0",
+        "@sentry/vite-plugin": "11.10.0",
         "@tacticmedia/qa-capture": "0.1.0",
         "@types/node": "24.19.1",
         "@types/react": "19.3.0",

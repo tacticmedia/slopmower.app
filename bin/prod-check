@@ -1,5 +1,5 @@
 #!/bin/sh
-# make prod-check: builds the frankenphp_prod image, lints its container, and requests /login from it (D74).
+# make prod-check: builds the frankenphp_prod image, lints its container, checks that it has no source map (D100), and requests /login from it (D74).
 set -eu
 
 cd "$(dirname "$0")/.."
@@ -24,6 +24,12 @@ docker build --load --target frankenphp_prod --tag "$name" .
 set -- --env APP_SECRET=prod-check-secret-0123456789abcdef --env APP_PUBLIC_HOST=$public_host
 
 docker run --rm "$@" "$name" bin/console lint:container
+
+maps=$(docker run --rm "$name" find public -name '*.map')
+if [ -n "$maps" ]; then
+	echo "bin/prod-check: the image serves source maps: $maps" >&2
+	exit 1
+fi
 
 docker run --detach --name "$name" "$@" "$name" >/dev/null
 deadline=$(($(date +%s) + 120))
