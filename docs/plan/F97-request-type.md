@@ -22,7 +22,7 @@ Verified on 2026-11-03:
 
 Jan chose the three types and `AGENTS.md` on 2026-11-03.
 
-- D101: `RequestType` is an open set: `change` (default), `question`, `rule`.
+- D102: `RequestType` is an open set: `change` (default), `question`, `rule`.
   - `Draft.type` is a column. D2 takes `type`, default `change`. D3 takes `type`, and null keeps the value. A reply draft refuses a type.
   - Q2 takes `type`. Carry-over copies the type.
   - `request.opened` carries `type`; an event without it reads as `change`. Request, RequestSummary, and Draft show `type`.
@@ -39,7 +39,7 @@ F96, which changes the draft inputs and `DraftBox`.
 
 ## In scope
 
-- **Specs:** `common`, `request`, `request-summary`, `draft`, and `inputs` schemas; fixtures; D2, D3, Q2, Q3 in `rest-api-requests.md`; `mcp.md`; `mcp-tools.json`; the open sets and the amendments of `docs/specs/README.md`; D101.
+- **Specs:** `common`, `request`, `request-summary`, `draft`, and `inputs` schemas; fixtures; D2, D3, Q2, Q3 in `rest-api-requests.md`; `mcp.md`; `mcp-tools.json`; the open sets and the amendments of `docs/specs/README.md`; D102.
 - **Generated:** `src/Mcp/BundledSchemas.php` (`app:schema:bundle`).
 - **Back end:** a PHP enum `RequestType`, `Draft` with a migration (`make migration`), the inputs, `Open`, `RequestDecider`, `RequestOpenedEvent`, `RequestState`, `RequestReducer`, `CarryOverController`, the normalizers, `EnumContractTest`.
 - **SPA:** `assets/api/types` and `REQUEST_TYPES` in `contract-enums.test.ts`, `CommentBox`, `DraftBox`, `draftView.ts`, `RequestRow`, the request detail header, `fakeReview.ts`.

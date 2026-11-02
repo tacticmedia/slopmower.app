@@ -17,7 +17,7 @@ Verified on 2026-11-03:
 
 ## Decisions
 
-- D100: D5 takes `draftIds`, 1 to 500 unique draft IDs. With it, D5 submits only those drafts of the caller in this review, and the other drafts stay. An ID that is not such a draft gives 422 `invalid_input` on `draftIds`, and nothing changes. The events are those of a normal submit, a batch of one or more.
+- D101: D5 takes `draftIds`, 1 to 500 unique draft IDs. With it, D5 submits only those drafts of the caller in this review, and the other drafts stay. An ID that is not such a draft gives 422 `invalid_input` on `draftIds`, and nothing changes. The events are those of a normal submit, a batch of one or more.
 - "Send now" sends D5 with `draftIds` of that one draft, no summary, and no delivery.
 
 ## Depends on
@@ -26,7 +26,7 @@ F95, which changes `CommentBox`. This feature changes `DraftBox` and the draft i
 
 ## In scope
 
-- **Specs:** D5 in `rest-api-requests.md`, `SubmitDraftsInput` in `inputs.schema.json`, an input fixture, the amendment list of `docs/specs/README.md`, D100 in architecture section 11.
+- **Specs:** D5 in `rest-api-requests.md`, `SubmitDraftsInput` in `inputs.schema.json`, an input fixture, the amendment list of `docs/specs/README.md`, D101 in architecture section 11.
 - **Back end:** `SubmitDraftsInput`, `DraftController::submit`.
 - **SPA:** `DraftBox` ("Send now", hidden at once as Delete does), `commentIntent.ts`, `commentAction.ts`, `fakeReview.ts`, `assets/api/types`.
 - **User docs:** `docs/user/comment.md`.

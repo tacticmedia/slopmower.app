@@ -20,7 +20,7 @@ Verified on 2026-11-03:
 
 Jan chose the group label on separate requests on 2026-11-03, over one request with several anchors.
 
-- D102: `group` is a string of 1 to 80 characters after trim, without a line break, or null.
+- D103: `group` is a string of 1 to 80 characters after trim, without a line break, or null.
   - `Draft.group` is a column. D2 takes `group`. D3 replaces it as it replaces `title`.
   - Q2 takes `group`. Carry-over copies the group.
   - `request.opened` carries `group`; an event without it reads as null. Request, RequestSummary, and Draft show `group`.
@@ -36,7 +36,7 @@ F97, which changes the same inputs, events, and components.
 
 ## In scope
 
-- **Specs:** the `request`, `request-summary`, `draft`, `inputs`, and `lists` schemas; fixtures; D2, D3, Q1, Q2, Q3; `mcp-tools.json` (`list_requests`, `get_request`); `mcp.md`; the amendments of `docs/specs/README.md`; D102.
+- **Specs:** the `request`, `request-summary`, `draft`, `inputs`, and `lists` schemas; fixtures; D2, D3, Q1, Q2, Q3; `mcp-tools.json` (`list_requests`, `get_request`); `mcp.md`; the amendments of `docs/specs/README.md`; D103.
 - **Generated:** `src/Mcp/BundledSchemas.php`.
 - **Back end:** `Draft` with a migration, the inputs, `Open`, `RequestDecider`, `RequestOpenedEvent`, `RequestState`, `RequestReducer`, `CarryOverController`, `RequestQuery` (filter), `McpTools` (`list_requests`), the normalizers.
 - **SPA:** `assets/api/types`, `CommentBox`, `DraftBox`, `RequestRow`, the request detail sidebar, the request list query, `fakeReview.ts`.
