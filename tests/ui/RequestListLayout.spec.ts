@@ -157,6 +157,18 @@ test.describe('RequestListLayout', () => {
         }
     });
 
+    test('A pending draft has the left and right edges of the request list box', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        review.seedLines(SMALL_FILE, 3, 3, 'Is strict_types needed here?');
+        review.seedDraft({ kind: 'new_request', anchor: null, body: 'Wrap long lines.' });
+        await page.goto(`/reviews/${review.id}/requests`);
+
+        const draft = await page.locator('[data-testid="pending-drafts"] [data-testid="draft"]').boundingBox();
+        const box = await page.locator('[data-testid="request-list"]').locator('..').boundingBox();
+
+        expect([draft?.x, draft === null ? null : draft.x + draft.width]).toEqual([box?.x, box === null ? null : box.x + box.width]);
+    });
+
     test('A review without requests says so and shows no filter link', async ({ page, api }) => {
         const review = new FakeReview(api);
 

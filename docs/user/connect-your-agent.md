@@ -81,7 +81,7 @@ The agent changes no code. It opens one suggestion per finding, and you accept o
 
 To let the agent keep watching the review for your replies, ask it to do so. Claude Code then starts a watch that wakes the agent within 30 seconds of your reply, decision, or new request. The watch needs `curl` and `jq` on the agent's machine. Other agents check the review again after a pause.
 
-If you want a pull request for the work, ask the agent for one, or put the rule into the instructions of your repository, for example `CLAUDE.md` or `AGENTS.md`. The agent then links the pull request to its requests, and Slopmower shows the link on each request. For a GitHub repository, the pull request must belong to the reviewed repository.
+To get a pull request for the work, choose it in the **Submit feedback** dialog or when you approve a plan, as [Submit feedback](comment.md#submit-feedback) shows. With **Agent decides**, the agent opens one only when you ask for it, or when the instructions of your repository ask for it, for example `CLAUDE.md` or `AGENTS.md`. The agent links the pull request to its requests, and Slopmower shows the link on each request. For a GitHub repository, the pull request must belong to the reviewed repository.
 
 ## If something goes wrong
 

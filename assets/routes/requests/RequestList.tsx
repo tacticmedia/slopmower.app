@@ -2,12 +2,10 @@ import { Link } from '@primer/react';
 import { useMemo } from 'react';
 import { Link as RouterLink, useLoaderData, useRouteLoaderData } from 'react-router';
 import type { Draft } from '../../api/types/draft';
-import type { Me } from '../../api/types/me';
+import { DraftBox } from '../../comments/DraftBox';
 import type { DraftView } from '../../comments/draftView';
 import { HelpLink } from '../../layout/HelpLink';
 import { HELP } from '../../layout/helpLinks';
-import { ThreadList } from '../../comments/ThreadList';
-import type { ThreadView } from '../../comments/threadView';
 import { anchorHref, anchorLocation } from '../../requests/anchorLocation';
 import { RequestListHeader } from '../../requests/RequestListHeader';
 import { RequestRow } from '../../requests/RequestRow';
@@ -15,8 +13,6 @@ import shared from '../../requests/Requests.module.css';
 import type { ReviewData } from '../reviews/reviewData';
 import type { RequestListData } from './requestData';
 import styles from './RequestList.module.css';
-
-const NO_THREADS: readonly ThreadView[] = [];
 
 /**
  * Every pending draft of the caller. A reply names its request by its summary.
@@ -44,12 +40,11 @@ function pendingDraftViews(reviewId: string, drafts: readonly Draft[], { items, 
 export function RequestList() {
     const listData = useLoaderData<RequestListData>();
     const { reviewId, items } = listData;
-    const me = useRouteLoaderData<Me>('root');
     const reviewData = useRouteLoaderData<ReviewData>('review');
     const drafts = reviewData?.drafts;
     const pendingDrafts = useMemo(() => pendingDraftViews(reviewId, drafts ?? [], listData), [reviewId, drafts, listData]);
 
-    if (undefined === me || undefined === reviewData) {
+    if (undefined === reviewData) {
         throw new Error('The request list renders below the review route.');
     }
 
@@ -62,7 +57,9 @@ export function RequestList() {
                     <h2 id="pending-drafts" className={shared.sectionTitle}>
                         Pending drafts
                     </h2>
-                    <ThreadList threads={NO_THREADS} caller={me.caller} drafts={pendingDrafts} draftsEditable={commentable} />
+                    {pendingDrafts.map((draft) => (
+                        <DraftBox key={draft.key} draft={draft} editable={commentable} />
+                    ))}
                 </section>
             )}
             <div className={styles.box}>
