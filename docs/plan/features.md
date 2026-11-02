@@ -114,6 +114,8 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F96 | [Send one draft now](F96-send-one-draft-now.md) | Planned | | |
 | F97 | [Request type: change, question, rule](F97-request-type.md) | Planned | | |
 | F98 | [Comment groups](F98-comment-groups.md) | Planned | | |
+| F99 | [Source maps for browser reports](F99-source-maps.md) | In progress | | |
+| F100 | [Known issue: the npm and Composer audit gates are red](F100-audit-gates.md) | Planned | | |
 
 ## Candidates
 
@@ -121,7 +123,6 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 
 The findings of the repository audit of 2026-10-28 are [F84](F84-audit-must-fixes.md) to [F87](F87-smaller-audit-findings.md).
 
-- **Source maps for browser reports.** A browser report shows the stack of the minified bundle. `build.sourcemap: 'hidden'` and an upload with a Sentry auth token at deployment, for example `@sentry/vite-plugin`, give the source lines. From the F77 planning.
 - **Lazy Sentry in the SPA.** `@sentry/react` adds about 87 KB gzip to the entry chunk, also without `SENTRY_DSN_FRONTEND`. A dynamic import when the DSN is set keeps it out, but the router must then wait for it, because `wrapCreateBrowserRouter()` needs the client. From the F77 planning.
 - **Other git hosts.** A git remote with an uploaded SSH key or access token, GitHub Enterprise, GitLab, and Bitbucket. [D83](../architecture.md#11-decisions) lists the integration levels, the plug-in points of a new source, and the GitHub couplings that a new host must lift. The first host with merge requests also takes step 5 of the [declarative model](declarative-model.md#decision-on-steps-4-to-6), one link concept. From Jan on 2026-10-20 (F74).
 - **Batch thread read.** The file view makes one Q1 call per 200 requests under the path prefix and one Q3 call per request on the file, because only Q3 returns a thread. A batch read, for example `thread` on Q1 with an exact path, makes it one call. A Q1 filter by request IDs would also replace the Q3 reads of hidden reply drafts. Developer guide ledger, row "Front end".
@@ -199,6 +200,7 @@ The findings of the repository audit of 2026-10-28 are [F84](F84-audit-must-fixe
 - **Type and group after submit.** Change the type or the group of an open request, with an event each. From the F97 and F98 planning.
 - **Group actions.** Verify, reopen, or approve the plan of every request of a group at once. With `requireApproval`, a group needs one approval per request today. From the F98 planning.
 - **Type filter on the request list.** Show only questions or rules. From the F97 planning.
+- **Network errors in browser reports.** A `fetch()` that gets no response rejects with a `TypeError`, for example "Load failed" in Safari when the connection drops. In a route loader, `RouteError` then shows the error screen and reports the error to Sentry, although the code has no bug. `beforeSend` could drop it, and the error screen could offer a retry. From F99.
 
 ## For Jan
 
