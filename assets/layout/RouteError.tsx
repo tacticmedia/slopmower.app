@@ -2,7 +2,7 @@ import { Button, Heading, Link } from '@primer/react';
 import { captureException } from '@sentry/react';
 import { useEffect } from 'react';
 import { isRouteErrorResponse, Link as RouterLink, useRevalidator, useRouteError } from 'react-router';
-import { ApiError } from '../api/client';
+import { ApiError, isNetworkError } from '../api/client';
 import styles from './StatusPage.module.css';
 
 type ErrorDescription = {
@@ -22,6 +22,10 @@ function describeError(error: unknown): ErrorDescription {
         return 404 === error.status
             ? { title: 'Page not found', detail: 'No page exists at this address.', signedOut: false }
             : { title: `${error.status} ${error.statusText}`, detail: 'The page could not be shown.', signedOut: false };
+    }
+
+    if (isNetworkError(error)) {
+        return { title: 'Connection failed', detail: 'Slopmower did not answer. Check your connection and try again.', signedOut: false };
     }
 
     return { title: 'Something went wrong', detail: error instanceof Error ? error.message : 'An unexpected error occurred.', signedOut: false };

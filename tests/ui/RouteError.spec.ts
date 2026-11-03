@@ -4,7 +4,7 @@ import { apiError } from './support/mockApi';
 import { expect, test } from './support/test';
 
 test.describe('RouteError', () => {
-    test('Try again after a request without a response shows the screen', async ({ page, api }) => {
+    test('A request without a response shows "Connection failed", and Try again shows the screen', async ({ page, api }) => {
         new FakeRepositories(api).repositories.push(localRepository('kept-repository'));
         let aborted = false;
         await page.route(
@@ -20,7 +20,10 @@ test.describe('RouteError', () => {
         );
 
         await page.goto('/repositories');
-        await expect(page.getByTestId('route-error')).toContainText('Failed to fetch');
+        const routeError = page.getByTestId('route-error');
+        await expect(routeError.getByRole('heading')).toHaveText('Connection failed');
+        await expect(routeError).toContainText('Slopmower did not answer. Check your connection and try again.');
+        await expect(routeError).not.toContainText('Failed to fetch');
         await page.getByRole('button', { name: 'Try again' }).click();
 
         await expect(page.getByTestId('route-error')).toHaveCount(0);

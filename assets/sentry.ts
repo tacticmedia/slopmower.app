@@ -1,19 +1,12 @@
 import { feedbackIntegration, init, replayIntegration } from '@sentry/react';
 import { reactRouterBrowserTracingIntegration } from '@sentry/react/react-router';
-import { ApiError } from './api/client';
+import { ApiError, isNetworkError } from './api/client';
 
 const { sentryDsn, sentryEnvironment, release } = document.body.dataset;
 
-/** The `TypeError` messages of a `fetch()` without a response, in Chrome, Firefox, Safari 17, and Safari 16. */
-const NETWORK_ERROR_MESSAGES = new Set(['Failed to fetch', 'network error', 'NetworkError when attempting to fetch resource.', 'Load failed', 'The Internet connection appears to be offline.']);
-
-/** D86, D105. The SDK appends ` (<host>)` to a network error message. */
+/** D86, D105. */
 function isReported(error: unknown): boolean {
-    if (error instanceof ApiError) {
-        return error.status >= 500;
-    }
-
-    return !(error instanceof TypeError && NETWORK_ERROR_MESSAGES.has(error.message.replace(/ \([^()]+\)$/, '')));
+    return error instanceof ApiError ? error.status >= 500 : !isNetworkError(error);
 }
 
 // D86, D87. Runs before ./router, because wrapCreateBrowserRouter() needs the initialized client.

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import invalidInput from '../../docs/specs/fixtures/error.invalid-input.json';
 import meFixture from '../../docs/specs/fixtures/me.local-user.json';
-import { ApiError, apiGet, apiGetAllPages, apiWrite } from './client';
+import { ApiError, apiGet, apiGetAllPages, apiWrite, isNetworkError } from './client';
 
 type Fetch = (path: string, init: RequestInit) => Promise<Response>;
 type FetchCall = Parameters<Fetch>;
@@ -64,5 +64,30 @@ describe('ApiClientTest', () => {
 
         expect(page).toEqual({ items: [1, 2, 3], nextCursor: null });
         expect(fetchMock.mock.calls.map(([path]) => path)).toEqual(['/api/v1/repositories?limit=500', '/api/v1/repositories?limit=500&cursor=c%2B1']);
+    });
+});
+
+describe('NetworkErrorTest', () => {
+    it.each([
+        'Failed to fetch',
+        'Failed to fetch (slopmower.app)',
+        'network error',
+        'NetworkError when attempting to fetch resource.',
+        'NetworkError when attempting to fetch resource. (slopmower.app)',
+        'Load failed',
+        'Load failed (slopmower.app)',
+        'The Internet connection appears to be offline.',
+    ])('Counts the TypeError "%s" as a network error', (message) => {
+        expect(isNetworkError(new TypeError(message))).toBe(true);
+    });
+
+    it.each([
+        ['a failed dynamic import', new TypeError('Failed to fetch dynamically imported module: https://slopmower.app/build/CodeFile-BEw9BnZj.js')],
+        ['two host suffixes', new TypeError('Load failed (a) (b)')],
+        ['another TypeError', new TypeError("Cannot read properties of undefined (reading 'x')")],
+        ['an Error', new Error('Failed to fetch')],
+        ['an ApiError', new ApiError(500, 'internal_error', 'Failed to fetch', null)],
+    ])('Does not count %s as a network error', (_label, error) => {
+        expect(isNetworkError(error)).toBe(false);
     });
 });

@@ -24,6 +24,14 @@ export class ApiError extends Error {
     }
 }
 
+/** The `TypeError` messages of a `fetch()` without a response, in Chrome, Firefox, Safari 17, and Safari 16 (D105). */
+const NETWORK_ERROR_MESSAGES = new Set(['Failed to fetch', 'network error', 'NetworkError when attempting to fetch resource.', 'Load failed', 'The Internet connection appears to be offline.']);
+
+/** The Sentry SDK appends ` (<host>)` to the message. */
+export function isNetworkError(error: unknown): boolean {
+    return error instanceof TypeError && NETWORK_ERROR_MESSAGES.has(error.message.replace(/ \([^()]+\)$/, ''));
+}
+
 export function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> {
     return send<T>('GET', path, new Headers(), undefined, signal);
 }

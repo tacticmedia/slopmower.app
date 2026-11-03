@@ -81,7 +81,7 @@ test.describe('SentryReports', () => {
         );
 
         await page.goto('/repositories');
-        await expect(page.getByTestId('route-error')).toContainText('Failed to fetch');
+        await expect(page.getByTestId('route-error')).toContainText('Connection failed');
         await page.getByRole('link', { name: 'Go to the start page' }).click();
         await expect(page.getByTestId('route-error')).toContainText('The list failed.');
 
