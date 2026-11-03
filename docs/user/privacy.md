@@ -117,7 +117,7 @@ You can always:
 - delete a review, the data of a repository, or your account in Slopmower;
 - ask us at support@tacticmedia.com.au for a copy of your data, or for any other right below.
 
-We answer within one month [TO CONFIRM: response time for requests]. To protect your data, we can ask you to prove that the account is yours, for example with a sign-in.
+We answer within 30 days. To protect your data, we can ask you to prove that the account is yours, for example with a sign-in.
 
 ### European Economic Area and UK
 
@@ -145,7 +145,7 @@ Slopmower is not for children. You must be at least 16 years old to use it. We d
 
 ## Changes to this policy
 
-We publish each change on this page and change the date at the top. How we tell you about a material change: [TO CONFIRM: notice of material changes].
+We publish each change on this page and change the date at the top. We publish a material change 30 days before it applies.
 
 ## Contact
 

@@ -50,7 +50,7 @@ The law of South Australia, Australia, governs these terms. If you are a consume
 
 ## Changes to these terms
 
-We publish each change on this page and change the date at the top. How we tell you about a material change: [TO CONFIRM: notice of material changes]. When you continue to use Slopmower after a change, you accept the changed terms.
+We publish each change on this page and change the date at the top. We publish a material change 30 days before it applies. When you continue to use Slopmower after a change, you accept the changed terms.
 
 ## Contact
 
