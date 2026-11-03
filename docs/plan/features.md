@@ -120,7 +120,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F102 | [Retry on the error screen](F102-retry-on-the-error-screen.md) | Done 2026-11-03, [report](reports/F102.md) | 1049b069 | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 189 TS / 11454 lines |
 | F103 | [Network error text on the error screen](F103-network-error-text.md) | Done 2026-11-03, [report](reports/F103.md) | 77b7c275 | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 189 TS / 11459 lines |
 | F104 | [Known issues: request page dialogs, unsaved guard, symbols port race](F104-request-page-known-issues.md) | Done 2026-11-03, [report](reports/F104.md) | 62cc9801 | src 514 PHP / 35215 lines, 514 types; tests 348 PHP / 32991 lines; assets 193 TS / 11789 lines |
-| F105 | [Next request on the request page](F105-next-request.md) | Planned | | |
+| F105 | [Next request on the request page](F105-next-request.md) | Done 2026-11-03, [report](reports/F105.md) | 24e678c1 | src 514 PHP / 35215 lines, 514 types; tests 348 PHP / 32991 lines; assets 194 TS / 11910 lines |
 
 ## Candidates
 
@@ -205,6 +205,7 @@ The findings of the repository audit of 2026-10-28 are [F84](F84-audit-must-fixe
 - **Type and group after submit.** Change the type or the group of an open request, with an event each. From the F97 and F98 planning.
 - **Group actions.** Verify, reopen, or approve the plan of every request of a group at once. With `requireApproval`, a group needs one approval per request today. From the F98 planning.
 - **Type filter on the request list.** Show only questions or rules. From the F97 planning.
+- **Next request in Q3.** The request page loader reads Q3, then Q1 for the next request that waits for the user, so each load and live refresh of the page waits for two reads in a row. A `nextRequestId` on Q3 makes it one read; it is a contract change. From the F105 report.
 - **Annotation slot relayout drops the focus.** About 30 ms after a comment box opens in the code view, the view lays out the annotation slot again and hides its content for a frame, so the browser drops the focus. `focusWhenRendered` focuses the field again, but text typed in that frame is lost: 1 of 45 `RangeComment` runs at load 28 with 8 workers. Finding what makes `@pierre/diffs` lay the slot out again would remove the frame. From the F95 fix.
 
 ## For Jan
