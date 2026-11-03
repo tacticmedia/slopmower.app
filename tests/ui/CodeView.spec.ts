@@ -50,7 +50,7 @@ test.describe('CodeView', () => {
             const opened = page.context().waitForEvent('page');
             await file.click(click);
             const newPage = await opened;
-            expect(new URL(newPage.url()).pathname).toBe(review.fileUrl(SYMBOL_FILE));
+            await newPage.waitForURL((url) => url.pathname === review.fileUrl(SYMBOL_FILE));
             await newPage.close();
             expect(location(page)).toBe(review.fileUrl(SMALL_FILE));
         }
