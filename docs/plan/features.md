@@ -125,7 +125,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F107 | [Next-step line at the end of the conversation](F107-next-step-placement.md) | Done 2026-11-03, [report](reports/F107.md) | 64b2bdde | src 514 PHP / 35215 lines, 514 types; tests 348 PHP / 32991 lines; assets 194 TS / 11961 lines |
 | F108 | [Structured agent questions](F108-agent-questions.md) | Planned | | |
 | F109 | [Proposal decision next to the Reply button](F109-proposal-decision-next-to-reply.md) | Planned | | |
-| F110 | [Editor tabs and toolbar on one line](F110-editor-header-row.md) | Planned | | |
+| F110 | [Editor tabs and toolbar on one line](F110-editor-header-row.md) | Done 2026-11-03, [report](reports/F110.md) | | src 514 PHP / 35215 lines, 514 types; tests 348 PHP / 32991 lines; assets 194 TS / 11997 lines |
 
 ## Candidates
 

@@ -29,7 +29,7 @@ When lines are selected, Tab also reaches the **+** on the last selected line. E
 
 The comment box receives the focus. Type your comment. Comments use GitHub-flavoured Markdown. Press Ctrl+Enter (Cmd+Enter on macOS) to click its submit button, for example **Add comment** or **Reply**. In a box with **Cancel**, Escape cancels it.
 
-The toolbar above the text field adds Markdown: heading, bold, italic, quote, code, link, bulleted list, numbered list, and task list. A button formats the selected text, or adds the syntax at the cursor. Undo removes the change. **Preview** shows the comment as it will look, and **Write** shows the text again. When you select lines, Tab indents them by 2 spaces and Shift+Tab removes the indentation. Without a selection, Tab moves to the next control. [Keyboard shortcuts](keyboard-shortcuts.md) lists the formatting shortcuts.
+The toolbar next to the **Write** and **Preview** tabs adds Markdown: heading, bold, italic, quote, code, link, bulleted list, numbered list, and task list. A button formats the selected text, or adds the syntax at the cursor. Undo removes the change. **Preview** shows the comment as it will look, and **Write** shows the text again. When you select lines, Tab indents them by 2 spaces and Shift+Tab removes the indentation. Without a selection, Tab moves to the next control. [Keyboard shortcuts](keyboard-shortcuts.md) lists the formatting shortcuts.
 
 Every comment box of a new request has the checkbox **Ask for a plan first**. It is checked by default, so the agent proposes a plan before it commits. See [Ask for a plan first](requests.md#ask-for-a-plan-first).
 

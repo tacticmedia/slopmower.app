@@ -1,8 +1,8 @@
 import '@github/markdown-toolbar-element';
 import { BoldIcon, CodeIcon, HeadingIcon, type Icon, ItalicIcon, LinkIcon, ListOrderedIcon, ListUnorderedIcon, QuoteIcon, TasklistIcon } from '@primer/octicons-react';
 import { ActionBar, Textarea } from '@primer/react';
-import { UnderlinePanels } from '@primer/react/experimental';
-import { type DetailedHTMLProps, type HTMLAttributes, type KeyboardEvent, lazy, type RefObject, Suspense, useRef } from 'react';
+import { Tabs, useTab, useTabList, useTabPanel } from '@primer/react/experimental';
+import { type DetailedHTMLProps, type HTMLAttributes, type KeyboardEvent, lazy, type ReactNode, type RefObject, Suspense, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { isPressed, type ModShortcut } from '../layout/modShortcut';
 import { indentLines } from './indentLines';
@@ -93,15 +93,21 @@ export function MarkdownEditor({ id, value, onChange, preview, onPreviewChange, 
 
     return (
         <div ref={editor} onKeyDown={pressKey} className={styles.editor}>
-            <UnderlinePanels value={preview ? 'preview' : 'write'} onChange={({ value: tab }) => onPreviewChange('preview' === tab)}>
-                <UnderlinePanels.Tab value="write">Write</UnderlinePanels.Tab>
-                <UnderlinePanels.Tab value="preview">Preview</UnderlinePanels.Tab>
-                <UnderlinePanels.Panel value="write">
-                    <ActionBar aria-label="Formatting tools" size="small" flush className={styles.toolbar}>
-                        {FORMATS.map(({ label, icon, tag }) => (
-                            <ActionBar.IconButton key={tag} icon={icon} aria-label={label} disabled={readOnly} onClick={() => format(tag)} />
-                        ))}
-                    </ActionBar>
+            <Tabs value={preview ? 'preview' : 'write'} onValueChange={({ value: tab }) => onPreviewChange('preview' === tab)}>
+                <div className={styles.header}>
+                    <EditorTabList>
+                        <EditorTab value="write" label="Write" />
+                        <EditorTab value="preview" label="Preview" />
+                    </EditorTabList>
+                    {!preview && (
+                        <ActionBar aria-label="Formatting tools" size="small" flush className={styles.toolbar}>
+                            {FORMATS.map(({ label, icon, tag }) => (
+                                <ActionBar.IconButton key={tag} icon={icon} aria-label={label} disabled={readOnly} onClick={() => format(tag)} />
+                            ))}
+                        </ActionBar>
+                    )}
+                </div>
+                <EditorPanel value="write">
                     <markdown-toolbar ref={toolbar} for={id} hidden>
                         {FORMATS.map(({ tag: Tag }) => (
                             <Tag key={Tag} />
@@ -120,8 +126,8 @@ export function MarkdownEditor({ id, value, onChange, preview, onPreviewChange, 
                         rows={4}
                         readOnly={readOnly}
                     />
-                </UnderlinePanels.Panel>
-                <UnderlinePanels.Panel value="preview" className={styles.preview}>
+                </EditorPanel>
+                <EditorPanel value="preview" className={styles.preview}>
                     {preview &&
                         ('' === value.trim() ? (
                             <p className={styles.empty}>Nothing to preview</p>
@@ -130,8 +136,38 @@ export function MarkdownEditor({ id, value, onChange, preview, onPreviewChange, 
                                 <MarkdownBody markdown={value} />
                             </Suspense>
                         ))}
-                </UnderlinePanels.Panel>
-            </UnderlinePanels>
+                </EditorPanel>
+            </Tabs>
+        </div>
+    );
+}
+
+function EditorTabList({ children }: { children: ReactNode }) {
+    const { tabListProps } = useTabList<HTMLDivElement>({ 'aria-label': 'Editor' });
+
+    return (
+        <div {...tabListProps} className={styles.tabs}>
+            {children}
+        </div>
+    );
+}
+
+function EditorTab({ value, label }: { value: string; label: string }) {
+    const { tabProps } = useTab<HTMLButtonElement>({ value });
+
+    return (
+        <button type="button" {...tabProps} className={styles.tab}>
+            <span data-content={label}>{label}</span>
+        </button>
+    );
+}
+
+function EditorPanel({ value, className, children }: { value: string; className?: string; children: ReactNode }) {
+    const { tabPanelProps } = useTabPanel<HTMLDivElement>({ value });
+
+    return (
+        <div {...tabPanelProps} className={className}>
+            {children}
         </div>
     );
 }

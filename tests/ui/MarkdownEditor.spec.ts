@@ -32,6 +32,16 @@ test.describe('MarkdownEditor', () => {
         await expect(field).toHaveValue('**word**');
     });
 
+    test('The tabs and the formatting buttons share one row', async ({ page, api }) => {
+        await openCommentBox(page, api);
+
+        const write = await tab(page, 'Write').boundingBox();
+        const bold = await page.locator(BOX).getByRole('button', { name: 'Bold', exact: true }).boundingBox();
+
+        expect(Math.abs((write?.y ?? 0) + (write?.height ?? 0) / 2 - ((bold?.y ?? 0) + (bold?.height ?? 0) / 2))).toBeLessThan(4);
+        expect(bold?.x ?? 0).toBeGreaterThan(write?.x ?? 0);
+    });
+
     test('Tab with a selection over 2 lines indents both, and Shift+Tab dedents them', async ({ page, api }) => {
         const field = await openCommentBox(page, api);
         await field.fill('one\ntwo');
