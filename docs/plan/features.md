@@ -118,7 +118,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F100 | [Known issue: the npm and Composer audit gates are red](F100-audit-gates.md) | Done 2026-11-03, [report](reports/F100.md) | 2473b8af | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 189 TS / 11424 lines |
 | F101 | [Network errors in browser reports](F101-network-errors.md) | Done 2026-11-03, [report](reports/F101.md) | 5986b58e | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 189 TS / 11446 lines |
 | F102 | [Retry on the error screen](F102-retry-on-the-error-screen.md) | Done 2026-11-03, [report](reports/F102.md) | 1049b069 | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 189 TS / 11454 lines |
-| F103 | [Network error text on the error screen](F103-network-error-text.md) | In progress | | |
+| F103 | [Network error text on the error screen](F103-network-error-text.md) | Done 2026-11-03, [report](reports/F103.md) | 77b7c275 | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 189 TS / 11459 lines |
 
 ## Candidates
 
