@@ -183,7 +183,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
    - new endpoints and tools;
    - new optional input fields or query parameters whose absence keeps the old behaviour;
    - new response properties;
-   - new values in **open** sets: `Action`, `EventType`, `ThreadEntryType`, `ErrorCode`, `SymbolKind`, `UsageLimit`, `Tour`, `Workspace`, `language`, the live-update `type`, and the search hit `kind`;
+   - new values in **open** sets: `Action`, `EventType`, `ThreadEntryType`, `ErrorCode`, `SymbolKind`, `UsageLimit`, `Tour`, `Workspace`, `RequestType`, `language`, the live-update `type`, and the search hit `kind`;
    - new error codes for new situations;
    - relaxed validation, for example higher limits;
    - new headers.
@@ -239,6 +239,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Delivery choices, decision D85: the properties `delivery` and `capabilities` of `Review` and `Request`, the schemas `Delivery`, `DeliveryInput`, and `Capabilities`, the open set `Workspace`, the optional inputs `delivery` of D5 and `pullRequest` of Q15, and the payload fields `delivery` of `batch.submitted` and `pullRequest` of `request.proposal_approved`, read as null when missing. All are additive. The API `Event` does not change.
     - MCP transport limit and sync fetch wait, F86: `mcp_http` counts per user, not per token, so all tokens of a user share one bucket. A synchronous fetch answers `fetch_failed` after waiting 5 s for a running fetch, where it waited up to 60 s (D93). Both are tighter limits, so they are listed here.
     - One draft now, decision D101: the optional input `draftIds` of D5. It is additive. Without it, D5 submits every draft of the caller.
+    - Request types, decision D102: the open set `RequestType`, the property `type` of `Request`, `RequestSummary`, and `Draft`, and the optional input `type` of Q2, D2, and D3. All are additive. `request.opened` has the payload field `type`, read as `change` when missing, so stored events need no change.
 
 ## 9. Contract tests
 

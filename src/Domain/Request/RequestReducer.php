@@ -161,6 +161,7 @@ final class RequestReducer
             requireApproval: $event->requireApproval,
             suggestion: ActorKind::Agent === $recorded->actor->kind ? SuggestionState::Pending : null,
             title: $event->title,
+            type: $event->type,
         )->with(self::tracking($recorded));
     }
 

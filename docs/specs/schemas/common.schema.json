@@ -258,6 +258,17 @@
         }
       ],
       "description": "Open set. Where the agent commits: current_branch, the checked-out branch; new_branch, one branch per review that the agent names; worktree, a git worktree with its own branch."
+    },
+    "RequestType": {
+      "anyOf": [
+        {
+          "enum": ["change", "question", "rule"]
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "Open set. What the user asks for: change, a code change; question, an answer without a code change; rule, a rule that the agent adds to AGENTS.md and follows from then on. Set when the request opens; it does not change after that."
     }
   }
 }

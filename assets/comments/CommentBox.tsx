@@ -1,7 +1,9 @@
-import { Button, Checkbox, FormControl, TextInput } from '@primer/react';
+import { Button, Checkbox, FormControl, Select, TextInput } from '@primer/react';
 import { InlineMessage } from '@primer/react/experimental';
 import { type FormEvent, type KeyboardEvent, type Ref, useEffect, useId, useImperativeHandle, useRef, useState } from 'react';
+import { REQUEST_TYPES, type RequestType } from '../api/types/common';
 import { isPressed, type ModShortcut } from '../layout/modShortcut';
+import { REQUEST_TYPE_NAMES } from '../requests/RequestTypeLabel';
 import styles from './CommentBox.module.css';
 import { MarkdownEditor } from './MarkdownEditor';
 import { useUnsavedComment } from './UnsavedCommentGuard';
@@ -14,7 +16,7 @@ const SUBMIT_SHORTCUT: ModShortcut = { key: 'Enter', shift: false };
 export const TITLE_MAX_CHARACTERS = 200;
 
 /** `title` is absent without a title field or when the field is blank, so Q2, D2, and D3 get no `title` key. */
-export type CommentText = { title?: string; body: string; requireApproval: boolean };
+export type CommentText = { title?: string; body: string; requireApproval: boolean; type: RequestType };
 
 export type CommentBoxHandle = {
     /** Appends the text as a Markdown quote and focuses the field. */
@@ -29,11 +31,12 @@ type Props = {
     submitLabel: string;
     /**
      * False when the submit was not accepted, for example while another write runs. `requireApproval` is the "Ask for a
-     * plan first" checkbox, false without it.
+     * plan first" checkbox, false without it and for a question. `type` is the "Type" select, change without it.
      */
     onSubmit(text: CommentText): boolean;
-    /** Shows the "Ask for a plan first" checkbox of a new request, with this initial state. */
+    /** Shows the "Type" select and the "Ask for a plan first" checkbox of a new request, with this initial state. */
     askForPlan?: boolean;
+    initialType?: RequestType;
     /** The box opens a request: a "Title" field and a "Description" text field. */
     titled?: boolean;
     onCancel?: () => void;
@@ -57,6 +60,7 @@ export function CommentBox({
     submitLabel,
     onSubmit,
     askForPlan,
+    initialType = 'change',
     titled = false,
     onCancel,
     initialTitle = '',
@@ -70,10 +74,12 @@ export function CommentBox({
     const [title, setTitle] = useState(initialTitle);
     const [body, setBody] = useState(initialBody);
     const [requireApproval, setRequireApproval] = useState(askForPlan ?? false);
+    const [type, setType] = useState(initialType);
     const [sent, setSent] = useState(false);
     const [preview, setPreview] = useState(false);
     const textarea = useRef<HTMLTextAreaElement>(null);
     const editorId = useId();
+    const typeId = useId();
     useUnsavedComment(!sent && (initialTextSaved ? title !== initialTitle || body !== initialBody : '' !== title.trim() || '' !== body.trim()));
 
     if (sent && !busy) {
@@ -106,7 +112,7 @@ export function CommentBox({
 
     const send = (): void => {
         const givenTitle = title.trim();
-        if ('' !== body.trim() && !busy && onSubmit({ ...('' === givenTitle ? {} : { title: givenTitle }), body, requireApproval })) {
+        if ('' !== body.trim() && !busy && onSubmit({ ...('' === givenTitle ? {} : { title: givenTitle }), body, requireApproval: 'question' !== type && requireApproval, type })) {
             setSent(true);
         }
     };
@@ -175,10 +181,26 @@ export function CommentBox({
             )}
             <div className={styles.actions}>
                 {undefined !== askForPlan && (
-                    <FormControl className={styles.askForPlan} disabled={busy}>
-                        <Checkbox checked={requireApproval} onChange={(event) => setRequireApproval(event.target.checked)} />
-                        <FormControl.Label>Ask for a plan first</FormControl.Label>
-                    </FormControl>
+                    <div className={styles.requestOptions}>
+                        <span className={styles.type}>
+                            <label htmlFor={typeId} className={styles.typeLabel}>
+                                Type
+                            </label>
+                            <Select id={typeId} value={type} onChange={(event) => setType(event.target.value)} disabled={busy}>
+                                {REQUEST_TYPES.map((known) => (
+                                    <Select.Option key={known} value={known}>
+                                        {REQUEST_TYPE_NAMES[known]}
+                                    </Select.Option>
+                                ))}
+                            </Select>
+                        </span>
+                        {'question' !== type && (
+                            <FormControl disabled={busy}>
+                                <Checkbox checked={requireApproval} onChange={(event) => setRequireApproval(event.target.checked)} />
+                                <FormControl.Label>Ask for a plan first</FormControl.Label>
+                            </FormControl>
+                        )}
+                    </div>
                 )}
                 {undefined !== onCancel && (
                     <Button onClick={onCancel} disabled={busy}>

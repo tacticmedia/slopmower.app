@@ -49,7 +49,7 @@ test.describe('MarkdownEditor', () => {
 
         await page.keyboard.press('Tab');
 
-        await expect(page.locator(BOX).getByRole('checkbox', { name: 'Ask for a plan first' })).toBeFocused();
+        await expect(page.locator(BOX).getByRole('combobox', { name: 'Type' })).toBeFocused();
         await expect(field).toHaveValue('one');
     });
 

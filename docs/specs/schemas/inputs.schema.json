@@ -130,6 +130,18 @@
           "type": ["boolean", "null"],
           "default": false,
           "description": "\"Ask for a plan first\". Q18 changes it later."
+        },
+        "type": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/RequestType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "change",
+          "description": "Absent or null: change. It does not change after the request opens. An unknown value answers 422."
         }
       }
     },
@@ -398,6 +410,18 @@
           "type": ["boolean", "null"],
           "default": false,
           "description": "new_request only. Absent or null: false."
+        },
+        "type": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/RequestType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "change",
+          "description": "new_request only. Absent or null: change. An unknown value answers 422."
         }
       },
       "allOf": [
@@ -439,6 +463,9 @@
               },
               "requireApproval": {
                 "type": "null"
+              },
+              "type": {
+                "type": "null"
               }
             }
           }
@@ -466,6 +493,17 @@
         "requireApproval": {
           "type": ["boolean", "null"],
           "description": "new_request drafts only; a reply draft answers 422. Absent or null keeps the value."
+        },
+        "type": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/RequestType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "new_request drafts only; a reply draft answers 422. Absent or null keeps the value. An unknown value answers 422."
         }
       }
     },

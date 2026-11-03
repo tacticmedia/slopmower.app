@@ -14,6 +14,7 @@ import type {
     PullRequestState,
     PullRequestUrl,
     RepoPath,
+    RequestType,
     Resolution,
     ReviewState,
     SuggestionState,
@@ -63,6 +64,7 @@ export type Request = {
     lastEventSeq: EventSeq;
     carriedFrom: CarriedFrom | null;
     requireApproval: boolean;
+    type: RequestType;
     suggestion: SuggestionState | null;
     proposal: Proposal | null;
     body: Markdown;

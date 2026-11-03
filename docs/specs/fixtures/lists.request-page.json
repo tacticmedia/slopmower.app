@@ -45,6 +45,7 @@
       "lastEventSeq": 1830,
       "carriedFrom": null,
       "requireApproval": false,
+      "type": "change",
       "suggestion": null,
       "proposal": null
     },
@@ -85,6 +86,7 @@
       "lastEventSeq": 1831,
       "carriedFrom": null,
       "requireApproval": false,
+      "type": "change",
       "suggestion": null,
       "proposal": null
     }

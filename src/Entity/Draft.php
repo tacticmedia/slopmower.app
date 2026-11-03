@@ -9,6 +9,7 @@ use App\Domain\Anchor\Anchor;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Identity\DraftId;
 use App\Domain\Identity\TenantId;
+use App\Domain\Request\RequestType;
 use App\Repository\DraftRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -57,13 +58,17 @@ class Draft implements TenantOwned
     #[ORM\Column(options: ['default' => false])]
     private bool $requireApproval;
 
+    /** Always change for a reply. */
+    #[ORM\Column(enumType: RequestType::class, options: ['default' => 'change'])]
+    private RequestType $type;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
-    private function __construct(User $user, Review $review, ?Anchor $anchor, ?ChangeRequest $request, ?string $title, string $body, bool $requireApproval, \DateTimeImmutable $now)
+    private function __construct(User $user, Review $review, ?Anchor $anchor, ?ChangeRequest $request, ?string $title, string $body, bool $requireApproval, RequestType $type, \DateTimeImmutable $now)
     {
         if (!$review->getTenantId()->equals($user->getTenantId())) {
             throw new \LogicException('The review belongs to another tenant.');
@@ -79,6 +84,7 @@ class Draft implements TenantOwned
         $this->title = self::trimmed($title);
         $this->body = $body;
         $this->requireApproval = $requireApproval;
+        $this->type = $type;
         $this->createdAt = self::storedTime($now);
         $this->updatedAt = $this->createdAt;
     }
@@ -87,24 +93,25 @@ class Draft implements TenantOwned
      * @param Anchor|null $anchor Captured at the review commit. Null for a general request.
      * @param string|null $title  Stored trimmed
      */
-    public static function newRequest(User $user, Review $review, ?Anchor $anchor, ?string $title, string $body, bool $requireApproval, \DateTimeImmutable $now): self
+    public static function newRequest(User $user, Review $review, ?Anchor $anchor, ?string $title, string $body, bool $requireApproval, RequestType $type, \DateTimeImmutable $now): self
     {
-        return new self($user, $review, $anchor, null, $title, $body, $requireApproval, $now);
+        return new self($user, $review, $anchor, null, $title, $body, $requireApproval, $type, $now);
     }
 
     public static function reply(User $user, ChangeRequest $request, string $body, \DateTimeImmutable $now): self
     {
-        return new self($user, $request->getReview(), null, $request, null, $body, false, $now);
+        return new self($user, $request->getReview(), null, $request, null, $body, false, RequestType::Change, $now);
     }
 
     /**
      * Replaces the title and the body together, so a null title removes the title.
      *
-     * @param bool|null $requireApproval Null keeps the value
+     * @param bool|null        $requireApproval Null keeps the value
+     * @param RequestType|null $type            Null keeps the value
      *
-     * @throws InvalidInput For a reply that gets a title or a requireApproval
+     * @throws InvalidInput For a reply that gets a title, a requireApproval, or a type
      */
-    public function edit(?string $title, string $body, ?bool $requireApproval, \DateTimeImmutable $now): void
+    public function edit(?string $title, string $body, ?bool $requireApproval, ?RequestType $type, \DateTimeImmutable $now): void
     {
         if (null !== $title && DraftKind::Reply === $this->kind) {
             throw InvalidInput::field('title', 'Only a new request has a title.');
@@ -114,9 +121,14 @@ class Draft implements TenantOwned
             throw InvalidInput::field('requireApproval', 'Only a new request asks for a plan first.');
         }
 
+        if (null !== $type && DraftKind::Reply === $this->kind) {
+            throw InvalidInput::field('type', 'Only a new request has a type.');
+        }
+
         $this->title = self::trimmed($title);
         $this->body = $body;
         $this->requireApproval = $requireApproval ?? $this->requireApproval;
+        $this->type = $type ?? $this->type;
         $this->updatedAt = self::storedTime($now);
     }
 
@@ -174,6 +186,11 @@ class Draft implements TenantOwned
     public function requiresApproval(): bool
     {
         return $this->requireApproval;
+    }
+
+    public function getType(): RequestType
+    {
+        return $this->type;
     }
 
     public function getCreatedAt(): \DateTimeImmutable

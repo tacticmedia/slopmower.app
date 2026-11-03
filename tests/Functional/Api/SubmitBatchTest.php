@@ -16,6 +16,8 @@ use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Environment\EnvironmentVariables;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
 use App\Tests\Support\Live\PublishedUpdates;
+use App\Tests\Support\Mcp\McpAssertions;
+use App\Tests\Support\Mcp\McpTestClient;
 use App\Tests\Support\Messenger\QueuedMessages;
 use App\Tests\Support\Source\LocalSources;
 use Doctrine\DBAL\Connection;
@@ -33,6 +35,7 @@ final class SubmitBatchTest extends WebTestCase
     use EnvironmentVariables;
     use JsonApiAssertions;
     use LocalSources;
+    use McpAssertions;
     use PublishedUpdates;
     use QueuedMessages;
     use RequestApiFixtures;
@@ -103,6 +106,20 @@ final class SubmitBatchTest extends WebTestCase
         $submission = self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts/submit"), 201, 'batch-submission.schema.json');
 
         self::assertSame([true], array_column($submission['openedRequests'], 'requireApproval'));
+    }
+
+    #[TestDox('A draft with a type opens a request of that type in Q3 and get_request')]
+    public function testDraftOpensRequestOfItsType(): void
+    {
+        self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts", ['kind' => 'new_request', 'body' => 'Why float?', 'type' => 'question']), 201, 'draft.schema.json');
+        [, $secret] = self::storeToken($this->user);
+
+        $submission = self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts/submit"), 201, 'batch-submission.schema.json');
+        $requestId = (string) $submission['openedRequests'][0]['id'];
+        $mcp = new McpTestClient($this->client, $secret);
+        $fetched = self::assertToolResult($mcp, $mcp->callTool('get_request', ['id' => $requestId]), 'get_request');
+
+        self::assertSame(['question', 'question'], [self::readRequest($this->client, $requestId)['type'], $fetched['type']]);
     }
 
     #[TestDox('A draft with a title opens a request with that title')]

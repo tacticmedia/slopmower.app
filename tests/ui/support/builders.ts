@@ -10,7 +10,7 @@ import type { ApiToken, ApiTokenWithSecret } from '../../../assets/api/types/api
 import type { CarryOverResult } from '../../../assets/api/types/carry-over-result';
 import type { Commit } from '../../../assets/api/types/commit';
 import type { CommitLink } from '../../../assets/api/types/commit-link';
-import type { Action, ActorKind, Proposal, RequestStatus, SuggestionState, ThreadEntryType } from '../../../assets/api/types/common';
+import type { Action, ActorKind, Proposal, RequestStatus, RequestType, SuggestionState, ThreadEntryType } from '../../../assets/api/types/common';
 import type { CommitDiff, CommitDiffFile } from '../../../assets/api/types/commit-diff';
 import type { Declaration } from '../../../assets/api/types/declaration';
 import type { ErrorBody, ErrorDetails } from '../../../assets/api/types/error';
@@ -182,7 +182,7 @@ export function threadEntry(seq: number, type: ThreadEntryType, actor: ThreadEnt
 }
 
 /** `request.opened-range.json` of another anchor and body, or `request.general.json` without an anchor, opened by the user. */
-export function request(review: Review, anchor: Anchor | null, body: string, seq: number, requireApproval = false, title: string | null = null): Request {
+export function request(review: Review, anchor: Anchor | null, body: string, seq: number, requireApproval = false, title: string | null = null, type: RequestType = 'change'): Request {
     const base = fixture<Request>(null === anchor ? 'request.general.json' : 'request.opened-range.json');
     const createdAt = now();
 
@@ -200,6 +200,7 @@ export function request(review: Review, anchor: Anchor | null, body: string, seq
         updatedAt: createdAt,
         lastEventSeq: seq,
         requireApproval,
+        type,
         reviewState: review.state,
         reviewCommitSha: review.commitSha,
         location: null === anchor ? null : { target: 'default_branch', targetSha: review.commitSha, status: 'exact', path: anchor.path, range: anchor.range, confidence: 1, reason: null },
@@ -277,6 +278,7 @@ export function requestSummary(request: Request): RequestSummary {
         lastEventSeq: request.lastEventSeq,
         carriedFrom: request.carriedFrom,
         requireApproval: request.requireApproval,
+        type: request.type,
         suggestion: request.suggestion,
         proposal: request.proposal,
     } as RequestSummary;

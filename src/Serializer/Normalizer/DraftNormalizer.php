@@ -36,6 +36,7 @@ final class DraftNormalizer implements NormalizerInterface, NormalizerAwareInter
             'title' => $data->getTitle(),
             'body' => $data->getBody(),
             'requireApproval' => $data->requiresApproval(),
+            'type' => $data->getType(),
             'createdAt' => $data->getCreatedAt(),
             'updatedAt' => $data->getUpdatedAt(),
         ], $format, $context);

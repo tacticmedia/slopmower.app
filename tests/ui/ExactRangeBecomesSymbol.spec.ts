@@ -16,6 +16,6 @@ test.describe('ExactRangeBecomesSymbol', () => {
         await expect(commentBoxHeader(page, 17)).toHaveText(`Comment on method ${ROUND_FQN}`);
         await commentAndSubmit(page, textarea, 'Round half to even.', '[slot="annotation-17"]');
 
-        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/drafts')).toEqual([{ kind: 'new_request', anchor: { kind: 'symbol', path: SYMBOL_FILE, symbol: { fqn: ROUND_FQN } }, body: 'Round half to even.', requireApproval: true }]);
+        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/drafts')).toEqual([{ kind: 'new_request', anchor: { kind: 'symbol', path: SYMBOL_FILE, symbol: { fqn: ROUND_FQN } }, body: 'Round half to even.', requireApproval: true, type: 'change' }]);
     });
 });

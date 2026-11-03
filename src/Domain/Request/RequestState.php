@@ -53,6 +53,7 @@ final readonly class RequestState
         public ?Proposal $proposal = null,
         public ?SuggestionState $suggestion = null,
         public ?string $title = null,
+        public RequestType $type = RequestType::Change,
     ) {
         $this->assertConsistent();
     }
@@ -78,6 +79,7 @@ final readonly class RequestState
         return [
             'anchor' => null === $this->anchor ? null : AnchorCodec::encode($this->anchor),
             'title' => $this->title,
+            'type' => $this->type->value,
             'body' => $this->body,
             'author' => self::actorPayload($this->author),
             'createdAt' => TimeCodec::encode($this->createdAt),
@@ -142,6 +144,7 @@ final readonly class RequestState
             proposal: null === $proposal ? null : new Proposal($proposal->id('eventId', EventId::class), $proposal->enum('state', ProposalState::class), $proposal->nullableBool('pullRequest')),
             suggestion: $reader->nullableEnum('suggestion', SuggestionState::class),
             title: $reader->nullableString('title'),
+            type: $reader->nullableEnum('type', RequestType::class) ?? RequestType::Change,
         );
     }
 

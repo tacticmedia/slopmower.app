@@ -11,6 +11,7 @@ use App\Domain\Identity\BatchId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Request\CarriedFrom;
+use App\Domain\Request\RequestType;
 
 final readonly class RequestOpenedEvent implements DomainEvent
 {
@@ -21,6 +22,7 @@ final readonly class RequestOpenedEvent implements DomainEvent
         public ?CarriedFrom $carriedFrom = null,
         public bool $requireApproval = false,
         public ?string $title = null,
+        public RequestType $type = RequestType::Change,
     ) {
     }
 
@@ -44,6 +46,7 @@ final readonly class RequestOpenedEvent implements DomainEvent
             ],
             'requireApproval' => $this->requireApproval,
             'title' => $this->title,
+            'type' => $this->type->value,
         ];
     }
 
@@ -60,6 +63,7 @@ final readonly class RequestOpenedEvent implements DomainEvent
             null === $carriedFrom ? null : new CarriedFrom($carriedFrom->id('reviewId', ReviewId::class), $carriedFrom->id('requestId', RequestId::class)),
             $reader->boolOr('requireApproval', false),
             $reader->nullableString('title'),
+            $reader->nullableEnum('type', RequestType::class) ?? RequestType::Change,
         );
     }
 }

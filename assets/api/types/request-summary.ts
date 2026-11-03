@@ -1,6 +1,6 @@
 import type { Actor } from './actor';
 import type { AnchorSummary } from './anchor';
-import type { Awaiting, DateTime, EventSeq, Proposal, RequestStatus, Resolution, SuggestionState, Ulid } from './common';
+import type { Awaiting, DateTime, EventSeq, Proposal, RequestStatus, RequestType, Resolution, SuggestionState, Ulid } from './common';
 
 /** Only an in-progress request has a claim. */
 export type RequestClaim =
@@ -40,6 +40,8 @@ export type RequestSummary = {
     carriedFrom: CarriedFrom | null;
     /** "Ask for a plan first": link and ready need an approved proposal. */
     requireApproval: boolean;
+    /** Set when the request opens. */
+    type: RequestType;
     /** Null for a request of the user. A request of an agent is a suggestion. */
     suggestion: SuggestionState | null;
     proposal: Proposal | null;

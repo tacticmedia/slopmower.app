@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Api\Input;
 
+use App\Domain\Request\RequestType;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -23,6 +24,7 @@ final readonly class OpenRequestInput
         #[Assert\Length(max: 65536)]
         public ?string $body = null,
         public ?bool $requireApproval = null,
+        public ?RequestType $type = null,
     ) {
     }
 }

@@ -41,7 +41,7 @@ test.describe('GeneralRequest', () => {
 
         await expect(page.locator(REQUEST_ROWS).filter({ hasText: DRAFT.title }).locator('[data-testid="general-request"]')).toHaveText('General');
         await expect(page.locator(PENDING_DRAFTS)).toHaveCount(0);
-        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/drafts')).toEqual([{ kind: 'new_request', anchor: null, title: DRAFT.title, body: DRAFT.body, requireApproval: true }]);
+        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/drafts')).toEqual([{ kind: 'new_request', anchor: null, title: DRAFT.title, body: DRAFT.body, requireApproval: true, type: 'change' }]);
     });
 
     test('Ctrl+Enter in the New request box adds a draft without a title key', async ({ page, api }) => {
@@ -51,7 +51,7 @@ test.describe('GeneralRequest', () => {
         await page.locator(NEW_REQUEST_BOX).press('ControlOrMeta+Enter');
 
         await expect(page.locator(`${PENDING_DRAFTS} [data-testid="draft"][data-draft-id]`)).toContainText('Add a full-screen focus mode.');
-        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/drafts')).toEqual([{ kind: 'new_request', anchor: null, body: 'Add a full-screen focus mode.', requireApproval: true }]);
+        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/drafts')).toEqual([{ kind: 'new_request', anchor: null, body: 'Add a full-screen focus mode.', requireApproval: true, type: 'change' }]);
         expect(api.callsTo('POST', '/api/v1/reviews/:reviewId/requests'), 'The web UI opens no request with Q2.').toEqual([]);
     });
 

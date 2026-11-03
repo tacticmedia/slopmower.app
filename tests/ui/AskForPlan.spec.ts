@@ -18,7 +18,7 @@ test.describe('AskForPlan', () => {
         await expect(askForPlan(page, '[data-testid="request-filters"]')).toBeChecked();
         await page.locator('form[aria-label="New request"] textarea').fill('Add a CSV export.');
         await commentBoxButton(page, 'Add comment').click();
-        await expect.poll(() => api.bodies('POST', '/api/v1/reviews/:reviewId/drafts')).toEqual([{ kind: 'new_request', anchor: null, body: 'Add a CSV export.', requireApproval: true }]);
+        await expect.poll(() => api.bodies('POST', '/api/v1/reviews/:reviewId/drafts')).toEqual([{ kind: 'new_request', anchor: null, body: 'Add a CSV export.', requireApproval: true, type: 'change' }]);
     });
 
     test('An unchecked box sends false in D2', async ({ page, api }) => {
@@ -31,6 +31,6 @@ test.describe('AskForPlan', () => {
         await commentBoxButton(page, 'Add comment').click();
 
         await expect(page.locator(`${FILE_THREADS} [data-testid="draft"][data-draft-id]`)).toContainText('Split this class.');
-        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/drafts')).toEqual([{ kind: 'new_request', anchor: { kind: 'file', path: SMALL_FILE }, body: 'Split this class.', requireApproval: false }]);
+        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/drafts')).toEqual([{ kind: 'new_request', anchor: { kind: 'file', path: SMALL_FILE }, body: 'Split this class.', requireApproval: false, type: 'change' }]);
     });
 });

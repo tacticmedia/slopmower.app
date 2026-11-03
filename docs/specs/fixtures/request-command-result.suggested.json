@@ -36,6 +36,7 @@
     "lastEventSeq": 1870,
     "carriedFrom": null,
     "requireApproval": false,
+    "type": "change",
     "suggestion": "pending",
     "proposal": null
   },

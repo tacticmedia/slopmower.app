@@ -129,6 +129,14 @@ final class OpenRequestTest extends WebTestCase
         );
     }
 
+    #[TestDox('Q2 opens a request with the given type, and change without one')]
+    public function testOpensRequestWithItsType(): void
+    {
+        $rule = self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/requests", ['body' => 'Never use float for money.', 'type' => 'rule']);
+
+        self::assertSame(['rule', 'change'], [self::assertApiResponse($rule, 201, 'request.schema.json')['type'], self::openRequest($this->client, $this->reviewId)['type']]);
+    }
+
     #[TestDox('A request opened with a title stores it trimmed, and the title with its Markdown syntax is its summary')]
     public function testTitleIsTheSummary(): void
     {

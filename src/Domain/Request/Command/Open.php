@@ -7,6 +7,7 @@ namespace App\Domain\Request\Command;
 use App\Domain\Anchor\Anchor;
 use App\Domain\Identity\BatchId;
 use App\Domain\Request\CarriedFrom;
+use App\Domain\Request\RequestType;
 
 final readonly class Open implements RequestCommand
 {
@@ -20,6 +21,7 @@ final readonly class Open implements RequestCommand
         public ?CarriedFrom $carriedFrom = null,
         public bool $requireApproval = false,
         public ?string $title = null,
+        public RequestType $type = RequestType::Change,
     ) {
     }
 

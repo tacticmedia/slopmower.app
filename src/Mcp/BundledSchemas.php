@@ -762,7 +762,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => [
                     'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'title', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq',
-                    'carriedFrom', 'requireApproval', 'suggestion', 'proposal',
+                    'carriedFrom', 'requireApproval', 'type', 'suggestion', 'proposal',
                 ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -823,6 +823,7 @@ final class BundledSchemas
                         'description' => 'The source request that V15 carried over to this request. Null for any other request.',
                     ],
                     'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18 and Q21.'],
+                    'type' => ['$ref' => '#/$defs/RequestType'],
                     'suggestion' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/SuggestionState'],
@@ -872,6 +873,15 @@ final class BundledSchemas
                         ],
                     ],
                 ],
+            ],
+            'RequestType' => [
+                'anyOf' => [
+                    [
+                        'enum' => ['change', 'question', 'rule'],
+                    ],
+                    ['type' => 'string'],
+                ],
+                'description' => 'Open set. What the user asks for: change, a code change; question, an answer without a code change; rule, a rule that the agent adds to AGENTS.md and follows from then on. Set when the request opens; it does not change after that.',
             ],
             'Resolution' => [
                 'enum' => ['fixed', 'wont_do'],
@@ -1234,7 +1244,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => [
                     'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'title', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq',
-                    'carriedFrom', 'requireApproval', 'suggestion', 'proposal',
+                    'carriedFrom', 'requireApproval', 'type', 'suggestion', 'proposal',
                 ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -1295,6 +1305,7 @@ final class BundledSchemas
                         'description' => 'The source request that V15 carried over to this request. Null for any other request.',
                     ],
                     'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18 and Q21.'],
+                    'type' => ['$ref' => '#/$defs/RequestType'],
                     'suggestion' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/SuggestionState'],
@@ -1344,6 +1355,15 @@ final class BundledSchemas
                         ],
                     ],
                 ],
+            ],
+            'RequestType' => [
+                'anyOf' => [
+                    [
+                        'enum' => ['change', 'question', 'rule'],
+                    ],
+                    ['type' => 'string'],
+                ],
+                'description' => 'Open set. What the user asks for: change, a code change; question, an answer without a code change; rule, a rule that the agent adds to AGENTS.md and follows from then on. Set when the request opens; it does not change after that.',
             ],
             'Resolution' => [
                 'enum' => ['fixed', 'wont_do'],
@@ -1404,7 +1424,7 @@ final class BundledSchemas
         'type' => 'object',
         'required' => [
             'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'title', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq',
-            'carriedFrom', 'requireApproval', 'suggestion', 'proposal', 'body', 'reviewState', 'reviewCommitSha', 'location', 'excerpt', 'thread', 'commits', 'pullRequestUrls', 'pullRequests', 'allowedActions', 'delivery', 'capabilities',
+            'carriedFrom', 'requireApproval', 'type', 'suggestion', 'proposal', 'body', 'reviewState', 'reviewCommitSha', 'location', 'excerpt', 'thread', 'commits', 'pullRequestUrls', 'pullRequests', 'allowedActions', 'delivery', 'capabilities',
         ],
         'properties' => [
             'id' => ['$ref' => '#/$defs/Ulid'],
@@ -1463,6 +1483,7 @@ final class BundledSchemas
                 ],
             ],
             'requireApproval' => ['type' => 'boolean'],
+            'type' => ['$ref' => '#/$defs/RequestType'],
             'suggestion' => [
                 'anyOf' => [
                     ['$ref' => '#/$defs/SuggestionState'],
@@ -2006,6 +2027,15 @@ final class BundledSchemas
             'RequestStatus' => [
                 'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
             ],
+            'RequestType' => [
+                'anyOf' => [
+                    [
+                        'enum' => ['change', 'question', 'rule'],
+                    ],
+                    ['type' => 'string'],
+                ],
+                'description' => 'Open set. What the user asks for: change, a code change; question, an answer without a code change; rule, a rule that the agent adds to AGENTS.md and follows from then on. Set when the request opens; it does not change after that.',
+            ],
             'Resolution' => [
                 'enum' => ['fixed', 'wont_do'],
             ],
@@ -2448,7 +2478,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => [
                     'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'title', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq',
-                    'carriedFrom', 'requireApproval', 'suggestion', 'proposal',
+                    'carriedFrom', 'requireApproval', 'type', 'suggestion', 'proposal',
                 ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -2509,6 +2539,7 @@ final class BundledSchemas
                         'description' => 'The source request that V15 carried over to this request. Null for any other request.',
                     ],
                     'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18 and Q21.'],
+                    'type' => ['$ref' => '#/$defs/RequestType'],
                     'suggestion' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/SuggestionState'],
@@ -2558,6 +2589,15 @@ final class BundledSchemas
                         ],
                     ],
                 ],
+            ],
+            'RequestType' => [
+                'anyOf' => [
+                    [
+                        'enum' => ['change', 'question', 'rule'],
+                    ],
+                    ['type' => 'string'],
+                ],
+                'description' => 'Open set. What the user asks for: change, a code change; question, an answer without a code change; rule, a rule that the agent adds to AGENTS.md and follows from then on. Set when the request opens; it does not change after that.',
             ],
             'Resolution' => [
                 'enum' => ['fixed', 'wont_do'],
@@ -2918,7 +2958,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => [
                     'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'title', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq',
-                    'carriedFrom', 'requireApproval', 'suggestion', 'proposal',
+                    'carriedFrom', 'requireApproval', 'type', 'suggestion', 'proposal',
                 ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -2979,6 +3019,7 @@ final class BundledSchemas
                         'description' => 'The source request that V15 carried over to this request. Null for any other request.',
                     ],
                     'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18 and Q21.'],
+                    'type' => ['$ref' => '#/$defs/RequestType'],
                     'suggestion' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/SuggestionState'],
@@ -3028,6 +3069,15 @@ final class BundledSchemas
                         ],
                     ],
                 ],
+            ],
+            'RequestType' => [
+                'anyOf' => [
+                    [
+                        'enum' => ['change', 'question', 'rule'],
+                    ],
+                    ['type' => 'string'],
+                ],
+                'description' => 'Open set. What the user asks for: change, a code change; question, an answer without a code change; rule, a rule that the agent adds to AGENTS.md and follows from then on. Set when the request opens; it does not change after that.',
             ],
             'Resolution' => [
                 'enum' => ['fixed', 'wont_do'],
@@ -3384,7 +3434,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => [
                     'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'title', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq',
-                    'carriedFrom', 'requireApproval', 'suggestion', 'proposal',
+                    'carriedFrom', 'requireApproval', 'type', 'suggestion', 'proposal',
                 ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -3445,6 +3495,7 @@ final class BundledSchemas
                         'description' => 'The source request that V15 carried over to this request. Null for any other request.',
                     ],
                     'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18 and Q21.'],
+                    'type' => ['$ref' => '#/$defs/RequestType'],
                     'suggestion' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/SuggestionState'],
@@ -3494,6 +3545,15 @@ final class BundledSchemas
                         ],
                     ],
                 ],
+            ],
+            'RequestType' => [
+                'anyOf' => [
+                    [
+                        'enum' => ['change', 'question', 'rule'],
+                    ],
+                    ['type' => 'string'],
+                ],
+                'description' => 'Open set. What the user asks for: change, a code change; question, an answer without a code change; rule, a rule that the agent adds to AGENTS.md and follows from then on. Set when the request opens; it does not change after that.',
             ],
             'Resolution' => [
                 'enum' => ['fixed', 'wont_do'],
@@ -3790,7 +3850,7 @@ final class BundledSchemas
         [
             'name' => 'get_request',
             'title' => 'Get request',
-            'description' => 'Return one request in full: title, body, thread, anchor with a code snapshot at the review commit, linked commits, location, how to deliver the work (delivery), and the actions you may take now (allowedActions). `at` locates the anchor at another commit that the server\'s clone has (pushed, or committed in a local repository); by default the location is at the default-branch head. Your working tree can differ: find the code with anchor.snapshot, its before and after lines, and anchor.symbol.fqn. A general request has anchor, location, and excerpt null. It belongs to the whole review, and its body and thread say what to change. A request with title null has no title: give it one with set_request_title before you claim it.',
+            'description' => 'Return one request in full: title, body, thread, anchor with a code snapshot at the review commit, linked commits, location, how to deliver the work (delivery), and the actions you may take now (allowedActions). `at` locates the anchor at another commit that the server\'s clone has (pushed, or committed in a local repository); by default the location is at the default-branch head. Your working tree can differ: find the code with anchor.snapshot, its before and after lines, and anchor.symbol.fqn. A general request has anchor, location, and excerpt null. It belongs to the whole review, and its body and thread say what to change. A request with title null has no title: give it one with set_request_title before you claim it. type says what the user asks for: change, a code change; question, claim it, answer with reply_to_request, change no code, then mark_ready_for_review with a note that points to the answer; rule, claim it, add the rule as one bullet in the user\'s words under `## Rules from Slopmower` in AGENTS.md at the repository root (create the file when it is missing), add `@AGENTS.md` to CLAUDE.md when it exists and does not import AGENTS.md, fix the anchored code when it breaks the rule, all in one commit, then link, mark ready, and follow the rule from then on.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [

@@ -50,6 +50,7 @@ use App\Domain\Identity\ReviewId;
 use App\Domain\Request\CarriedFrom;
 use App\Domain\Request\ProposedDiff;
 use App\Domain\Request\PullRequestUrl;
+use App\Domain\Request\RequestType;
 use App\Domain\Review\Delivery;
 use App\Domain\Review\Workspace;
 use App\Tests\Support\Domain\EventFixtures;
@@ -116,6 +117,18 @@ final class EventRoundTripTest extends KernelTestCase
         unset($payload['title']);
 
         self::assertEquals(new RequestOpenedEvent(null, self::TITLED_BODY, null), EventType::RequestOpened->decode($payload));
+    }
+
+    #[TestDox('A request.opened payload without type decodes with type change')]
+    public function testDecodesRequestOpenedWithoutType(): void
+    {
+        $payload = self::eventFixturePayload('request.opened-general');
+        unset($payload['type']);
+
+        $event = EventType::RequestOpened->decode($payload);
+
+        self::assertInstanceOf(RequestOpenedEvent::class, $event);
+        self::assertSame(RequestType::Change, $event->type);
     }
 
     #[TestDox('A batch.submitted payload without delivery decodes with delivery null')]

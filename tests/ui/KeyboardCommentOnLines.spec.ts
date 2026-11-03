@@ -79,7 +79,7 @@ test.describe('KeyboardCommentOnLines', () => {
         await focusedCommentBoxBelow(page, 4);
         await keyboardDraft(page, 'Merge these lines.', '[slot="annotation-4"]');
 
-        expect(api.bodies('POST', DRAFTS)).toEqual([{ kind: 'new_request', anchor: { kind: 'range', path: SMALL_FILE, range: { startLine: 3, endLine: 4 } }, body: 'Merge these lines.', requireApproval: true }]);
+        expect(api.bodies('POST', DRAFTS)).toEqual([{ kind: 'new_request', anchor: { kind: 'range', path: SMALL_FILE, range: { startLine: 3, endLine: 4 } }, body: 'Merge these lines.', requireApproval: true, type: 'change' }]);
     });
 
     test('The comment box has focus when it opens', async ({ page, api }) => {
@@ -102,7 +102,7 @@ test.describe('KeyboardCommentOnLines', () => {
         await expect(page.locator(`${FILE_THREADS} ${COMPOSER}`)).toBeFocused();
         await keyboardDraft(page, 'Add a class docblock.', FILE_THREADS);
 
-        expect(api.bodies('POST', DRAFTS)).toEqual([{ kind: 'new_request', anchor: { kind: 'file', path: SMALL_FILE }, body: 'Add a class docblock.', requireApproval: true }]);
+        expect(api.bodies('POST', DRAFTS)).toEqual([{ kind: 'new_request', anchor: { kind: 'file', path: SMALL_FILE }, body: 'Add a class docblock.', requireApproval: true, type: 'change' }]);
     });
 
     /** The library adds the "+" only under the pointer or on the last selected line, so the keyboard reaches it only on a selection. */
@@ -121,8 +121,8 @@ test.describe('KeyboardCommentOnLines', () => {
 
         expect([rangeName, lineName]).toEqual(['Comment on lines 3 to 4', 'Comment on line 6']);
         expect(api.bodies('POST', DRAFTS)).toEqual([
-            { kind: 'new_request', anchor: { kind: 'range', path: SMALL_FILE, range: { startLine: 3, endLine: 4 } }, body: 'Join these lines.', requireApproval: true },
-            { kind: 'new_request', anchor: { kind: 'line', path: SMALL_FILE, range: { startLine: 6, endLine: 6 } }, body: 'Remove this blank line.', requireApproval: true },
+            { kind: 'new_request', anchor: { kind: 'range', path: SMALL_FILE, range: { startLine: 3, endLine: 4 } }, body: 'Join these lines.', requireApproval: true, type: 'change' },
+            { kind: 'new_request', anchor: { kind: 'line', path: SMALL_FILE, range: { startLine: 6, endLine: 6 } }, body: 'Remove this blank line.', requireApproval: true, type: 'change' },
         ]);
     });
 

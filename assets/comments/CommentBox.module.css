@@ -16,7 +16,21 @@
     gap: var(--base-size-8);
 }
 
-.askForPlan {
+.requestOptions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-16);
     margin-right: auto;
-    align-self: center;
+}
+
+.type {
+    display: flex;
+    align-items: center;
+    gap: var(--base-size-8);
+}
+
+.typeLabel {
+    font-size: var(--text-body-size-medium);
+    font-weight: var(--base-text-weight-semibold);
 }

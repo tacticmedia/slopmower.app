@@ -4,6 +4,7 @@ import { InlineMessage } from '@primer/react/experimental';
 import { lazy, Suspense, useOptimistic, useState, useTransition } from 'react';
 import { Link as RouterLink, useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
+import { RequestTypeLabel } from '../requests/RequestTypeLabel';
 import { CommentBox, type CommentText } from './CommentBox';
 import type { CommentIntent } from './commentIntent';
 import type { DraftView } from './draftView';
@@ -70,6 +71,7 @@ export function DraftBox({ draft, editable }: Props) {
                 <Label variant="attention" data-testid="pending-label">
                     Pending
                 </Label>
+                <RequestTypeLabel type={draft.type} />
                 {null === draft.href ? (
                     <span className={styles.lines}>{draft.label}</span>
                 ) : (
@@ -101,6 +103,7 @@ export function DraftBox({ draft, editable }: Props) {
                         submitLabel="Update comment"
                         onSubmit={save}
                         askForPlan={draft.requireApproval ?? undefined}
+                        initialType={draft.type}
                         titled={newRequest}
                         onCancel={() => setEditing(false)}
                         initialTitle={draft.title ?? ''}

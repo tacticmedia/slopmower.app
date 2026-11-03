@@ -172,6 +172,17 @@ final class CarryOverTest extends WebTestCase
         self::assertSame('Full-screen focus mode', $this->carried($items[$titled], $targetId)['title']);
     }
 
+    #[TestDox('A carried request keeps the type of its source')]
+    public function testCarriedRequestKeepsTheType(): void
+    {
+        $rule = (string) self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->sourceReviewId}/requests", ['body' => 'Never use float for money.', 'type' => 'rule']), 201, 'request.schema.json')['id'];
+        $targetId = $this->startTarget([]);
+
+        $items = $this->carryOver($targetId);
+
+        self::assertSame('rule', $this->carried($items[$rule], $targetId)['type']);
+    }
+
     #[TestDox('A pending suggestion is not carried, and an accepted one carries as a request of the user')]
     public function testPendingSuggestionIsNotCarried(): void
     {

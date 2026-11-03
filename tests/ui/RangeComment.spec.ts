@@ -24,9 +24,9 @@ test.describe('RangeComment', () => {
 
         const range = { kind: 'range', path: SMALL_FILE, range: { startLine: 5, endLine: 9 } };
         expect(api.bodies('POST', '/api/v1/reviews/:reviewId/drafts')).toEqual([
-            { kind: 'new_request', anchor: range, body: 'Dragged down.', requireApproval: true },
-            { kind: 'new_request', anchor: range, body: 'Dragged up.', requireApproval: true },
-            { kind: 'new_request', anchor: range, body: 'Shift-clicked.', requireApproval: true },
+            { kind: 'new_request', anchor: range, body: 'Dragged down.', requireApproval: true, type: 'change' },
+            { kind: 'new_request', anchor: range, body: 'Dragged up.', requireApproval: true, type: 'change' },
+            { kind: 'new_request', anchor: range, body: 'Shift-clicked.', requireApproval: true, type: 'change' },
         ]);
     });
 });

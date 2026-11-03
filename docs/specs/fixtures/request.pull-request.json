@@ -55,6 +55,7 @@
   "lastEventSeq": 1843,
   "carriedFrom": null,
   "requireApproval": false,
+  "type": "change",
   "suggestion": null,
   "proposal": null,
   "body": "Use `Money` instead of `float` for totals.",

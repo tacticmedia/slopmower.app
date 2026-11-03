@@ -20,6 +20,7 @@ use App\Domain\Request\Action;
 use App\Domain\Request\Awaiting;
 use App\Domain\Request\CommitLinkState;
 use App\Domain\Request\RequestStatus;
+use App\Domain\Request\RequestType;
 use App\Domain\Request\Resolution;
 use App\Domain\Request\SuggestionState;
 use App\Domain\Review\IndexState;
@@ -78,6 +79,7 @@ final class EnumContractTest extends KernelTestCase
         yield 'UsageLimit' => [UsageLimit::class, 'common.schema.json', ['$defs', 'UsageLimit', 'anyOf', '0', 'enum']];
         yield 'Tour' => [Tour::class, 'common.schema.json', ['$defs', 'Tour', 'anyOf', '0', 'enum']];
         yield 'Workspace' => [Workspace::class, 'common.schema.json', ['$defs', 'Workspace', 'anyOf', '0', 'enum']];
+        yield 'RequestType' => [RequestType::class, 'common.schema.json', ['$defs', 'RequestType', 'anyOf', '0', 'enum']];
         yield 'SyncState' => [SyncState::class, 'repository.schema.json', ['$defs', 'Sync', 'properties', 'state', 'enum']];
         yield 'SignInMethod' => [SignInMethod::class, 'me.schema.json', ['properties', 'user', 'properties', 'signInMethod', 'enum']];
         yield 'RepositoryUnavailableReason' => [RepositoryUnavailableReason::class, 'error.schema.json', ['$defs', 'RepositoryUnavailableDetails', 'properties', 'reason', 'enum']];

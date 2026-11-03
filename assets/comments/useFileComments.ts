@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useOptimistic, useRef, useState, useTransition } from 'react';
 import { useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
+import type { RequestType } from '../api/types/common';
 import type { Symbol as CodeSymbol } from '../api/types/symbol';
 import type { LineRange } from '../code/lineHash';
 import { anchorInput } from '../code/rangeSelection';
@@ -20,6 +21,7 @@ export type Composer = {
     initialBody: string;
     /** The "Ask for a plan first" checkbox. */
     requireApproval: boolean;
+    type: RequestType;
     error: string | null;
 };
 
@@ -51,7 +53,7 @@ export function useFileComments({ path, threads, drafts, select }: Options) {
         if (undefined !== error) {
             const { path: sentPath, range, symbol, text } = sent;
             opened.current += 1;
-            setComposer({ key: opened.current, path: sentPath, range, symbol, initialTitle: text.title ?? '', initialBody: text.body, requireApproval: text.requireApproval, error });
+            setComposer({ key: opened.current, path: sentPath, range, symbol, initialTitle: text.title ?? '', initialBody: text.body, requireApproval: text.requireApproval, type: text.type, error });
         }
     }
 
@@ -68,7 +70,7 @@ export function useFileComments({ path, threads, drafts, select }: Options) {
         (range: LineRange | null, symbol: CodeSymbol | null = null): void => {
             if (!sending) {
                 opened.current += 1;
-                setComposer({ key: opened.current, path, range, symbol, initialTitle: '', initialBody: '', requireApproval: true, error: null });
+                setComposer({ key: opened.current, path, range, symbol, initialTitle: '', initialBody: '', requireApproval: true, type: 'change', error: null });
             }
         },
         [path, sending],

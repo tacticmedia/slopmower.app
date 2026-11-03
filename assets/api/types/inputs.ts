@@ -1,6 +1,6 @@
 import type { AnchorInput } from './anchor';
 import type { TokenName } from './api-token';
-import type { CommitSha, DateTime, Delivery, Markdown, PullRequestUrl, RepoPath, Tour, Ulid, UnifiedDiff } from './common';
+import type { CommitSha, DateTime, Delivery, Markdown, PullRequestUrl, RepoPath, RequestType, Tour, Ulid, UnifiedDiff } from './common';
 import type { LocalDirectory } from './repository';
 
 export type ConnectRepositoryInput =
@@ -30,6 +30,8 @@ export type OpenRequestInput = {
     body: Markdown;
     /** "Ask for a plan first". Default false. */
     requireApproval?: boolean | null;
+    /** Default change. */
+    type?: RequestType | null;
 };
 
 export type SuggestRequestInput = {
@@ -114,8 +116,8 @@ export type UnlinkPullRequestInput = {
 };
 
 export type CreateDraftInput =
-    | { kind: 'new_request'; anchor?: AnchorInput | null; requestId?: null; title?: string | null; body: Markdown; requireApproval?: boolean | null }
-    | { kind: 'reply'; anchor?: null; requestId: Ulid; title?: null; body: Markdown; requireApproval?: null };
+    | { kind: 'new_request'; anchor?: AnchorInput | null; requestId?: null; title?: string | null; body: Markdown; requireApproval?: boolean | null; type?: RequestType | null }
+    | { kind: 'reply'; anchor?: null; requestId: Ulid; title?: null; body: Markdown; requireApproval?: null; type?: null };
 
 export type UpdateDraftInput = {
     /** Replaced with `body`: absent or null removes it. new_request drafts only. */
@@ -123,6 +125,8 @@ export type UpdateDraftInput = {
     body: Markdown;
     /** new_request drafts only. Absent or null keeps the value. */
     requireApproval?: boolean | null;
+    /** new_request drafts only. Absent or null keeps the value. */
+    type?: RequestType | null;
 };
 
 /** A missing key is null. */

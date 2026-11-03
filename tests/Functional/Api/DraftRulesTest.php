@@ -9,6 +9,7 @@ use App\Domain\Anchor\AnchorKind;
 use App\Domain\Git\BlobSha;
 use App\Domain\Git\RepoPath;
 use App\Domain\Identity\ReviewId;
+use App\Domain\Request\RequestType;
 use App\Entity\Draft;
 use App\Entity\Review;
 use App\Entity\User;
@@ -139,6 +140,41 @@ final class DraftRulesTest extends WebTestCase
         self::assertSame([$reply], self::listDrafts($this->client, $this->reviewId));
     }
 
+    #[TestDox('D2 stores the type of a new request, and change without one')]
+    public function testDraftStoresTheType(): void
+    {
+        $question = self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts", ['kind' => 'new_request', 'body' => 'Why float?', 'type' => 'question']), 201, 'draft.schema.json');
+        $change = self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts", ['kind' => 'new_request', 'body' => 'Add a CSV export.']), 201, 'draft.schema.json');
+
+        self::assertSame(['question', 'change'], [$question['type'], $change['type']]);
+    }
+
+    #[TestDox('D3 changes the type of a new request, and a PATCH without it keeps it')]
+    public function testPatchChangesTheType(): void
+    {
+        $draft = self::createDraft($this->client, $this->reviewId);
+
+        $changed = self::assertApiResponse(self::apiRequest($this->client, 'PATCH', "/api/v1/drafts/{$draft['id']}", ['body' => 'Never use float for money.', 'type' => 'rule']), 200, 'draft.schema.json');
+        $kept = self::assertApiResponse(self::apiRequest($this->client, 'PATCH', "/api/v1/drafts/{$draft['id']}", ['body' => 'Never use float for money.', 'type' => null]), 200, 'draft.schema.json');
+
+        self::assertSame(['change', 'rule', 'rule'], [$draft['type'], $changed['type'], $kept['type']]);
+        self::assertSame([$kept], self::listDrafts($this->client, $this->reviewId));
+    }
+
+    #[TestDox('A type on a reply draft gives 422 in D2 and D3')]
+    public function testReplyDraftRefusesType(): void
+    {
+        $requestId = (string) self::openRequest($this->client, $this->reviewId)['id'];
+        $reply = self::createReplyDraft($this->client, $this->reviewId, $requestId);
+        self::assertSame('change', $reply['type']);
+
+        $created = self::assertApiError(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts", ['kind' => 'reply', 'requestId' => $requestId, 'body' => 'Why float?', 'type' => 'question']), 422, 'invalid_input');
+        $updated = self::assertApiError(self::apiRequest($this->client, 'PATCH', "/api/v1/drafts/{$reply['id']}", ['body' => 'Why float?', 'type' => 'question']), 422, 'invalid_input');
+
+        self::assertSame([['type'], ['type']], [array_column($created['details']['violations'] ?? [], 'field'), array_column($updated['details']['violations'] ?? [], 'field')]);
+        self::assertSame([$reply], self::listDrafts($this->client, $this->reviewId));
+    }
+
     #[TestDox('D2 stores the title of a new request, and D3 replaces title and body together')]
     public function testDraftStoresAndReplacesTheTitle(): void
     {
@@ -208,7 +244,7 @@ final class DraftRulesTest extends WebTestCase
         $anchor = Anchor::of(AnchorKind::File, RepoPath::fromString('README.md'), $review->getCommitSha(), BlobSha::fromString('e965047ad7c57865823c7d992b1d046ea66edf78'), null, null, null);
 
         for ($i = 0; $i < $count; ++$i) {
-            $entityManager->persist(Draft::newRequest($user, $review, $anchor, null, "Draft {$i}.", false, Clock::get()->now()));
+            $entityManager->persist(Draft::newRequest($user, $review, $anchor, null, "Draft {$i}.", false, RequestType::Change, Clock::get()->now()));
         }
 
         $entityManager->flush();

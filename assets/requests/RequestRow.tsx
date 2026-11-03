@@ -6,6 +6,7 @@ import { AnchorLink } from './AnchorLink';
 import { ClaimedBy } from './ClaimedBy';
 import { OutdatedLabel } from './OutdatedLabel';
 import { PlanToApproveLabel } from './PlanToApproveLabel';
+import { RequestTypeLabel } from './RequestTypeLabel';
 import styles from './RequestRow.module.css';
 import { StatusIcon } from './StatusIcon';
 import { SuggestionLabel } from './SuggestionLabel';
@@ -28,6 +29,7 @@ export function RequestRow({ request }: { request: RequestSummary }) {
                         {request.summary}
                     </Link>
                     <span className={styles.labels}>
+                        <RequestTypeLabel type={request.type} />
                         <WaitingForYouLabel waiting={'user' === request.awaiting} />
                         <PlanToApproveLabel pending={'pending' === request.proposal?.state} />
                         <SuggestionLabel pending={'pending' === request.suggestion} />

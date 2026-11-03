@@ -16,6 +16,7 @@ import { RequestTitle } from '../../requests/RequestTitle';
 import shared from '../../requests/Requests.module.css';
 import { requestStage } from '../../requests/requestStage';
 import { CHANGES_TAB } from '../../requests/requestTabs';
+import { RequestTypeLabel } from '../../requests/RequestTypeLabel';
 import { StatusLabel } from '../../requests/StatusLabel';
 import styles from './RequestDetail.module.css';
 import { RequestChanges } from './RequestChanges';
@@ -44,6 +45,7 @@ export function RequestDetail() {
                 <RequestTitle key={request.id} title={request.title} summary={request.summary} allowedActions={request.allowedActions} />
                 <p className={styles.state}>
                     <StatusLabel status={request.status} />
+                    <RequestTypeLabel type={request.type} />
                     <span className={shared.muted}>
                         {request.author.name} opened this <RelativeTime datetime={request.createdAt} />
                         {request.commentCount > 0 && ` · ${request.commentCount} ${1 === request.commentCount ? 'comment' : 'comments'}`}

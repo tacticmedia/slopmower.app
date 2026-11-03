@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Api\Input;
 
+use App\Domain\Request\RequestType;
 use App\Entity\DraftKind;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -40,6 +41,10 @@ final readonly class CreateDraftInput
             return DraftKind::Reply === $input->kind;
         }, constraints: [new Assert\IsNull()])]
         public ?bool $requireApproval = null,
+        #[Assert\When(expression: static function (self $input): bool {
+            return DraftKind::Reply === $input->kind;
+        }, constraints: [new Assert\IsNull()])]
+        public ?RequestType $type = null,
     ) {
     }
 }

@@ -198,6 +198,11 @@ export const WORKSPACES = ['current_branch', 'new_branch', 'worktree'] as const;
 export type KnownWorkspace = (typeof WORKSPACES)[number];
 export type Workspace = OpenSet<KnownWorkspace>;
 
+/** What the user asks for (D102). */
+export const REQUEST_TYPES = ['change', 'question', 'rule'] as const;
+export type KnownRequestType = (typeof REQUEST_TYPES)[number];
+export type RequestType = OpenSet<KnownRequestType>;
+
 /** How the agent delivers its work (D85). Null lets the agent decide. */
 export type Delivery = {
     workspace: Workspace | null;

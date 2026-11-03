@@ -2,7 +2,7 @@ import type { Actor } from '../../../assets/api/types/actor';
 import type { Anchor, AnchorInput } from '../../../assets/api/types/anchor';
 import type { Blame } from '../../../assets/api/types/blame';
 import type { CommitLink } from '../../../assets/api/types/commit-link';
-import type { ActorKind, Awaiting, OrphanReason, Proposal, PullRequestState, RequestStatus, Resolution, SuggestionState, ThreadEntryType } from '../../../assets/api/types/common';
+import type { ActorKind, Awaiting, OrphanReason, Proposal, PullRequestState, RequestStatus, RequestType, Resolution, SuggestionState, ThreadEntryType } from '../../../assets/api/types/common';
 import type { Draft } from '../../../assets/api/types/draft';
 import type { FileContent } from '../../../assets/api/types/file-content';
 import type {
@@ -141,8 +141,8 @@ export class FakeReview {
         return this.#openRequest({ kind: 'symbol', path, symbol: { fqn } }, body);
     }
 
-    seedGeneral(body: string, requireApproval = false, title: string | null = null): Request {
-        return this.#openRequest(null, body, null, requireApproval, title);
+    seedGeneral(body: string, requireApproval = false, title: string | null = null, type: RequestType = 'change'): Request {
+        return this.#openRequest(null, body, null, requireApproval, title, type);
     }
 
     /** A D2 draft, as if the user had written it earlier. */
@@ -261,9 +261,9 @@ export class FakeReview {
         return { ...request, reviewState: this.review.state, allowedActions, delivery, capabilities: this.review.capabilities };
     }
 
-    #openRequest(input: AnchorInput | null, body: string, batchId: string | null = null, requireApproval = false, title: string | null = null): Request {
+    #openRequest(input: AnchorInput | null, body: string, batchId: string | null = null, requireApproval = false, title: string | null = null, type: RequestType = 'change'): Request {
         const seq = ++this.#seq;
-        const opened = openedRequest(this.review, null === input ? null : this.#anchor(input), body, seq, requireApproval, title);
+        const opened = openedRequest(this.review, null === input ? null : this.#anchor(input), body, seq, requireApproval, title, type);
         const [entry] = opened.thread;
         const request = undefined === entry ? opened : { ...opened, thread: [{ ...entry, batchId }] };
         this.requests.push(request);
@@ -549,9 +549,9 @@ export class FakeReview {
             }),
         ));
         api.on('POST', `${base}/requests`, ours(({ body }) => {
-            const { anchor, title, body: comment, requireApproval } = body as OpenRequestInput;
+            const { anchor, title, body: comment, requireApproval, type } = body as OpenRequestInput;
 
-            return this.#closedError() ?? json('request.schema.json', this.#present(this.#openRequest(anchor ?? null, comment, null, requireApproval ?? false, title?.trim() ?? null)), 201);
+            return this.#closedError() ?? json('request.schema.json', this.#present(this.#openRequest(anchor ?? null, comment, null, requireApproval ?? false, title?.trim() ?? null, type ?? 'change')), 201);
         }));
         api.on('POST', `${base}/drafts`, ours(({ body }) => this.#closedError() ?? json('draft.schema.json', this.#createDraft(body as CreateDraftInput), 201)));
         api.on('POST', `${base}/drafts/submit`, ours(({ body }) => this.#closedError() ?? this.#submitDrafts(body as SubmitDraftsInput)));
@@ -575,12 +575,15 @@ export class FakeReview {
                 if (null !== closed) {
                     return closed;
                 }
-                const { title, body, requireApproval } = call.body as UpdateDraftInput;
+                const { title, body, requireApproval, type } = call.body as UpdateDraftInput;
                 if (null != requireApproval && 'reply' === draft.kind) {
                     return apiError(422, 'invalid_input', 'Only a new request asks for a plan first.', { violations: [{ field: 'requireApproval', message: 'Only a new request asks for a plan first.' }] });
                 }
+                if (null != type && 'reply' === draft.kind) {
+                    return apiError(422, 'invalid_input', 'Only a new request has a type.', { violations: [{ field: 'type', message: 'Only a new request has a type.' }] });
+                }
                 // D3 replaces the title with the body.
-                const updated = { ...draft, title: title?.trim() ?? null, body, requireApproval: requireApproval ?? draft.requireApproval, updatedAt: now() } as Draft;
+                const updated = { ...draft, title: title?.trim() ?? null, body, requireApproval: requireApproval ?? draft.requireApproval, type: type ?? draft.type, updatedAt: now() } as Draft;
                 this.drafts = this.drafts.map((known) => (known.id === draft.id ? updated : known));
 
                 return json('draft.schema.json', updated);
@@ -656,7 +659,7 @@ export class FakeReview {
 
     #createDraft(input: CreateDraftInput): Draft {
         const createdAt = now();
-        const base = { id: newId(), reviewId: this.id, body: input.body, requireApproval: 'new_request' === input.kind && true === input.requireApproval, createdAt, updatedAt: createdAt };
+        const base = { id: newId(), reviewId: this.id, body: input.body, requireApproval: 'new_request' === input.kind && true === input.requireApproval, type: ('new_request' === input.kind ? input.type : null) ?? 'change', createdAt, updatedAt: createdAt };
         let draft: Draft;
         if ('reply' === input.kind) {
             draft = { ...base, kind: 'reply', anchor: null, requestId: this.find(input.requestId).id, title: null };
@@ -689,7 +692,7 @@ export class FakeReview {
             this.review = { ...this.review, delivery: { workspace: input.delivery.workspace ?? null, pullRequest: input.delivery.pullRequest ?? null } };
         }
         const batchId = newId();
-        const opened = submitted.map((draft) => this.#openRequest(this.#draftAnchors.get(draft.id) ?? null, draft.body, batchId, draft.requireApproval, draft.title));
+        const opened = submitted.map((draft) => this.#openRequest(this.#draftAnchors.get(draft.id) ?? null, draft.body, batchId, draft.requireApproval, draft.title, draft.type));
         this.drafts = this.drafts.filter((draft) => !submitted.includes(draft));
 
         return json('batch-submission.schema.json', { batchId, reviewId: this.id, summary: input.summary ?? null, submittedAt: now(), seq: ++this.#seq, openedRequests: opened.map(requestSummary), replies: [] }, 201);

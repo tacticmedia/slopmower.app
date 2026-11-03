@@ -298,6 +298,7 @@ function ComposerBox({ composer, onSubmit, onCancel }: ComposerBoxProps) {
             submitLabel="Add comment"
             onSubmit={onSubmit}
             askForPlan={composer.requireApproval}
+            initialType={composer.type}
             titled
             onCancel={onCancel}
             initialTitle={composer.initialTitle}

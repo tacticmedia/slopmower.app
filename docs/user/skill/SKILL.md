@@ -83,8 +83,20 @@ page by page.
 Handle every request whose `awaiting` is `agent`. Do `reopened` requests first,
 and read their whole thread, because the user rejected an earlier result.
 
-1. Call `get_request` with `id`. Read `title`, `body`, `thread`, `anchor`,
-   `location`, `delivery`, and `allowedActions`.
+1. Call `get_request` with `id`. Read `title`, `type`, `body`, `thread`,
+   `anchor`, `location`, `delivery`, and `allowedActions`.
+   - `type` says what the user asks for:
+     - `change`: a code change. Do the steps below.
+     - `question`: an answer. Claim the request, answer with
+       `reply_to_request`, and change no code. If the answer needs a change,
+       name it in the answer and do not make it. Then call
+       `mark_ready_for_review` with a note that points to the answer.
+     - `rule`: a rule that you follow from now on. Do the steps below. The
+       change is one bullet with the rule, in the user's words, under
+       `## Rules from Slopmower` in `AGENTS.md` at the repository root. Create
+       the file when it is missing. In the same commit, add `@AGENTS.md` to
+       `CLAUDE.md` when `CLAUDE.md` exists and does not import `AGENTS.md`, and
+       fix the anchored code when it breaks the rule.
    - A request with `title` null has no title. Before you claim it, call
      `set_request_title` with one line of at most 80 characters that
      summarizes its body.

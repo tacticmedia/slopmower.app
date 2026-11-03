@@ -6,7 +6,7 @@ A comment on the code opens a change request, and so does a general request. You
 
 ## Follow the requests
 
-Open **Requests** to see the requests of the review. Each row shows the status icon and the title, the labels **Waiting for you**, **Plan to approve**, **Suggestion**, and **Outdated** when they apply, and a muted line with the location, the author, and the agent that works on it. At the right, a row shows its comments, its linked commits, and when it changed last.
+Open **Requests** to see the requests of the review. Each row shows the status icon and the title, the labels **Question**, **Rule**, **Waiting for you**, **Plan to approve**, **Suggestion**, and **Outdated** when they apply, and a muted line with the location, the author, and the agent that works on it. At the right, a row shows its comments, its linked commits, and when it changed last.
 
 - **Open** lists the requests that wait for you or for the agent. It is the default. **Closed** lists the verified requests and the requests that you closed as won't do. The two counts are the totals of the review.
 - **Status** shows one status only. **Filters** has **Outdated** and **Suggestions**, the suggestions of the agent that wait for your decision. **Sort** orders the list by the last change (the default), by age, oldest first, or by path.
@@ -29,7 +29,7 @@ The address of the page keeps the filters, so a reload or a bookmark shows the s
 
 ## The request page
 
-A request opens like a GitHub issue. The header shows the title, the status, who opened the request, and the number of comments when it has any.
+A request opens like a GitHub issue. The header shows the title, the status, the label **Question** or **Rule**, who opened the request, and the number of comments when it has any.
 
 Below the header, a bar holds the buttons that change the request, for example **Resolve conversation** and **Reopen**. On a long conversation, the bar stays at the top of the window and also shows the status and the title. A request of a closed review has no bar.
 
@@ -78,6 +78,18 @@ On the request, the proposal shows the plan and the changes of each file of the 
 - **Request changes** sends the proposal back. Type a note that says what to change. The agent proposes again.
 
 An older proposal keeps its decision: **Approved** or **Changes requested**. An older proposal without a decision shows **Superseded** when a newer one replaced it, or **Withdrawn** when its claim ended, for example after **Unassign**.
+
+## Request types
+
+The type of a request says what you ask for. You choose it in the comment box, and you can change it while the request is a draft. After you submit, the type stays.
+
+| Type | The agent |
+|---|---|
+| Change | Changes the code. A change has no type label. |
+| Question | Answers in the conversation and changes no code, then marks the request ready for review. When the answer needs a change, the agent names it, and you can open a change for it. |
+| Rule | Adds the rule in your words as one bullet under `## Rules from Slopmower` in `AGENTS.md` at the root of the repository, and follows it from then on. When `CLAUDE.md` does not import `AGENTS.md`, the agent adds `@AGENTS.md` to it. When the commented code breaks the rule, the agent fixes it in the same commit. |
+
+Slopmower does not store the rules. They are in your repository, so you edit or remove them like any other file.
 
 ## Agent suggestions
 

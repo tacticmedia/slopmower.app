@@ -13,7 +13,7 @@ test.describe('LineComment', () => {
         await commentAndSubmit(page, await focusedCommentBoxBelow(page, 10), 'Use a named constant.', '[slot="annotation-10"]');
 
         expect(api.bodies('POST', '/api/v1/reviews/:reviewId/drafts'), 'A comment without a title sends no title key.').toEqual([
-            { kind: 'new_request', anchor: { kind: 'line', path: SMALL_FILE, range: { startLine: 10, endLine: 10 } }, body: 'Use a named constant.', requireApproval: true },
+            { kind: 'new_request', anchor: { kind: 'line', path: SMALL_FILE, range: { startLine: 10, endLine: 10 } }, body: 'Use a named constant.', requireApproval: true, type: 'change' },
         ]);
         expect(await page.evaluate(() => location.hash), 'The submit clears the selection and its line hash.').toBe('');
 

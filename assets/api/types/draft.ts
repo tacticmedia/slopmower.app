@@ -1,5 +1,5 @@
 import type { Anchor } from './anchor';
-import type { DateTime, Markdown, Ulid } from './common';
+import type { DateTime, Markdown, RequestType, Ulid } from './common';
 
 export const DRAFT_KINDS = ['new_request', 'reply'] as const;
 export type DraftKind = (typeof DRAFT_KINDS)[number];
@@ -14,6 +14,8 @@ export type Draft = {
     body: Markdown;
     /** Always false for a reply. */
     requireApproval: boolean;
+    /** Always change for a reply. */
+    type: RequestType;
     createdAt: DateTime;
     updatedAt: DateTime;
 } & KindFields;
