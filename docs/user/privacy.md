@@ -1,6 +1,6 @@
 # Privacy policy
 
-Last change: 3 November 2026
+Last change: 4 November 2026
 
 This policy tells you which personal data the hosted Slopmower service keeps, why, and for how long. It also tells you your rights. "We" means Tactic Media Pty Ltd, the operator of Slopmower.
 
@@ -64,6 +64,7 @@ Slopmower sets only the cookies that the service needs. It has no analytics, no 
 | `slopmower.wrap` | Local storage | Remembers that you wrap long lines | Until you clear the site data in your browser |
 | `slopmower.tree-width` | Local storage | Remembers the width of the file tree | Until you clear the site data in your browser |
 | `sentryReplaySession` | Session storage | Joins the parts of one session recording | Until you close the tab |
+| `slopmower.draft:<field>` | Session storage | Keeps the text of a comment that you did not save, so a reload does not lose it | Until you save or cancel the comment, sign out, or close the tab |
 
 Local storage stays in your browser. Slopmower does not send it to the server.
 

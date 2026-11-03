@@ -4,6 +4,7 @@ import { type FormEvent, type KeyboardEvent, type ReactNode, type Ref, useEffect
 import { useRouteLoaderData } from 'react-router';
 import { REQUEST_TYPES, type RequestType } from '../api/types/common';
 import { isPressed, type ModShortcut } from '../layout/modShortcut';
+import { removeSessionDraft, useSessionDraft } from '../layout/useSessionDraft';
 import { REQUEST_TYPE_NAMES } from '../requests/RequestTypeLabel';
 import type { ReviewData } from '../routes/reviews/reviewData';
 import styles from './CommentBox.module.css';
@@ -33,6 +34,8 @@ type Props = {
     /** Shows `label` as the header of the box. */
     labelVisible?: boolean;
     submitLabel: string;
+    /** The {@link useSessionDraft} key of the text field. The route action removes it when the write succeeds, and Cancel removes it. */
+    draftKey: string | null;
     /**
      * False when the submit was not accepted, for example while another write runs. `requireApproval` is the "Ask for a
      * plan first" checkbox, false without it and for a question. `type` is the "Type" select, change without it.
@@ -58,13 +61,15 @@ type Props = {
 };
 
 /**
- * The text stays while the write runs and clears when it succeeds, so a failed write keeps it. Mod+Enter runs
- * `onSubmit`, and Escape runs `onCancel`. Enter in the title field moves to the description.
+ * The text stays while the write runs and clears when it succeeds, so a failed write keeps it. A reload keeps the text
+ * of the description field (D109). Mod+Enter runs `onSubmit`, and Escape runs `onCancel`. Enter in the title field
+ * moves to the description.
  */
 export function CommentBox({
     label,
     labelVisible = false,
     submitLabel,
+    draftKey,
     onSubmit,
     askForPlan,
     initialType = 'change',
@@ -81,7 +86,7 @@ export function CommentBox({
     ref,
 }: Props) {
     const [title, setTitle] = useState(initialTitle);
-    const [body, setBody] = useState(initialBody);
+    const [body, setBody, revertBody] = useSessionDraft(draftKey, initialBody);
     const [requireApproval, setRequireApproval] = useState(askForPlan ?? false);
     const [type, setType] = useState(initialType);
     const [group, setGroup] = useState(initialGroup);
@@ -94,13 +99,15 @@ export function CommentBox({
     const groups = useDraftGroups();
     useUnsavedComment(
         !sent && (initialTextSaved ? title !== initialTitle || body !== initialBody || type !== initialType || group !== initialGroup : '' !== title.trim() || '' !== body.trim()),
+        draftKey,
     );
 
     if (sent && !busy) {
         setSent(false);
         if (null === error) {
             setTitle('');
-            setBody('');
+            // Not a removal: the action removes the key, and a file composer can render once more before its write ends.
+            revertBody();
             setGroup('');
             setPreview(false);
         }
@@ -116,8 +123,17 @@ export function CommentBox({
                 requestAnimationFrame(() => textarea.current?.focus());
             },
         }),
-        [],
+        [setBody],
     );
+    const cancel =
+        undefined === onCancel
+            ? undefined
+            : (): void => {
+                  if (null !== draftKey) {
+                      removeSessionDraft(draftKey);
+                  }
+                  onCancel();
+              };
 
     useEffect(() => {
         if (focusOnMount) {
@@ -144,9 +160,9 @@ export function CommentBox({
         if (isPressed(SUBMIT_SHORTCUT, event.nativeEvent)) {
             event.preventDefault();
             send();
-        } else if ('Escape' === event.key && undefined !== onCancel && !busy) {
+        } else if ('Escape' === event.key && undefined !== cancel && !busy) {
             event.preventDefault();
-            onCancel();
+            cancel();
         }
     };
 
@@ -239,8 +255,8 @@ export function CommentBox({
                     </div>
                 )}
                 {actions}
-                {undefined !== onCancel && (
-                    <Button onClick={onCancel} disabled={busy}>
+                {undefined !== cancel && (
+                    <Button onClick={cancel} disabled={busy}>
                         Cancel
                     </Button>
                 )}

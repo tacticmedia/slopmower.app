@@ -1,20 +1,24 @@
 import { PlusIcon } from '@primer/octicons-react';
 import { Button } from '@primer/react';
 import { useState, useTransition } from 'react';
-import { useFetcher } from 'react-router';
+import { useFetcher, useRouteLoaderData } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
 import { CommentBox } from '../comments/CommentBox';
 import type { CommentIntent } from '../comments/commentIntent';
+import { readSessionDraft } from '../layout/useSessionDraft';
+import type { ReviewData } from '../routes/reviews/reviewData';
 import shared from './Requests.module.css';
 
 /**
  * Adds a general request to the pending feedback with D2. The box closes when the write succeeds and keeps the text
- * when it fails.
+ * when it fails. Text that a reload kept opens the box again.
  */
 export function NewRequestBox() {
     const fetcher = useFetcher<ActionResult>();
     const [writing, startWrite] = useTransition();
-    const [open, setOpen] = useState(false);
+    const reviewId = useRouteLoaderData<ReviewData>('review')?.review.id;
+    const draftKey = undefined === reviewId ? null : `review:${reviewId}:new-request`;
+    const [open, setOpen] = useState(() => null !== draftKey && null !== readSessionDraft(draftKey));
     const [sent, setSent] = useState(false);
     // The fetcher keeps the result of an earlier box, so only a submit since the box opened shows an error.
     const [submitted, setSubmitted] = useState(false);
@@ -61,7 +65,8 @@ export function NewRequestBox() {
                 label="New request"
                 labelVisible
                 submitLabel="Add comment"
-                onSubmit={(text) => submit({ intent: 'draft', input: { kind: 'new_request', anchor: null, ...text } })}
+                draftKey={draftKey}
+                onSubmit={(text) => submit({ intent: 'draft', input: { kind: 'new_request', anchor: null, ...text }, draftKey: draftKey ?? undefined })}
                 askForPlan
                 titled
                 onCancel={() => setOpen(false)}

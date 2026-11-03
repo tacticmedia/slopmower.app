@@ -91,6 +91,7 @@ function download(diff: string, fileName: string): void {
  */
 export function ProposalDecision({ proposalEventId }: { proposalEventId: Ulid }) {
     const { busy, sent, error, dialog, opener, send, openDialog, closeDialog } = useRequestCommand<'reject_proposal'>();
+    const noteKey = `proposal:${proposalEventId}:reject_proposal`;
 
     return (
         <div className={styles.proposalDecision} data-testid="proposal-decision">
@@ -118,9 +119,10 @@ export function ProposalDecision({ proposalEventId }: { proposalEventId: Ulid })
                     rule="required"
                     submitLabel="Request changes"
                     buttonType="primary"
+                    draftKey={noteKey}
                     busy={busy}
                     error={error}
-                    onSubmit={(note) => send({ intent: 'reject_proposal', input: { proposalEventId, note } })}
+                    onSubmit={(note) => send({ intent: 'reject_proposal', input: { proposalEventId, note }, draftKey: noteKey })}
                     onClose={closeDialog}
                     returnFocusRef={opener}
                 />

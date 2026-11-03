@@ -3,10 +3,12 @@ import { type RefObject, useId, useRef } from 'react';
 import { useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
 import { ActionErrorMessage } from '../layout/ActionErrorMessage';
+import { removeSessionDraft, useSessionDraft } from '../layout/useSessionDraft';
 import { useSubmitOnce } from '../layout/useSubmitOnce';
 import styles from './CloseReviewDialog.module.css';
 
 type Props = {
+    reviewId: string;
     draftCount: number;
     returnFocusRef: RefObject<HTMLElement | null>;
     onClose(): void;
@@ -14,15 +16,19 @@ type Props = {
 
 /**
  * Decision D27. The review actions menu renders it only while the review is open, so a successful close unmounts it.
+ * A reload keeps the note, and closing the dialog removes it (D109).
  */
-export function CloseReviewDialog({ draftCount, returnFocusRef, onClose }: Props) {
+export function CloseReviewDialog({ reviewId, draftCount, returnFocusRef, onClose }: Props) {
     const close = useFetcher<ActionResult>();
     const submitOnce = useSubmitOnce(close.submit);
     const note = useRef<HTMLTextAreaElement>(null);
     const formId = useId();
     const busy = 'idle' !== close.state;
+    const draftKey = `review:${reviewId}:close-note`;
+    const [noteText, setNoteText] = useSessionDraft(draftKey);
     const closeUnlessBusy = (): void => {
         if (!busy) {
+            removeSessionDraft(draftKey);
             onClose();
         }
     };
@@ -41,6 +47,7 @@ export function CloseReviewDialog({ draftCount, returnFocusRef, onClose }: Props
         >
             <close.Form method="post" id={formId} className={styles.form} onSubmit={submitOnce}>
                 <input type="hidden" name="intent" value="close" />
+                <input type="hidden" name="draftKey" value={draftKey} />
                 {draftCount > 0 && (
                     <Banner
                         variant="warning"
@@ -51,7 +58,7 @@ export function CloseReviewDialog({ draftCount, returnFocusRef, onClose }: Props
                 )}
                 <FormControl>
                     <FormControl.Label>Note</FormControl.Label>
-                    <Textarea ref={note} name="note" block resize="vertical" />
+                    <Textarea ref={note} name="note" value={noteText} onChange={(event) => setNoteText(event.target.value)} block resize="vertical" />
                     <FormControl.Caption>Optional.</FormControl.Caption>
                 </FormControl>
                 <ActionErrorMessage result={close.data} />

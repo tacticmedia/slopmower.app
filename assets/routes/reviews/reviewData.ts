@@ -30,12 +30,14 @@ export async function reviewLoader({ request, params }: LoaderFunctionArgs): Pro
 
 /**
  * Form field `intent`: `close` for V4, `submit` for D5, `delete` for V13 with the form field `repositoryId`,
- * `carry_over` for V15 with the form field `fromReviewId`.
+ * `carry_over` for V15 with the form field `fromReviewId`. `submit` and `close` remove the session draft of the form
+ * field `draftKey` when they succeed (D109).
  */
 export async function reviewAction({ request, params }: ActionFunctionArgs): Promise<ActionResult | CarryOverResult | Response> {
     const form = await request.formData();
     const review = `/api/v1/reviews/${encodedRouteParam(params, 'reviewId')}`;
     const intent = form.get('intent');
+    const draftKey = optionalText(form.get('draftKey')) ?? undefined;
 
     if ('carry_over' === intent) {
         const input: CarryOverInput = { fromReviewId: String(form.get('fromReviewId')) };
@@ -69,7 +71,7 @@ export async function reviewAction({ request, params }: ActionFunctionArgs): Pro
             const submission = await apiWrite<BatchSubmission>('POST', `${review}/drafts/submit`, input);
             // The router revalidates after this action, so the live update of the batch needs no revalidation.
             eventPositions.written(submission.reviewId, submission.seq);
-        });
+        }, draftKey);
     }
 
     if ('close' !== intent) {
@@ -78,5 +80,5 @@ export async function reviewAction({ request, params }: ActionFunctionArgs): Pro
 
     const input: CloseReviewInput = { note: optionalText(form.get('note')) };
 
-    return writeResult(() => apiWrite('POST', `${review}/close`, input));
+    return writeResult(() => apiWrite('POST', `${review}/close`, input), draftKey);
 }

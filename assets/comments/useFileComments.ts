@@ -3,8 +3,9 @@ import { useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
 import type { RequestType } from '../api/types/common';
 import type { Symbol as CodeSymbol } from '../api/types/symbol';
-import type { LineRange } from '../code/lineHash';
+import { type LineRange, lineRange } from '../code/lineHash';
 import { anchorInput } from '../code/rangeSelection';
+import { sessionDraftKeys } from '../layout/useSessionDraft';
 import type { CommentText } from './CommentBox';
 import type { CommentIntent } from './commentIntent';
 import { type DraftView, pendingDraft } from './draftView';
@@ -24,9 +25,12 @@ export type Composer = {
     type: RequestType;
     group: string;
     error: string | null;
+    /** {@link composerDraftKey} */
+    draftKey: string;
 };
 
 type Options = {
+    reviewId: string;
     path: string;
     threads: ThreadView[];
     drafts: DraftView[];
@@ -40,7 +44,7 @@ type Sent = { path: string; range: LineRange | null; symbol: CodeSymbol | null; 
  * The one comment box of a file and D2 (D84). The pending comment shows at once; when the write fails, the box opens
  * again with the text, the error, and the line selection.
  */
-export function useFileComments({ path, threads, drafts, select }: Options) {
+export function useFileComments({ reviewId, path, threads, drafts, select }: Options) {
     const fetcher = useFetcher<ActionResult>();
     const [sending, startSending] = useTransition();
     const [shownDrafts, addDraft] = useOptimistic(drafts, (current: DraftView[], added: DraftView) => [...current, added]);
@@ -54,7 +58,8 @@ export function useFileComments({ path, threads, drafts, select }: Options) {
         if (undefined !== error) {
             const { path: sentPath, range, symbol, text } = sent;
             opened.current += 1;
-            setComposer({ key: opened.current, path: sentPath, range, symbol, initialTitle: text.title ?? '', initialBody: text.body, requireApproval: text.requireApproval, type: text.type, group: text.group ?? '', error });
+            const draftKey = composerDraftKey(reviewId, sentPath, range);
+            setComposer({ key: opened.current, path: sentPath, range, symbol, initialTitle: text.title ?? '', initialBody: text.body, requireApproval: text.requireApproval, type: text.type, group: text.group ?? '', error, draftKey });
         }
     }
 
@@ -71,10 +76,11 @@ export function useFileComments({ path, threads, drafts, select }: Options) {
         (range: LineRange | null, symbol: CodeSymbol | null = null): void => {
             if (!sending) {
                 opened.current += 1;
-                setComposer({ key: opened.current, path, range, symbol, initialTitle: '', initialBody: '', requireApproval: true, type: 'change', group: '', error: null });
+                const draftKey = composerDraftKey(reviewId, path, range);
+                setComposer({ key: opened.current, path, range, symbol, initialTitle: '', initialBody: '', requireApproval: true, type: 'change', group: '', error: null, draftKey });
             }
         },
-        [path, sending],
+        [reviewId, path, sending],
     );
 
     const cancel = useCallback((): void => {
@@ -87,11 +93,11 @@ export function useFileComments({ path, threads, drafts, select }: Options) {
             if (sending || null === shownComposer) {
                 return false;
             }
-            const { range, symbol } = shownComposer;
+            const { range, symbol, draftKey } = shownComposer;
             setComposer(null);
             select(null);
             setSent({ path, range, symbol, text });
-            const intent: CommentIntent = { intent: 'draft', input: { kind: 'new_request', anchor: anchorInput(path, range, symbol?.fqn ?? null), ...text } };
+            const intent: CommentIntent = { intent: 'draft', input: { kind: 'new_request', anchor: anchorInput(path, range, symbol?.fqn ?? null), ...text }, draftKey };
             startSending(async () => {
                 addDraft(pendingDraft(range, text));
                 await fetcher.submit(intent, { method: 'post', encType: 'application/json' });
@@ -103,4 +109,30 @@ export function useFileComments({ path, threads, drafts, select }: Options) {
     );
 
     return { threads, drafts: shownDrafts, composer: shownComposer, open, cancel, submit };
+}
+
+function composerKeyPrefix(reviewId: string, path: string): string {
+    return `review:${reviewId}:file:${encodeURIComponent(path)}:`;
+}
+
+export function composerDraftKey(reviewId: string, path: string, range: LineRange | null): string {
+    return `${composerKeyPrefix(reviewId, path)}${null === range ? 'file' : `lines:${range.start}-${range.end}`}`;
+}
+
+/** The anchor of a composer whose text a reload kept: its lines, null for the file, undefined without one. */
+export function storedComposerRange(reviewId: string, path: string): LineRange | null | undefined {
+    const prefix = composerKeyPrefix(reviewId, path);
+    // Sorted, because the order of the storage keys is not specified.
+    for (const key of sessionDraftKeys(prefix).sort()) {
+        const anchor = key.slice(prefix.length);
+        if ('file' === anchor) {
+            return null;
+        }
+        const lines = /^lines:(\d+)-(\d+)$/.exec(anchor);
+        if (null !== lines) {
+            return lineRange(Number(lines[1]), Number(lines[2]));
+        }
+    }
+
+    return undefined;
 }

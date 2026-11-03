@@ -1,8 +1,9 @@
 import { ConfirmationDialog } from '@primer/react';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useId, useMemo, useState } from 'react';
 import { type BlockerFunction, useBlocker } from 'react-router';
+import { removeSessionDraft } from '../layout/useSessionDraft';
 
-type Registry = (id: string, unsaved: boolean) => void;
+type Registry = (id: string, unsaved: boolean, draftKey: string | null) => void;
 
 type Guard = {
     mark: Registry;
@@ -14,19 +15,19 @@ const UnsavedComments = createContext<Guard>({ mark: () => undefined, confirmDis
 
 /**
  * Asks before a navigation to another path, a reload, or a closed tab while a comment box holds unsaved text. React
- * Router allows one blocker per router, so this is the only one.
+ * Router allows one blocker per router, so this is the only one. "Discard" also removes the session drafts (D109).
  */
 export function UnsavedCommentGuard({ children }: { children: ReactNode }) {
-    const [unsaved, setUnsaved] = useState<ReadonlySet<string>>(new Set());
+    const [unsaved, setUnsaved] = useState<ReadonlyMap<string, string | null>>(new Map());
     const mark = useMemo<Registry>(
-        () => (id, isUnsaved) =>
+        () => (id, isUnsaved, draftKey) =>
             setUnsaved((current) => {
-                if (current.has(id) === isUnsaved) {
+                if (isUnsaved ? current.has(id) && current.get(id) === draftKey : !current.has(id)) {
                     return current;
                 }
-                const next = new Set(current);
+                const next = new Map(current);
                 if (isUnsaved) {
-                    next.add(id);
+                    next.set(id, draftKey);
                 } else {
                     next.delete(id);
                 }
@@ -55,6 +56,13 @@ export function UnsavedCommentGuard({ children }: { children: ReactNode }) {
     }, [guarding]);
 
     const close = (discard: boolean): void => {
+        if (discard) {
+            for (const draftKey of unsaved.values()) {
+                if (null !== draftKey) {
+                    removeSessionDraft(draftKey);
+                }
+            }
+        }
         if (null !== confirming) {
             setConfirming(null);
             confirming(discard);
@@ -85,15 +93,15 @@ export function UnsavedCommentGuard({ children }: { children: ReactNode }) {
     );
 }
 
-export function useUnsavedComment(unsaved: boolean): void {
+export function useUnsavedComment(unsaved: boolean, draftKey: string | null = null): void {
     const { mark } = useContext(UnsavedComments);
     const id = useId();
 
     useEffect(() => {
-        mark(id, unsaved);
+        mark(id, unsaved, draftKey);
 
-        return () => mark(id, false);
-    }, [mark, id, unsaved]);
+        return () => mark(id, false, null);
+    }, [mark, id, unsaved, draftKey]);
 }
 
 /** For a write that leaves the page through a redirect of its action, which the blocker does not see. */

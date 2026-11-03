@@ -73,7 +73,7 @@ export function ReviewLayout() {
                     <div className={styles.reviewActions}>
                         <QuickOpen reviewId={review.id} indexState={review.index.state} />
                         <AgentPromptsOverlay reviewId={review.id} />
-                        {'open' === review.state && drafts.length > 0 && <SubmitFeedbackOverlay draftCount={drafts.length} delivery={review.delivery} pullRequests={review.capabilities.pullRequests} />}
+                        {'open' === review.state && drafts.length > 0 && <SubmitFeedbackOverlay reviewId={review.id} draftCount={drafts.length} delivery={review.delivery} pullRequests={review.capabilities.pullRequests} />}
                         <ReviewActionsMenu review={review} draftCount={drafts.length} />
                     </div>
                 </div>

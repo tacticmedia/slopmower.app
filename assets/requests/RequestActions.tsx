@@ -1,6 +1,6 @@
 import { Button } from '@primer/react';
 import { InlineMessage } from '@primer/react/experimental';
-import type { Action } from '../api/types/common';
+import type { Action, Ulid } from '../api/types/common';
 import { REQUEST_BUTTON_LABELS, type RequestButton, requestButtons } from './allowedActions';
 import { NoteDialog, type NoteDialogSpec } from './NoteDialog';
 import type { RequestCommandIntent } from './requestIntent';
@@ -51,9 +51,10 @@ function dialogIntent(button: DialogButton, text: string): RequestCommandIntent 
 /**
  * The buttons follow `allowedActions` of Q3.
  */
-export function RequestActions({ allowedActions }: { allowedActions: readonly Action[] }) {
+export function RequestActions({ requestId, allowedActions }: { requestId: Ulid; allowedActions: readonly Action[] }) {
     const { busy, sent, error, dialog, opener, send, openDialog, closeDialog } = useRequestCommand<DialogButton>();
     const buttons = requestButtons(allowedActions);
+    const noteKey = `request:${requestId}:${dialog}`;
 
     if (0 === buttons.length) {
         return null;
@@ -87,9 +88,10 @@ export function RequestActions({ allowedActions }: { allowedActions: readonly Ac
                 <NoteDialog
                     key={dialog}
                     {...DIALOGS[dialog]}
+                    draftKey={noteKey}
                     busy={busy}
                     error={error}
-                    onSubmit={(text) => send(dialogIntent(dialog, text))}
+                    onSubmit={(text) => send({ ...dialogIntent(dialog, text), draftKey: noteKey })}
                     onClose={closeDialog}
                     returnFocusRef={opener}
                 />

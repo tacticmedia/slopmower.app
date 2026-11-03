@@ -33,7 +33,7 @@ export function ReviewActionsMenu({ review, draftCount }: { review: Review; draf
                 </ActionMenu.Overlay>
             </ActionMenu>
             {open && 'carry_over' === dialog && <CarryOverDialog review={review} returnFocusRef={anchor} onClose={closeDialog} />}
-            {open && 'close' === dialog && <CloseReviewDialog draftCount={draftCount} returnFocusRef={anchor} onClose={closeDialog} />}
+            {open && 'close' === dialog && <CloseReviewDialog reviewId={review.id} draftCount={draftCount} returnFocusRef={anchor} onClose={closeDialog} />}
             {'delete' === dialog && <DeleteReviewDialog repositoryId={review.repositoryId} returnFocusRef={anchor} onClose={closeDialog} />}
         </>
     );

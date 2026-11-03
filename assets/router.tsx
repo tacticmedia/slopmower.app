@@ -6,6 +6,7 @@ import { commentAction } from './comments/commentAction';
 import { LoadingPage } from './layout/LoadingPage';
 import { RootLayout } from './layout/RootLayout';
 import { RouteError } from './layout/RouteError';
+import { removeSessionDrafts } from './layout/useSessionDraft';
 import { RepositoriesRoute, repositoriesAction, repositoriesLoader } from './routes/repositories/RepositoriesRoute';
 import { RepositoryRoute, repositoryAction, repositoryLoader } from './routes/repositories/RepositoryRoute';
 import { commitDiffLoader, diffSidesLoader, shouldRevalidateChanges } from './routes/requests/changesData';
@@ -104,6 +105,8 @@ export const router = wrapCreateBrowserRouter(createBrowserRouter)([
                 path: 'sign-out',
                 action: async (): Promise<Response> => {
                     await signOut();
+                    // The next person in this tab does not see the text (D109).
+                    removeSessionDrafts();
 
                     return redirectDocument('/login');
                 },

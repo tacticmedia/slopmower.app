@@ -14,7 +14,7 @@ import type { CommentIntent } from './commentIntent';
 export async function commentAction({ request, params }: ActionFunctionArgs): Promise<ActionResult> {
     const submitted = (await request.json()) as CommentIntent;
 
-    return writeResult(() => writeComment(encodedRouteParam(params, 'reviewId'), submitted, request.signal));
+    return writeResult(() => writeComment(encodedRouteParam(params, 'reviewId'), submitted, request.signal), submitted.draftKey);
 }
 
 export async function writeComment(reviewId: string, submitted: CommentIntent, signal: AbortSignal): Promise<unknown> {

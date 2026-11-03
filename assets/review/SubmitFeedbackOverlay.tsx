@@ -4,6 +4,7 @@ import { useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
 import type { Delivery } from '../api/types/common';
 import { ActionErrorMessage } from '../layout/ActionErrorMessage';
+import { removeSessionDraft, useSessionDraft } from '../layout/useSessionDraft';
 import { useSubmitOnce } from '../layout/useSubmitOnce';
 import styles from './SubmitFeedbackOverlay.module.css';
 
@@ -21,6 +22,7 @@ const PULL_REQUEST_OPTIONS = [
 ] as const;
 
 type Props = {
+    reviewId: string;
     draftCount: number;
     /** The stored choice, which the selects start from. */
     delivery: Delivery;
@@ -30,20 +32,29 @@ type Props = {
 
 /**
  * D5 with an optional summary and the delivery choice (D85). The review layout renders it only while drafts exist, so
- * a successful submission unmounts it.
+ * a successful submission unmounts it. A reload keeps the summary, and closing without a submission removes it (D109).
  */
-export function SubmitFeedbackOverlay({ draftCount, delivery, pullRequests }: Props) {
+export function SubmitFeedbackOverlay({ reviewId, draftCount, delivery, pullRequests }: Props) {
     const [open, setOpen] = useState(false);
     const submission = useFetcher<ActionResult>();
     const submitOnce = useSubmitOnce(submission.submit);
     const summary = useRef<HTMLTextAreaElement>(null);
     const busy = 'idle' !== submission.state;
+    const draftKey = `review:${reviewId}:feedback-summary`;
+    const [summaryText, setSummaryText, revertSummary] = useSessionDraft(draftKey);
+    const close = (): void => {
+        if (!busy) {
+            removeSessionDraft(draftKey);
+            revertSummary();
+            setOpen(false);
+        }
+    };
 
     return (
         <AnchoredOverlay
             open={open}
             onOpen={() => setOpen(true)}
-            onClose={() => setOpen(busy)}
+            onClose={close}
             renderAnchor={(anchorProps) => (
                 <Button {...anchorProps} variant="primary" count={draftCount} data-testid="submit-feedback">
                     Submit feedback
@@ -56,9 +67,20 @@ export function SubmitFeedbackOverlay({ draftCount, delivery, pullRequests }: Pr
         >
             <submission.Form method="post" className={styles.form} data-testid="submit-feedback-form" onSubmit={submitOnce}>
                 <input type="hidden" name="intent" value="submit" />
+                <input type="hidden" name="draftKey" value={draftKey} />
                 <FormControl>
                     <FormControl.Label>Summary</FormControl.Label>
-                    <Textarea ref={summary} name="summary" block resize="vertical" rows={4} placeholder="Leave a comment" readOnly={busy} />
+                    <Textarea
+                        ref={summary}
+                        name="summary"
+                        value={summaryText}
+                        onChange={(event) => setSummaryText(event.target.value)}
+                        block
+                        resize="vertical"
+                        rows={4}
+                        placeholder="Leave a comment"
+                        readOnly={busy}
+                    />
                     <FormControl.Caption>Optional.</FormControl.Caption>
                 </FormControl>
                 <FormControl>
@@ -85,7 +107,7 @@ export function SubmitFeedbackOverlay({ draftCount, delivery, pullRequests }: Pr
                 )}
                 <ActionErrorMessage result={submission.data} />
                 <div className={styles.actions}>
-                    <Button onClick={() => setOpen(false)} disabled={busy}>
+                    <Button onClick={close} disabled={busy}>
                         Cancel
                     </Button>
                     <Button type="submit" variant="primary" loading={busy}>

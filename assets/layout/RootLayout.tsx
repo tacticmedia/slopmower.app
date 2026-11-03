@@ -1,5 +1,6 @@
 import { QuestionIcon } from '@primer/octicons-react';
-import { ActionList, ActionMenu, Avatar, Button, Header, IconButton } from '@primer/react';
+import { ActionList, ActionMenu, Avatar, Button, Dialog, Header, IconButton } from '@primer/react';
+import { useState } from 'react';
 import { NavLink, Outlet, useFetcher, useLoaderData, useMatch } from 'react-router';
 import type { Me } from '../api/types/me';
 import { UnsavedCommentGuard } from '../comments/UnsavedCommentGuard';
@@ -7,6 +8,7 @@ import { useLiveRevalidation } from '../live/useLiveRevalidation';
 import { useTours } from '../tour/useTours';
 import { HELP } from './helpLinks';
 import styles from './RootLayout.module.css';
+import { useSessionKeepalive } from './useSessionKeepalive';
 import { useSubmitOnce } from './useSubmitOnce';
 
 export function RootLayout() {
@@ -14,6 +16,8 @@ export function RootLayout() {
     const signOut = useFetcher();
     const submitOnce = useSubmitOnce(signOut.submit);
     const live = useLiveRevalidation();
+    const expired = useSessionKeepalive();
+    const [dismissed, setDismissed] = useState(false);
     const { release } = document.body.dataset;
 
     return (
@@ -56,6 +60,18 @@ export function RootLayout() {
                 </UnsavedCommentGuard>
             </main>
             {release && <footer className={styles.footer}>Release {release}</footer>}
+            {expired && !dismissed && (
+                <Dialog
+                    title="You are signed out"
+                    onClose={() => setDismissed(true)}
+                    footerButtons={[
+                        { content: 'Dismiss', onClick: () => setDismissed(true) },
+                        { content: 'Sign in', buttonType: 'primary', onClick: () => window.location.assign('/login') },
+                    ]}
+                >
+                    Your session has ended. Text that you have not saved stays in this tab. It comes back when you open the same page after you sign in.
+                </Dialog>
+            )}
         </div>
     );
 }

@@ -1,4 +1,5 @@
 import { captureException } from '@sentry/react';
+import { removeSessionDraft } from '../layout/useSessionDraft';
 import { ApiError } from './client';
 
 /**
@@ -20,9 +21,13 @@ export function actionError(error: unknown): { error: string } {
     throw error;
 }
 
-export async function writeResult(write: () => Promise<unknown>): Promise<ActionResult> {
+/** Removes the session draft `draftKey` when the write succeeds (D109). */
+export async function writeResult(write: () => Promise<unknown>, draftKey?: string): Promise<ActionResult> {
     try {
         await write();
+        if (undefined !== draftKey) {
+            removeSessionDraft(draftKey);
+        }
 
         return null;
     } catch (error) {

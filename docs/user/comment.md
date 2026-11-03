@@ -41,6 +41,10 @@ If a comment cannot be saved, its box opens again with your text, the error, and
 
 While a comment box holds text that is not saved, Slopmower asks before it opens another page. Click **Keep editing** to stay, or **Discard** to leave without the text. The browser also asks before a reload or a closed tab.
 
+A reload keeps the text that you did not save in the same browser tab: comments, replies, notes, and the feedback summary. After a reload, a comment box on lines opens again on its lines, and an edited pending comment opens in its editor. A note or a summary comes back when you open its dialog again. The text stays until you save it, cancel it, discard it, sign out, or close the tab.
+
+Slopmower keeps you signed in while a page is open. When your session ends anyway, for example after a sleep of your computer, Slopmower shows **You are signed out**. Click **Sign in** to sign in again in the same tab. Your text comes back when you open the same page again. **Dismiss** closes the message, and a save fails until you sign in.
+
 ## Open a general request
 
 A general request belongs to the whole review and names no file, line, or symbol, for example "Add a full-screen focus mode". Open **Requests** and click **New request**. Type the request and click **Add comment**. Like a comment on code, it is a draft until you submit your feedback.

@@ -23,6 +23,7 @@ export function SuggestionActions({ requestId, buttons, detail = false }: Props)
     const { busy, sent, error, dialog, opener, send, openDialog, closeDialog } = useRequestCommand<'dismiss_suggestion'>(`/requests/${encodeURIComponent(requestId)}`);
     const [requireApproval, setRequireApproval] = useState(true);
     const accept = (next: boolean): void => send({ intent: 'accept_suggestion', input: { requireApproval }, next });
+    const noteKey = `request:${requestId}:dismiss_suggestion`;
 
     if (0 === buttons.length) {
         return null;
@@ -65,9 +66,10 @@ export function SuggestionActions({ requestId, buttons, detail = false }: Props)
                     rule="optional"
                     submitLabel="Dismiss"
                     buttonType="danger"
+                    draftKey={noteKey}
                     busy={busy}
                     error={error}
-                    onSubmit={(text) => send({ intent: 'dismiss_suggestion', input: { note: '' === text ? null : text } })}
+                    onSubmit={(text) => send({ intent: 'dismiss_suggestion', input: { note: '' === text ? null : text }, draftKey: noteKey })}
                     onClose={closeDialog}
                     returnFocusRef={opener}
                 />

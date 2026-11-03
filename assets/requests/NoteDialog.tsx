@@ -1,6 +1,7 @@
 import { Dialog, FormControl, Textarea } from '@primer/react';
 import { InlineMessage } from '@primer/react/experimental';
-import { type FormEvent, type RefObject, useId, useRef, useState } from 'react';
+import { type FormEvent, type RefObject, useId, useRef } from 'react';
+import { removeSessionDraft, useSessionDraft } from '../layout/useSessionDraft';
 import { type NoteRule, noteAccepted, REASON_MIN_CHARACTERS } from './noteRule';
 import styles from './Requests.module.css';
 
@@ -20,6 +21,8 @@ export type NoteDialogSpec = {
 };
 
 type Props = NoteDialogSpec & {
+    /** The {@link useSessionDraft} key of the note. The write that succeeds removes it, and closing removes it. */
+    draftKey: string;
     busy: boolean;
     error: string | null;
     /** The trimmed text. Empty only for an optional note. */
@@ -31,13 +34,14 @@ type Props = NoteDialogSpec & {
 /**
  * While the write runs, the dialog neither submits again nor closes.
  */
-export function NoteDialog({ title, subtitle, fieldLabel, rule, submitLabel, buttonType, busy, error, onSubmit, onClose, returnFocusRef }: Props) {
-    const [text, setText] = useState('');
+export function NoteDialog({ title, subtitle, fieldLabel, rule, submitLabel, buttonType, draftKey, busy, error, onSubmit, onClose, returnFocusRef }: Props) {
+    const [text, setText] = useSessionDraft(draftKey);
     const field = useRef<HTMLTextAreaElement>(null);
     const formId = useId();
     const valid = noteAccepted(text, rule);
     const close = (): void => {
         if (!busy) {
+            removeSessionDraft(draftKey);
             onClose();
         }
     };

@@ -3,11 +3,13 @@ import type { CommentInput, CreateDraftInput, UpdateDraftInput } from '../api/ty
 
 /**
  * The JSON body that comment components submit to the action of their route: `reply` for Q4, the draft writes D2
- * to D4, and `sendDraft` for D5 with one draft (D101). A new request is always a draft (D84).
+ * to D4, and `sendDraft` for D5 with one draft (D101). A new request is always a draft (D84). The action removes the
+ * session draft `draftKey` when the write succeeds (D109).
  */
-export type CommentIntent =
+export type CommentIntent = (
     | { intent: 'reply'; requestId: Ulid; input: CommentInput }
     | { intent: 'draft'; input: CreateDraftInput }
     | { intent: 'editDraft'; draftId: Ulid; input: UpdateDraftInput }
     | { intent: 'deleteDraft'; draftId: Ulid }
-    | { intent: 'sendDraft'; draftId: Ulid };
+    | { intent: 'sendDraft'; draftId: Ulid }
+) & { draftKey?: string };

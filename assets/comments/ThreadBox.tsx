@@ -61,13 +61,14 @@ export function ThreadBox({ thread, caller, showHeader = true, detail = false, b
     const [comments, addComment] = useOptimistic(thread.comments, (current: CommentView[], added: CommentView) => [...current, added]);
     const replyBox = useRef<CommentBoxHandle>(null);
     const { requestId } = thread;
+    const draftKey = null === requestId ? null : `request:${requestId}:reply`;
     const pendingProposal = detail && thread.decidable ? (comments.find(({ proposal }) => 'pending' === proposal?.state)?.proposal ?? null) : null;
 
     const reply = ({ body }: CommentText): boolean => {
-        if (replying || null === requestId) {
+        if (replying || null === requestId || null === draftKey) {
             return false;
         }
-        const intent: CommentIntent = { intent: 'reply', requestId, input: { body } };
+        const intent: CommentIntent = { intent: 'reply', requestId, input: { body }, draftKey };
         startReply(async () => {
             addComment(pendingComment('request.commented', body, caller));
             await fetcher.submit(intent, { method: 'post', encType: 'application/json' });
@@ -137,6 +138,7 @@ export function ThreadBox({ thread, caller, showHeader = true, detail = false, b
                         ref={replyBox}
                         label="Reply"
                         submitLabel="Reply"
+                        draftKey={draftKey}
                         onSubmit={reply}
                         error={replying ? null : (fetcher.data?.error ?? null)}
                         busy={replying}

@@ -45,9 +45,11 @@ export async function fileAction({ request, params }: ActionFunctionArgs): Promi
     const reviewId = encodedRouteParam(params, 'reviewId');
     const { signal } = request;
 
-    return writeResult(() =>
-        'viewed' === submitted.intent ? apiWrite('PUT', `/api/v1/reviews/${reviewId}/viewed-files`, submitted.input, signal) : writeComment(reviewId, submitted, signal),
-    );
+    if ('viewed' === submitted.intent) {
+        return writeResult(() => apiWrite('PUT', `/api/v1/reviews/${reviewId}/viewed-files`, submitted.input, signal));
+    }
+
+    return writeResult(() => writeComment(reviewId, submitted, signal), submitted.draftKey);
 }
 
 /**

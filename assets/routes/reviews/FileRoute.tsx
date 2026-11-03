@@ -16,7 +16,7 @@ import { CommentBox, type CommentText } from '../../comments/CommentBox';
 import { CommentOnLinesForm } from '../../comments/CommentOnLinesForm';
 import { type DraftView, fileDraftViews } from '../../comments/draftView';
 import { ThreadList } from '../../comments/ThreadList';
-import { type Composer, useFileComments } from '../../comments/useFileComments';
+import { type Composer, storedComposerRange, useFileComments } from '../../comments/useFileComments';
 import { CopyButton } from '../../layout/CopyButton';
 import { usePreference } from '../../layout/usePreference';
 import { BlameColumn } from '../../review/BlameColumn';
@@ -51,7 +51,7 @@ export function FileRoute() {
     const { review, drafts, viewedPaths } = loaded(useRouteLoaderData<ReviewData>('review'), 'review');
     const fileDrafts = useMemo(() => fileDraftViews(drafts, content.path), [drafts, content.path]);
     const selection = useLineSelection(content.path, content.lineCount);
-    const comments = useFileComments({ path: content.path, threads, drafts: fileDrafts, select: selection.select });
+    const comments = useFileComments({ reviewId: review.id, path: content.path, threads, drafts: fileDrafts, select: selection.select });
     const commentable = 'open' === review.state;
     // The blame view keeps one row height, so it has no threads and no line wrap.
     const blameMode = null !== blame;
@@ -83,6 +83,22 @@ export function FileRoute() {
         },
         [select, open],
     );
+
+    // Once per file (D109). shortcut: a restored comment on a symbol anchors to its lines when the symbols load after it,
+    // as a click does then; a restore that waited for the symbols stalled in the UI suite, see the F113 report.
+    const restoredPath = useRef<string | null>(null);
+    useEffect(() => {
+        if (!writable || restoredPath.current === content.path) {
+            return;
+        }
+        restoredPath.current = content.path;
+        const range = storedComposerRange(review.id, content.path);
+        if (null === range) {
+            open(null);
+        } else if (undefined !== range && null !== content.lineCount && range.end <= content.lineCount) {
+            commentOnLines(range);
+        }
+    }, [writable, review.id, content.path, content.lineCount, open, commentOnLines]);
 
     const lines = useMemo(() => (null === text ? [] : text.split('\n')), [text]);
     // Kept per path, so the scopes of the previous file never show.
@@ -296,6 +312,7 @@ function ComposerBox({ composer, onSubmit, onCancel }: ComposerBoxProps) {
             label={composerLabel(composer)}
             labelVisible
             submitLabel="Add comment"
+            draftKey={composer.draftKey}
             onSubmit={onSubmit}
             askForPlan={composer.requireApproval}
             initialType={composer.type}

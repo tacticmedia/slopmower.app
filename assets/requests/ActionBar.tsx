@@ -38,7 +38,7 @@ function StickyBar({ id, status, summary, allowedActions, nextRequestId, suggest
                     </div>
                 )}
                 <div className={styles.actions}>
-                    <RequestActions key={id} allowedActions={allowedActions} />
+                    <RequestActions key={id} requestId={id} allowedActions={allowedActions} />
                     <SuggestionActions key={`suggestion-${id}`} requestId={id} buttons={suggestion} detail />
                     {null !== nextRequestId && (
                         <Button as={RouterLink} to={`/requests/${nextRequestId}`}>

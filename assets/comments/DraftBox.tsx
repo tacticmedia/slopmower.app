@@ -4,6 +4,7 @@ import { InlineMessage } from '@primer/react/experimental';
 import { lazy, Suspense, useOptimistic, useState, useTransition } from 'react';
 import { Link as RouterLink, useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
+import { readSessionDraft } from '../layout/useSessionDraft';
 import { RequestTypeLabel } from '../requests/RequestTypeLabel';
 import { CommentBox, type CommentText } from './CommentBox';
 import type { CommentIntent } from './commentIntent';
@@ -27,9 +28,11 @@ export function DraftBox({ draft, editable }: Props) {
     const fetcher = useFetcher<ActionResult>();
     const [writing, startWrite] = useTransition();
     const [deleted, markDeleted] = useOptimistic(false, (_current: boolean, next: boolean) => next);
-    const [editing, setEditing] = useState(false);
-    const [savedEdit, setSavedEdit] = useState(false);
     const { draftId } = draft;
+    const editKey = null === draftId ? null : `draft:${draftId}:edit`;
+    // An edit that a reload kept opens the editor again.
+    const [editing, setEditing] = useState(() => editable && null !== editKey && null !== readSessionDraft(editKey));
+    const [savedEdit, setSavedEdit] = useState(false);
     const newRequest = null !== draft.requireApproval;
     const error = writing ? null : (fetcher.data?.error ?? null);
 
@@ -51,11 +54,11 @@ export function DraftBox({ draft, editable }: Props) {
         });
     };
     const save = (text: CommentText): boolean => {
-        if (writing || null === draftId) {
+        if (writing || null === draftId || null === editKey) {
             return false;
         }
         setSavedEdit(true);
-        submit({ intent: 'editDraft', draftId, input: newRequest ? text : { body: text.body } }, () => undefined);
+        submit({ intent: 'editDraft', draftId, input: newRequest ? text : { body: text.body }, draftKey: editKey }, () => undefined);
 
         return true;
     };
@@ -102,6 +105,7 @@ export function DraftBox({ draft, editable }: Props) {
                     <CommentBox
                         label="Edit pending comment"
                         submitLabel="Update comment"
+                        draftKey={editKey}
                         onSubmit={save}
                         askForPlan={draft.requireApproval ?? undefined}
                         initialType={draft.type}

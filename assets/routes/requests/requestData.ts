@@ -5,6 +5,7 @@ import { REQUEST_STATUSES, type RequestStatus, type Ulid } from '../../api/types
 import type { DraftList, RequestPage } from '../../api/types/lists';
 import type { Request as ReviewRequest } from '../../api/types/request';
 import type { RequestCommandResult } from '../../api/types/request-command-result';
+import { removeSessionDraft } from '../../layout/useSessionDraft';
 import { rememberEvents } from '../../live/eventPositions';
 import type { RequestCommandIntent, RequestIntent } from '../../requests/requestIntent';
 import { encodedRouteParam } from '../encodedRouteParam';
@@ -121,7 +122,10 @@ async function nextRequestId({ id, reviewId }: Pick<ReviewRequest, 'id' | 'revie
     return page.items.find((summary) => summary.id !== id)?.id ?? null;
 }
 
-/** A redirect skips the unsaved-comment guard, so `SplitDecisionButton` asks before it sends `next`. */
+/**
+ * A redirect skips the unsaved-comment guard, so `SplitDecisionButton` asks before it sends `next`. A write that
+ * succeeds removes the session draft `draftKey` (D109).
+ */
 export async function requestAction({ request, params }: ActionFunctionArgs): Promise<ActionResult | Response> {
     const submitted = (await request.json()) as RequestIntent;
     const requestPath = `/api/v1/requests/${encodedRouteParam(params, 'requestId')}`;
@@ -130,6 +134,9 @@ export async function requestAction({ request, params }: ActionFunctionArgs): Pr
     try {
         const { request: written, events } = await apiWrite<RequestCommandResult>('POST', path, submitted.input, request.signal);
         rememberEvents(events);
+        if (undefined !== submitted.draftKey) {
+            removeSessionDraft(submitted.draftKey);
+        }
         if (!('next' in submitted && true === submitted.next)) {
             return null;
         }
