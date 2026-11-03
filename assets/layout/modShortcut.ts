@@ -2,7 +2,8 @@ import { isMacOS } from '@primer/behaviors/utils';
 
 /**
  * Mod, Shift when `shift`, and `key`, a `KeyboardEvent.key` value. Mod is Command on macOS and Control elsewhere, as
- * in Primer `KeybindingHint`.
+ * in Primer `KeybindingHint`. A key whose `key` value changes with Shift and the layout, such as 7, is a
+ * `KeyboardEvent.code` value, such as `Digit7`.
  */
 export type ModShortcut = { key: string; shift: boolean };
 
@@ -10,7 +11,7 @@ export type ModShortcut = { key: string; shift: boolean };
 export function isPressed({ key, shift }: ModShortcut, event: KeyboardEvent): boolean {
     const mod = isMacOS() ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
 
-    return mod && !event.altKey && shift === event.shiftKey && key.toLowerCase() === event.key.toLowerCase();
+    return mod && !event.altKey && shift === event.shiftKey && (key.toLowerCase() === event.key.toLowerCase() || key === event.code);
 }
 
 /** The `keys` of `KeybindingHint`. */

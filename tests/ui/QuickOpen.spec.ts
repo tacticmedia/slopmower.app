@@ -86,7 +86,7 @@ test.describe('QuickOpen', () => {
         await page.keyboard.press('ControlOrMeta+k');
         await page.keyboard.type('x');
 
-        await expect(commentBox).toHaveValue('x');
+        await expect(commentBox).toHaveValue('[x](url)');
         await expect(dialog(page)).toHaveCount(0);
     });
 

@@ -59,7 +59,7 @@ test.describe('FileComment', () => {
         await expect(composer).toHaveCount(0);
         await page.getByRole('button', { name: 'Comment on file' }).click();
         await composer.fill('Split this class.');
-        await expect(page.locator('form[data-testid="comment-box"]').getByRole('button')).toHaveText(['Cancel', 'Add comment']);
+        await expect(page.locator('form[data-testid="comment-box"]').getByRole('button').filter({ hasText: /\S/ }), 'The toolbar buttons have no text.').toHaveText(['Cancel', 'Add comment']);
         await composer.press('ControlOrMeta+Enter');
 
         await waitForSavedDraft(page, FILE_THREADS, 'Split this class.');

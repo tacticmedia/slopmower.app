@@ -13,6 +13,7 @@
         "test:journeys": "playwright test --config playwright.journeys.config.ts"
     },
     "dependencies": {
+        "@github/markdown-toolbar-element": "2.2.3",
         "@pierre/diffs": "1.5.2",
         "@primer/behaviors": "1.11.0",
         "@primer/css": "22.3.2",

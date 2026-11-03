@@ -1,8 +1,9 @@
-import { Button, Checkbox, FormControl, Textarea, TextInput } from '@primer/react';
+import { Button, Checkbox, FormControl, TextInput } from '@primer/react';
 import { InlineMessage } from '@primer/react/experimental';
-import { type FormEvent, type KeyboardEvent, type Ref, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { type FormEvent, type KeyboardEvent, type Ref, useEffect, useId, useImperativeHandle, useRef, useState } from 'react';
 import { isPressed, type ModShortcut } from '../layout/modShortcut';
 import styles from './CommentBox.module.css';
+import { MarkdownEditor } from './MarkdownEditor';
 import { useUnsavedComment } from './UnsavedCommentGuard';
 
 /** About 2 s at 60 frames per second. */
@@ -70,7 +71,9 @@ export function CommentBox({
     const [body, setBody] = useState(initialBody);
     const [requireApproval, setRequireApproval] = useState(askForPlan ?? false);
     const [sent, setSent] = useState(false);
+    const [preview, setPreview] = useState(false);
     const textarea = useRef<HTMLTextAreaElement>(null);
+    const editorId = useId();
     useUnsavedComment(!sent && (initialTextSaved ? title !== initialTitle || body !== initialBody : '' !== title.trim() || '' !== body.trim()));
 
     if (sent && !busy) {
@@ -78,6 +81,7 @@ export function CommentBox({
         if (null === error) {
             setTitle('');
             setBody('');
+            setPreview(false);
         }
     }
 
@@ -85,6 +89,7 @@ export function CommentBox({
         ref,
         () => ({
             quote: (text: string) => {
+                setPreview(false);
                 setBody((current) => `${current}${'' === current ? '' : '\n\n'}${quoted(text)}\n\n`);
                 // After a menu that calls this has returned the focus to its button.
                 requestAnimationFrame(() => textarea.current?.focus());
@@ -129,15 +134,14 @@ export function CommentBox({
         }
     };
     const description = (
-        <Textarea
+        <MarkdownEditor
             ref={textarea}
+            id={editorId}
             value={body}
-            onChange={(event) => setBody(event.target.value)}
+            onChange={setBody}
+            preview={preview}
+            onPreviewChange={setPreview}
             aria-label={titled ? undefined : label}
-            placeholder="Leave a comment"
-            block
-            resize="vertical"
-            rows={4}
             readOnly={busy}
         />
     );
@@ -156,7 +160,7 @@ export function CommentBox({
                         <TextInput value={title} onChange={(event) => setTitle(event.target.value)} onKeyDown={pressTitleKey} maxLength={TITLE_MAX_CHARACTERS} block readOnly={busy} />
                         <FormControl.Caption>Optional.</FormControl.Caption>
                     </FormControl>
-                    <FormControl>
+                    <FormControl id={editorId}>
                         <FormControl.Label>Description</FormControl.Label>
                         {description}
                     </FormControl>

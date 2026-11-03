@@ -1,0 +1,18 @@
+.editor {
+    /* A FormControl aligns its children to the start. */
+    align-self: stretch;
+}
+
+.toolbar {
+    margin-block: var(--base-size-8);
+}
+
+.preview {
+    min-height: var(--base-size-96);
+    padding-block: var(--base-size-8);
+}
+
+.empty {
+    margin: 0;
+    color: var(--fgColor-muted);
+}
