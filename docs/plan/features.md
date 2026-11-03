@@ -119,6 +119,8 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F101 | [Network errors in browser reports](F101-network-errors.md) | Done 2026-11-03, [report](reports/F101.md) | 5986b58e | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 189 TS / 11446 lines |
 | F102 | [Retry on the error screen](F102-retry-on-the-error-screen.md) | Done 2026-11-03, [report](reports/F102.md) | 1049b069 | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 189 TS / 11454 lines |
 | F103 | [Network error text on the error screen](F103-network-error-text.md) | Done 2026-11-03, [report](reports/F103.md) | 77b7c275 | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 189 TS / 11459 lines |
+| F104 | [Known issues: request page dialogs, unsaved guard, symbols port race](F104-request-page-known-issues.md) | Planned | | |
+| F105 | [Next request on the request page](F105-next-request.md) | Planned | | |
 
 ## Candidates
 
@@ -209,6 +211,7 @@ The findings of the repository audit of 2026-10-28 are [F84](F84-audit-must-fixe
 
 Decisions or actions that only Jan can take. Each comes from a report or a review, and each was checked on 2026-10-07.
 
+- **Redeploy beta:** on 2026-11-03 Jan saw the sticky action bar of the request page above the dialog backdrop on beta.slopmower.app. `main` has the fix since F76 (2026-10-29, `#__primerPortalRoot__` on `--zIndex-overlay`), checked in the mocked build and the dev app. A deployment of `main` fixes beta. F104 adds a regression test.
 - **Licensing:** a distributed build carries the Apache-2.0 obligations of `@pierre/diffs`: the licence, the NOTICE, and the `@pierre/theme` NOTICE. The repository has no notice file.
 - **Upstream reports:**
   - `@pierre/diffs` blank-view bug: `finalizeRender()` compares files by identity, but `cacheKey` elsewhere. Unchanged in 1.5.2, the pinned and latest version (F18). `CodeFile.tsx` keeps the file object, so the app is not affected.
