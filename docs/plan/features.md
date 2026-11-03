@@ -123,9 +123,9 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F105 | [Next request on the request page](F105-next-request.md) | Done 2026-11-03, [report](reports/F105.md) | 24e678c1 | src 514 PHP / 35215 lines, 514 types; tests 348 PHP / 32991 lines; assets 194 TS / 11910 lines; check 5m24s |
 | F106 | [Reload when a code chunk fails to load](F106-chunk-reload.md) | Done 2026-11-03, [report](reports/F106.md) | 8080eb07 | src 514 PHP / 35215 lines, 514 types; tests 348 PHP / 32991 lines; assets 194 TS / 11950 lines |
 | F107 | [Next-step line at the end of the conversation](F107-next-step-placement.md) | Done 2026-11-03, [report](reports/F107.md) | 64b2bdde | src 514 PHP / 35215 lines, 514 types; tests 348 PHP / 32991 lines; assets 194 TS / 11961 lines |
-| F108 | [Structured agent questions](F108-agent-questions.md) | Done 2026-11-03, [report](reports/F108.md) | | src 515 PHP / 35494 lines, 515 types; tests 348 PHP / 33078 lines; assets 195 TS / 12160 lines; check 5m7s |
-| F109 | [Proposal decision next to the Reply button](F109-proposal-decision-next-to-reply.md) | Done 2026-11-03, [report](reports/F109.md) | | src 514 PHP / 35215 lines, 514 types; tests 348 PHP / 32991 lines; assets 194 TS / 12004 lines |
-| F110 | [Editor tabs and toolbar on one line](F110-editor-header-row.md) | Done 2026-11-03, [report](reports/F110.md) | | src 514 PHP / 35215 lines, 514 types; tests 348 PHP / 32991 lines; assets 194 TS / 11997 lines |
+| F108 | [Structured agent questions](F108-agent-questions.md) | Done 2026-11-03, [report](reports/F108.md) | da1192b8 | src 515 PHP / 35494 lines, 515 types; tests 348 PHP / 33078 lines; assets 195 TS / 12160 lines; check 5m7s |
+| F109 | [Proposal decision next to the Reply button](F109-proposal-decision-next-to-reply.md) | Done 2026-11-03, [report](reports/F109.md) | e96af290 | src 514 PHP / 35215 lines, 514 types; tests 348 PHP / 32991 lines; assets 194 TS / 12004 lines |
+| F110 | [Editor tabs and toolbar on one line](F110-editor-header-row.md) | Done 2026-11-03, [report](reports/F110.md) | 791d85fd | src 514 PHP / 35215 lines, 514 types; tests 348 PHP / 32991 lines; assets 194 TS / 11997 lines |
 
 ## Candidates
 
