@@ -64,7 +64,7 @@ The dialog also says how your agent delivers the work:
 - **Branch**: **Agent decides**, **Current branch**, **New branch**, which is one branch for the review, or **Worktree**, a git worktree with its own branch.
 - **Pull request**: **Agent decides**, **Open one**, or **None**. It shows for a GitHub repository only, because a local repository has no pull requests.
 
-The review keeps your choice, and the next dialog starts from it. It counts for every request of the review. When you approve a plan, you can decide on the pull request for that request, as [Ask for a plan first](requests.md#ask-for-a-plan-first) shows.
+The review keeps your choice, and the next dialog starts from it. It counts for every request of the review.
 
 Submitting feedback does not end the review. You can add more comments and submit feedback again. To end the review, close it, as [Close a review](requests.md#close-a-review) shows.
 

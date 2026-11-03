@@ -38,18 +38,17 @@ function detailOf(page: Page, requestId: string) {
 }
 
 test.describe('NextRequest', () => {
-    test('Approve and go to the next one sends Q15 with the checkbox value and opens the oldest other waiting request', async ({ page, api }) => {
+    test('Approve and go to the next one sends Q15 and opens the oldest other waiting request', async ({ page, api }) => {
         const review = new FakeReview(api);
         const { request, eventId } = planned(review);
         const oldest = ready(review, 'Extract the tax calculation.');
         ready(review, 'Rename the totals class.');
         await openRequest(page, request.id);
 
-        await page.locator(DECISION).getByRole('checkbox', { name: 'Send as a pull request', exact: true }).check();
         await chooseNext(page, DECISION, 'Approve');
 
         await expect(detailOf(page, oldest.id)).toBeVisible();
-        expect(api.bodies('POST', APPROVE)).toEqual([{ proposalEventId: eventId, pullRequest: true }]);
+        expect(api.bodies('POST', APPROVE)).toEqual([{ proposalEventId: eventId }]);
     });
 
     test('Resolve conversation and Accept with go to the next one send their command and open the next request', async ({ page, api }) => {

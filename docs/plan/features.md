@@ -126,6 +126,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F108 | [Structured agent questions](F108-agent-questions.md) | Done 2026-11-03, [report](reports/F108.md) | da1192b8 | src 515 PHP / 35494 lines, 515 types; tests 348 PHP / 33078 lines; assets 195 TS / 12160 lines; check 5m7s |
 | F109 | [Proposal decision next to the Reply button](F109-proposal-decision-next-to-reply.md) | Done 2026-11-03, [report](reports/F109.md) | e96af290 | src 514 PHP / 35215 lines, 514 types; tests 348 PHP / 32991 lines; assets 194 TS / 12004 lines |
 | F110 | [Editor tabs and toolbar on one line](F110-editor-header-row.md) | Done 2026-11-03, [report](reports/F110.md) | 791d85fd | src 514 PHP / 35215 lines, 514 types; tests 348 PHP / 32991 lines; assets 194 TS / 11997 lines |
+| F111 | [Remove the pull request checkbox of Approve](F111-remove-pull-request-checkbox.md) | Done 2026-11-04, [report](reports/F111.md) | | src 515 PHP / 35494 lines, 515 types; tests 348 PHP / 33078 lines; assets 195 TS / 12150 lines |
 
 ## Candidates
 
@@ -214,6 +215,7 @@ The findings of the repository audit of 2026-10-28 are [F84](F84-audit-must-fixe
 - **Annotation slot relayout drops the focus.** About 30 ms after a comment box opens in the code view, the view lays out the annotation slot again and hides its content for a frame, so the browser drops the focus. `focusWhenRendered` focuses the field again, but text typed in that frame is lost: 1 of 45 `RangeComment` runs at load 28 with 8 workers. Finding what makes `@pierre/diffs` lay the slot out again would remove the frame. From the F95 fix.
 - **Request changes takes the reply text.** Since F109, "Request changes" sits next to "Reply" but still opens the note dialog. As on GitHub, it could send the text of the reply box as its note, and open the dialog only when the box is empty. From the F109 report.
 - **More answer options for agent questions.** F108 offers Yes, No, and text. Options that the agent names, and answers to some of the questions only, are out of its scope. From the F108 planning.
+- **Drop `pullRequest` of Q15.** Since F111 the web UI sends no pull request choice with an approval, so `ApproveProposalInput.pullRequest`, `Proposal.pullRequest`, and the approval branch of `Request.delivery` have no sender in the repository. Removing them is a contract change; stored `request.proposal_approved` events keep the field. From F111.
 
 ## For Jan
 

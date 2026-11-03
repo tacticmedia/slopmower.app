@@ -436,7 +436,7 @@ The proposal replaces the current one, also an approved one. The request then wa
 - **Success:** 200 `RequestCommandResult` with one `request.proposal_approved` event. `proposal.state` becomes `approved`, and the request waits for the agent.
 - **Errors:** 422 `invalid_input`: `proposalEventId` is not the pending proposal, or `pullRequest` is true and the repository has no pull requests (D83); 409 `invalid_transition`: no proposal is pending; 409 `review_closed`.
 
-`pullRequest` decides for this request whether its work goes into a pull request, and `Request.delivery.pullRequest` shows it while the proposal stays approved. Absent or null leaves the choice of the review. The web UI sends it whenever `capabilities.pullRequests` is true (D85). A release, a won't do, or a reopen clears the proposal with its choice.
+`pullRequest` decides for this request whether its work goes into a pull request, and `Request.delivery.pullRequest` shows it while the proposal stays approved. Absent or null leaves the choice of the review. The web UI does not send it (D85). A release, a won't do, or a reopen clears the proposal with its choice.
 
 ### Q16 Reject a proposal
 

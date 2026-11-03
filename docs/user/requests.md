@@ -80,7 +80,7 @@ With the checkbox, the agent proposes a solution before it commits: a plan, and 
 
 On the request, the proposal shows the plan and the changes of each file of the diff. **Download .diff** saves the diff as a file. While the proposal waits for you, **Approve** and **Request changes** show in the reply box, left of **Reply**.
 
-- **Approve** lets the agent do the work as proposed. For a GitHub repository, the checkbox **Send as a pull request** beside it says whether the work of this request goes into a pull request. It starts from the choice of [Submit feedback](comment.md#submit-feedback), and your decision counts for this request only.
+- **Approve** lets the agent do the work as proposed. The pull request choice of [Submit feedback](comment.md#submit-feedback) counts.
 - **Request changes** sends the proposal back. Type a note that says what to change. The agent proposes again.
 
 An older proposal keeps its decision: **Approved** or **Changes requested**. An older proposal without a decision shows **Superseded** when a newer one replaced it, or **Withdrawn** when its claim ended, for example after **Unassign**.
