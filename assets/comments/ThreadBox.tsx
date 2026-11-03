@@ -47,12 +47,14 @@ type Props = {
     showHeader?: boolean;
     /** On the request detail: proposal diffs and decisions. Elsewhere a proposal links to the request detail, and the suggestion decisions show in the thread. */
     detail?: boolean;
+    /** After the comments, above the reply box. */
+    beforeReply?: ReactNode;
 };
 
 /**
  * Decision D2. A reply shows at once and disappears again if Q4 fails.
  */
-export function ThreadBox({ thread, caller, showHeader = true, detail = false }: Props) {
+export function ThreadBox({ thread, caller, showHeader = true, detail = false, beforeReply }: Props) {
     const fetcher = useFetcher<ActionResult>();
     const [replying, startReply] = useTransition();
     const [comments, addComment] = useOptimistic(thread.comments, (current: CommentView[], added: CommentView) => [...current, added]);
@@ -122,6 +124,7 @@ export function ThreadBox({ thread, caller, showHeader = true, detail = false }:
                     <SuggestionActions requestId={requestId} buttons={thread.suggestionButtons} />
                 </div>
             )}
+            {beforeReply}
             {thread.replyable && (
                 <div className={styles.reply}>
                     <CommentBox ref={replyBox} label="Reply" submitLabel="Reply" onSubmit={reply} error={replying ? null : (fetcher.data?.error ?? null)} busy={replying} />

@@ -36,7 +36,7 @@ Below the header, a bar holds the buttons that change the request, for example *
 
 **Next request** in the bar opens the oldest other request of the review that waits for you. It shows only while such a request exists. The arrow beside **Approve**, **Resolve conversation**, and **Accept** opens a menu with one item, for example **Approve and go to the next one**. The item sends the same decision with the same checkboxes, then opens the next request. When no other request waits for you, it opens the request list with **Waiting for you**. When a comment box holds unsaved text, Slopmower asks first. When the decision fails, the request stays open and shows the error.
 
-One line below the bar tells you what happens next, for example "The agent finished. Check the changes, then resolve the conversation or reopen it." When it is your turn, the line is highlighted.
+At the end of the conversation, above the reply box, one line tells you what happens next, for example "The agent finished. Check the changes, then resolve the conversation or reopen it." When it is your turn, the line is highlighted.
 
 The sidebar is at the right of the conversation. On a narrow screen, it is above the conversation. The **Changes** tab uses the full width of the window. On a wide screen, it has no sidebar.
 

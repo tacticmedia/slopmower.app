@@ -26,8 +26,11 @@
     margin: 0;
 }
 
+/* As the reply section of `ThreadBox`, which holds this line. */
 .nextStep {
     margin: 0;
+    padding: var(--base-size-12);
+    border-top: var(--borderWidth-thin) solid var(--borderColor-muted);
     color: var(--fgColor-muted);
 }
 

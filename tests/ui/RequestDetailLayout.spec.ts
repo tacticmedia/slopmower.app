@@ -91,6 +91,28 @@ test.describe('RequestDetailLayout', () => {
         }
     });
 
+    test('The next-step line ends the conversation above the reply box, and the Changes tab has none', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        const request = review.seedLines(SMALL_FILE, 9, 12, 'Extract the tax calculation.');
+        review.agentClaims(request.id);
+        review.agentMarksReady(request.id, 'Extracted `tax()`.');
+        await openRequest(page, request.id);
+        await expect(page.locator(`${DETAIL_THREAD} [data-markdown-pending]`)).toHaveCount(0);
+
+        const tabs = await box(page, `${DETAIL} nav[aria-label="Request"]`);
+        const lastComment = await box(page, `${DETAIL_THREAD} [data-testid="thread-comment"] >> nth=-1`);
+        const nextStep = await box(page, DETAIL_NEXT_STEP);
+        const reply = await box(page, `${DETAIL_THREAD} textarea`);
+        expect(nextStep.top).toBeGreaterThanOrEqual(tabs.bottom);
+        expect(nextStep.top).toBeGreaterThanOrEqual(lastComment.bottom);
+        expect(nextStep.bottom).toBeLessThanOrEqual(reply.top);
+
+        await page.locator(`${DETAIL} nav[aria-label="Request"]`).getByRole('link', { name: /Changes/ }).click();
+
+        await expect(page.locator(`${DETAIL} nav[aria-label="Request"]`).getByRole('link', { name: /Changes/ })).toHaveAttribute('aria-current', 'page');
+        await expect(page.locator(DETAIL_NEXT_STEP)).toHaveCount(0);
+    });
+
     test('The plan toggle in the sidebar sends Q18 with the new value, and the Plan section follows it', async ({ page, api }) => {
         const review = new FakeReview(api);
         const request = review.seedGeneral('Add a CSV export of the invoice totals.');

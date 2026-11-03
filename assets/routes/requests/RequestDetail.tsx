@@ -54,9 +54,6 @@ export function RequestDetail() {
                 </p>
             </header>
             <ActionBar id={request.id} status={request.status} summary={request.summary} allowedActions={request.allowedActions} nextRequestId={request.nextRequestId} />
-            <p className={'user' === request.awaiting ? `${styles.nextStep} ${styles.yourTurn}` : styles.nextStep} data-testid="next-step" data-awaiting={request.awaiting}>
-                {requestStage(request)}
-            </p>
             {'closed' === request.reviewState && (
                 <Banner variant="warning" title="This review is closed and read-only" data-testid="review-closed" description="The request can be read, but not changed." />
             )}
@@ -92,7 +89,18 @@ function Conversation({ request, caller }: { request: ReviewRequest; caller: Act
                 <h2 id="conversation" className={shared.sectionTitle}>
                     Conversation
                 </h2>
-                <ThreadBox key={request.id} thread={thread} caller={caller} showHeader={false} detail />
+                <ThreadBox
+                    key={request.id}
+                    thread={thread}
+                    caller={caller}
+                    showHeader={false}
+                    detail
+                    beforeReply={
+                        <p className={'user' === request.awaiting ? `${styles.nextStep} ${styles.yourTurn}` : styles.nextStep} data-testid="next-step" data-awaiting={request.awaiting}>
+                            {requestStage(request)}
+                        </p>
+                    }
+                />
             </section>
             <CommitList commits={request.commits} />
         </>
