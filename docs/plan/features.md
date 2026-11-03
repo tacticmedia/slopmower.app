@@ -117,6 +117,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F99 | [Source maps for browser reports](F99-source-maps.md) | Done 2026-11-03, [report](reports/F99.md) | 1439303a | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 188 TS / 11342 lines |
 | F100 | [Known issue: the npm and Composer audit gates are red](F100-audit-gates.md) | Done 2026-11-03, [report](reports/F100.md) | 2473b8af | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 189 TS / 11424 lines |
 | F101 | [Network errors in browser reports](F101-network-errors.md) | In progress | | |
+| F102 | [Retry on the error screen](F102-retry-on-the-error-screen.md) | In progress | | |
 
 ## Candidates
 
@@ -201,7 +202,7 @@ The findings of the repository audit of 2026-10-28 are [F84](F84-audit-must-fixe
 - **Type and group after submit.** Change the type or the group of an open request, with an event each. From the F97 and F98 planning.
 - **Group actions.** Verify, reopen, or approve the plan of every request of a group at once. With `requireApproval`, a group needs one approval per request today. From the F98 planning.
 - **Type filter on the request list.** Show only questions or rules. From the F97 planning.
-- **Retry after a network error.** A `fetch()` that gets no response in a route loader shows the error screen with the message of the browser, for example "Load failed". The screen could say that the connection failed and offer a retry. [F101](F101-network-errors.md) stops the report to Sentry.
+- **Network error text on the error screen.** A `fetch()` that gets no response in a route loader shows the error screen with the message of the browser, for example "Load failed (slopmower.app)". The screen could say that the connection failed. [F101](F101-network-errors.md) stops the report to Sentry, and [F102](F102-retry-on-the-error-screen.md) adds "Try again".
 
 ## For Jan
 
