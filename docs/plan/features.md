@@ -127,7 +127,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F109 | [Proposal decision next to the Reply button](F109-proposal-decision-next-to-reply.md) | Done 2026-11-03, [report](reports/F109.md) | e96af290 | src 514 PHP / 35215 lines, 514 types; tests 348 PHP / 32991 lines; assets 194 TS / 12004 lines |
 | F110 | [Editor tabs and toolbar on one line](F110-editor-header-row.md) | Done 2026-11-03, [report](reports/F110.md) | 791d85fd | src 514 PHP / 35215 lines, 514 types; tests 348 PHP / 32991 lines; assets 194 TS / 11997 lines |
 | F111 | [Remove the pull request checkbox of Approve](F111-remove-pull-request-checkbox.md) | Done 2026-11-04, [report](reports/F111.md) | 1878aeb8 | src 515 PHP / 35494 lines, 515 types; tests 348 PHP / 33078 lines; assets 195 TS / 12150 lines |
-| F112 | [Drop the pull request choice of Q15](F112-drop-q15-pull-request.md) | Done 2026-11-04, [report](reports/F112.md) | | src 515 PHP / 35473 lines, 515 types; tests 347 PHP / 33031 lines; assets 195 TS / 12148 lines; check 5m52s |
+| F112 | [Drop the pull request choice of Q15](F112-drop-q15-pull-request.md) | Done 2026-11-04, [report](reports/F112.md) | 7323c97d | src 515 PHP / 35473 lines, 515 types; tests 347 PHP / 33031 lines; assets 195 TS / 12148 lines; check 5m52s |
 
 ## Candidates
 
