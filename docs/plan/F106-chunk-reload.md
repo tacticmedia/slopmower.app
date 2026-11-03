@@ -13,7 +13,7 @@ Verified on 2026-11-03:
 - Vite 8.3.5 wraps each dynamic `import()` of the build in its preload helper. When the import or a preloaded dependency fails, the helper dispatches the cancelable `vite:preloadError` on `window` with the error as `payload`, and throws the error if no listener calls `preventDefault()`. If a listener calls `preventDefault()`, the import resolves to `undefined`.
 - The lazy screens of `assets/router.tsx` and the `React.lazy()` components of the screens throw the error into the route error boundary, so `RouteError` shows it and sends it to Sentry.
 - The production image holds only the chunks of its own build, so a tab that runs an earlier build gets a failed import for a screen that it did not load yet.
-- The dev stack answers a shell path with `Cache-Control: max-age=0, must-revalidate, private`, and a reload revalidates the document, so a reload loads the current build.
+- `AbstractSessionListener` of Symfony sets `Cache-Control: max-age=0, must-revalidate, private` on a response of a request that uses the session, which a signed-in shell request does. The dev stack sends the same header for a shell path without a session. So a reload loads the shell of the current build.
 - `UnsavedCommentGuard` blocks an unload while a comment box holds unsaved text, so the browser asks before the reload.
 
 ## Decisions

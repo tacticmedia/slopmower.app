@@ -3,7 +3,34 @@ import { captureException } from '@sentry/react';
 import { useEffect } from 'react';
 import { isRouteErrorResponse, Link as RouterLink, useRevalidator, useRouteError } from 'react-router';
 import { ApiError, isNetworkError } from '../api/client';
+import { LoadingPage } from './LoadingPage';
 import styles from './StatusPage.module.css';
+
+const RELOADED_AT_KEY = 'slopmower.chunkReloadedAt';
+
+const RELOAD_INTERVAL_MS = 60_000;
+
+const chunkErrors = new WeakSet<Error>();
+
+/** Decided when the chunk fails, so a later render does not change it. */
+const reloadErrors = new WeakSet<Error>();
+
+// D106. The error still reaches the error boundary, which reloads after the navigation sets the address.
+window.addEventListener('vite:preloadError', ({ payload }) => {
+    chunkErrors.add(payload);
+    try {
+        if (Date.now() - Number(sessionStorage.getItem(RELOADED_AT_KEY)) >= RELOAD_INTERVAL_MS) {
+            reloadErrors.add(payload);
+        }
+    } catch {}
+});
+
+function reload(): void {
+    try {
+        sessionStorage.setItem(RELOADED_AT_KEY, String(Date.now()));
+    } catch {}
+    window.location.reload();
+}
 
 type ErrorDescription = {
     title: string;
@@ -24,6 +51,10 @@ function describeError(error: unknown): ErrorDescription {
             : { title: `${error.status} ${error.statusText}`, detail: 'The page could not be shown.', signedOut: false };
     }
 
+    if (error instanceof Error && chunkErrors.has(error)) {
+        return { title: 'Loading failed', detail: 'Part of Slopmower did not load. Check your connection and try again.', signedOut: false };
+    }
+
     if (isNetworkError(error)) {
         return { title: 'Connection failed', detail: 'Slopmower did not answer. Check your connection and try again.', signedOut: false };
     }
@@ -33,18 +64,27 @@ function describeError(error: unknown): ErrorDescription {
 
 /**
  * `embedded` renders inside the root layout, so the error of a screen keeps the header. React Router reports no error
- * that it renders here (D86). The end of a revalidation also clears an error of a render.
+ * that it renders here (D86). The end of a revalidation also clears an error of a render. A code chunk that did not load
+ * reloads the page (D106).
  */
 export function RouteError({ embedded = false }: { embedded?: boolean }) {
     const error = useRouteError();
     const revalidator = useRevalidator();
     const { title, detail, signedOut } = describeError(error);
+    const chunkError = error instanceof Error && chunkErrors.has(error);
+    const reloading = error instanceof Error && reloadErrors.has(error);
 
     useEffect(() => {
-        if (!isRouteErrorResponse(error)) {
+        if (reloading) {
+            reload();
+        } else if (!isRouteErrorResponse(error)) {
             captureException(error);
         }
-    }, [error]);
+    }, [error, reloading]);
+
+    if (reloading) {
+        return <LoadingPage />;
+    }
     const Container = embedded ? 'section' : 'main';
 
     return (
@@ -56,7 +96,7 @@ export function RouteError({ embedded = false }: { embedded?: boolean }) {
             ) : (
                 <div className={styles.actions}>
                     {isRouteErrorResponse(error) ? null : (
-                        <Button loading={'idle' !== revalidator.state} onClick={() => void revalidator.revalidate()}>
+                        <Button loading={'idle' !== revalidator.state} onClick={() => (chunkError ? window.location.reload() : void revalidator.revalidate())}>
                             Try again
                         </Button>
                     )}
