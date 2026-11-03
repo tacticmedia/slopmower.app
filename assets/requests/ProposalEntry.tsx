@@ -27,16 +27,14 @@ type Props = {
     proposal: ProposalView;
     /** Null until Q2 answers. */
     requestId: Ulid | null;
-    /** The caller may approve or reject the pending proposal. */
-    decidable: boolean;
-    /** On the request detail: the diff and the decision. Elsewhere a link to the request detail. */
+    /** On the request detail: the diff. Elsewhere a link to the request detail. */
     detail: boolean;
 };
 
 /**
- * The diff and the decision of a `request.proposed` entry, below its plan.
+ * The diff and the state of a `request.proposed` entry, below its plan. The decision is {@link ProposalDecision} in the reply box.
  */
-export function ProposalEntry({ proposal, requestId, decidable, detail }: Props) {
+export function ProposalEntry({ proposal, requestId, detail }: Props) {
     const { diff, state } = proposal;
     const label = STATE_LABELS[state];
 
@@ -44,13 +42,9 @@ export function ProposalEntry({ proposal, requestId, decidable, detail }: Props)
         <div className={styles.proposal} data-testid="proposal" data-event-id={proposal.eventId}>
             {detail && null !== diff && <ProposalDiffSection diff={diff} cacheKey={proposal.eventId} fileName={`${requestId ?? 'request'}-${proposal.seq}.diff`} />}
             <div className={styles.proposalFooter}>
-                {detail && decidable && 'pending' === state ? (
-                    <ProposalDecision proposalEventId={proposal.eventId} />
-                ) : (
-                    <Label variant={label.variant} data-testid="proposal-state">
-                        {label.text}
-                    </Label>
-                )}
+                <Label variant={label.variant} data-testid="proposal-state">
+                    {label.text}
+                </Label>
                 {!detail && null !== requestId && (
                     <Link as={RouterLink} to={`/requests/${requestId}`}>
                         Open the proposal
@@ -96,7 +90,7 @@ function download(diff: string, fileName: string): void {
  * "Approve" sends Q15 at once, with the pull request choice when the host has pull requests (D85). "Request changes"
  * sends Q16 with a required note. It renders on the request detail only.
  */
-function ProposalDecision({ proposalEventId }: { proposalEventId: Ulid }) {
+export function ProposalDecision({ proposalEventId }: { proposalEventId: Ulid }) {
     const { busy, sent, error, dialog, opener, send, openDialog, closeDialog } = useRequestCommand<'reject_proposal'>();
     const request = useRouteLoaderData<Request>('request');
     const pullRequests = true === request?.capabilities.pullRequests;

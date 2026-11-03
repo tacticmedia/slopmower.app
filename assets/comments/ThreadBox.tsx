@@ -6,7 +6,7 @@ import type { ActionResult } from '../api/actionResult';
 import type { Actor } from '../api/types/actor';
 import { OutdatedLabel } from '../requests/OutdatedLabel';
 import { PlanToApproveLabel } from '../requests/PlanToApproveLabel';
-import { ProposalEntry } from '../requests/ProposalEntry';
+import { ProposalDecision, ProposalEntry } from '../requests/ProposalEntry';
 import { PullRequestStateLabel } from '../requests/PullRequestStateLabel';
 import { StatusLabel } from '../requests/StatusLabel';
 import { SuggestionActions } from '../requests/SuggestionActions';
@@ -60,6 +60,7 @@ export function ThreadBox({ thread, caller, showHeader = true, detail = false, b
     const [comments, addComment] = useOptimistic(thread.comments, (current: CommentView[], added: CommentView) => [...current, added]);
     const replyBox = useRef<CommentBoxHandle>(null);
     const { requestId } = thread;
+    const pendingProposal = detail && thread.decidable ? (comments.find(({ proposal }) => 'pending' === proposal?.state)?.proposal ?? null) : null;
 
     const reply = ({ body }: CommentText): boolean => {
         if (replying || null === requestId) {
@@ -114,7 +115,7 @@ export function ThreadBox({ thread, caller, showHeader = true, detail = false, b
                             caption={'request.opened' === comment.type && null !== thread.suggestion ? 'suggested' : CAPTIONS[comment.type]}
                             onQuote={thread.replyable && null !== body ? () => replyBox.current?.quote(body) : null}
                         >
-                            {null !== proposal && <ProposalEntry proposal={proposal} requestId={requestId} decidable={thread.decidable} detail={detail} />}
+                            {null !== proposal && <ProposalEntry proposal={proposal} requestId={requestId} detail={detail} />}
                         </ThreadComment>
                     );
                 })}
@@ -127,7 +128,15 @@ export function ThreadBox({ thread, caller, showHeader = true, detail = false, b
             {beforeReply}
             {thread.replyable && (
                 <div className={styles.reply}>
-                    <CommentBox ref={replyBox} label="Reply" submitLabel="Reply" onSubmit={reply} error={replying ? null : (fetcher.data?.error ?? null)} busy={replying} />
+                    <CommentBox
+                        ref={replyBox}
+                        label="Reply"
+                        submitLabel="Reply"
+                        onSubmit={reply}
+                        error={replying ? null : (fetcher.data?.error ?? null)}
+                        busy={replying}
+                        actions={null !== pendingProposal && <ProposalDecision proposalEventId={pendingProposal.eventId} />}
+                    />
                 </div>
             )}
         </article>

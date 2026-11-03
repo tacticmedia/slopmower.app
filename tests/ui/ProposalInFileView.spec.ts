@@ -28,7 +28,7 @@ test.describe('ProposalInFileView', () => {
 
         await page.locator(CODE_THREAD).getByRole('link', { name: 'Open the proposal', exact: true }).click();
         const proposal = page.locator(`${DETAIL_THREAD} [data-testid="proposal"][data-event-id="${eventId}"]`);
-        await proposal.getByRole('button', { name: 'Approve', exact: true }).click();
+        await page.locator(`${DETAIL_THREAD} [data-testid="proposal-decision"]`).getByRole('button', { name: 'Approve', exact: true }).click();
         await expect(proposal.locator('[data-testid="proposal-state"]')).toHaveText('Approved');
         await openFile(page, review, SMALL_FILE);
 

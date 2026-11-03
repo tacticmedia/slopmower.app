@@ -1,6 +1,6 @@
 import { Button, Checkbox, FormControl, Select, TextInput } from '@primer/react';
 import { InlineMessage } from '@primer/react/experimental';
-import { type FormEvent, type KeyboardEvent, type Ref, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { type FormEvent, type KeyboardEvent, type ReactNode, type Ref, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { useRouteLoaderData } from 'react-router';
 import { REQUEST_TYPES, type RequestType } from '../api/types/common';
 import { isPressed, type ModShortcut } from '../layout/modShortcut';
@@ -52,6 +52,8 @@ type Props = {
     error: string | null;
     busy: boolean;
     focusOnMount?: boolean;
+    /** More controls in the action row, before the submit button. */
+    actions?: ReactNode;
     ref?: Ref<CommentBoxHandle>;
 };
 
@@ -75,6 +77,7 @@ export function CommentBox({
     error,
     busy,
     focusOnMount = false,
+    actions,
     ref,
 }: Props) {
     const [title, setTitle] = useState(initialTitle);
@@ -235,6 +238,7 @@ export function CommentBox({
                         )}
                     </div>
                 )}
+                {actions}
                 {undefined !== onCancel && (
                     <Button onClick={onCancel} disabled={busy}>
                         Cancel

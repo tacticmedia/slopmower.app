@@ -51,7 +51,7 @@ final class ProposalFlowTest extends FullStackTestCase
         $diffFile = $this->page->locator(self::PROPOSAL.' [data-testid="proposal-diff-file"]');
         $this->expect($diffFile)->withTimeout(self::WAIT_MILLISECONDS)->toHaveAttribute('data-path', FixtureRepositories::SMALL_FILE);
         $this->expect($diffFile->locator(self::CODE_HOST.' [data-line-type]')->first())->toBeAttached();
-        $this->page->locator(self::PROPOSAL)->getByRole('button', ['name' => 'Approve', 'exact' => true])->click();
+        $this->page->locator('[data-testid="proposal-decision"]')->getByRole('button', ['name' => 'Approve', 'exact' => true])->click();
         $this->expect($this->page->locator(self::PROPOSAL.' [data-testid="proposal-state"]'))->toHaveExactText('Approved');
 
         $fix = self::commitInLocalSource($directory, [FixtureRepositories::SMALL_FILE => self::fixedSmallFile()], "Extract tax() ({$requestId})");

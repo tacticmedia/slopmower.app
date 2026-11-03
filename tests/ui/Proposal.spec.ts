@@ -23,6 +23,8 @@ function proposal(page: Page, eventId: string) {
     return page.locator(`${DETAIL_THREAD} [data-testid="proposal"][data-event-id="${eventId}"]`);
 }
 
+const DECISION = `${DETAIL_THREAD} [data-testid="comment-box"] [data-testid="proposal-decision"]`;
+
 test.describe('Proposal', () => {
     test('The proposed diff renders one diff per file', async ({ page, api }) => {
         const review = new FakeReview(api);
@@ -74,11 +76,11 @@ test.describe('Proposal', () => {
         const requestId = claimedRequest(review);
         const { eventId } = review.agentProposes(requestId, PLAN, DIFF);
         await openRequest(page, requestId);
-        const pullRequest = proposal(page, eventId).getByRole('checkbox', { name: 'Send as a pull request', exact: true });
+        const pullRequest = page.locator(DECISION).getByRole('checkbox', { name: 'Send as a pull request', exact: true });
         await expect(pullRequest).toBeChecked();
 
         await pullRequest.uncheck();
-        await proposal(page, eventId).getByRole('button', { name: 'Approve', exact: true }).click();
+        await page.locator(DECISION).getByRole('button', { name: 'Approve', exact: true }).click();
 
         await expect(proposal(page, eventId).locator('[data-testid="proposal-state"]')).toHaveText('Approved');
         await expect(page.locator(DETAIL_THREAD)).toContainText('approved the proposal');
@@ -91,8 +93,8 @@ test.describe('Proposal', () => {
         const { eventId } = review.agentProposes(requestId, PLAN, DIFF);
         await openRequest(page, requestId);
 
-        await expect(proposal(page, eventId).getByRole('checkbox')).toHaveCount(0);
-        await proposal(page, eventId).getByRole('button', { name: 'Approve', exact: true }).click();
+        await expect(page.locator(DECISION).getByRole('checkbox')).toHaveCount(0);
+        await page.locator(DECISION).getByRole('button', { name: 'Approve', exact: true }).click();
 
         await expect(proposal(page, eventId).locator('[data-testid="proposal-state"]')).toHaveText('Approved');
         expect(api.bodies('POST', '/api/v1/requests/:requestId/approve-proposal')).toEqual([{ proposalEventId: eventId }]);
@@ -104,7 +106,7 @@ test.describe('Proposal', () => {
         const { eventId } = review.agentProposes(requestId, PLAN);
         await openRequest(page, requestId);
 
-        await proposal(page, eventId).getByRole('button', { name: 'Request changes', exact: true }).click();
+        await page.locator(DECISION).getByRole('button', { name: 'Request changes', exact: true }).click();
         await expect(page.getByRole('dialog').getByRole('button', { name: 'Request changes', exact: true }), 'A note is required.').toBeDisabled();
         await submitNoteDialog(page, 'Put the export into InvoiceTotals itself.', 'Request changes');
 
@@ -122,6 +124,21 @@ test.describe('Proposal', () => {
         await openRequest(page, requestId);
 
         await expect(proposal(page, older.eventId).locator('[data-testid="proposal-state"]')).toHaveText('Superseded');
-        await expect(proposal(page, newer.eventId).getByRole('button', { name: 'Approve', exact: true })).toBeVisible();
+        await expect(proposal(page, newer.eventId).locator('[data-testid="proposal-state"]')).toHaveText('Waiting for approval');
+    });
+
+    test('The decision sits in the reply box, left of Reply, and not in the proposal', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        const requestId = claimedRequest(review);
+        const { eventId } = review.agentProposes(requestId, PLAN);
+
+        await openRequest(page, requestId);
+
+        await expect(proposal(page, eventId).getByRole('button')).toHaveCount(0);
+        await expect(proposal(page, eventId).locator('[data-testid="proposal-state"]')).toHaveText('Waiting for approval');
+        const box = page.locator(`${DETAIL_THREAD} [data-testid="comment-box"]`);
+        const requestChanges = await box.getByRole('button', { name: 'Request changes', exact: true }).boundingBox();
+        const reply = await box.getByRole('button', { name: 'Reply', exact: true }).boundingBox();
+        expect(requestChanges?.x ?? Infinity).toBeLessThan(reply?.x ?? 0);
     });
 });
