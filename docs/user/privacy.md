@@ -103,7 +103,7 @@ We keep your data in Australia. GitHub processes data in the USA. Sentry process
 
 - The GitHub App can read the contents of your repositories, but cannot change them. It can only write check runs.
 - We keep the data of each account apart from the data of all other accounts: in the database, in the files, and in live updates.
-- We keep the copies of your repositories on encrypted storage for minimum time required to allow us to provide you with the Slopmower service.
+- We keep the copies of your repositories on encrypted storage for the minimum time required to allow us to provide you with the Slopmower service.
 - Your browser and your coding agent connect to Slopmower over HTTPS.
 - We keep only a hash of each API token, and no GitHub sign-in token.
 - Logs and error reports never contain your code or the text of agent calls.
