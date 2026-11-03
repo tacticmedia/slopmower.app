@@ -71,6 +71,30 @@ final class ReplyToolTest extends WebTestCase
         self::assertSame(['in_progress', 'agent'], [$result['request']['status'], $result['request']['awaiting']]);
     }
 
+    #[TestDox('questions are stored unanswered, hand the turn to the user, and show in get_request')]
+    public function testQuestionsShowInGetRequest(): void
+    {
+        $questions = [['question' => 'Should the tax lines use `Money` too?', 'detail' => 'They use `float` today.'], ['question' => 'Keep `round()`?']];
+
+        $result = self::assertToolResult($this->mcp, $this->mcp->callTool('reply_to_request', ['id' => $this->requestId, 'body' => 'Two questions.', 'questions' => $questions]), 'reply_to_request');
+        $thread = self::assertToolResult($this->mcp, $this->mcp->callTool('get_request', ['id' => $this->requestId]), 'get_request')['thread'];
+
+        $expected = [['question' => 'Should the tax lines use `Money` too?', 'detail' => 'They use `float` today.', 'answer' => null], ['question' => 'Keep `round()`?', 'detail' => null, 'answer' => null]];
+        self::assertSame(['user', true, $expected], [$result['request']['awaiting'], $result['events'][0]['question'], $result['events'][0]['questions']]);
+        self::assertSame($expected, end($thread)['questions']);
+    }
+
+    #[TestDox("The user's answers with an empty body give 201 and hand the turn back to the agent")]
+    public function testUserAnswersHandTurnBackToAgent(): void
+    {
+        self::assertToolResult($this->mcp, $this->mcp->callTool('reply_to_request', ['id' => $this->requestId, 'body' => 'One question.', 'questions' => [['question' => 'Keep `round()`?']]]), 'reply_to_request');
+        $answers = [['question' => 'Keep `round()`?', 'answer' => 'Yes']];
+
+        $result = self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/requests/{$this->requestId}/comments", ['body' => '', 'questions' => $answers]), 201, 'request-command-result.schema.json');
+
+        self::assertSame(['agent', '', [['question' => 'Keep `round()`?', 'detail' => null, 'answer' => 'Yes']]], [$result['request']['awaiting'], $result['events'][0]['body'], $result['events'][0]['questions']]);
+    }
+
     #[TestDox('A whitespace-only body gives isError invalid_input')]
     public function testWhitespaceOnlyBodyGivesInvalidInput(): void
     {

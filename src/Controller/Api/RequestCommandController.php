@@ -61,7 +61,7 @@ final class RequestCommandController extends AbstractController
     ): JsonResponse {
         \assert(null !== $input->body);
 
-        return $this->result($request, $this->commands->execute(new Reply($request->getId(), $input->body, $input->question ?? false), $this->currentActor->get()), Response::HTTP_CREATED);
+        return $this->result($request, $this->commands->execute(new Reply($request->getId(), $input->body, $input->question ?? false, questions: $input->questions ?? []), $this->currentActor->get()), Response::HTTP_CREATED);
     }
 
     /**

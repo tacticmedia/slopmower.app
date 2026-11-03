@@ -1,5 +1,5 @@
 import type { Actor } from './actor';
-import type { CommitSha, DateTime, EventSeq, EventType, PullRequestUrl, RequestStatus, Ulid, UnifiedDiff } from './common';
+import type { CommitSha, DateTime, EventSeq, EventType, PullRequestUrl, Question, RequestStatus, Ulid, UnifiedDiff } from './common';
 
 export type Event = {
     seq: EventSeq;
@@ -16,6 +16,8 @@ export type Event = {
     diff: UnifiedDiff | null;
     commentId: Ulid | null;
     question: boolean;
+    /** request.commented only, else empty: an agent comment asks them, a user comment answers them. */
+    questions: Question[];
     batchId: Ulid | null;
     /** commit.* and review.started. */
     commitSha: CommitSha | null;

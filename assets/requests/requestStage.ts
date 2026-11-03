@@ -21,8 +21,9 @@ export function requestStage(request: ReviewRequest): string {
     if (('ready_for_review' === request.status || 'wont_do' === request.status) && 'agent' === awaiting) {
         return 'Waiting for the agent to answer your reply.';
     }
-    if ('user' === awaiting && agentAsked(request.thread)) {
-        return 'The agent asked a question. Reply to continue.';
+    const asked = 'user' === awaiting ? agentQuestion(request.thread) : null;
+    if (null !== asked) {
+        return 0 === asked.questions.length ? 'The agent asked a question. Reply to continue.' : 'The agent asked questions. Answer them to continue.';
     }
     if ('pending' === proposal?.state) {
         return 'The agent proposed a plan. Approve it or request changes.';
@@ -48,10 +49,10 @@ export function requestStage(request: ReviewRequest): string {
     }
 }
 
-function agentAsked(thread: readonly ThreadEntry[]): boolean {
+function agentQuestion(thread: readonly ThreadEntry[]): ThreadEntry | null {
     const last = thread.findLast(({ actor, type }) => 'agent' === actor.kind && !NO_AGENT_EVENT.includes(type));
 
-    return 'request.commented' === last?.type && last.question;
+    return 'request.commented' === last?.type && last.question ? last : null;
 }
 
 const PROPOSAL_TEXT: Record<ProposalState, string> = {

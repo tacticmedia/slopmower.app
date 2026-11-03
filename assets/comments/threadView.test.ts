@@ -15,6 +15,22 @@ function request(types: readonly ThreadEntryType[], proposal: Proposal | null): 
     return { ...FIXTURE, proposal, thread: [opened, claimed, proposed, ...later] };
 }
 
+/** A `request.commented` entry with questions, after the fixture's entries. */
+function withComments(...comments: { kind: 'agent' | 'user'; answer: string | null }[]): ReviewRequest {
+    const [opened, , proposed] = FIXTURE.thread as [ThreadEntry, ThreadEntry, ThreadEntry];
+    const later = comments.map(({ kind, answer }, index): ThreadEntry => ({
+        ...proposed,
+        seq: proposed.seq + index + 1,
+        eventId: `01K6C2EVT0000000000000190${index}`,
+        type: 'request.commented',
+        actor: 'agent' === kind ? proposed.actor : opened.actor,
+        body: '',
+        questions: [{ question: 'Cover the shipping totals?', detail: null, answer }],
+    }));
+
+    return { ...FIXTURE, thread: [...FIXTURE.thread, ...later] };
+}
+
 function proposalStates(subject: ReviewRequest): string[] {
     return threadView(subject).comments.flatMap(({ proposal }) => (null === proposal ? [] : [proposal.state]));
 }
@@ -44,5 +60,20 @@ describe('ThreadViewTest', () => {
 
     it('The last proposal of a released claim is withdrawn', () => {
         expect(proposalStates(request(['request.released'], null))).toEqual(['withdrawn']);
+    });
+
+    it('The questions of the latest agent comment are open until a user comment answers them', () => {
+        expect(threadView(withComments({ kind: 'agent', answer: null })).openQuestions?.key).toBe('01K6C2EVT00000000000001900');
+        expect(threadView(withComments({ kind: 'agent', answer: null }, { kind: 'user', answer: 'Yes' })).openQuestions).toBeNull();
+        expect(threadView(withComments({ kind: 'agent', answer: null }, { kind: 'user', answer: 'Yes' }, { kind: 'agent', answer: null })).openQuestions?.key).toBe(
+            '01K6C2EVT00000000000001902',
+        );
+    });
+
+    it('An answer comment without text has no body', () => {
+        const answered = threadView(withComments({ kind: 'user', answer: 'Yes' }));
+
+        expect(answered.comments.at(-1)?.body).toBeNull();
+        expect(answered.comments.at(-1)?.questions).toHaveLength(1);
     });
 });

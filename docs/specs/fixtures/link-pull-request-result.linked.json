@@ -122,6 +122,7 @@
       "diff": null,
       "commentId": null,
       "question": false,
+      "questions": [],
       "batchId": null,
       "commitSha": null,
       "pullRequestUrl": "https://github.com/acme/billing/pull/42",

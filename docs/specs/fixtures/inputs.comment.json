@@ -1,4 +1,13 @@
 {
-  "body": "Should `TaxRounding` also cover the shipping totals?",
-  "question": true
+  "body": "Two questions before I change the shipping totals.",
+  "question": true,
+  "questions": [
+    {
+      "question": "Should `TaxRounding` also cover the shipping totals?",
+      "detail": "The shipping lines round per line today. `TaxRounding` rounds once per invoice."
+    },
+    {
+      "question": "Keep the old `round()` helper as deprecated?"
+    }
+  ]
 }

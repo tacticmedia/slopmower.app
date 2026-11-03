@@ -66,6 +66,8 @@ When the work is finished, the section shows the decision on the plan, or **No p
 
 Each request has a conversation. The agent can ask a question before it changes code. Its question shows under **Waiting for you**. Type your answer in the reply box. Your reply hands the turn back to the agent.
 
+The agent can also attach up to 10 short questions to its comment. They show above the reply box, each with its context, **Yes**, **No**, and a field for another answer. **Send answers** is available when every question has an answer. It adds one comment with each question and your answer, and hands the turn back to the agent.
+
 New replies from the agent show in the open request without a reload.
 
 ## Ask for a plan first

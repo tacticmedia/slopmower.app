@@ -44,10 +44,15 @@ export type SuggestRequestInput = {
 };
 
 export type CommentInput = {
+    /** May be empty when `questions` is not. */
     body: Markdown;
     /** Agents only. */
     question?: boolean;
+    /** At most 10. An agent asks without answers; a user answers every question. */
+    questions?: QuestionInput[];
 };
+
+export type QuestionInput = { question: string; detail?: Markdown | null; answer?: string | null };
 
 export type OptionalNoteInput = {
     note?: string | null;

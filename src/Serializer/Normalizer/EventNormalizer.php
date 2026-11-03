@@ -26,6 +26,7 @@ use App\Domain\Event\RequestVerifiedEvent;
 use App\Domain\Event\RequestWontDoEvent;
 use App\Domain\Event\ReviewClosedEvent;
 use App\Domain\Event\ReviewStartedEvent;
+use App\Domain\Request\CommentQuestion;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareTrait;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
@@ -61,6 +62,7 @@ final class EventNormalizer implements NormalizerInterface, NormalizerAwareInter
             'diff' => $event instanceof RequestProposedEvent ? $event->diff?->toString() : null,
             'commentId' => $event instanceof RequestCommentedEvent ? $event->commentId : null,
             'question' => $event instanceof RequestCommentedEvent && $event->question,
+            'questions' => $event instanceof RequestCommentedEvent ? array_map(static fn (CommentQuestion $question): array => $question->toPayload(), $event->questions) : [],
             'batchId' => match (true) {
                 $event instanceof RequestOpenedEvent, $event instanceof RequestCommentedEvent, $event instanceof BatchSubmittedEvent => $event->batchId,
                 default => null,

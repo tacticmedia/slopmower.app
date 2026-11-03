@@ -64,10 +64,22 @@
         "avatarUrl": null
       },
       "occurredAt": "2026-09-29T07:46:00Z",
-      "body": "Should `TaxRounding` also cover the shipping totals?",
+      "body": "Two questions before I change the shipping totals.",
       "diff": null,
       "commentId": "01K6C3C0MMENT0000000000003",
       "question": true,
+      "questions": [
+        {
+          "question": "Should `TaxRounding` also cover the shipping totals?",
+          "detail": "The shipping lines round per line today. `TaxRounding` rounds once per invoice.",
+          "answer": null
+        },
+        {
+          "question": "Keep the old `round()` helper as deprecated?",
+          "detail": null,
+          "answer": null
+        }
+      ],
       "batchId": null,
       "commitSha": null,
       "pullRequestUrl": null,

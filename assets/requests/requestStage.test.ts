@@ -49,6 +49,13 @@ describe('RequestStageTest', () => {
         expect(requestStage(request({ awaiting: 'user', proposal: PENDING, thread: [...asked, linked] }))).toBe('The agent asked a question. Reply to continue.');
     });
 
+    it('Rule 5: agent questions with answer buttons ask for the answers', () => {
+        const asked = withAgentEntry('request.commented', true);
+        const withQuestions = [...asked.slice(0, -1), { ...(asked.at(-1) as ThreadEntry), questions: [{ question: 'Cover the shipping totals too?', detail: null, answer: null }] }];
+
+        expect(requestStage(request({ awaiting: 'user', thread: withQuestions }))).toBe('The agent asked questions. Answer them to continue.');
+    });
+
     it('Rule 6: a pending proposal waits for the decision', () => {
         expect(requestStage(request({ awaiting: 'user', proposal: PENDING, thread: withAgentEntry('request.proposed', false) }))).toBe('The agent proposed a plan. Approve it or request changes.');
     });

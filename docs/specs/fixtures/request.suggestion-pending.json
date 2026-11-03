@@ -82,6 +82,7 @@
       "diff": null,
       "commentId": null,
       "question": false,
+      "questions": [],
       "batchId": null,
       "commitSha": null,
       "pullRequestUrl": null,

@@ -1,0 +1,64 @@
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-12);
+    padding: var(--base-size-12);
+    border-top: var(--borderWidth-thin) solid var(--borderColor-muted);
+}
+
+.question {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-8);
+}
+
+.question + .question {
+    padding-top: var(--base-size-12);
+    border-top: var(--borderWidth-thin) solid var(--borderColor-muted);
+}
+
+.title {
+    margin: 0;
+    font-weight: var(--base-text-weight-semibold);
+    overflow-wrap: anywhere;
+}
+
+.answer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-8);
+}
+
+.text {
+    flex: 1 1 12rem;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-8);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-4);
+    font-size: var(--text-body-size-medium);
+    overflow-wrap: anywhere;
+}
+
+/* An answer, or the raw Markdown while the renderer loads. */
+.plain {
+    margin: 0;
+    font-size: var(--text-body-size-medium);
+    white-space: pre-wrap;
+}

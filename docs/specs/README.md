@@ -37,12 +37,13 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 
 | Field | Limit |
 |---|---|
-| `body`, required `note`, proposal `plan` | 1 to 65,536 characters, at least one non-whitespace character |
+| `body`, required `note`, proposal `plan` | 1 to 65,536 characters, at least one non-whitespace character. A comment `body` with `questions` can be empty. |
 | proposal `diff` | 1 to 65,536 characters, a unified diff in git format with 1 to 9 lines that start with `diff --git ` |
 | optional `note`, `summary`, close `note` | 0 to 65,536 characters, or null |
 | `reason` of won't do | at least 20 characters after trimming, at most 65,536 characters |
 | review `title` | 1 to 200 characters |
 | request `title` | 1 to 200 characters after trimming, one line without CR or LF, at least one non-whitespace character. The server stores it trimmed. |
+| comment `questions` | 0 to 10. `question`: 1 to 200 characters after trimming, one line without CR or LF, at least one non-whitespace character, stored trimmed. `detail`: at most 4,000 characters, or null. `answer`: 1 to 4,000 characters after trimming, or null (D107). |
 | request `group` | 1 to 80 characters after trimming, one line without CR or LF, at least one non-whitespace character. The server stores it trimmed. |
 | `ref` | 1 to 255 characters |
 | pull request `url` | `https`, at most 2,048 characters, no whitespace. For a GitHub repository, `https://github.com/{owner}/{name}/pull/{number}` of the review's repository, compared case-insensitively. The server stores such a URL with the repository name as connected. A local repository accepts any such URL as written. |

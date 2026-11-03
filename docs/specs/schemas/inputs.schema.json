@@ -184,12 +184,46 @@
       "required": ["body"],
       "properties": {
         "body": {
-          "$ref": "common.schema.json#/$defs/Markdown"
+          "type": "string",
+          "maxLength": 65536,
+          "description": "GitHub-flavoured Markdown with at least one non-whitespace character. May be empty when questions is not empty."
         },
         "question": {
           "type": "boolean",
           "default": false,
-          "description": "Agents only."
+          "description": "Agents only. A comment of an agent with questions is a question."
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/QuestionInput"
+          },
+          "maxItems": 10,
+          "default": [],
+          "description": "D107. An agent asks without answers. A user answers every question of an agent comment and repeats each question."
+        }
+      }
+    },
+    "QuestionInput": {
+      "type": "object",
+      "required": ["question"],
+      "properties": {
+        "question": {
+          "$ref": "common.schema.json#/$defs/QuestionText"
+        },
+        "detail": {
+          "type": ["string", "null"],
+          "maxLength": 4000,
+          "default": null,
+          "description": "Markdown that gives the context of the question."
+        },
+        "answer": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 4000,
+          "pattern": "\\S",
+          "default": null,
+          "description": "Users only, required from them: Yes, No, or text. The server trims it, then checks the length."
         }
       }
     },

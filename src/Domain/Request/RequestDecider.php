@@ -69,6 +69,8 @@ final class RequestDecider
     public const int MAX_PENDING_SUGGESTIONS = 500;
     private const int MAX_LINKED_REQUESTS = 50;
     private const int MAX_TITLE_CHARACTERS = 200;
+    private const int MAX_QUESTIONS = 10;
+    private const int MAX_QUESTION_TEXT_CHARACTERS = 4000;
 
     /**
      * @param list<RequestState> $states             The state of each request that the command names
@@ -142,7 +144,13 @@ final class RequestDecider
         }
 
         $event = match (true) {
-            $command instanceof Reply => new RequestCommentedEvent(CommentId::generate(), $command->body, $command->question, $command->batchId),
+            $command instanceof Reply => new RequestCommentedEvent(
+                CommentId::generate(),
+                $command->body,
+                $command->question || (ActorKind::Agent === $actor->kind && [] !== $command->questions),
+                $command->batchId,
+                array_map(static fn (CommentQuestion $question): CommentQuestion => new CommentQuestion(trim($question->question), $question->detail, $question->answer), $command->questions),
+            ),
             $command instanceof Claim => new RequestClaimedEvent(),
             $command instanceof Release => new RequestReleasedEvent($command->note),
             $command instanceof UnlinkCommit => new CommitUnlinkedEvent($command->commitSha, $state->id),
@@ -224,8 +232,9 @@ final class RequestDecider
                     : []),
             ],
             $command instanceof Reply => [
-                ...self::textViolations('body', $command->body),
+                ...([] === $command->questions ? self::textViolations('body', $command->body) : []),
                 ...($command->question && ActorKind::User === $actor->kind ? [['field' => 'question', 'message' => 'Only an agent asks a question.']] : []),
+                ...self::questionViolations($command->questions, $actor->kind),
             ],
             $command instanceof LinkCommits => self::linkViolations($command->requestIds, $byId, $review),
             $command instanceof LinkPullRequest => [
@@ -254,7 +263,7 @@ final class RequestDecider
      *
      * @return list<array{field: string, message: string}>
      */
-    private static function titleViolations(?string $title): array
+    private static function titleViolations(?string $title, string $field = 'title'): array
     {
         $message = match (true) {
             null === $title => null,
@@ -264,7 +273,43 @@ final class RequestDecider
             default => null,
         };
 
-        return null === $message ? [] : [['field' => 'title', 'message' => $message]];
+        return null === $message ? [] : [['field' => $field, 'message' => $message]];
+    }
+
+    /**
+     * D107: an agent asks without answers, and a user answers every question.
+     *
+     * @param list<CommentQuestion> $questions
+     *
+     * @return list<array{field: string, message: string}>
+     */
+    private static function questionViolations(array $questions, ActorKind $actorKind): array
+    {
+        if (count($questions) > self::MAX_QUESTIONS) {
+            return [['field' => 'questions', 'message' => 'Must hold at most 10 questions.']];
+        }
+
+        $violations = [];
+
+        foreach ($questions as $index => $question) {
+            $field = "questions.{$index}";
+            $detailMessage = null !== $question->detail && mb_strlen($question->detail, 'UTF-8') > self::MAX_QUESTION_TEXT_CHARACTERS ? 'Must have at most 4000 characters.' : null;
+            $answerMessage = match (true) {
+                ActorKind::Agent === $actorKind => null === $question->answer ? null : 'Only a user answers a question.',
+                null === $question->answer => 'Is required.',
+                '' === trim($question->answer) => 'Must contain a non-whitespace character.',
+                mb_strlen(trim($question->answer), 'UTF-8') > self::MAX_QUESTION_TEXT_CHARACTERS => 'Must have at most 4000 characters after trimming.',
+                default => null,
+            };
+            $violations = [
+                ...$violations,
+                ...self::titleViolations($question->question, "{$field}.question"),
+                ...(null === $detailMessage ? [] : [['field' => "{$field}.detail", 'message' => $detailMessage]]),
+                ...(null === $answerMessage ? [] : [['field' => "{$field}.answer", 'message' => $answerMessage]]),
+            ];
+        }
+
+        return $violations;
     }
 
     private static function trimmed(?string $title): ?string

@@ -17,8 +17,7 @@ final class ToolHandlersTest extends KernelTestCase
     {
         foreach (BundledSchemas::TOOLS as $tool) {
             $method = new \ReflectionMethod(McpTools::class, ToolLoader::method($tool['name']));
-            $required = $tool['inputSchema']['required'] ?? [];
-            self::assertIsArray($required);
+            $required = $tool['inputSchema']['required'];
 
             self::assertSame(
                 array_map(static fn (string $name): array => [$name, !\in_array($name, $required, true)], array_keys($tool['inputSchema']['properties'])),

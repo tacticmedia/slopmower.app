@@ -4,7 +4,7 @@
   "title": "Event",
   "description": "An entry of the review event log as returned by get_updates, the updates endpoint, and command results.",
   "type": "object",
-  "required": ["seq", "eventId", "type", "reviewId", "requestId", "requestIds", "actor", "occurredAt", "body", "diff", "commentId", "question", "batchId", "commitSha", "pullRequestUrl", "statusAfter"],
+  "required": ["seq", "eventId", "type", "reviewId", "requestId", "requestIds", "actor", "occurredAt", "body", "diff", "commentId", "question", "questions", "batchId", "commitSha", "pullRequestUrl", "statusAfter"],
   "properties": {
     "seq": {
       "$ref": "common.schema.json#/$defs/EventSeq"
@@ -70,6 +70,13 @@
     },
     "question": {
       "type": "boolean"
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/Question"
+      },
+      "description": "request.commented only, else empty. An agent comment asks them; a user comment answers them (D107)."
     },
     "batchId": {
       "anyOf": [

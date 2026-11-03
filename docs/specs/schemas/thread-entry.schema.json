@@ -4,7 +4,7 @@
   "title": "ThreadEntry",
   "description": "One event in a request's timeline: comments, status changes, commit and pull request links.",
   "type": "object",
-  "required": ["seq", "eventId", "type", "actor", "occurredAt", "body", "diff", "commentId", "question", "batchId", "commitSha", "pullRequestUrl", "statusAfter"],
+  "required": ["seq", "eventId", "type", "actor", "occurredAt", "body", "diff", "commentId", "question", "questions", "batchId", "commitSha", "pullRequestUrl", "statusAfter"],
   "properties": {
     "seq": {
       "$ref": "common.schema.json#/$defs/EventSeq"
@@ -23,7 +23,7 @@
     },
     "body": {
       "type": ["string", "null"],
-      "description": "opened: request body; commented: comment; proposed: plan; retitled: the new title; released, ready_for_review, verified, reopened, proposal_approved, proposal_rejected, suggestion_dismissed, commit.linked, pull_request.linked: note; wont_do: reason; else null."
+      "description": "opened: request body; commented: comment, which can be empty when questions holds answers; proposed: plan; retitled: the new title; released, ready_for_review, verified, reopened, proposal_approved, proposal_rejected, suggestion_dismissed, commit.linked, pull_request.linked: note; wont_do: reason; else null."
     },
     "diff": {
       "anyOf": [
@@ -50,6 +50,13 @@
     "question": {
       "type": "boolean",
       "description": "True only for an agent comment that asks the user."
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/Question"
+      },
+      "description": "request.commented only, else empty. An agent comment asks them; a user comment answers them (D107)."
     },
     "batchId": {
       "anyOf": [

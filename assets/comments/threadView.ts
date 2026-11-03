@@ -1,5 +1,5 @@
 import type { Actor } from '../api/types/actor';
-import type { DateTime, EventSeq, Proposal, ProposalState, PullRequestState, PullRequestUrl, RequestStatus, SuggestionState, ThreadEntryType, Ulid, UnifiedDiff } from '../api/types/common';
+import type { DateTime, EventSeq, Proposal, ProposalState, PullRequestState, PullRequestUrl, Question, RequestStatus, SuggestionState, ThreadEntryType, Ulid, UnifiedDiff } from '../api/types/common';
 import type { Request as ReviewRequest } from '../api/types/request';
 import type { ThreadEntry } from '../api/types/thread-entry';
 import type { CarriedFrom } from '../api/types/request-summary';
@@ -21,12 +21,13 @@ export type CommentView = {
     type: ThreadEntryType;
     author: Actor;
     occurredAt: DateTime;
-    /** Null for an entry of {@link BODILESS_TYPES} or a pull request link without a note. */
+    /** Null for an entry of {@link BODILESS_TYPES}, a pull request link without a note, or answers without a comment. */
     body: string | null;
     pullRequestUrl: PullRequestUrl | null;
     /** The state of a pull request that is still linked, else `unknown`. */
     pullRequestState: PullRequestState;
     question: boolean;
+    questions: Question[];
     /** Shown before the server confirms it. */
     pending: boolean;
     proposal: ProposalView | null;
@@ -53,6 +54,8 @@ export type ThreadView = {
     /** The decisions on the pending suggestion that the caller may take. */
     suggestionButtons: SuggestionButton[];
     carriedFrom: CarriedFrom | null;
+    /** The questions of the latest agent comment with questions, until a later user comment answers them (D107). */
+    openQuestions: { key: string; questions: Question[] } | null;
 };
 
 /** Entries that show without a body, a diff, or a pull request: their caption says what happened. */
@@ -67,15 +70,17 @@ export function threadView(request: ReviewRequest): ThreadView {
 
     for (const [index, entry] of request.thread.entries()) {
         if (null !== entry.body || null !== entry.diff || null !== entry.pullRequestUrl || BODILESS_TYPES.includes(entry.type)) {
+            const body = '' === entry.body && entry.questions.length > 0 ? null : entry.body;
             comments.push({
                 key: entry.eventId,
                 type: entry.type,
                 author: entry.actor,
                 occurredAt: entry.occurredAt,
-                body: entry.body,
+                body,
                 pullRequestUrl: entry.pullRequestUrl,
                 pullRequestState: request.pullRequests.find(({ url }) => url === entry.pullRequestUrl)?.state ?? 'unknown',
                 question: entry.question,
+                questions: entry.questions,
                 pending: false,
                 proposal: 'request.proposed' === entry.type ? proposalView(entry, request.thread.slice(index + 1), request.proposal) : null,
             });
@@ -97,7 +102,14 @@ export function threadView(request: ReviewRequest): ThreadView {
         suggestion: request.suggestion,
         suggestionButtons: suggestionButtons(request.allowedActions),
         carriedFrom: request.carriedFrom,
+        openQuestions: openQuestions(request.thread),
     };
+}
+
+function openQuestions(thread: readonly ThreadEntry[]): ThreadView['openQuestions'] {
+    const asked = thread.findLast(({ type, questions }) => 'request.commented' === type && questions.length > 0);
+
+    return undefined !== asked && 'agent' === asked.actor.kind ? { key: asked.eventId, questions: asked.questions } : null;
 }
 
 function proposalView(entry: ThreadEntry, laterEntries: readonly ThreadEntry[], current: Proposal | null): ProposalView {
@@ -129,7 +141,7 @@ let pendingCount = 0;
 export function pendingComment(type: ThreadEntryType, body: string, author: Actor): CommentView {
     pendingCount += 1;
 
-    return { key: `pending-${pendingCount}`, type, author, occurredAt: new Date().toISOString(), body, pullRequestUrl: null, pullRequestState: 'unknown', question: false, pending: true, proposal: null };
+    return { key: `pending-${pendingCount}`, type, author, occurredAt: new Date().toISOString(), body, pullRequestUrl: null, pullRequestState: 'unknown', question: false, questions: [], pending: true, proposal: null };
 }
 
 export function linesText(range: LineRange | null): string {

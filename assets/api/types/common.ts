@@ -11,6 +11,9 @@ export type PullRequestUrl = string;
 /** RFC 3339, UTC, `Z` suffix. */
 export type DateTime = string;
 export type Markdown = string;
+
+/** D107. `answer` is null on an agent comment, and set on a user comment that answers one. */
+export type Question = { question: string; detail: Markdown | null; answer: string | null };
 /** A unified diff in git format with 1 to 9 files. */
 export type UnifiedDiff = string;
 export type Cursor = string;

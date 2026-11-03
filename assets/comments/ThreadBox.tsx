@@ -12,6 +12,7 @@ import { StatusLabel } from '../requests/StatusLabel';
 import { SuggestionActions } from '../requests/SuggestionActions';
 import { SuggestionLabel } from '../requests/SuggestionLabel';
 import { CommentBox, type CommentBoxHandle, type CommentText } from './CommentBox';
+import { QuestionForm, QuestionList } from './Questions';
 import type { CommentIntent } from './commentIntent';
 import styles from './ThreadBox.module.css';
 import { type CommentView, linesText, pendingComment, type ThreadView } from './threadView';
@@ -112,6 +113,7 @@ export function ThreadBox({ thread, caller, showHeader = true, detail = false, b
                         <ThreadComment
                             key={comment.key}
                             comment={comment}
+                            questionsOpen={comment.key === thread.openQuestions?.key}
                             caption={'request.opened' === comment.type && null !== thread.suggestion ? 'suggested' : CAPTIONS[comment.type]}
                             onQuote={thread.replyable && null !== body ? () => replyBox.current?.quote(body) : null}
                         >
@@ -126,6 +128,9 @@ export function ThreadBox({ thread, caller, showHeader = true, detail = false, b
                 </div>
             )}
             {beforeReply}
+            {thread.replyable && null !== requestId && null !== thread.openQuestions && (
+                <QuestionForm key={thread.openQuestions.key} requestId={requestId} questions={thread.openQuestions.questions} />
+            )}
             {thread.replyable && (
                 <div className={styles.reply}>
                     <CommentBox
@@ -143,7 +148,16 @@ export function ThreadBox({ thread, caller, showHeader = true, detail = false, b
     );
 }
 
-function ThreadComment({ comment, caption, onQuote, children }: { comment: CommentView; caption: string | undefined; onQuote: (() => void) | null; children?: ReactNode }) {
+type ThreadCommentProps = {
+    comment: CommentView;
+    caption: string | undefined;
+    /** Its questions show in the form above the reply box. */
+    questionsOpen: boolean;
+    onQuote: (() => void) | null;
+    children?: ReactNode;
+};
+
+function ThreadComment({ comment, caption, questionsOpen, onQuote, children }: ThreadCommentProps) {
     const { author, pullRequestUrl } = comment;
 
     return (
@@ -181,6 +195,7 @@ function ThreadComment({ comment, caption, onQuote, children }: { comment: Comme
                     <MarkdownBody markdown={comment.body} />
                 </Suspense>
             )}
+            {comment.questions.length > 0 && !questionsOpen && <QuestionList questions={comment.questions} />}
             {children}
         </li>
     );

@@ -229,7 +229,8 @@
                         "minimum": 1,
                         "maximum": 500
                     }
-                }
+                },
+                "required": []
             },
             "annotations": {
                 "readOnlyHint": true,
@@ -553,7 +554,7 @@
         {
             "name": "reply_to_request",
             "title": "Reply to request",
-            "description": "Add a comment to a request's thread, in any status. Set question to true when you need the user's answer; the request then waits for the user and comes back through get_updates when they reply.",
+            "description": "Add a comment to a request's thread, in any status. Set question to true when you need the user's answer; the request then waits for the user and comes back through get_updates when they reply. Put each question you need answered in questions: the user answers each with Yes, No, or text, and the answers come back as a user comment whose questions hold each question with its answer.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -573,6 +574,38 @@
                         "type": "boolean",
                         "description": "True when you need an answer from the user",
                         "default": false
+                    },
+                    "questions": {
+                        "type": "array",
+                        "description": "Questions for the user, each answered with Yes, No, or text. A comment with questions is a question.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "question": {
+                                    "type": "string",
+                                    "description": "The question, in one line",
+                                    "minLength": 1,
+                                    "maxLength": 200,
+                                    "pattern": "^[^\\x00]*$"
+                                },
+                                "detail": {
+                                    "type": [
+                                        "null",
+                                        "string"
+                                    ],
+                                    "description": "Optional Markdown context of the question",
+                                    "default": null,
+                                    "maxLength": 4000,
+                                    "pattern": "^[^\\x00]*$"
+                                }
+                            },
+                            "required": [
+                                "question"
+                            ],
+                            "additionalProperties": false
+                        },
+                        "default": [],
+                        "maxItems": 10
                     }
                 },
                 "required": [

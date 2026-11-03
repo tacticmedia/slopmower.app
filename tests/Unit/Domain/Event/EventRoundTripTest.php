@@ -48,6 +48,7 @@ use App\Domain\Identity\EventId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Request\CarriedFrom;
+use App\Domain\Request\CommentQuestion;
 use App\Domain\Request\ProposedDiff;
 use App\Domain\Request\PullRequestUrl;
 use App\Domain\Request\RequestType;
@@ -143,6 +144,18 @@ final class EventRoundTripTest extends KernelTestCase
         self::assertNull($event->group);
     }
 
+    #[TestDox('A request.commented payload without questions decodes with no questions')]
+    public function testDecodesRequestCommentedWithoutQuestions(): void
+    {
+        $payload = self::eventFixturePayload('request.commented');
+        unset($payload['questions']);
+
+        $event = EventType::RequestCommented->decode($payload);
+
+        self::assertInstanceOf(RequestCommentedEvent::class, $event);
+        self::assertSame([], $event->questions);
+    }
+
     #[TestDox('A batch.submitted payload without delivery decodes with delivery null')]
     public function testDecodesBatchSubmittedWithoutDelivery(): void
     {
@@ -206,7 +219,7 @@ final class EventRoundTripTest extends KernelTestCase
             EventType::ReviewStarted => new ReviewStartedEvent('Billing refactor', RefName::fromString('main'), CommitSha::fromString(self::REVIEW_COMMIT)),
             EventType::ReviewClosed => new ReviewClosedEvent('All requests are verified.'),
             EventType::RequestOpened => self::architectureExample(),
-            EventType::RequestCommented => new RequestCommentedEvent(CommentId::fromString(self::COMMENT), 'Should the rounding use HALF_EVEN?', true, null),
+            EventType::RequestCommented => new RequestCommentedEvent(CommentId::fromString(self::COMMENT), 'Should the rounding use HALF_EVEN?', true, null, [new CommentQuestion('Use HALF_EVEN for the tax lines?', '`TaxRounding` rounds HALF_UP today.')]),
             EventType::RequestClaimed => new RequestClaimedEvent(),
             EventType::RequestReleased => new RequestReleasedEvent('Blocked by the open tax question.'),
             EventType::CommitLinked => new CommitLinkedEvent(

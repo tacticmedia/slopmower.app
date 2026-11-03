@@ -2,7 +2,7 @@ import type { Actor } from '../../../assets/api/types/actor';
 import type { Anchor, AnchorInput } from '../../../assets/api/types/anchor';
 import type { Blame } from '../../../assets/api/types/blame';
 import type { CommitLink } from '../../../assets/api/types/commit-link';
-import type { ActorKind, Awaiting, OrphanReason, Proposal, PullRequestState, RequestStatus, RequestType, Resolution, SuggestionState, ThreadEntryType } from '../../../assets/api/types/common';
+import type { ActorKind, Awaiting, OrphanReason, Proposal, PullRequestState, Question, RequestStatus, RequestType, Resolution, SuggestionState, ThreadEntryType } from '../../../assets/api/types/common';
 import type { Draft } from '../../../assets/api/types/draft';
 import type { FileContent } from '../../../assets/api/types/file-content';
 import type {
@@ -200,8 +200,8 @@ export class FakeReview {
         this.#apply(id, this.#entry('request.wont_do', AGENT, reason, 'wont_do'), { status: 'wont_do', resolution: 'wont_do' });
     }
 
-    agentAsks(id: string, body: string): void {
-        this.#apply(id, { ...this.#entry('request.commented', AGENT, body, this.find(id).status), question: true });
+    agentAsks(id: string, body: string, questions: Question[] = []): void {
+        this.#apply(id, { ...this.#entry('request.commented', AGENT, body, this.find(id).status), question: true, questions });
     }
 
     /** A new proposal replaces the current one. */
@@ -333,8 +333,14 @@ export class FakeReview {
     command(id: string, command: string, input: unknown): Request {
         const { status } = this.find(id);
         switch (command) {
-            case 'comments':
-                return this.#apply(id, this.#entry('request.commented', USER, (input as CommentInput).body, status));
+            case 'comments': {
+                const { body, questions = [] } = input as CommentInput;
+
+                return this.#apply(id, {
+                    ...this.#entry('request.commented', USER, body, status),
+                    questions: questions.map(({ question, detail = null, answer = null }) => ({ question, detail, answer })),
+                });
+            }
             case 'reopen':
                 return this.#apply(id, this.#entry('request.reopened', USER, (input as RequiredNoteInput).note, 'reopened'), { status: 'reopened', resolution: null });
             case 'wont-do':

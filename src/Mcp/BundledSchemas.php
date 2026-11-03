@@ -1100,7 +1100,7 @@ final class BundledSchemas
                 'title' => 'Event',
                 'description' => 'An entry of the review event log as returned by get_updates, the updates endpoint, and command results.',
                 'type' => 'object',
-                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'batchId', 'commitSha', 'pullRequestUrl', 'statusAfter'],
+                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'questions', 'batchId', 'commitSha', 'pullRequestUrl', 'statusAfter'],
                 'properties' => [
                     'seq' => ['$ref' => '#/$defs/EventSeq'],
                     'eventId' => ['$ref' => '#/$defs/Ulid'],
@@ -1139,6 +1139,11 @@ final class BundledSchemas
                         ],
                     ],
                     'question' => ['type' => 'boolean'],
+                    'questions' => [
+                        'type' => 'array',
+                        'items' => ['$ref' => '#/$defs/Question'],
+                        'description' => 'request.commented only, else empty. An agent comment asks them; a user comment answers them (D107).',
+                    ],
                     'batchId' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/Ulid'],
@@ -1258,6 +1263,32 @@ final class BundledSchemas
                 'enum' => ['pending', 'approved', 'rejected'],
             ],
             'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://[^\\s\\x00]+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
+            'Question' => [
+                'type' => 'object',
+                'required' => ['question', 'detail', 'answer'],
+                'properties' => [
+                    'question' => ['$ref' => '#/$defs/QuestionText'],
+                    'detail' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 4000,
+                        'description' => 'Markdown that gives the context of the question.',
+                    ],
+                    'answer' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 4000,
+                        'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
+                    ],
+                ],
+                'description' => 'A question of an agent comment, or a question with its answer on a user comment (D107).',
+            ],
+            'QuestionText' => [
+                'type' => 'string',
+                'minLength' => 1,
+                'maxLength' => 200,
+                'pattern' => '\\S',
+                'not' => ['pattern' => '[\\r\\n]'],
+                'description' => 'A question of an agent: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
+            ],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
@@ -2067,6 +2098,32 @@ final class BundledSchemas
                 'description' => 'unknown: a local repository, a state not read yet, a pull request that GitHub does not find, or an installation without the permission Pull requests: read.',
             ],
             'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://[^\\s\\x00]+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
+            'Question' => [
+                'type' => 'object',
+                'required' => ['question', 'detail', 'answer'],
+                'properties' => [
+                    'question' => ['$ref' => '#/$defs/QuestionText'],
+                    'detail' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 4000,
+                        'description' => 'Markdown that gives the context of the question.',
+                    ],
+                    'answer' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 4000,
+                        'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
+                    ],
+                ],
+                'description' => 'A question of an agent comment, or a question with its answer on a user comment (D107).',
+            ],
+            'QuestionText' => [
+                'type' => 'string',
+                'minLength' => 1,
+                'maxLength' => 200,
+                'pattern' => '\\S',
+                'not' => ['pattern' => '[\\r\\n]'],
+                'description' => 'A question of an agent: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
+            ],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
@@ -2111,7 +2168,7 @@ final class BundledSchemas
                 'title' => 'ThreadEntry',
                 'description' => 'One event in a request\'s timeline: comments, status changes, commit and pull request links.',
                 'type' => 'object',
-                'required' => ['seq', 'eventId', 'type', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'batchId', 'commitSha', 'pullRequestUrl', 'statusAfter'],
+                'required' => ['seq', 'eventId', 'type', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'questions', 'batchId', 'commitSha', 'pullRequestUrl', 'statusAfter'],
                 'properties' => [
                     'seq' => ['$ref' => '#/$defs/EventSeq'],
                     'eventId' => ['$ref' => '#/$defs/Ulid'],
@@ -2120,7 +2177,7 @@ final class BundledSchemas
                     'occurredAt' => ['$ref' => '#/$defs/DateTime'],
                     'body' => [
                         'type' => ['string', 'null'],
-                        'description' => 'opened: request body; commented: comment; proposed: plan; retitled: the new title; released, ready_for_review, verified, reopened, proposal_approved, proposal_rejected, suggestion_dismissed, commit.linked, pull_request.linked: note; wont_do: reason; else null.',
+                        'description' => 'opened: request body; commented: comment, which can be empty when questions holds answers; proposed: plan; retitled: the new title; released, ready_for_review, verified, reopened, proposal_approved, proposal_rejected, suggestion_dismissed, commit.linked, pull_request.linked: note; wont_do: reason; else null.',
                     ],
                     'diff' => [
                         'anyOf' => [
@@ -2137,6 +2194,11 @@ final class BundledSchemas
                         'description' => 'request.commented only.',
                     ],
                     'question' => ['type' => 'boolean', 'description' => 'True only for an agent comment that asks the user.'],
+                    'questions' => [
+                        'type' => 'array',
+                        'items' => ['$ref' => '#/$defs/Question'],
+                        'description' => 'request.commented only, else empty. An agent comment asks them; a user comment answers them (D107).',
+                    ],
                     'batchId' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/Ulid'],
@@ -2363,7 +2425,7 @@ final class BundledSchemas
                 'title' => 'Event',
                 'description' => 'An entry of the review event log as returned by get_updates, the updates endpoint, and command results.',
                 'type' => 'object',
-                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'batchId', 'commitSha', 'pullRequestUrl', 'statusAfter'],
+                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'questions', 'batchId', 'commitSha', 'pullRequestUrl', 'statusAfter'],
                 'properties' => [
                     'seq' => ['$ref' => '#/$defs/EventSeq'],
                     'eventId' => ['$ref' => '#/$defs/Ulid'],
@@ -2402,6 +2464,11 @@ final class BundledSchemas
                         ],
                     ],
                     'question' => ['type' => 'boolean'],
+                    'questions' => [
+                        'type' => 'array',
+                        'items' => ['$ref' => '#/$defs/Question'],
+                        'description' => 'request.commented only, else empty. An agent comment asks them; a user comment answers them (D107).',
+                    ],
                     'batchId' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/Ulid'],
@@ -2521,6 +2588,32 @@ final class BundledSchemas
                 'enum' => ['pending', 'approved', 'rejected'],
             ],
             'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://[^\\s\\x00]+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
+            'Question' => [
+                'type' => 'object',
+                'required' => ['question', 'detail', 'answer'],
+                'properties' => [
+                    'question' => ['$ref' => '#/$defs/QuestionText'],
+                    'detail' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 4000,
+                        'description' => 'Markdown that gives the context of the question.',
+                    ],
+                    'answer' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 4000,
+                        'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
+                    ],
+                ],
+                'description' => 'A question of an agent comment, or a question with its answer on a user comment (D107).',
+            ],
+            'QuestionText' => [
+                'type' => 'string',
+                'minLength' => 1,
+                'maxLength' => 200,
+                'pattern' => '\\S',
+                'not' => ['pattern' => '[\\r\\n]'],
+                'description' => 'A question of an agent: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
+            ],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
@@ -2858,7 +2951,7 @@ final class BundledSchemas
                 'title' => 'Event',
                 'description' => 'An entry of the review event log as returned by get_updates, the updates endpoint, and command results.',
                 'type' => 'object',
-                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'batchId', 'commitSha', 'pullRequestUrl', 'statusAfter'],
+                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'questions', 'batchId', 'commitSha', 'pullRequestUrl', 'statusAfter'],
                 'properties' => [
                     'seq' => ['$ref' => '#/$defs/EventSeq'],
                     'eventId' => ['$ref' => '#/$defs/Ulid'],
@@ -2897,6 +2990,11 @@ final class BundledSchemas
                         ],
                     ],
                     'question' => ['type' => 'boolean'],
+                    'questions' => [
+                        'type' => 'array',
+                        'items' => ['$ref' => '#/$defs/Question'],
+                        'description' => 'request.commented only, else empty. An agent comment asks them; a user comment answers them (D107).',
+                    ],
                     'batchId' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/Ulid'],
@@ -3016,6 +3114,32 @@ final class BundledSchemas
                 'enum' => ['pending', 'approved', 'rejected'],
             ],
             'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://[^\\s\\x00]+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
+            'Question' => [
+                'type' => 'object',
+                'required' => ['question', 'detail', 'answer'],
+                'properties' => [
+                    'question' => ['$ref' => '#/$defs/QuestionText'],
+                    'detail' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 4000,
+                        'description' => 'Markdown that gives the context of the question.',
+                    ],
+                    'answer' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 4000,
+                        'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
+                    ],
+                ],
+                'description' => 'A question of an agent comment, or a question with its answer on a user comment (D107).',
+            ],
+            'QuestionText' => [
+                'type' => 'string',
+                'minLength' => 1,
+                'maxLength' => 200,
+                'pattern' => '\\S',
+                'not' => ['pattern' => '[\\r\\n]'],
+                'description' => 'A question of an agent: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
+            ],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
@@ -3349,7 +3473,7 @@ final class BundledSchemas
                 'title' => 'Event',
                 'description' => 'An entry of the review event log as returned by get_updates, the updates endpoint, and command results.',
                 'type' => 'object',
-                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'batchId', 'commitSha', 'pullRequestUrl', 'statusAfter'],
+                'required' => ['seq', 'eventId', 'type', 'reviewId', 'requestId', 'requestIds', 'actor', 'occurredAt', 'body', 'diff', 'commentId', 'question', 'questions', 'batchId', 'commitSha', 'pullRequestUrl', 'statusAfter'],
                 'properties' => [
                     'seq' => ['$ref' => '#/$defs/EventSeq'],
                     'eventId' => ['$ref' => '#/$defs/Ulid'],
@@ -3388,6 +3512,11 @@ final class BundledSchemas
                         ],
                     ],
                     'question' => ['type' => 'boolean'],
+                    'questions' => [
+                        'type' => 'array',
+                        'items' => ['$ref' => '#/$defs/Question'],
+                        'description' => 'request.commented only, else empty. An agent comment asks them; a user comment answers them (D107).',
+                    ],
                     'batchId' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/Ulid'],
@@ -3507,6 +3636,32 @@ final class BundledSchemas
                 'enum' => ['pending', 'approved', 'rejected'],
             ],
             'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://[^\\s\\x00]+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
+            'Question' => [
+                'type' => 'object',
+                'required' => ['question', 'detail', 'answer'],
+                'properties' => [
+                    'question' => ['$ref' => '#/$defs/QuestionText'],
+                    'detail' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 4000,
+                        'description' => 'Markdown that gives the context of the question.',
+                    ],
+                    'answer' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 4000,
+                        'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
+                    ],
+                ],
+                'description' => 'A question of an agent comment, or a question with its answer on a user comment (D107).',
+            ],
+            'QuestionText' => [
+                'type' => 'string',
+                'minLength' => 1,
+                'maxLength' => 200,
+                'pattern' => '\\S',
+                'not' => ['pattern' => '[\\r\\n]'],
+                'description' => 'A question of an agent: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
+            ],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
@@ -4058,6 +4213,7 @@ final class BundledSchemas
                     ],
                     'limit' => ['type' => 'integer', 'description' => 'Page size', 'default' => 100, 'minimum' => 1, 'maximum' => 500],
                 ],
+                'required' => [],
             ],
             'annotations' => ['readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false],
             'outputSchema' => self::REPOSITORY_PAGE,
@@ -4223,13 +4379,34 @@ final class BundledSchemas
         [
             'name' => 'reply_to_request',
             'title' => 'Reply to request',
-            'description' => 'Add a comment to a request\'s thread, in any status. Set question to true when you need the user\'s answer; the request then waits for the user and comes back through get_updates when they reply.',
+            'description' => 'Add a comment to a request\'s thread, in any status. Set question to true when you need the user\'s answer; the request then waits for the user and comes back through get_updates when they reply. Put each question you need answered in questions: the user answers each with Yes, No, or text, and the answers come back as a user comment whose questions hold each question with its answer.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
                     'id' => ['type' => 'string', 'description' => 'Request ID', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'],
                     'body' => ['type' => 'string', 'description' => 'Markdown comment', 'minLength' => 1, 'maxLength' => 65536, 'pattern' => '^[^\\x00]*$'],
                     'question' => ['type' => 'boolean', 'description' => 'True when you need an answer from the user', 'default' => false],
+                    'questions' => [
+                        'type' => 'array',
+                        'description' => 'Questions for the user, each answered with Yes, No, or text. A comment with questions is a question.',
+                        'items' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'question' => ['type' => 'string', 'description' => 'The question, in one line', 'minLength' => 1, 'maxLength' => 200, 'pattern' => '^[^\\x00]*$'],
+                                'detail' => [
+                                    'type' => ['null', 'string'],
+                                    'description' => 'Optional Markdown context of the question',
+                                    'default' => null,
+                                    'maxLength' => 4000,
+                                    'pattern' => '^[^\\x00]*$',
+                                ],
+                            ],
+                            'required' => ['question'],
+                            'additionalProperties' => false,
+                        ],
+                        'default' => [],
+                        'maxItems' => 10,
+                    ],
                 ],
                 'required' => ['id', 'body'],
             ],

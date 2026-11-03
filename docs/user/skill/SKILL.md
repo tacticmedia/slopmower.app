@@ -29,7 +29,7 @@ suggest changes instead, as section 6 describes. All calls go to the
 | `get_request` | `id`, `at?`, `context?` | Read one request in full |
 | `claim_request` | `id` | Take a request before you edit code |
 | `release_request` | `id`, `note?` | Give back a request that you will not finish |
-| `reply_to_request` | `id`, `body`, `question?` | Answer, or ask with `question: true` |
+| `reply_to_request` | `id`, `body`, `question?`, `questions?` | Answer, or ask with `questions` or `question: true` |
 | `link_commits` | `commitSha`, `requestIds`, `note?` | Record that a commit implements requests that you hold |
 | `unlink_commit` | `commitSha`, `requestId` | Remove a link that you made by mistake |
 | `link_pull_request` | `url`, `requestIds`, `note?` | Record that a pull request implements requests that you hold, or that are ready for review |
@@ -120,9 +120,13 @@ and read their whole thread, because the user rejected an earlier result.
      codebase. If the scope is not clear, ask with `question: true`. Call
      `list_requests` without a `path` filter to see all work, because a `path`
      filter never matches a general request.
-2. If the request is not clear, call `reply_to_request` with
-   `question: true`, then take the next request. Do not guess. The user's answer
-   comes back through `get_updates`.
+2. If the request is not clear, call `reply_to_request` with `questions`, then
+   take the next request. Do not guess. Each question is one line of at most
+   200 characters, with an optional Markdown `detail` that gives the context.
+   Ask at most 10, each one that the user can answer with Yes, No, or a short
+   text. Use `question: true` without `questions` for an open question. The
+   user's answer comes back through `get_updates`: a user comment whose
+   `questions` repeat your questions, each with its `answer`.
 3. Call `claim_request` before you edit code. If it fails with
    `invalid_transition`, another agent holds the request or its status does not
    allow a claim. Take the next request.

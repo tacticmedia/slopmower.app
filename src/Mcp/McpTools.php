@@ -48,6 +48,7 @@ use App\Domain\Request\Command\Reply;
 use App\Domain\Request\Command\SetTitle;
 use App\Domain\Request\Command\Suggest;
 use App\Domain\Request\Command\UnlinkCommit;
+use App\Domain\Request\CommentQuestion;
 use App\Domain\Request\RequestStatus;
 use App\Domain\Request\SuggestionState;
 use App\Entity\Review;
@@ -268,11 +269,15 @@ final class McpTools
     /**
      * Section 4.8: REST Q4. The decider refuses a body of whitespace only.
      *
+     * @param list<array{question: string, detail?: ?string}> $questions
+     *
      * @return array<string, mixed>
      */
-    public function replyToRequest(string $id, string $body, bool $question = false): array
+    public function replyToRequest(string $id, string $body, bool $question = false, array $questions = []): array
     {
-        return $this->requestCommand('reply_to_request', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->execute(new Reply($requestId, $body, $question), $actor));
+        $asked = array_map(static fn (array $item): CommentQuestion => new CommentQuestion($item['question'], $item['detail'] ?? null), $questions);
+
+        return $this->requestCommand('reply_to_request', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->execute(new Reply($requestId, $body, $question, questions: $asked), $actor));
     }
 
     /**

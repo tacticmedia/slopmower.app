@@ -1,5 +1,5 @@
 import type { Actor } from './actor';
-import type { CommitSha, DateTime, EventSeq, PullRequestUrl, RequestStatus, ThreadEntryType, Ulid, UnifiedDiff } from './common';
+import type { CommitSha, DateTime, EventSeq, PullRequestUrl, Question, RequestStatus, ThreadEntryType, Ulid, UnifiedDiff } from './common';
 
 export type ThreadEntry = {
     seq: EventSeq;
@@ -15,6 +15,8 @@ export type ThreadEntry = {
     commentId: Ulid | null;
     /** True only for an agent comment that asks the user. */
     question: boolean;
+    /** request.commented only, else empty: an agent comment asks them, a user comment answers them. */
+    questions: Question[];
     batchId: Ulid | null;
     /** commit.* only. */
     commitSha: CommitSha | null;

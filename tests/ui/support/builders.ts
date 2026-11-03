@@ -174,6 +174,7 @@ export function threadEntry(seq: number, type: ThreadEntryType, actor: ThreadEnt
         diff: null,
         commentId: 'request.commented' === type ? newId() : null,
         question: false,
+        questions: [],
         batchId: null,
         commitSha: null,
         pullRequestUrl: null,

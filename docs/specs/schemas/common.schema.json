@@ -279,6 +279,36 @@
         }
       ],
       "description": "Open set. What the user asks for: change, a code change; question, an answer without a code change; rule, a rule that the agent adds to AGENTS.md and follows from then on. Set when the request opens; it does not change after that."
+    },
+    "QuestionText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "\\S",
+      "not": {
+        "pattern": "[\\r\\n]"
+      },
+      "description": "A question of an agent: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length."
+    },
+    "Question": {
+      "type": "object",
+      "required": ["question", "detail", "answer"],
+      "properties": {
+        "question": {
+          "$ref": "#/$defs/QuestionText"
+        },
+        "detail": {
+          "type": ["string", "null"],
+          "maxLength": 4000,
+          "description": "Markdown that gives the context of the question."
+        },
+        "answer": {
+          "type": ["string", "null"],
+          "maxLength": 4000,
+          "description": "Null on an agent comment. On a user comment the answer: Yes, No, or text."
+        }
+      },
+      "description": "A question of an agent comment, or a question with its answer on a user comment (D107)."
     }
   }
 }
