@@ -11,6 +11,7 @@ The page scrolls: the review header moves out of the window, and the file tree a
 - Drag the edge of the tree, or focus it and press the arrow keys, to change its width.
 - **Collapse file tree** hides the tree. **Expand file tree**, before the path of the file, shows it again.
 - Your browser remembers the width and whether the tree is hidden.
+- A file in the tree is a link. Ctrl-click (Cmd-click on macOS), a middle click, or the context menu of the browser opens it in a new tab or window.
 
 On a narrow screen, the tree is above the file and scrolls away with the page.
 

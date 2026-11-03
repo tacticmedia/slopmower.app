@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { CODE_HOST, location, openFile } from './support/codeView';
 import { FakeReview } from './support/fakeReview';
-import { SMALL_FILE } from './support/files';
+import { SMALL_FILE, SYMBOL_FILE } from './support/files';
 import type { MockApi } from './support/mockApi';
 import { expect, test } from './support/test';
 
@@ -35,6 +35,30 @@ test.describe('CodeView', () => {
         expect(location(page)).toBe(review.fileUrl('README.md'));
         await treeItem(page, SMALL_FILE).click();
         await expect(page.locator('[data-testid="file-header"]')).toContainText(SMALL_FILE);
+    });
+
+    test('A file in the tree is a link: a Ctrl or Meta click and a middle click open a new page, and a click opens it in place', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        await openFile(page, review, SMALL_FILE);
+        const file = treeItem(page, SYMBOL_FILE);
+        await expect(file).toHaveAttribute('href', review.fileUrl(SYMBOL_FILE));
+        await file.hover();
+        expect(await file.evaluate((link) => getComputedStyle(link).textDecorationLine)).toBe('none');
+        expect(await file.evaluate((link) => getComputedStyle(link).color)).toBe(await treeItem(page, 'src/Billing').evaluate((item) => getComputedStyle(item).color));
+
+        for (const click of [{ modifiers: ['ControlOrMeta' as const] }, { button: 'middle' as const }]) {
+            const opened = page.context().waitForEvent('page');
+            await file.click(click);
+            const newPage = await opened;
+            expect(new URL(newPage.url()).pathname).toBe(review.fileUrl(SYMBOL_FILE));
+            await newPage.close();
+            expect(location(page)).toBe(review.fileUrl(SMALL_FILE));
+        }
+
+        await file.click();
+
+        await expect(page.locator('[data-testid="file-header"]')).toContainText(SYMBOL_FILE);
+        expect(page.context().pages()).toHaveLength(1);
     });
 
     test('Line 1 text is readable from the shadow root', async ({ page, api }) => {

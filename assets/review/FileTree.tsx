@@ -1,10 +1,11 @@
 import { CheckIcon, FileIcon, FileSubmoduleIcon, FileSymlinkFileIcon, InfoIcon } from '@primer/octicons-react';
 import { TreeView } from '@primer/react';
-import { type ComponentProps, useEffect, useState } from 'react';
+import { type ComponentProps, type KeyboardEvent, type MouseEvent, useEffect, useState } from 'react';
 import { useFetcher, useNavigate } from 'react-router';
 import type { TreeEntry } from '../api/types/tree-entry';
 import { TRUNCATED_TEXT, type TreeResult, treeHref } from '../routes/reviews/treeData';
 import { directoryHref, fileHref } from './fileHref';
+import styles from './FileTree.module.css';
 
 type TreeProps = {
     reviewId: string;
@@ -101,20 +102,29 @@ function DirectoryItem({ entry, ...props }: EntryProps) {
 }
 
 /**
- * V7 refuses submodules, so they are not links.
+ * A file is a link, so a modified click, a middle click, and the context menu open it in a new tab. A directory is no
+ * link: its item element holds its subtree. V7 refuses submodules, so they are not links.
  */
 function LeafItem({ reviewId, entry, currentPath, viewed }: EntryProps) {
     const navigate = useNavigate();
     const current = entry.path === currentPath;
     useRevealWhenCurrent(entry.path, current);
     const Icon = 'symlink' === entry.type ? FileSymlinkFileIcon : 'submodule' === entry.type ? FileSubmoduleIcon : FileIcon;
+    const href = 'submodule' === entry.type ? null : fileHref(reviewId, entry.path);
+    const open = (event: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>): void => {
+        if (null === href || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || ('button' in event && 0 !== event.button)) {
+            return;
+        }
+        event.preventDefault();
+        void navigate(href);
+    };
 
     return (
         <TreeView.Item
             id={itemId(entry.path)}
             data-path={entry.path}
             current={current}
-            onSelect={'submodule' === entry.type ? undefined : () => void navigate(fileHref(reviewId, entry.path))}
+            {...(null === href ? {} : { as: 'a', href, onSelect: open, className: styles.file })}
         >
             <TreeView.LeadingVisual>
                 <Icon />
