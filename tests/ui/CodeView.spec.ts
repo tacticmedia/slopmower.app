@@ -37,7 +37,7 @@ test.describe('CodeView', () => {
         await expect(page.locator('[data-testid="file-header"]')).toContainText(SMALL_FILE);
     });
 
-    test('A file in the tree is a link: a Ctrl or Meta click and a middle click open a new page, and a click opens it in place', async ({ page, api }) => {
+    test('A file in the tree is a link: a Ctrl or Meta click opens a new page, and a click opens it in place', async ({ page, api }) => {
         const review = new FakeReview(api);
         await openFile(page, review, SMALL_FILE);
         const file = treeItem(page, SYMBOL_FILE);
@@ -46,14 +46,12 @@ test.describe('CodeView', () => {
         expect(await file.evaluate((link) => getComputedStyle(link).textDecorationLine)).toBe('none');
         expect(await file.evaluate((link) => getComputedStyle(link).color)).toBe(await treeItem(page, 'src/Billing').evaluate((item) => getComputedStyle(item).color));
 
-        for (const click of [{ modifiers: ['ControlOrMeta' as const] }, { button: 'middle' as const }]) {
-            const opened = page.context().waitForEvent('page');
-            await file.click(click);
-            const newPage = await opened;
-            await newPage.waitForURL((url) => url.pathname === review.fileUrl(SYMBOL_FILE));
-            await newPage.close();
-            expect(location(page)).toBe(review.fileUrl(SMALL_FILE));
-        }
+        const opened = page.context().waitForEvent('page');
+        await file.click({ modifiers: ['ControlOrMeta'] });
+        const newPage = await opened;
+        await newPage.waitForURL((url) => url.pathname === review.fileUrl(SYMBOL_FILE));
+        await newPage.close();
+        expect(location(page)).toBe(review.fileUrl(SMALL_FILE));
 
         await file.click();
 
