@@ -1,0 +1,74 @@
+# Describe your target environment (optional, max 500 chars)
+description: "Codebase review tool facilitating a two-way high-volume, high-complexity communication channel between a developer and their coding agent"
+
+# Limit which vulnerability classes run end-to-end (optional, default: all five)
+# vuln_classes: [injection, xss, auth, authz, ssrf]
+
+# Skip the exploitation phase (optional, default: "true")
+# exploit: "false"
+
+# Free-form rules of engagement (optional)
+# rules_of_engagement: |
+#   - No password brute-force; cap login attempts at 5 per account.
+#   - Throttle to under 5 requests per second per endpoint; back off 60s on any 429.
+#   - Use placeholders like [order_id] in deliverables — no real data values.
+
+
+# Limit which vulnerability classes run end-to-end (optional, default: all five)
+# vuln_classes: [injection, xss, auth, authz, ssrf]
+
+# Skip the exploitation phase (optional, default: "true")
+# exploit: "false"
+
+# Free-form rules of engagement (optional)
+# rules_of_engagement: |
+#   - No password brute-force; cap login attempts at 5 per account.
+#   - Throttle to under 5 requests per second per endpoint; back off 60s on any 429.
+#   - Use placeholders like [order_id] in deliverables — no real data values.
+#
+#authentication:
+#    login_type: form
+#    login_url: ""
+#    credentials:
+#        username: ""
+#        password: ""
+#
+#        # Optional mailbox credentials for magic-link / email-OTP flows.
+#        # email_login:
+#        #   address: "inbox@example.com"
+#        #   password: "mailbox-password"
+#        #   totp_secret: "JBSWY3DPEHPK3PXP"
+#
+#    # Natural language instructions for login flow
+#    login_flow:
+#        - "Type $username into the Work e-mail field"
+#        - "Type $password into the Password field"
+#        - "Click the 'Continue' button"
+#
+#    success_condition:
+#        type: url_contains
+#        value: "/"
+
+rules:
+    # Supported types: url_path, subdomain, domain, method, header, parameter, code_path
+    avoid:
+        - description: "AI should avoid testing logout functionality"
+          type: url_path
+          value: "/logout"
+
+        # code_path values are repo-relative file paths or globs (e.g. "src/auth.ts", "src/vendor/**").
+        # - description: "Out-of-scope vendored libraries"
+        #   type: code_path
+        #   value: "src/vendor/**"
+
+#    focus:
+#        - description: "AI should emphasize testing API endpoints"
+#          type: url_path
+#          value: "/api"
+
+# Filters applied by the report agent when assembling the final report (optional).
+# report:
+#   min_severity: low                   # drop findings below this severity (low | medium | high | critical)
+#   min_confidence: low                 # drop findings below this confidence (low | medium | high)
+#   guidance: |
+#     Drop findings about missing security headers and rate-limit gaps.
