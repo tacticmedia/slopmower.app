@@ -20,13 +20,14 @@ import { RequestTypeLabel } from '../../requests/RequestTypeLabel';
 import { StatusLabel } from '../../requests/StatusLabel';
 import styles from './RequestDetail.module.css';
 import { RequestChanges } from './RequestChanges';
+import type { RequestDetailData } from './requestData';
 
 /**
  * The layout of a GitHub issue. A closed review gives an empty `allowedActions`, which hides the action bar, the plan
  * toggle, and the reply box.
  */
 export function RequestDetail() {
-    const request = useLoaderData<ReviewRequest>();
+    const request = useLoaderData<RequestDetailData>();
     const me = useRouteLoaderData<Me>('root');
     const [searchParams] = useSearchParams();
     const onChanges = CHANGES_TAB === searchParams.get('tab');
@@ -52,7 +53,7 @@ export function RequestDetail() {
                     </span>
                 </p>
             </header>
-            <ActionBar id={request.id} status={request.status} summary={request.summary} allowedActions={request.allowedActions} />
+            <ActionBar id={request.id} status={request.status} summary={request.summary} allowedActions={request.allowedActions} nextRequestId={request.nextRequestId} />
             <p className={'user' === request.awaiting ? `${styles.nextStep} ${styles.yourTurn}` : styles.nextStep} data-testid="next-step" data-awaiting={request.awaiting}>
                 {requestStage(request)}
             </p>

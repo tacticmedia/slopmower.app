@@ -5,6 +5,7 @@ import { REQUEST_BUTTON_LABELS, type RequestButton, requestButtons } from './all
 import { NoteDialog, type NoteDialogSpec } from './NoteDialog';
 import type { RequestCommandIntent } from './requestIntent';
 import styles from './Requests.module.css';
+import { SplitDecisionButton } from './SplitDecisionButton';
 import { useRequestCommand } from './useRequestCommand';
 
 type DialogButton = Exclude<RequestButton, 'verify'>;
@@ -63,9 +64,13 @@ export function RequestActions({ allowedActions }: { allowedActions: readonly Ac
             <div className={styles.buttons}>
                 {buttons.map((button) =>
                     'verify' === button ? (
-                        <Button key={button} variant="primary" onClick={() => send({ intent: 'verify', input: {} })} loading={button === sent} disabled={busy}>
-                            {REQUEST_BUTTON_LABELS[button]}
-                        </Button>
+                        <SplitDecisionButton
+                            key={button}
+                            label={REQUEST_BUTTON_LABELS[button]}
+                            onSend={(next) => send({ intent: 'verify', input: {}, next })}
+                            loading={button === sent}
+                            disabled={busy}
+                        />
                     ) : (
                         <Button key={button} onClick={(event) => openDialog(button, event)} disabled={busy}>
                             {REQUEST_BUTTON_LABELS[button]}

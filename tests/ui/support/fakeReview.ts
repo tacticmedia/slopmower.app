@@ -632,7 +632,7 @@ export class FakeReview {
         });
     }
 
-    /** Q1 with the filters that the request list sends. */
+    /** Q1 with the filters and the limit that the app sends. */
     #requestPage(query: URLSearchParams): MockResponse {
         const list = (name: string): string[] | null => query.get(name)?.split(',') ?? null;
         const [statuses, awaiting, path, outdated, suggestion, group] = [list('status'), list('awaiting'), query.get('path'), query.get('outdated'), query.get('suggestion'), query.get('group')];
@@ -646,8 +646,10 @@ export class FakeReview {
             .filter((request) => (null === suggestion || request.suggestion === suggestion) && (null === group || request.group === group))
             .toSorted(order)
             .map(requestSummary);
+        // shortcut: one page without a cursor, add cursors when a test lists more requests than `limit`.
+        const limit = Number(query.get('limit') ?? 50);
 
-        return json('lists.schema.json#/$defs/RequestPage', { reviewId: this.id, reviewState: this.review.state, total: items.length, items, nextCursor: null });
+        return json('lists.schema.json#/$defs/RequestPage', { reviewId: this.id, reviewState: this.review.state, total: items.length, items: items.slice(0, limit), nextCursor: null });
     }
 
     #viewedFiles(): MockResponse {

@@ -5,15 +5,24 @@ import type { Ulid } from '../api/types/common';
 import type { SuggestionButton } from './allowedActions';
 import { NoteDialog } from './NoteDialog';
 import styles from './Requests.module.css';
+import { SplitDecisionButton } from './SplitDecisionButton';
 import { useRequestCommand } from './useRequestCommand';
+
+type Props = {
+    requestId: Ulid;
+    buttons: readonly SuggestionButton[];
+    /** On the request detail, "Accept" also offers to go to the next request. */
+    detail?: boolean;
+};
 
 /**
  * "Accept" sends Q21 at once, "Dismiss" sends Q22 with an optional note. The writes run in the action of the request
  * detail route, also from the code view.
  */
-export function SuggestionActions({ requestId, buttons }: { requestId: Ulid; buttons: readonly SuggestionButton[] }) {
+export function SuggestionActions({ requestId, buttons, detail = false }: Props) {
     const { busy, sent, error, dialog, opener, send, openDialog, closeDialog } = useRequestCommand<'dismiss_suggestion'>(`/requests/${encodeURIComponent(requestId)}`);
     const [requireApproval, setRequireApproval] = useState(true);
+    const accept = (next: boolean): void => send({ intent: 'accept_suggestion', input: { requireApproval }, next });
 
     if (0 === buttons.length) {
         return null;
@@ -24,9 +33,13 @@ export function SuggestionActions({ requestId, buttons }: { requestId: Ulid; but
             <div className={styles.buttons}>
                 {buttons.includes('accept_suggestion') && (
                     <>
-                        <Button variant="primary" onClick={() => send({ intent: 'accept_suggestion', input: { requireApproval } })} loading={'accept_suggestion' === sent} disabled={busy}>
-                            Accept
-                        </Button>
+                        {detail ? (
+                            <SplitDecisionButton label="Accept" onSend={accept} loading={'accept_suggestion' === sent} disabled={busy} />
+                        ) : (
+                            <Button variant="primary" onClick={() => accept(false)} loading={'accept_suggestion' === sent} disabled={busy}>
+                                Accept
+                            </Button>
+                        )}
                         <FormControl disabled={busy}>
                             <Checkbox checked={requireApproval} onChange={(event) => setRequireApproval(event.target.checked)} />
                             <FormControl.Label>Ask for a plan first</FormControl.Label>

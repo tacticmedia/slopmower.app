@@ -4,7 +4,13 @@ import { type BlockerFunction, useBlocker } from 'react-router';
 
 type Registry = (id: string, unsaved: boolean) => void;
 
-const UnsavedComments = createContext<Registry>(() => undefined);
+type Guard = {
+    mark: Registry;
+    /** Resolves true when no comment box holds unsaved text, or when the user discards it. */
+    confirmDiscard(): Promise<boolean>;
+};
+
+const UnsavedComments = createContext<Guard>({ mark: () => undefined, confirmDiscard: () => Promise.resolve(true) });
 
 /**
  * Asks before a navigation to another path, a reload, or a closed tab while a comment box holds unsaved text. React
@@ -32,6 +38,11 @@ export function UnsavedCommentGuard({ children }: { children: ReactNode }) {
     const guarding = unsaved.size > 0;
     const shouldBlock = useCallback<BlockerFunction>(({ currentLocation, nextLocation }) => guarding && currentLocation.pathname !== nextLocation.pathname, [guarding]);
     const blocker = useBlocker(shouldBlock);
+    const [confirming, setConfirming] = useState<((discard: boolean) => void) | null>(null);
+    const guard = useMemo<Guard>(
+        () => ({ mark, confirmDiscard: () => (guarding ? new Promise<boolean>((resolve) => setConfirming(() => resolve)) : Promise.resolve(true)) }),
+        [mark, guarding],
+    );
 
     useEffect(() => {
         if (!guarding) {
@@ -43,16 +54,29 @@ export function UnsavedCommentGuard({ children }: { children: ReactNode }) {
         return () => window.removeEventListener('beforeunload', warn);
     }, [guarding]);
 
+    const close = (discard: boolean): void => {
+        if (null !== confirming) {
+            setConfirming(null);
+            confirming(discard);
+        } else if ('blocked' === blocker.state) {
+            if (discard) {
+                blocker.proceed();
+            } else {
+                blocker.reset();
+            }
+        }
+    };
+
     return (
-        <UnsavedComments value={mark}>
+        <UnsavedComments value={guard}>
             {children}
-            {'blocked' === blocker.state && (
+            {('blocked' === blocker.state || null !== confirming) && (
                 <ConfirmationDialog
                     title="Discard your unsaved comment?"
                     confirmButtonContent="Discard"
                     confirmButtonType="danger"
                     cancelButtonContent="Keep editing"
-                    onClose={(gesture) => ('confirm' === gesture ? blocker.proceed() : blocker.reset())}
+                    onClose={(gesture) => close('confirm' === gesture)}
                 >
                     A comment box on this page holds text that is not saved.
                 </ConfirmationDialog>
@@ -62,7 +86,7 @@ export function UnsavedCommentGuard({ children }: { children: ReactNode }) {
 }
 
 export function useUnsavedComment(unsaved: boolean): void {
-    const mark = useContext(UnsavedComments);
+    const { mark } = useContext(UnsavedComments);
     const id = useId();
 
     useEffect(() => {
@@ -70,4 +94,9 @@ export function useUnsavedComment(unsaved: boolean): void {
 
         return () => mark(id, false);
     }, [mark, id, unsaved]);
+}
+
+/** For a write that leaves the page through a redirect of its action, which the blocker does not see. */
+export function useConfirmDiscard(): () => Promise<boolean> {
+    return useContext(UnsavedComments).confirmDiscard;
 }

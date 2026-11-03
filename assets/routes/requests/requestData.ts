@@ -1,5 +1,5 @@
-import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
-import { type ActionResult, writeResult } from '../../api/actionResult';
+import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'react-router';
+import { type ActionResult, actionError } from '../../api/actionResult';
 import { apiGet, apiGetAllPages, apiWrite } from '../../api/client';
 import { REQUEST_STATUSES, type RequestStatus, type Ulid } from '../../api/types/common';
 import type { DraftList, RequestPage } from '../../api/types/lists';
@@ -102,14 +102,41 @@ export async function requestListLoader({ request, params }: LoaderFunctionArgs)
     return { ...page, hiddenReplySummaries: Object.fromEntries(summaries.flat()) };
 }
 
-export function requestLoader({ request, params }: LoaderFunctionArgs): Promise<ReviewRequest> {
-    return apiGet<ReviewRequest>(`/api/v1/requests/${encodedRouteParam(params, 'requestId')}`, request.signal);
+/** The data of the request detail route. */
+export type RequestDetailData = ReviewRequest & {
+    /** The oldest other request of the review that waits for the user. */
+    nextRequestId: Ulid | null;
+};
+
+export async function requestLoader({ request, params }: LoaderFunctionArgs): Promise<RequestDetailData> {
+    const detail = await apiGet<ReviewRequest>(`/api/v1/requests/${encodedRouteParam(params, 'requestId')}`, request.signal);
+
+    return { ...detail, nextRequestId: await nextRequestId(detail, request.signal) };
 }
 
-export async function requestAction({ request, params }: ActionFunctionArgs): Promise<ActionResult> {
+async function nextRequestId({ id, reviewId }: Pick<ReviewRequest, 'id' | 'reviewId'>, signal: AbortSignal): Promise<Ulid | null> {
+    const query = new URLSearchParams({ awaiting: 'user', sort: 'created', limit: '2' });
+    const page = await apiGet<RequestPage>(`/api/v1/reviews/${encodeURIComponent(reviewId)}/requests?${query.toString()}`, signal);
+
+    return page.items.find((summary) => summary.id !== id)?.id ?? null;
+}
+
+/** A redirect skips the unsaved-comment guard, so `SplitDecisionButton` asks before it sends `next`. */
+export async function requestAction({ request, params }: ActionFunctionArgs): Promise<ActionResult | Response> {
     const submitted = (await request.json()) as RequestIntent;
     const requestPath = `/api/v1/requests/${encodedRouteParam(params, 'requestId')}`;
     const path = 'reply' === submitted.intent ? `${requestPath}/comments` : `${requestPath}/${COMMAND_PATHS[submitted.intent]}`;
 
-    return writeResult(async () => rememberEvents((await apiWrite<RequestCommandResult>('POST', path, submitted.input, request.signal)).events));
+    try {
+        const { request: written, events } = await apiWrite<RequestCommandResult>('POST', path, submitted.input, request.signal);
+        rememberEvents(events);
+        if (!('next' in submitted && true === submitted.next)) {
+            return null;
+        }
+        const next = await nextRequestId(written, request.signal);
+
+        return redirect(null === next ? `/reviews/${written.reviewId}/requests?awaiting=user` : `/requests/${next}`);
+    } catch (error) {
+        return actionError(error);
+    }
 }

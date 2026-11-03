@@ -9,6 +9,7 @@ import type { ProposalView } from '../comments/threadView';
 import { usePreference } from '../layout/usePreference';
 import { NoteDialog } from './NoteDialog';
 import styles from './Requests.module.css';
+import { SplitDecisionButton } from './SplitDecisionButton';
 import { useRequestCommand } from './useRequestCommand';
 
 // A separate chunk, so the diff library loads with the first diff.
@@ -110,14 +111,12 @@ function ProposalDecision({ proposalEventId }: { proposalEventId: Ulid }) {
                 </FormControl>
             )}
             <div className={styles.buttons}>
-                <Button
-                    variant="primary"
-                    onClick={() => send({ intent: 'approve_proposal', input: { proposalEventId, ...(pullRequests ? { pullRequest } : {}) } })}
+                <SplitDecisionButton
+                    label="Approve"
+                    onSend={(next) => send({ intent: 'approve_proposal', input: { proposalEventId, ...(pullRequests ? { pullRequest } : {}) }, next })}
                     loading={'approve_proposal' === sent}
                     disabled={busy}
-                >
-                    Approve
-                </Button>
+                />
                 <Button onClick={(event) => openDialog('reject_proposal', event)} disabled={busy}>
                     Request changes
                 </Button>

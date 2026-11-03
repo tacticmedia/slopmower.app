@@ -30,6 +30,9 @@ test.describe('CarryOver', () => {
     test('A carried thread links to its source request', async ({ page, api }) => {
         const carried = fixture<Request>('request.carried.json');
         api.on('GET', '/api/v1/requests/:requestId', ({ params }) => (params.requestId === carried.id ? json('request.schema.json', carried) : undefined));
+        api.on('GET', '/api/v1/reviews/:reviewId/requests', () =>
+            json('lists.schema.json#/$defs/RequestPage', { reviewId: carried.reviewId, reviewState: carried.reviewState, total: 0, items: [], nextCursor: null }),
+        );
 
         await page.goto(`/requests/${carried.id}`);
 
