@@ -2,7 +2,6 @@ import { CodeIcon, CommentDiscussionIcon } from '@primer/octicons-react';
 import { Banner, Heading, Link, RelativeTime, UnderlineNav } from '@primer/react';
 import { Outlet, Link as RouterLink, useLoaderData, useMatch } from 'react-router';
 import type { Review } from '../../api/types/review';
-import { UnsavedCommentGuard } from '../../comments/UnsavedCommentGuard';
 import { useDocumentTitle } from '../../layout/useDocumentTitle';
 import { AgentPromptsOverlay } from '../../review/AgentPromptsOverlay';
 import { SubmitFeedbackOverlay } from '../../review/SubmitFeedbackOverlay';
@@ -58,33 +57,31 @@ export function ReviewLayout() {
     useDocumentTitle(review.title);
 
     return (
-        <UnsavedCommentGuard>
-            <div className={styles.page} data-code-browser={codeBrowser ? '' : undefined} data-full-width={codeBrowser ? '' : undefined}>
-                <header className={styles.header}>
-                    <div className={styles.titleRow}>
-                        <div className={styles.titleText}>
-                            <Link as={RouterLink} to={`/repositories/${review.repositoryId}`} className={styles.repository}>
-                                {review.repositoryName}
-                            </Link>
-                            <Heading as="h1">{review.title}</Heading>
-                            <span className={styles.meta}>
-                                <code>{review.ref}</code> at <code title={review.commitSha}>{shortSha(review.commitSha)}</code>, started by{' '}
-                                {review.startedBy.name} <RelativeTime datetime={review.createdAt} />
-                            </span>
-                        </div>
-                        <div className={styles.reviewActions}>
-                            <QuickOpen reviewId={review.id} indexState={review.index.state} />
-                            <AgentPromptsOverlay reviewId={review.id} />
-                            {'open' === review.state && drafts.length > 0 && <SubmitFeedbackOverlay draftCount={drafts.length} delivery={review.delivery} pullRequests={review.capabilities.pullRequests} />}
-                            <ReviewActionsMenu review={review} draftCount={drafts.length} />
-                        </div>
+        <div className={styles.page} data-code-browser={codeBrowser ? '' : undefined} data-full-width={codeBrowser ? '' : undefined}>
+            <header className={styles.header}>
+                <div className={styles.titleRow}>
+                    <div className={styles.titleText}>
+                        <Link as={RouterLink} to={`/repositories/${review.repositoryId}`} className={styles.repository}>
+                            {review.repositoryName}
+                        </Link>
+                        <Heading as="h1">{review.title}</Heading>
+                        <span className={styles.meta}>
+                            <code>{review.ref}</code> at <code title={review.commitSha}>{shortSha(review.commitSha)}</code>, started by{' '}
+                            {review.startedBy.name} <RelativeTime datetime={review.createdAt} />
+                        </span>
                     </div>
-                    <IndexProgress index={review.index} />
-                    <ReviewNavigation review={review} />
-                </header>
-                {'closed' === review.state && <ClosedBanner review={review} />}
-                <Outlet />
-            </div>
-        </UnsavedCommentGuard>
+                    <div className={styles.reviewActions}>
+                        <QuickOpen reviewId={review.id} indexState={review.index.state} />
+                        <AgentPromptsOverlay reviewId={review.id} />
+                        {'open' === review.state && drafts.length > 0 && <SubmitFeedbackOverlay draftCount={drafts.length} delivery={review.delivery} pullRequests={review.capabilities.pullRequests} />}
+                        <ReviewActionsMenu review={review} draftCount={drafts.length} />
+                    </div>
+                </div>
+                <IndexProgress index={review.index} />
+                <ReviewNavigation review={review} />
+            </header>
+            {'closed' === review.state && <ClosedBanner review={review} />}
+            <Outlet />
+        </div>
     );
 }

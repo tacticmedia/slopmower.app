@@ -2,6 +2,7 @@ import { QuestionIcon } from '@primer/octicons-react';
 import { ActionList, ActionMenu, Avatar, Button, Header, IconButton } from '@primer/react';
 import { NavLink, Outlet, useFetcher, useLoaderData, useMatch } from 'react-router';
 import type { Me } from '../api/types/me';
+import { UnsavedCommentGuard } from '../comments/UnsavedCommentGuard';
 import { useLiveRevalidation } from '../live/useLiveRevalidation';
 import { useTours } from '../tour/useTours';
 import { HELP } from './helpLinks';
@@ -50,7 +51,9 @@ export function RootLayout() {
                 </Header.Item>
             </Header>
             <main className={styles.main}>
-                <Outlet />
+                <UnsavedCommentGuard>
+                    <Outlet />
+                </UnsavedCommentGuard>
             </main>
             {release && <footer className={styles.footer}>Release {release}</footer>}
         </div>

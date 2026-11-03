@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 import { commentBoxButton, dragFromPlus, focusedCommentBoxBelow, lineNumber, location, openFile, waitForHighlighting, waitForSavedDraft } from './support/codeView';
 import { FakeReview } from './support/fakeReview';
+import { openRequest } from './support/requestScreens';
 import { SMALL_FILE, SYMBOL_FILE } from './support/files';
 import { expect, test } from './support/test';
 
@@ -101,6 +102,17 @@ test.describe('UnsavedComment', () => {
 
         await expectFileOpen(page, SYMBOL_FILE);
         await expect(discardDialog(page)).toHaveCount(0);
+    });
+
+    test('The reply box of the request page asks first before a link to another page', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        const request = review.seedLines(SMALL_FILE, 9, 12, 'Extract the tax calculation.');
+        await openRequest(page, request.id);
+        await page.getByRole('textbox', { name: 'Reply', exact: true }).fill('Keep the old method for one release.');
+
+        await page.getByRole('link', { name: 'Requests of this review', exact: true }).click();
+
+        await expect(discardDialog(page)).toBeVisible();
     });
 
     test('Closing the tab with typed text raises the beforeunload prompt', async ({ page, api }) => {

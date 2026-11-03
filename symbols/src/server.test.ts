@@ -22,10 +22,10 @@ function start(variables: Record<string, string>): Service {
 }
 
 /** The host and the port of the start line. */
-async function listening({ process: child }: Service): Promise<{ host: string; port: number }> {
+async function listening(service: Service): Promise<{ host: string; port: number }> {
     let stdout = '';
 
-    for await (const chunk of child.stdout) {
+    for await (const chunk of service.process.stdout) {
         stdout += (chunk as Buffer).toString();
         const [, host, port] = /^Listening on (.+):(\d+): /m.exec(stdout) ?? [];
 
@@ -34,17 +34,32 @@ async function listening({ process: child }: Service): Promise<{ host: string; p
         }
     }
 
-    throw new Error(`The service stopped before it listened: ${stdout}`);
+    throw new Error(`The service stopped before it listened: ${stdout}${service.stderr()}`);
 }
 
-async function freePort(): Promise<number> {
-    const probe = createServer().listen(0, '127.0.0.1');
+async function freePort(host: string): Promise<number> {
+    const probe = createServer().listen(0, host);
     await once(probe, 'listening');
     const { port } = probe.address() as { port: number };
     probe.close();
     await once(probe, 'close');
 
     return port;
+}
+
+/** Another process can take the free port before the service binds it, so a taken port gets a new one. */
+async function listeningOnFreePort(host: string): Promise<{ free: number; host: string; port: number }> {
+    for (let attempt = 1; ; attempt++) {
+        const free = await freePort(host);
+        const service = start({ SYMBOLS_HOST: host, SYMBOLS_PORT: String(free) });
+        try {
+            return { free, ...(await listening(service)) };
+        } catch (error) {
+            if (3 === attempt || !service.stderr().includes('EADDRINUSE')) {
+                throw error;
+            }
+        }
+    }
 }
 
 async function health(port: number): Promise<number> {
@@ -69,8 +84,7 @@ describe('ServerTest', { timeout: 20_000 }, () => {
     });
 
     it('SYMBOLS_HOST and SYMBOLS_PORT set the listen address', async () => {
-        const free = await freePort();
-        const { host, port } = await listening(start({ SYMBOLS_HOST: '0.0.0.0', SYMBOLS_PORT: String(free) }));
+        const { free, host, port } = await listeningOnFreePort('0.0.0.0');
 
         expect([host, port]).toEqual(['0.0.0.0', free]);
         expect(await health(port)).toBe(200);

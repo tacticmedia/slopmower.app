@@ -16,6 +16,22 @@ async function box(page: Page, selector: string): Promise<{ top: number; bottom:
 }
 
 test.describe('RequestDetailLayout', () => {
+    test('A dialog of the request page covers the sticky action bar with its backdrop', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        const request = review.seedLines(SMALL_FILE, 9, 12, 'Extract the tax calculation.');
+        await openRequest(page, request.id);
+        await clickRequestButton(page, "Close as won't do");
+        await expect(page.getByRole('dialog')).toBeVisible();
+
+        const covered = await page.locator(ACTION_BAR).evaluate((bar) => {
+            const { left, top, height } = bar.getBoundingClientRect();
+
+            return !bar.contains(document.elementFromPoint(left + 5, top + height / 2));
+        });
+
+        expect(covered).toBe(true);
+    });
+
     test('On a long thread the action bar stays in the window with the status, and Resolve conversation sends Q12', async ({ page, api }) => {
         const review = new FakeReview(api);
         const request = review.seedLines(SMALL_FILE, 9, 12, 'Extract the tax calculation.');
