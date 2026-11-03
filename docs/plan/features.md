@@ -112,7 +112,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F94 | [File tree entries as links](F94-file-tree-links.md) | Done 2026-11-03, [report](reports/F94.md) | dd1eabb3 | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 189 TS / 11434 lines; check 6m26s |
 | F95 | [Markdown editor with Write and Preview](F95-markdown-editor.md) | Done 2026-11-03, [report](reports/F95.md) | 9779a912 | src 512 PHP / 34937 lines, 512 types; tests 348 PHP / 32826 lines; assets 191 TS / 11633 lines |
 | F96 | [Send one draft now](F96-send-one-draft-now.md) | Done 2026-11-03, [report](reports/F96.md) | 74ed2957 | src 512 PHP / 34937 lines, 512 types; tests 348 PHP / 32826 lines; assets 189 TS / 11471 lines |
-| F97 | [Request type: change, question, rule](F97-request-type.md) | Done 2026-11-03, [report](reports/F97.md) | | src 513 PHP / 35049 lines, 513 types; tests 348 PHP / 32913 lines; assets 192 TS / 11700 lines |
+| F97 | [Request type: change, question, rule](F97-request-type.md) | Done 2026-11-03, [report](reports/F97.md) | 3f91f04b | src 513 PHP / 35049 lines, 513 types; tests 348 PHP / 32913 lines; assets 192 TS / 11700 lines |
 | F98 | [Comment groups](F98-comment-groups.md) | Planned | | |
 | F99 | [Source maps for browser reports](F99-source-maps.md) | Done 2026-11-03, [report](reports/F99.md) | 1439303a | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 188 TS / 11342 lines |
 | F100 | [Known issue: the npm and Composer audit gates are red](F100-audit-gates.md) | Done 2026-11-03, [report](reports/F100.md) | 2473b8af | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 189 TS / 11424 lines |
