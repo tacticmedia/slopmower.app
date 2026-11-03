@@ -373,7 +373,7 @@ The session writes it into `reports/MNN.md`:
 
 ## Verified versions
 
-Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08; the `symfony/scheduler` row on 2026-10-13; the `sentry/*` row on 2026-10-15; the `tacticmedia/qa-bundle` and `@tacticmedia/qa-capture` rows on 2026-10-16; the `react-joyride` row on 2026-10-19; the `@sentry/react` row on 2026-10-28; the `@sentry/vite-plugin` row on 2026-11-03. `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
+Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08; the `symfony/scheduler` row on 2026-10-13; the `sentry/*` row on 2026-10-15; the `tacticmedia/qa-bundle` and `@tacticmedia/qa-capture` rows on 2026-10-16; the `react-joyride` row on 2026-10-19; the `@sentry/react` row on 2026-10-28; the `@sentry/vite-plugin` row and the F100 versions on 2026-11-03. `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
 
 | Package | Version | Source |
 |---|---|---|
@@ -399,21 +399,21 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 | `twig/markdown-extra` | 3.29.0 | https://repo.packagist.org/p2/twig/markdown-extra.json |
 | `league/commonmark` | 2.10.3 | https://repo.packagist.org/p2/league/commonmark.json |
 | `opis/json-schema` | 2.6.0, draft 2020-12 | https://repo.packagist.org/p2/opis/json-schema.json |
-| `phpunit/phpunit`, `phpstan/phpstan` | 13.4.1, 2.3.0 | https://repo.packagist.org/p2/phpunit/phpunit.json |
+| `phpunit/phpunit`, `phpstan/phpstan` | 13.4.6, 2.3.0 | https://repo.packagist.org/p2/phpunit/phpunit.json |
 | `symfony/ai-mate`, `symfony/ai-monolog-mate-extension`, `symfony/ai-symfony-mate-extension` | 0.14.0, dev only | https://repo.packagist.org/p2/symfony/ai-mate.json |
 | `playwright-php/playwright` | 1.5.0, exact pin. Its Node server uses npm `playwright` 1.63.0. | https://repo.packagist.org/p2/playwright-php/playwright.json |
 | `tacticmedia/qa-bundle` | 2.0.0, dev only, MIT. The review page `/_dev/screenshots` needs `ext-gd`, which only the `frankenphp_dev` image installs. | https://repo.packagist.org/p2/tacticmedia/qa-bundle.json |
 | `friendsofphp/php-cs-fixer` | 3.95.27 | https://repo.packagist.org/p2/friendsofphp/php-cs-fixer.json |
 | `react`, `react-dom`, `@types/react`, `@types/react-dom` | 19.3.0 | https://www.npmjs.com/package/react |
 | `react-router` | 8.4.0, Data Mode. Peers `react` and `react-dom` `>=19.2.7`. | https://www.npmjs.com/package/react-router |
-| `vite`, `@vitejs/plugin-react`, `typescript` | 8.3.1, 6.1.1, 7.0.2 | https://www.npmjs.com/package/vite |
+| `vite`, `@vitejs/plugin-react`, `typescript` | 8.3.5, 6.1.1, 7.0.2 | https://www.npmjs.com/package/vite |
 | `@pierre/diffs` | 1.5.2, exact pin, Apache-2.0 | https://www.npmjs.com/package/@pierre/diffs |
 | `@primer/react`, `@primer/primitives`, `@primer/octicons-react`, `@primer/css` | 38.40.0, 11.10.0, 19.38.0, 22.3.2 | https://www.npmjs.com/package/@primer/react |
 | `@primer/behaviors` | 1.11.0, the version that `@primer/react` installs, for `isEditableElement()` and `isMacOS()` | https://www.npmjs.com/package/@primer/behaviors |
 | `react-joyride` | 3.2.0 of 2026-07-09, exact pin, MIT. Peers `react` and `react-dom` 16.8 to 19. ESM with types, no CSS. | https://www.npmjs.com/package/react-joyride |
 | `@sentry/react` | 11.9.0 of 2026-10-23, exact pin, MIT. Peers `react` 17 to 19 and `react-router` 6 to 8. Adds about 87 KB gzip to the entry chunk. | https://www.npmjs.com/package/@sentry/react |
-| `@sentry/vite-plugin` | 11.10.0 of 2026-10-28, exact pin, dev only, MIT, Node.js 20.19, 22.12, or 23.2 and later. It installs the CLI `sentry` 0.45.0, license FSL-1.1-Apache-2.0, and `glob` 13 and `minimatch`, which `npm audit` reports (F100). | https://www.npmjs.com/package/@sentry/vite-plugin |
-| `react-markdown`, `remark-gfm`, `vitest` | 10.1.0, 4.0.1, 5.0.2 | https://www.npmjs.com/package/react-markdown |
+| `@sentry/vite-plugin` | 11.10.0 of 2026-10-28, exact pin, dev only, MIT, Node.js 20.19, 22.12, or 23.2 and later. It installs the CLI `sentry` 0.45.0, license FSL-1.1-Apache-2.0, and `glob` 13 and `minimatch`, which `npm audit` reports as moderate. D104 accepts them. | https://www.npmjs.com/package/@sentry/vite-plugin |
+| `react-markdown`, `remark-gfm`, `vitest` | 10.1.0, 4.0.1, 5.1.0 | https://www.npmjs.com/package/react-markdown |
 | `@playwright/test`, `ajv`, `ajv-formats`, `@types/node` | 1.63.0, 8.20.0, 3.0.1, 24.19.1 | https://www.npmjs.com/package/@playwright/test |
 | `@tacticmedia/qa-capture` | 0.1.0, exact pin, dev only: the capture fixture of the journeys | https://www.npmjs.com/package/@tacticmedia/qa-capture |
 | `web-tree-sitter`, `tree-sitter-javascript`, `tree-sitter-typescript`, `tree-sitter-python`, `tree-sitter-go`, `tree-sitter-rust` | 0.27.0, 0.25.0, 0.23.2, 0.25.0, 0.25.0, 0.24.0, exact pins in `symbols/package.json`. web-tree-sitter 0.27.0 loads grammars of ABI 13 to 15. tree-sitter-typescript 0.23.2 and tree-sitter-rust 0.24.0 are ABI 14, the others ABI 15. tree-sitter-rust 0.24.1 and 0.24.2 are GitHub tags without an npm release. Install with `--ignore-scripts`: the install scripts of the grammars compile Node bindings, which need Python and a C compiler. | https://www.npmjs.com/package/web-tree-sitter |

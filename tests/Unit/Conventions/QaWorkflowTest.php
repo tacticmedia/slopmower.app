@@ -20,7 +20,7 @@ final class QaWorkflowTest extends KernelTestCase
         self::assertNotSame([], $gateCommands);
         self::assertSame([], array_values(array_filter(
             $gateCommands,
-            static fn (string $command): bool => 1 !== preg_match('/^(make [a-z0-9-]+( c="[^"]+")?|npm audit( --prefix symbols)?)$/', $command),
+            static fn (string $command): bool => 1 !== preg_match('/^(make [a-z0-9-]+( c="[^"]+")?|npm audit( --prefix symbols| --omit=dev --audit-level=moderate| --audit-level=high))$/', $command),
         )));
     }
 

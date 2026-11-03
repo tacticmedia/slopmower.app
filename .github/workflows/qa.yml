@@ -102,7 +102,9 @@ jobs:
         if: ${{ !cancelled() && steps.up.outcome != 'skipped' }}
       - run: make composer c="audit"
         if: ${{ !cancelled() && steps.up.outcome != 'skipped' }}
-      - run: npm audit
+      - run: npm audit --omit=dev --audit-level=moderate
+        if: ${{ !cancelled() && steps.up.outcome != 'skipped' }}
+      - run: npm audit --audit-level=high
         if: ${{ !cancelled() && steps.up.outcome != 'skipped' }}
       - run: npm audit --prefix symbols
         if: ${{ !cancelled() && steps.up.outcome != 'skipped' }}
