@@ -116,8 +116,8 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F98 | [Comment groups](F98-comment-groups.md) | Planned | | |
 | F99 | [Source maps for browser reports](F99-source-maps.md) | Done 2026-11-03, [report](reports/F99.md) | 1439303a | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 188 TS / 11342 lines |
 | F100 | [Known issue: the npm and Composer audit gates are red](F100-audit-gates.md) | Done 2026-11-03, [report](reports/F100.md) | 2473b8af | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 189 TS / 11424 lines |
-| F101 | [Network errors in browser reports](F101-network-errors.md) | In progress | | |
-| F102 | [Retry on the error screen](F102-retry-on-the-error-screen.md) | In progress | | |
+| F101 | [Network errors in browser reports](F101-network-errors.md) | Done 2026-11-03, [report](reports/F101.md) | 5986b58e | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 189 TS / 11446 lines |
+| F102 | [Retry on the error screen](F102-retry-on-the-error-screen.md) | Done 2026-11-03, [report](reports/F102.md) | 1049b069 | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 189 TS / 11454 lines |
 
 ## Candidates
 
