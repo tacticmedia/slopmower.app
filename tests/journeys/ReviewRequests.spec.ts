@@ -89,7 +89,7 @@ test.describe('ReviewRequests', () => {
         await captureScreen('No request matches the filters', page.locator('[data-testid="request-list-empty"]'));
 
         const [first] = review.requests;
-        review.seedDraft({ kind: 'new_request', anchor: { kind: 'range', path: SYMBOL_FILE, range: { startLine: 11, endLine: 17 } }, body: 'Document the rounding mode.' });
+        review.seedDraft({ kind: 'new_request', anchor: { kind: 'range', path: SYMBOL_FILE, range: { startLine: 11, endLine: 17 } }, body: 'Document the rounding mode.', group: 'Rounding' });
         review.seedDraft({ kind: 'reply', requestId: first?.id ?? '', body: 'Yes, keep it.' });
         review.seedDraft({ kind: 'new_request', anchor: null, title: 'Dark mode screenshot', body: 'Add a dark mode screenshot to the README.' });
         await page.goto(`/reviews/${review.id}/requests`);

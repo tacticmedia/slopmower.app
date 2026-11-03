@@ -3,7 +3,7 @@
   "$id": "https://slopmower.invalid/schemas/v1/request-summary.schema.json",
   "title": "RequestSummary",
   "type": "object",
-  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "title", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq", "carriedFrom", "requireApproval", "type", "suggestion", "proposal"],
+  "required": ["id", "reviewId", "repositoryId", "status", "awaiting", "resolution", "closed", "anchor", "title", "summary", "author", "claimedBy", "claimedAt", "commentCount", "commitCount", "pendingCommitCount", "outdated", "createdAt", "updatedAt", "lastEventSeq", "carriedFrom", "requireApproval", "type", "group", "suggestion", "proposal"],
   "properties": {
     "id": {
       "$ref": "common.schema.json#/$defs/Ulid"
@@ -128,6 +128,17 @@
     },
     "type": {
       "$ref": "common.schema.json#/$defs/RequestType"
+    },
+    "group": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Group"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Requests with the same group are one unit of feedback. Set when the request opens; it does not change after that. Null without a group."
     },
     "suggestion": {
       "anyOf": [

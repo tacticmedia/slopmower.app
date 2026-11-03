@@ -1,9 +1,11 @@
 import { Button, Checkbox, FormControl, Select, TextInput } from '@primer/react';
 import { InlineMessage } from '@primer/react/experimental';
-import { type FormEvent, type KeyboardEvent, type Ref, useEffect, useId, useImperativeHandle, useRef, useState } from 'react';
+import { type FormEvent, type KeyboardEvent, type Ref, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { useRouteLoaderData } from 'react-router';
 import { REQUEST_TYPES, type RequestType } from '../api/types/common';
 import { isPressed, type ModShortcut } from '../layout/modShortcut';
 import { REQUEST_TYPE_NAMES } from '../requests/RequestTypeLabel';
+import type { ReviewData } from '../routes/reviews/reviewData';
 import styles from './CommentBox.module.css';
 import { MarkdownEditor } from './MarkdownEditor';
 import { useUnsavedComment } from './UnsavedCommentGuard';
@@ -15,8 +17,10 @@ const SUBMIT_SHORTCUT: ModShortcut = { key: 'Enter', shift: false };
 
 export const TITLE_MAX_CHARACTERS = 200;
 
-/** `title` is absent without a title field or when the field is blank, so Q2, D2, and D3 get no `title` key. */
-export type CommentText = { title?: string; body: string; requireApproval: boolean; type: RequestType };
+const GROUP_MAX_CHARACTERS = 80;
+
+/** `title` and `group` are absent without their field or when it is blank, so Q2, D2, and D3 get no such key. */
+export type CommentText = { title?: string; body: string; requireApproval: boolean; type: RequestType; group?: string };
 
 export type CommentBoxHandle = {
     /** Appends the text as a Markdown quote and focuses the field. */
@@ -34,9 +38,10 @@ type Props = {
      * plan first" checkbox, false without it and for a question. `type` is the "Type" select, change without it.
      */
     onSubmit(text: CommentText): boolean;
-    /** Shows the "Type" select and the "Ask for a plan first" checkbox of a new request, with this initial state. */
+    /** Shows the "Type" select, the "Group" field, and the "Ask for a plan first" checkbox of a new request, with this initial state. */
     askForPlan?: boolean;
     initialType?: RequestType;
+    initialGroup?: string;
     /** The box opens a request: a "Title" field and a "Description" text field. */
     titled?: boolean;
     onCancel?: () => void;
@@ -61,6 +66,7 @@ export function CommentBox({
     onSubmit,
     askForPlan,
     initialType = 'change',
+    initialGroup = '',
     titled = false,
     onCancel,
     initialTitle = '',
@@ -75,18 +81,24 @@ export function CommentBox({
     const [body, setBody] = useState(initialBody);
     const [requireApproval, setRequireApproval] = useState(askForPlan ?? false);
     const [type, setType] = useState(initialType);
+    const [group, setGroup] = useState(initialGroup);
     const [sent, setSent] = useState(false);
     const [preview, setPreview] = useState(false);
     const textarea = useRef<HTMLTextAreaElement>(null);
     const editorId = useId();
     const typeId = useId();
-    useUnsavedComment(!sent && (initialTextSaved ? title !== initialTitle || body !== initialBody : '' !== title.trim() || '' !== body.trim()));
+    const groupId = useId();
+    const groups = useDraftGroups();
+    useUnsavedComment(
+        !sent && (initialTextSaved ? title !== initialTitle || body !== initialBody || type !== initialType || group !== initialGroup : '' !== title.trim() || '' !== body.trim()),
+    );
 
     if (sent && !busy) {
         setSent(false);
         if (null === error) {
             setTitle('');
             setBody('');
+            setGroup('');
             setPreview(false);
         }
     }
@@ -112,7 +124,9 @@ export function CommentBox({
 
     const send = (): void => {
         const givenTitle = title.trim();
-        if ('' !== body.trim() && !busy && onSubmit({ ...('' === givenTitle ? {} : { title: givenTitle }), body, requireApproval: 'question' !== type && requireApproval, type })) {
+        const givenGroup = group.trim();
+        const text = { ...('' === givenTitle ? {} : { title: givenTitle }), body, requireApproval: 'question' !== type && requireApproval, type, ...('' === givenGroup ? {} : { group: givenGroup }) };
+        if ('' !== body.trim() && !busy && onSubmit(text)) {
             setSent(true);
         }
     };
@@ -182,8 +196,8 @@ export function CommentBox({
             <div className={styles.actions}>
                 {undefined !== askForPlan && (
                     <div className={styles.requestOptions}>
-                        <span className={styles.type}>
-                            <label htmlFor={typeId} className={styles.typeLabel}>
+                        <span className={styles.option}>
+                            <label htmlFor={typeId} className={styles.optionLabel}>
                                 Type
                             </label>
                             <Select id={typeId} value={type} onChange={(event) => setType(event.target.value)} disabled={busy}>
@@ -193,6 +207,25 @@ export function CommentBox({
                                     </Select.Option>
                                 ))}
                             </Select>
+                        </span>
+                        <span className={styles.option}>
+                            <label htmlFor={groupId} className={styles.optionLabel}>
+                                Group
+                            </label>
+                            <TextInput
+                                id={groupId}
+                                value={group}
+                                onChange={(event) => setGroup(event.target.value)}
+                                list={`${groupId}-labels`}
+                                maxLength={GROUP_MAX_CHARACTERS}
+                                placeholder="Optional"
+                                readOnly={busy}
+                            />
+                            <datalist id={`${groupId}-labels`}>
+                                {groups.map((label) => (
+                                    <option key={label} value={label} />
+                                ))}
+                            </datalist>
                         </span>
                         {'question' !== type && (
                             <FormControl disabled={busy}>
@@ -213,6 +246,13 @@ export function CommentBox({
             </div>
         </form>
     );
+}
+
+/** The group labels of the caller's drafts in this review, so that a typo does not split a group. */
+function useDraftGroups(): string[] {
+    const drafts = useRouteLoaderData<ReviewData>('review')?.drafts;
+
+    return useMemo(() => [...new Set((drafts ?? []).flatMap(({ group }) => (null === group ? [] : [group])))].sort((a, b) => a.localeCompare(b)), [drafts]);
 }
 
 function quoted(text: string): string {

@@ -62,13 +62,17 @@ class Draft implements TenantOwned
     #[ORM\Column(enumType: RequestType::class, options: ['default' => 'change'])]
     private RequestType $type;
 
+    /** Always null for a reply. `group` is an SQL keyword. */
+    #[ORM\Column(name: 'group_label', length: 80, nullable: true)]
+    private ?string $group;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
-    private function __construct(User $user, Review $review, ?Anchor $anchor, ?ChangeRequest $request, ?string $title, string $body, bool $requireApproval, RequestType $type, \DateTimeImmutable $now)
+    private function __construct(User $user, Review $review, ?Anchor $anchor, ?ChangeRequest $request, ?string $title, string $body, bool $requireApproval, RequestType $type, ?string $group, \DateTimeImmutable $now)
     {
         if (!$review->getTenantId()->equals($user->getTenantId())) {
             throw new \LogicException('The review belongs to another tenant.');
@@ -85,6 +89,7 @@ class Draft implements TenantOwned
         $this->body = $body;
         $this->requireApproval = $requireApproval;
         $this->type = $type;
+        $this->group = self::trimmed($group);
         $this->createdAt = self::storedTime($now);
         $this->updatedAt = $this->createdAt;
     }
@@ -92,26 +97,27 @@ class Draft implements TenantOwned
     /**
      * @param Anchor|null $anchor Captured at the review commit. Null for a general request.
      * @param string|null $title  Stored trimmed
+     * @param string|null $group  Stored trimmed
      */
-    public static function newRequest(User $user, Review $review, ?Anchor $anchor, ?string $title, string $body, bool $requireApproval, RequestType $type, \DateTimeImmutable $now): self
+    public static function newRequest(User $user, Review $review, ?Anchor $anchor, ?string $title, string $body, bool $requireApproval, RequestType $type, ?string $group, \DateTimeImmutable $now): self
     {
-        return new self($user, $review, $anchor, null, $title, $body, $requireApproval, $type, $now);
+        return new self($user, $review, $anchor, null, $title, $body, $requireApproval, $type, $group, $now);
     }
 
     public static function reply(User $user, ChangeRequest $request, string $body, \DateTimeImmutable $now): self
     {
-        return new self($user, $request->getReview(), null, $request, null, $body, false, RequestType::Change, $now);
+        return new self($user, $request->getReview(), null, $request, null, $body, false, RequestType::Change, null, $now);
     }
 
     /**
-     * Replaces the title and the body together, so a null title removes the title.
+     * Replaces the title, the body, and the group together, so a null title or group removes it.
      *
      * @param bool|null        $requireApproval Null keeps the value
      * @param RequestType|null $type            Null keeps the value
      *
-     * @throws InvalidInput For a reply that gets a title, a requireApproval, or a type
+     * @throws InvalidInput For a reply that gets a title, a requireApproval, a type, or a group
      */
-    public function edit(?string $title, string $body, ?bool $requireApproval, ?RequestType $type, \DateTimeImmutable $now): void
+    public function edit(?string $title, string $body, ?bool $requireApproval, ?RequestType $type, ?string $group, \DateTimeImmutable $now): void
     {
         if (null !== $title && DraftKind::Reply === $this->kind) {
             throw InvalidInput::field('title', 'Only a new request has a title.');
@@ -125,10 +131,15 @@ class Draft implements TenantOwned
             throw InvalidInput::field('type', 'Only a new request has a type.');
         }
 
+        if (null !== $group && DraftKind::Reply === $this->kind) {
+            throw InvalidInput::field('group', 'Only a new request has a group.');
+        }
+
         $this->title = self::trimmed($title);
         $this->body = $body;
         $this->requireApproval = $requireApproval ?? $this->requireApproval;
         $this->type = $type ?? $this->type;
+        $this->group = self::trimmed($group);
         $this->updatedAt = self::storedTime($now);
     }
 
@@ -193,6 +204,11 @@ class Draft implements TenantOwned
         return $this->type;
     }
 
+    public function getGroup(): ?string
+    {
+        return $this->group;
+    }
+
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
@@ -203,9 +219,9 @@ class Draft implements TenantOwned
         return $this->updatedAt;
     }
 
-    private static function trimmed(?string $title): ?string
+    private static function trimmed(?string $text): ?string
     {
-        return null === $title ? null : trim($title);
+        return null === $text ? null : trim($text);
     }
 
     /**

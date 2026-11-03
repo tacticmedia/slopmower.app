@@ -65,6 +65,7 @@ export type Request = {
     carriedFrom: CarriedFrom | null;
     requireApproval: boolean;
     type: RequestType;
+    group: string | null;
     suggestion: SuggestionState | null;
     proposal: Proposal | null;
     body: Markdown;

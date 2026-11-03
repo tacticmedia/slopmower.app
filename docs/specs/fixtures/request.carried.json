@@ -49,6 +49,7 @@
   },
   "requireApproval": false,
   "type": "change",
+  "group": null,
   "suggestion": null,
   "proposal": null,
   "body": "Extract the tax rounding into `TaxRounding`.",

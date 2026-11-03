@@ -22,6 +22,8 @@ export type DraftView = {
     requireApproval: boolean | null;
     /** Change for a reply. */
     type: RequestType;
+    /** Null for a reply and a new request without a group. */
+    group: string | null;
 };
 
 /**
@@ -34,7 +36,7 @@ export function fileDraftViews(drafts: readonly Draft[], path: string): DraftVie
         if ('new_request' === draft.kind && draft.anchor?.path === path) {
             const { range: anchorRange } = draft.anchor;
             const range = null === anchorRange ? null : { start: anchorRange.startLine, end: anchorRange.endLine };
-            views.push({ key: draft.id, draftId: draft.id, range, label: linesText(range), href: null, title: draft.title, body: draft.body, requireApproval: draft.requireApproval, type: draft.type });
+            views.push({ key: draft.id, draftId: draft.id, range, label: linesText(range), href: null, title: draft.title, body: draft.body, requireApproval: draft.requireApproval, type: draft.type, group: draft.group });
         }
     }
 
@@ -43,8 +45,8 @@ export function fileDraftViews(drafts: readonly Draft[], path: string): DraftVie
 
 let pendingCount = 0;
 
-export function pendingDraft(range: LineRange | null, { title, body, requireApproval, type }: CommentText): DraftView {
+export function pendingDraft(range: LineRange | null, { title, body, requireApproval, type, group }: CommentText): DraftView {
     pendingCount += 1;
 
-    return { key: `pending-draft-${pendingCount}`, draftId: null, range, label: linesText(range), href: null, title: title ?? null, body, requireApproval, type };
+    return { key: `pending-draft-${pendingCount}`, draftId: null, range, label: linesText(range), href: null, title: title ?? null, body, requireApproval, type, group: group ?? null };
 }

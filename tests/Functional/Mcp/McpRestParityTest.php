@@ -166,6 +166,21 @@ final class McpRestParityTest extends WebTestCase
         self::assertSame(1, $mcp['total']);
     }
 
+    #[TestDox('list_requests with group equals the REST body of Q1 with the same filter, and lists only that group')]
+    public function testListRequestsWithGroupEqualsQ1(): void
+    {
+        $grouped = array_map(fn (string $body): string => (string) self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/requests", ['body' => $body, 'group' => 'Money']), 201, 'request.schema.json')['id'], ['Use Money in total().', 'Use Money in tax().']);
+        self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/requests", ['body' => 'Rename the class.', 'group' => 'Money later']), 201, 'request.schema.json');
+        $rest = self::assertApiResponse(self::bearerRequest($this->client, $this->secret, 'GET', "/api/v1/reviews/{$this->reviewId}/requests?group=Money"), 200, 'lists.schema.json#/$defs/RequestPage');
+
+        $mcp = self::assertToolResult($this->mcp, $this->mcp->callTool('list_requests', ['review' => $this->reviewId, 'group' => 'Money']), 'list_requests');
+
+        self::assertSame($rest, $mcp);
+        self::assertIsArray($mcp['items']);
+        self::assertSame($grouped, array_column($mcp['items'], 'id'));
+        self::assertSame(2, $mcp['total']);
+    }
+
     #[TestDox('start_review equals the REST body of V1, for the repository that R1 finds by name')]
     public function testStartReviewEqualsV1(): void
     {

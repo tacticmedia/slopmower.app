@@ -142,6 +142,17 @@
           ],
           "default": "change",
           "description": "Absent or null: change. It does not change after the request opens. An unknown value answers 422."
+        },
+        "group": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Group"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Absent or null: no group. It does not change after the request opens."
         }
       }
     },
@@ -422,6 +433,17 @@
           ],
           "default": "change",
           "description": "new_request only. Absent or null: change. An unknown value answers 422."
+        },
+        "group": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Group"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "new_request only. Absent or null: no group."
         }
       },
       "allOf": [
@@ -466,6 +488,9 @@
               },
               "type": {
                 "type": "null"
+              },
+              "group": {
+                "type": "null"
               }
             }
           }
@@ -504,6 +529,17 @@
             }
           ],
           "description": "new_request drafts only; a reply draft answers 422. Absent or null keeps the value. An unknown value answers 422."
+        },
+        "group": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Group"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Replaces the group: absent or null removes it. A group on a reply draft answers 422."
         }
       }
     },

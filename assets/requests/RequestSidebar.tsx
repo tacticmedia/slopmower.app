@@ -7,6 +7,7 @@ import { HelpLink } from '../layout/HelpLink';
 import { HELP } from '../layout/helpLinks';
 import { AnchorLink } from './AnchorLink';
 import { ClaimedBy } from './ClaimedBy';
+import { GroupLink } from './GroupLink';
 import { LocationInfo } from './LocationInfo';
 import { OutdatedLabel } from './OutdatedLabel';
 import { PullRequestStateLabel } from './PullRequestStateLabel';
@@ -28,6 +29,11 @@ export function RequestSidebar({ request, className }: { request: ReviewRequest;
                 {'in_progress' === request.status ? <ClaimedBy claimedBy={request.claimedBy} claimedAt={request.claimedAt} /> : <span className={shared.muted}>No one</span>}
             </Section>
             <PlanSection request={request} />
+            {null !== request.group && (
+                <Section title="Group">
+                    <GroupLink reviewId={request.reviewId} group={request.group} />
+                </Section>
+            )}
             <Section title="Location">
                 <AnchorLink reviewId={request.reviewId} anchor={anchor} />
                 {null !== anchor && null !== anchor.symbol && (

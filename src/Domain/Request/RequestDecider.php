@@ -94,7 +94,7 @@ final class RequestDecider
         }
 
         if ($command instanceof Open) {
-            $opened = new RequestOpenedEvent($command->anchor, $command->body, $command->batchId, $command->carriedFrom, $command->requireApproval, self::trimmed($command->title), $command->type);
+            $opened = new RequestOpenedEvent($command->anchor, $command->body, $command->batchId, $command->carriedFrom, $command->requireApproval, self::trimmed($command->title), $command->type, self::trimmed($command->group));
 
             return [new DecidedEvent($opened, RequestId::generate())];
         }

@@ -24,7 +24,7 @@ suggest changes instead, as section 6 describes. All calls go to the
 | `list_repositories` | `cursor?`, `limit?` | See the repositories that the token can see, with `id`, `source`, and `name` |
 | `list_reviews` | `repository`, `includeClosed?`, `cursor?`, `limit?` | Find the open reviews of the repository |
 | `start_review` | `repository`, `ref?`, `title?` | Start a review for a code review, when the user named none |
-| `list_requests` | `review`, `status?`, `awaiting?`, `path?`, `outdated?`, `suggestion?`, `cursor?`, `limit?` | List request summaries of one review |
+| `list_requests` | `review`, `status?`, `awaiting?`, `path?`, `outdated?`, `suggestion?`, `group?`, `cursor?`, `limit?` | List request summaries of one review |
 | `get_updates` | `review`, `cursor?`, `limit?` | See what waits for you, and what changed since `cursor` |
 | `get_request` | `id`, `at?`, `context?` | Read one request in full |
 | `claim_request` | `id` | Take a request before you edit code |
@@ -83,8 +83,8 @@ page by page.
 Handle every request whose `awaiting` is `agent`. Do `reopened` requests first,
 and read their whole thread, because the user rejected an earlier result.
 
-1. Call `get_request` with `id`. Read `title`, `type`, `body`, `thread`,
-   `anchor`, `location`, `delivery`, and `allowedActions`.
+1. Call `get_request` with `id`. Read `title`, `type`, `group`, `body`,
+   `thread`, `anchor`, `location`, `delivery`, and `allowedActions`.
    - `type` says what the user asks for:
      - `change`: a code change. Do the steps below.
      - `question`: an answer. Claim the request, answer with
@@ -97,6 +97,11 @@ and read their whole thread, because the user rejected an earlier result.
        the file when it is missing. In the same commit, add `@AGENTS.md` to
        `CLAUDE.md` when `CLAUDE.md` exists and does not import `AGENTS.md`, and
        fix the anchored code when it breaks the rule.
+   - `group` is null or a label. Requests with the same `group` are one unit
+     of feedback. Call `list_requests` with `review` and `group` to read them
+     all. Claim each, make one change in one commit, link the commit to every
+     request of the group, and call `mark_ready_for_review` on each with the
+     same note. When `requireApproval` is true, propose the same plan on each.
    - A request with `title` null has no title. Before you claim it, call
      `set_request_title` with one line of at most 80 characters that
      summarizes its body.

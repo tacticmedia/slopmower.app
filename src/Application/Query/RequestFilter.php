@@ -25,6 +25,7 @@ final readonly class RequestFilter
         public ?bool $outdated = null,
         public ?SuggestionState $suggestion = null,
         public RequestSort $sort = RequestSort::Created,
+        public ?string $group = null,
     ) {
     }
 
@@ -41,6 +42,7 @@ final readonly class RequestFilter
             'path' => $this->pathPrefix,
             'outdated' => $this->outdated,
             'suggestion' => $this->suggestion?->value,
+            'group' => $this->group,
             'sort' => $this->sort->value,
         ];
     }

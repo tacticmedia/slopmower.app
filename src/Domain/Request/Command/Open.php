@@ -22,6 +22,7 @@ final readonly class Open implements RequestCommand
         public bool $requireApproval = false,
         public ?string $title = null,
         public RequestType $type = RequestType::Change,
+        public ?string $group = null,
     ) {
     }
 

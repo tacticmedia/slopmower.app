@@ -54,6 +54,7 @@ final readonly class RequestState
         public ?SuggestionState $suggestion = null,
         public ?string $title = null,
         public RequestType $type = RequestType::Change,
+        public ?string $group = null,
     ) {
         $this->assertConsistent();
     }
@@ -80,6 +81,7 @@ final readonly class RequestState
             'anchor' => null === $this->anchor ? null : AnchorCodec::encode($this->anchor),
             'title' => $this->title,
             'type' => $this->type->value,
+            'group' => $this->group,
             'body' => $this->body,
             'author' => self::actorPayload($this->author),
             'createdAt' => TimeCodec::encode($this->createdAt),
@@ -145,6 +147,7 @@ final readonly class RequestState
             suggestion: $reader->nullableEnum('suggestion', SuggestionState::class),
             title: $reader->nullableString('title'),
             type: $reader->nullableEnum('type', RequestType::class) ?? RequestType::Change,
+            group: $reader->nullableString('group'),
         );
     }
 

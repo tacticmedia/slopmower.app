@@ -37,6 +37,7 @@
     "carriedFrom": null,
     "requireApproval": false,
     "type": "change",
+    "group": null,
     "suggestion": "pending",
     "proposal": null
   },

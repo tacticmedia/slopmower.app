@@ -19,7 +19,7 @@ import styles from './RequestList.module.css';
  */
 function pendingDraftViews(reviewId: string, drafts: readonly Draft[], { items, hiddenReplySummaries }: RequestListData): DraftView[] {
     return drafts.map((draft) => {
-        const view = { key: draft.id, draftId: draft.id, title: draft.title, body: draft.body, requireApproval: 'reply' === draft.kind ? null : draft.requireApproval, type: draft.type };
+        const view = { key: draft.id, draftId: draft.id, title: draft.title, body: draft.body, requireApproval: 'reply' === draft.kind ? null : draft.requireApproval, type: draft.type, group: draft.group };
 
         if ('reply' === draft.kind) {
             const summary = items.find(({ id }) => id === draft.requestId)?.summary ?? hiddenReplySummaries[draft.requestId];

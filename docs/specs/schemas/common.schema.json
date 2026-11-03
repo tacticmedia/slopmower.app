@@ -62,6 +62,16 @@
       },
       "description": "The title of a request: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length."
     },
+    "Group": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "pattern": "\\S",
+      "not": {
+        "pattern": "[\\r\\n]"
+      },
+      "description": "The group label of a request: one line without CR or LF, with at least one non-whitespace character. Requests with the same group are one unit of feedback. The server trims it, then checks the length."
+    },
     "UnifiedDiff": {
       "type": "string",
       "minLength": 1,

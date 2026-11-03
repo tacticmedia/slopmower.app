@@ -67,6 +67,7 @@ final class RequestSummaryNormalizer implements NormalizerInterface, NormalizerA
             'carriedFrom' => null === $state->carriedFrom ? null : ['reviewId' => $state->carriedFrom->reviewId, 'requestId' => $state->carriedFrom->requestId],
             'requireApproval' => $state->requireApproval,
             'type' => $state->type,
+            'group' => $state->group,
             'suggestion' => $state->suggestion,
             'proposal' => null === $state->proposal ? null : ['eventId' => $state->proposal->eventId, 'state' => $state->proposal->state],
         ], $format, $context);

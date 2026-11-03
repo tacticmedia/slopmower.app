@@ -32,6 +32,8 @@ export type OpenRequestInput = {
     requireApproval?: boolean | null;
     /** Default change. */
     type?: RequestType | null;
+    /** Absent or null: no group. */
+    group?: string | null;
 };
 
 export type SuggestRequestInput = {
@@ -116,8 +118,8 @@ export type UnlinkPullRequestInput = {
 };
 
 export type CreateDraftInput =
-    | { kind: 'new_request'; anchor?: AnchorInput | null; requestId?: null; title?: string | null; body: Markdown; requireApproval?: boolean | null; type?: RequestType | null }
-    | { kind: 'reply'; anchor?: null; requestId: Ulid; title?: null; body: Markdown; requireApproval?: null; type?: null };
+    | { kind: 'new_request'; anchor?: AnchorInput | null; requestId?: null; title?: string | null; body: Markdown; requireApproval?: boolean | null; type?: RequestType | null; group?: string | null }
+    | { kind: 'reply'; anchor?: null; requestId: Ulid; title?: null; body: Markdown; requireApproval?: null; type?: null; group?: null };
 
 export type UpdateDraftInput = {
     /** Replaced with `body`: absent or null removes it. new_request drafts only. */
@@ -127,6 +129,8 @@ export type UpdateDraftInput = {
     requireApproval?: boolean | null;
     /** new_request drafts only. Absent or null keeps the value. */
     type?: RequestType | null;
+    /** Replaced with `body`: absent or null removes it. new_request drafts only. */
+    group?: string | null;
 };
 
 /** A missing key is null. */

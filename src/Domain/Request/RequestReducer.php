@@ -162,6 +162,7 @@ final class RequestReducer
             suggestion: ActorKind::Agent === $recorded->actor->kind ? SuggestionState::Pending : null,
             title: $event->title,
             type: $event->type,
+            group: $event->group,
         )->with(self::tracking($recorded));
     }
 

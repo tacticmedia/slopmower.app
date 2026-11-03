@@ -8,8 +8,8 @@ use App\Domain\Request\RequestType;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * inputs.schema.json#/$defs/UpdateDraftInput. The anchor cannot change. The draft refuses title, requireApproval, and type
- * on a reply.
+ * inputs.schema.json#/$defs/UpdateDraftInput. The anchor cannot change. The draft refuses title, requireApproval, type,
+ * and group on a reply.
  */
 final readonly class UpdateDraftInput
 {
@@ -21,6 +21,8 @@ final readonly class UpdateDraftInput
         public ?string $body = null,
         public ?bool $requireApproval = null,
         public ?RequestType $type = null,
+        #[RequestGroup]
+        public ?string $group = null,
     ) {
     }
 }

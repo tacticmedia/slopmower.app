@@ -25,6 +25,8 @@ final readonly class OpenRequestInput
         public ?string $body = null,
         public ?bool $requireApproval = null,
         public ?RequestType $type = null,
+        #[RequestGroup]
+        public ?string $group = null,
     ) {
     }
 }

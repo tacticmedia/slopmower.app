@@ -6,11 +6,12 @@ A comment on the code opens a change request, and so does a general request. You
 
 ## Follow the requests
 
-Open **Requests** to see the requests of the review. Each row shows the status icon and the title, the labels **Question**, **Rule**, **Waiting for you**, **Plan to approve**, **Suggestion**, and **Outdated** when they apply, and a muted line with the location, the author, and the agent that works on it. At the right, a row shows its comments, its linked commits, and when it changed last.
+Open **Requests** to see the requests of the review. Each row shows the status icon and the title, the labels **Question**, **Rule**, **Waiting for you**, **Plan to approve**, **Suggestion**, and **Outdated** when they apply, and a muted line with the location, the group, the author, and the agent that works on it. At the right, a row shows its comments, its linked commits, and when it changed last.
 
 - **Open** lists the requests that wait for you or for the agent. It is the default. **Closed** lists the verified requests and the requests that you closed as won't do. The two counts are the totals of the review.
 - **Status** shows one status only. **Filters** has **Outdated** and **Suggestions**, the suggestions of the agent that wait for your decision. **Sort** orders the list by the last change (the default), by age, oldest first, or by path.
 - Type a path prefix and click **Filter** to show only the requests on files below it.
+- Click the group of a request to show only the requests of that group. **Group:** with its label shows the filter; click it to remove the filter.
 
 The address of the page keeps the filters, so a reload or a bookmark shows the same list. When no request matches, **Clear the filters** shows the open requests again. A review without any request says **No requests yet.**
 
@@ -41,6 +42,7 @@ The sidebar is at the right of the conversation. On a narrow screen, it is above
 |---|---|
 | Assignee | The agent that works on the request, and for how long. Else **No one**. |
 | Plan | The state of the plan, and **Ask for a plan first** or **Don't ask for a plan**. See [Ask for a plan first](#ask-for-a-plan-first). |
+| Group | The group of the request, as a link to the requests of the group. Only a request with a group shows it. |
 | Location | The lines, the file, or the symbol, or **General**, whether the code is still the same on the default branch, and **Outdated**. |
 | Development | The linked pull requests and the number of linked commits. See [Pull requests](pull-requests.md). |
 | Suggested by | The agent that suggested the request. |
@@ -90,6 +92,12 @@ The type of a request says what you ask for. You choose it in the comment box, a
 | Rule | Adds the rule in your words as one bullet under `## Rules from Slopmower` in `AGENTS.md` at the root of the repository, and follows it from then on. When `CLAUDE.md` does not import `AGENTS.md`, the agent adds `@AGENTS.md` to it. When the commented code breaks the rule, the agent fixes it in the same commit. |
 
 Slopmower does not store the rules. They are in your repository, so you edit or remove them like any other file.
+
+## Comment groups
+
+Requests with the same group label are one unit of feedback, for example the same change on several lines. You set the group in the comment box, and you can change it while the request is a draft. After you submit, the group stays.
+
+The agent reads all requests of the group, makes one change in one commit, links the commit to each request, and marks each ready for review with the same note. With **Ask for a plan first**, it proposes the same plan on each. Each request keeps its own lines, conversation, and status, so you verify or reopen each one.
 
 ## Agent suggestions
 

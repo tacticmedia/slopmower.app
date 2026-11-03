@@ -72,6 +72,7 @@ export function DraftBox({ draft, editable }: Props) {
                     Pending
                 </Label>
                 <RequestTypeLabel type={draft.type} />
+                {null !== draft.group && <Label data-testid="draft-group">Group: {draft.group}</Label>}
                 {null === draft.href ? (
                     <span className={styles.lines}>{draft.label}</span>
                 ) : (
@@ -104,6 +105,7 @@ export function DraftBox({ draft, editable }: Props) {
                         onSubmit={save}
                         askForPlan={draft.requireApproval ?? undefined}
                         initialType={draft.type}
+                        initialGroup={draft.group ?? ''}
                         titled={newRequest}
                         onCancel={() => setEditing(false)}
                         initialTitle={draft.title ?? ''}

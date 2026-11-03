@@ -43,6 +43,7 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 | `reason` of won't do | at least 20 characters after trimming, at most 65,536 characters |
 | review `title` | 1 to 200 characters |
 | request `title` | 1 to 200 characters after trimming, one line without CR or LF, at least one non-whitespace character. The server stores it trimmed. |
+| request `group` | 1 to 80 characters after trimming, one line without CR or LF, at least one non-whitespace character. The server stores it trimmed. |
 | `ref` | 1 to 255 characters |
 | pull request `url` | `https`, at most 2,048 characters, no whitespace. For a GitHub repository, `https://github.com/{owner}/{name}/pull/{number}` of the review's repository, compared case-insensitively. The server stores such a URL with the repository name as connected. A local repository accepts any such URL as written. |
 | token `name` | 1 to 64 characters, pattern in [api-token.schema.json](schemas/api-token.schema.json) |
@@ -240,6 +241,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - MCP transport limit and sync fetch wait, F86: `mcp_http` counts per user, not per token, so all tokens of a user share one bucket. A synchronous fetch answers `fetch_failed` after waiting 5 s for a running fetch, where it waited up to 60 s (D93). Both are tighter limits, so they are listed here.
     - One draft now, decision D101: the optional input `draftIds` of D5. It is additive. Without it, D5 submits every draft of the caller.
     - Request types, decision D102: the open set `RequestType`, the property `type` of `Request`, `RequestSummary`, and `Draft`, and the optional input `type` of Q2, D2, and D3. All are additive. `request.opened` has the payload field `type`, read as `change` when missing, so stored events need no change.
+    - Comment groups, decision D103: the property `group` of `Request`, `RequestSummary`, and `Draft`, the optional input `group` of Q2, D2, and D3, and the optional query `group` of Q1 and `list_requests`. All are additive. `request.opened` has the payload field `group`, read as null when missing, so stored events need no change.
 
 ## 9. Contract tests
 
@@ -259,7 +261,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 
 | File | `$id` | Content |
 |---|---|---|
-| [common.schema.json](schemas/common.schema.json) | `https://slopmower.invalid/schemas/v1/common.schema.json` | `$defs` only: IDs, SHAs, paths, times, cursors, `NoNulText`, `Markdown`, `Title`, `UnifiedDiff`, `Proposal`, and the shared enums |
+| [common.schema.json](schemas/common.schema.json) | `https://slopmower.invalid/schemas/v1/common.schema.json` | `$defs` only: IDs, SHAs, paths, times, cursors, `NoNulText`, `Markdown`, `Title`, `Group`, `UnifiedDiff`, `Proposal`, and the shared enums |
 | [error.schema.json](schemas/error.schema.json) | `https://slopmower.invalid/schemas/v1/error.schema.json` | Error body and the `details` shape per code |
 | [actor.schema.json](schemas/actor.schema.json) | `https://slopmower.invalid/schemas/v1/actor.schema.json` | Actor: user, agent, or system |
 | [anchor.schema.json](schemas/anchor.schema.json) | `https://slopmower.invalid/schemas/v1/anchor.schema.json` | Anchor of a request with a code location, plus `LineRange`, `SymbolRef`, `ContentSnapshot`, `AnchorSummary`, `AnchorInput`. A general request has no anchor. |

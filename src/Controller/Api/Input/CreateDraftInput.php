@@ -45,6 +45,11 @@ final readonly class CreateDraftInput
             return DraftKind::Reply === $input->kind;
         }, constraints: [new Assert\IsNull()])]
         public ?RequestType $type = null,
+        #[Assert\When(expression: static function (self $input): bool {
+            return DraftKind::Reply === $input->kind;
+        }, constraints: [new Assert\IsNull()])]
+        #[RequestGroup]
+        public ?string $group = null,
     ) {
     }
 }

@@ -16,6 +16,8 @@ export type Draft = {
     requireApproval: boolean;
     /** Always change for a reply. */
     type: RequestType;
+    /** Always null for a reply. */
+    group: string | null;
     createdAt: DateTime;
     updatedAt: DateTime;
 } & KindFields;

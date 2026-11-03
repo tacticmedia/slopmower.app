@@ -22,6 +22,7 @@ export type Composer = {
     /** The "Ask for a plan first" checkbox. */
     requireApproval: boolean;
     type: RequestType;
+    group: string;
     error: string | null;
 };
 
@@ -53,7 +54,7 @@ export function useFileComments({ path, threads, drafts, select }: Options) {
         if (undefined !== error) {
             const { path: sentPath, range, symbol, text } = sent;
             opened.current += 1;
-            setComposer({ key: opened.current, path: sentPath, range, symbol, initialTitle: text.title ?? '', initialBody: text.body, requireApproval: text.requireApproval, type: text.type, error });
+            setComposer({ key: opened.current, path: sentPath, range, symbol, initialTitle: text.title ?? '', initialBody: text.body, requireApproval: text.requireApproval, type: text.type, group: text.group ?? '', error });
         }
     }
 
@@ -70,7 +71,7 @@ export function useFileComments({ path, threads, drafts, select }: Options) {
         (range: LineRange | null, symbol: CodeSymbol | null = null): void => {
             if (!sending) {
                 opened.current += 1;
-                setComposer({ key: opened.current, path, range, symbol, initialTitle: '', initialBody: '', requireApproval: true, type: 'change', error: null });
+                setComposer({ key: opened.current, path, range, symbol, initialTitle: '', initialBody: '', requireApproval: true, type: 'change', group: '', error: null });
             }
         },
         [path, sending],

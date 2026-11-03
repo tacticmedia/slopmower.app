@@ -23,6 +23,7 @@ final readonly class RequestOpenedEvent implements DomainEvent
         public bool $requireApproval = false,
         public ?string $title = null,
         public RequestType $type = RequestType::Change,
+        public ?string $group = null,
     ) {
     }
 
@@ -47,6 +48,7 @@ final readonly class RequestOpenedEvent implements DomainEvent
             'requireApproval' => $this->requireApproval,
             'title' => $this->title,
             'type' => $this->type->value,
+            'group' => $this->group,
         ];
     }
 
@@ -64,6 +66,7 @@ final readonly class RequestOpenedEvent implements DomainEvent
             $reader->boolOr('requireApproval', false),
             $reader->nullableString('title'),
             $reader->nullableEnum('type', RequestType::class) ?? RequestType::Change,
+            $reader->nullableString('group'),
         );
     }
 }

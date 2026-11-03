@@ -34,6 +34,9 @@ final readonly class RequestListQuery implements QueryInput
         public int $limit = 50,
         #[Assert\Charset('UTF-8')]
         public ?string $cursor = null,
+        #[Assert\Charset('UTF-8')]
+        #[Assert\Length(max: 80)]
+        public ?string $group = null,
     ) {
     }
 
@@ -49,6 +52,7 @@ final readonly class RequestListQuery implements QueryInput
             $this->outdated,
             $this->suggestion,
             $this->sort,
+            '' === $this->group ? null : $this->group,
         );
     }
 

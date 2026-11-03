@@ -175,6 +175,41 @@ final class DraftRulesTest extends WebTestCase
         self::assertSame([$reply], self::listDrafts($this->client, $this->reviewId));
     }
 
+    #[TestDox('D2 stores the group of a new request trimmed, and null without one')]
+    public function testDraftStoresTheGroup(): void
+    {
+        $grouped = self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts", ['kind' => 'new_request', 'body' => 'Use Money here.', 'group' => ' Money ']), 201, 'draft.schema.json');
+        $single = self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts", ['kind' => 'new_request', 'body' => 'Add a CSV export.']), 201, 'draft.schema.json');
+
+        self::assertSame(['Money', null], [$grouped['group'], $single['group']]);
+    }
+
+    #[TestDox('D3 replaces the group of a new request, and a PATCH without it removes it')]
+    public function testPatchReplacesTheGroup(): void
+    {
+        $draft = self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts", ['kind' => 'new_request', 'body' => 'Use Money here.', 'group' => 'Money']), 201, 'draft.schema.json');
+
+        $moved = self::assertApiResponse(self::apiRequest($this->client, 'PATCH', "/api/v1/drafts/{$draft['id']}", ['body' => 'Use Money here.', 'group' => 'Totals']), 200, 'draft.schema.json');
+        $removed = self::assertApiResponse(self::apiRequest($this->client, 'PATCH', "/api/v1/drafts/{$draft['id']}", ['body' => 'Use Money here.']), 200, 'draft.schema.json');
+
+        self::assertSame(['Totals', null], [$moved['group'], $removed['group']]);
+        self::assertSame([$removed], self::listDrafts($this->client, $this->reviewId));
+    }
+
+    #[TestDox('A blank group, a group with a line break, or a group on a reply draft gives 422')]
+    public function testInvalidGroupGivesInvalidInput(): void
+    {
+        $requestId = (string) self::openRequest($this->client, $this->reviewId)['id'];
+        $reply = self::createReplyDraft($this->client, $this->reviewId, $requestId);
+
+        $blank = self::assertApiError(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts", ['kind' => 'new_request', 'body' => 'Use Money here.', 'group' => '  ']), 422, 'invalid_input');
+        $twoLines = self::assertApiError(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts", ['kind' => 'new_request', 'body' => 'Use Money here.', 'group' => "Money\nTotals"]), 422, 'invalid_input');
+        $onReply = self::assertApiError(self::apiRequest($this->client, 'PATCH', "/api/v1/drafts/{$reply['id']}", ['body' => 'Plan first.', 'group' => 'Money']), 422, 'invalid_input');
+
+        self::assertSame([['group'], ['group'], ['group']], array_map(static fn (array $error): array => array_column($error['details']['violations'] ?? [], 'field'), [$blank, $twoLines, $onReply]));
+        self::assertSame([$reply], self::listDrafts($this->client, $this->reviewId));
+    }
+
     #[TestDox('D2 stores the title of a new request, and D3 replaces title and body together')]
     public function testDraftStoresAndReplacesTheTitle(): void
     {
@@ -244,7 +279,7 @@ final class DraftRulesTest extends WebTestCase
         $anchor = Anchor::of(AnchorKind::File, RepoPath::fromString('README.md'), $review->getCommitSha(), BlobSha::fromString('e965047ad7c57865823c7d992b1d046ea66edf78'), null, null, null);
 
         for ($i = 0; $i < $count; ++$i) {
-            $entityManager->persist(Draft::newRequest($user, $review, $anchor, null, "Draft {$i}.", false, RequestType::Change, Clock::get()->now()));
+            $entityManager->persist(Draft::newRequest($user, $review, $anchor, null, "Draft {$i}.", false, RequestType::Change, null, Clock::get()->now()));
         }
 
         $entityManager->flush();

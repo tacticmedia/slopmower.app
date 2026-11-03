@@ -191,12 +191,13 @@ final class McpTools
         ?string $path = null,
         ?bool $outdated = null,
         ?SuggestionState $suggestion = null,
+        ?string $group = null,
         ?string $cursor = null,
         int $limit = 50,
     ): array {
-        return $this->run('list_requests', function () use ($review, $status, $awaiting, $path, $outdated, $suggestion, $cursor, $limit): RequestPage {
+        return $this->run('list_requests', function () use ($review, $status, $awaiting, $path, $outdated, $suggestion, $group, $cursor, $limit): RequestPage {
             $found = $this->reviewRepository->findFresh(ReviewId::fromString($review, 'review')) ?? throw new NotFound();
-            $query = new RequestListQuery($status?->value, $awaiting?->value, $path, $outdated, $suggestion, RequestSort::Created, $limit, $cursor);
+            $query = new RequestListQuery($status?->value, $awaiting?->value, $path, $outdated, $suggestion, RequestSort::Created, $limit, $cursor, $group);
             $violations = array_map(static fn (ConstraintViolationInterface $violation): array => [
                 'field' => $violation->getPropertyPath(),
                 'message' => (string) $violation->getMessage(),

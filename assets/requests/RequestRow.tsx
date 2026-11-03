@@ -4,6 +4,7 @@ import { Link as RouterLink } from 'react-router';
 import type { RequestSummary } from '../api/types/request-summary';
 import { AnchorLink } from './AnchorLink';
 import { ClaimedBy } from './ClaimedBy';
+import { GroupLink } from './GroupLink';
 import { OutdatedLabel } from './OutdatedLabel';
 import { PlanToApproveLabel } from './PlanToApproveLabel';
 import { RequestTypeLabel } from './RequestTypeLabel';
@@ -40,6 +41,11 @@ export function RequestRow({ request }: { request: RequestSummary }) {
                     <span className={styles.metaItem}>
                         <AnchorLink reviewId={request.reviewId} anchor={request.anchor} />
                     </span>
+                    {null !== request.group && (
+                        <span className={styles.metaItem}>
+                            group <GroupLink reviewId={request.reviewId} group={request.group} />
+                        </span>
+                    )}
                     <span className={styles.metaItem}>
                         opened <RelativeTime datetime={request.createdAt} /> by {request.author.name}
                     </span>

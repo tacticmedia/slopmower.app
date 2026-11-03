@@ -29,6 +29,7 @@ final class ToolsListContractTest extends WebTestCase
         'commitSha' => 'common.schema.json#/$defs/CommitSha',
         'cursor' => 'common.schema.json#/$defs/NoNulText',
         'diff' => 'common.schema.json#/$defs/NoNulText',
+        'group' => 'common.schema.json#/$defs/NoNulText',
         'id' => 'common.schema.json#/$defs/Ulid',
         'note' => 'common.schema.json#/$defs/NoNulText',
         'path' => 'common.schema.json#/$defs/NoNulText',

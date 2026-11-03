@@ -42,6 +42,8 @@ export type RequestSummary = {
     requireApproval: boolean;
     /** Set when the request opens. */
     type: RequestType;
+    /** Requests with the same group are one unit of feedback. Set when the request opens. */
+    group: string | null;
     /** Null for a request of the user. A request of an agent is a suggestion. */
     suggestion: SuggestionState | null;
     proposal: Proposal | null;

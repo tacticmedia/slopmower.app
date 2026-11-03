@@ -76,6 +76,20 @@ test.describe('UnsavedComment', () => {
         await expect(discardDialog(page)).toBeVisible();
     });
 
+    test('A pending comment with only a changed group in its edit box asks first', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        review.seedDraft({ kind: 'new_request', anchor: { kind: 'range', path: SMALL_FILE, range: { startLine: 9, endLine: 12 } }, body: 'Extract the tax calculation.' });
+        await openFile(page, review, SMALL_FILE);
+        const draft = page.locator('[slot="annotation-12"] [data-testid="draft"]');
+        await draft.getByRole('button', { name: 'Pending comment actions' }).click();
+        await page.getByRole('menuitem', { name: 'Edit', exact: true }).click();
+
+        await draft.getByRole('combobox', { name: 'Group' }).fill('Tax');
+        await treeItem(page, SYMBOL_FILE).click();
+
+        await expect(discardDialog(page)).toBeVisible();
+    });
+
     test('A comment that was added does not ask', async ({ page, api }) => {
         const review = new FakeReview(api);
         const textarea = await openCommentBoxOnLine10(page, review);

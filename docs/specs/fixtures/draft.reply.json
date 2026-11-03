@@ -8,6 +8,7 @@
   "body": "Keep the rounding mode configurable.",
   "requireApproval": false,
   "type": "change",
+  "group": null,
   "createdAt": "2026-09-29T07:15:00Z",
   "updatedAt": "2026-09-29T07:15:00Z"
 }

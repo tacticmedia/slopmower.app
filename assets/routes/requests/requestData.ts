@@ -42,6 +42,8 @@ export type RequestFilters = {
     outdated: boolean;
     /** `suggestion=pending`. */
     suggestions: boolean;
+    /** Null without the filter. */
+    group: string | null;
     sort: RequestSort;
 };
 
@@ -57,6 +59,7 @@ export function requestFilters(search: URLSearchParams): RequestFilters {
         path: (search.get('path') ?? '').replace(/^\/+/, ''),
         outdated: 'true' === search.get('outdated'),
         suggestions: 'pending' === search.get('suggestion'),
+        group: search.get('group') || null,
         sort: REQUEST_SORTS.find((known) => known === sort) ?? 'updated',
     };
 }
@@ -68,7 +71,7 @@ export type RequestListData = RequestPage & {
 };
 
 export async function requestListLoader({ request, params }: LoaderFunctionArgs): Promise<RequestListData> {
-    const { closed, status, waitingForYou, path, outdated, suggestions, sort } = requestFilters(new URL(request.url).searchParams);
+    const { closed, status, waitingForYou, path, outdated, suggestions, group, sort } = requestFilters(new URL(request.url).searchParams);
     const awaiting = closed ? 'none' : waitingForYou ? 'user' : 'user,agent';
     const query = new URLSearchParams({ awaiting, sort, limit: String(REQUEST_PAGE_LIMIT) });
     if (null !== status) {
@@ -82,6 +85,9 @@ export async function requestListLoader({ request, params }: LoaderFunctionArgs)
     }
     if (suggestions) {
         query.set('suggestion', 'pending');
+    }
+    if (null !== group) {
+        query.set('group', group);
     }
     const review = `/api/v1/reviews/${encodedRouteParam(params, 'reviewId')}`;
     // Open and Closed always filter, so a reply draft can name a request that the page does not list.

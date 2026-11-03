@@ -299,6 +299,7 @@ function ComposerBox({ composer, onSubmit, onCancel }: ComposerBoxProps) {
             onSubmit={onSubmit}
             askForPlan={composer.requireApproval}
             initialType={composer.type}
+            initialGroup={composer.group}
             titled
             onCancel={onCancel}
             initialTitle={composer.initialTitle}

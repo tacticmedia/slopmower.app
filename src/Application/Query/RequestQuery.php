@@ -282,6 +282,10 @@ final class RequestQuery
         if (null !== $filter->suggestion) {
             $builder->andWhere('request.suggestionState = :suggestion')->setParameter('suggestion', $filter->suggestion);
         }
+
+        if (null !== $filter->group) {
+            $builder->andWhere("JSONB_PATH_TEXT(request.state, 'group') = :group")->setParameter('group', $filter->group);
+        }
     }
 
     /**

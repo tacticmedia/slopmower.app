@@ -141,8 +141,8 @@ export class FakeReview {
         return this.#openRequest({ kind: 'symbol', path, symbol: { fqn } }, body);
     }
 
-    seedGeneral(body: string, requireApproval = false, title: string | null = null, type: RequestType = 'change'): Request {
-        return this.#openRequest(null, body, null, requireApproval, title, type);
+    seedGeneral(body: string, requireApproval = false, title: string | null = null, type: RequestType = 'change', group: string | null = null): Request {
+        return this.#openRequest(null, body, null, requireApproval, title, type, group);
     }
 
     /** A D2 draft, as if the user had written it earlier. */
@@ -261,9 +261,9 @@ export class FakeReview {
         return { ...request, reviewState: this.review.state, allowedActions, delivery, capabilities: this.review.capabilities };
     }
 
-    #openRequest(input: AnchorInput | null, body: string, batchId: string | null = null, requireApproval = false, title: string | null = null, type: RequestType = 'change'): Request {
+    #openRequest(input: AnchorInput | null, body: string, batchId: string | null = null, requireApproval = false, title: string | null = null, type: RequestType = 'change', group: string | null = null): Request {
         const seq = ++this.#seq;
-        const opened = openedRequest(this.review, null === input ? null : this.#anchor(input), body, seq, requireApproval, title, type);
+        const opened = openedRequest(this.review, null === input ? null : this.#anchor(input), body, seq, requireApproval, title, type, group);
         const [entry] = opened.thread;
         const request = undefined === entry ? opened : { ...opened, thread: [{ ...entry, batchId }] };
         this.requests.push(request);
@@ -549,9 +549,9 @@ export class FakeReview {
             }),
         ));
         api.on('POST', `${base}/requests`, ours(({ body }) => {
-            const { anchor, title, body: comment, requireApproval, type } = body as OpenRequestInput;
+            const { anchor, title, body: comment, requireApproval, type, group } = body as OpenRequestInput;
 
-            return this.#closedError() ?? json('request.schema.json', this.#present(this.#openRequest(anchor ?? null, comment, null, requireApproval ?? false, title?.trim() ?? null, type ?? 'change')), 201);
+            return this.#closedError() ?? json('request.schema.json', this.#present(this.#openRequest(anchor ?? null, comment, null, requireApproval ?? false, title?.trim() ?? null, type ?? 'change', group?.trim() ?? null)), 201);
         }));
         api.on('POST', `${base}/drafts`, ours(({ body }) => this.#closedError() ?? json('draft.schema.json', this.#createDraft(body as CreateDraftInput), 201)));
         api.on('POST', `${base}/drafts/submit`, ours(({ body }) => this.#closedError() ?? this.#submitDrafts(body as SubmitDraftsInput)));
@@ -575,15 +575,18 @@ export class FakeReview {
                 if (null !== closed) {
                     return closed;
                 }
-                const { title, body, requireApproval, type } = call.body as UpdateDraftInput;
+                const { title, body, requireApproval, type, group } = call.body as UpdateDraftInput;
                 if (null != requireApproval && 'reply' === draft.kind) {
                     return apiError(422, 'invalid_input', 'Only a new request asks for a plan first.', { violations: [{ field: 'requireApproval', message: 'Only a new request asks for a plan first.' }] });
                 }
                 if (null != type && 'reply' === draft.kind) {
                     return apiError(422, 'invalid_input', 'Only a new request has a type.', { violations: [{ field: 'type', message: 'Only a new request has a type.' }] });
                 }
-                // D3 replaces the title with the body.
-                const updated = { ...draft, title: title?.trim() ?? null, body, requireApproval: requireApproval ?? draft.requireApproval, type: type ?? draft.type, updatedAt: now() } as Draft;
+                if (null != group && 'reply' === draft.kind) {
+                    return apiError(422, 'invalid_input', 'Only a new request has a group.', { violations: [{ field: 'group', message: 'Only a new request has a group.' }] });
+                }
+                // D3 replaces the title and the group with the body.
+                const updated = { ...draft, title: title?.trim() ?? null, body, requireApproval: requireApproval ?? draft.requireApproval, type: type ?? draft.type, group: group?.trim() ?? null, updatedAt: now() } as Draft;
                 this.drafts = this.drafts.map((known) => (known.id === draft.id ? updated : known));
 
                 return json('draft.schema.json', updated);
@@ -632,7 +635,7 @@ export class FakeReview {
     /** Q1 with the filters that the request list sends. */
     #requestPage(query: URLSearchParams): MockResponse {
         const list = (name: string): string[] | null => query.get(name)?.split(',') ?? null;
-        const [statuses, awaiting, path, outdated, suggestion] = [list('status'), list('awaiting'), query.get('path'), query.get('outdated'), query.get('suggestion')];
+        const [statuses, awaiting, path, outdated, suggestion, group] = [list('status'), list('awaiting'), query.get('path'), query.get('outdated'), query.get('suggestion'), query.get('group')];
         const order = REQUEST_ORDERS[query.get('sort') ?? 'created'];
         if (undefined === order) {
             return apiError(422, 'invalid_input', 'Invalid input. sort: Must be created, updated, or path.', { violations: [{ field: 'sort', message: 'Must be created, updated, or path.' }] });
@@ -640,7 +643,7 @@ export class FakeReview {
         const items = this.requests
             .filter((request) => (null === statuses || statuses.includes(request.status)) && (null === awaiting || awaiting.includes(request.awaiting)))
             .filter((request) => (null === path || true === request.anchor?.path.startsWith(path)) && (null === outdated || request.outdated === ('true' === outdated)))
-            .filter((request) => null === suggestion || request.suggestion === suggestion)
+            .filter((request) => (null === suggestion || request.suggestion === suggestion) && (null === group || request.group === group))
             .toSorted(order)
             .map(requestSummary);
 
@@ -659,7 +662,7 @@ export class FakeReview {
 
     #createDraft(input: CreateDraftInput): Draft {
         const createdAt = now();
-        const base = { id: newId(), reviewId: this.id, body: input.body, requireApproval: 'new_request' === input.kind && true === input.requireApproval, type: ('new_request' === input.kind ? input.type : null) ?? 'change', createdAt, updatedAt: createdAt };
+        const base = { id: newId(), reviewId: this.id, body: input.body, requireApproval: 'new_request' === input.kind && true === input.requireApproval, type: ('new_request' === input.kind ? input.type : null) ?? 'change', group: ('new_request' === input.kind ? input.group?.trim() : null) ?? null, createdAt, updatedAt: createdAt };
         let draft: Draft;
         if ('reply' === input.kind) {
             draft = { ...base, kind: 'reply', anchor: null, requestId: this.find(input.requestId).id, title: null };
@@ -692,7 +695,7 @@ export class FakeReview {
             this.review = { ...this.review, delivery: { workspace: input.delivery.workspace ?? null, pullRequest: input.delivery.pullRequest ?? null } };
         }
         const batchId = newId();
-        const opened = submitted.map((draft) => this.#openRequest(this.#draftAnchors.get(draft.id) ?? null, draft.body, batchId, draft.requireApproval, draft.title, draft.type));
+        const opened = submitted.map((draft) => this.#openRequest(this.#draftAnchors.get(draft.id) ?? null, draft.body, batchId, draft.requireApproval, draft.title, draft.type, draft.group));
         this.drafts = this.drafts.filter((draft) => !submitted.includes(draft));
 
         return json('batch-submission.schema.json', { batchId, reviewId: this.id, summary: input.summary ?? null, submittedAt: now(), seq: ++this.#seq, openedRequests: opened.map(requestSummary), replies: [] }, 201);

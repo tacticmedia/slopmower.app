@@ -131,6 +131,18 @@ final class EventRoundTripTest extends KernelTestCase
         self::assertSame(RequestType::Change, $event->type);
     }
 
+    #[TestDox('A request.opened payload without group decodes with group null')]
+    public function testDecodesRequestOpenedWithoutGroup(): void
+    {
+        $payload = self::eventFixturePayload('request.opened-carried');
+        unset($payload['group']);
+
+        $event = EventType::RequestOpened->decode($payload);
+
+        self::assertInstanceOf(RequestOpenedEvent::class, $event);
+        self::assertNull($event->group);
+    }
+
     #[TestDox('A batch.submitted payload without delivery decodes with delivery null')]
     public function testDecodesBatchSubmittedWithoutDelivery(): void
     {
@@ -184,6 +196,7 @@ final class EventRoundTripTest extends KernelTestCase
             'Extract the tax rounding into `TaxRounding`.',
             null,
             new CarriedFrom(ReviewId::fromString(self::SOURCE_REVIEW), RequestId::fromString(self::REQUEST_B)),
+            group: 'Tax rounding',
         )];
     }
 

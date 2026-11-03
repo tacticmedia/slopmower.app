@@ -48,6 +48,7 @@
         "carriedFrom": null,
         "requireApproval": false,
         "type": "change",
+        "group": null,
         "suggestion": null,
         "proposal": null
       },
@@ -118,6 +119,7 @@
         "carriedFrom": null,
         "requireApproval": false,
         "type": "change",
+        "group": null,
         "suggestion": null,
         "proposal": null
       },

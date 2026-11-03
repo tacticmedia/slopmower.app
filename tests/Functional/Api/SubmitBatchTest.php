@@ -122,6 +122,20 @@ final class SubmitBatchTest extends WebTestCase
         self::assertSame(['question', 'question'], [self::readRequest($this->client, $requestId)['type'], $fetched['type']]);
     }
 
+    #[TestDox('A draft with a group opens a request of that group in Q3 and get_request')]
+    public function testDraftOpensRequestOfItsGroup(): void
+    {
+        self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts", ['kind' => 'new_request', 'body' => 'Use Money here.', 'group' => 'Money']), 201, 'draft.schema.json');
+        [, $secret] = self::storeToken($this->user);
+
+        $submission = self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts/submit"), 201, 'batch-submission.schema.json');
+        $requestId = (string) $submission['openedRequests'][0]['id'];
+        $mcp = new McpTestClient($this->client, $secret);
+        $fetched = self::assertToolResult($mcp, $mcp->callTool('get_request', ['id' => $requestId]), 'get_request');
+
+        self::assertSame(['Money', 'Money'], [self::readRequest($this->client, $requestId)['group'], $fetched['group']]);
+    }
+
     #[TestDox('A draft with a title opens a request with that title')]
     public function testDraftOpensRequestWithItsTitle(): void
     {

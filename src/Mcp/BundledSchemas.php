@@ -679,6 +679,14 @@ final class BundledSchemas
             'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
             'EventSeq' => ['type' => 'integer', 'minimum' => 0, 'description' => 'Per-tenant event number, gapless, in commit order.'],
+            'Group' => [
+                'type' => 'string',
+                'minLength' => 1,
+                'maxLength' => 80,
+                'pattern' => '\\S',
+                'not' => ['pattern' => '[\\r\\n]'],
+                'description' => 'The group label of a request: one line without CR or LF, with at least one non-whitespace character. Requests with the same group are one unit of feedback. The server trims it, then checks the length.',
+            ],
             'KindRules' => [
                 'allOf' => [
                     [
@@ -762,7 +770,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => [
                     'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'title', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq',
-                    'carriedFrom', 'requireApproval', 'type', 'suggestion', 'proposal',
+                    'carriedFrom', 'requireApproval', 'type', 'group', 'suggestion', 'proposal',
                 ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -824,6 +832,13 @@ final class BundledSchemas
                     ],
                     'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18 and Q21.'],
                     'type' => ['$ref' => '#/$defs/RequestType'],
+                    'group' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Group'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Requests with the same group are one unit of feedback. Set when the request opens; it does not change after that. Null without a group.',
+                    ],
                     'suggestion' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/SuggestionState'],
@@ -1166,6 +1181,14 @@ final class BundledSchemas
                 ],
                 'description' => 'Open set.',
             ],
+            'Group' => [
+                'type' => 'string',
+                'minLength' => 1,
+                'maxLength' => 80,
+                'pattern' => '\\S',
+                'not' => ['pattern' => '[\\r\\n]'],
+                'description' => 'The group label of a request: one line without CR or LF, with at least one non-whitespace character. Requests with the same group are one unit of feedback. The server trims it, then checks the length.',
+            ],
             'KindRules' => [
                 'allOf' => [
                     [
@@ -1244,7 +1267,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => [
                     'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'title', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq',
-                    'carriedFrom', 'requireApproval', 'type', 'suggestion', 'proposal',
+                    'carriedFrom', 'requireApproval', 'type', 'group', 'suggestion', 'proposal',
                 ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -1306,6 +1329,13 @@ final class BundledSchemas
                     ],
                     'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18 and Q21.'],
                     'type' => ['$ref' => '#/$defs/RequestType'],
+                    'group' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Group'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Requests with the same group are one unit of feedback. Set when the request opens; it does not change after that. Null without a group.',
+                    ],
                     'suggestion' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/SuggestionState'],
@@ -1424,7 +1454,7 @@ final class BundledSchemas
         'type' => 'object',
         'required' => [
             'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'title', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq',
-            'carriedFrom', 'requireApproval', 'type', 'suggestion', 'proposal', 'body', 'reviewState', 'reviewCommitSha', 'location', 'excerpt', 'thread', 'commits', 'pullRequestUrls', 'pullRequests', 'allowedActions', 'delivery', 'capabilities',
+            'carriedFrom', 'requireApproval', 'type', 'group', 'suggestion', 'proposal', 'body', 'reviewState', 'reviewCommitSha', 'location', 'excerpt', 'thread', 'commits', 'pullRequestUrls', 'pullRequests', 'allowedActions', 'delivery', 'capabilities',
         ],
         'properties' => [
             'id' => ['$ref' => '#/$defs/Ulid'],
@@ -1484,6 +1514,12 @@ final class BundledSchemas
             ],
             'requireApproval' => ['type' => 'boolean'],
             'type' => ['$ref' => '#/$defs/RequestType'],
+            'group' => [
+                'anyOf' => [
+                    ['$ref' => '#/$defs/Group'],
+                    ['type' => 'null'],
+                ],
+            ],
             'suggestion' => [
                 'anyOf' => [
                     ['$ref' => '#/$defs/SuggestionState'],
@@ -1843,6 +1879,14 @@ final class BundledSchemas
                 'description' => 'How the agent delivers its work (D85).',
             ],
             'EventSeq' => ['type' => 'integer', 'minimum' => 0, 'description' => 'Per-tenant event number, gapless, in commit order.'],
+            'Group' => [
+                'type' => 'string',
+                'minLength' => 1,
+                'maxLength' => 80,
+                'pattern' => '\\S',
+                'not' => ['pattern' => '[\\r\\n]'],
+                'description' => 'The group label of a request: one line without CR or LF, with at least one non-whitespace character. Requests with the same group are one unit of feedback. The server trims it, then checks the length.',
+            ],
             'KindRules' => [
                 'allOf' => [
                     [
@@ -2400,6 +2444,14 @@ final class BundledSchemas
                 ],
                 'description' => 'Open set.',
             ],
+            'Group' => [
+                'type' => 'string',
+                'minLength' => 1,
+                'maxLength' => 80,
+                'pattern' => '\\S',
+                'not' => ['pattern' => '[\\r\\n]'],
+                'description' => 'The group label of a request: one line without CR or LF, with at least one non-whitespace character. Requests with the same group are one unit of feedback. The server trims it, then checks the length.',
+            ],
             'KindRules' => [
                 'allOf' => [
                     [
@@ -2478,7 +2530,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => [
                     'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'title', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq',
-                    'carriedFrom', 'requireApproval', 'type', 'suggestion', 'proposal',
+                    'carriedFrom', 'requireApproval', 'type', 'group', 'suggestion', 'proposal',
                 ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -2540,6 +2592,13 @@ final class BundledSchemas
                     ],
                     'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18 and Q21.'],
                     'type' => ['$ref' => '#/$defs/RequestType'],
+                    'group' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Group'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Requests with the same group are one unit of feedback. Set when the request opens; it does not change after that. Null without a group.',
+                    ],
                     'suggestion' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/SuggestionState'],
@@ -2880,6 +2939,14 @@ final class BundledSchemas
                 ],
                 'description' => 'Open set.',
             ],
+            'Group' => [
+                'type' => 'string',
+                'minLength' => 1,
+                'maxLength' => 80,
+                'pattern' => '\\S',
+                'not' => ['pattern' => '[\\r\\n]'],
+                'description' => 'The group label of a request: one line without CR or LF, with at least one non-whitespace character. Requests with the same group are one unit of feedback. The server trims it, then checks the length.',
+            ],
             'KindRules' => [
                 'allOf' => [
                     [
@@ -2958,7 +3025,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => [
                     'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'title', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq',
-                    'carriedFrom', 'requireApproval', 'type', 'suggestion', 'proposal',
+                    'carriedFrom', 'requireApproval', 'type', 'group', 'suggestion', 'proposal',
                 ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -3020,6 +3087,13 @@ final class BundledSchemas
                     ],
                     'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18 and Q21.'],
                     'type' => ['$ref' => '#/$defs/RequestType'],
+                    'group' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Group'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Requests with the same group are one unit of feedback. Set when the request opens; it does not change after that. Null without a group.',
+                    ],
                     'suggestion' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/SuggestionState'],
@@ -3356,6 +3430,14 @@ final class BundledSchemas
                 ],
                 'description' => 'Open set.',
             ],
+            'Group' => [
+                'type' => 'string',
+                'minLength' => 1,
+                'maxLength' => 80,
+                'pattern' => '\\S',
+                'not' => ['pattern' => '[\\r\\n]'],
+                'description' => 'The group label of a request: one line without CR or LF, with at least one non-whitespace character. Requests with the same group are one unit of feedback. The server trims it, then checks the length.',
+            ],
             'KindRules' => [
                 'allOf' => [
                     [
@@ -3434,7 +3516,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => [
                     'id', 'reviewId', 'repositoryId', 'status', 'awaiting', 'resolution', 'closed', 'anchor', 'title', 'summary', 'author', 'claimedBy', 'claimedAt', 'commentCount', 'commitCount', 'pendingCommitCount', 'outdated', 'createdAt', 'updatedAt', 'lastEventSeq',
-                    'carriedFrom', 'requireApproval', 'type', 'suggestion', 'proposal',
+                    'carriedFrom', 'requireApproval', 'type', 'group', 'suggestion', 'proposal',
                 ],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -3496,6 +3578,13 @@ final class BundledSchemas
                     ],
                     'requireApproval' => ['type' => 'boolean', 'description' => '"Ask for a plan first": link_commits and mark_ready_for_review need an approved proposal. Set when the request opens, changed by Q18 and Q21.'],
                     'type' => ['$ref' => '#/$defs/RequestType'],
+                    'group' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Group'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Requests with the same group are one unit of feedback. Set when the request opens; it does not change after that. Null without a group.',
+                    ],
                     'suggestion' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/SuggestionState'],
@@ -3850,7 +3939,7 @@ final class BundledSchemas
         [
             'name' => 'get_request',
             'title' => 'Get request',
-            'description' => 'Return one request in full: title, body, thread, anchor with a code snapshot at the review commit, linked commits, location, how to deliver the work (delivery), and the actions you may take now (allowedActions). `at` locates the anchor at another commit that the server\'s clone has (pushed, or committed in a local repository); by default the location is at the default-branch head. Your working tree can differ: find the code with anchor.snapshot, its before and after lines, and anchor.symbol.fqn. A general request has anchor, location, and excerpt null. It belongs to the whole review, and its body and thread say what to change. A request with title null has no title: give it one with set_request_title before you claim it. type says what the user asks for: change, a code change; question, claim it, answer with reply_to_request, change no code, then mark_ready_for_review with a note that points to the answer; rule, claim it, add the rule as one bullet in the user\'s words under `## Rules from Slopmower` in AGENTS.md at the repository root (create the file when it is missing), add `@AGENTS.md` to CLAUDE.md when it exists and does not import AGENTS.md, fix the anchored code when it breaks the rule, all in one commit, then link, mark ready, and follow the rule from then on.',
+            'description' => 'Return one request in full: title, body, thread, anchor with a code snapshot at the review commit, linked commits, location, how to deliver the work (delivery), and the actions you may take now (allowedActions). `at` locates the anchor at another commit that the server\'s clone has (pushed, or committed in a local repository); by default the location is at the default-branch head. Your working tree can differ: find the code with anchor.snapshot, its before and after lines, and anchor.symbol.fqn. A general request has anchor, location, and excerpt null. It belongs to the whole review, and its body and thread say what to change. A request with title null has no title: give it one with set_request_title before you claim it. type says what the user asks for: change, a code change; question, claim it, answer with reply_to_request, change no code, then mark_ready_for_review with a note that points to the answer; rule, claim it, add the rule as one bullet in the user\'s words under `## Rules from Slopmower` in AGENTS.md at the repository root (create the file when it is missing), add `@AGENTS.md` to CLAUDE.md when it exists and does not import AGENTS.md, fix the anchored code when it breaks the rule, all in one commit, then link, mark ready, and follow the rule from then on. group, when not null, makes the request one unit of feedback with the other requests of that group: read them with list_requests and group, and handle them together in one commit.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
@@ -3976,7 +4065,7 @@ final class BundledSchemas
         [
             'name' => 'list_requests',
             'title' => 'List requests',
-            'description' => 'List the change requests of one review, oldest first, with optional filters. Returns summaries: title is null while a request has none, and summary is the title or else the first line of the body as plain text. Call get_request for the body, thread, anchor, and location.',
+            'description' => 'List the change requests of one review, oldest first, with optional filters. Returns summaries: title is null while a request has none, and summary is the title or else the first line of the body as plain text. Call get_request for the body, thread, anchor, and location. Requests with the same group are one unit of feedback: pass group to read them all, claim each, make one change in one commit, link it to every request of the group, and mark each ready with the same note; with requireApproval, propose the same plan on each.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
@@ -4011,6 +4100,14 @@ final class BundledSchemas
                         'description' => 'Only suggestions in this state; requests that the user opened never match',
                         'default' => null,
                         'enum' => ['pending', 'accepted', 'dismissed', null],
+                    ],
+                    'group' => [
+                        'type' => ['null', 'string'],
+                        'description' => 'Only requests of this group, an exact match; requests without a group never match',
+                        'default' => null,
+                        'minLength' => 1,
+                        'maxLength' => 80,
+                        'pattern' => '^[^\\x00]*$',
                     ],
                     'cursor' => [
                         'type' => ['null', 'string'],

@@ -35,6 +35,8 @@ Every comment box of a new request has the checkbox **Ask for a plan first**. It
 
 The **Type** select sets what you ask for: **Change**, the default, **Question**, or **Rule**. **Question** hides **Ask for a plan first**, because the agent changes no code. See [Request types](requests.md#request-types).
 
+The optional **Group** field joins comments into one unit of feedback, for example several lines that need the same change. Give each comment the same group label. The field suggests the groups of your drafts, so a typo does not start a new group. A group label is one line of at most 80 characters. See [Comment groups](requests.md#comment-groups).
+
 If a comment cannot be saved, its box opens again with your text, the error, and the selected lines.
 
 While a comment box holds text that is not saved, Slopmower asks before it opens another page. Click **Keep editing** to stay, or **Discard** to leave without the text. The browser also asks before a reload or a closed tab.
@@ -70,4 +72,4 @@ Submitting feedback does not end the review. You can add more comments and submi
 
 A reply in a thread is not a draft. **Reply** sends it at once, because the agent often waits for your answer. The buttons of a request, for example **Verify** or **Approve**, also act at once.
 
-You can edit or delete a draft before you submit it. **Edit** also changes its type. **Pending drafts** on the **Requests** tab lists all your drafts: new requests and replies. Each draft links to its lines or to the request that it replies to.
+You can edit or delete a draft before you submit it. **Edit** also changes its type and its group. **Pending drafts** on the **Requests** tab lists all your drafts: new requests and replies. Each draft links to its lines or to the request that it replies to.

@@ -85,7 +85,7 @@ final class DraftController extends AbstractController
         $now = $this->clock->now();
         $draft = match ($input->kind) {
             DraftKind::Reply => Draft::reply($user, $this->requestOfReview($review, $requests, (string) $input->requestId), $input->body, $now),
-            DraftKind::NewRequest => Draft::newRequest($user, $review, self::capture($anchors, $review, $input->anchor), $input->title, $input->body, $input->requireApproval ?? false, $input->type ?? RequestType::Change, $now),
+            DraftKind::NewRequest => Draft::newRequest($user, $review, self::capture($anchors, $review, $input->anchor), $input->title, $input->body, $input->requireApproval ?? false, $input->type ?? RequestType::Change, $input->group, $now),
             null => throw new \LogicException('The kind is validated.'),
         };
 
@@ -116,8 +116,8 @@ final class DraftController extends AbstractController
     {
         \assert(null !== $input->body);
         $this->inLock($draft, function (Draft $draft) use ($input): void {
-            // The edit refuses title, requireApproval, and type on a reply, and invalid_input comes before review_closed.
-            $draft->edit($input->title, $input->body, $input->requireApproval, $input->type, $this->clock->now());
+            // The edit refuses title, requireApproval, type, and group on a reply, and invalid_input comes before review_closed.
+            $draft->edit($input->title, $input->body, $input->requireApproval, $input->type, $input->group, $this->clock->now());
             $this->entityManager->refresh($draft->getReview());
             $draft->getReview()->assertOpen();
             $this->entityManager->flush();
@@ -247,7 +247,7 @@ final class DraftController extends AbstractController
         $replyTo = $draft->getRequest();
         $request = null === $replyTo ? null : $requests->findFresh($replyTo->getId()) ?? throw new NotFound();
         $command = null === $request
-            ? new Open($draft->getAnchor(), $draft->getBody(), $batchId, requireApproval: $draft->requiresApproval(), title: $draft->getTitle(), type: $draft->getType())
+            ? new Open($draft->getAnchor(), $draft->getBody(), $batchId, requireApproval: $draft->requiresApproval(), title: $draft->getTitle(), type: $draft->getType(), group: $draft->getGroup())
             : new Reply($request->getId(), $draft->getBody(), batchId: $batchId);
         $states = null === $request ? [] : [$request->getState()];
 

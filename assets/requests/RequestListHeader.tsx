@@ -1,4 +1,4 @@
-import { CheckIcon, IssueOpenedIcon } from '@primer/octicons-react';
+import { CheckIcon, IssueOpenedIcon, XIcon } from '@primer/octicons-react';
 import { ActionList, ActionMenu, Button, CounterLabel, Link, TextInput } from '@primer/react';
 import type { FormEvent } from 'react';
 import { Link as RouterLink, useSearchParams } from 'react-router';
@@ -9,7 +9,7 @@ import { NewRequestBox } from './NewRequestBox';
 import styles from './RequestListHeader.module.css';
 import { STATUS_TEXT } from './statusText';
 
-type Changes = Partial<Record<'awaiting' | 'status' | 'path' | 'outdated' | 'suggestion' | 'sort', string | null>>;
+type Changes = Partial<Record<'awaiting' | 'status' | 'path' | 'outdated' | 'suggestion' | 'group' | 'sort', string | null>>;
 
 const STATUS_OPTIONS: readonly { status: RequestStatus | null; label: string }[] = [{ status: null, label: 'All' }, ...REQUEST_STATUSES.map((status) => ({ status, label: STATUS_TEXT[status] }))];
 
@@ -104,6 +104,11 @@ export function RequestListHeader({ byAwaiting, commentable }: Props) {
                         </ActionList>
                     </ActionMenu.Overlay>
                 </ActionMenu>
+                {null !== filters.group && (
+                    <Button size="small" trailingVisual={XIcon} onClick={() => change({ group: null })} aria-label={`Group: ${filters.group}, remove filter`} data-testid="group-filter">
+                        Group: {filters.group}
+                    </Button>
+                )}
                 <form className={styles.pathFilter} onSubmit={filterByPath} role="search">
                     <TextInput key={filters.path} name="path" defaultValue={filters.path} aria-label="Path prefix" placeholder="Path prefix" size="small" className={styles.pathInput} />
                     <Button type="submit" size="small">
