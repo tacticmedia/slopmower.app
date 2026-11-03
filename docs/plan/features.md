@@ -203,6 +203,7 @@ The findings of the repository audit of 2026-10-28 are [F84](F84-audit-must-fixe
 - **Type and group after submit.** Change the type or the group of an open request, with an event each. From the F97 and F98 planning.
 - **Group actions.** Verify, reopen, or approve the plan of every request of a group at once. With `requireApproval`, a group needs one approval per request today. From the F98 planning.
 - **Type filter on the request list.** Show only questions or rules. From the F97 planning.
+- **Annotation slot relayout drops the focus.** About 30 ms after a comment box opens in the code view, the view lays out the annotation slot again and hides its content for a frame, so the browser drops the focus. `focusWhenRendered` focuses the field again, but text typed in that frame is lost: 1 of 45 `RangeComment` runs at load 28 with 8 workers. Finding what makes `@pierre/diffs` lay the slot out again would remove the frame. From the F95 fix.
 
 ## For Jan
 

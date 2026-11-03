@@ -201,16 +201,23 @@ function quoted(text: string): string {
 }
 
 /**
- * Content in an annotation slot of the code view renders only after the view adds the slot for its line.
+ * Content in an annotation slot of the code view renders only after the view adds the slot for its line. While the view
+ * lays out, it can hide the slot again, and the browser then drops the focus, so the field takes it back when it shows
+ * again and nothing else has it.
  */
 function focusWhenRendered(target: { readonly current: HTMLTextAreaElement | null }): () => void {
     let frame = 0;
     let attempts = 0;
+    let focused = false;
     const attempt = (): void => {
         const element = target.current;
-        if (null !== element && element.getClientRects().length > 0) {
-            element.focus();
-        } else if (++attempts < FOCUS_ATTEMPTS) {
+        const unclaimed = !focused || null === document.activeElement || document.body === document.activeElement;
+        if (null !== element && element !== document.activeElement && unclaimed && element.getClientRects().length > 0) {
+            // A scroll on a later focus lays the view out again.
+            element.focus({ preventScroll: focused });
+            focused = true;
+        }
+        if (++attempts < FOCUS_ATTEMPTS) {
             frame = requestAnimationFrame(attempt);
         }
     };
