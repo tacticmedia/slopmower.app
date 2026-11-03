@@ -1,8 +1,8 @@
 # Terms of service
 
-Last change: [TO SUPPLY: effective date]
+Last change: 3 November 2026
 
-These terms are an agreement between you and [TO SUPPLY: legal entity name] ("we"), the operator of Slopmower. They apply when you use the hosted Slopmower service. When you use Slopmower, you accept these terms. If you use Slopmower for an organization, you accept them for that organization, and you confirm that you have the authority to do so.
+These terms are an agreement between you and Tactic Media Pty Ltd ("we"), the operator of Slopmower. They apply when you use the hosted Slopmower service. When you use Slopmower, you accept these terms. If you use Slopmower for an organization, you accept them for that organization, and you confirm that you have the authority to do so.
 
 ## The service
 
@@ -46,7 +46,7 @@ You can stop using Slopmower at any time. To delete your account and its data, c
 
 ## Governing law
 
-[TO SUPPLY: governing law] governs these terms. If you are a consumer, you keep the protection of the mandatory laws of the country where you live.
+The law of South Australia, Australia, governs these terms. If you are a consumer, you keep the protection of the mandatory laws of the country where you live.
 
 ## Changes to these terms
 
@@ -54,6 +54,6 @@ We publish each change on this page and change the date at the top. How we tell 
 
 ## Contact
 
-- Questions about these terms: [TO SUPPLY: support email]
-- Legal notices: [TO SUPPLY: legal entity name], [TO SUPPLY: legal entity address]
+- Questions about these terms: support@tacticmedia.com.au
+- Legal notices: Tactic Media Pty Ltd, 8 Victoria Road, Mount Barker, SA 5251, Australia
 - Help with Slopmower: [Support](support.md)

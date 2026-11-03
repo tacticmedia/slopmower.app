@@ -16,7 +16,7 @@ Click **Report a Bug** at the bottom right of a Slopmower page. Describe what yo
 
 ## Contact us
 
-Send an email to [TO SUPPLY: support email]. Include:
+Send an email to support@tacticmedia.com.au. Include:
 
 - your GitHub login;
 - the repository and the review, for example the URL of the page in Slopmower;
@@ -32,8 +32,8 @@ The GitHub Marketplace bills the paid plans. To change or cancel a plan, use the
 ## Your data
 
 - To delete your account and all its data, click **Delete account** in **Settings**.
-- For a privacy request, write to [TO SUPPLY: privacy email]. The [privacy policy](privacy.md) lists your rights.
+- For a privacy request, write to support@tacticmedia.com.au. The [privacy policy](privacy.md) lists your rights.
 
 ## Report a security problem
 
-Send the details to [TO SUPPLY: support email], with "Security" in the subject. Do not publish the details before we answer.
+Send the details to support@tacticmedia.com.au, with "Security" in the subject. Do not publish the details before we answer.
