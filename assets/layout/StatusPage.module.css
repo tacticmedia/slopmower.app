@@ -4,6 +4,13 @@
     background-color: var(--bgColor-default);
 }
 
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-16);
+}
+
 .centered {
     display: flex;
     align-items: center;

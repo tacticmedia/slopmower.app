@@ -1,7 +1,7 @@
-import { Heading, Link } from '@primer/react';
+import { Button, Heading, Link } from '@primer/react';
 import { captureException } from '@sentry/react';
 import { useEffect } from 'react';
-import { isRouteErrorResponse, Link as RouterLink, useRouteError } from 'react-router';
+import { isRouteErrorResponse, Link as RouterLink, useRevalidator, useRouteError } from 'react-router';
 import { ApiError } from '../api/client';
 import styles from './StatusPage.module.css';
 
@@ -29,10 +29,11 @@ function describeError(error: unknown): ErrorDescription {
 
 /**
  * `embedded` renders inside the root layout, so the error of a screen keeps the header. React Router reports no error
- * that it renders here (D86).
+ * that it renders here (D86). The end of a revalidation also clears an error of a render.
  */
 export function RouteError({ embedded = false }: { embedded?: boolean }) {
     const error = useRouteError();
+    const revalidator = useRevalidator();
     const { title, detail, signedOut } = describeError(error);
 
     useEffect(() => {
@@ -49,9 +50,16 @@ export function RouteError({ embedded = false }: { embedded?: boolean }) {
             {signedOut ? (
                 <Link href="/login">Sign in</Link>
             ) : (
-                <Link as={RouterLink} to="/">
-                    Go to the start page
-                </Link>
+                <div className={styles.actions}>
+                    {isRouteErrorResponse(error) ? null : (
+                        <Button loading={'idle' !== revalidator.state} onClick={() => void revalidator.revalidate()}>
+                            Try again
+                        </Button>
+                    )}
+                    <Link as={RouterLink} to="/">
+                        Go to the start page
+                    </Link>
+                </div>
             )}
         </Container>
     );

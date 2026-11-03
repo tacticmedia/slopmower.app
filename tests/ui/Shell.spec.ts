@@ -63,6 +63,7 @@ test.describe('Shell', () => {
         });
 
         await expect(page.locator('[data-testid="route-error"] h1')).toHaveText('Page not found');
+        await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0);
         expect(await windowMarker(page)).toBe('kept');
     });
 
