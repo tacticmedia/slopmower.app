@@ -76,8 +76,6 @@ export type ApproveProposalInput = {
     /** Request.proposal.eventId. */
     proposalEventId: Ulid;
     note?: string | null;
-    /** True needs Request.capabilities.pullRequests. */
-    pullRequest?: boolean | null;
 };
 
 export type RejectProposalInput = {

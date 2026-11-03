@@ -27,7 +27,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
 /**
- * Decision D85: `delivery` of D5 and Q15, and the effective value of V3, Q3, and get_request.
+ * Decision D85: `delivery` of D5, and its value in V3, Q3, and get_request.
  */
 final class DeliveryTest extends WebTestCase
 {
@@ -80,44 +80,33 @@ final class DeliveryTest extends WebTestCase
         self::assertSame($chosen, $this->review($reviewId)['delivery']);
     }
 
-    #[TestDox('Q3 and get_request show the pull request choice of the approval over that of the review, and a reopen clears it')]
-    public function testApprovalChoiceWinsUntilAReopen(): void
+    #[TestDox('Q3 and get_request show the delivery of the review, also after an approval whose body has a pullRequest of an older client')]
+    public function testRequestShowsTheReviewDelivery(): void
     {
         [$reviewId, $requestId] = self::claimedGitHubRequest($this->client, $this->user, $this->secret);
-        $this->submitFeedback((string) $reviewId, ['delivery' => ['workspace' => 'new_branch', 'pullRequest' => true]], null);
+        $chosen = ['workspace' => 'new_branch', 'pullRequest' => true];
+        $this->submitFeedback((string) $reviewId, ['delivery' => $chosen], null);
         $proposed = self::agentRequest($this->client, $this->secret, 'POST', "/api/v1/requests/{$requestId}/propose", ['plan' => 'Extract `TaxRounding`.']);
 
         self::requestCommand($this->client, $requestId, 'approve-proposal', ['proposalEventId' => $proposed['request']['proposal']['eventId'], 'pullRequest' => false]);
 
-        $declined = ['workspace' => 'new_branch', 'pullRequest' => false];
         $mcp = new McpTestClient($this->client, $this->secret);
-        self::assertSame([$declined, ['pullRequests' => true]], [self::readRequest($this->client, $requestId)['delivery'], self::readRequest($this->client, $requestId)['capabilities']]);
-        self::assertSame($declined, self::assertToolResult($mcp, $mcp->callTool('get_request', ['id' => $requestId]), 'get_request')['delivery']);
-
-        self::agentRequest($this->client, $this->secret, 'POST', "/api/v1/requests/{$requestId}/ready", ['note' => 'Extracted TaxRounding.']);
-        self::requestCommand($this->client, $requestId, 'reopen', ['note' => 'Round the shipping totals too.']);
-
-        self::assertSame(['workspace' => 'new_branch', 'pullRequest' => true], self::readRequest($this->client, $requestId)['delivery']);
+        self::assertSame([$chosen, ['pullRequests' => true]], [self::readRequest($this->client, $requestId)['delivery'], self::readRequest($this->client, $requestId)['capabilities']]);
+        self::assertSame($chosen, self::assertToolResult($mcp, $mcp->callTool('get_request', ['id' => $requestId]), 'get_request')['delivery']);
     }
 
-    #[TestDox('A local repository refuses pullRequest true on D5 and on Q15, and an unknown workspace on D5, and nothing changes')]
+    #[TestDox('A local repository refuses pullRequest true and an unknown workspace on D5, and nothing changes')]
     public function testLocalRepositoryRefusesAPullRequest(): void
     {
         $reviewId = self::startCodeReview($this->client);
-        $requestId = (string) self::openRequest($this->client, $reviewId)['id'];
-        self::agentRequest($this->client, $this->secret, 'POST', "/api/v1/requests/{$requestId}/claim");
-        $proposed = self::agentRequest($this->client, $this->secret, 'POST', "/api/v1/requests/{$requestId}/propose", ['plan' => 'Extract `TaxRounding`.']);
         self::createDraft($this->client, $reviewId);
         $submit = "/api/v1/reviews/{$reviewId}/drafts/submit";
 
         $submitted = self::assertApiError(self::apiRequest($this->client, 'POST', $submit, ['delivery' => ['workspace' => null, 'pullRequest' => true]]), 422, 'invalid_input');
-        $approved = self::assertApiError(self::apiRequest($this->client, 'POST', "/api/v1/requests/{$requestId}/approve-proposal", ['proposalEventId' => $proposed['request']['proposal']['eventId'], 'pullRequest' => true]), 422, 'invalid_input');
         self::assertApiError(self::apiRequest($this->client, 'POST', $submit, ['delivery' => ['workspace' => 'elsewhere']]), 422, 'invalid_input');
 
         self::assertSame([['field' => 'delivery.pullRequest', 'message' => self::NO_PULL_REQUESTS]], $submitted['details']['violations'] ?? null);
-        self::assertSame([['field' => 'pullRequest', 'message' => self::NO_PULL_REQUESTS]], $approved['details']['violations'] ?? null);
         self::assertCount(1, self::listDrafts($this->client, $reviewId));
-        self::assertSame('pending', self::readRequest($this->client, $requestId)['proposal']['state']);
     }
 
     /**

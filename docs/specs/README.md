@@ -243,6 +243,8 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - One draft now, decision D101: the optional input `draftIds` of D5. It is additive. Without it, D5 submits every draft of the caller.
     - Request types, decision D102: the open set `RequestType`, the property `type` of `Request`, `RequestSummary`, and `Draft`, and the optional input `type` of Q2, D2, and D3. All are additive. `request.opened` has the payload field `type`, read as `change` when missing, so stored events need no change.
     - Comment groups, decision D103: the property `group` of `Request`, `RequestSummary`, and `Draft`, the optional input `group` of Q2, D2, and D3, and the optional query `group` of Q1 and `list_requests`. All are additive. `request.opened` has the payload field `group`, read as null when missing, so stored events need no change.
+    - Structured agent questions, decision D107: the optional input `questions` of Q4 and `reply_to_request`, the schema `Question`, and the property `questions` of `Event` and `ThreadEntry`. All are additive. `request.commented` has the payload field `questions`, read as `[]` when missing, so stored events need no change.
+    - No pull request choice on an approval, decision D108: Q15 has no input `pullRequest`, and a body with it answers as one without it. `Request.delivery` is `Review.delivery`, so a stored approval with `pullRequest` no longer changes it. Not additive: it removes an input and changes the meaning of `Request.delivery`. Readers ignore the `pullRequest` of a stored `request.proposal_approved`, so stored events need no change.
 
 ## 9. Contract tests
 

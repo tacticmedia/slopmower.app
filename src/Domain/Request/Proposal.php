@@ -12,13 +12,11 @@ use App\Domain\Identity\EventId;
 final readonly class Proposal
 {
     /**
-     * @param EventId   $eventId     The request.proposed event
-     * @param bool|null $pullRequest The choice of the approval (D85), null without one
+     * @param EventId $eventId The request.proposed event
      */
     public function __construct(
         public EventId $eventId,
         public ProposalState $state,
-        public ?bool $pullRequest = null,
     ) {
     }
 

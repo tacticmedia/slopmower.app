@@ -1607,7 +1607,7 @@ final class BundledSchemas
                 'items' => ['$ref' => '#/$defs/Action'],
                 'description' => 'For the caller. Empty when the review is closed.',
             ],
-            'delivery' => ['$ref' => '#/$defs/Delivery', 'description' => 'The effective choice: workspace from the review, pullRequest from the approved proposal when it has one, else from the review.'],
+            'delivery' => ['$ref' => '#/$defs/Delivery', 'description' => 'The choice of the review, Review.delivery.'],
             'capabilities' => ['$ref' => '#/$defs/Capabilities'],
         ],
         'allOf' => [

@@ -17,7 +17,6 @@ use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Identity\UserId;
 use App\Domain\Repository\RepositorySource;
-use App\Domain\Review\Delivery;
 
 /**
  * One request as {@see RequestReducer} folds it from the request's thread. {@see AwaitingPolicy} derives `awaiting`.
@@ -100,7 +99,7 @@ final readonly class RequestState
             'updatedAt' => TimeCodec::encode($this->updatedAt),
             'carriedFrom' => null === $this->carriedFrom ? null : ['reviewId' => $this->carriedFrom->reviewId->toString(), 'requestId' => $this->carriedFrom->requestId->toString()],
             'requireApproval' => $this->requireApproval,
-            'proposal' => null === $this->proposal ? null : ['eventId' => $this->proposal->eventId->toString(), 'state' => $this->proposal->state->value, 'pullRequest' => $this->proposal->pullRequest],
+            'proposal' => null === $this->proposal ? null : ['eventId' => $this->proposal->eventId->toString(), 'state' => $this->proposal->state->value],
             'suggestion' => $this->suggestion?->value,
         ];
     }
@@ -143,7 +142,7 @@ final readonly class RequestState
             updatedAt: $reader->dateTime('updatedAt'),
             carriedFrom: null === $carriedFrom ? null : new CarriedFrom($carriedFrom->id('reviewId', ReviewId::class), $carriedFrom->id('requestId', RequestId::class)),
             requireApproval: $reader->bool('requireApproval'),
-            proposal: null === $proposal ? null : new Proposal($proposal->id('eventId', EventId::class), $proposal->enum('state', ProposalState::class), $proposal->nullableBool('pullRequest')),
+            proposal: null === $proposal ? null : new Proposal($proposal->id('eventId', EventId::class), $proposal->enum('state', ProposalState::class)),
             suggestion: $reader->nullableEnum('suggestion', SuggestionState::class),
             title: $reader->nullableString('title'),
             type: $reader->nullableEnum('type', RequestType::class) ?? RequestType::Change,
@@ -191,16 +190,6 @@ final readonly class RequestState
     public function proposalGateOpen(): bool
     {
         return null === $this->proposal ? !$this->requireApproval : ProposalState::Approved === $this->proposal->state;
-    }
-
-    /**
-     * The workspace of the review, and the pull request choice of the approved proposal before that of the review.
-     */
-    public function delivery(Delivery $review): Delivery
-    {
-        $approved = ProposalState::Approved === $this->proposal?->state ? $this->proposal->pullRequest : null;
-
-        return new Delivery($review->workspace, $approved ?? $review->pullRequest);
     }
 
     public function suggestionPending(): bool

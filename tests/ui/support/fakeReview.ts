@@ -110,8 +110,6 @@ export class FakeReview {
     readonly #symbols: Record<string, CodeSymbol[]>;
     readonly #draftAnchors = new Map<string, AnchorInput | null>();
     readonly #tracking = new Map<string, Tracking>();
-    /** The pull request choice of the latest approval per request (D85). */
-    readonly #approvalChoices = new Map<string, boolean | null>();
     #seq: number;
 
     constructor(api: MockApi, options: FakeReviewOptions = {}) {
@@ -255,10 +253,7 @@ export class FakeReview {
     #present(request: Request): Request {
         const allowedActions = 'closed' === this.review.state ? [] : userActions(request.status, this.#trackingOf(request.id).wontDoBy, request.proposal, request.suggestion);
 
-        const approved = 'approved' === request.proposal?.state ? (this.#approvalChoices.get(request.id) ?? null) : null;
-        const delivery = { workspace: this.review.delivery.workspace, pullRequest: approved ?? this.review.delivery.pullRequest };
-
-        return { ...request, reviewState: this.review.state, allowedActions, delivery, capabilities: this.review.capabilities };
+        return { ...request, reviewState: this.review.state, allowedActions, delivery: this.review.delivery, capabilities: this.review.capabilities };
     }
 
     #openRequest(input: AnchorInput | null, body: string, batchId: string | null = null, requireApproval = false, title: string | null = null, type: RequestType = 'change', group: string | null = null): Request {
@@ -353,8 +348,7 @@ export class FakeReview {
             case 'verify':
                 return this.#apply(id, this.#entry('request.verified', USER, (input as OptionalNoteInput).note ?? null, 'verified'), { status: 'verified' });
             case 'approve-proposal': {
-                const { proposalEventId, note, pullRequest } = input as ApproveProposalInput;
-                this.#approvalChoices.set(id, pullRequest ?? null);
+                const { proposalEventId, note } = input as ApproveProposalInput;
 
                 return this.#apply(id, this.#entry('request.proposal_approved', USER, note ?? null, status), { proposal: { eventId: proposalEventId, state: 'approved' } });
             }

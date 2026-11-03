@@ -144,9 +144,8 @@ and read their whole thread, because the user rejected an earlier result.
      `request.proposed` entry from `get_request`, and `git stash drop` the entry
      that `git stash list` names `slopmower <requestId>`. If
      `git apply --index` fails, implement the approved plan by hand, then drop
-     the stash entry. Without a diff, implement the approved plan. Call
-     `get_request` again, because the approval can set
-     `delivery.pullRequest`. Go on with step 5.
+     the stash entry. Without a diff, implement the approved plan. Go on
+     with step 5.
    - Changes requested (`rejected`): drop that stash entry, read the note of the
      `request.proposal_rejected` entry, and propose again.
    - Link no commit while the proposal is pending or rejected, or while

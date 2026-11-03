@@ -225,7 +225,7 @@
     },
     "delivery": {
       "$ref": "common.schema.json#/$defs/Delivery",
-      "description": "The effective choice: workspace from the review, pullRequest from the approved proposal when it has one, else from the review."
+      "description": "The choice of the review, Review.delivery."
     },
     "capabilities": {
       "$ref": "common.schema.json#/$defs/Capabilities"

@@ -168,16 +168,14 @@ final class EventRoundTripTest extends KernelTestCase
         self::assertNull($event->delivery);
     }
 
-    #[TestDox('A request.proposal_approved payload without pullRequest decodes with pullRequest null')]
-    public function testDecodesProposalApprovedWithoutPullRequest(): void
+    #[TestDox('A stored request.proposal_approved payload with pullRequest decodes, and encodes without it (D108)')]
+    public function testDecodesProposalApprovedWithPullRequest(): void
     {
         $payload = self::eventFixturePayload('request.proposal_approved');
-        unset($payload['pullRequest']);
 
-        $event = EventType::RequestProposalApproved->decode($payload);
+        $event = EventType::RequestProposalApproved->decode([...$payload, 'pullRequest' => false]);
 
-        self::assertInstanceOf(RequestProposalApprovedEvent::class, $event);
-        self::assertNull($event->pullRequest);
+        self::assertSame($payload, $event->toPayload());
     }
 
     /**
@@ -251,7 +249,7 @@ final class EventRoundTripTest extends KernelTestCase
                 'Extract `TaxRounding` and call it from `total()` and `tax()`.',
                 ProposedDiff::fromString("diff --git a/src/Billing/InvoiceTotals.php b/src/Billing/InvoiceTotals.php\n--- a/src/Billing/InvoiceTotals.php\n+++ b/src/Billing/InvoiceTotals.php\n@@ -40 +40 @@\n-        \$sum = 0.0;\n+        \$sum = Money::zero();\n"),
             ),
-            EventType::RequestProposalApproved => new RequestProposalApprovedEvent(EventId::fromString(self::PROPOSAL), null, false),
+            EventType::RequestProposalApproved => new RequestProposalApprovedEvent(EventId::fromString(self::PROPOSAL), null),
             EventType::RequestProposalRejected => new RequestProposalRejectedEvent(EventId::fromString(self::PROPOSAL), 'Put the export into `InvoiceTotals` itself. One class is enough.'),
             EventType::RequestPlanRequired => new RequestPlanRequiredEvent(),
             EventType::RequestPlanWaived => new RequestPlanWaivedEvent(),

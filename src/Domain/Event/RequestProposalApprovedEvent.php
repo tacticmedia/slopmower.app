@@ -12,7 +12,6 @@ final readonly class RequestProposalApprovedEvent implements DomainEvent
     public function __construct(
         public EventId $proposalEventId,
         public ?string $note,
-        public ?bool $pullRequest = null,
     ) {
     }
 
@@ -23,13 +22,13 @@ final readonly class RequestProposalApprovedEvent implements DomainEvent
 
     public function toPayload(): array
     {
-        return ['proposalEventId' => $this->proposalEventId->toString(), 'note' => $this->note, 'pullRequest' => $this->pullRequest];
+        return ['proposalEventId' => $this->proposalEventId->toString(), 'note' => $this->note];
     }
 
     public static function fromPayload(array $payload): self
     {
         $reader = PayloadReader::of($payload);
 
-        return new self($reader->id('proposalEventId', EventId::class), $reader->nullableString('note'), $reader->nullableBool('pullRequest'));
+        return new self($reader->id('proposalEventId', EventId::class), $reader->nullableString('note'));
     }
 }

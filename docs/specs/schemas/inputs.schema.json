@@ -287,10 +287,6 @@
         "note": {
           "type": ["string", "null"],
           "maxLength": 65536
-        },
-        "pullRequest": {
-          "type": ["boolean", "null"],
-          "description": "Whether the work of this request goes into a pull request. Absent or null: the choice of the review. True needs Request.capabilities.pullRequests."
         }
       }
     },
