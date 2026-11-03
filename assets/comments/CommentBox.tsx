@@ -3,6 +3,7 @@ import { InlineMessage } from '@primer/react/experimental';
 import { type FormEvent, type KeyboardEvent, type Ref, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { isPressed, type ModShortcut } from '../layout/modShortcut';
 import styles from './CommentBox.module.css';
+import { useUnsavedComment } from './UnsavedCommentGuard';
 
 /** About 2 s at 60 frames per second. */
 const FOCUS_ATTEMPTS = 120;
@@ -37,6 +38,8 @@ type Props = {
     onCancel?: () => void;
     initialTitle?: string;
     initialBody?: string;
+    /** The initial text is saved, so only a change is unsaved. Otherwise any text is unsaved. */
+    initialTextSaved?: boolean;
     error: string | null;
     busy: boolean;
     focusOnMount?: boolean;
@@ -57,6 +60,7 @@ export function CommentBox({
     onCancel,
     initialTitle = '',
     initialBody = '',
+    initialTextSaved = false,
     error,
     busy,
     focusOnMount = false,
@@ -67,6 +71,7 @@ export function CommentBox({
     const [requireApproval, setRequireApproval] = useState(askForPlan ?? false);
     const [sent, setSent] = useState(false);
     const textarea = useRef<HTMLTextAreaElement>(null);
+    useUnsavedComment(!sent && (initialTextSaved ? title !== initialTitle || body !== initialBody : '' !== title.trim() || '' !== body.trim()));
 
     if (sent && !busy) {
         setSent(false);

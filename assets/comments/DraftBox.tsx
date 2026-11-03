@@ -104,6 +104,7 @@ export function DraftBox({ draft, editable }: Props) {
                         onCancel={() => setEditing(false)}
                         initialTitle={draft.title ?? ''}
                         initialBody={draft.body}
+                        initialTextSaved
                         error={error}
                         busy={writing}
                         focusOnMount

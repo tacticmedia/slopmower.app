@@ -108,7 +108,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F90 | [One request command path](F90-one-request-command-path.md) | Done 2026-10-29, [report](reports/F90.md) | 55ef6ca | src 509 PHP / 34398 lines, 509 types; tests 344 PHP / 32455 lines; assets 188 TS / 11310 lines |
 | F91 | [MCP tools from one definition](F91-mcp-tools-from-one-definition.md) | Done 2026-10-29, [report](reports/F91.md) | c84a51b | src 510 PHP / 34683 lines, 510 types; tests 345 PHP / 32496 lines; assets 188 TS / 11310 lines |
 | F92 | [Known issues: pending drafts width and two stale docs](F92-pending-drafts-width-and-stale-docs.md) | Done 2026-11-03, [report](reports/F92.md) | efeadc3b | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 188 TS / 11342 lines |
-| F93 | [Warning before leaving an unsaved comment](F93-unsaved-comment-warning.md) | Planned | | |
+| F93 | [Warning before leaving an unsaved comment](F93-unsaved-comment-warning.md) | Done 2026-11-03, [report](reports/F93.md) | | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 189 TS / 11424 lines |
 | F94 | [File tree entries as links](F94-file-tree-links.md) | Planned | | |
 | F95 | [Markdown editor with Write and Preview](F95-markdown-editor.md) | Planned | | |
 | F96 | [Send one draft now](F96-send-one-draft-now.md) | Planned | | |

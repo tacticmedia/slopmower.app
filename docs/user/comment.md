@@ -33,6 +33,8 @@ Every comment box of a new request has the checkbox **Ask for a plan first**. It
 
 If a comment cannot be saved, its box opens again with your text, the error, and the selected lines.
 
+While a comment box holds text that is not saved, Slopmower asks before it opens another page. Click **Keep editing** to stay, or **Discard** to leave without the text. The browser also asks before a reload or a closed tab.
+
 ## Open a general request
 
 A general request belongs to the whole review and names no file, line, or symbol, for example "Add a full-screen focus mode". Open **Requests** and click **New request**. Type the request and click **Add comment**. Like a comment on code, it is a draft until you submit your feedback.
