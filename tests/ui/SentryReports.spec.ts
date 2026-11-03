@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { openFile } from './support/codeView';
+import { FakeRepositories } from './support/fakeRepositories';
 import { FakeReview } from './support/fakeReview';
 import { SMALL_FILE } from './support/files';
 import { apiError } from './support/mockApi';
@@ -60,6 +61,32 @@ test.describe('SentryReports', () => {
         expect(event).toMatchObject({ release: 'test-release', environment: 'ui-test', sdk: { settings: { infer_ip: 'never' } } });
         expect(payload).toContain('/search?q=[Filtered]');
         expect(payload).not.toContain(SEARCH_TEXT);
+    });
+
+    test('A request that gets no response sends no event, and a server error after it sends one', async ({ page, api }) => {
+        const events = await reportToSentry(page, 'event');
+        new FakeRepositories(api);
+        api.on('GET', '/api/v1/repositories', () => apiError(500, 'internal_error', 'The list failed.'));
+        let aborted = false;
+        await page.route(
+            (url) => '/api/v1/repositories' === url.pathname,
+            (route) => {
+                if (aborted) {
+                    return route.fallback();
+                }
+                aborted = true;
+
+                return route.abort('failed');
+            },
+        );
+
+        await page.goto('/repositories');
+        await expect(page.getByTestId('route-error')).toContainText('Failed to fetch');
+        await page.getByRole('link', { name: 'Go to the start page' }).click();
+        await expect(page.getByTestId('route-error')).toContainText('The list failed.');
+
+        await expect.poll(() => events.length).toBe(1);
+        expect(JSON.parse(events[0] ?? '').exception.values[0].value).toBe('The list failed.');
     });
 
     test('"Report a Bug" sends one feedback with the description, the release and environment, and no IP address', async ({ page, api }) => {

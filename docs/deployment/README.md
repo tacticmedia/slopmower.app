@@ -77,7 +77,7 @@ Server reports:
 
 Browser reports:
 
-- An uncaught error, an error that a screen shows in place of its content, and an API answer of 500 or more send an event. An API answer below 500 sends none.
+- An uncaught error, an error that a screen shows in place of its content, and an API answer of 500 or more send an event. An API answer below 500 sends none, and neither does a request that gets no answer, for example after a lost connection (D105).
 - An event holds the exception with the stack trace of the minified bundle, the page URL, the user agent, and the breadcrumbs: the API calls with their method, URL, and status, the navigations, the clicked elements, and the console messages. It holds no request or response body, no IP address, and no user. The values of the query parameters `q`, `name`, `confirm`, and `code` are `[Filtered]`.
 - Each page load and navigation sends a trace. The API calls carry the `sentry-trace` and `baggage` headers, and no other host gets them.
 - 10% of the sessions, and each session with an error, send a session replay. A replay masks all text and inputs, and blocks all images and media.
