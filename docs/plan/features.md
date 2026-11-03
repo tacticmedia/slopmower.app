@@ -111,7 +111,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F93 | [Warning before leaving an unsaved comment](F93-unsaved-comment-warning.md) | Done 2026-11-03, [report](reports/F93.md) | 79dedaf9 | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 189 TS / 11424 lines |
 | F94 | [File tree entries as links](F94-file-tree-links.md) | Done 2026-11-03, [report](reports/F94.md) | dd1eabb3 | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 189 TS / 11434 lines; check 6m26s |
 | F95 | [Markdown editor with Write and Preview](F95-markdown-editor.md) | Planned | | |
-| F96 | [Send one draft now](F96-send-one-draft-now.md) | Planned | | |
+| F96 | [Send one draft now](F96-send-one-draft-now.md) | Done 2026-11-03, [report](reports/F96.md) | | src 512 PHP / 34937 lines, 512 types; tests 348 PHP / 32826 lines; assets 189 TS / 11471 lines |
 | F97 | [Request type: change, question, rule](F97-request-type.md) | Planned | | |
 | F98 | [Comment groups](F98-comment-groups.md) | Planned | | |
 | F99 | [Source maps for browser reports](F99-source-maps.md) | Done 2026-11-03, [report](reports/F99.md) | 1439303a | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 188 TS / 11342 lines |

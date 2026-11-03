@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
+use App\Domain\Identity\DraftId;
 use App\Entity\Draft;
 use App\Entity\User;
 use App\Tests\Support\Api\ApiFixtures;
@@ -153,6 +154,34 @@ final class SubmitBatchTest extends WebTestCase
 
         self::assertCount(1, $submission['openedRequests']);
         self::assertSame(['Written during the submission.'], array_column(self::listDrafts($this->client, $this->reviewId), 'body'));
+    }
+
+    #[TestDox('draftIds submits only the named drafts, in any letter case, and the other drafts stay')]
+    public function testDraftIdsSubmitOnlyTheNamedDrafts(): void
+    {
+        $sent = (string) self::createDraft($this->client, $this->reviewId, null, 'Is the rounding intended?')['id'];
+        self::createDraft($this->client, $this->reviewId, null, 'Wrap long lines.');
+
+        $submission = self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts/submit", ['draftIds' => [strtolower($sent)]]), 201, 'batch-submission.schema.json');
+
+        self::assertSame(['Is the rounding intended?'], array_column($submission['openedRequests'], 'summary'));
+        self::assertSame(['Wrap long lines.'], array_column(self::listDrafts($this->client, $this->reviewId), 'body'));
+    }
+
+    #[TestDox('draftIds with an unknown ID or a draft of another user gives 422 invalid_input and submits nothing')]
+    public function testDraftIdsOfNoOwnDraftGiveInvalidInput(): void
+    {
+        $mine = (string) self::createDraft($this->client, $this->reviewId)['id'];
+        $this->client->loginUser(self::secondUser($this->user), 'web');
+        $theirs = (string) self::createDraft($this->client, $this->reviewId)['id'];
+        $this->client->loginUser($this->user, 'web');
+
+        foreach ([DraftId::generate()->toString(), $theirs] as $foreign) {
+            $error = self::assertApiError(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$this->reviewId}/drafts/submit", ['draftIds' => [$mine, $foreign]]), 422, 'invalid_input');
+            self::assertSame('draftIds', $error['details']['violations'][0]['field'] ?? null);
+        }
+
+        self::assertSame([$mine], array_column(self::listDrafts($this->client, $this->reviewId), 'id'));
     }
 
     #[TestDox('Submitting zero drafts gives 422 invalid_input')]

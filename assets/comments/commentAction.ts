@@ -1,8 +1,10 @@
 import type { ActionFunctionArgs } from 'react-router';
 import { type ActionResult, writeResult } from '../api/actionResult';
 import { apiWrite } from '../api/client';
+import type { BatchSubmission } from '../api/types/batch-submission';
+import type { SubmitDraftsInput } from '../api/types/inputs';
 import type { RequestCommandResult } from '../api/types/request-command-result';
-import { rememberEvents } from '../live/eventPositions';
+import { eventPositions, rememberEvents } from '../live/eventPositions';
 import { encodedRouteParam } from '../routes/encodedRouteParam';
 import type { CommentIntent } from './commentIntent';
 
@@ -27,5 +29,11 @@ export async function writeComment(reviewId: string, submitted: CommentIntent, s
             return apiWrite('PATCH', `/api/v1/drafts/${encodeURIComponent(submitted.draftId)}`, submitted.input, signal);
         case 'deleteDraft':
             return apiWrite('DELETE', `/api/v1/drafts/${encodeURIComponent(submitted.draftId)}`, undefined, signal);
+        case 'sendDraft': {
+            const input: SubmitDraftsInput = { draftIds: [submitted.draftId] };
+            const submission = await apiWrite<BatchSubmission>('POST', `${review}/drafts/submit`, input, signal);
+
+            return eventPositions.written(submission.reviewId, submission.seq);
+        }
     }
 }

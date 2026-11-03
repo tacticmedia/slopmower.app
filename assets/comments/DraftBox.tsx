@@ -19,8 +19,8 @@ type Props = {
 };
 
 /**
- * A pending comment. The editor stays open while D3 runs and closes when it succeeds. A deleted draft disappears at
- * once and comes back when D4 fails.
+ * A pending comment. The editor stays open while D3 runs and closes when it succeeds. A deleted or sent draft
+ * disappears at once and comes back when D4 or D5 fails.
  */
 export function DraftBox({ draft, editable }: Props) {
     const fetcher = useFetcher<ActionResult>();
@@ -58,9 +58,9 @@ export function DraftBox({ draft, editable }: Props) {
 
         return true;
     };
-    const remove = (): void => {
+    const remove = (intent: 'deleteDraft' | 'sendDraft'): void => {
         if (!writing && null !== draftId) {
-            submit({ intent: 'deleteDraft', draftId }, () => markDeleted(true));
+            submit({ intent, draftId }, () => markDeleted(true));
         }
     };
 
@@ -84,8 +84,9 @@ export function DraftBox({ draft, editable }: Props) {
                         </ActionMenu.Anchor>
                         <ActionMenu.Overlay>
                             <ActionList>
+                                {editable && <ActionList.Item onSelect={() => remove('sendDraft')}>Send now</ActionList.Item>}
                                 {editable && <ActionList.Item onSelect={() => setEditing(true)}>Edit</ActionList.Item>}
-                                <ActionList.Item variant="danger" onSelect={remove}>
+                                <ActionList.Item variant="danger" onSelect={() => remove('deleteDraft')}>
                                     Delete
                                 </ActionList.Item>
                             </ActionList>

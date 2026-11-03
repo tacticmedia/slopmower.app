@@ -618,13 +618,13 @@ The anchor cannot change. To move a draft, delete it and create a new one.
 
 - **Request:** `POST /api/v1/reviews/{reviewId}/drafts/submit`
 - **Authentication:** S
-- **Body:** [`SubmitDraftsInput`](schemas/inputs.schema.json), `{summary?, delivery?}`. Example: [fixtures/inputs.submit-drafts.json](fixtures/inputs.submit-drafts.json).
+- **Body:** [`SubmitDraftsInput`](schemas/inputs.schema.json), `{summary?, delivery?, draftIds?}`. `draftIds` names 1 to 500 drafts of the caller in the review. With it, D5 submits only those drafts, and the other drafts stay (D101). Examples: [fixtures/inputs.submit-drafts.json](fixtures/inputs.submit-drafts.json), [fixtures/inputs.submit-one-draft.json](fixtures/inputs.submit-one-draft.json).
 - **Success:** 201 [`BatchSubmission`](schemas/batch-submission.schema.json)
-- **Errors:** 422 `invalid_input` when there are no drafts, or when `delivery.pullRequest` is true and the repository has no pull requests (D83); 409 `review_closed`; 409 `limit_exceeded` with `limit: requests_per_review` when the `new_request` drafts would pass the limit.
+- **Errors:** 422 `invalid_input` when there are no drafts, when an ID of `draftIds` is not a draft of the caller in the review, or when `delivery.pullRequest` is true and the repository has no pull requests (D83); 409 `review_closed`; 409 `limit_exceeded` with `limit: requests_per_review` when the `new_request` drafts would pass the limit.
 
 One transaction:
 
-1. takes all drafts of the caller in the review, sorted by `createdAt`, and creates a `batchId`;
+1. takes all drafts of the caller in the review, or the drafts of `draftIds`, sorted by `createdAt`, and creates a `batchId`;
 2. for each draft, writes `request.opened` or `request.commented` with that `batchId`. A `new_request` draft opens its request with its title, and a general draft opens a general request;
 3. writes `batch.submitted` with `summary`, `delivery`, `requestIds`, and `commentIds`;
 4. deletes the drafts.

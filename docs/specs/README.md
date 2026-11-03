@@ -238,6 +238,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Pull request hosts, decision D83: Q17 and `link_pull_request` refuse a review of a local repository with 422 `invalid_input` on `url`, where they stored any https URL. Q19 and `unlink_pull_request` still remove a stored link, and `allowedActions` does not change. Not additive: it is tighter validation.
     - Delivery choices, decision D85: the properties `delivery` and `capabilities` of `Review` and `Request`, the schemas `Delivery`, `DeliveryInput`, and `Capabilities`, the open set `Workspace`, the optional inputs `delivery` of D5 and `pullRequest` of Q15, and the payload fields `delivery` of `batch.submitted` and `pullRequest` of `request.proposal_approved`, read as null when missing. All are additive. The API `Event` does not change.
     - MCP transport limit and sync fetch wait, F86: `mcp_http` counts per user, not per token, so all tokens of a user share one bucket. A synchronous fetch answers `fetch_failed` after waiting 5 s for a running fetch, where it waited up to 60 s (D93). Both are tighter limits, so they are listed here.
+    - One draft now, decision D101: the optional input `draftIds` of D5. It is additive. Without it, D5 submits every draft of the caller.
 
 ## 9. Contract tests
 
@@ -346,6 +347,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.release.json](fixtures/inputs.release.json) | `inputs.schema.json#/$defs/OptionalNoteInput` | Q6, Q12 |
 | [inputs.start-review.json](fixtures/inputs.start-review.json) | `inputs.schema.json#/$defs/StartReviewInput` | V1 |
 | [inputs.submit-drafts.json](fixtures/inputs.submit-drafts.json) | `inputs.schema.json#/$defs/SubmitDraftsInput` | D5 |
+| [inputs.submit-one-draft.json](fixtures/inputs.submit-one-draft.json) | `inputs.schema.json#/$defs/SubmitDraftsInput` | D5 with `draftIds` |
 | [inputs.suggest-request.json](fixtures/inputs.suggest-request.json) | `inputs.schema.json#/$defs/SuggestRequestInput` | Q20, `suggest_request` |
 | [inputs.title.json](fixtures/inputs.title.json) | `inputs.schema.json#/$defs/TitleInput` | Q23, `set_request_title` |
 | [inputs.unlink-pull-request.json](fixtures/inputs.unlink-pull-request.json) | `inputs.schema.json#/$defs/UnlinkPullRequestInput` | Q19 |

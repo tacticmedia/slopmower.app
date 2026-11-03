@@ -46,6 +46,7 @@ import inputsRejectProposal from '../../docs/specs/fixtures/inputs.reject-propos
 import inputsRelease from '../../docs/specs/fixtures/inputs.release.json';
 import inputsStartReview from '../../docs/specs/fixtures/inputs.start-review.json';
 import inputsSubmitDrafts from '../../docs/specs/fixtures/inputs.submit-drafts.json';
+import inputsSubmitOneDraft from '../../docs/specs/fixtures/inputs.submit-one-draft.json';
 import inputsSuggestRequest from '../../docs/specs/fixtures/inputs.suggest-request.json';
 import inputsTitle from '../../docs/specs/fixtures/inputs.title.json';
 import inputsUnlinkPullRequest from '../../docs/specs/fixtures/inputs.unlink-pull-request.json';
@@ -222,6 +223,7 @@ const checkedFixtures = {
     'inputs.release.json': inputsRelease satisfies Widen<OptionalNoteInput>,
     'inputs.start-review.json': inputsStartReview satisfies Widen<StartReviewInput>,
     'inputs.submit-drafts.json': inputsSubmitDrafts satisfies Widen<SubmitDraftsInput>,
+    'inputs.submit-one-draft.json': inputsSubmitOneDraft satisfies Widen<SubmitDraftsInput>,
     'inputs.suggest-request.json': inputsSuggestRequest satisfies Widen<SuggestRequestInput>,
     'inputs.title.json': inputsTitle satisfies Widen<TitleInput>,
     'inputs.unlink-pull-request.json': inputsUnlinkPullRequest satisfies Widen<UnlinkPullRequestInput>,

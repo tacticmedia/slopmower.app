@@ -132,6 +132,8 @@ export type SubmitDraftsInput = {
     summary?: string | null;
     /** Absent or null keeps the delivery of the review. */
     delivery?: DeliveryInput | null;
+    /** 1 to 500 drafts of the caller. Absent or null: every draft. */
+    draftIds?: Ulid[] | null;
 };
 
 export type ViewedFileInput = {

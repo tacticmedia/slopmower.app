@@ -161,8 +161,8 @@ final class DraftController extends AbstractController
     }
 
     /**
-     * In one transaction: request.opened or request.commented per draft of the user, sorted by createdAt, then
-     * batch.submitted. Deletes exactly the drafts that it read, so a draft created meanwhile stays.
+     * In one transaction: request.opened or request.commented per draft of the user, or per draft of draftIds, sorted
+     * by createdAt, then batch.submitted. Deletes exactly the drafts that it submits, so a draft created meanwhile stays.
      */
     #[Route('/api/v1/reviews/{reviewId}/drafts/submit', name: 'submit', methods: ['POST'])]
     public function submit(
@@ -189,6 +189,15 @@ final class DraftController extends AbstractController
             function () use ($review, $reviews, $requests, $usageLimits, $batchId, $input, $actor, &$drafts): array {
                 $snapshot = ($reviews->findFresh($review->getId()) ?? throw new NotFound())->toSnapshot();
                 $drafts = $this->drafts->findOfUser($this->currentActor->sessionUser()->getId(), $review->getId());
+
+                if (null !== $input->draftIds) {
+                    $named = array_map(strtoupper(...), $input->draftIds);
+                    $drafts = array_values(array_filter($drafts, static fn (Draft $draft): bool => \in_array($draft->getId()->toString(), $named, true)));
+
+                    if (\count($drafts) !== \count($named)) {
+                        throw InvalidInput::field('draftIds', 'Must name drafts of the caller in this review.');
+                    }
+                }
 
                 if ([] === $drafts) {
                     throw InvalidInput::field('', 'There are no drafts to submit.');

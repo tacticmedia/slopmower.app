@@ -62,6 +62,8 @@ The review keeps your choice, and the next dialog starts from it. It counts for 
 
 Submitting feedback does not end the review. You can add more comments and submit feedback again. To end the review, close it, as [Close a review](requests.md#close-a-review) shows.
 
+**Send now** in the menu of a draft sends only that draft, for example a quick question. Your other drafts stay pending.
+
 A reply in a thread is not a draft. **Reply** sends it at once, because the agent often waits for your answer. The buttons of a request, for example **Verify** or **Approve**, also act at once.
 
 You can edit or delete a draft before you submit it. **Pending drafts** on the **Requests** tab lists all your drafts: new requests and replies. Each draft links to its lines or to the request that it replies to.

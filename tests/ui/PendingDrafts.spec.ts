@@ -28,6 +28,24 @@ test.describe('PendingDrafts', () => {
         await expect(page.locator('[slot="annotation-12"] [data-testid="draft"]')).toContainText('Extract the tax calculation.');
     });
 
+    test('Send now opens the request of one draft, and the other draft stays pending', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        const sent = review.seedDraft({ kind: 'new_request', anchor: null, body: 'Is the rounding intended?' });
+        review.seedDraft({ kind: 'new_request', anchor: null, body: 'Wrap long lines.' });
+        await page.goto(`/reviews/${review.id}/requests`);
+        const drafts = page.locator(PENDING_DRAFTS);
+        await expect(page.locator(SUBMIT_FEEDBACK)).toContainText('2');
+
+        await drafts.filter({ hasText: 'Is the rounding intended?' }).getByRole('button', { name: 'Pending comment actions' }).click();
+        await page.getByRole('menuitem', { name: 'Send now', exact: true }).click();
+
+        await expect(page.getByTestId('request-list')).toContainText('Is the rounding intended?');
+        await expect(drafts).toHaveCount(1);
+        await expect(drafts).toContainText('Wrap long lines.');
+        await expect(page.locator(SUBMIT_FEEDBACK)).toContainText('1');
+        expect(api.bodies('POST', '/api/v1/reviews/:reviewId/drafts/submit')).toEqual([{ draftIds: [sent.id] }]);
+    });
+
     test('A reply draft names its request while the filters hide the request', async ({ page, api }) => {
         const review = new FakeReview(api);
         const request = review.seedLines(SMALL_FILE, 3, 3, 'Is strict_types needed here?');

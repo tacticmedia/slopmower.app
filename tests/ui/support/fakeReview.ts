@@ -671,10 +671,15 @@ export class FakeReview {
     }
 
     #submitDrafts(input: SubmitDraftsInput): MockResponse {
-        if (0 === this.drafts.length) {
+        const draftIds = input.draftIds ?? null;
+        const submitted = null === draftIds ? this.drafts : this.drafts.filter(({ id }) => draftIds.includes(id));
+        if (null !== draftIds && submitted.length !== draftIds.length) {
+            return apiError(422, 'invalid_input', 'Must name drafts of the caller in this review.', { violations: [{ field: 'draftIds', message: 'Must name drafts of the caller in this review.' }] });
+        }
+        if (0 === submitted.length) {
             return apiError(422, 'invalid_input', 'There are no drafts to submit.', { violations: [{ field: '', message: 'There are no drafts to submit.' }] });
         }
-        if (this.drafts.some(({ kind }) => 'reply' === kind)) {
+        if (submitted.some(({ kind }) => 'reply' === kind)) {
             throw new Error('The fake submits new-request drafts only.');
         }
         if (true === input.delivery?.pullRequest && !this.review.capabilities.pullRequests) {
@@ -684,8 +689,8 @@ export class FakeReview {
             this.review = { ...this.review, delivery: { workspace: input.delivery.workspace ?? null, pullRequest: input.delivery.pullRequest ?? null } };
         }
         const batchId = newId();
-        const opened = this.drafts.map((draft) => this.#openRequest(this.#draftAnchors.get(draft.id) ?? null, draft.body, batchId, draft.requireApproval, draft.title));
-        this.drafts = [];
+        const opened = submitted.map((draft) => this.#openRequest(this.#draftAnchors.get(draft.id) ?? null, draft.body, batchId, draft.requireApproval, draft.title));
+        this.drafts = this.drafts.filter((draft) => !submitted.includes(draft));
 
         return json('batch-submission.schema.json', { batchId, reviewId: this.id, summary: input.summary ?? null, submittedAt: now(), seq: ++this.#seq, openedRequests: opened.map(requestSummary), replies: [] }, 201);
     }

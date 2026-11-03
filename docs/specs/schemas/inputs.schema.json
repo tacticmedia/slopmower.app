@@ -479,6 +479,16 @@
         "delivery": {
           "$ref": "#/$defs/DeliveryInput",
           "description": "Absent or null: the review keeps its delivery choices. pullRequest true needs Review.capabilities.pullRequests."
+        },
+        "draftIds": {
+          "type": ["array", "null"],
+          "minItems": 1,
+          "maxItems": 500,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/Ulid"
+          },
+          "description": "Absent or null: every draft of the caller in the review. Else only these drafts, and the other drafts stay. An ID that is not a draft of the caller in the review answers 422."
         }
       }
     },

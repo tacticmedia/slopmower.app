@@ -25,8 +25,8 @@ use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 
 /**
  * Sends each request body fixture of docs/specs/README.md section 11 to its endpoint. The fixture IDs stand for rows
- * of the test: the review repository, the review, a first request, a second request, and the proposal of the agent on
- * the first request. `{targetReviewId}` is a second review of the repository.
+ * of the test: the review repository, the review, a first request, a second request, the proposal of the agent on
+ * the first request, and a draft. `{targetReviewId}` is a second review of the repository.
  */
 final class InputFixturesTest extends WebTestCase
 {
@@ -56,6 +56,8 @@ final class InputFixturesTest extends WebTestCase
     private const string FIXTURE_SECOND_REQUEST_ID = '01K6B3P2A9QRSTVWXYZ0123457';
 
     private const string FIXTURE_PROPOSAL_EVENT_ID = '01K6C2EVT00000000000001862';
+
+    private const string FIXTURE_DRAFT_ID = '01K6D0DRAFT000000000000001';
 
     private const string RESULT = 'request-command-result.schema.json';
 
@@ -91,6 +93,7 @@ final class InputFixturesTest extends WebTestCase
         'inputs.release.json' => ['schema' => 'inputs.schema.json#/$defs/OptionalNoteInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/release', 'status' => 200, 'response' => self::RESULT, 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID]],
         'inputs.start-review.json' => ['schema' => 'inputs.schema.json#/$defs/StartReviewInput', 'method' => 'POST', 'path' => '/api/v1/repositories/{repositoryId}/reviews', 'status' => 201, 'response' => 'review.schema.json'],
         'inputs.submit-drafts.json' => ['schema' => 'inputs.schema.json#/$defs/SubmitDraftsInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/drafts/submit', 'status' => 201, 'response' => 'batch-submission.schema.json', 'draft' => true],
+        'inputs.submit-one-draft.json' => ['schema' => 'inputs.schema.json#/$defs/SubmitDraftsInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/drafts/submit', 'status' => 201, 'response' => 'batch-submission.schema.json', 'draft' => true],
         'inputs.suggest-request.json' => ['schema' => 'inputs.schema.json#/$defs/SuggestRequestInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/suggestions', 'status' => 201, 'response' => self::RESULT, 'bearer' => true],
         'inputs.title.json' => ['schema' => 'inputs.schema.json#/$defs/TitleInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/title', 'status' => 200, 'response' => self::RESULT, 'bearer' => true],
         'inputs.unlink-pull-request.json' => ['schema' => 'inputs.schema.json#/$defs/UnlinkPullRequestInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/unlink-pull-request', 'status' => 200, 'response' => self::RESULT, 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID], 'linked' => true, 'github' => true],
@@ -142,6 +145,10 @@ final class InputFixturesTest extends WebTestCase
             self::agentRequest($client, $secret, 'POST', "/api/v1/requests/{$ids[$fixtureId]}/claim");
         }
 
+        if (isset($case['draft'])) {
+            $ids[self::FIXTURE_DRAFT_ID] = (string) self::createDraft($client, $reviewId)['id'];
+        }
+
         if (isset($case['proposed'])) {
             $proposed = self::agentRequest($client, $secret, 'POST', "/api/v1/requests/{$ids[self::FIXTURE_REQUEST_ID]}/propose", ['plan' => 'Extract `TaxRounding`.']);
             $ids[self::FIXTURE_PROPOSAL_EVENT_ID] = (string) $proposed['request']['proposal']['eventId'];
@@ -160,7 +167,7 @@ final class InputFixturesTest extends WebTestCase
             '{reviewId}' => $reviewId,
             '{repositoryId}' => $repositoryId,
             '{requestId}' => $ids[self::FIXTURE_REQUEST_ID],
-            '{draftId}' => isset($case['draft']) ? (string) self::createDraft($client, $reviewId)['id'] : '',
+            '{draftId}' => $ids[self::FIXTURE_DRAFT_ID] ?? '',
             '{targetReviewId}' => str_contains($case['path'], '{targetReviewId}') ? (string) self::startReviewThroughApi($client, $repositoryId)['id'] : '',
         ]);
 
