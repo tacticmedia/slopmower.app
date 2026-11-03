@@ -35,7 +35,7 @@ Send every privacy question and request to this email address.
 | Server logs: times, request URLs, status codes, error messages, IDs, and IP addresses. Never your code or the text of agent calls. | Slopmower and the hosting provider | To find errors and keep the service secure | Legitimate interests |
 | Error reports: the time, the request method, URL, and headers, the error message, and where in the Slopmower code the error happened. Never a request body, your code, the text of agent calls, cookies, tokens, or your IP address. | Slopmower | To find and fix errors | Legitimate interests |
 | Bug reports that you send with **Report a Bug**: your description, the name and email address when you type them, the screenshot when you add one, and the page URL. A screenshot shows what is on your screen, which can be your code. | You | To find and fix the errors that you report | Contract |
-| Browser reports: errors of the Slopmower pages in your browser, the page URLs, the API calls with their URLs and status codes, the timing of page loads, and session recordings of clicks, scrolling, and page changes. A recording masks all text and blocks all images. Never your code, the text of agent calls, a request body, or your IP address. | Your browser | To find and fix errors | Legitimate interests [TO CONFIRM: session recordings without consent] |
+| Browser reports: errors of the Slopmower pages in your browser, the page URLs, the API calls with their URLs and status codes, the timing of page loads, and session recordings of clicks, scrolling, and page changes. A recording masks all text and blocks all images. Never your code, the text of agent calls, a request body, or your IP address. | Your browser | To find and fix errors | Legitimate interests |
 
 The legal bases are those of the GDPR and the UK GDPR:
 
@@ -74,14 +74,14 @@ GitHub sets its own cookies when you sign in on github.com, and your browser loa
 We do not sell your personal data. We do not share it for advertising.
 
 - **GitHub** (GitHub, Inc., USA). You sign in with GitHub. Slopmower reads your repositories through the GitHub App. The GitHub Marketplace bills the paid plans. Slopmower writes check runs on pull requests. The name of a check run contains your GitHub login, for example "Slopmower (octocat)". A check run contains the titles of your reviews, and for each request its state, its headline, and a link to Slopmower. The headline is the title of the request, or the first line of the request text while it has no title, up to 80 characters. A check run does not contain the rest of the request text or the replies. Its annotations show the headline, the state, and the link of a request at a file path and a line. Slopmower writes check runs on the pull requests that you link to requests. When you switch on "Check every pull request" for a repository, it also writes a "No linked requests" check run on each other pull request of that repository that is opened, reopened, or pushed to. Each person who can see the pull request can read its check runs, so on a public repository they are public.
-- **The hosting provider**, Amazon Web Services (AWS). It runs the servers, the database, the logs, and the backups [TO CONFIRM: backups].
+- **The hosting provider**, Amazon Web Services (AWS). It runs the servers, the database, the logs, and the backups.
 - **Sentry** (Functional Software, Inc. d/b/a Sentry, USA). It gets an error report when a request, a background job, or a command fails on the server. A report contains the time, the request method, URL, and headers, the error message, and where in the Slopmower code the error happened. A URL contains IDs and can contain the name of a repository and the path of a file in it. Before Slopmower sends a report, it removes the search texts, names, and confirmations from the URL, and the cookies, tokens, and IP addresses from the headers. A report never contains a request body, your code, the text of agent calls, or your user ID. Slopmower sends no report when it refuses a request because of the request itself, for example for a missing token or an invalid input. Sentry also gets browser reports: an error of a Slopmower page in your browser, the timing of page loads, and a session recording of 1 in 10 sessions and of each session with an error. A browser report contains the page URLs, the API calls with their URLs and status codes, your browser type, and the order of your clicks and page changes. Slopmower removes the search texts, names, and confirmations from these URLs. A recording masks all text and inputs, so it does not show your code or what you type, and it blocks all images. A browser report never contains a request body or your user ID, and Sentry does not store your IP address with it. Sentry also gets each bug report that you send with **Report a Bug**, with the session recording up to the moment that you opened the form.
 - **Your coding agent.** When you give a token to an agent, the agent reads your reviews and your code through Slopmower. You choose the agent. Its provider processes that data under its own terms.
 - **Authorities**, when the law requires it.
 
 ## Where we keep data
 
-We keep your data in Australia. GitHub processes data in the USA. Sentry processes error reports in [TO SUPPLY: Sentry region]. When we send data out of the European Economic Area, the UK, or Australia, we protect it with an adequacy decision or the standard contractual clauses [TO CONFIRM: transfer mechanism]. We make sure that each recipient protects the data as this policy says [TO CONFIRM: recipient protection].
+We keep your data in Australia. GitHub processes data in the USA. Sentry processes error reports in Iowa, United States. When we send data out of the European Economic Area, the UK, or Australia, we protect it with an adequacy decision or the standard contractual clauses. We make sure that each recipient protects the data as this policy says.
 
 ## How long we keep data
 
@@ -96,15 +96,15 @@ We keep your data in Australia. GitHub processes data in the USA. Sentry process
 - **Rate limit counters:** we delete them at most one day after they expire.
 - **Session data:** until you sign out, or until the server removes the inactive session.
 - **Server logs:** 90 days.
-- **Error reports:** Sentry keeps them for [TO SUPPLY: Sentry retention period].
+- **Error reports:** Sentry keeps them for 90 days.
 - **Backups:** 30 days. Deleted data stays in a backup until the backup expires.
 
 ## Security
 
 - The GitHub App can read the contents of your repositories, but cannot change them. It can only write check runs.
 - We keep the data of each account apart from the data of all other accounts: in the database, in the files, and in live updates.
-- We keep the copies of your repositories on encrypted storage [TO CONFIRM: encrypted storage].
-- Your browser and your coding agent connect to Slopmower over HTTPS [TO CONFIRM: HTTPS].
+- We keep the copies of your repositories on encrypted storage for minimum time required to allow us to provide you with the Slopmower service.
+- Your browser and your coding agent connect to Slopmower over HTTPS.
 - We keep only a hash of each API token, and no GitHub sign-in token.
 - Logs and error reports never contain your code or the text of agent calls.
 
@@ -137,7 +137,7 @@ Under the CCPA, as amended by the CPRA:
 
 We handle personal information under the Australian Privacy Principles of the Privacy Act 1988. You can ask for access to your personal information and correct it. Slopmower needs a GitHub sign-in, so you cannot use it anonymously.
 
-To make a complaint, write to us first at support@tacticmedia.com.au. We answer within 30 days [TO CONFIRM: response time for complaints]. If you are not satisfied with our answer, you can complain to the [Office of the Australian Information Commissioner (OAIC)](https://www.oaic.gov.au/privacy/privacy-complaints).
+To make a complaint, write to us first at support@tacticmedia.com.au. We answer within 30 days. If you are not satisfied with our answer, you can complain to the [Office of the Australian Information Commissioner (OAIC)](https://www.oaic.gov.au/privacy/privacy-complaints).
 
 ## Children
 
