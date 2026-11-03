@@ -121,6 +121,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F103 | [Network error text on the error screen](F103-network-error-text.md) | Done 2026-11-03, [report](reports/F103.md) | 77b7c275 | src 512 PHP / 34920 lines, 512 types; tests 348 PHP / 32790 lines; assets 189 TS / 11459 lines |
 | F104 | [Known issues: request page dialogs, unsaved guard, symbols port race](F104-request-page-known-issues.md) | Done 2026-11-03, [report](reports/F104.md) | 62cc9801 | src 514 PHP / 35215 lines, 514 types; tests 348 PHP / 32991 lines; assets 193 TS / 11789 lines |
 | F105 | [Next request on the request page](F105-next-request.md) | Done 2026-11-03, [report](reports/F105.md) | 24e678c1 | src 514 PHP / 35215 lines, 514 types; tests 348 PHP / 32991 lines; assets 194 TS / 11910 lines; check 5m24s |
+| F106 | [Reload when a code chunk fails to load](F106-chunk-reload.md) | In progress | | |
 
 ## Candidates
 
