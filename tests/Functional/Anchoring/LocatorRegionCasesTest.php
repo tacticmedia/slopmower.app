@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Anchoring;
 
+use App\Domain\Anchor\Anchor;
+use App\Domain\Anchor\AnchorKind;
+use App\Domain\Anchor\LineRange;
+use App\Domain\Anchor\SnapshotCapture;
+use App\Domain\Event\Codec\AnchorCodec;
+use App\Domain\Event\Codec\PayloadReader;
+use App\Domain\Git\RepoPath;
 use App\Tests\Support\Anchoring\LocatorFixtures;
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Environment\EnvironmentVariables;
@@ -37,6 +44,20 @@ final class LocatorRegionCasesTest extends KernelTestCase
         $target = $this->commitAndFetch([self::TOTALS => "<?php\n// Totals\n\n".self::codeLines(1, 40)]);
 
         self::assertSame(self::expected('shifted', self::TOTALS, [13, 15]), self::actual($this->locate($this->rangeAnchor($base, self::TOTALS, 10, 12), $target)));
+    }
+
+    #[TestDox('An anchor stored with its snapshot text, as before D113, still decodes and locates')]
+    public function testAnchorWithSnapshotTextDecodesAndLocates(): void
+    {
+        $base = $this->cloneSource([self::TOTALS => self::codeLines(1, 40)]);
+        $target = $this->commitAndFetch([self::TOTALS => self::codeLines(1, 40, 'sum')."\n".self::codeLines(1, 40)]);
+        $blob = $this->blob($base, self::TOTALS);
+        $withText = Anchor::of(AnchorKind::Range, RepoPath::fromString(self::TOTALS), $base, $blob->sha, LineRange::of(10, 12), null, SnapshotCapture::capture($blob->bytes, LineRange::of(10, 12)));
+
+        $decoded = AnchorCodec::decode(PayloadReader::of(AnchorCodec::encode($withText)));
+
+        self::assertSame(['    $total += 10;', '    $total += 11;', '    $total += 12;'], $decoded->snapshot?->lines);
+        self::assertSame(self::expected('shifted', self::TOTALS, [51, 53]), self::actual($this->locate($decoded, $target)));
     }
 
     #[TestDox('F5: an edited region gives changed with the mapped range and a similarity')]

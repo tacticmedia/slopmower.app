@@ -128,8 +128,8 @@ Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 ### 4.5 `get_request`
 
 - **Output:** [`request.schema.json`](schemas/request.schema.json).
-- **Behaviour:** REST Q3. `pullRequests` holds the state and the title of each linked pull request. `delivery` is the effective delivery choice of D85, `capabilities` says what the host offers, `type` says what the user asks for (D102): server instructions step 6, and `group` names the unit of feedback of the request (D103): server instructions step 7.
-- **Errors:** `not_found`, `invalid_input` for an ambiguous prefix, `commit_not_found`, `repository_unavailable`.
+- **Behaviour:** REST Q3. `pullRequests` holds the state and the title of each linked pull request. `delivery` is the effective delivery choice of D85, `capabilities` says what the host offers, `type` says what the user asks for (D102): server instructions step 6, and `group` names the unit of feedback of the request (D103): server instructions step 7. `anchor.snapshot` holds the code text rebuilt from the blob, or null text fields when the rebuild fails (D113).
+- **Errors:** `not_found`, `invalid_input` for an ambiguous prefix, `commit_not_found`, `repository_unavailable`. On `pass_through` an ambiguous prefix gives `commit_not_found`, because GitHub answers it as a missing commit.
 - **Example:** arguments `{"id":"01K6B3P2A9QRSTVWXYZ0123456","at":"a1b2c3d4e5f60718293a4b5c6d7e8f9012345678"}` give [fixtures/request.in-progress.json](fixtures/request.in-progress.json). Arguments `{"id":"01K6B3P2A9QRSTVWXYZ0123457","context":2}` give [fixtures/request.with-excerpt.json](fixtures/request.with-excerpt.json).
 
 ### 4.6 `claim_request`
@@ -207,7 +207,7 @@ Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 
 - **Output:** [`review.schema.json`](schemas/review.schema.json).
 - **Behaviour:** `repository` is resolved as in [README.md section 7](README.md#7-repository-sources-names-and-commit-availability). Otherwise as REST V1 with the body `{ref, title}`. `startedBy` is the agent. Only the user closes the review.
-- **Errors:** `not_found` for the repository, `invalid_input` for a malformed ref or an ambiguous SHA prefix, `commit_not_found`, `repository_unavailable`, `limit_exceeded` for `open_reviews`.
+- **Errors:** `not_found` for the repository, `invalid_input` for a malformed ref or an ambiguous SHA prefix, `commit_not_found`, `repository_unavailable`, `limit_exceeded` for `open_reviews`. On `pass_through` an ambiguous SHA prefix gives `commit_not_found`, because GitHub answers it as a missing commit.
 - **Example:** arguments `{"repository":"acme/billing","ref":"main"}`. The result has the shape of [fixtures/review.open.json](fixtures/review.open.json) with the agent in `startedBy`.
 
 ### 4.17 `suggest_request`

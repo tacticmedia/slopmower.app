@@ -17,8 +17,8 @@ use Symfony\Contracts\HttpClient\Exception\ExceptionInterface as HttpClientExcep
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
- * Every job requests a new token with the permissions of that job, and only its caller holds it (architecture section
- * 12, D64).
+ * A token has the permissions of one job, and only its caller holds it (architecture section 12, D64). The process keeps
+ * each token until 5 minutes before it expires, by installation, repository, and permissions (D112).
  */
 final class InstallationTokenProvider
 {
@@ -42,6 +42,11 @@ final class InstallationTokenProvider
     /** GitHub refuses a JWT that lives longer. */
     private const int JWT_LIFETIME_SECONDS = 600;
 
+    private const int TOKEN_REUSE_MARGIN_SECONDS = 300;
+
+    /** @var array<string, array{string, int}> The token and its expiry in Unix seconds */
+    private array $repositoryTokens = [];
+
     public function __construct(
         #[Target('github.client')]
         private readonly HttpClientInterface $githubClient,
@@ -64,6 +69,13 @@ final class InstallationTokenProvider
      */
     public function forRepository(int $installationId, int $repositoryId, array $permissions): string
     {
+        $key = self::tokenKey($installationId, $repositoryId, $permissions);
+        [$kept, $keptUntilUnixSeconds] = $this->repositoryTokens[$key] ?? ['', 0];
+
+        if ($keptUntilUnixSeconds > $this->clock->now()->getTimestamp()) {
+            return $kept;
+        }
+
         $status = 0;
 
         try {
@@ -75,16 +87,34 @@ final class InstallationTokenProvider
                 'extra' => ['trace_content' => false],
             ]);
             $status = $response->getStatusCode();
-            $token = 201 === $status ? ($response->toArray()['token'] ?? null) : null;
+            $body = 201 === $status ? $response->toArray() : [];
         } catch (HttpClientException $failure) {
             throw new GitHubRequestFailed('The installation token request failed.', 0, $failure);
         }
+
+        $token = $body['token'] ?? null;
 
         if (!\is_string($token) || '' === $token) {
             throw new GitHubRequestFailed("GitHub answered {$status} to the installation token request.");
         }
 
+        $expiresAt = \is_string($body['expires_at'] ?? null) ? strtotime($body['expires_at']) : false;
+
+        if (false !== $expiresAt) {
+            $this->repositoryTokens[$key] = [$token, $expiresAt - self::TOKEN_REUSE_MARGIN_SECONDS];
+        }
+
         return $token;
+    }
+
+    /**
+     * Drops a kept token, for example after GitHub refused it.
+     *
+     * @param array<string, string> $permissions
+     */
+    public function forget(int $installationId, int $repositoryId, array $permissions): void
+    {
+        unset($this->repositoryTokens[self::tokenKey($installationId, $repositoryId, $permissions)]);
     }
 
     /**
@@ -110,5 +140,15 @@ final class InstallationTokenProvider
         } catch (JwtException $failure) {
             throw new GitHubRequestFailed('The GitHub App private key cannot sign the App JWT.', 0, $failure);
         }
+    }
+
+    /**
+     * @param array<string, string> $permissions
+     */
+    private static function tokenKey(int $installationId, int $repositoryId, array $permissions): string
+    {
+        ksort($permissions);
+
+        return "{$installationId}:{$repositoryId}:".json_encode($permissions, \JSON_THROW_ON_ERROR);
     }
 }

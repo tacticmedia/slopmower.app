@@ -7,7 +7,8 @@ namespace App\Source;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Git\RefName;
 use App\Domain\Repository\RepositoryName;
-use App\Git\GitReader;
+use App\Git\GitCodeReader;
+use App\Git\GitRunner;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Filesystem\Path;
 
@@ -32,7 +33,7 @@ final class LocalRepositoryDiscovery
         string $localRepositoriesDir,
         #[Autowire(param: 'kernel.project_dir')]
         string $projectDir,
-        private readonly GitReader $reader,
+        private readonly GitRunner $git,
     ) {
         $this->directory = '' === $localRepositoriesDir ? null : Path::makeAbsolute($localRepositoriesDir, $projectDir);
     }
@@ -149,7 +150,7 @@ final class LocalRepositoryDiscovery
             return null;
         }
 
-        $branch = self::REFTABLE_HEAD_BRANCH === $match[1] ? $this->reader->headBranch($gitDir) : $match[1];
+        $branch = self::REFTABLE_HEAD_BRANCH === $match[1] ? new GitCodeReader($this->git, $gitDir)->headBranch() : $match[1];
 
         try {
             return null === $branch ? null : RefName::fromString($branch)->toString();

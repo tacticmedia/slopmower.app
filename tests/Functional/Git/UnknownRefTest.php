@@ -8,7 +8,7 @@ use App\Domain\Error\CommitNotFound;
 use App\Domain\Error\ErrorCode;
 use App\Domain\Git\RefName;
 use App\Git\BareClone;
-use App\Git\GitReader;
+use App\Git\GitCodeReader;
 use App\Git\GitRunner;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
 use App\Tests\Support\Git\GitRepositoryBuilder;
@@ -32,7 +32,7 @@ final class UnknownRefTest extends KernelTestCase
         $bareClone->fetch($clone, $source->url());
 
         try {
-            new GitReader($git)->resolveCommit($clone, RefName::fromString('no-such-branch'));
+            new GitCodeReader($git, $clone)->resolveCommit(RefName::fromString('no-such-branch'));
             self::fail('The unknown ref resolved.');
         } catch (CommitNotFound $error) {
             self::assertSame(ErrorCode::CommitNotFound, $error->code());

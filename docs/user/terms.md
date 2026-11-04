@@ -1,6 +1,6 @@
 # Terms of service
 
-Last change: 3 November 2026
+Last change: 4 November 2026
 
 These terms are an agreement between you and Tactic Media Pty Ltd ("we"), the operator of Slopmower. They apply when you use the hosted Slopmower service. When you use Slopmower, you accept these terms. If you use Slopmower for an organization, you accept them for that organization, and you confirm that you have the authority to do so.
 
@@ -19,7 +19,7 @@ We give you the service as it is. We work to keep it available and correct, but 
 ## Your content
 
 - Your code, reviews, requests, and comments stay yours.
-- You give us permission to copy, keep, and process your content, only to give you the service. This includes the copies of your repositories, their index, and the check runs that Slopmower writes on your pull requests.
+- You give us permission to copy, keep, and process your content, only to give you the service. This includes the copies of the repositories with the [code access](code-access.md) Server copy, the reads of the repositories with Pass-through, the index of each repository, and the check runs that Slopmower writes on your pull requests.
 - You confirm that you have the right to connect each repository, and to let Slopmower and your coding agent read it.
 - The [privacy policy](privacy.md) tells how we handle personal data.
 

@@ -1,6 +1,19 @@
 # Manual deployment
 
-A host install runs the PHP processes behind nginx, the [Messenger worker](#messenger-worker) under a process manager, the [`symbols` service](#symbols-service), and the [Mercure hub](#mercure-hub) behind nginx. [Deployment](README.md) describes the environment variables of the application. [Dockerised deployment](dockerised.md) runs the same parts in containers.
+A host install runs the PHP processes behind nginx, the [Messenger worker](#messenger-worker) under a process manager, the [`symbols` service](#symbols-service), and the [Mercure hub](#mercure-hub) behind nginx, with a tmpfs as the [scratch directory](#scratch-directory). [Deployment](README.md) describes the environment variables of the application. [Dockerised deployment](dockerised.md) runs the same parts in containers.
+
+## Scratch directory
+
+The scratch copies of `pass_through` repositories and the temporary files of PHP and git stay on a tmpfs (D112). [Code storage](README.md#code-storage) gives its size and the swap rule.
+
+```sh
+mount -t tmpfs -o size=<size>,uid=<PHP user ID>,gid=<PHP group ID>,mode=0700 tmpfs /srv/slopmower/scratch
+```
+
+- Mount it at each boot, for example with the `/etc/fstab` line `tmpfs /srv/slopmower/scratch tmpfs size=<size>,uid=<PHP user ID>,gid=<PHP group ID>,mode=0700 0 0`.
+- Set `APP_SCRATCH_DIR=/srv/slopmower/scratch` and `TMPDIR=/srv/slopmower/scratch` for the web server and every worker.
+- Set `sys_temp_dir = /srv/slopmower/scratch` in the `php.ini` of the web server and of the CLI that runs the worker.
+- The web server and every worker of the host share the tmpfs, so its size covers all of them.
 
 ## Messenger worker
 

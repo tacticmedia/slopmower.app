@@ -17,13 +17,15 @@ use App\Domain\Error\ReviewClosed;
 use App\Domain\Git\BlobSha;
 use App\Domain\Git\RepoPath;
 use App\Entity\Review;
+use App\Git\CodeReader;
 use App\Git\GitFailed;
 use App\Git\TreeEntry;
 use App\Index\BlobSymbols;
 use App\Index\ExtractedSymbol;
 
 /**
- * Q2 anchor capture at the review commit, architecture section 5.1. The snapshot always comes from git.
+ * Q2 anchor capture at the review commit, architecture section 5.1. The snapshot comes from the code reader and keeps no
+ * code text (D113).
  */
 final class AnchorFactory
 {
@@ -53,10 +55,10 @@ final class AnchorFactory
 
             $repoPath = RepoPath::fromString($path);
             $range = self::range($kind, $startLine, $endLine);
-            $gitDir = $this->clonePath($review);
+            $reader = $this->readyReader($review);
 
             try {
-                $entry = $this->files->entry($gitDir, $review, $repoPath);
+                $entry = $this->files->entry($reader, $review, $repoPath);
             } catch (NotFound) {
                 throw InvalidInput::field('path', 'No file has this path at the review commit.');
             }
@@ -67,7 +69,7 @@ final class AnchorFactory
                 return Anchor::of(AnchorKind::File, $repoPath, $review->getCommitSha(), $blobSha, null, null, null);
             }
 
-            $text = $this->files->get($gitDir, $review, $entry)->text()
+            $text = $this->files->get($reader, $review, $entry)->text()
                 ?? throw InvalidInput::field('path', "A {$kind->value} anchor needs a renderable file: not binary, not a symlink, at most 1 MiB.");
 
             // The snapshot lines go into JSON.
@@ -75,10 +77,10 @@ final class AnchorFactory
                 throw InvalidInput::field('path', "A {$kind->value} anchor needs a file in UTF-8.");
             }
 
-            [$range, $symbol] = null === $symbolFqn ? [$range, null] : $this->symbol($review, $gitDir, $entry, $symbolFqn);
+            [$range, $symbol] = null === $symbolFqn ? [$range, null] : $this->symbol($review, $reader, $entry, $symbolFqn);
             \assert(null !== $range);
 
-            return Anchor::of($kind, $repoPath, $review->getCommitSha(), $blobSha, $range, $symbol, SnapshotCapture::capture($text, $range));
+            return Anchor::of($kind, $repoPath, $review->getCommitSha(), $blobSha, $range, $symbol, SnapshotCapture::capture($text, $range)->withoutText());
         } catch (InvalidInput $error) {
             throw $error->prefixed('anchor');
         }
@@ -113,9 +115,9 @@ final class AnchorFactory
      * @throws InvalidInput
      * @throws GitFailed
      */
-    private function symbol(Review $review, string $gitDir, TreeEntry $entry, string $fqn): array
+    private function symbol(Review $review, CodeReader $reader, TreeEntry $entry, string $fqn): array
     {
-        $table = $this->blobSymbols->of($review->getRepository(), $gitDir, $entry);
+        $table = $this->blobSymbols->of($review->getRepository(), $reader, $entry);
         $matches = array_values(array_filter($table->symbols, static fn (ExtractedSymbol $symbol): bool => $symbol->fqn === $fqn));
 
         if (null === $table->language || [] === $matches) {
@@ -137,10 +139,10 @@ final class AnchorFactory
      * @throws ReviewClosed
      * @throws RepositoryUnavailable
      */
-    private function clonePath(Review $review): string
+    private function readyReader(Review $review): CodeReader
     {
         try {
-            return $this->fetchRepository->readyClonePath($review->getRepository()->getId());
+            return $this->fetchRepository->readyReader($review->getRepository()->getId());
         } catch (RepositoryUnavailable $unavailable) {
             $review->assertOpen();
 

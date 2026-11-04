@@ -8,6 +8,7 @@ use App\Domain\Error\InvalidInput;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\TenantId;
+use App\Domain\Repository\CodeAccess;
 use App\Domain\Repository\RepositoryAccess;
 use App\Domain\Repository\RepositoryName;
 use App\Domain\Repository\RepositorySource;
@@ -37,6 +38,10 @@ class Repository implements TenantOwned
 
     #[ORM\Column(enumType: RepositorySource::class)]
     private RepositorySource $source;
+
+    /** Changes only through {@see RepositoryRepository::changeCodeAccess()}. */
+    #[ORM\Column(enumType: CodeAccess::class)]
+    private CodeAccess $codeAccess = CodeAccess::Clone;
 
     #[ORM\Column]
     private string $name;
@@ -112,7 +117,7 @@ class Repository implements TenantOwned
         return $repository;
     }
 
-    public static function gitHub(TenantId $tenantId, RepositoryName $name, int $githubRepositoryId, int $installationId, bool $private, \DateTimeImmutable $createdAt): self
+    public static function gitHub(TenantId $tenantId, RepositoryName $name, int $githubRepositoryId, int $installationId, bool $private, \DateTimeImmutable $createdAt, CodeAccess $codeAccess = CodeAccess::Clone): self
     {
         if (RepositorySource::Github !== $name->source()) {
             throw new \LogicException('A GitHub repository needs a GitHub name.');
@@ -120,6 +125,7 @@ class Repository implements TenantOwned
 
         $repository = new self($tenantId, $name, $createdAt);
         $repository->githubRepositoryId = $githubRepositoryId;
+        $repository->codeAccess = $codeAccess;
         $repository->recordGitHubListing($name, $installationId, $private);
 
         return $repository;
@@ -158,6 +164,11 @@ class Repository implements TenantOwned
     /**
      * @throws \UnexpectedValueException For a stored name that breaks the name rules, so the caller gets no invalid_input
      */
+    public function getCodeAccess(): CodeAccess
+    {
+        return $this->codeAccess;
+    }
+
     public function getName(): RepositoryName
     {
         try {

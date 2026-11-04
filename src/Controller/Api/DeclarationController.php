@@ -12,7 +12,6 @@ use App\Domain\Error\InvalidInput;
 use App\Domain\Git\BlobSha;
 use App\Domain\Git\RepoPath;
 use App\Entity\Review;
-use App\Git\GitReader;
 use App\Index\FileLanguage;
 use App\Index\IndexSql;
 use App\Index\PhpSymbolExtractor;
@@ -33,7 +32,6 @@ final class DeclarationController extends AbstractController
         #[MapEntity(id: 'reviewId')] Review $review,
         FetchRepository $fetchRepository,
         FileQuery $files,
-        GitReader $reader,
         PhpSymbolExtractor $extractor,
         IndexSql $indexSql,
         #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)]
@@ -46,9 +44,9 @@ final class DeclarationController extends AbstractController
         }
 
         $repository = $review->getRepository();
-        $gitDir = $fetchRepository->readyClonePath($repository->getId());
-        $entry = $files->entry($gitDir, $review, $path);
-        $blob = $entry->isRenderableFile() ? $reader->readBlob($gitDir, BlobSha::fromString($entry->objectId)) : null;
+        $reader = $fetchRepository->readyReader($repository->getId());
+        $entry = $files->entry($reader, $review, $path);
+        $blob = $entry->isRenderableFile() ? $reader->readBlob(BlobSha::fromString($entry->objectId)) : null;
         $source = null === $blob || $blob->isBinary() ? null : $blob->bytes;
         $references = match (true) {
             null === $source => [],

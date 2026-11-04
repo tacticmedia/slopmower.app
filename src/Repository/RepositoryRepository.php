@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\RepositoryId;
+use App\Domain\Repository\CodeAccess;
 use App\Domain\Repository\RepositoryAccess;
 use App\Domain\Repository\RepositoryName;
 use App\Domain\Repository\RepositorySource;
@@ -145,11 +146,12 @@ final class RepositoryRepository extends ServiceEntityRepository
     }
 
     /**
-     * Ends a clone or fetch with `idle`, or with `fetching` while a fetch job is queued. Other states stay.
+     * Ends a clone or fetch with `idle`, or with `fetching` while a fetch job is queued. Other states stay, and so does a
+     * repository whose code access changed during the sync: the job of the change ends it.
      */
-    public function recordSuccess(RepositoryId $id, \DateTimeImmutable $fetchedAt, ?string $defaultBranch, ?CommitSha $defaultBranchHead): void
+    public function recordSuccess(RepositoryId $id, CodeAccess $syncedAs, \DateTimeImmutable $fetchedAt, ?string $defaultBranch, ?CommitSha $defaultBranchHead): void
     {
-        $this->running($id)
+        $this->syncedAs($this->running($id), $syncedAs)
             ->set('repository.syncState', 'CASE WHEN repository.fetchRequested = true THEN :fetching ELSE :idle END')
             ->set('repository.lastFetchedAt', ':fetchedAt')
             ->set('repository.lastError', 'NULL')
@@ -175,11 +177,14 @@ final class RepositoryRepository extends ServiceEntityRepository
     }
 
     /**
-     * Ends a clone with `failed` and no clone size, and a fetch as {@see recordSuccess()} does. Other states stay.
+     * Ends a clone with `failed` and no clone size, and a fetch as {@see recordSuccess()} does. Other states stay, and so
+     * does a repository whose code access changed during the sync.
+     *
+     * @param CodeAccess|null $syncedAs The code access of the sync, null outside a sync
      */
-    public function recordFailure(RepositoryId $id, string $error): void
+    public function recordFailure(RepositoryId $id, string $error, ?CodeAccess $syncedAs = null): void
     {
-        $this->running($id)
+        $this->syncedAs($this->running($id), $syncedAs)
             ->set('repository.syncState', 'CASE WHEN repository.syncState = :cloning THEN :failed WHEN repository.fetchRequested = true THEN :fetching ELSE :idle END')
             ->set('repository.cloneSizeBytes', 'CASE WHEN repository.syncState = :cloning THEN NULL ELSE repository.cloneSizeBytes END')
             ->set('repository.lastError', ':error')
@@ -188,6 +193,48 @@ final class RepositoryRepository extends ServiceEntityRepository
             ->setParameter('error', $error)
             ->getQuery()
             ->execute();
+    }
+
+    /**
+     * D112: a head sync of Pass-through that fails the access or suspension check ends with `failed`, also from
+     * `fetching`, so reads stop until a sync passes.
+     */
+    public function recordAccessFailure(RepositoryId $id, string $error, CodeAccess $syncedAs): void
+    {
+        $this->syncedAs($this->update($id), $syncedAs)
+            ->set('repository.syncState', ':failed')
+            ->set('repository.lastError', ':error')
+            ->andWhere('repository.syncState IN (:running)')
+            ->setParameter('running', [SyncState::Cloning, SyncState::Fetching])
+            ->setParameter('failed', SyncState::Failed)
+            ->setParameter('error', $error)
+            ->getQuery()
+            ->execute();
+    }
+
+    /**
+     * R10: a new code access, with `cloning` until its clone job ends. A removed repository keeps its value.
+     *
+     * @return bool False when the value is the same or the repository is removed
+     */
+    public function changeCodeAccess(RepositoryId $id, CodeAccess $codeAccess): bool
+    {
+        return 1 === $this->update($id)
+            ->set('repository.codeAccess', ':codeAccess')
+            ->set('repository.syncState', ':cloning')
+            ->set('repository.lastError', 'NULL')
+            ->andWhere('repository.codeAccess <> :codeAccess')
+            ->andWhere('repository.syncState <> :unavailable')
+            ->setParameter('codeAccess', $codeAccess)
+            ->setParameter('cloning', SyncState::Cloning)
+            ->setParameter('unavailable', SyncState::Unavailable)
+            ->getQuery()
+            ->execute();
+    }
+
+    private function syncedAs(QueryBuilder $update, ?CodeAccess $syncedAs): QueryBuilder
+    {
+        return null === $syncedAs ? $update : $update->andWhere('repository.codeAccess = :syncedAs')->setParameter('syncedAs', $syncedAs);
     }
 
     private function update(RepositoryId $id): QueryBuilder

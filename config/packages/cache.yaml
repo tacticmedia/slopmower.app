@@ -12,3 +12,7 @@ framework:
             rate_limiter.cache:
                 adapter: cache.adapter.doctrine_dbal
                 provider: doctrine.dbal.default_connection
+            # D112: tree listings and commit metadata of Pass-through, by repository and SHA. Never blob bodies.
+            github_code.cache:
+                adapter: cache.adapter.filesystem
+                default_lifetime: 86400

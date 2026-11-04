@@ -109,7 +109,7 @@ final class CarryOverTest extends WebTestCase
         self::assertStringContainsString('changed between the source review commit', (string) $copy['thread'][1]['body']);
     }
 
-    #[TestDox('An orphaned source whose file exists becomes a file request with the old snapshot in its first comment')]
+    #[TestDox('An orphaned source whose file exists becomes a file request whose first comment names the old lines without code')]
     public function testOrphanedWithPathBecomesFileAnchor(): void
     {
         $orphaned = $this->openSource(['kind' => 'range', 'path' => self::LEDGER, 'range' => ['startLine' => 10, 'endLine' => 12]]);
@@ -120,7 +120,8 @@ final class CarryOverTest extends WebTestCase
         self::assertSame(['carried', 'orphaned', null], [$items[$orphaned]['outcome'], $items[$orphaned]['location'], $items[$orphaned]['reason']]);
         $copy = $this->carried($items[$orphaned], $targetId);
         self::assertSame(['file', self::LEDGER, null], [$copy['anchor']['kind'], $copy['anchor']['path'], $copy['anchor']['range']]);
-        self::assertStringContainsString("lines 10 to 12 of `src/Billing/ledger.txt`:\n\n```\n    \$total += 10;\n    \$total += 11;\n    \$total += 12;\n```", (string) $copy['thread'][1]['body']);
+        self::assertStringContainsString('It was at lines 10 to 12 of `src/Billing/ledger.txt` at the source review commit', (string) $copy['thread'][1]['body']);
+        self::assertStringNotContainsString('$total', (string) $copy['thread'][1]['body']);
     }
 
     #[TestDox('An orphaned source whose file is gone is not carried and gives the orphan reason')]

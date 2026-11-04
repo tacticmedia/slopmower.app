@@ -105,14 +105,16 @@ and read their whole thread, because the user rejected an earlier result.
    - A request with `title` null has no title. Before you claim it, call
      `set_request_title` with one line of at most 80 characters that
      summarizes its body.
-   - `location` is computed at the default-branch head in the server's copy of
-     the repository. Your working tree can differ. Find the code with the lines
-     of `anchor.snapshot`, its `before` and `after` lines, and
-     `anchor.symbol.fqn`.
+   - `location` is computed at the default-branch head that the server reads.
+     Your working tree can differ. Find the code with the lines of
+     `anchor.snapshot`, its `before` and `after` lines, and
+     `anchor.symbol.fqn`. The server rebuilds these lines from the blob of the
+     review commit. When the blob is gone, for example after a force-push, they
+     are null: use `anchor.path`, `anchor.range`, and `anchor.symbol.fqn`.
    - `context` adds an excerpt of the located code with that many lines around
      it, at most 50.
-   - `at` locates the anchor at another commit that the server has. Use a SHA of
-     7 to 64 hex digits.
+   - `at` locates the anchor at another commit that the server can read. Use a
+     SHA of 7 to 64 hex digits.
    - If the code is gone and the request no longer applies, mark it `wont_do`
      with evidence.
    - A general request has `anchor`, `location`, and `excerpt` null. It belongs
@@ -289,9 +291,9 @@ A tool error is a result with `isError: true`. Its text is JSON:
 | `invalid_transition` | The status, the claim holder, the proposal state, or a title that is set does not allow the action | Call `get_request` and read `allowedActions`, `proposal`, and `details.claimedBy`. `set_request_title` on a request with a title: go on without it. A pending proposal or a pending suggestion: take the next request. You hold the request, and `proposal` is null or rejected: propose with `propose_solution`. Otherwise take the next request. |
 | `review_closed` | The user closed the review | Stop working on this review. Tell the user. Do not retry. |
 | `commits_not_available` | The commits in `details.pendingCommits` are not in the server's copy after one fetch | GitHub: push them. Local: make sure that they are on a branch of the connected repository. Then call `mark_ready_for_review` again. |
-| `commit_not_found` | The commit in `at` is not in the server's copy after one fetch | Push it, or commit it on a branch for a local repository, or leave out `at` |
-| `repository_unavailable` | The server's copy is cloning, its clone or fetch failed, or access was removed. `details.reason` says which. | For `cloning`, try again later. Otherwise tell the user. |
-| `rate_limited` | Too many calls in a short time. It also arrives as HTTP 429 from the server. | Wait `details.retryAfterSeconds` seconds (the `Retry-After` header of an HTTP 429), then retry |
+| `commit_not_found` | The commit in `at` is not in the server's copy after one fetch, or not on GitHub for a Pass-through repository. On Pass-through, an ambiguous SHA prefix also gives it. | Push it, or commit it on a branch for a local repository, give the full SHA, or leave out `at` |
+| `repository_unavailable` | The repository is cloning or connecting, its clone, access check, fetch, or GitHub read failed, or access was removed. `details.reason` says which. | For `cloning`, try again later. Otherwise tell the user. |
+| `rate_limited` | Too many calls in a short time, or GitHub refused a read of a Pass-through repository for its rate limit. It also arrives as HTTP 429 from the server. | Wait `details.retryAfterSeconds` seconds (the `Retry-After` header of an HTTP 429), then retry |
 | `limit_exceeded` | A usage limit of the user's plan, for example the number of open reviews. `details.limit` names it. | Stop and tell the user |
 | `internal_error` | An unexpected server failure | Try once more, then tell the user |
 

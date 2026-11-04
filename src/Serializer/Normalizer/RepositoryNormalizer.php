@@ -32,6 +32,7 @@ final class RepositoryNormalizer implements NormalizerInterface, NormalizerAware
         $normalized = $this->normalizer->normalize([
             'id' => $repository->getId(),
             'source' => $repository->getSource(),
+            'codeAccess' => $repository->getCodeAccess(),
             'name' => $repository->getName(),
             // The owner and the page follow the name.
             'github' => $isGitHub ? [

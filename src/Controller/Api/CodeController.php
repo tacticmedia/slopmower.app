@@ -16,8 +16,9 @@ use App\Domain\Error\NotFound;
 use App\Domain\Git\BlobSha;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\RepoPath;
+use App\Domain\Repository\CodeAccess;
 use App\Entity\Review;
-use App\Git\GitReader;
+use App\Git\CodeReader;
 use App\Git\ObjectType;
 use App\Git\TreeEntry;
 use App\Http\Cursor;
@@ -61,18 +62,17 @@ final class CodeController extends AbstractController
     #[Route('/tree', name: 'tree', methods: ['GET'])]
     public function listTree(
         #[MapEntity(id: 'reviewId')] Review $review,
-        GitReader $reader,
         #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)]
         TreeListingQuery $query = new TreeListingQuery(),
     ): JsonResponse {
         $dir = '' === $query->dir ? null : RepoPath::fromString($query->dir, 'dir');
         $filters = ['dir' => $dir?->toString() ?? '', 'recursive' => $query->recursive];
         $after = null === $query->cursor ? null : Cursor::decode($query->cursor, $filters, 'int', 'string');
-        $gitDir = $this->fetchRepository->readyClonePath($review->getRepository()->getId());
+        $reader = $this->fetchRepository->readyReader($review->getRepository()->getId());
         $commit = $review->getCommitSha();
 
         if (null !== $dir) {
-            $entry = $reader->entryAt($gitDir, $commit, $dir) ?? throw new NotFound('No such directory at the review commit.');
+            $entry = $reader->entryAt($commit, $dir) ?? throw new NotFound('No such directory at the review commit.');
 
             if (ObjectType::Tree !== $entry->type) {
                 throw InvalidInput::field('dir', 'Must name a directory at the review commit.');
@@ -81,7 +81,7 @@ final class CodeController extends AbstractController
 
         // The other endpoints take only paths that RepoPath accepts, and git accepts more.
         $entries = array_filter(
-            $query->recursive ? $reader->lsTreeRecursive($gitDir, $commit, $dir) : $reader->lsTree($gitDir, $commit, $dir),
+            $query->recursive ? $reader->lsTreeRecursive($commit, $dir) : $reader->lsTree($commit, $dir),
             static fn (TreeEntry $entry): bool => self::isRepoPath($entry->path),
         );
         usort($entries, static fn (TreeEntry $a, TreeEntry $b): int => self::compare(self::keyOf($a), self::keyOf($b)));
@@ -103,12 +103,12 @@ final class CodeController extends AbstractController
         FilePathQuery $query,
     ): Response {
         $path = RepoPath::fromString((string) $query->path);
-        $gitDir = $this->fetchRepository->readyClonePath($review->getRepository()->getId());
-        $entry = $this->files->entry($gitDir, $review, $path);
+        $reader = $this->fetchRepository->readyReader($review->getRepository()->getId());
+        $entry = $this->files->entry($reader, $review, $path);
         $headers = ['ETag' => 'W/"'.self::FILE_ETAG_VERSION."-{$entry->objectId}\""] + self::FILE_CACHE_HEADERS;
         $notModified = new Response(null, Response::HTTP_OK, $headers);
 
-        return $notModified->isNotModified($request) ? $notModified : $this->json($this->files->get($gitDir, $review, $entry), Response::HTTP_OK, $headers);
+        return $notModified->isNotModified($request) ? $notModified : $this->json($this->files->get($reader, $review, $entry), Response::HTTP_OK, $headers);
     }
 
     #[Route('/raw', name: 'raw', methods: ['GET'])]
@@ -120,23 +120,23 @@ final class CodeController extends AbstractController
         FilePathQuery $query,
     ): Response {
         $path = RepoPath::fromString((string) $query->path);
-        $gitDir = $this->fetchRepository->readyClonePath($review->getRepository()->getId());
+        $reader = $this->fetchRepository->readyReader($review->getRepository()->getId());
 
-        return $blobs->response($gitDir, BlobSha::fromString($this->files->entry($gitDir, $review, $path)->objectId), $request);
+        return $blobs->response($reader, BlobSha::fromString($this->files->entry($reader, $review, $path)->objectId), $request);
     }
 
     #[Route('/blame', name: 'blame', methods: ['GET'])]
     public function getBlame(
         #[MapEntity(id: 'reviewId')] Review $review,
-        GitReader $reader,
         Request $request,
         #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)]
         FilePathQuery $query,
     ): Response {
         $path = RepoPath::fromString((string) $query->path);
-        $gitDir = $this->fetchRepository->readyClonePath($review->getRepository()->getId());
+        $repository = $review->getRepository();
+        $reader = $this->fetchRepository->readyReader($repository->getId());
         $commit = $review->getCommitSha();
-        $entry = $this->files->entry($gitDir, $review, $path);
+        $entry = $this->files->entry($reader, $review, $path);
         $headers = ['ETag' => 'W/"'.self::BLAME_ETAG_VERSION."-{$commit}-{$entry->objectId}\""] + self::FILE_CACHE_HEADERS;
         $notModified = new Response(null, Response::HTTP_OK, $headers);
 
@@ -144,12 +144,13 @@ final class CodeController extends AbstractController
             return $notModified;
         }
 
-        if (!$this->files->get($gitDir, $review, $entry)->isRenderable()) {
+        if (!$this->files->get($reader, $review, $entry)->isRenderable()) {
             throw InvalidInput::field('path', 'Must name a renderable file: not a symlink, not binary, and at most 1 MiB.');
         }
 
-        $ignoredCommits = $this->ignoredCommits($reader, $gitDir, $commit);
-        ['ranges' => $ranges, 'commits' => $commits] = $reader->blame($gitDir, $commit, $path, $ignoredCommits);
+        // GitHub blame has no ignore list.
+        $ignoredCommits = CodeAccess::Clone === $repository->getCodeAccess() ? self::ignoredCommits($reader, $commit) : [];
+        ['ranges' => $ranges, 'commits' => $commits] = $reader->blame($commit, $path, $ignoredCommits);
 
         return $this->json(new Blame($review->getId(), $commit, $path, BlobSha::fromString($entry->objectId), [] !== $ignoredCommits, $ranges, $commits), Response::HTTP_OK, $headers);
     }
@@ -160,10 +161,10 @@ final class CodeController extends AbstractController
      *
      * @return list<string>
      */
-    private function ignoredCommits(GitReader $reader, string $gitDir, CommitSha $commit): array
+    private static function ignoredCommits(CodeReader $reader, CommitSha $commit): array
     {
-        $entry = $reader->entryAt($gitDir, $commit, RepoPath::fromString(self::IGNORE_REVS_FILE));
-        $blob = null === $entry || !$entry->isRenderableFile() ? null : $reader->readBlob($gitDir, BlobSha::fromString($entry->objectId));
+        $entry = $reader->entryAt($commit, RepoPath::fromString(self::IGNORE_REVS_FILE));
+        $blob = null === $entry || !$entry->isRenderableFile() ? null : $reader->readBlob(BlobSha::fromString($entry->objectId));
         $commits = [];
 
         foreach (explode("\n", $blob->bytes ?? '') as $line) {

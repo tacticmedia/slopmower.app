@@ -139,7 +139,7 @@ Example response, [fixtures/lists.request-page.json](fixtures/lists.request-page
 - **Authentication:** S, B
 - **Success:** 200 [`Request`](schemas/request.schema.json), with the `type` and the `group` that the request opened with.
 - **Errors:**
-  - 422 `invalid_input`: an ambiguous prefix, or `context` out of range;
+  - 422 `invalid_input`: an ambiguous prefix, or `context` out of range. On `pass_through` an ambiguous prefix gets `commit_not_found`, because GitHub answers it as a missing commit;
   - 422 `commit_not_found`;
   - 409 `repository_unavailable`: a fetch was needed and failed, or the clone is gone and `at` was given;
   - 429 `rate_limited`: the fetch for `at` passes the `sync_fetch` limit of the repository.
@@ -150,6 +150,7 @@ Example response, [fixtures/lists.request-page.json](fixtures/lists.request-page
 | `context` | integer 0-50 | none | When set, `excerpt` holds the located region at the target commit, with `context` lines on each side and at most 400 lines. `excerpt` is null when the location is `orphaned`, or the file is not renderable, not valid UTF-8, or empty. |
 
 - Without `at`, the server computes `location` at the default-branch head, with `target: default_branch`. `location` is null when the clone is gone.
+- `anchor.snapshot` holds `lines`, `before`, and `after` rebuilt from `anchor.blobSha` and `anchor.range`, 3 lines on each side, because a new anchor stores no code text (D113). When the rebuild fails, for example for a blob that GitHub no longer serves, they are null.
 - A general request has `location` and `excerpt` null. The server checks only the syntax of `at` and `context`, so it never resolves `at` and never sends `commit_not_found` or `repository_unavailable` for it. Example: [fixtures/request.general.json](fixtures/request.general.json).
 - `thread` holds, in `seq` order:
   - the events of the request;
@@ -226,6 +227,7 @@ Another request, read by the claiming agent with `context=2` and without `at`: [
 The endpoint returns the diff data of one linked commit for the verify view.
 
 - It compares the commit with its first parent: `git diff-tree -r -M --numstat` plus the raw output. It lists at most 300 files. `truncated` is true when more files changed.
+- For `pass_through`, the server reads the files of `GET repos/{owner}/{repo}/commits/{sha}`, at most 3,000, and the old blob, the modes, and the sizes from the trees of both commits. `binary` is true when `additions + deletions` is 0 and the old and the new blob differ, an absent side counting as the empty blob. A pure rename or mode change of a binary file then has counts 0 and shows as unchanged.
 - `files` lists the files that touch the anchor first, then the other files, each group in the order of `git diff-tree`. So the cut at 300 files keeps the files that touch the anchor.
 - `location` is the request located at this commit, with `target: linked_commit`.
 - `touchesAnchor` is true when `path` equals `location.path`. When `location` is null or orphaned, it is true when `path` or `oldPath` equals the anchor path.
@@ -269,7 +271,7 @@ All command responses except Q2, Q7, and Q17 are [`RequestCommandResult`](schema
   - 409 `repository_unavailable`: the clone is gone, for a request with an anchor;
   - 409 `limit_exceeded` with `limit: requests_per_review`.
 
-The endpoint opens a request at once. The web UI does not call it: a new request from the web UI is a D2 draft, see decision D84 in [architecture.md](../architecture.md#11-decisions). Anchor capture: the server reads the blob at the review commit and captures the snapshot, as [architecture.md](../architecture.md) section 5.1 describes. An absent or null `anchor` opens a general request: there is no capture, so no anchor error and no `repository_unavailable`.
+The endpoint opens a request at once. The web UI does not call it: a new request from the web UI is a D2 draft, see decision D84 in [architecture.md](../architecture.md#11-decisions). Anchor capture: the server reads the blob at the review commit and captures the snapshot, as [architecture.md](../architecture.md) section 5.1 describes. The snapshot stores `normalizedHash`, `lineCount`, and `truncated`, without the code text `lines`, `before`, and `after` (D113). An absent or null `anchor` opens a general request: there is no capture, so no anchor error and no `repository_unavailable`.
 
 - A `symbol` anchor looks up `symbol.fqn` in the symbol table of the file. It must match exactly one symbol. The range of that symbol, including the doc comment, becomes `anchor.range`.
 - `line` requires `startLine == endLine`.

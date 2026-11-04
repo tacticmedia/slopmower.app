@@ -9,8 +9,8 @@ use App\Domain\Git\RepoPath;
 use App\Entity\IndexedBlob;
 use App\Entity\Repository;
 use App\Entity\Symbol;
+use App\Git\CodeReader;
 use App\Git\GitFailed;
-use App\Git\GitReader;
 use App\Git\TreeEntry;
 use App\Repository\IndexedBlobRepository;
 use App\Repository\SymbolRepository;
@@ -31,7 +31,6 @@ final class BlobSymbols
         private readonly IndexedBlobRepository $indexedBlobs,
         private readonly SymbolRepository $symbols,
         private readonly IndexSql $indexSql,
-        private readonly GitReader $reader,
     ) {
     }
 
@@ -44,12 +43,12 @@ final class BlobSymbols
      * The stored symbols of the blob, or parses it and stores the result. A blob that is stored for another language,
      * for example the same bytes at `a.js` and `a.ts`, is parsed and not stored.
      *
-     * @param string    $gitDir The clone of $repository
-     * @param TreeEntry $entry  A blob entry whose path RepoPath accepts
+     * @param CodeReader $reader The code of $repository
+     * @param TreeEntry  $entry  A blob entry whose path RepoPath accepts
      *
      * @throws GitFailed
      */
-    public function of(Repository $repository, string $gitDir, TreeEntry $entry): SymbolTable
+    public function of(Repository $repository, CodeReader $reader, TreeEntry $entry): SymbolTable
     {
         $language = FileLanguage::of(RepoPath::fromString($entry->path));
 
@@ -66,7 +65,7 @@ final class BlobSymbols
             return new SymbolTable($language, $indexed->hasParseError(), $symbols);
         }
 
-        $table = $this->parse($gitDir, $entry);
+        $table = $this->parse($reader, $entry);
 
         if (null === $table) {
             return new SymbolTable($language, false, []);
@@ -90,7 +89,7 @@ final class BlobSymbols
      *
      * @throws GitFailed
      */
-    public function parse(string $gitDir, TreeEntry $entry): ?SymbolTable
+    public function parse(CodeReader $reader, TreeEntry $entry): ?SymbolTable
     {
         $language = FileLanguage::of(RepoPath::fromString($entry->path));
         $extractor = $this->extractorFor($language);
@@ -99,7 +98,7 @@ final class BlobSymbols
             return null;
         }
 
-        $blob = $this->reader->readBlob($gitDir, BlobSha::fromString($entry->objectId));
+        $blob = $reader->readBlob(BlobSha::fromString($entry->objectId));
 
         return null === $blob || $blob->isBinary() ? null : $extractor->extract($language, $blob->bytes);
     }

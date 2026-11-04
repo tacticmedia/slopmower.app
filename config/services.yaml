@@ -75,9 +75,13 @@ when@test:
     services:
         App\Factory\: *factories
         App\Story\: *stories
-        App\Tests\Support\GitHub\GitHubResponses: ~
+        App\Tests\Support\GitHub\GitHubResponses:
+            arguments: ['%env(GITHUB_GIT_BASE_URL)%']
         # The mock transport of github.client, for the GitHub request counts. A test cannot get a service whose ID starts with a dot.
         github.client.mock_transport: '@.http_client.mock_transport.App\Tests\Support\GitHub\GitHubResponses'
+        App\Tests\Support\Messenger\ScratchProbeHandler:
+            autowire: true
+            autoconfigure: true
         App\Tests\Support\Messenger\TenantProbeHandler:
             autowire: true
             autoconfigure: true

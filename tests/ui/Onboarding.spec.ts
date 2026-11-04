@@ -37,12 +37,13 @@ test.describe('Onboarding', () => {
         repositories.candidateFields = { ...repositories.candidateFields, githubListedAt: now(-600) };
         await page.goto('/repositories');
 
+        await page.getByRole('radio', { name: 'Server copy' }).check();
         await page.getByRole('button', { name: 'Connect acme/shipping' }).click();
 
         await expect(page).toHaveURL(/\/repositories\/[0-9A-HJKMNP-TV-Z]{26}$/);
         expect(new URL(page.url()).pathname).toBe(`/repositories/${repositories.repositories.at(-1)?.id}`);
         await expect(page.getByRole('heading', { level: 1 })).toHaveText('acme/shipping');
-        expect(api.bodies('POST', '/api/v1/repositories')).toEqual([{ source: 'github', githubRepositoryId: 812399 }]);
+        expect(api.bodies('POST', '/api/v1/repositories')).toEqual([{ source: 'github', githubRepositoryId: 812399, codeAccess: 'clone' }]);
     });
 
     test('With GitHub candidates, Refresh links to the setup URL', async ({ page, api }) => {

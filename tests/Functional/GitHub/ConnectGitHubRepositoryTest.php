@@ -45,7 +45,7 @@ final class ConnectGitHubRepositoryTest extends WebTestCase
     {
         self::storeCandidate($this->user->getTenantId());
 
-        $response = self::apiRequest($this->client, 'POST', '/api/v1/repositories', ['source' => 'github', 'githubRepositoryId' => 812345]);
+        $response = self::apiRequest($this->client, 'POST', '/api/v1/repositories', ['source' => 'github', 'githubRepositoryId' => 812345, 'codeAccess' => 'clone']);
 
         $repository = self::assertApiResponse($response, 201, 'repository.schema.json');
         self::assertSame("/api/v1/repositories/{$repository['id']}", $response->headers->get('Location'));
@@ -73,7 +73,7 @@ final class ConnectGitHubRepositoryTest extends WebTestCase
             self::storeCandidate(TenantFixtures::of(self::getContainer())->withLogin('mona')->withGitHubUser(2)->create()->getTenantId());
         }
 
-        $response = self::apiRequest($this->client, 'POST', '/api/v1/repositories', ['source' => 'github', 'githubRepositoryId' => 812345]);
+        $response = self::apiRequest($this->client, 'POST', '/api/v1/repositories', ['source' => 'github', 'githubRepositoryId' => 812345, 'codeAccess' => 'clone']);
 
         self::assertApiError($response, 404, 'not_found');
         self::assertSame([], self::asyncTransport()->getSent());
@@ -88,13 +88,23 @@ final class ConnectGitHubRepositoryTest extends WebTestCase
         yield "another tenant's candidate" => [true];
     }
 
+    #[TestDox('A GitHub connect without codeAccess gives 422')]
+    public function testConnectWithoutCodeAccessGivesUnprocessable(): void
+    {
+        self::storeCandidate($this->user->getTenantId());
+
+        $response = self::apiRequest($this->client, 'POST', '/api/v1/repositories', ['source' => 'github', 'githubRepositoryId' => 812345]);
+
+        self::assertSame('codeAccess', self::assertApiError($response, 422, 'invalid_input')['details']['violations'][0]['field'] ?? null);
+    }
+
     #[TestDox('A name that another repository holds in another case gives 422')]
     public function testNameCollisionInAnotherCaseGivesUnprocessable(): void
     {
         self::storeCandidate($this->user->getTenantId());
         self::storeRow(Repository::gitHub($this->user->getTenantId(), RepositoryName::github('ACME/Billing'), 700, 5551, true, Clock::get()->now()));
 
-        $response = self::apiRequest($this->client, 'POST', '/api/v1/repositories', ['source' => 'github', 'githubRepositoryId' => 812345]);
+        $response = self::apiRequest($this->client, 'POST', '/api/v1/repositories', ['source' => 'github', 'githubRepositoryId' => 812345, 'codeAccess' => 'clone']);
 
         self::assertSame(
             ['violations' => [['field' => 'githubRepositoryId', 'message' => 'Another connected repository has the name acme/billing.']]],

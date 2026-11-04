@@ -36,7 +36,7 @@ The [usage limits](../specs/README.md#usage-limits) are the values of the [plan 
 | `APP_PLAN_FREE_REPOSITORIES` | `25` | Connected repositories per tenant. `0` or empty: off. |
 | `APP_PLAN_FREE_OPEN_REVIEWS` | `20` | Open reviews per tenant. `0` or empty: off. |
 | `APP_PLAN_FREE_REQUESTS_PER_REVIEW` | `1000` | Requests per review. `0` or empty: off. |
-| `APP_PLAN_FREE_REPOSITORY_SIZE_MIB` | `2048` | Size of one clone in MiB. `0` or empty: off. |
+| `APP_PLAN_FREE_REPOSITORY_SIZE_MIB` | `2048` | Size of one clone in MiB, and the largest GitHub `size` of a `pass_through` repository before a scratch copy. `0` or empty: off. |
 | `APP_PLAN_FREE_TENANT_STORAGE_MIB` | `10240` | Size of all clones of a tenant in MiB. `0` or empty: off. |
 | `APP_PLAN_FREE_MARKETPLACE_PLAN_ID` | empty | The Marketplace plan ID of the free plan of the listing. Empty: the listing has no free plan. |
 | `APP_PAID_PLANS` | empty | The paid plans, a JSON object by plan key. Empty: no paid plans. See below. |
@@ -57,6 +57,24 @@ The [usage limits](../specs/README.md#usage-limits) are the values of the [plan 
 - The Marketplace listing sends its own webhook. Set it to `https://<host>/webhook/github`, content type JSON, the secret `GITHUB_APP_WEBHOOK_SECRET`, and Active.
 - The rate limiter state is in the table `cache_items` of the database, so every web server and worker shares it. The daily job of the [Messenger worker](manual.md#messenger-worker) deletes the expired rows.
 - A clone gets its size at its next clone or fetch. Until then it counts as 0 bytes.
+
+## Code storage
+
+Set these variables for the web server and every Messenger worker. [Code access](../user/code-access.md) describes the two modes of a repository, and D111 and D112 of the [architecture](../architecture.md#11-decisions) the rules.
+
+| Variable | Default | Value |
+|---|---|---|
+| `APP_TENANT_DATA_DIR` | `var/tenants` | The clones of the repositories with `codeAccess: clone`. Persistent, encrypted storage that the web server and every worker share. |
+| `APP_SCRATCH_DIR` | `var/scratch` | The scratch copies of the repositories with `codeAccess: pass_through`, on a tmpfs. In `prod`, the application refuses a directory that no `tmpfs` entry of `/proc/mounts` holds, so it needs Linux. |
+| `APP_INDEX_MAX_BLOB_READS` | `500` | Above this number of blobs to parse, the index job of a `pass_through` repository fetches the commit into one scratch copy, and below it reads each blob from GitHub. |
+| `TMPDIR` | empty | The `APP_SCRATCH_DIR` directory, so git writes its temporary files to the tmpfs |
+
+- Set the PHP setting `sys_temp_dir` to the `APP_SCRATCH_DIR` directory as well, so the temporary files of PHP, for example a large HTTP body, stay on the tmpfs. The image `frankenphp_prod` sets it to `/srv/slopmower/scratch`.
+- Size the tmpfs at `repository_size` times the number of PHP processes that can hold a scratch copy at once: each PHP thread of the web server and each worker. `repository_size` is the largest of `APP_PLAN_FREE_REPOSITORY_SIZE_MIB` and the `repository_size_mib` values of `APP_PAID_PLANS`. With that limit off, nothing bounds a scratch copy.
+- A scratch copy holds one commit without history, so it is usually much smaller than the GitHub `size` that the limit checks: `symfony/symfony` has a GitHub `size` of 357 MiB and a scratch copy of 20 MiB.
+- A tmpfs uses memory. Give the host or the container memory for the full tmpfs on top of the PHP processes. In a container, the tmpfs counts toward the `--memory` limit.
+- Switch swap off on the host, or use an encrypted swap device, because the kernel can write the pages of a tmpfs to a swap device.
+- The cache pool `github_code.cache` keeps the tree listings and the commit data of `pass_through` repositories for 1 day under `<APP_SHARE_DIR>/<environment>/pools/app`. It holds no file content.
 
 ## Error reporting
 

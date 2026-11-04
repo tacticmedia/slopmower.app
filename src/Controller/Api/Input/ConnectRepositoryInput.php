@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Api\Input;
 
+use App\Domain\Repository\CodeAccess;
 use App\Domain\Repository\RepositorySource;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -25,6 +26,13 @@ final readonly class ConnectRepositoryInput
             return RepositorySource::Local === $input->source;
         }, constraints: [new Assert\NotNull()])]
         public ?string $directory = null,
+        #[Assert\When(expression: static function (self $input): bool {
+            return RepositorySource::Github === $input->source;
+        }, constraints: [new Assert\NotNull()])]
+        #[Assert\When(expression: static function (self $input): bool {
+            return RepositorySource::Local === $input->source && CodeAccess::PassThrough === $input->codeAccess;
+        }, constraints: [new Assert\IsNull(message: 'Must be absent or clone for a local repository.')])]
+        public ?CodeAccess $codeAccess = null,
     ) {
     }
 }

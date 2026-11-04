@@ -75,6 +75,16 @@ final class UsageLimits
     }
 
     /**
+     * D112: the GitHub `size` before a scratch copy of Pass-through, which counts toward no tenant storage.
+     *
+     * @throws LimitExceeded
+     */
+    public function checkRepositorySize(TenantId $tenantId, int $sizeBytes): void
+    {
+        self::checkTotal($this->plans->ofTenant($tenantId)->plan, UsageLimit::RepositorySize, $sizeBytes);
+    }
+
+    /**
      * @throws LimitExceeded
      */
     private static function checkAdded(Plan $plan, UsageLimit $limit, int $current, int $added): void

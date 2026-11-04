@@ -11,13 +11,16 @@ use App\Domain\Actor\Actor;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Error\LimitExceeded;
 use App\Domain\Error\NotFound;
+use App\Domain\Error\RateLimited;
 use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Error\ReviewClosed;
 use App\Domain\Event\RecordedEvent;
 use App\Domain\Git\CommitInfo;
+use App\Domain\Git\CommitSha;
 use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
+use App\Domain\Repository\CodeAccess;
 use App\Domain\Repository\RepositorySource;
 use App\Domain\Request\Command\Claim;
 use App\Domain\Request\Command\EventOnlyCommand;
@@ -37,7 +40,6 @@ use App\Domain\Request\RequestDecider;
 use App\Domain\Request\RequestState;
 use App\EventStore\CommandExecutor;
 use App\Git\GitFailed;
-use App\Git\GitReader;
 use App\Git\PinRefs;
 use App\Git\RepositoryLock;
 use App\Git\TenantDataPaths;
@@ -65,7 +67,6 @@ final class RequestCommands
         private readonly RequestQuery $requestQuery,
         private readonly FetchRepository $fetchRepository,
         private readonly UsageLimits $usageLimits,
-        private readonly GitReader $reader,
         private readonly PinRefs $pins,
         private readonly RepositoryLock $repositoryLock,
         private readonly TenantDataPaths $paths,
@@ -103,8 +104,8 @@ final class RequestCommands
     }
 
     /**
-     * Q7. A commit that the server clone has is pinned before the transaction, both under the pin lock (D91). A missing
-     * one stays pending and queues a fetch, which {@see ResolvePendingCommitLinks} follows.
+     * Q7. A commit that the repository has is available. A Server copy pins it before the transaction, both under the
+     * pin lock (D91). A missing one stays pending and queues a fetch, which {@see ResolvePendingCommitLinks} follows.
      *
      * @throws NotFound|InvalidInput|ReviewClosed|InvalidTransition
      */
@@ -114,18 +115,18 @@ final class RequestCommands
         $first = $command->requestIds[0] ?? throw InvalidInput::field('requestIds', 'Must not be empty.');
         $review = ($this->requests->findFresh($first) ?? throw new NotFound())->getReview();
         $repository = $review->getRepository();
-        $gitDir = $this->paths->clonePath($repository->getTenantId(), $repository->getId());
-        $commit = $this->reader->hasCommit($gitDir, $commitSha) ? $this->reader->commitInfo($gitDir, $commitSha) : null;
+        $gitDir = CodeAccess::Clone === $repository->getCodeAccess() ? $this->paths->clonePath($repository->getTenantId(), $repository->getId()) : null;
+        $commit = $this->availableCommit($repository->getId(), $commitSha);
 
         $events = $this->repositoryLock->withPinLock($repository->getId(), function () use ($command, $actor, $review, $repository, $gitDir, $commit, $commitSha): array {
-            if (null !== $commit) {
+            if (null !== $commit && null !== $gitDir) {
                 $this->pins->pinCommit($gitDir, $commitSha);
             }
 
             try {
                 return $this->run($review->getId(), $command, $actor, null === $commit ? [] : [$commit]);
             } catch (\Throwable $failure) {
-                if (null !== $commit && !$this->links->isLinkedInRepository($repository->getId(), $commitSha)) {
+                if (null !== $commit && null !== $gitDir && !$this->links->isLinkedInRepository($repository->getId(), $commitSha)) {
                     $this->pins->unpinCommit($gitDir, $commitSha);
                 }
 
@@ -138,6 +139,21 @@ final class RequestCommands
         }
 
         return $this->requestQuery->linkCommitsResult($commitSha, null === $commit ? CommitLinkState::Pending : CommitLinkState::Available, $command->requestIds, $events);
+    }
+
+    /**
+     * A repository whose code is not ready, for example after a failed D88 check, and a read that fails leave the link
+     * pending, as a commit that the repository lacks.
+     */
+    private function availableCommit(RepositoryId $repositoryId, CommitSha $commitSha): ?CommitInfo
+    {
+        try {
+            $reader = $this->fetchRepository->readyReader($repositoryId);
+
+            return $reader->hasCommit($commitSha) ? $reader->commitInfo($commitSha) : null;
+        } catch (RepositoryUnavailable|RateLimited|GitFailed) {
+            return null;
+        }
     }
 
     /**
@@ -191,10 +207,16 @@ final class RequestCommands
         $events = $this->run($this->reviewOf($command->requestId), $command, $actor);
         $repository = ($this->requests->findFresh($command->requestId) ?? throw new NotFound())->getReview()->getRepository();
 
-        $this->repositoryLock->withPinLock($repository->getId(), function () use ($command, $repository): void {
+        $gitDir = $this->paths->clonePath($repository->getTenantId(), $repository->getId());
+
+        if (!is_dir($gitDir)) {
+            return $events;
+        }
+
+        $this->repositoryLock->withPinLock($repository->getId(), function () use ($command, $repository, $gitDir): void {
             if (!$this->links->isLinkedInRepository($repository->getId(), $command->commitSha)) {
                 try {
-                    $this->pins->unpinCommit($this->paths->clonePath($repository->getTenantId(), $repository->getId()), $command->commitSha);
+                    $this->pins->unpinCommit($gitDir, $command->commitSha);
                 } catch (GitFailed $failure) {
                     // The unlink is committed. A removed repository has no clone left.
                     $this->logger->warning('The pin of commit {commitSha} could not be deleted.', ['commitSha' => $command->commitSha->toString(), 'exception' => $failure]);

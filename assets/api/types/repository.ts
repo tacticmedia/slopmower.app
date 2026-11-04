@@ -1,4 +1,4 @@
-import type { CommitSha, DateTime, Ulid } from './common';
+import type { CodeAccess, CommitSha, DateTime, Ulid } from './common';
 
 /** Name of a direct child directory of APP_LOCAL_REPOSITORIES_DIR. */
 export type LocalDirectory = string;
@@ -9,7 +9,7 @@ export type SyncState = (typeof SYNC_STATES)[number];
 export type Sync = {
     state: SyncState;
     lastFetchedAt: DateTime | null;
-    /** Message of the last failed clone or fetch; null after a success. */
+    /** Message of the last failed clone, fetch, or head sync; null after a success. */
     lastError: string | null;
     defaultBranchHead: CommitSha | null;
 };
@@ -17,6 +17,7 @@ export type Sync = {
 type SourceFields =
     | {
           source: 'github';
+          codeAccess: CodeAccess;
           github: {
               repositoryId: number;
               installationId: number;
@@ -29,6 +30,7 @@ type SourceFields =
       }
     | {
           source: 'local';
+          codeAccess: 'clone';
           github: null;
           local: { directory: LocalDirectory };
       };

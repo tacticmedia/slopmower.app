@@ -42,6 +42,8 @@ When you cancel the plan of your own GitHub account, GitHub keeps the App instal
 | Size of one repository | The copy of your largest repository |
 | Size of all repositories | The copies of all your repositories |
 
+A repository with the [code access](code-access.md) Pass-through has no copy and counts 0 for both sizes. When Slopmower downloads one of its commits, for the symbol index of a large commit or the search for code that moved, its size on GitHub must not be larger than **Size of one repository**.
+
 When a limit is reached, Slopmower refuses the next item and says that a limit of your plan is reached (`limit_exceeded`). A copy of a repository that is larger than a size limit fails, and its status names the limit. To make room, close a review, or delete the data of a repository that you no longer review.
 
 ## Review tour
@@ -55,7 +57,7 @@ On a page of a review, **Take the review tour** in the **Help** menu of the head
 
 ## Delete repository data
 
-**Repository data** lists your connected repositories. **Delete data** deletes the reviews of a repository with their requests, comments, and pending comments, together with the symbol index, the tokens for this repository, and the copy of the repository. To confirm, type the name of the repository. You cannot undo this. You can connect the repository again.
+**Repository data** lists your connected repositories. **Delete data** deletes the reviews of a repository with their requests, comments, and pending comments, together with the symbol index, the tokens for this repository, and the copy of the repository, when it has one. To confirm, type the name of the repository. You cannot undo this. You can connect the repository again.
 
 ## Delete your account
 

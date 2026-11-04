@@ -25,6 +25,7 @@ import inputsAcceptSuggestion from '../../docs/specs/fixtures/inputs.accept-sugg
 import inputsApproveProposal from '../../docs/specs/fixtures/inputs.approve-proposal.json';
 import inputsCarryOver from '../../docs/specs/fixtures/inputs.carry-over.json';
 import inputsCloseReview from '../../docs/specs/fixtures/inputs.close-review.json';
+import inputsCodeAccess from '../../docs/specs/fixtures/inputs.code-access.json';
 import inputsComment from '../../docs/specs/fixtures/inputs.comment.json';
 import inputsConnectGithub from '../../docs/specs/fixtures/inputs.connect-github.json';
 import inputsConnectLocal from '../../docs/specs/fixtures/inputs.connect-local.json';
@@ -80,6 +81,7 @@ import meAgent from '../../docs/specs/fixtures/me.agent.json';
 import meLocalUser from '../../docs/specs/fixtures/me.local-user.json';
 import mePreferences from '../../docs/specs/fixtures/me.preferences.json';
 import repositoryGithubCloning from '../../docs/specs/fixtures/repository.github-cloning.json';
+import repositoryGithubPassThrough from '../../docs/specs/fixtures/repository.github-pass-through.json';
 import repositoryLocalIdle from '../../docs/specs/fixtures/repository.local-idle.json';
 import requestCommandResultClaim from '../../docs/specs/fixtures/request-command-result.claim.json';
 import requestCommandResultProposed from '../../docs/specs/fixtures/request-command-result.proposed.json';
@@ -114,6 +116,7 @@ import type {
     ApproveProposalInput,
     CarryOverInput,
     CloseReviewInput,
+    CodeAccessInput,
     CommentInput,
     ConnectRepositoryInput,
     CreateDraftInput,
@@ -200,6 +203,7 @@ const checkedFixtures = {
     'inputs.approve-proposal.json': inputsApproveProposal satisfies Widen<ApproveProposalInput>,
     'inputs.carry-over.json': inputsCarryOver satisfies Widen<CarryOverInput>,
     'inputs.close-review.json': inputsCloseReview satisfies Widen<CloseReviewInput>,
+    'inputs.code-access.json': inputsCodeAccess satisfies Widen<CodeAccessInput>,
     'inputs.comment.json': inputsComment satisfies Widen<CommentInput>,
     'inputs.connect-github.json': inputsConnectGithub satisfies Widen<ConnectRepositoryInput>,
     'inputs.connect-local.json': inputsConnectLocal satisfies Widen<ConnectRepositoryInput>,
@@ -255,6 +259,7 @@ const checkedFixtures = {
     'me.local-user.json': meLocalUser satisfies Widen<Me>,
     'me.preferences.json': mePreferences satisfies Widen<Preferences>,
     'repository.github-cloning.json': repositoryGithubCloning satisfies Widen<Repository>,
+    'repository.github-pass-through.json': repositoryGithubPassThrough satisfies Widen<Repository>,
     'repository.local-idle.json': repositoryLocalIdle satisfies Widen<Repository>,
     'request-command-result.claim.json': requestCommandResultClaim satisfies Widen<RequestCommandResult>,
     'request-command-result.proposed.json': requestCommandResultProposed satisfies Widen<RequestCommandResult>,

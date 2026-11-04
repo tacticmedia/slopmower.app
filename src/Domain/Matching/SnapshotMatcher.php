@@ -19,7 +19,7 @@ final class SnapshotMatcher
     {
         $characters = implode('', array_map(
             static fn (string $line): string => str_replace(' ', '', SnapshotCapture::comparisonForm($line)),
-            $snapshot->lines,
+            $snapshot->textLines(),
         ));
 
         return mb_strlen($characters, 'UTF-8') >= self::MIN_DISTINCTIVE_CHARACTERS;
@@ -37,7 +37,7 @@ final class SnapshotMatcher
         }
 
         $fileForms = array_map(SnapshotCapture::comparisonForm(...), $fileLines);
-        $snapshotForms = array_map(SnapshotCapture::comparisonForm(...), $snapshot->lines);
+        $snapshotForms = array_map(SnapshotCapture::comparisonForm(...), $snapshot->textLines());
         $matches = [];
 
         for ($offset = 0, $lastOffset = count($fileForms) - $snapshot->lineCount; $offset <= $lastOffset; ++$offset) {

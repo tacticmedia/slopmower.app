@@ -7,6 +7,7 @@ import {
     ACTOR_KINDS,
     ANCHOR_KINDS,
     AWAITING_VALUES,
+    CODE_ACCESSES,
     COMMIT_LINK_STATES,
     ERROR_CODES,
     EVENT_TYPES,
@@ -44,8 +45,9 @@ const schemas = new Map(
     ).map(([path, schema]) => [path.slice(path.lastIndexOf('/') + 1), schema]),
 );
 
-const ENUM_ARRAYS: [schemaFileName: string, jsonPointer: string, tsArray: readonly string[]][] = [
+const ENUM_ARRAYS: [schemaFileName: string, jsonPointer: string, tsArray: readonly (string | null)[]][] = [
     ['common.schema.json', '/$defs/RepositorySource/enum', REPOSITORY_SOURCES],
+    ['common.schema.json', '/$defs/CodeAccess/enum', CODE_ACCESSES],
     ['common.schema.json', '/$defs/RepositoryAccess/enum', REPOSITORY_ACCESSES],
     ['common.schema.json', '/$defs/ReviewState/enum', REVIEW_STATES],
     ['common.schema.json', '/$defs/IndexState/enum', INDEX_STATES],
@@ -81,6 +83,8 @@ const ENUM_ARRAYS: [schemaFileName: string, jsonPointer: string, tsArray: readon
     ['api-token.schema.json', '/properties/state/enum', API_TOKEN_STATES],
     ['me.schema.json', '/properties/user/properties/signInMethod/enum', SIGN_IN_METHODS],
     ['inputs.schema.json', '/$defs/CreateDraftInput/properties/kind/enum', DRAFT_KINDS],
+    // The local branch of ConnectRepositoryInput, typed `'clone' | null`.
+    ['inputs.schema.json', '/$defs/ConnectRepositoryInput/allOf/1/then/properties/codeAccess/enum', ['clone', null]],
 ];
 
 /** Keys of these keywords are names, not keywords. */

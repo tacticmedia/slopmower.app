@@ -12,13 +12,12 @@ use App\Domain\Git\CommitSha;
 use App\Domain\Git\CommitShaPrefix;
 use App\Domain\Git\RefName;
 use App\Domain\Git\RepoPath;
-use Symfony\Contracts\Service\ResetInterface;
 
 /**
- * Keeps one `cat-file --batch` process per clone, and the renames of each commit range, until {@see reset()}, which
- * runs between requests and messages.
+ * Reads one git directory. Keeps one `cat-file --batch` process, and the renames of each commit range, until
+ * {@see close()}. {@see \App\Application\CodeReaders::reset()} closes it between requests and messages.
  */
-final class GitReader implements ResetInterface
+final class GitCodeReader implements CodeReader
 {
     private const string HEADS = 'refs/heads/';
 
@@ -26,13 +25,12 @@ final class GitReader implements ResetInterface
     private const int FIRST_EVENT_TIME_UNIX_SECONDS = -62167219200;
     private const int LAST_EVENT_TIME_UNIX_SECONDS = 253402300799;
 
-    /** @var array<string, CatFileBatch> */
-    private array $batches = [];
+    private ?CatFileBatch $batch = null;
 
-    /** @var array<string, array<string, string|null>> {@see changedPaths()} by git directory and commit range */
+    /** @var array<string, array<string, string|null>> {@see changedPaths()} by commit range */
     private array $changedPaths = [];
 
-    public function __construct(private readonly GitRunner $git)
+    public function __construct(private readonly GitRunner $git, public readonly string $gitDir)
     {
     }
 
@@ -40,9 +38,9 @@ final class GitReader implements ResetInterface
      * @throws CommitNotFound
      * @throws InvalidInput   For a short SHA that matches more than one commit or tag
      */
-    public function resolveCommit(string $gitDir, RefName $ref): CommitSha
+    public function resolveCommit(RefName $ref): CommitSha
     {
-        return $this->resolve($gitDir, $ref->toString(), 'ref');
+        return $this->resolve($ref->toString(), 'ref');
     }
 
     /**
@@ -51,9 +49,9 @@ final class GitReader implements ResetInterface
      * @throws CommitNotFound
      * @throws InvalidInput   For a prefix that matches more than one commit or tag
      */
-    public function resolvePrefix(string $gitDir, CommitShaPrefix $prefix, string $field = 'commit'): CommitSha
+    public function resolvePrefix(CommitShaPrefix $prefix, string $field = 'commit'): CommitSha
     {
-        $commit = $this->resolve($gitDir, $prefix->toString(), $field);
+        $commit = $this->resolve($prefix->toString(), $field);
 
         // A ref with the same name as the prefix wins in rev-parse.
         if (!str_starts_with($commit->toString(), $prefix->toString())) {
@@ -66,10 +64,10 @@ final class GitReader implements ResetInterface
     /**
      * @return string|null The branch that HEAD names, for example `main`. Null for a detached HEAD.
      */
-    public function headBranch(string $gitDir): ?string
+    public function headBranch(): ?string
     {
         try {
-            $ref = trim($this->git->run($gitDir, ['symbolic-ref', '--quiet', 'HEAD']));
+            $ref = trim($this->git->run($this->gitDir, ['symbolic-ref', '--quiet', 'HEAD']));
         } catch (GitFailed) {
             return null;
         }
@@ -77,10 +75,10 @@ final class GitReader implements ResetInterface
         return str_starts_with($ref, self::HEADS) ? substr($ref, strlen(self::HEADS)) : null;
     }
 
-    public function hasCommit(string $gitDir, CommitSha $commit): bool
+    public function hasCommit(CommitSha $commit): bool
     {
         try {
-            $this->git->run($gitDir, ['cat-file', '-e', '--end-of-options', "{$commit}^{commit}"]);
+            $this->git->run($this->gitDir, ['cat-file', '-e', '--end-of-options', "{$commit}^{commit}"]);
 
             return true;
         } catch (GitFailed) {
@@ -94,10 +92,10 @@ final class GitReader implements ResetInterface
      *
      * @throws CommitNotFound
      */
-    public function commitInfo(string $gitDir, CommitSha $commit): CommitInfo
+    public function commitInfo(CommitSha $commit): CommitInfo
     {
         try {
-            $output = $this->git->run($gitDir, ['log', '-1', '--format=%ct%x00%s', '--end-of-options', "{$commit}^{commit}"]);
+            $output = $this->git->run($this->gitDir, ['log', '-1', '--format=%ct%x00%s', '--end-of-options', "{$commit}^{commit}"]);
         } catch (GitFailed) {
             throw new CommitNotFound($commit->toString());
         }
@@ -113,11 +111,11 @@ final class GitReader implements ResetInterface
      *
      * @throws CommitNotFound
      */
-    public function commitDetails(string $gitDir, CommitSha $commit): CommitDetails
+    public function commitDetails(CommitSha $commit): CommitDetails
     {
         try {
             // `format:` adds no line feed after the message.
-            $output = $this->git->run($gitDir, ['log', '-1', '--no-mailmap', '--format=format:%P%x00%an%x00%ae%x00%ct%x00%s%x00%B', '--end-of-options', "{$commit}^{commit}"]);
+            $output = $this->git->run($this->gitDir, ['log', '-1', '--no-mailmap', '--format=format:%P%x00%an%x00%ae%x00%ct%x00%s%x00%B', '--end-of-options', "{$commit}^{commit}"]);
         } catch (GitFailed) {
             throw new CommitNotFound($commit->toString());
         }
@@ -143,9 +141,9 @@ final class GitReader implements ResetInterface
      *
      * @throws GitFailed
      */
-    public function log(string $gitDir, CommitSha $from, int $limit): array
+    public function log(CommitSha $from, int $limit): array
     {
-        $output = $this->git->run($gitDir, ['log', '--no-mailmap', '-z', '-n', (string) $limit, '--format=format:%H%x00%an%x00%at%x00%ct%x00%s', '--end-of-options', $from->toString()]);
+        $output = $this->git->run($this->gitDir, ['log', '--no-mailmap', '-z', '-n', (string) $limit, '--format=format:%H%x00%an%x00%at%x00%ct%x00%s', '--end-of-options', $from->toString()]);
 
         if ('' === $output) {
             return [];
@@ -172,10 +170,10 @@ final class GitReader implements ResetInterface
      *
      * @throws GitFailed
      */
-    public function changedFiles(string $gitDir, ?CommitSha $parent, CommitSha $commit): array
+    public function changedFiles(?CommitSha $parent, CommitSha $commit): array
     {
         $revisions = null === $parent ? ['--root', '--end-of-options', $commit->toString()] : ['--end-of-options', $parent->toString(), $commit->toString()];
-        $records = explode("\0", rtrim($this->git->run($gitDir, ['diff-tree', '-r', '-M', '-z', '--raw', '--numstat', '--no-commit-id', ...$revisions]), "\0"));
+        $records = explode("\0", rtrim($this->git->run($this->gitDir, ['diff-tree', '-r', '-M', '-z', '--raw', '--numstat', '--no-commit-id', ...$revisions]), "\0"));
         $index = 0;
         $raw = [];
 
@@ -217,13 +215,13 @@ final class GitReader implements ResetInterface
      *
      * @throws GitFailed
      */
-    public function objectSizes(string $gitDir, array $objectIds): array
+    public function objectSizes(array $objectIds): array
     {
         if ([] === $objectIds) {
             return [];
         }
 
-        $output = $this->git->run($gitDir, ['cat-file', '--batch-check=%(objectname) %(objectsize)'], standardInput: implode("\n", $objectIds)."\n");
+        $output = $this->git->run($this->gitDir, ['cat-file', '--batch-check=%(objectname) %(objectsize)'], standardInput: implode("\n", $objectIds)."\n");
         $sizes = [];
 
         foreach (explode("\n", $output) as $line) {
@@ -240,9 +238,9 @@ final class GitReader implements ResetInterface
      *
      * @throws GitFailed When the directory is missing or not a directory
      */
-    public function lsTree(string $gitDir, CommitSha $commit, ?RepoPath $directory = null): array
+    public function lsTree(CommitSha $commit, ?RepoPath $directory = null): array
     {
-        return $this->listTree($gitDir, $commit, $directory, []);
+        return $this->listTree($commit, $directory, []);
     }
 
     /**
@@ -250,9 +248,9 @@ final class GitReader implements ResetInterface
      *
      * @throws GitFailed When the directory is missing or not a directory
      */
-    public function lsTreeRecursive(string $gitDir, CommitSha $commit, ?RepoPath $directory = null): array
+    public function lsTreeRecursive(CommitSha $commit, ?RepoPath $directory = null): array
     {
-        return $this->listTree($gitDir, $commit, $directory, ['-r']);
+        return $this->listTree($commit, $directory, ['-r']);
     }
 
     /**
@@ -260,13 +258,13 @@ final class GitReader implements ResetInterface
      *
      * @throws GitFailed
      */
-    public function entryAt(string $gitDir, CommitSha $commit, RepoPath $path): ?TreeEntry
+    public function entryAt(CommitSha $commit, RepoPath $path): ?TreeEntry
     {
         $slash = strrpos($path->toString(), '/');
         $parent = false === $slash ? null : RepoPath::fromString(substr($path->toString(), 0, $slash));
 
         try {
-            $siblings = $this->lsTree($gitDir, $commit, $parent);
+            $siblings = $this->lsTree($commit, $parent);
         } catch (GitFailed $failure) {
             // GitRunner sets LC_ALL=C, so the messages of a missing parent and of a file or submodule parent are stable.
             $isMissingParent = null !== $parent && (str_ends_with($failure->getMessage(), ": fatal: Not a valid object name {$commit}:{$parent}")
@@ -285,23 +283,22 @@ final class GitReader implements ResetInterface
      *
      * @throws GitFailed
      */
-    public function openBlob(string $gitDir, BlobSha $blob): ?StreamedBlob
+    public function openBlob(BlobSha $blob): ?StreamedBlob
     {
-        return StreamedBlob::open($this->git, $gitDir, $blob);
+        return StreamedBlob::open($this->git, $this->gitDir, $blob);
     }
 
     /**
      * @throws GitFailed
      */
-    public function readBlob(string $gitDir, BlobSha $blob): ?Blob
+    public function readBlob(BlobSha $blob): ?Blob
     {
-        $batch = $this->batches[$gitDir] ??= CatFileBatch::start($this->git, $gitDir);
+        $batch = $this->batch ??= CatFileBatch::start($this->git, $this->gitDir);
 
         try {
             return $batch->blob($blob);
         } catch (GitFailed $failure) {
-            $batch->stop();
-            unset($this->batches[$gitDir]);
+            $this->close();
 
             throw $failure;
         }
@@ -314,9 +311,9 @@ final class GitReader implements ResetInterface
      *
      * @throws GitFailed
      */
-    public function pathAfter(string $gitDir, CommitSha $from, CommitSha $to, RepoPath $path): ?string
+    public function pathAfter(CommitSha $from, CommitSha $to, RepoPath $path): ?string
     {
-        $changedPaths = $this->changedPaths["{$gitDir}\0{$from}\0{$to}"] ??= $this->changedPaths($gitDir, $from, $to);
+        $changedPaths = $this->changedPaths["{$from}\0{$to}"] ??= $this->changedPaths($from, $to);
 
         return array_key_exists($path->toString(), $changedPaths) ? $changedPaths[$path->toString()] : $path->toString();
     }
@@ -326,9 +323,9 @@ final class GitReader implements ResetInterface
      *
      * @throws GitFailed
      */
-    private function changedPaths(string $gitDir, CommitSha $from, CommitSha $to): array
+    private function changedPaths(CommitSha $from, CommitSha $to): array
     {
-        $records = explode("\0", rtrim($this->git->run($gitDir, ['diff', '--name-status', '-M', '-z', '--no-color', '--end-of-options', $from->toString(), $to->toString(), '--']), "\0"));
+        $records = explode("\0", rtrim($this->git->run($this->gitDir, ['diff', '--name-status', '-M', '-z', '--no-color', '--end-of-options', $from->toString(), $to->toString(), '--']), "\0"));
         $changedPaths = [];
         $index = 0;
 
@@ -357,9 +354,9 @@ final class GitReader implements ResetInterface
      *
      * @throws GitFailed
      */
-    public function unifiedZeroDiff(string $gitDir, BlobSha $from, BlobSha $to): string
+    public function unifiedZeroDiff(BlobSha $from, BlobSha $to): string
     {
-        return $this->git->run($gitDir, ['diff', '--unified=0', '--no-color', '--no-ext-diff', '--no-textconv', '--text', '--end-of-options', $from->toString(), $to->toString()]);
+        return $this->git->run($this->gitDir, ['diff', '--unified=0', '--no-color', '--no-ext-diff', '--no-textconv', '--text', '--end-of-options', $from->toString(), $to->toString()]);
     }
 
     /**
@@ -369,10 +366,11 @@ final class GitReader implements ResetInterface
      *
      * @throws GitFailed
      */
-    public function filesContaining(string $gitDir, CommitSha $commit, string $fixedText): array
+    public function filesContaining(CommitSha $commit, string $fixedText): array
     {
         try {
-            $output = $this->git->run($gitDir, ['grep', '--files-with-matches', '-z', '-I', '-F', '--no-color', '-e', $fixedText, '--end-of-options', $commit->toString()]);
+            // The text reaches git through standard input, so no failure message or log line holds code.
+            $output = $this->git->run($this->gitDir, ['grep', '--files-with-matches', '-z', '-I', '-F', '--no-color', '-f', '/dev/stdin', '--end-of-options', $commit->toString()], standardInput: "{$fixedText}\n");
         } catch (GitFailed $failure) {
             // git grep exits with 1 when no file matches.
             return 1 === $failure->exitCode ? [] : throw $failure;
@@ -397,11 +395,11 @@ final class GitReader implements ResetInterface
      *
      * @throws GitFailed
      */
-    public function blame(string $gitDir, CommitSha $commit, RepoPath $path, array $ignoredCommits): array
+    public function blame(CommitSha $commit, RepoPath $path, array $ignoredCommits): array
     {
         $ignore = [] === $ignoredCommits ? [] : ['--ignore-revs-file', '/dev/stdin'];
         $output = $this->git->run(
-            $gitDir,
+            $this->gitDir,
             ['-c', 'mailmap.blob=', '-c', 'mailmap.file=', 'blame', '--incremental', ...$ignore, '--end-of-options', $commit->toString(), $path->toString()],
             standardInput: [] === $ignoredCommits ? null : implode("\n", $ignoredCommits)."\n",
         );
@@ -456,23 +454,25 @@ final class GitReader implements ResetInterface
         ];
     }
 
-    public function reset(): void
+    public function withLocalCopy(CommitSha $commit, callable $callback): mixed
     {
-        foreach ($this->batches as $batch) {
-            $batch->stop();
-        }
+        return $callback($this);
+    }
 
-        $this->batches = [];
+    public function close(): void
+    {
+        $this->batch?->stop();
+        $this->batch = null;
         $this->changedPaths = [];
     }
 
     /**
      * The `^{commit}` peel makes git count only commits, and tags that point to commits, as candidates of a short SHA.
      */
-    private function resolve(string $gitDir, string $revision, string $field): CommitSha
+    private function resolve(string $revision, string $field): CommitSha
     {
         try {
-            return CommitSha::fromString(trim($this->git->run($gitDir, ['rev-parse', '--verify', '--end-of-options', "{$revision}^{commit}"])));
+            return CommitSha::fromString(trim($this->git->run($this->gitDir, ['rev-parse', '--verify', '--end-of-options', "{$revision}^{commit}"])));
         } catch (GitFailed $failure) {
             // GitRunner sets LC_ALL=C, so the message is stable.
             throw str_contains($failure->getMessage(), "short object ID {$revision} is ambiguous") ? InvalidInput::field($field, "{$revision} matches more than one commit.") : new CommitNotFound($revision);
@@ -484,12 +484,12 @@ final class GitReader implements ResetInterface
      *
      * @return list<TreeEntry>
      */
-    private function listTree(string $gitDir, CommitSha $commit, ?RepoPath $directory, array $options): array
+    private function listTree(CommitSha $commit, ?RepoPath $directory, array $options): array
     {
         $treeish = null === $directory ? $commit->toString() : "{$commit}:{$directory}";
         $pathPrefix = null === $directory ? '' : "{$directory}/";
 
-        return $this->treeEntries($this->git->run($gitDir, ['ls-tree', ...$options, '--long', '-z', '--end-of-options', $treeish]), $pathPrefix);
+        return $this->treeEntries($this->git->run($this->gitDir, ['ls-tree', ...$options, '--long', '-z', '--end-of-options', $treeish]), $pathPrefix);
     }
 
     /**

@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace App\Application;
 
 use App\Application\Event\RepositoryChanged;
+use App\Domain\Error\InvalidInput;
 use App\Domain\Error\NotFound;
 use App\Domain\Error\RateLimited;
 use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Error\RepositoryUnavailableReason;
 use App\Domain\Identity\RepositoryId;
+use App\Domain\Repository\CodeAccess;
+use App\Domain\Repository\RepositorySource;
 use App\Domain\Repository\SyncState;
 use App\Entity\Repository;
+use App\Git\CodeReader;
 use App\Git\RepositoryLock;
 use App\Git\TenantDataPaths;
 use App\Message\CloneRepositoryJob;
@@ -43,6 +47,7 @@ final class FetchRepository
         private readonly ServerClone $serverClone,
         private readonly RateLimits $rateLimits,
         private readonly TenantDataPaths $paths,
+        private readonly CodeReaders $readers,
         private readonly MessageBusInterface $bus,
         private readonly EventDispatcherInterface $dispatcher,
         private readonly Connection $connection,
@@ -83,6 +88,30 @@ final class FetchRepository
             }
 
             $this->dispatcher->dispatch(new RepositoryChanged($repository->getTenantId(), $id));
+        }
+    }
+
+    /**
+     * R10 (D111): a new code access queues the clone job, which deletes the clone of a change to Pass-through and clones
+     * after a change to Server copy. The same value changes nothing.
+     *
+     * @throws InvalidInput          Pass-through for a local repository
+     * @throws RepositoryUnavailable With the reason `removed`
+     */
+    public function changeCodeAccess(Repository $repository, CodeAccess $codeAccess): void
+    {
+        $this->refuseOpenTransaction();
+
+        if (RepositorySource::Local === $repository->getSource() && CodeAccess::Clone !== $codeAccess) {
+            throw InvalidInput::field('codeAccess', 'A local repository is always clone.');
+        }
+
+        if (SyncState::Unavailable === $this->repositories->findFresh($repository->getId())?->getSyncState()) {
+            throw new RepositoryUnavailable($repository->getId(), RepositoryUnavailableReason::Removed);
+        }
+
+        if ($this->repositories->changeCodeAccess($repository->getId(), $codeAccess)) {
+            $this->queueClone($repository);
         }
     }
 
@@ -143,7 +172,7 @@ final class FetchRepository
     }
 
     /**
-     * @return Repository In the state `idle` or `fetching`, which have a clone
+     * @return Repository In the state `idle` or `fetching`, which have a clone or, for Pass-through, a passed head sync
      *
      * @throws NotFound
      * @throws RepositoryUnavailable
@@ -165,9 +194,9 @@ final class FetchRepository
      * @throws NotFound
      * @throws RepositoryUnavailable
      */
-    public function readyClonePath(RepositoryId $id): string
+    public function readyReader(RepositoryId $id): CodeReader
     {
-        return $this->paths->clonePath($this->cloneReady($id)->getTenantId(), $id);
+        return $this->readers->of($this->cloneReady($id));
     }
 
     /**

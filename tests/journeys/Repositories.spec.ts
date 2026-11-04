@@ -34,7 +34,7 @@ test.describe('Repositories', () => {
         repositories.candidates = candidates.items.filter(({ source }) => 'github' === source).map((candidate) => ({ ...candidate, connectedRepositoryId: null }));
         repositories.candidateFields = { ...repositories.candidateFields, githubListedAt: now(-600) };
         await page.reload();
-        await captureScreen('Onboarding, candidates', page.locator(`${STEPS} [data-testid="onboarding-github"] ul`));
+        await captureScreen('Onboarding, candidates', page.locator(`${STEPS} [data-testid="onboarding-github"]`));
 
         api.me = me();
         repositories.candidates = [...candidates.items.filter(({ source }) => 'local' === source).map((candidate) => ({ ...candidate, connectedRepositoryId: null })), localCandidate('shipping')];
@@ -77,11 +77,19 @@ test.describe('Repositories', () => {
         api.me = me({ localRepositories: false });
         const repositories = new FakeRepositories(api);
         const candidates = fixture<CandidateList>('lists.candidate-list.json');
-        repositories.repositories = [fixture<Repository>('repository.github-cloning.json')];
+        const repository = fixture<Repository>('repository.github-cloning.json');
+        repositories.repositories = [repository];
         repositories.candidates = candidates.items.filter(({ source }) => 'github' === source);
         repositories.candidateFields = { localEnabled: false, githubListedAt: now(-600), githubConfigureUrl: candidates.githubConfigureUrl };
 
         await page.goto('/repositories');
-        await captureScreen('Without local repositories', page.locator('[data-testid="github-candidates"] table'));
+        await captureScreen('Without local repositories', page.locator('[data-testid="github-candidates"]'));
+
+        await page.goto(`/repositories/${repository.id}`);
+        await captureScreen('GitHub repository, code access', page.locator('header').filter({ has: page.locator('[data-testid="code-access"]') }));
+
+        await page.locator('[data-testid="code-access"]').getByRole('button', { name: 'Change' }).click();
+        await page.getByRole('menuitemradio', { name: 'Pass-through' }).click();
+        await captureScreen('Code access switch', page.getByRole('dialog'));
     });
 });

@@ -6,11 +6,16 @@ namespace App\MessageHandler;
 
 use App\Application\ServerClone;
 use App\Domain\Repository\SyncState;
+use App\Domain\Review\ReviewState;
 use App\Git\RepositoryLock;
 use App\Message\CloneRepositoryJob;
 use App\Message\FetchRepositoryJob;
+use App\Message\IndexReview;
+use App\Message\RecomputeLocations;
 use App\Repository\RepositoryRepository;
+use App\Repository\ReviewRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 final class RepositorySyncHandler
 {
@@ -21,9 +26,15 @@ final class RepositorySyncHandler
         private readonly RepositoryRepository $repositories,
         private readonly RepositoryLock $repositoryLock,
         private readonly ServerClone $serverClone,
+        private readonly ReviewRepository $reviews,
+        private readonly MessageBusInterface $bus,
     ) {
     }
 
+    /**
+     * Runs by the code access of the repository when it starts (D111). After a success, the index job and the location
+     * recompute of each open review run again, because a code access change ends here.
+     */
     #[AsMessageHandler]
     public function handleClone(CloneRepositoryJob $job): void
     {
@@ -37,8 +48,15 @@ final class RepositorySyncHandler
             $lock->release();
         }
 
-        if (null !== $cloning) {
-            $this->serverClone->synced($cloning, $fetched);
+        if (null === $cloning) {
+            return;
+        }
+
+        $this->serverClone->synced($cloning, $fetched);
+
+        foreach (null === $fetched ? [] : $this->reviews->findOfRepository($cloning->getId(), ReviewState::Open) as $review) {
+            $this->bus->dispatch(new IndexReview($review->getId()));
+            $this->bus->dispatch(new RecomputeLocations($review->getId()));
         }
     }
 

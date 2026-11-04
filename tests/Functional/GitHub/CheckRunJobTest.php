@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\GitHub;
 
+use App\Application\CodeReaders;
 use App\Application\QueueCheckRun;
 use App\Application\RequestCommands;
 use App\Application\ReviewCommands;
@@ -30,7 +31,6 @@ use App\Entity\PullRequest;
 use App\Entity\Repository;
 use App\Entity\User;
 use App\EventStore\CommandExecutor;
-use App\Git\GitReader;
 use App\GitHub\Payload\PullRequestPayload;
 use App\Message\CheckRunJob;
 use App\Message\GitHubPullRequestJob;
@@ -401,10 +401,9 @@ final class CheckRunJobTest extends KernelTestCase
 
     private function lineAnchor(int $line): Anchor
     {
-        $reader = self::getContainer()->get(GitReader::class);
-        $clonePath = self::clonePath($this->repository);
-        $entry = $reader->entryAt($clonePath, $this->head, RepoPath::fromString(self::PATH)) ?? self::fail('The head has no '.self::PATH.'.');
-        $blob = $reader->readBlob($clonePath, BlobSha::fromString($entry->objectId)) ?? self::fail('The clone has no blob of '.self::PATH.'.');
+        $reader = self::getContainer()->get(CodeReaders::class)->git(self::clonePath($this->repository));
+        $entry = $reader->entryAt($this->head, RepoPath::fromString(self::PATH)) ?? self::fail('The head has no '.self::PATH.'.');
+        $blob = $reader->readBlob(BlobSha::fromString($entry->objectId)) ?? self::fail('The clone has no blob of '.self::PATH.'.');
         $range = LineRange::of($line, $line);
 
         return Anchor::of(AnchorKind::Line, RepoPath::fromString(self::PATH), $this->head, $blob->sha, $range, null, SnapshotCapture::capture($blob->bytes, $range));

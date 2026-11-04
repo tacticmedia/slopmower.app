@@ -131,7 +131,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F113 | [Comment drafts and session keepalive](F113-comment-drafts.md) | Done 2026-11-04, [report](reports/F113.md) | b5a6c2c2 | src 515 PHP / 35473 lines, 515 types; tests 347 PHP / 33031 lines; assets 197 TS / 12456 lines; check 6m39s |
 | F114 | [Remove "Request changes" of a proposal](F114-remove-request-changes.md) | Done 2026-11-04, [report](reports/F114.md) | 297bede2 | src 513 PHP / 35404 lines, 513 types; tests 347 PHP / 33033 lines; assets 197 TS / 12423 lines; check 6m19s |
 | F115 | [Return to the page after sign-in](F115-return-after-sign-in.md) | Done 2026-11-04, [report](reports/F115.md) | 07b8a588 | src 513 PHP / 35404 lines, 513 types; tests 347 PHP / 33047 lines; assets 197 TS / 12427 lines; check 5m33s |
-| F116 | [Pass-through code access](F116-pass-through-code-access.md) | Planned | | |
+| F116 | [Pass-through code access](F116-pass-through-code-access.md) | Done 2026-11-04, [report](reports/F116.md) | | src 520 PHP / 37255 lines, 520 types; tests 354 PHP / 34225 lines; assets 199 TS / 12624 lines |
 | F117 | [Browser only code access](F117-browser-only-code-access.md) | Planned | | |
 
 ## Candidates

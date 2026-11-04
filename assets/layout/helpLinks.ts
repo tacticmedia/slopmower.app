@@ -20,6 +20,7 @@ export const HELP = {
     reviewTour: '/docs/account#review-tour',
     deleteAccount: '/docs/account#delete-your-account',
     checkEveryPullRequest: '/docs/pull-requests#check-every-pull-request',
+    codeAccess: '/docs/code-access',
     planFirst: '/docs/requests#ask-for-a-plan-first',
     comment: '/docs/comment',
 } as const;

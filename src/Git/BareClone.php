@@ -50,7 +50,6 @@ final class BareClone
     public function fetch(string $gitDir, string $url, array $pendingShas = [], float $timeoutSeconds = GitRunner::TIMEOUT_SECONDS, #[\SensitiveParameter] array $secretConfiguration = [], ?string $uploadPack = null): void
     {
         $deadlineNanoseconds = hrtime(true) + (int) ($timeoutSeconds * 1e9);
-        $hasTimedOut = static fn (): bool => hrtime(true) >= $deadlineNanoseconds;
         $run = function (string ...$arguments) use ($gitDir, $timeoutSeconds, $secretConfiguration, $deadlineNanoseconds): string {
             $remainingSeconds = ($deadlineNanoseconds - hrtime(true)) / 1e9;
 
@@ -72,27 +71,19 @@ final class BareClone
             return;
         }
 
-        $refspecs = array_map(static fn (CommitSha $sha): string => "{$sha}:".PinRefs::COMMITS.$sha, $pendingShas);
+        $this->fetchEach($gitDir, $url, array_map(static fn (CommitSha $sha): string => "{$sha}:".PinRefs::COMMITS.$sha, $pendingShas), $deadlineNanoseconds, $secretConfiguration, $uploadPack);
+    }
 
-        try {
-            $run('fetch', ...$remoteOptions, ...['--no-auto-maintenance', '--end-of-options', $url, ...$refspecs]);
-
-            return;
-        } catch (GitFailed) {
-            // One SHA that the source does not have fails the whole fetch.
-        }
-
-        foreach ($refspecs as $refspec) {
-            if ($hasTimedOut()) {
-                return;
-            }
-
-            try {
-                $run('fetch', ...$remoteOptions, ...['--no-auto-maintenance', '--end-of-options', $url, $refspec]);
-            } catch (GitFailed) {
-                // The source does not have this SHA, or the timeout ended the fetch.
-            }
-        }
+    /**
+     * Fetches commits by SHA without a ref, for the pins that the caller writes. A SHA that the source lacks is skipped,
+     * and the timeout ends the fetch without a failure.
+     *
+     * @param list<CommitSha>       $shas
+     * @param array<string, string> $secretConfiguration
+     */
+    public function fetchCommits(string $gitDir, string $url, array $shas, float $timeoutSeconds, #[\SensitiveParameter] array $secretConfiguration = [], ?string $uploadPack = null): void
+    {
+        $this->fetchEach($gitDir, $url, array_map(static fn (CommitSha $sha): string => $sha->toString(), $shas), hrtime(true) + (int) ($timeoutSeconds * 1e9), $secretConfiguration, $uploadPack);
     }
 
     /**
@@ -121,6 +112,44 @@ final class BareClone
         }
 
         return ((int) $loose[1] + (int) $packed[1]) * self::BYTES_PER_KIB;
+    }
+
+    /**
+     * One fetch of every refspec, else one fetch per refspec until the deadline: one SHA that the source does not have
+     * fails a whole fetch.
+     *
+     * @param list<string>          $refspecs
+     * @param array<string, string> $secretConfiguration
+     */
+    private function fetchEach(string $gitDir, string $url, array $refspecs, int $deadlineNanoseconds, #[\SensitiveParameter] array $secretConfiguration, ?string $uploadPack): void
+    {
+        $fetch = function (array $batch) use ($gitDir, $url, $deadlineNanoseconds, $secretConfiguration, $uploadPack): bool {
+            $remainingSeconds = ($deadlineNanoseconds - hrtime(true)) / 1e9;
+
+            if ($remainingSeconds <= 0) {
+                return false;
+            }
+
+            try {
+                $this->git->run($gitDir, array_values(['fetch', ...self::remoteOptions($uploadPack), '--no-auto-maintenance', '--end-of-options', $url, ...$batch]), $remainingSeconds, $secretConfiguration);
+
+                return true;
+            } catch (GitFailed) {
+                return false;
+            }
+        };
+
+        if ([] === $refspecs || $fetch($refspecs)) {
+            return;
+        }
+
+        foreach ($refspecs as $refspec) {
+            if (hrtime(true) >= $deadlineNanoseconds) {
+                return;
+            }
+
+            $fetch([$refspec]);
+        }
     }
 
     /**

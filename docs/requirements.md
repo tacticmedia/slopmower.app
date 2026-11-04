@@ -51,7 +51,7 @@ These two principles control all decisions.
   - a local directory under `APP_LOCAL_REPOSITORIES_DIR`, which Docker mounts read-only into the application.
 - Local repositories are an instance feature. When `APP_LOCAL_REPOSITORIES_DIR` is set, every tenant of that instance may connect the repositories under it. The feature is meant for local and self-hosted runs. It is off when the variable is unset.
 - The UI lists the git repositories found directly under the directory. The user connects one.
-- The server keeps its own bare clone of each repository and fetches from the source. It never writes to the source.
+- The user picks the code access of each GitHub repository on connect and can change it later: **Server copy**, where the server keeps its own bare clone and fetches from the source, or **Pass-through**, where the server reads the code from GitHub per request and stores no code. A local repository always has a Server copy. The server never writes to the source. [docs/user/code-access.md](user/code-access.md) compares the modes.
 - A local source has no webhooks. The server fetches on demand: at review start, at `link_commits`, at `mark_ready_for_review`, and when the user clicks "Refresh".
 
 ### FR4 Reviews
@@ -60,7 +60,7 @@ These two principles control all decisions.
 - Reviews are revision-specific. Several open reviews of one repository can run at the same time and stay fully separate. Each request, draft, viewed-file mark, and update cursor belongs to exactly one review.
 - The review header shows a copyable review ID and a ready prompt for the agent: "Work on Slopmower review <id>".
 - The index of paths and symbols belongs to a commit of a repository, because it is code data. Reviews of the same commit share it.
-- The server keeps the review commit and every linked commit in its clone, so that force-pushes and garbage collection cannot remove them.
+- With a Server copy, the server keeps the review commit and every linked commit in its clone, so that force-pushes and garbage collection cannot remove them. With Pass-through, a commit that GitHub deletes after a force-push becomes unreadable.
 
 ### FR5 Closing a review
 
@@ -110,8 +110,8 @@ These two principles control all decisions.
 
 - The agent links each commit to the requests that it covers. One commit can cover several requests of one review. The agent gives the full SHA.
 - A commit link is separate from the status. A linked commit never changes the status. Only `mark_ready_for_review` says that the agent is finished.
-- A link stays `pending` until the commit is in the server clone. For a GitHub repository the commit must be pushed. For a local repository a commit on a branch of the connected repository is enough.
-- `mark_ready_for_review` requires every linked commit to be in the server clone after one fetch. Otherwise it fails with `commits_not_available`.
+- A link stays `pending` until the commit is available: in the server clone, or on GitHub for Pass-through. For a GitHub repository the commit must be pushed. For a local repository a commit on a branch of the connected repository is enough.
+- `mark_ready_for_review` requires every linked commit to be available after one fetch. Otherwise it fails with `commits_not_available`.
 - The user sees the linked commits of each request and the diff of each commit.
 - An agent that opened a pull request for its work links it to the requests that it covers: requests that it holds, or requests that are ready for review. For a GitHub repository the URL must name a pull request of the reviewed repository. A pull request link changes neither the status nor whose turn it is. A GitHub pull request is identified by its number, so a link made before a rename of the repository still names it. The server reads the state of a GitHub pull request. On GitHub it writes only a check run on the pull request, which stays in progress while a linked request is unfinished, so a required check blocks the merge. The agent can unlink a pull request that it linked by mistake, on the same requests and with the same effect on the status and the turn.
 - The user sees the linked pull requests of each request, in its header and in its thread. A pull request opens in a new tab. A GitHub pull request shows its state: open, draft, merged, or closed. The header also shows its title. A change on GitHub shows without a reload.
@@ -161,7 +161,7 @@ These two principles control all decisions.
 
 - The review data is safe when the web UI and the agent write at the same time.
 - Every review and request state change and every comment is an event in an append-only log with an actor. Drafts, viewed-file marks, repositories, and API tokens are plain rows.
-- The user can delete a review, the data of one repository, or the whole account. When GitHub access to a repository ends, the server deletes its clone and index at once and keeps the reviews until the user deletes them.
+- The user can delete a review, the data of one repository, or the whole account. When GitHub access to a repository ends, the server deletes its clone, if any, and its index at once and keeps the reviews until the user deletes them.
 
 ## 4. Non-goals of the proof of concept
 

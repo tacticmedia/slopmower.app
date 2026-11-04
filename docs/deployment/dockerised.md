@@ -32,6 +32,7 @@ Give every container of the application the same variables. Copy `.env.prod.dist
 - `--env-file` keeps each value literally, also the quotes. Remove the quotes of `.env.prod.dist`, for example `DATABASE_PASSWORD=<raw password>`.
 - An env file holds one line per variable. Give the PEM key with its line breaks through `--env GITHUB_APP_PRIVATE_KEY="$(cat <key file>)"`, or through the secrets vault.
 - Set `APP_TENANT_DATA_DIR=/srv/slopmower/tenants`, a [volume](#volumes) of the image.
+- Set `APP_SCRATCH_DIR=/srv/slopmower/scratch` and `TMPDIR=/srv/slopmower/scratch`, the [tmpfs](#volumes) of each container. The image sets `sys_temp_dir` to the same path.
 - Do not set `APP_SHARE_DIR`. The build compiles its `.env` value `var/share` into the container, so the variable of a container has no effect.
 - Set `SYMBOLS_URL` to the [symbols container](#symbols-container), and `MERCURE_URL` to the `MERCURE_PUBLIC_URL` value, see [Mercure hub](README.md#mercure-hub).
 - Set `SYMFONY_TRUSTED_PROXIES=PRIVATE_SUBNETS`. The web container sees the requests of nginx from the Docker network.
@@ -50,8 +51,11 @@ docker network create slopmower
 | `/app/var/share` | Web and every worker | The share directory: `cache.app` with the checkpoint of the schedule and the `messenger:stop-workers` signal, and the RDS credential pool. Local to the host. |
 | `/app/var/sessions` | Web | The browser sessions. Without a volume, a new web container signs every user out. |
 | `/app/var/mcp-sessions` | Web | The MCP sessions (D40). Without a volume, a new web container ends every MCP session. |
+| `/srv/slopmower/scratch` | Web and every worker | A tmpfs, not a volume: `APP_SCRATCH_DIR`, `TMPDIR`, and `sys_temp_dir`. Each container has its own. |
 
 The image creates each path as `www-data`, so a new named volume gets that owner. A bind mount needs a host directory that the user ID 33 can write.
+
+Give each container `--tmpfs /srv/slopmower/scratch:size=<size>,uid=33,gid=33,mode=0700` and a `--memory` limit that holds the full tmpfs on top of PHP, because the tmpfs counts toward that limit. [Code storage](README.md#code-storage) gives the size. The web container can hold one scratch copy per PHP thread: FrankenPHP starts 2 threads per CPU by default, and its startup log reports `total_threads`. A worker container holds one.
 
 ## Release
 
@@ -69,6 +73,7 @@ docker run --rm --network slopmower --env-file prod.env --env MIGRATE_DB=latest 
 
 ```sh
 docker run --detach --name slopmower-web --network slopmower --restart unless-stopped --env-file prod.env \
+    --tmpfs /srv/slopmower/scratch:size=<size>,uid=33,gid=33,mode=0700 --memory <memory> \
     --volume slopmower-tenants:/srv/slopmower/tenants --volume slopmower-share:/app/var/share \
     --volume slopmower-sessions:/app/var/sessions --volume slopmower-mcp-sessions:/app/var/mcp-sessions \
     --publish 127.0.0.1:8080:80 slopmower:<release>
@@ -81,6 +86,7 @@ docker run --detach --name slopmower-web --network slopmower --restart unless-st
 
 ```sh
 docker run --detach --name slopmower-worker --network slopmower --restart unless-stopped --no-healthcheck --stop-timeout 610 --env-file prod.env \
+    --tmpfs /srv/slopmower/scratch:size=<size>,uid=33,gid=33,mode=0700 --memory <memory> \
     --volume slopmower-tenants:/srv/slopmower/tenants --volume slopmower-share:/app/var/share \
     slopmower:<release> bin/console messenger:consume async scheduler_default --time-limit=3600 --memory-limit=96M --keepalive
 ```

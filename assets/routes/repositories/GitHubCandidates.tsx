@@ -1,15 +1,18 @@
 import { Button, Label, Link, RelativeTime } from '@primer/react';
 import { LinkExternalIcon, SyncIcon } from '@primer/octicons-react';
 import { type Column, DataTable, Table } from '@primer/react/experimental';
+import { useState } from 'react';
+import type { CodeAccess } from '../../api/types/common';
 import type { RepositoryCandidate } from '../../api/types/repository-candidate';
 import tableStyles from '../../layout/ScrollingTable.module.css';
 import { CandidateConnection } from './CandidateConnection';
+import { CodeAccessChoice } from './CodeAccessChoice';
 
 export type GitHubCandidate = Extract<RepositoryCandidate, { source: 'github' }>;
 
 type CandidateRow = { id: number; candidate: GitHubCandidate };
 
-const COLUMNS: Column<CandidateRow>[] = [
+const columns = (codeAccess: CodeAccess | null): Column<CandidateRow>[] => [
     {
         id: 'name',
         header: 'Repository',
@@ -28,7 +31,7 @@ const COLUMNS: Column<CandidateRow>[] = [
     },
     { id: 'branch', header: 'Default branch', renderCell: ({ candidate }) => <code>{candidate.github.defaultBranch}</code> },
     { id: 'account', header: 'Installed on', renderCell: ({ candidate }) => candidate.github.accountLogin },
-    { id: 'action', header: 'Connection', renderCell: ({ candidate }) => <CandidateConnection candidate={candidate} /> },
+    { id: 'action', header: 'Connection', renderCell: ({ candidate }) => <CandidateConnection candidate={candidate} codeAccess={codeAccess} /> },
 ];
 
 /** The setup URL signs in again, which lists the repositories again (R2). */
@@ -47,6 +50,9 @@ type GitHubCandidatesProps = {
 };
 
 export function GitHubCandidates({ candidates, configureUrl, listedAt }: GitHubCandidatesProps) {
+    const [codeAccess, setCodeAccess] = useState<CodeAccess | null>(null);
+    const connectable = candidates.some(({ connectedRepositoryId }) => null === connectedRepositoryId);
+
     return (
         <Table.Container data-testid="github-candidates" className={tableStyles.container}>
             <Table.Title as="h2" id="github-candidates">
@@ -67,12 +73,13 @@ export function GitHubCandidates({ candidates, configureUrl, listedAt }: GitHubC
                     Configure on GitHub
                 </Button>
             </Table.Actions>
+            {connectable && <CodeAccessChoice value={codeAccess} onChange={setCodeAccess} />}
             {0 < candidates.length && (
                 <DataTable
                     aria-labelledby="github-candidates"
                     aria-describedby="github-candidates-subtitle"
                     data={candidates.map((candidate) => ({ id: candidate.github.repositoryId, candidate }))}
-                    columns={COLUMNS}
+                    columns={columns(codeAccess)}
                 />
             )}
         </Table.Container>

@@ -7,16 +7,22 @@ namespace App\Git;
 use App\Domain\Git\BlobSha;
 
 /**
- * One blob from a {@see CatFileBatch} of its own. The open reads the header and the bytes of the binary check,
- * {@see chunks()} reads the rest, so a blob of any size streams without being held in memory.
+ * One blob that streams without being held in memory: from a {@see CatFileBatch} of its own, or from a GitHub response.
  */
 final readonly class StreamedBlob
 {
-    private function __construct(private CatFileBatch $batch, public int $sizeBytes, private bool $binary)
+    /**
+     * @param int|null                     $sizeBytes Null when the source does not tell it
+     * @param \Closure(): iterable<string> $chunks    Every byte of the blob
+     * @param \Closure(): void             $close     Stops the source
+     */
+    public function __construct(public ?int $sizeBytes, private bool $binary, private \Closure $chunks, private \Closure $close)
     {
     }
 
     /**
+     * The open reads the header and the bytes of the binary check, {@see chunks()} reads the rest.
+     *
      * @return self|null Null when the object is missing or not a blob
      *
      * @throws GitFailed
@@ -28,7 +34,12 @@ final readonly class StreamedBlob
 
         try {
             [$type, $sizeBytes] = $batch->open($blob) ?? [null, 0];
-            $stream = ObjectType::Blob === $type ? new self($batch, $sizeBytes, new Blob($blob, $batch->peek(min($sizeBytes, Blob::BINARY_CHECK_BYTES)))->isBinary()) : null;
+            $stream = ObjectType::Blob === $type ? new self(
+                $sizeBytes,
+                new Blob($blob, $batch->peek(min($sizeBytes, Blob::BINARY_CHECK_BYTES)))->isBinary(),
+                static fn (): \Generator => $batch->chunks($sizeBytes),
+                $batch->stop(...),
+            ) : null;
         } finally {
             if (null === $stream) {
                 $batch->stop();
@@ -44,7 +55,7 @@ final readonly class StreamedBlob
     }
 
     /**
-     * Stops the process after the last byte or when the consumer stops early.
+     * Stops the source after the last byte or when the consumer stops early.
      *
      * @return \Generator<string>
      *
@@ -53,7 +64,7 @@ final readonly class StreamedBlob
     public function chunks(): \Generator
     {
         try {
-            yield from $this->batch->chunks($this->sizeBytes);
+            yield from ($this->chunks)();
         } finally {
             $this->close();
         }
@@ -61,6 +72,6 @@ final readonly class StreamedBlob
 
     public function close(): void
     {
-        $this->batch->stop();
+        ($this->close)();
     }
 }

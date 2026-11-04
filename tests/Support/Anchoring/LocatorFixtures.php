@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Support\Anchoring;
 
 use App\Anchoring\Locator;
+use App\Application\CodeReaders;
 use App\Domain\Anchor\Anchor;
 use App\Domain\Anchor\AnchorKind;
 use App\Domain\Anchor\LineRange;
@@ -18,7 +19,6 @@ use App\Domain\Location\Location;
 use App\Entity\Repository;
 use App\Entity\User;
 use App\Git\Blob;
-use App\Git\GitReader;
 use App\Tenancy\TenantContext;
 use App\Tests\Support\Fixtures\TenantFixtures;
 use App\Tests\Support\Git\GitRepositoryBuilder;
@@ -91,7 +91,8 @@ trait LocatorFixtures
     }
 
     /**
-     * A line anchor for one line, a range anchor for more, a symbol anchor with a symbol.
+     * A line anchor for one line, a range anchor for more, a symbol anchor with a symbol. Its snapshot has no code text,
+     * as a new anchor stores it (D113).
      */
     private function rangeAnchor(CommitSha $commit, string $path, int $startLine, int $endLine, ?SymbolRef $symbol = null): Anchor
     {
@@ -103,7 +104,7 @@ trait LocatorFixtures
             default => AnchorKind::Range,
         };
 
-        return Anchor::of($kind, RepoPath::fromString($path), $commit, $blob->sha, $range, $symbol, SnapshotCapture::capture($blob->bytes, $range));
+        return Anchor::of($kind, RepoPath::fromString($path), $commit, $blob->sha, $range, $symbol, SnapshotCapture::capture($blob->bytes, $range)->withoutText());
     }
 
     private function locate(Anchor $anchor, CommitSha $target, ?EventId $openedEventId = null): Location
@@ -133,10 +134,9 @@ trait LocatorFixtures
 
     private function blob(CommitSha $commit, string $path): Blob
     {
-        $reader = self::getContainer()->get(GitReader::class);
-        $clonePath = self::clonePath($this->repository);
-        $entry = $reader->entryAt($clonePath, $commit, RepoPath::fromString($path));
-        $blob = null === $entry ? null : $reader->readBlob($clonePath, BlobSha::fromString($entry->objectId));
+        $reader = self::getContainer()->get(CodeReaders::class)->git(self::clonePath($this->repository));
+        $entry = $reader->entryAt($commit, RepoPath::fromString($path));
+        $blob = null === $entry ? null : $reader->readBlob(BlobSha::fromString($entry->objectId));
 
         return $blob ?? self::fail("{$path} has no blob at {$commit}.");
     }

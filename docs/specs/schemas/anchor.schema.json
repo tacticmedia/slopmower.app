@@ -161,10 +161,11 @@
     },
     "ContentSnapshot": {
       "type": "object",
-      "required": ["lines", "truncated", "lineCount", "before", "after", "normalizedHash"],
+      "required": ["truncated", "lineCount", "normalizedHash"],
+      "description": "D113: a new anchor stores no code text, so lines, before, and after are absent. Q3 and get_request rebuild them from blobSha and the range, and give null when the rebuild fails. Anchors stored before D113 keep their text.",
       "properties": {
         "lines": {
-          "type": "array",
+          "type": ["array", "null"],
           "maxItems": 200,
           "items": {
             "type": "string"
@@ -179,14 +180,14 @@
           "minimum": 1
         },
         "before": {
-          "type": "array",
+          "type": ["array", "null"],
           "maxItems": 3,
           "items": {
             "type": "string"
           }
         },
         "after": {
-          "type": "array",
+          "type": ["array", "null"],
           "maxItems": 3,
           "items": {
             "type": "string"

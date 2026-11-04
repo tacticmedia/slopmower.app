@@ -12,8 +12,8 @@ use App\Domain\Git\RefName;
 use App\Domain\Git\RepoPath;
 use App\Git\BareClone;
 use App\Git\Blob;
+use App\Git\GitCodeReader;
 use App\Git\GitFailed;
-use App\Git\GitReader;
 use App\Git\GitRunner;
 use App\Git\LogCommit;
 use App\Git\ObjectType;
@@ -24,7 +24,7 @@ use PHPUnit\Framework\Attributes\TestDox;
 use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-final class GitReaderTest extends KernelTestCase
+final class GitCodeReaderTest extends KernelTestCase
 {
     use TemporaryDirectories;
 
@@ -36,7 +36,7 @@ final class GitReaderTest extends KernelTestCase
         'src/App.php' => "<?php\necho 1;",
     ];
 
-    private GitReader $reader;
+    private GitCodeReader $reader;
 
     private string $clone;
 
@@ -52,39 +52,39 @@ final class GitReaderTest extends KernelTestCase
         $bareClone = new BareClone($git);
         $bareClone->init($this->clone);
         $bareClone->fetch($this->clone, $source->url());
-        $this->reader = new GitReader($git);
+        $this->reader = new GitCodeReader($git, $this->clone);
     }
 
     protected function tearDown(): void
     {
-        $this->reader->reset();
+        $this->reader->close();
         parent::tearDown();
     }
 
     #[TestDox('Lists tree entries at a commit')]
     public function testListsTreeEntries(): void
     {
-        $root = $this->reader->lsTree($this->clone, $this->commit);
+        $root = $this->reader->lsTree($this->commit);
         $readme = $root[0];
 
         self::assertSame(['README.md', 'empty.txt', 'image.png', 'late-nul.txt', "line\nbreak.txt", 'src'], self::paths($root));
         self::assertEquals(['100644', ObjectType::Blob, 12], [$readme->mode, $readme->type, $readme->sizeBytes]);
         self::assertEquals([ObjectType::Tree, null], [$root[5]->type, $root[5]->sizeBytes]);
-        self::assertSame(['src/App.php'], self::paths($this->reader->lsTree($this->clone, $this->commit, RepoPath::fromString('src'))));
-        self::assertSame([...array_slice(self::paths($root), 0, 5), 'src/App.php'], self::paths($this->reader->lsTreeRecursive($this->clone, $this->commit)));
+        self::assertSame(['src/App.php'], self::paths($this->reader->lsTree($this->commit, RepoPath::fromString('src'))));
+        self::assertSame([...array_slice(self::paths($root), 0, 5), 'src/App.php'], self::paths($this->reader->lsTreeRecursive($this->commit)));
     }
 
     #[TestDox('Returns blob bytes equal to the source file, and null for a tree or a missing object')]
     public function testReturnsBlobBytes(): void
     {
         // The reads after the tree prove that the shared process skipped the tree bytes.
-        self::assertNull($this->reader->readBlob($this->clone, BlobSha::fromString($this->reader->lsTree($this->clone, $this->commit)[5]->objectId)));
+        self::assertNull($this->reader->readBlob(BlobSha::fromString($this->reader->lsTree($this->commit)[5]->objectId)));
 
         foreach (['README.md', "line\nbreak.txt", 'src/App.php'] as $path) {
             self::assertSame(self::FILES[$path], $this->blobAt($path)->bytes);
         }
 
-        self::assertNull($this->reader->readBlob($this->clone, BlobSha::fromString(str_repeat('0', 40))));
+        self::assertNull($this->reader->readBlob(BlobSha::fromString(str_repeat('0', 40))));
     }
 
     #[TestDox('Detects a binary file')]
@@ -107,20 +107,20 @@ final class GitReaderTest extends KernelTestCase
     public function testResolvesRefs(): void
     {
         foreach (['main', 'v1', $this->commit->toString()] as $ref) {
-            self::assertEquals($this->commit, $this->reader->resolveCommit($this->clone, RefName::fromString($ref)), $ref);
+            self::assertEquals($this->commit, $this->reader->resolveCommit(RefName::fromString($ref)), $ref);
         }
 
-        self::assertEquals($this->commit, $this->reader->resolvePrefix($this->clone, CommitShaPrefix::fromString(substr($this->commit->toString(), 0, 7))));
+        self::assertEquals($this->commit, $this->reader->resolvePrefix(CommitShaPrefix::fromString(substr($this->commit->toString(), 0, 7))));
     }
 
     #[TestDox('An entry lookup gives null for a missing path and rethrows other git failures')]
     public function testEntryAtGivesNullForMissingPathAndRethrowsOtherFailures(): void
     {
-        $entryAt = fn (string $path): ?TreeEntry => $this->reader->entryAt($this->clone, $this->commit, RepoPath::fromString($path));
+        $entryAt = fn (string $path): ?TreeEntry => $this->reader->entryAt($this->commit, RepoPath::fromString($path));
 
         self::assertSame(['src/App.php', null, null, null], [$entryAt('src/App.php')?->path, $entryAt('src/Missing.php'), $entryAt('missing/App.php'), $entryAt('README.md/App.php')]);
         $this->expectException(GitFailed::class);
-        $this->reader->entryAt($this->temporaryDirectory().'/missing.git', $this->commit, RepoPath::fromString('src/App.php'));
+        new GitCodeReader(new GitRunner(new NullLogger()), $this->temporaryDirectory().'/missing.git')->entryAt($this->commit, RepoPath::fromString('src/App.php'));
     }
 
     #[TestDox('The log keeps an empty subject at the end of the output')]
@@ -134,7 +134,7 @@ final class GitReaderTest extends KernelTestCase
         new BareClone($git)->init($clone);
         new BareClone($git)->fetch($clone, $source->url());
 
-        $log = $this->reader->log($clone, CommitSha::fromString($head), 10);
+        $log = new GitCodeReader($git, $clone)->log(CommitSha::fromString($head), 10);
 
         self::assertSame(['Second', ''], array_map(static fn (LogCommit $commit): string => $commit->subject, $log));
     }
@@ -148,12 +148,12 @@ final class GitReaderTest extends KernelTestCase
         new BareClone(new GitRunner(new NullLogger()))->init($gitDir);
         new BareClone(new GitRunner(new NullLogger()))->fetch($gitDir, $source->url());
 
-        $committedAt = $this->reader->commitInfo($gitDir, $far)->committedAt;
+        $committedAt = new GitCodeReader(new GitRunner(new NullLogger()), $gitDir)->commitInfo($far)->committedAt;
 
         self::assertSame('9999-12-31T23:59:59Z', TimeCodec::encode($committedAt));
     }
 
-    #[TestDox('pathAfter reads the renames of a commit range once, until reset')]
+    #[TestDox('pathAfter reads the renames of a commit range once, until close')]
     public function testPathAfterReadsTheRenamesOnce(): void
     {
         $source = GitRepositoryBuilder::init($this->temporaryDirectory());
@@ -170,25 +170,26 @@ final class GitReaderTest extends KernelTestCase
         new BareClone(new GitRunner(new NullLogger()))->init($gitDir);
         new BareClone(new GitRunner(new NullLogger()))->fetch($gitDir, $source->url());
 
-        $invoice = $this->reader->pathAfter($gitDir, $from, $to, RepoPath::fromString('src/Invoice.php'));
+        $reader = new GitCodeReader(new GitRunner(new NullLogger()), $gitDir);
+        $invoice = $reader->pathAfter($from, $to, RepoPath::fromString('src/Invoice.php'));
         // Without the kept renames, the next calls fail.
         rename($gitDir, "{$gitDir}.moved");
         $afterFirstRead = [
-            $this->reader->pathAfter($gitDir, $from, $to, RepoPath::fromString('src/Money.php')),
-            $this->reader->pathAfter($gitDir, $from, $to, RepoPath::fromString('src/Tax.php')),
-            $this->reader->pathAfter($gitDir, $from, $to, RepoPath::fromString('README.md')),
+            $reader->pathAfter($from, $to, RepoPath::fromString('src/Money.php')),
+            $reader->pathAfter($from, $to, RepoPath::fromString('src/Tax.php')),
+            $reader->pathAfter($from, $to, RepoPath::fromString('README.md')),
         ];
-        $this->reader->reset();
+        $reader->close();
 
         self::assertSame(['billing/Invoice.php', 'billing/Money.php', null, 'README.md'], [$invoice, ...$afterFirstRead]);
         $this->expectException(GitFailed::class);
-        $this->reader->pathAfter($gitDir, $from, $to, RepoPath::fromString('src/Money.php'));
+        $reader->pathAfter($from, $to, RepoPath::fromString('src/Money.php'));
     }
 
     private function blobAt(string $path): Blob
     {
-        $entry = array_find($this->reader->lsTreeRecursive($this->clone, $this->commit), static fn (TreeEntry $entry): bool => $entry->path === $path) ?? self::fail("No entry {$path}");
-        $blob = $this->reader->readBlob($this->clone, BlobSha::fromString($entry->objectId));
+        $entry = array_find($this->reader->lsTreeRecursive($this->commit), static fn (TreeEntry $entry): bool => $entry->path === $path) ?? self::fail("No entry {$path}");
+        $blob = $this->reader->readBlob(BlobSha::fromString($entry->objectId));
         self::assertNotNull($blob, $path);
 
         return $blob;

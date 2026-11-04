@@ -58,7 +58,7 @@ final class ViewedFileController extends AbstractController
         $path = RepoPath::fromString($input->path);
 
         try {
-            $clonePath = $fetchRepository->readyClonePath($review->getRepository()->getId());
+            $reader = $fetchRepository->readyReader($review->getRepository()->getId());
         } catch (RepositoryUnavailable $unavailable) {
             // review_closed comes before repository_unavailable in the check order of docs/specs/README.md section 4.
             $review->assertOpen();
@@ -67,7 +67,7 @@ final class ViewedFileController extends AbstractController
         }
 
         try {
-            $files->entry($clonePath, $review, $path);
+            $files->entry($reader, $review, $path);
         } catch (NotFound) {
             throw InvalidInput::field('path', 'No file has this path at the review commit.');
         }

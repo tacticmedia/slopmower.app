@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Support\GitHub;
 
 use App\Domain\Identity\TenantId;
+use App\Domain\Repository\CodeAccess;
 use App\Entity\Repository;
 use App\Repository\RepositoryRepository;
 use App\Tenancy\TenantFilter;
@@ -18,14 +19,16 @@ use Doctrine\DBAL\Connection;
 trait ClonedGitHubRepositories
 {
     /**
-     * A tenant of the GitHub user with installation 5551 and the candidate acme/billing, connected and cloned.
+     * A tenant of the GitHub user with installation 5551 and the candidate acme/billing, connected and cloned, or for
+     * Pass-through connected and synced.
      */
-    private static function clonedGitHubRepository(int $githubUserId): Repository
+    private static function clonedGitHubRepository(int $githubUserId, CodeAccess $codeAccess = CodeAccess::Clone, ?string $login = null): Repository
     {
-        $tenantId = TenantFixtures::of(self::getContainer())->withGitHubUser($githubUserId)->create()->getTenantId();
+        $fixtures = TenantFixtures::of(self::getContainer())->withGitHubUser($githubUserId);
+        $tenantId = (null === $login ? $fixtures : $fixtures->withLogin($login))->create()->getTenantId();
         self::storeInstallation($tenantId);
         self::storeCandidate($tenantId);
-        $repository = self::connectGitHub($tenantId);
+        $repository = self::connectGitHub($tenantId, codeAccess: $codeAccess);
         self::runQueuedMessages();
 
         return $repository;

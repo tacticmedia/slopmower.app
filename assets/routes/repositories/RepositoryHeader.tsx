@@ -4,6 +4,7 @@ import { useFetcher } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
 import type { Repository } from '../../api/types/repository';
 import { CheckEveryPullRequestSwitch } from './CheckEveryPullRequestSwitch';
+import { CodeAccessSetting } from './CodeAccessSetting';
 import { ActionErrorMessage } from '../../layout/ActionErrorMessage';
 import { useSubmitOnce } from '../../layout/useSubmitOnce';
 import { SOURCE_NAMES } from './ConnectedRepositories';
@@ -32,7 +33,8 @@ export function RepositoryHeader({ repository }: { repository: Repository }) {
                     </span>
                 )}
                 {null !== repository.github && <CheckEveryPullRequestSwitch enabled={repository.github.checkEveryPullRequest} />}
-                <SyncStatus sync={repository.sync} />
+                {'github' === repository.source && <CodeAccessSetting codeAccess={repository.codeAccess} />}
+                <SyncStatus repository={repository} />
             </div>
             <refresh.Form method="post" className={styles.actions} onSubmit={submitOnce}>
                 <input type="hidden" name="intent" value="refresh" />

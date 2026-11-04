@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\GitHub;
 
-use App\Application\FetchRepository;
 use App\Application\ServerClone;
 use App\Entity\Repository;
 use App\GitHub\InstallationTokenProvider;
@@ -18,10 +17,12 @@ use App\Tests\Support\GitHub\LocalGitHub;
 use App\Tests\Support\Messenger\QueuedMessages;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Finder\Finder;
 
 final class InstallationTokenTest extends KernelTestCase
 {
+    use ClockSensitiveTrait;
     use EnvironmentVariables;
     use GitHubRows;
     use LocalGitHub;
@@ -40,24 +41,24 @@ final class InstallationTokenTest extends KernelTestCase
         self::assertSame(GitHubResponses::PULL_REQUESTS_INSTALLATION_TOKEN, $tokens->forRepository(5551, 812345, InstallationTokenProvider::PULL_REQUESTS_READ));
     }
 
-    #[TestDox('Each fetch requests a new token')]
-    public function testEachFetchRequestsANewToken(): void
+    #[TestDox('A token is reused until 5 minutes before it expires')]
+    public function testTokenIsReusedUntilFiveMinutesBeforeItExpires(): void
     {
-        $this->useLocalGitHub();
-        $repository = $this->connectedRepository();
+        // installation-token.json expires at 2026-10-02T09:00:00Z.
+        self::mockTime('2026-10-02 08:54:59');
+        $tokens = self::getContainer()->get(InstallationTokenProvider::class);
         $requestsBefore = self::gitHubRequestCount();
 
-        self::runQueuedMessages();
-        $requestsAfterClone = self::gitHubRequestCount();
-        self::getContainer()->get(FetchRepository::class)->request($repository->getId());
-        self::runQueuedMessages();
-        self::getContainer()->get(FetchRepository::class)->fetchNow($repository->getId());
+        $tokens->forRepository(5551, 812345, InstallationTokenProvider::CONTENTS_READ);
+        $tokens->forRepository(5551, 812345, InstallationTokenProvider::CONTENTS_READ);
+        $reused = self::gitHubRequestCount() - $requestsBefore;
+        self::mockTime('2026-10-02 08:55:00');
+        $tokens->forRepository(5551, 812345, InstallationTokenProvider::CONTENTS_READ);
 
-        self::assertSame(3, $requestsAfterClone - $requestsBefore, 'The clone requests one token, and reads the permission of the user and the size of the repository with it.');
-        self::assertSame(4, self::gitHubRequestCount() - $requestsAfterClone, 'The fetch job and the synchronous fetch request one token each, and read the permission with it.');
+        self::assertSame([1, 2], [$reused, self::gitHubRequestCount() - $requestsBefore]);
     }
 
-    #[TestDox('The token is not stored in a cache pool or a service property')]
+    #[TestDox('The token is not stored in a cache pool or a file, and ServerClone keeps none')]
     public function testTokenIsNotKept(): void
     {
         $this->useLocalGitHub();
@@ -65,7 +66,7 @@ final class InstallationTokenTest extends KernelTestCase
 
         self::runQueuedMessages();
 
-        foreach ([InstallationTokenProvider::class, ServerClone::class] as $serviceId) {
+        foreach ([ServerClone::class] as $serviceId) {
             $service = self::getContainer()->get($serviceId);
 
             foreach (new \ReflectionObject($service)->getProperties() as $property) {

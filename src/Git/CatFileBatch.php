@@ -10,7 +10,7 @@ use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 
 /**
- * One running `git cat-file --batch` process. {@see GitReader} keeps one per clone, and each {@see StreamedBlob} has
+ * One running `git cat-file --batch` process. {@see GitCodeReader} keeps one per git directory, and each {@see StreamedBlob} has
  * its own.
  */
 final class CatFileBatch

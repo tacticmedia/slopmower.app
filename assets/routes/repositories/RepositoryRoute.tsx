@@ -4,7 +4,8 @@ import { actionError, type ActionResult, optionalText, writeResult } from '../..
 import { ApiError, apiGet, apiGetAllPages, apiWrite } from '../../api/client';
 import type { ApiToken } from '../../api/types/api-token';
 import type { CarryOverResult } from '../../api/types/carry-over-result';
-import type { CarryOverInput, CheckEveryPullRequestInput, StartReviewInput } from '../../api/types/inputs';
+import type { CodeAccess } from '../../api/types/common';
+import type { CarryOverInput, CheckEveryPullRequestInput, CodeAccessInput, StartReviewInput } from '../../api/types/inputs';
 import type { CommitLog, ReviewPage, TokenList } from '../../api/types/lists';
 import type { Review } from '../../api/types/review';
 import { OnboardingSteps } from '../../onboarding/OnboardingSteps';
@@ -40,12 +41,12 @@ export async function repositoryLoader({ request, params }: LoaderFunctionArgs):
     return { page, commits, tokens };
 }
 
-/** A clone that is not ready, 409, or a branch that the clone lacks, 422, keeps the page. */
+/** A clone that is not ready, 409, a branch that the clone lacks, 422, or the GitHub rate limit, 429, keeps the page. */
 async function latestCommits(repositoryPath: string, branch: string, signal: AbortSignal): Promise<LatestCommitsData> {
     try {
         return { branch, log: await apiGet<CommitLog>(`${repositoryPath}/commits`, signal), error: null };
     } catch (error) {
-        if (error instanceof ApiError && (409 === error.status || 422 === error.status)) {
+        if (error instanceof ApiError && (409 === error.status || 422 === error.status || 429 === error.status)) {
             return { branch, log: null, error };
         }
 
@@ -64,6 +65,11 @@ export async function repositoryAction({ request, params }: ActionFunctionArgs):
             const input: CheckEveryPullRequestInput = { enabled: 'true' === form.get('enabled') };
 
             return writeResult(() => apiWrite('POST', `${repositoryPath}/check-every-pull-request`, input));
+        }
+        case 'code-access': {
+            const input: CodeAccessInput = { codeAccess: String(form.get('codeAccess')) as CodeAccess };
+
+            return writeResult(() => apiWrite('POST', `${repositoryPath}/code-access`, input));
         }
         case 'start':
             try {
@@ -108,7 +114,7 @@ export function RepositoryRoute() {
     const reviewList = <ReviewList reviews={items} showClosed={showClosed} onShowClosedChange={(show) => setSearchParams(show ? SHOW_CLOSED : {})} />;
     const startReview = (
         <StartReviewForm key={repository.defaultBranch} defaultBranch={repository.defaultBranch} openReviews={openReviews}>
-            {null !== commits && <LatestCommits commits={commits} lastFetchedAt={repository.sync.lastFetchedAt} />}
+            {null !== commits && <LatestCommits commits={commits} lastFetchedAt={repository.sync.lastFetchedAt} codeAccess={repository.codeAccess} />}
         </StartReviewForm>
     );
 

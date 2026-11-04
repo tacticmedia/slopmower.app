@@ -29,6 +29,6 @@ final class BlobController extends AbstractController
     ): Response {
         $blob = BlobSha::fromString($blobSha);
 
-        return $blobs->response($fetchRepository->readyClonePath($repository->getId()), $blob, $request);
+        return $blobs->response($fetchRepository->readyReader($repository->getId()), $blob, $request);
     }
 }

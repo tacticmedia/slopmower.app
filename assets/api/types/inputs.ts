@@ -1,11 +1,11 @@
 import type { AnchorInput } from './anchor';
 import type { TokenName } from './api-token';
-import type { CommitSha, DateTime, Delivery, Markdown, PullRequestUrl, RepoPath, RequestType, Tour, Ulid, UnifiedDiff } from './common';
+import type { CodeAccess, CommitSha, DateTime, Delivery, Markdown, PullRequestUrl, RepoPath, RequestType, Tour, Ulid, UnifiedDiff } from './common';
 import type { LocalDirectory } from './repository';
 
 export type ConnectRepositoryInput =
-    | { source: 'github'; githubRepositoryId: number; directory?: LocalDirectory | null }
-    | { source: 'local'; githubRepositoryId?: number | null; directory: LocalDirectory };
+    | { source: 'github'; githubRepositoryId: number; codeAccess: CodeAccess; directory?: LocalDirectory | null }
+    | { source: 'local'; githubRepositoryId?: number | null; directory: LocalDirectory; codeAccess?: 'clone' | null };
 
 export type StartReviewInput = {
     /** Default: the default branch. */
@@ -80,6 +80,10 @@ export type ApproveProposalInput = {
 
 export type CheckEveryPullRequestInput = {
     enabled: boolean;
+};
+
+export type CodeAccessInput = {
+    codeAccess: CodeAccess;
 };
 
 export type PlanRequirementInput = {

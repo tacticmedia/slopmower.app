@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Application\Query;
 
-use App\Application\FetchRepository;
 use App\Domain\Error\NotFound;
 use App\Domain\Git\BlobSha;
+use App\Git\CodeReader;
 use App\Git\GitFailed;
-use App\Git\GitReader;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -25,19 +24,13 @@ final class BlobStream
         'Content-Security-Policy' => "sandbox; default-src 'none'",
     ];
 
-    public function __construct(private readonly GitReader $reader)
-    {
-    }
-
     /**
-     * @param string $gitDir From {@see FetchRepository::readyClonePath()}
-     *
      * @throws NotFound  The object is not in the clone, or it is not a blob
      * @throws GitFailed
      */
-    public function response(string $gitDir, BlobSha $blob, Request $request): Response
+    public function response(CodeReader $reader, BlobSha $blob, Request $request): Response
     {
-        $stream = $this->reader->openBlob($gitDir, $blob) ?? throw new NotFound('The blob is not in the server clone.');
+        $stream = $reader->openBlob($blob) ?? throw new NotFound('The blob is not in the repository.');
         $headers = ['ETag' => "\"{$blob}\""] + self::HEADERS;
         $notModified = new Response(null, Response::HTTP_OK, $headers);
 
@@ -49,7 +42,6 @@ final class BlobStream
 
         return new StreamedResponse($stream->chunks(), Response::HTTP_OK, $headers + [
             'Content-Type' => $stream->isBinary() ? 'application/octet-stream' : 'text/plain; charset=utf-8',
-            'Content-Length' => (string) $stream->sizeBytes,
-        ]);
+        ] + (null === $stream->sizeBytes ? [] : ['Content-Length' => (string) $stream->sizeBytes]));
     }
 }

@@ -92,6 +92,10 @@
     "RepositorySource": {
       "enum": ["github", "local"]
     },
+    "CodeAccess": {
+      "enum": ["clone", "pass_through"],
+      "description": "clone: the server keeps a bare clone (Server copy). pass_through: the server reads from GitHub per request and stores no code. A local repository is always clone."
+    },
     "RepositoryAccess": {
       "enum": ["active", "removed"]
     },

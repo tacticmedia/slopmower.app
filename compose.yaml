@@ -8,6 +8,9 @@ x-php: &php
   volumes:
     - .:/app
     - tenant_data:/srv/tenants
+    # APP_SCRATCH_DIR, TMPDIR, and sys_temp_dir: Pass-through code stays in memory (D112).
+    - type: tmpfs
+      target: /srv/scratch
     - ${LOCAL_REPOSITORIES_HOST_DIR:-./var/local-repositories}:/repositories:ro
     - caddy_data:/data
     - caddy_config:/config
@@ -29,6 +32,7 @@ services:
       HTTP_PORT: ${HTTP_PORT:-8000}
       MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET}
       APP_LOCAL_SIGN_IN: ${APP_LOCAL_SIGN_IN:-}
+      TMPDIR: /srv/scratch
       # Unset unless the shell sets it. The QA workflow sets it, so its Composer cache step sees what the entrypoint downloads.
       COMPOSER_CACHE_DIR:
     ports:
@@ -50,6 +54,7 @@ services:
         condition: service_healthy
     environment:
       MERCURE_URL: http://php/.well-known/mercure
+      TMPDIR: /srv/scratch
       # Its own container build: a rebuild of the shared var/cache by the php container removes files that a running
       # worker still loads. Cache pools stay shared in APP_SHARE_DIR, so messenger:stop-workers reaches it.
       APP_CACHE_DIR: var/cache/worker

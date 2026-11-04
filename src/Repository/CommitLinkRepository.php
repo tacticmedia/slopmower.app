@@ -100,6 +100,21 @@ final class CommitLinkRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
     }
 
+    /**
+     * @return list<CommitSha>
+     */
+    public function commitShasOfRepository(RepositoryId $repositoryId, CommitLinkState $state): array
+    {
+        $shas = $this->ofRepository($repositoryId)
+            ->select('DISTINCT link.commitSha')
+            ->andWhere('link.state = :state')
+            ->setParameter('state', $state)
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        return array_values(array_map(static fn (string $sha): CommitSha => CommitSha::fromString($sha), $shas));
+    }
+
     private function ofRepository(RepositoryId $repositoryId): QueryBuilder
     {
         return $this->createQueryBuilder('link')

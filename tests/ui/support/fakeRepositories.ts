@@ -1,5 +1,5 @@
 import type { Commit } from '../../../assets/api/types/commit';
-import type { CheckEveryPullRequestInput, ConnectRepositoryInput, StartReviewInput } from '../../../assets/api/types/inputs';
+import type { CheckEveryPullRequestInput, CodeAccessInput, ConnectRepositoryInput, StartReviewInput } from '../../../assets/api/types/inputs';
 import type { CandidateList } from '../../../assets/api/types/lists';
 import type { Repository } from '../../../assets/api/types/repository';
 import type { RepositoryCandidate } from '../../../assets/api/types/repository-candidate';
@@ -9,7 +9,7 @@ import { FakeTokens } from './fakeTokens';
 import { type ApiCall, apiError, json, type MockApi, type MockResponse, noContent } from './mockApi';
 
 /**
- * The repositories of the user in memory: R1 to R3, R5, R6, R8, R9, V1, and V2. Each review of a repository is a
+ * The repositories of the user in memory: R1 to R3, R5, R6, R8 to R10, V1, and V2. Each review of a repository is a
  * {@link FakeReview}. The tokens answer T1, which the getting started steps read.
  */
 export class FakeRepositories {
@@ -53,6 +53,7 @@ export class FakeRepositories {
                 return json('repository.schema.json', changed);
             }),
         );
+        api.on('POST', '/api/v1/repositories/:repositoryId/code-access', (call) => this.#with(call, (repository) => this.#changeCodeAccess(repository, call.body as CodeAccessInput)));
         api.on('DELETE', '/api/v1/repositories/:repositoryId', (call) =>
             this.#with(call, (repository) => {
                 if (call.query.get('confirm') !== repository.name) {
@@ -97,6 +98,9 @@ export class FakeRepositories {
         if ('local' === input.source && false === this.candidateFields.localEnabled) {
             return apiError(422, 'invalid_input', 'Local repositories are off.', { violations: [{ field: 'source', message: 'Local repositories are off.' }] });
         }
+        if ('github' === input.source && undefined === input.codeAccess) {
+            return apiError(422, 'invalid_input', 'The request is invalid.', { violations: [{ field: 'codeAccess', message: 'Choose the code access.' }] });
+        }
         const candidate = this.candidates.find((known) =>
             'local' === input.source ? 'local' === known.source && known.local.directory === input.directory : 'github' === known.source && known.github.repositoryId === input.githubRepositoryId,
         );
@@ -110,11 +114,25 @@ export class FakeRepositories {
         const repository =
             'local' === candidate.source
                 ? ({ ...localRepository(candidate.local.directory), access: 'active', defaultBranch: null, sync: { state: 'cloning', lastFetchedAt: null, lastError: null, defaultBranchHead: null } } as Repository)
-                : githubRepository(candidate);
+                : ({ ...githubRepository(candidate), codeAccess: input.codeAccess ?? 'clone' } as Repository);
         this.repositories.push(repository);
         this.candidates = this.candidates.map((known) => (known === candidate ? { ...known, connectedRepositoryId: repository.id } : known));
 
         return json('repository.schema.json', repository, 201);
+    }
+
+    /** The same value changes nothing. A new value queues the clone job. */
+    #changeCodeAccess(repository: Repository, { codeAccess }: CodeAccessInput): MockResponse {
+        if ('local' === repository.source && 'clone' !== codeAccess) {
+            return apiError(422, 'invalid_input', 'The request is invalid.', { violations: [{ field: 'codeAccess', message: 'A local repository has a server copy.' }] });
+        }
+        if (codeAccess === repository.codeAccess) {
+            return json('repository.schema.json', repository);
+        }
+        const changed = { ...repository, codeAccess, sync: { ...repository.sync, state: 'cloning' } } as Repository;
+        this.repositories = this.repositories.map((stored) => (stored.id === repository.id ? changed : stored));
+
+        return json('repository.schema.json', changed);
     }
 
     #reviewPage(repository: Repository, state: string | null): MockResponse {

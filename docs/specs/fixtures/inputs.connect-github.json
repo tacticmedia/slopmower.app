@@ -1,4 +1,5 @@
 {
   "source": "github",
-  "githubRepositoryId": 812345
+  "githubRepositoryId": 812345,
+  "codeAccess": "clone"
 }

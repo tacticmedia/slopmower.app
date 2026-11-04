@@ -1,0 +1,11 @@
+/* In a Primer Table.Container, the choice takes the row of its filter area, between the subtitle and the table. */
+.choice {
+    grid-area: filter;
+    margin-block: var(--base-size-8);
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-16);
+}

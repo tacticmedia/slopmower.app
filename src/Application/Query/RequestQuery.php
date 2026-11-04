@@ -7,6 +7,7 @@ namespace App\Application\Query;
 use App\Anchoring\Locator;
 use App\Application\FetchRepository;
 use App\Domain\Actor\Actor;
+use App\Domain\Anchor\Anchor;
 use App\Domain\Error\CommitNotFound;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Error\NotFound;
@@ -15,6 +16,7 @@ use App\Domain\Event\RecordedEvent;
 use App\Domain\Event\RequestOpenedEvent;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\CommitShaPrefix;
+use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Location\LocationTarget;
@@ -30,7 +32,6 @@ use App\Entity\Comment;
 use App\Entity\CommitLink;
 use App\Entity\Repository;
 use App\Entity\Review;
-use App\Git\GitReader;
 use App\Http\Cursor;
 use App\Repository\PullRequestRepository;
 use Doctrine\DBAL\ArrayParameterType;
@@ -60,7 +61,6 @@ final class RequestQuery
         private readonly ThreadQuery $threads,
         private readonly Locator $locator,
         private readonly FetchRepository $fetchRepository,
-        private readonly GitReader $reader,
         private readonly PullRequestRepository $pullRequests,
     ) {
     }
@@ -132,7 +132,20 @@ final class RequestQuery
             AllowedActions::for($summary->state, $request->getReview()->toSnapshot(), $caller),
             $location,
             $excerpt,
+            null === $anchor ? null : $this->withSnapshotText($repository->getId(), $anchor),
         );
+    }
+
+    /**
+     * D113. A repository whose code is not ready, for example after a failed D88 check, gives no text.
+     */
+    private function withSnapshotText(RepositoryId $repositoryId, Anchor $anchor): Anchor
+    {
+        try {
+            return $this->locator->withSnapshotText($this->fetchRepository->readyReader($repositoryId), $anchor);
+        } catch (NotFound|RepositoryUnavailable) {
+            return $anchor;
+        }
     }
 
     /**
@@ -212,15 +225,15 @@ final class RequestQuery
         $repositoryId = $request->getReview()->getRepository()->getId();
 
         if (null !== $at) {
-            $gitDir = $this->fetchRepository->readyClonePath($repositoryId);
+            $reader = $this->fetchRepository->readyReader($repositoryId);
 
             try {
-                return [LocationTarget::Requested, $this->reader->resolvePrefix($gitDir, $at, 'at')];
+                return [LocationTarget::Requested, $reader->resolvePrefix($at, 'at')];
             } catch (CommitNotFound) {
                 // F14: a commit missing from the server clone gets one synchronous fetch.
                 $this->fetchRepository->fetchNow($repositoryId);
 
-                return [LocationTarget::Requested, $this->reader->resolvePrefix($gitDir, $at, 'at')];
+                return [LocationTarget::Requested, $reader->resolvePrefix($at, 'at')];
             }
         }
 

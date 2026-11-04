@@ -11,8 +11,9 @@ final class RepositoryUnavailable extends DomainError
     public function __construct(
         private readonly RepositoryId $repositoryId,
         private readonly RepositoryUnavailableReason $reason,
+        ?\Throwable $previous = null,
     ) {
-        parent::__construct("The repository is unavailable: {$reason->value}.");
+        parent::__construct("The repository is unavailable: {$reason->value}.", 0, $previous);
     }
 
     public function code(): ErrorCode

@@ -20,7 +20,7 @@ const COLUMNS: Column<Repository>[] = [
     },
     { id: 'source', header: 'Source', width: 'auto', renderCell: (repository) => SOURCE_NAMES[repository.source] },
     { id: 'defaultBranch', header: 'Default branch', renderCell: (repository) => repository.defaultBranch ?? '-' },
-    { id: 'sync', header: 'Sync', renderCell: (repository) => <SyncStatus sync={repository.sync} /> },
+    { id: 'sync', header: 'Sync', renderCell: (repository) => <SyncStatus repository={repository} /> },
     { id: 'openReviewCount', header: 'Open reviews', width: 'auto', align: 'end', renderCell: (repository) => repository.openReviewCount },
 ];
 

@@ -101,6 +101,14 @@ final readonly class PayloadReader
         return $strings;
     }
 
+    /**
+     * @return list<string>|null Null for an absent or null value
+     */
+    public function nullableStringList(string $key): ?array
+    {
+        return null === ($this->data[$key] ?? null) ? null : $this->stringList($key);
+    }
+
     public function object(string $key): self
     {
         return $this->asObject($key, $this->required($key));

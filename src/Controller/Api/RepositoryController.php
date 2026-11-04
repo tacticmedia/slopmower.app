@@ -13,6 +13,7 @@ use App\Application\Query\CommitLog;
 use App\Application\Query\RepositoryQuery;
 use App\Application\UsageLimits;
 use App\Controller\Api\Input\CheckEveryPullRequestInput;
+use App\Controller\Api\Input\CodeAccessInput;
 use App\Controller\Api\Input\CommitListQuery;
 use App\Controller\Api\Input\ConfirmQuery;
 use App\Controller\Api\Input\ConnectRepositoryInput;
@@ -21,11 +22,11 @@ use App\Domain\Error\InvalidInput;
 use App\Domain\Error\LimitExceeded;
 use App\Domain\Error\NotFound;
 use App\Domain\Git\RefName;
+use App\Domain\Repository\CodeAccess;
 use App\Domain\Repository\RepositorySource;
 use App\Entity\Repository;
 use App\Entity\User;
 use App\EventStore\CommandExecutor;
-use App\Git\GitReader;
 use App\Live\LivePublisher;
 use App\Live\LiveTopics;
 use App\Message\DeleteCloneJob;
@@ -48,7 +49,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
- * R1, R3 to R6, R8, and R9 of docs/specs/rest-api.md section 4. A path ID that the SQL filter hides resolves to 404.
+ * R1, R3 to R6, and R8 to R10 of docs/specs/rest-api.md section 4. A path ID that the SQL filter hides resolves to 404.
  */
 #[Route('/api/v1/repositories', name: 'api_repository_')]
 final class RepositoryController extends AbstractController
@@ -80,7 +81,10 @@ final class RepositoryController extends AbstractController
     public function connect(#[MapRequestPayload(acceptFormat: 'json')] ConnectRepositoryInput $input): JsonResponse
     {
         $connected = RepositorySource::Github === $input->source
-            ? $this->connectGitHub($input->githubRepositoryId ?? throw new \LogicException('The input validation requires the ID.'))
+            ? $this->connectGitHub(
+                $input->githubRepositoryId ?? throw new \LogicException('The input validation requires the ID.'),
+                $input->codeAccess ?? throw new \LogicException('The input validation requires the code access.'),
+            )
             : $this->connectLocalRepository->connect($input->directory ?? throw new \LogicException('The input validation requires the directory.'));
         $id = $connected->repository->getId();
         $view = $this->repositories->get($id);
@@ -138,7 +142,6 @@ final class RepositoryController extends AbstractController
     #[Route('/{repositoryId}/commits', name: 'commits', methods: ['GET'])]
     public function commits(
         #[MapEntity(id: 'repositoryId')] Repository $repository,
-        GitReader $reader,
         #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)]
         CommitListQuery $query = new CommitListQuery(),
     ): JsonResponse {
@@ -150,10 +153,21 @@ final class RepositoryController extends AbstractController
             $ref = RefName::fromString("refs/heads/{$name}");
         }
 
-        $gitDir = $this->fetchRepository->readyClonePath($repository->getId());
-        $commit = $reader->resolveCommit($gitDir, $ref);
+        $reader = $this->fetchRepository->readyReader($repository->getId());
+        $commit = $reader->resolveCommit($ref);
 
-        return $this->json(new CommitLog($repository->getId(), $name, $reader->log($gitDir, $commit, $query->limit)));
+        return $this->json(new CommitLog($repository->getId(), $name, $reader->log($commit, $query->limit)));
+    }
+
+    #[Route('/{repositoryId}/code-access', name: 'code_access', methods: ['POST'])]
+    #[IsGranted(User::ROLE, message: CurrentActor::SESSION_ONLY)]
+    public function codeAccess(
+        #[MapEntity(id: 'repositoryId')] Repository $repository,
+        #[MapRequestPayload(acceptFormat: 'json')] CodeAccessInput $input,
+    ): JsonResponse {
+        $this->fetchRepository->changeCodeAccess($repository, $input->codeAccess ?? throw new \LogicException('The input validation requires the value.'));
+
+        return $this->json($this->repositories->get($repository->getId()));
     }
 
     #[Route('/{repositoryId}/check-every-pull-request', name: 'check_every_pull_request', methods: ['POST'])]
@@ -177,10 +191,10 @@ final class RepositoryController extends AbstractController
      * @throws InvalidInput  Another repository of the tenant has the name, in any case
      * @throws LimitExceeded
      */
-    private function connectGitHub(int $githubRepositoryId): ConnectedRepository
+    private function connectGitHub(int $githubRepositoryId, CodeAccess $codeAccess): ConnectedRepository
     {
         $tenantId = $this->tenantContext->get();
-        $connected = $this->repositoriesLock->run($tenantId, function () use ($tenantId, $githubRepositoryId): ConnectedRepository {
+        $connected = $this->repositoriesLock->run($tenantId, function () use ($tenantId, $githubRepositoryId, $codeAccess): ConnectedRepository {
             $candidate = $this->candidates->findByGitHubId($githubRepositoryId) ?? throw new NotFound('The GitHub repository is not a candidate.');
             $existing = $this->repositoryRows->findGitHub($githubRepositoryId);
 
@@ -196,7 +210,7 @@ final class RepositoryController extends AbstractController
 
             $this->usageLimits->checkNewRepository($tenantId);
 
-            $repository = Repository::gitHub($tenantId, $name, $githubRepositoryId, $candidate->getInstallationId(), $candidate->isPrivate(), $this->clock->now());
+            $repository = Repository::gitHub($tenantId, $name, $githubRepositoryId, $candidate->getInstallationId(), $candidate->isPrivate(), $this->clock->now(), $codeAccess);
             $this->entityManager->persist($repository);
 
             return new ConnectedRepository($repository, true);

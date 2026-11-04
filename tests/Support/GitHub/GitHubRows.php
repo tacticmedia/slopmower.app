@@ -6,6 +6,7 @@ namespace App\Tests\Support\GitHub;
 
 use App\Application\FetchRepository;
 use App\Domain\Identity\TenantId;
+use App\Domain\Repository\CodeAccess;
 use App\Domain\Repository\RepositoryName;
 use App\Entity\GitHubAccountType;
 use App\Entity\GitHubCandidate;
@@ -52,12 +53,12 @@ trait GitHubRows
     /**
      * A `cloning` repository row of the candidate with its clone job queued, as R3 leaves it.
      */
-    private static function connectGitHub(TenantId $tenantId, int $githubRepositoryId = 812345): Repository
+    private static function connectGitHub(TenantId $tenantId, int $githubRepositoryId = 812345, CodeAccess $codeAccess = CodeAccess::Clone): Repository
     {
         $container = self::getContainer();
         $container->get(TenantContext::class)->set($tenantId);
         $candidate = $container->get(GitHubCandidateRepository::class)->findByGitHubId($githubRepositoryId) ?? self::fail("The GitHub repository {$githubRepositoryId} is not a candidate.");
-        $repository = Repository::gitHub($tenantId, $candidate->getFullName(), $githubRepositoryId, $candidate->getInstallationId(), $candidate->isPrivate(), Clock::get()->now());
+        $repository = Repository::gitHub($tenantId, $candidate->getFullName(), $githubRepositoryId, $candidate->getInstallationId(), $candidate->isPrivate(), Clock::get()->now(), $codeAccess);
         $entityManager = $container->get(EntityManagerInterface::class);
         $entityManager->persist($repository);
         $entityManager->flush();

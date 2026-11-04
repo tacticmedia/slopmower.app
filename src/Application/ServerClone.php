@@ -9,15 +9,19 @@ use App\Application\Event\RepositoryFetched;
 use App\Domain\Error\CommitNotFound;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Error\LimitExceeded;
+use App\Domain\Error\RateLimited;
+use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\RefName;
 use App\Domain\Identity\RepositoryId;
+use App\Domain\Repository\CodeAccess;
 use App\Domain\Repository\RepositorySource;
+use App\Domain\Request\CommitLinkState;
 use App\Entity\Repository;
 use App\Git\BareClone;
 use App\Git\GitFailed;
-use App\Git\GitReader;
 use App\Git\GitRunner;
+use App\Git\PinRefs;
 use App\Git\RepositoryLock;
 use App\Git\TenantDataPaths;
 use App\GitHub\GitHubRequestFailed;
@@ -25,6 +29,7 @@ use App\GitHub\InstallationTokenProvider;
 use App\Repository\CommitLinkRepository;
 use App\Repository\GitHubInstallationRepository;
 use App\Repository\RepositoryRepository;
+use App\Repository\ReviewRepository;
 use App\Repository\UserRepository;
 use App\Source\FetchCommand;
 use App\Source\LocalRepositoryDiscovery;
@@ -58,8 +63,10 @@ final class ServerClone
     public function __construct(
         private readonly RepositoryRepository $repositories,
         private readonly CommitLinkRepository $links,
+        private readonly ReviewRepository $reviews,
+        private readonly PinRefs $pins,
         private readonly BareClone $bareClone,
-        private readonly GitReader $reader,
+        private readonly CodeReaders $readers,
         private readonly LocalRepositoryDiscovery $discovery,
         private readonly GitHubInstallationRepository $installations,
         private readonly InstallationTokenProvider $installationTokens,
@@ -87,6 +94,10 @@ final class ServerClone
      */
     public function fetch(Repository $repository, bool $clone, float $timeoutSeconds, bool $collectGarbage = false): ?RepositoryFetched
     {
+        if (CodeAccess::PassThrough === $repository->getCodeAccess()) {
+            return $this->headSync($repository, $clone);
+        }
+
         $deadlineNanoseconds = hrtime(true) + (int) ($timeoutSeconds * 1e9);
         $id = $repository->getId();
         $tenantId = $repository->getTenantId();
@@ -115,6 +126,10 @@ final class ServerClone
 
             $this->bareClone->fetch($gitDir, $command->url, $this->pendingShas($id), $timeoutSeconds, $command->secretConfiguration, $command->uploadPack);
 
+            if ($clone) {
+                $this->restorePins($repository, $gitDir, $command, ($deadlineNanoseconds - hrtime(true)) / 1e9);
+            }
+
             if ($collectGarbage) {
                 $this->collectGarbage($gitDir, $id, ($deadlineNanoseconds - hrtime(true)) / 1e9);
             }
@@ -122,21 +137,22 @@ final class ServerClone
             $sizeBytes = $this->bareClone->objectSizeBytes($gitDir);
             $this->repositories->recordCloneSize($id, $sizeBytes);
             $this->usageLimits->checkCloneSize($tenantId, $id, $sizeBytes);
-            $defaultBranch = $this->reader->headBranch($gitDir);
+            $reader = $this->readers->git($gitDir);
+            $defaultBranch = $reader->headBranch();
 
             try {
-                $head = null === $defaultBranch ? null : $this->reader->resolveCommit($gitDir, RefName::fromString("refs/heads/{$defaultBranch}"));
+                $head = null === $defaultBranch ? null : $reader->resolveCommit(RefName::fromString("refs/heads/{$defaultBranch}"));
             } catch (CommitNotFound|InvalidInput) {
                 // Git accepts branch names that RefName refuses, for example names longer than 255 characters.
                 $head = null;
             }
 
             // An unborn branch is not a default branch yet.
-            $this->repositories->recordSuccess($id, $this->clock->now(), null === $head ? null : $defaultBranch, $head);
+            $this->repositories->recordSuccess($id, CodeAccess::Clone, $this->clock->now(), null === $head ? null : $defaultBranch, $head);
         } catch (GitFailed|SourceUnavailable|GitHubRequestFailed|IOExceptionInterface|LimitExceeded $failure) {
             $this->logger->warning('The sync of repository {repositoryId} failed.', ['repositoryId' => $id->toString(), 'exception' => $failure]);
             // Recorded first, so a failing removal cannot leave the row in `cloning`.
-            $this->repositories->recordFailure($id, self::lastError($failure, $serverPaths));
+            $this->repositories->recordFailure($id, self::lastError($failure, $serverPaths), CodeAccess::Clone);
 
             if ($clone) {
                 $filesystem->remove($gitDir);
@@ -144,7 +160,7 @@ final class ServerClone
 
             return null;
         } catch (\Throwable $failure) {
-            $this->repositories->recordFailure($id, self::UNEXPECTED_FAILURE);
+            $this->repositories->recordFailure($id, self::UNEXPECTED_FAILURE, CodeAccess::Clone);
 
             if ($clone) {
                 $filesystem->remove($gitDir);
@@ -170,6 +186,91 @@ final class ServerClone
             }
         } finally {
             $this->dispatcher->dispatch(new RepositoryChanged($repository->getTenantId(), $repository->getId()));
+        }
+    }
+
+    /**
+     * D112, a sync of Pass-through: the checks of {@see gitHubToken()}, then the default branch and its head from GitHub,
+     * without code. The clone job of a change from Server copy deletes the clone with its pins first, under the lock of
+     * the caller. A failed check sets `failed`.
+     *
+     * @param bool $clone A clone job, else a fetch
+     *
+     * @return RepositoryFetched|null Null after a failure, which the row records in `lastError`
+     */
+    private function headSync(Repository $repository, bool $clone): ?RepositoryFetched
+    {
+        $id = $repository->getId();
+
+        try {
+            if ($clone) {
+                new Filesystem()->remove($this->paths->clonePath($repository->getTenantId(), $id));
+                $this->repositories->recordCloneSize($id, null);
+            }
+
+            $defaultBranch = $this->gitHubDefaultBranch($repository, $this->gitHubToken($repository));
+
+            try {
+                $head = null === $defaultBranch ? null : $this->readers->of($repository)->resolveCommit(RefName::fromString("refs/heads/{$defaultBranch}"));
+            } catch (CommitNotFound|InvalidInput) {
+                // An empty repository, or a branch name that RefName refuses.
+                $head = null;
+            }
+
+            $this->repositories->recordSuccess($id, CodeAccess::PassThrough, $this->clock->now(), null === $head ? null : $defaultBranch, $head);
+        } catch (SourceUnavailable $failure) {
+            $this->logger->warning('The head sync of repository {repositoryId} failed a check.', ['repositoryId' => $id->toString(), 'exception' => $failure]);
+            $this->repositories->recordAccessFailure($id, $failure->getMessage(), CodeAccess::PassThrough);
+
+            return null;
+        } catch (GitHubRequestFailed|RepositoryUnavailable|RateLimited|IOExceptionInterface $failure) {
+            $this->logger->warning('The head sync of repository {repositoryId} failed.', ['repositoryId' => $id->toString(), 'exception' => $failure]);
+            $this->repositories->recordFailure($id, trim(explode("\n", ($failure->getPrevious() ?? $failure)->getMessage(), 2)[0]), CodeAccess::PassThrough);
+
+            return null;
+        } catch (\Throwable $failure) {
+            $this->repositories->recordFailure($id, self::UNEXPECTED_FAILURE, CodeAccess::PassThrough);
+
+            throw $failure;
+        }
+
+        return new RepositoryFetched($repository->getTenantId(), $id, $repository->getDefaultBranchHead(), $head);
+    }
+
+    /**
+     * A clone after a code access change or after a failed clone gets back the pins of the reviews and of the available
+     * links of the repository. A commit that the source no longer has stays unpinned.
+     *
+     * @throws GitFailed
+     */
+    private function restorePins(Repository $repository, string $gitDir, FetchCommand $command, float $remainingSeconds): void
+    {
+        $reviewCommits = [];
+
+        foreach ($this->reviews->findOfRepository($repository->getId()) as $review) {
+            $reviewCommits[$review->getId()->toString()] = [$review->getId(), $review->getCommitSha()];
+        }
+
+        $linked = $this->links->commitShasOfRepository($repository->getId(), CommitLinkState::Available);
+        $shas = array_values(array_unique([...array_column($reviewCommits, 1), ...$linked], \SORT_REGULAR));
+
+        if ([] === $shas || $remainingSeconds <= 0) {
+            return;
+        }
+
+        $this->bareClone->fetchCommits($gitDir, $command->url, $shas, $remainingSeconds, $command->secretConfiguration, $command->uploadPack);
+        $reader = $this->readers->git($gitDir);
+
+        foreach ($reviewCommits as [$reviewId, $commit]) {
+            if ($reader->hasCommit($commit)) {
+                $this->pins->pinReview($gitDir, $reviewId, $commit);
+            }
+        }
+
+        foreach ($linked as $commit) {
+            if ($reader->hasCommit($commit)) {
+                $this->pins->pinCommit($gitDir, $commit);
+            }
         }
     }
 
@@ -241,6 +342,24 @@ final class ServerClone
      */
     private function gitHubFetchCommand(Repository $repository, bool $clone): FetchCommand
     {
+        $token = $this->gitHubToken($repository);
+        $sizeBytes = $clone ? $this->gitHubSizeBytes($repository, $token) : null;
+
+        if (null !== $sizeBytes) {
+            $this->usageLimits->checkCloneSize($repository->getTenantId(), $repository->getId(), $sizeBytes);
+        }
+
+        return FetchCommand::gitHub($this->gitHubGitBaseUrl, $repository->getName(), $token);
+    }
+
+    /**
+     * A token of `contents: read` after the suspension check and the access check of D88.
+     *
+     * @throws SourceUnavailable   While the installation is suspended, or without access of the user
+     * @throws GitHubRequestFailed
+     */
+    private function gitHubToken(Repository $repository): string
+    {
         $installationId = $repository->getGithubInstallationId() ?? throw new \LogicException('A GitHub repository has an installation ID.');
 
         if ($this->installations->isSuspended($installationId)) {
@@ -250,13 +369,28 @@ final class ServerClone
         $token = $this->installationTokens->forRepository($installationId, (int) $repository->getGithubRepositoryId(), InstallationTokenProvider::CONTENTS_READ);
         $this->checkUserAccess($repository, $token);
 
-        $sizeBytes = $clone ? $this->gitHubSizeBytes($repository, $token) : null;
+        return $token;
+    }
 
-        if (null !== $sizeBytes) {
-            $this->usageLimits->checkCloneSize($repository->getTenantId(), $repository->getId(), $sizeBytes);
+    /**
+     * @return string|null Null for a repository without a default branch
+     *
+     * @throws GitHubRequestFailed
+     */
+    private function gitHubDefaultBranch(Repository $repository, #[\SensitiveParameter] string $token): ?string
+    {
+        try {
+            $response = $this->githubClient->request('GET', InstallationTokenProvider::API."repos/{$repository->getName()}", [
+                'auth_bearer' => $token,
+                'headers' => InstallationTokenProvider::API_HEADERS,
+            ]);
+            $status = $response->getStatusCode();
+            $branch = 200 === $status ? ($response->toArray()['default_branch'] ?? null) : null;
+        } catch (HttpClientException $failure) {
+            throw new GitHubRequestFailed('The repository request failed.', 0, $failure);
         }
 
-        return FetchCommand::gitHub($this->gitHubGitBaseUrl, $repository->getName(), $token);
+        return 200 === $status ? (\is_string($branch) && '' !== $branch ? $branch : null) : throw new GitHubRequestFailed("GitHub answered {$status} to the repository request.");
     }
 
     /**

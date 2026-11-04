@@ -33,7 +33,7 @@ final class BestWindow
         }
 
         $fileForms = array_map(SnapshotCapture::comparisonForm(...), $fileLines);
-        $snapshotForms = array_map(SnapshotCapture::comparisonForm(...), $snapshot->lines);
+        $snapshotForms = array_map(SnapshotCapture::comparisonForm(...), $snapshot->textLines());
         $snapshotFormCounts = array_count_values($snapshotForms);
         $best = null;
         $similarityRuns = 0;

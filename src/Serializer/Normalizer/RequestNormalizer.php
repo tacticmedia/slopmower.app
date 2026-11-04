@@ -45,7 +45,14 @@ final class RequestNormalizer implements NormalizerInterface, NormalizerAwareInt
         ], $format, $context);
         \assert(\is_array($summary) && \is_array($details));
 
-        return [...$summary, 'anchor' => null === $state->anchor ? null : AnchorCodec::encode($state->anchor), ...$details];
+        $anchor = null === $data->anchor ? null : AnchorCodec::encode($data->anchor);
+
+        if (\is_array($anchor['snapshot'] ?? null)) {
+            // D113: null text when the rebuild failed.
+            $anchor['snapshot'] += ['lines' => null, 'before' => null, 'after' => null];
+        }
+
+        return [...$summary, 'anchor' => $anchor, ...$details];
     }
 
     /**

@@ -3,6 +3,7 @@ import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect, useLoaderDa
 import { actionError, type ActionResult, writeResult } from '../../api/actionResult';
 import { apiGet, apiGetAllPages, apiWrite } from '../../api/client';
 import type { ApiToken } from '../../api/types/api-token';
+import type { CodeAccess } from '../../api/types/common';
 import type { ConnectRepositoryInput } from '../../api/types/inputs';
 import type { CandidateList, RepositoryPage, TokenList } from '../../api/types/lists';
 import type { Me } from '../../api/types/me';
@@ -44,7 +45,7 @@ export async function repositoriesAction({ request }: ActionFunctionArgs): Promi
     const input: ConnectRepositoryInput =
         null === githubRepositoryId
             ? { source: 'local', directory: String(form.get('directory')) }
-            : { source: 'github', githubRepositoryId: Number(githubRepositoryId) };
+            : { source: 'github', githubRepositoryId: Number(githubRepositoryId), codeAccess: String(form.get('codeAccess')) as CodeAccess };
     const connect = () => apiWrite<Repository>('POST', '/api/v1/repositories', input);
 
     if (null === form.get('openRepository')) {

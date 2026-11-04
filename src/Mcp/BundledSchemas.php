@@ -21,6 +21,10 @@ final class BundledSchemas
             'nextCursor' => ['$ref' => '#/$defs/NextCursor'],
         ],
         '$defs' => [
+            'CodeAccess' => [
+                'enum' => ['clone', 'pass_through'],
+                'description' => 'clone: the server keeps a bare clone (Server copy). pass_through: the server reads from GitHub per request and stores no code. A local repository is always clone.',
+            ],
             'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
@@ -34,10 +38,11 @@ final class BundledSchemas
             'Repository' => [
                 'title' => 'Repository',
                 'type' => 'object',
-                'required' => ['id', 'source', 'name', 'github', 'local', 'defaultBranch', 'access', 'sync', 'openReviewCount', 'createdAt'],
+                'required' => ['id', 'source', 'codeAccess', 'name', 'github', 'local', 'defaultBranch', 'access', 'sync', 'openReviewCount', 'createdAt'],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
                     'source' => ['$ref' => '#/$defs/RepositorySource'],
+                    'codeAccess' => ['$ref' => '#/$defs/CodeAccess'],
                     'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255, 'description' => 'github: owner/name. local: directory name. Unique per tenant.'],
                     'github' => [
                         'anyOf' => [
@@ -92,6 +97,7 @@ final class BundledSchemas
                         ],
                         'else' => [
                             'properties' => [
+                                'codeAccess' => ['const' => 'clone'],
                                 'github' => ['type' => 'null'],
                                 'local' => ['type' => 'object'],
                             ],
@@ -127,7 +133,7 @@ final class BundledSchemas
                 'properties' => [
                     'state' => [
                         'enum' => ['cloning', 'failed', 'idle', 'fetching', 'unavailable'],
-                        'description' => 'cloning: first clone queued or running; failed: first clone failed, no clone; idle: clone ready; fetching: fetch queued or running; unavailable: access removed, clone deleted.',
+                        'description' => 'cloning: first clone queued or running, or a codeAccess change in progress; failed: first clone failed, no clone, or for pass_through the last sync failed the access or suspension check; idle: clone ready, or for pass_through the last sync passed; fetching: fetch queued or running; unavailable: access removed, clone deleted. For pass_through a clone or fetch is a head sync: the checks and the default branch head, without code.',
                     ],
                     'lastFetchedAt' => [
                         'anyOf' => [
@@ -245,6 +251,10 @@ final class BundledSchemas
                 ],
                 'description' => 'What the host of the repository offers.',
             ],
+            'CodeAccess' => [
+                'enum' => ['clone', 'pass_through'],
+                'description' => 'clone: the server keeps a bare clone (Server copy). pass_through: the server reads from GitHub per request and stores no code. A local repository is always clone.',
+            ],
             'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
@@ -309,10 +319,11 @@ final class BundledSchemas
             'Repository' => [
                 'title' => 'Repository',
                 'type' => 'object',
-                'required' => ['id', 'source', 'name', 'github', 'local', 'defaultBranch', 'access', 'sync', 'openReviewCount', 'createdAt'],
+                'required' => ['id', 'source', 'codeAccess', 'name', 'github', 'local', 'defaultBranch', 'access', 'sync', 'openReviewCount', 'createdAt'],
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
                     'source' => ['$ref' => '#/$defs/RepositorySource'],
+                    'codeAccess' => ['$ref' => '#/$defs/CodeAccess'],
                     'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255, 'description' => 'github: owner/name. local: directory name. Unique per tenant.'],
                     'github' => [
                         'anyOf' => [
@@ -367,6 +378,7 @@ final class BundledSchemas
                         ],
                         'else' => [
                             'properties' => [
+                                'codeAccess' => ['const' => 'clone'],
                                 'github' => ['type' => 'null'],
                                 'local' => ['type' => 'object'],
                             ],
@@ -493,7 +505,7 @@ final class BundledSchemas
                 'properties' => [
                     'state' => [
                         'enum' => ['cloning', 'failed', 'idle', 'fetching', 'unavailable'],
-                        'description' => 'cloning: first clone queued or running; failed: first clone failed, no clone; idle: clone ready; fetching: fetch queued or running; unavailable: access removed, clone deleted.',
+                        'description' => 'cloning: first clone queued or running, or a codeAccess change in progress; failed: first clone failed, no clone, or for pass_through the last sync failed the access or suspension check; idle: clone ready, or for pass_through the last sync passed; fetching: fetch queued or running; unavailable: access removed, clone deleted. For pass_through a clone or fetch is a head sync: the checks and the default branch head, without code.',
                     ],
                     'lastFetchedAt' => [
                         'anyOf' => [
@@ -653,10 +665,11 @@ final class BundledSchemas
             ],
             'ContentSnapshot' => [
                 'type' => 'object',
-                'required' => ['lines', 'truncated', 'lineCount', 'before', 'after', 'normalizedHash'],
+                'required' => ['truncated', 'lineCount', 'normalizedHash'],
+                'description' => 'D113: a new anchor stores no code text, so lines, before, and after are absent. Q3 and get_request rebuild them from blobSha and the range, and give null when the rebuild fails. Anchors stored before D113 keep their text.',
                 'properties' => [
                     'lines' => [
-                        'type' => 'array',
+                        'type' => ['array', 'null'],
                         'maxItems' => 200,
                         'items' => ['type' => 'string'],
                         'description' => 'Normalized lines (LF, no trailing whitespace); all lines up to 200, else the first 100 and the last 100.',
@@ -664,12 +677,12 @@ final class BundledSchemas
                     'truncated' => ['type' => 'boolean'],
                     'lineCount' => ['type' => 'integer', 'minimum' => 1],
                     'before' => [
-                        'type' => 'array',
+                        'type' => ['array', 'null'],
                         'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
                     'after' => [
-                        'type' => 'array',
+                        'type' => ['array', 'null'],
                         'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
@@ -1072,10 +1085,11 @@ final class BundledSchemas
             'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'ContentSnapshot' => [
                 'type' => 'object',
-                'required' => ['lines', 'truncated', 'lineCount', 'before', 'after', 'normalizedHash'],
+                'required' => ['truncated', 'lineCount', 'normalizedHash'],
+                'description' => 'D113: a new anchor stores no code text, so lines, before, and after are absent. Q3 and get_request rebuild them from blobSha and the range, and give null when the rebuild fails. Anchors stored before D113 keep their text.',
                 'properties' => [
                     'lines' => [
-                        'type' => 'array',
+                        'type' => ['array', 'null'],
                         'maxItems' => 200,
                         'items' => ['type' => 'string'],
                         'description' => 'Normalized lines (LF, no trailing whitespace); all lines up to 200, else the first 100 and the last 100.',
@@ -1083,12 +1097,12 @@ final class BundledSchemas
                     'truncated' => ['type' => 'boolean'],
                     'lineCount' => ['type' => 'integer', 'minimum' => 1],
                     'before' => [
-                        'type' => 'array',
+                        'type' => ['array', 'null'],
                         'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
                     'after' => [
-                        'type' => 'array',
+                        'type' => ['array', 'null'],
                         'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
@@ -1867,10 +1881,11 @@ final class BundledSchemas
             'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'ContentSnapshot' => [
                 'type' => 'object',
-                'required' => ['lines', 'truncated', 'lineCount', 'before', 'after', 'normalizedHash'],
+                'required' => ['truncated', 'lineCount', 'normalizedHash'],
+                'description' => 'D113: a new anchor stores no code text, so lines, before, and after are absent. Q3 and get_request rebuild them from blobSha and the range, and give null when the rebuild fails. Anchors stored before D113 keep their text.',
                 'properties' => [
                     'lines' => [
-                        'type' => 'array',
+                        'type' => ['array', 'null'],
                         'maxItems' => 200,
                         'items' => ['type' => 'string'],
                         'description' => 'Normalized lines (LF, no trailing whitespace); all lines up to 200, else the first 100 and the last 100.',
@@ -1878,12 +1893,12 @@ final class BundledSchemas
                     'truncated' => ['type' => 'boolean'],
                     'lineCount' => ['type' => 'integer', 'minimum' => 1],
                     'before' => [
-                        'type' => 'array',
+                        'type' => ['array', 'null'],
                         'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
                     'after' => [
-                        'type' => 'array',
+                        'type' => ['array', 'null'],
                         'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
@@ -2397,10 +2412,11 @@ final class BundledSchemas
             'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'ContentSnapshot' => [
                 'type' => 'object',
-                'required' => ['lines', 'truncated', 'lineCount', 'before', 'after', 'normalizedHash'],
+                'required' => ['truncated', 'lineCount', 'normalizedHash'],
+                'description' => 'D113: a new anchor stores no code text, so lines, before, and after are absent. Q3 and get_request rebuild them from blobSha and the range, and give null when the rebuild fails. Anchors stored before D113 keep their text.',
                 'properties' => [
                     'lines' => [
-                        'type' => 'array',
+                        'type' => ['array', 'null'],
                         'maxItems' => 200,
                         'items' => ['type' => 'string'],
                         'description' => 'Normalized lines (LF, no trailing whitespace); all lines up to 200, else the first 100 and the last 100.',
@@ -2408,12 +2424,12 @@ final class BundledSchemas
                     'truncated' => ['type' => 'boolean'],
                     'lineCount' => ['type' => 'integer', 'minimum' => 1],
                     'before' => [
-                        'type' => 'array',
+                        'type' => ['array', 'null'],
                         'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
                     'after' => [
-                        'type' => 'array',
+                        'type' => ['array', 'null'],
                         'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
@@ -2923,10 +2939,11 @@ final class BundledSchemas
             'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'ContentSnapshot' => [
                 'type' => 'object',
-                'required' => ['lines', 'truncated', 'lineCount', 'before', 'after', 'normalizedHash'],
+                'required' => ['truncated', 'lineCount', 'normalizedHash'],
+                'description' => 'D113: a new anchor stores no code text, so lines, before, and after are absent. Q3 and get_request rebuild them from blobSha and the range, and give null when the rebuild fails. Anchors stored before D113 keep their text.',
                 'properties' => [
                     'lines' => [
-                        'type' => 'array',
+                        'type' => ['array', 'null'],
                         'maxItems' => 200,
                         'items' => ['type' => 'string'],
                         'description' => 'Normalized lines (LF, no trailing whitespace); all lines up to 200, else the first 100 and the last 100.',
@@ -2934,12 +2951,12 @@ final class BundledSchemas
                     'truncated' => ['type' => 'boolean'],
                     'lineCount' => ['type' => 'integer', 'minimum' => 1],
                     'before' => [
-                        'type' => 'array',
+                        'type' => ['array', 'null'],
                         'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
                     'after' => [
-                        'type' => 'array',
+                        'type' => ['array', 'null'],
                         'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
@@ -3445,10 +3462,11 @@ final class BundledSchemas
             'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'ContentSnapshot' => [
                 'type' => 'object',
-                'required' => ['lines', 'truncated', 'lineCount', 'before', 'after', 'normalizedHash'],
+                'required' => ['truncated', 'lineCount', 'normalizedHash'],
+                'description' => 'D113: a new anchor stores no code text, so lines, before, and after are absent. Q3 and get_request rebuild them from blobSha and the range, and give null when the rebuild fails. Anchors stored before D113 keep their text.',
                 'properties' => [
                     'lines' => [
-                        'type' => 'array',
+                        'type' => ['array', 'null'],
                         'maxItems' => 200,
                         'items' => ['type' => 'string'],
                         'description' => 'Normalized lines (LF, no trailing whitespace); all lines up to 200, else the first 100 and the last 100.',
@@ -3456,12 +3474,12 @@ final class BundledSchemas
                     'truncated' => ['type' => 'boolean'],
                     'lineCount' => ['type' => 'integer', 'minimum' => 1],
                     'before' => [
-                        'type' => 'array',
+                        'type' => ['array', 'null'],
                         'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
                     'after' => [
-                        'type' => 'array',
+                        'type' => ['array', 'null'],
                         'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],

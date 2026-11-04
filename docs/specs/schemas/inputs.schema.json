@@ -23,6 +23,17 @@
               "type": "null"
             }
           ]
+        },
+        "codeAccess": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/CodeAccess"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Required for github, without a default. Absent, null, or clone for local."
         }
       },
       "allOf": [
@@ -35,10 +46,13 @@
             }
           },
           "then": {
-            "required": ["githubRepositoryId"],
+            "required": ["githubRepositoryId", "codeAccess"],
             "properties": {
               "githubRepositoryId": {
                 "type": "integer"
+              },
+              "codeAccess": {
+                "$ref": "common.schema.json#/$defs/CodeAccess"
               }
             }
           }
@@ -56,6 +70,9 @@
             "properties": {
               "directory": {
                 "type": "string"
+              },
+              "codeAccess": {
+                "enum": ["clone", null]
               }
             }
           }
@@ -297,6 +314,15 @@
         "enabled": {
           "type": "boolean",
           "description": "The new value of `github.checkEveryPullRequest`."
+        }
+      }
+    },
+    "CodeAccessInput": {
+      "type": "object",
+      "required": ["codeAccess"],
+      "properties": {
+        "codeAccess": {
+          "$ref": "common.schema.json#/$defs/CodeAccess"
         }
       }
     },

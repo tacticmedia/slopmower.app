@@ -154,7 +154,7 @@ Slopmower finds the code of each open or reopened request at the commit of the r
 
 - **Carried**: the copy points at the same code, at its new place.
 - **Carried, the code changed**: the copy points at the changed code, and its first comment says that the code changed.
-- **Carried to the whole file, the code was not found**: the copy is a comment on the file, and its first comment shows the old code.
+- **Carried to the whole file, the code was not found**: the copy is a comment on the file, and its first comment names the lines and the file where the code was.
 - **Carried earlier**: the review has a copy of the request from an earlier carry-over. Nothing changes.
 - **Not carried**: the request stays in the other review only. The reason is its status, for example **in progress**, or that its file is gone.
 

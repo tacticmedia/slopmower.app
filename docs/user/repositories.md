@@ -1,6 +1,6 @@
 # Repositories
 
-Slopmower reviews the repositories that you connect. It keeps its own copy of each connected repository and fetches new commits into it. **Repositories** in the header lists your connected repositories and the repositories that you can connect. While no repository is connected, it shows the steps of [Getting started](getting-started.md) in place of the lists.
+Slopmower reviews the repositories that you connect. It reads the code from its own copy of the repository or from GitHub, by the [code access](code-access.md) that you choose. **Repositories** in the header lists your connected repositories and the repositories that you can connect. While no repository is connected, it shows the steps of [Getting started](getting-started.md) in place of the lists.
 
 <!-- On this page -->
 
@@ -17,16 +17,17 @@ Slopmower reads your code through the Slopmower GitHub App. The App gets read-on
 
 While no repository is connected, the first step of Getting started has **Install the GitHub App** in place of **Configure on GitHub**. After the installation, the step lists the repositories, with **Add repositories on GitHub**.
 
-To add or remove repositories later, click **Configure on GitHub** again, then **Refresh**. When you remove a repository from the App, Slopmower deletes its copy of the code. Your reviews stay until you delete them.
+To add or remove repositories later, click **Configure on GitHub** again, then **Refresh**. When you remove a repository from the App, Slopmower deletes its copy of the code, when it has one. Your reviews stay until you delete them.
 
 To review the repositories on your own disk, without GitHub, see [Run it locally](local-run.md). Then **Repositories** also shows **Local directories**.
 
 ## Connect a repository
 
 1. Open **Repositories**.
-2. Click **Connect** next to a repository under **GitHub repositories** or **Local directories**.
+2. For a GitHub repository, choose the **Code access**: **Server copy** or **Pass-through**. [Code access](code-access.md) compares them.
+3. Click **Connect** next to a repository under **GitHub repositories** or **Local directories**.
 
-The repository appears under **Connected repositories**, and its row in the list of candidates shows **Connected**. When you connect from the first step of Getting started, the repository page opens. Slopmower makes its copy of the repository. When the status is **Ready**, you can start a review.
+The repository appears under **Connected repositories**, and its row in the list of candidates shows **Connected**. When you connect from the first step of Getting started, the repository page opens. With Server copy, and for a local repository, Slopmower makes its copy of the repository. With Pass-through, it checks its access on GitHub. When the status is **Ready**, you can start a review.
 
 Your plan limits the number of connected repositories and the size of the copies. See [Usage limits](account.md#usage-limits).
 
@@ -37,14 +38,15 @@ Your plan limits the number of connected repositories and the size of the copies
 | Status | Meaning |
 |---|---|
 | Cloning | Slopmower makes its copy of the repository |
-| Fetching | Slopmower fetches new commits |
-| Ready | The copy is ready |
-| Failed | The first copy failed. The error shows below the status. |
-| Unavailable | Slopmower has no access to the repository any more, and it deleted its copy |
+| Connecting | Slopmower checks its access to a Pass-through repository on GitHub. After a change to Pass-through, it first deletes its copy. |
+| Fetching | Slopmower fetches new commits, or reads the new head of the default branch for Pass-through |
+| Ready | Slopmower can read the code |
+| Failed | The first copy failed, or for Pass-through the access check failed. The error shows below the status. |
+| Unavailable | Slopmower has no access to the repository any more, and it deleted its copy, when it had one |
 
 After the first fetch, the status also shows when Slopmower fetched last. When a copy or a fetch fails, the error shows below the status until the next one succeeds.
 
-Before each copy or fetch of a GitHub repository, Slopmower checks on GitHub that your GitHub account can still read it. When it cannot, for example after an organization removed you, the error is "The GitHub user has no access to this repository" and Slopmower gets no new commits. Sign in again. Slopmower then removes the repository, or, when you still have access, for example after you renamed your GitHub account, the next fetch works again.
+Before each copy or fetch of a GitHub repository, Slopmower checks on GitHub that your GitHub account can still read it. When it cannot, for example after an organization removed you, the error is "The GitHub user has no access to this repository" and Slopmower gets no new commits. For a Pass-through repository, the status is then **Failed**, and code does not load until a check passes. Sign in again. Slopmower then removes the repository, or, when you still have access, for example after you renamed your GitHub account, the next fetch works again.
 
 ## Get new commits
 
@@ -52,11 +54,11 @@ For a GitHub repository, GitHub tells Slopmower about each push, and Slopmower f
 
 Slopmower also fetches when your agent links a commit that Slopmower does not have yet, and when you start a review, unless you name a full commit SHA that its copy has already.
 
-To fetch at once, open the repository and click **Refresh**. After a failed first copy, **Refresh** starts the copy again.
+To fetch at once, open the repository and click **Refresh**. After a failed first copy, **Refresh** starts the copy again. After a failed check of a Pass-through repository, **Refresh** checks again.
 
 ## The repository page
 
-The header of the repository page shows the name, the source, and the default branch. For a GitHub repository, it also shows the visibility, the owner, **View on GitHub**, and the switch **Check every pull request**, which [Check every pull request](pull-requests.md#check-every-pull-request) describes.
+The header of the repository page shows the name, the source, and the default branch. For a GitHub repository, it also shows the visibility, the owner, **View on GitHub**, the switch **Check every pull request**, which [Check every pull request](pull-requests.md#check-every-pull-request) describes, and **Code access** with **Change**, which [Change the mode](code-access.md#change-the-mode) describes.
 
 **Reviews** lists the open reviews of the repository. Select **Show closed** to list the closed reviews too.
 
@@ -74,7 +76,7 @@ Slopmower pins the review to the commit that the ref points to when the review s
 
 Below **Start a review**, **Latest commits on** and the name of the default branch lists the 10 newest commits of the branch, as of the last fetch. Each row shows the first line of the commit message, the author, the time, and the short SHA with a copy button. **Start review** in a row starts a review at that commit. **Refresh** fetches new commits.
 
-Until the copy is ready, the list says that the commits show when the copy is ready.
+Until the repository is ready, the list says that the commits show when it is ready.
 
 ## Delete the data of a repository
 

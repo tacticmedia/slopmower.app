@@ -1,5 +1,5 @@
 import { Label, type LabelColorOptions, RelativeTime } from '@primer/react';
-import type { Sync, SyncState } from '../../api/types/repository';
+import type { Repository, SyncState } from '../../api/types/repository';
 import styles from './SyncStatus.module.css';
 
 const SYNC_LABELS: Record<SyncState, { text: string; variant: LabelColorOptions }> = {
@@ -10,14 +10,15 @@ const SYNC_LABELS: Record<SyncState, { text: string; variant: LabelColorOptions 
     unavailable: { text: 'Unavailable', variant: 'secondary' },
 };
 
-export function SyncStatus({ sync }: { sync: Sync }) {
+/** Only a repository with a server copy clones; another mode connects. */
+export function SyncStatus({ repository: { sync, codeAccess } }: { repository: Repository }) {
     const { text, variant } = SYNC_LABELS[sync.state];
 
     return (
         <div className={styles.status}>
             <span>
                 <Label variant={variant} data-testid="sync-state">
-                    {text}
+                    {'cloning' === sync.state && 'clone' !== codeAccess ? 'Connecting' : text}
                 </Label>
                 {null !== sync.lastFetchedAt && (
                     <span className={styles.fetched}>

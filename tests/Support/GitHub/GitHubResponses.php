@@ -15,7 +15,8 @@ use Symfony\Component\HttpClient\Response\MockResponse;
  * `none` for {@see self::FORMER_MEMBER_LOGIN}, 404 for {@see self::UNKNOWN_LOGIN}, and `write` for any other login. The
  * check run calls answer only the `checks: write` token, and {@see self::checkRunCalls()} keeps them. The Marketplace
  * account read and the installation read answer only the App JWT. An installation read answers what
- * {@see self::answerInstallation()} set, else 404.
+ * {@see self::answerInstallation()} set, else 404. The code reads of Pass-through, with the installation token, run git on
+ * the bare repository of the name under the `file://` GITHUB_GIT_BASE_URL of LocalGitHub, see {@see GitBackedGitHub}.
  */
 final class GitHubResponses
 {
@@ -117,12 +118,30 @@ final class GitHubResponses
     /** @var array<int, array<string, mixed>> `GET /app/installations/{id}` bodies by installation ID */
     private array $installations = [];
 
+    /** @var list<string> The paths below `repos/` and `graphql` of the requests, in order */
+    private array $repositoryCalls = [];
+
+    /** @var array<string, array{int, array<string, string>, string}> Status, headers, and body by path prefix below `repos/{owner}/{name}/` */
+    private array $codeReadAnswers = [];
+
+    /** @var array<string, GitBackedGitHub> */
+    private array $gitBacked = [];
+
+    public function __construct(private readonly string $gitHubGitBaseUrl = '')
+    {
+    }
+
     /**
      * @param array{normalized_headers?: array<string, list<string>>, body?: mixed} $options
      */
     public function __invoke(string $method, string $url, array $options): MockResponse
     {
         $request = "{$method} {$url}";
+        $code = $this->codeAnswer($method, $url, $options);
+
+        if (null !== $code) {
+            return $code;
+        }
 
         if (1 === preg_match('~^GET https://api\.github\.com/app/installations/(\d+)$~', $request, $installation) && self::isAppJwt($options) && isset($this->installations[(int) $installation[1]])) {
             return new MockResponse(json_encode($this->installations[(int) $installation[1]], \JSON_THROW_ON_ERROR), ['http_code' => 200, 'response_headers' => ['content-type' => 'application/json; charset=utf-8']]);
@@ -171,6 +190,69 @@ final class GitHubResponses
             'suspended_at' => $suspendedAt,
             'permissions' => $permissions,
         ];
+    }
+
+    /**
+     * From now on, a code read of Pass-through whose path below `repos/{owner}/{name}/`, or `graphql`, starts with the
+     * prefix gets the status, the headers, and the body.
+     *
+     * @param array<string, string> $headers
+     */
+    public function answerCodeRead(string $pathPrefix, int $status, array $headers = [], string $body = '{"message":"Answered by the test"}'): void
+    {
+        $this->codeReadAnswers[$pathPrefix] = [$status, $headers, $body];
+    }
+
+    /**
+     * @return list<string> The paths below `repos/` and `graphql` of the requests so far
+     */
+    public function repositoryCalls(): array
+    {
+        return $this->repositoryCalls;
+    }
+
+    public function gitBacked(string $fullName): GitBackedGitHub
+    {
+        $gitDir = substr($this->gitHubGitBaseUrl, \strlen('file://'))."/{$fullName}.git";
+
+        return $this->gitBacked[$fullName] ??= new GitBackedGitHub($gitDir, self::API."repos/{$fullName}/");
+    }
+
+    /**
+     * @param array{normalized_headers?: array<string, list<string>>, body?: mixed} $options
+     */
+    private function codeAnswer(string $method, string $url, array $options): ?MockResponse
+    {
+        $isGraphQl = 'POST '.self::API.'graphql' === "{$method} {$url}";
+
+        if (!$isGraphQl && 1 !== preg_match('~^GET https://api\.github\.com/repos/([^/]+/[^/]+)(?:/(.+))?$~', "{$method} {$url}", $match)) {
+            return null;
+        }
+
+        $this->repositoryCalls[] = $isGraphQl ? 'graphql' : substr($url, \strlen(self::API.'repos/'));
+        $body = $isGraphQl && \is_string($options['body'] ?? null) ? json_decode($options['body'], true) : null;
+        $variables = \is_array($body) && \is_array($body['variables'] ?? null) ? $body['variables'] : [];
+        $fullName = $isGraphQl ? ($variables['owner'] ?? '').'/'.($variables['name'] ?? '') : $match[1];
+        $path = $isGraphQl ? 'graphql' : $match[2] ?? '';
+
+        if (!str_starts_with($this->gitHubGitBaseUrl, 'file://') || !is_dir(substr($this->gitHubGitBaseUrl, \strlen('file://'))."/{$fullName}.git") || '' === $path || str_starts_with($path, 'collaborators/') || str_starts_with($path, 'pulls/') || str_starts_with($path, 'check-runs')) {
+            return null;
+        }
+
+        if (self::INSTALLATION_TOKEN !== self::bearerToken($options)) {
+            return new MockResponse('{"message":"Bad credentials"}', ['http_code' => 401]);
+        }
+
+        foreach ($this->codeReadAnswers as $prefix => [$status, $headers, $body]) {
+            if (str_starts_with($path, $prefix)) {
+                return new MockResponse($body, ['http_code' => $status, 'response_headers' => $headers]);
+            }
+        }
+
+        $gitBacked = $this->gitBacked((string) $fullName);
+        $headers = ['accept' => implode(',', $options['normalized_headers']['accept'] ?? [])];
+
+        return $isGraphQl ? $gitBacked->blame(\is_array($body) ? $body : []) : $gitBacked->answer($path, $headers);
     }
 
     /**

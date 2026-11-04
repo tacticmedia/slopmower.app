@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Index;
 
+use App\Application\CodeReaders;
 use App\Application\Query\IndexStatus;
 use App\Application\ReviewCommands;
 use App\Domain\Git\RefName;
@@ -12,7 +13,6 @@ use App\Domain\Identity\ReviewId;
 use App\Domain\Review\IndexState;
 use App\Entity\Repository;
 use App\Entity\Review;
-use App\Git\GitReader;
 use App\Index\IndexSql;
 use App\Index\PhpSymbolExtractor;
 use App\Message\IndexReview;
@@ -131,7 +131,7 @@ final class IndexReviewHandlerTest extends KernelTestCase
         $reviewId = self::startReview($this->repository->getId());
         $review = self::getContainer()->get(ReviewRepository::class)->findFresh($reviewId) ?? self::fail('No review.');
         // The crashed job wrote the first path, and left the state running.
-        [$readme] = self::getContainer()->get(GitReader::class)->lsTreeRecursive(self::clonePath($this->repository), $review->getCommitSha());
+        [$readme] = self::getContainer()->get(CodeReaders::class)->git(self::clonePath($this->repository))->lsTreeRecursive($review->getCommitSha());
         self::getContainer()->get(IndexSql::class)->insertFiles($this->repository->getTenantId(), $this->repository->getId(), $review->getCommitSha(), [$readme]);
         $review->startIndex(new \DateTimeImmutable());
         self::getContainer()->get(EntityManagerInterface::class)->flush();

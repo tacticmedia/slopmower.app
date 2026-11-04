@@ -24,6 +24,8 @@ final class RetentionHandler
     public function __construct(
         #[Autowire(service: 'rate_limiter.cache')]
         private readonly PruneableInterface $rateLimiterCache,
+        #[Autowire(service: 'github_code.cache')]
+        private readonly PruneableInterface $githubCodeCache,
         private readonly FailedMessageSql $failedMessages,
         // The inner serializer of the failure transport. Its SigningSerializer cannot read the message class without
         // unserializing the message.
@@ -34,10 +36,14 @@ final class RetentionHandler
     ) {
     }
 
+    /**
+     * Also the expired tree listings and commit metadata of Pass-through (D112).
+     */
     #[AsMessageHandler]
     public function pruneRateLimiterCache(PruneRateLimiterCacheJob $job): void
     {
         $this->rateLimiterCache->prune();
+        $this->githubCodeCache->prune();
     }
 
     /**

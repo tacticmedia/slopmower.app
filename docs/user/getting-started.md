@@ -13,11 +13,12 @@ Slopmower reads your code through the Slopmower GitHub App. The App gets read-on
 1. Click **Install the GitHub App**.
 2. On GitHub, choose the account or organization, then choose **Only select repositories** and select the repositories to review.
 3. Click **Install**. GitHub sends you back to Slopmower, and the step lists the repositories that the App can read.
-4. Click **Connect** next to a repository. The repository page opens.
+4. Under **Code access**, choose **Server copy** or **Pass-through**. [Code access](code-access.md) compares them.
+5. Click **Connect** next to a repository. The repository page opens.
 
-To add or remove repositories later, click **Add repositories on GitHub** in the step, or **Configure on GitHub** on **Repositories**. Then click **Refresh** next to it. When you remove a repository from the App, Slopmower deletes its copy of the code. Your reviews stay until you delete them.
+To add or remove repositories later, click **Add repositories on GitHub** in the step, or **Configure on GitHub** on **Repositories**. Then click **Refresh** next to it. When you remove a repository from the App, Slopmower deletes its copy of the code, when it has one. Your reviews stay until you delete them.
 
-Slopmower makes its own copy of the repository. The status on the repository page shows the progress. When the status is **Ready**, you can start a review.
+With Server copy, Slopmower makes its own copy of the repository. With Pass-through, it keeps no copy and reads the code from GitHub each time that you need it. The status on the repository page shows the progress. When the status is **Ready**, you can start a review.
 
 Your plan limits the number of connected repositories and open reviews, and the size of the copies. **Settings** shows your plan, and the use and the limit of each item. A copy that is larger than a size limit fails, and the status names the limit.
 

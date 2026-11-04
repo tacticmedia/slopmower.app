@@ -3,7 +3,7 @@ import { useFetcher } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
 import type { ApiError } from '../../api/client';
 import type { Commit } from '../../api/types/commit';
-import type { DateTime } from '../../api/types/common';
+import type { CodeAccess, DateTime } from '../../api/types/common';
 import type { CommitLog } from '../../api/types/lists';
 import { ActionErrorMessage } from '../../layout/ActionErrorMessage';
 import { CopyButton } from '../../layout/CopyButton';
@@ -11,12 +11,17 @@ import { useSubmitOnce } from '../../layout/useSubmitOnce';
 import { shortSha } from '../../review/shortSha';
 import styles from './LatestCommits.module.css';
 
-/** R9 of the default branch. A 409 or 422 of R9 gives `log: null` and the error. */
+/** R9 of the default branch. A 409, 422, or 429 of R9 gives `log: null` and the error. */
 export type LatestCommitsData = { branch: string; log: CommitLog | null; error: ApiError | null };
 
-type Props = { commits: LatestCommitsData; lastFetchedAt: DateTime | null };
+type Props = { commits: LatestCommitsData; lastFetchedAt: DateTime | null; codeAccess: CodeAccess };
 
-export function LatestCommits({ commits: { branch, log, error }, lastFetchedAt }: Props) {
+const UNAVAILABLE_NOTICES: Record<CodeAccess, string> = {
+    clone: 'Commits show when the clone is ready.',
+    pass_through: 'Commits show when the repository is ready.',
+};
+
+export function LatestCommits({ commits: { branch, log, error }, lastFetchedAt, codeAccess }: Props) {
     return (
         <section className={styles.latest} aria-labelledby="latest-commits" data-testid="latest-commits">
             <h3 id="latest-commits" className={styles.title}>
@@ -28,7 +33,7 @@ export function LatestCommits({ commits: { branch, log, error }, lastFetchedAt }
                 </p>
             )}
             {null === log ? (
-                <p className={styles.notice}>{'repository_unavailable' === error?.code ? 'Commits show when the clone is ready.' : error?.message}</p>
+                <p className={styles.notice}>{'repository_unavailable' === error?.code ? UNAVAILABLE_NOTICES[codeAccess] : error?.message}</p>
             ) : (
                 <ul className={styles.list}>
                     {log.items.map((commit) => (

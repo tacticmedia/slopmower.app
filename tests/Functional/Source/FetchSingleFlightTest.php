@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Source;
 
+use App\Application\CodeReaders;
 use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Error\RepositoryUnavailableReason;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\RepositoryId;
 use App\Domain\Repository\SyncState;
-use App\Git\GitReader;
 use App\Git\RepositoryLock;
 use App\Message\FetchRepositoryJob;
 use App\Tests\Support\Clock\SleepHookClock;
@@ -168,7 +168,7 @@ final class FetchSingleFlightTest extends KernelTestCase
     {
         $gitDir = self::clonePath(self::freshRepository($this->repositoryId));
 
-        return self::getContainer()->get(GitReader::class)->hasCommit($gitDir, CommitSha::fromString($commit));
+        return self::getContainer()->get(CodeReaders::class)->git($gitDir)->hasCommit(CommitSha::fromString($commit));
     }
 
     private static function lockInAnotherSession(RepositoryId $repositoryId): LockInterface

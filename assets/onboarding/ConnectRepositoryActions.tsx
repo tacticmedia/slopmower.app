@@ -1,10 +1,12 @@
 import { LinkExternalIcon } from '@primer/octicons-react';
 import { Banner, Button } from '@primer/react';
-import type { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
+import type { CodeAccess } from '../api/types/common';
 import type { CandidateList } from '../api/types/lists';
 import type { Me } from '../api/types/me';
 import type { RepositoryCandidate } from '../api/types/repository-candidate';
 import { CandidateConnection } from '../routes/repositories/CandidateConnection';
+import { CodeAccessChoice } from '../routes/repositories/CodeAccessChoice';
 import { GitHubRefreshButton } from '../routes/repositories/GitHubCandidates';
 import styles from './ConnectRepositoryActions.module.css';
 
@@ -17,6 +19,7 @@ type Props = {
 export function ConnectRepositoryActions({ features, candidates }: Props) {
     const github = candidates.items.filter(({ source }) => 'github' === source);
     const local = candidates.items.filter(({ source }) => 'local' === source);
+    const [codeAccess, setCodeAccess] = useState<CodeAccess | null>(null);
 
     if (null === features.githubApp && !features.localRepositories) {
         return (
@@ -40,7 +43,7 @@ export function ConnectRepositoryActions({ features, candidates }: Props) {
                         <p className={styles.note}>Choose the account and the repositories that Slopmower may read. GitHub sends you back here.</p>
                     </div>
                 ) : (
-                    <CandidateGroup title="GitHub repositories" candidates={github} testId="onboarding-github">
+                    <CandidateGroup title="GitHub repositories" candidates={github} testId="onboarding-github" codeAccess={{ value: codeAccess, onChange: setCodeAccess }}>
                         {null !== candidates.githubConfigureUrl && (
                             <div className={styles.actions}>
                                 <GitHubRefreshButton />
@@ -64,14 +67,17 @@ type CandidateGroupProps = {
     title: string;
     candidates: RepositoryCandidate[];
     testId: string;
+    /** The choice above the list, for GitHub candidates. */
+    codeAccess?: { value: CodeAccess | null; onChange: (codeAccess: CodeAccess) => void };
     /** Below the list. */
     children?: ReactNode;
 };
 
-function CandidateGroup({ title, candidates, testId, children }: CandidateGroupProps) {
+function CandidateGroup({ title, candidates, testId, codeAccess, children }: CandidateGroupProps) {
     return (
         <section className={styles.group} aria-label={title} data-testid={testId}>
             <h4 className={styles.groupTitle}>{title}</h4>
+            {undefined !== codeAccess && <CodeAccessChoice value={codeAccess.value} onChange={codeAccess.onChange} />}
             {0 < candidates.length && (
                 <ul className={styles.list}>
                     {candidates.map((candidate) => (
@@ -80,7 +86,7 @@ function CandidateGroup({ title, candidates, testId, children }: CandidateGroupP
                                 <span className={styles.name}>{candidate.name}</span>
                                 <span className={styles.note}>{candidateDetails(candidate)}</span>
                             </div>
-                            <CandidateConnection candidate={candidate} openRepository />
+                            <CandidateConnection candidate={candidate} codeAccess={codeAccess?.value} openRepository />
                         </li>
                     ))}
                 </ul>

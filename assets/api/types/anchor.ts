@@ -12,13 +12,14 @@ export type SymbolRef = {
     fqn: string;
 };
 
+/** A new anchor stores no code text. Q3 and get_request rebuild it, and give null when the rebuild fails. */
 export type ContentSnapshot = {
     /** Normalized lines; above 200 lines, the first 100 and the last 100. */
-    lines: string[];
+    lines?: string[] | null;
     truncated: boolean;
     lineCount: number;
-    before: string[];
-    after: string[];
+    before?: string[] | null;
+    after?: string[] | null;
     /** `sha256:` + hex digest of the region in comparison form. */
     normalizedHash: string;
 };

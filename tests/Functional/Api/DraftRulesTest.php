@@ -69,8 +69,11 @@ final class DraftRulesTest extends WebTestCase
         $draft = self::createDraft($this->client, $this->reviewId, $anchor + ['snapshot' => ['lines' => ['Not from the client.']]]);
 
         self::assertSame(['new_request', null], [$draft['kind'], $draft['requestId']]);
-        self::assertSame(self::openRequest($this->client, $this->reviewId, $anchor)['anchor'], $draft['anchor'], 'The same capture as Q2.');
-        self::assertSame('    $total += 5;', $draft['anchor']['snapshot']['lines'][0]);
+        $opened = self::openRequest($this->client, $this->reviewId, $anchor)['anchor'];
+        $opened['snapshot'] = array_diff_key($opened['snapshot'], array_flip(['lines', 'before', 'after']));
+
+        self::assertEquals($opened, $draft['anchor'], 'The same capture as Q2, whose answer rebuilds the code text.');
+        self::assertArrayNotHasKey('lines', $draft['anchor']['snapshot'], 'A draft stores no code text (D113).');
     }
 
     #[TestDox('A 501st draft gives 422')]

@@ -33,7 +33,7 @@ export function OnboardingSteps({ form, tokens, actions }: Props) {
     const steps: Step[] = [
         {
             title: 'Connect a repository',
-            description: 'Slopmower makes its own copy of the code and does not change your repository.',
+            description: 'You choose how Slopmower reads the code. It does not change your repository.',
             help: HELP.connectRepository,
             state: repositoryConnected ? 'done' : 'current',
         },

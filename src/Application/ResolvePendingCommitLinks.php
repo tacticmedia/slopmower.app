@@ -6,27 +6,34 @@ namespace App\Application;
 
 use App\Application\Event\RepositoryFetched;
 use App\Domain\Actor\Actor;
+use App\Domain\Error\RateLimited;
+use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Event\CommitFoundEvent;
 use App\Domain\Event\DecidedEvent;
 use App\Domain\Git\CommitInfo;
+use App\Domain\Git\CommitSha;
 use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\ReviewId;
+use App\Domain\Repository\CodeAccess;
 use App\EventStore\CommandExecutor;
-use App\Git\GitReader;
+use App\Git\CodeReader;
 use App\Git\PinRefs;
 use App\Git\TenantDataPaths;
 use App\Repository\CommitLinkRepository;
+use App\Repository\RepositoryRepository;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 
 /**
- * Step 3 of docs/specs/webhooks-and-live-updates.md section 2.2. The only writer of commit.found.
+ * Step 3 of docs/specs/webhooks-and-live-updates.md section 2.2. The only writer of commit.found. A Server copy pins
+ * each found commit.
  */
 final class ResolvePendingCommitLinks
 {
     public function __construct(
         private readonly CommitLinkRepository $links,
         private readonly CommandExecutor $executor,
-        private readonly GitReader $reader,
+        private readonly RepositoryRepository $repositories,
+        private readonly CodeReaders $readers,
         private readonly PinRefs $pins,
         private readonly TenantDataPaths $paths,
     ) {
@@ -35,10 +42,17 @@ final class ResolvePendingCommitLinks
     #[AsEventListener]
     public function onRepositoryFetched(RepositoryFetched $event): void
     {
-        $gitDir = $this->paths->clonePath($event->tenantId, $event->repositoryId);
+        $repository = $this->repositories->findFresh($event->repositoryId);
+
+        if (null === $repository) {
+            return;
+        }
+
+        $reader = $this->readers->of($repository);
+        $gitDir = CodeAccess::Clone === $repository->getCodeAccess() ? $this->paths->clonePath($event->tenantId, $event->repositoryId) : null;
         /** @var array<string, array{commit: CommitInfo, reviewIds: array<string, ReviewId>}> $found By SHA */
         $found = [];
-        /** @var array<string, true> $missing SHAs that the clone does not have */
+        /** @var array<string, true> $missing SHAs that the repository does not have */
         $missing = [];
 
         foreach ($this->links->findFreshPendingOfRepository($event->repositoryId) as $link) {
@@ -49,13 +63,15 @@ final class ResolvePendingCommitLinks
             }
 
             if (!isset($found[$sha->toString()])) {
-                if (!$this->reader->hasCommit($gitDir, $sha)) {
+                $commit = self::availableCommit($reader, $sha);
+
+                if (null === $commit) {
                     $missing[$sha->toString()] = true;
 
                     continue;
                 }
 
-                $found[$sha->toString()] = ['commit' => $this->reader->commitInfo($gitDir, $sha), 'reviewIds' => []];
+                $found[$sha->toString()] = ['commit' => $commit, 'reviewIds' => []];
             }
 
             $reviewId = $link->getRequest()->getReview()->getId();
@@ -63,11 +79,25 @@ final class ResolvePendingCommitLinks
         }
 
         foreach ($found as ['commit' => $commit, 'reviewIds' => $reviewIds]) {
-            $this->pins->pinCommit($gitDir, $commit->commitSha);
+            if (null !== $gitDir) {
+                $this->pins->pinCommit($gitDir, $commit->commitSha);
+            }
 
             foreach ($reviewIds as $reviewId) {
                 $this->recordFound($event->repositoryId, $reviewId, $commit);
             }
+        }
+    }
+
+    /**
+     * A read that fails keeps the link pending, so the listeners after this one still run.
+     */
+    private static function availableCommit(CodeReader $reader, CommitSha $sha): ?CommitInfo
+    {
+        try {
+            return $reader->hasCommit($sha) ? $reader->commitInfo($sha) : null;
+        } catch (RepositoryUnavailable|RateLimited) {
+            return null;
         }
     }
 

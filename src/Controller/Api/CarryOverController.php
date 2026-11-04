@@ -59,9 +59,6 @@ final class CarryOverController extends AbstractController
 {
     private const int SHORT_SHA_CHARACTERS = 12;
 
-    /** Keeps a snapshot comment below the 65,536 characters of a comment body. */
-    private const int MAX_SNAPSHOT_CHARACTERS = 60000;
-
     public function __construct(
         private readonly ReviewRepository $reviews,
         private readonly ChangeRequestRepository $requests,
@@ -317,25 +314,20 @@ final class CarryOverController extends AbstractController
     }
 
     /**
-     * The fence is longer than any backtick run of the code, so the code cannot close it.
+     * D113: names the source path and lines, without code.
      */
     private static function snapshotComment(Anchor $anchor, CommitSha $target): string
     {
         $text = \sprintf('The code of this request was not found at this review commit `%s`, so the request is on the whole file now.', self::short($target));
-        $snapshot = $anchor->snapshot;
         $range = $anchor->range;
 
-        if (null === $snapshot || null === $range) {
+        if (null === $range) {
             return $text;
         }
 
-        $code = mb_substr(implode("\n", $snapshot->lines), 0, self::MAX_SNAPSHOT_CHARACTERS, 'UTF-8');
-        preg_match_all('/`+/', $code, $runs);
-        $fence = str_repeat('`', max(3, max(array_map(strlen(...), [...$runs[0], ''])) + 1));
         $lines = $range->startLine === $range->endLine ? "line {$range->startLine}" : "lines {$range->startLine} to {$range->endLine}";
-        $omission = $snapshot->truncated ? "\n\nThe snapshot holds only the first and the last lines of the region." : '';
 
-        return \sprintf("%s The code at the source review commit `%s`, %s of `%s`:\n\n%s\n%s\n%s%s", $text, self::short($anchor->commitSha), $lines, $anchor->path->toString(), $fence, $code, $fence, $omission);
+        return \sprintf('%s It was at %s of `%s` at the source review commit `%s`.', $text, $lines, $anchor->path->toString(), self::short($anchor->commitSha));
     }
 
     private static function short(CommitSha $sha): string

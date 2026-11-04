@@ -19,7 +19,7 @@ use App\Domain\Request\CommitLinkState;
 use App\Domain\Request\CommitsNotAvailable;
 use App\Entity\ChangeRequest;
 use App\Git\ChangedFile;
-use App\Git\GitReader;
+use App\Git\CodeReader;
 use App\Git\TreeEntry;
 use App\Repository\CommitLinkRepository;
 use App\Repository\ReviewEventRepository;
@@ -34,10 +34,6 @@ use Symfony\Component\Routing\Attribute\Route;
 final class CommitDiffController extends AbstractController
 {
     public const int MAX_FILES = 300;
-
-    public function __construct(private readonly GitReader $reader)
-    {
-    }
 
     #[Route('/api/v1/requests/{requestId}/commits/{commitSha}', name: 'api_request_commit_diff', methods: ['GET'])]
     public function __invoke(
@@ -57,10 +53,10 @@ final class CommitDiffController extends AbstractController
 
         $review = $request->getReview();
         $repository = $review->getRepository();
-        $gitDir = $fetchRepository->readyClonePath($repository->getId());
+        $reader = $fetchRepository->readyReader($repository->getId());
 
         try {
-            $commit = $this->reader->commitDetails($gitDir, $sha);
+            $commit = $reader->commitDetails($sha);
         } catch (CommitNotFound) {
             // An available link whose commit left the clone.
             throw new CommitsNotAvailable([$sha]);
@@ -69,8 +65,8 @@ final class CommitDiffController extends AbstractController
         $anchor = $request->getState()->anchor;
         $openedEventId = $events->findOpenedEventIds($review->getId())[$request->getId()->toString()] ?? null;
         $location = null === $openedEventId || null === $anchor ? null : $locator->locate($repository, $openedEventId, $anchor, $commit->sha);
-        $changes = $this->reader->changedFiles($gitDir, $commit->parentSha, $commit->sha);
-        $files = array_slice($this->files($gitDir, $changes, $location?->path?->toString(), $anchor?->path->toString()), 0, self::MAX_FILES);
+        $changes = $reader->changedFiles($commit->parentSha, $commit->sha);
+        $files = array_slice(self::files($reader, $changes, $location?->path?->toString(), $anchor?->path->toString()), 0, self::MAX_FILES);
 
         return $this->json(new CommitDiffView(
             $request->getId(),
@@ -92,10 +88,10 @@ final class CommitDiffController extends AbstractController
      *
      * @return list<CommitDiffFileView>
      */
-    private function files(string $gitDir, array $changes, ?string $locatedPath, ?string $anchorPath): array
+    private static function files(CodeReader $reader, array $changes, ?string $locatedPath, ?string $anchorPath): array
     {
         $objectIds = array_merge(...array_map(static fn (ChangedFile $change): array => array_filter([$change->oldObjectId, $change->newObjectId]), $changes));
-        $sizesBytes = $this->reader->objectSizes($gitDir, array_values(array_unique($objectIds)));
+        $sizesBytes = $reader->objectSizes(array_values(array_unique($objectIds)));
         $files = [];
 
         foreach ($changes as $change) {

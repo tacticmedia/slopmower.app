@@ -41,8 +41,8 @@ final class SymbolController extends AbstractController
         FilePathQuery $query,
     ): Response {
         $path = RepoPath::fromString((string) $query->path);
-        $gitDir = $fetchRepository->readyClonePath($review->getRepository()->getId());
-        $entry = $files->entry($gitDir, $review, $path);
+        $reader = $fetchRepository->readyReader($review->getRepository()->getId());
+        $entry = $files->entry($reader, $review, $path);
         $headers = ['ETag' => 'W/"'.self::ETAG_VERSION."-{$entry->objectId}\"", 'Cache-Control' => 'private, no-cache', 'Vary' => 'Authorization, Cookie'];
         $notModified = new Response(null, Response::HTTP_OK, $headers);
 
@@ -50,7 +50,7 @@ final class SymbolController extends AbstractController
             return $notModified;
         }
 
-        $symbols = SymbolList::of($review->getId(), $path, BlobSha::fromString($entry->objectId), $blobSymbols->of($review->getRepository(), $gitDir, $entry));
+        $symbols = SymbolList::of($review->getId(), $path, BlobSha::fromString($entry->objectId), $blobSymbols->of($review->getRepository(), $reader, $entry));
 
         return $this->json($symbols, Response::HTTP_OK, $headers);
     }

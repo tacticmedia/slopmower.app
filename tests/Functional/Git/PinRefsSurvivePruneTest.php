@@ -7,7 +7,7 @@ namespace App\Tests\Functional\Git;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\ReviewId;
 use App\Git\BareClone;
-use App\Git\GitReader;
+use App\Git\GitCodeReader;
 use App\Git\GitRunner;
 use App\Git\PinRefs;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
@@ -74,10 +74,10 @@ final class PinRefsSurvivePruneTest extends KernelTestCase
     public function testGcKeepsPinnedCommits(): void
     {
         $this->git->run($this->clone, ['gc', '--prune=now', '--quiet']);
-        $reader = new GitReader($this->git);
+        $reader = new GitCodeReader($this->git, $this->clone);
 
-        self::assertTrue($reader->hasCommit($this->clone, CommitSha::fromString($this->linked)));
+        self::assertTrue($reader->hasCommit(CommitSha::fromString($this->linked)));
         self::assertSame("Feature\n", $this->git->run($this->clone, ['cat-file', 'blob', "{$this->reviewed}:feature.txt"]));
-        self::assertFalse($reader->hasCommit($this->clone, CommitSha::fromString($this->unpinned)), 'gc did not prune the unpinned commit');
+        self::assertFalse($reader->hasCommit(CommitSha::fromString($this->unpinned)), 'gc did not prune the unpinned commit');
     }
 }

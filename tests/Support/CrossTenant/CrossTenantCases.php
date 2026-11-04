@@ -34,6 +34,7 @@ final class CrossTenantCases
             'api_repository_delete' => ['method' => 'DELETE', 'path' => '/api/v1/repositories/{repositoryId}', 'body' => null, 'status' => 202, 'schema' => null, 'query' => ['confirm' => 'billing']],
             'api_repository_fetch' => ['method' => 'POST', 'path' => '/api/v1/repositories/{repositoryId}/fetch', 'body' => null, 'status' => 202, 'schema' => 'repository.schema.json'],
             'api_repository_check_every_pull_request' => ['method' => 'POST', 'path' => '/api/v1/repositories/{repositoryId}/check-every-pull-request', 'body' => ['enabled' => true], 'status' => 200, 'schema' => 'repository.schema.json'],
+            'api_repository_code_access' => ['method' => 'POST', 'path' => '/api/v1/repositories/{repositoryId}/code-access', 'body' => ['codeAccess' => 'clone'], 'status' => 200, 'schema' => 'repository.schema.json'],
             'api_repository_blob' => ['method' => 'GET', 'path' => '/api/v1/repositories/{repositoryId}/blobs/{blobSha}', 'body' => null, 'status' => 200, 'schema' => null],
             'api_repository_commits' => ['method' => 'GET', 'path' => '/api/v1/repositories/{repositoryId}/commits', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/CommitLog'],
             'api_review_start' => ['method' => 'POST', 'path' => '/api/v1/repositories/{repositoryId}/reviews', 'body' => ['ref' => 'main'], 'status' => 201, 'schema' => 'review.schema.json'],

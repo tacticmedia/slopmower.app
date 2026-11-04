@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Application\Query;
 
 use App\Anchoring\CodeExcerpt;
+use App\Domain\Anchor\Anchor;
 use App\Domain\Request\Action;
 
 /**
@@ -19,6 +20,7 @@ final readonly class RequestView
      * @param list<Action>          $allowedActions For the caller
      * @param LocationView|null     $location       Null when the clone is gone
      * @param CodeExcerpt|null      $excerpt        Only when the caller asked for context lines
+     * @param Anchor|null           $anchor         The anchor of the state with its snapshot text rebuilt (D113)
      */
     public function __construct(
         public RequestSummaryView $summary,
@@ -28,6 +30,7 @@ final readonly class RequestView
         public array $allowedActions,
         public ?LocationView $location,
         public ?CodeExcerpt $excerpt,
+        public ?Anchor $anchor,
     ) {
     }
 }

@@ -35,14 +35,15 @@ final class AnchorCodec
             'blobSha' => $anchor->blobSha->toString(),
             'range' => null === $range ? null : ['startLine' => $range->startLine, 'endLine' => $range->endLine],
             'symbol' => null === $symbol ? null : ['language' => $symbol->language, 'kind' => $symbol->kind->value, 'fqn' => $symbol->fqn],
-            'snapshot' => null === $snapshot ? null : [
+            // D113: the code text only when it is set, so a stored snapshot holds none.
+            'snapshot' => null === $snapshot ? null : array_filter([
                 'lines' => $snapshot->lines,
                 'truncated' => $snapshot->truncated,
                 'lineCount' => $snapshot->lineCount,
                 'before' => $snapshot->before,
                 'after' => $snapshot->after,
                 'normalizedHash' => $snapshot->normalizedHash,
-            ],
+            ], static fn (mixed $value): bool => null !== $value),
         ];
     }
 
@@ -63,11 +64,11 @@ final class AnchorCodec
             null === $range ? null : LineRange::of($range->int('startLine'), $range->int('endLine')),
             null === $symbol ? null : SymbolRef::of($symbol->string('language'), $symbol->enum('kind', SymbolKind::class), $symbol->string('fqn')),
             null === $snapshot ? null : ContentSnapshot::of(
-                $snapshot->stringList('lines'),
+                $snapshot->nullableStringList('lines'),
                 $snapshot->bool('truncated'),
                 $snapshot->int('lineCount'),
-                $snapshot->stringList('before'),
-                $snapshot->stringList('after'),
+                $snapshot->nullableStringList('before'),
+                $snapshot->nullableStringList('after'),
                 $snapshot->string('normalizedHash'),
             ),
         ));

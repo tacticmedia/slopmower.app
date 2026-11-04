@@ -16,6 +16,7 @@ use App\Domain\Identity\EventId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Location\Location;
+use App\Domain\Repository\CodeAccess;
 use App\Domain\Repository\RepositoryAccess;
 use App\Domain\Repository\RepositorySource;
 use App\Domain\Request\CheckedRequest;
@@ -26,7 +27,6 @@ use App\Entity\PullRequest;
 use App\Entity\Repository;
 use App\Entity\SignInMethod;
 use App\Git\GitFailed;
-use App\Git\GitReader;
 use App\GitHub\GitHubRequestFailed;
 use App\GitHub\InstallationTokenProvider;
 use App\Message\CheckRunJob;
@@ -66,7 +66,6 @@ final class CheckRunHandler
         private readonly ChangeRequestRepository $requests,
         private readonly ReviewEventRepository $events,
         private readonly FetchRepository $fetchRepository,
-        private readonly GitReader $reader,
         private readonly Locator $locator,
         private readonly UserRepository $users,
         private readonly UrlGeneratorInterface $urlGenerator,
@@ -253,25 +252,25 @@ final class CheckRunHandler
     }
 
     /**
-     * Fetches once when the clone lacks the head. A fetch brings no head of a fork, and a rate-limited fetch counts as
-     * a missing head.
+     * Fetches once when a Server copy lacks the head. A fetch brings no head of a fork, GitHub serves every commit of the
+     * fork network to Pass-through, and a rate-limited fetch counts as a missing head.
      */
     private function headInClone(Repository $repository, CommitSha $headSha, bool $fromFork): bool
     {
         try {
-            $gitDir = $this->fetchRepository->readyClonePath($repository->getId());
+            $reader = $this->fetchRepository->readyReader($repository->getId());
 
-            if ($this->reader->hasCommit($gitDir, $headSha)) {
+            if ($reader->hasCommit($headSha)) {
                 return true;
             }
 
-            if ($fromFork) {
+            if ($fromFork || CodeAccess::Clone !== $repository->getCodeAccess()) {
                 return false;
             }
 
             $this->fetchRepository->fetchNow($repository->getId());
 
-            return $this->reader->hasCommit($gitDir, $headSha);
+            return $reader->hasCommit($headSha);
         } catch (NotFound|RepositoryUnavailable|RateLimited) {
             return false;
         }

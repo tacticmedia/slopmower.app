@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Anchoring;
 
+use App\Application\CodeReaders;
 use App\Application\Query\FileContent;
 use App\Domain\Anchor\Anchor;
 use App\Domain\Anchor\AnchorKind;
@@ -11,6 +12,9 @@ use App\Domain\Anchor\ContentSnapshot;
 use App\Domain\Anchor\LineRange;
 use App\Domain\Anchor\SnapshotCapture;
 use App\Domain\Error\InvalidInput;
+use App\Domain\Error\LimitExceeded;
+use App\Domain\Error\RateLimited;
+use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Git\BlobSha;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\RepoPath;
@@ -23,18 +27,17 @@ use App\Domain\Matching\RangeMapper;
 use App\Domain\Matching\SnapshotMatcher;
 use App\Domain\Matching\UnifiedZeroDiffParser;
 use App\Entity\Repository;
+use App\Git\CodeReader;
 use App\Git\GitFailed;
-use App\Git\GitReader;
 use App\Git\ObjectType;
-use App\Git\TenantDataPaths;
 use App\Git\TreeEntry;
 use App\Index\BlobSymbols;
 use App\Index\ExtractedSymbol;
 use App\Repository\LocationCacheEntryRepository;
 
 /**
- * Architecture section 5.4 `locate` on the server clone, with the cache of section 5.2. The caller checks that the
- * clone exists and that the target commit is in it.
+ * Architecture section 5.4 `locate` through the code reader of the repository, with the cache of section 5.2. The caller
+ * checks that the code is ready and that the target commit exists.
  */
 final class Locator
 {
@@ -47,9 +50,8 @@ final class Locator
     public const int MAX_SEARCHED_BYTES = 1000;
 
     public function __construct(
-        private readonly GitReader $reader,
+        private readonly CodeReaders $readers,
         private readonly BlobSymbols $blobSymbols,
-        private readonly TenantDataPaths $paths,
         private readonly LocationCacheEntryRepository $cache,
         private readonly LocationCacheSql $cacheSql,
     ) {
@@ -68,7 +70,7 @@ final class Locator
             return $cached->toLocation();
         }
 
-        $location = $this->compute($repository, $this->gitDir($repository), $anchor, $targetSha);
+        $location = $this->compute($repository, $this->readers->of($repository), $anchor, $targetSha);
         $this->cacheSql->insert($repository->getTenantId(), $repository->getId(), $openedEventId, $location);
 
         return $location;
@@ -84,7 +86,7 @@ final class Locator
      */
     public function mappedPath(Repository $repository, Anchor $anchor, CommitSha $targetSha): ?RepoPath
     {
-        $entry = $this->mappedEntry($this->gitDir($repository), $anchor, $targetSha);
+        $entry = $this->mappedEntry($this->readers->of($repository), $anchor, $targetSha);
 
         return null === $entry ? null : RepoPath::fromString($entry->path);
     }
@@ -102,9 +104,9 @@ final class Locator
             return null;
         }
 
-        $gitDir = $this->gitDir($repository);
-        $entry = $this->reader->entryAt($gitDir, $location->targetSha, $location->path);
-        $content = null === $entry ? null : $this->renderableContent($gitDir, $entry);
+        $reader = $this->readers->of($repository);
+        $entry = $reader->entryAt($location->targetSha, $location->path);
+        $content = null === $entry ? null : $this->renderableContent($reader, $entry);
 
         // The lines go into JSON.
         if (null === $content || !mb_check_encoding($content, 'UTF-8')) {
@@ -130,12 +132,12 @@ final class Locator
         return new CodeExcerpt($location->targetSha, $location->path, $startLine, $endLine, $lines, $truncated);
     }
 
-    private function compute(Repository $repository, string $gitDir, Anchor $anchor, CommitSha $target): Location
+    private function compute(Repository $repository, CodeReader $reader, Anchor $anchor, CommitSha $target): Location
     {
-        $entry = $this->mappedEntry($gitDir, $anchor, $target);
+        $entry = $this->mappedEntry($reader, $anchor, $target);
 
         if (null === $entry) {
-            return $this->searchOtherFiles($gitDir, $anchor, $target, null) ?? Location::orphaned($target, OrphanReason::FileDeleted);
+            return $this->searchOtherFiles($reader, $this->snapshotText($reader, $anchor), $target, null) ?? Location::orphaned($target, OrphanReason::FileDeleted);
         }
 
         $path = RepoPath::fromString($entry->path);
@@ -145,20 +147,20 @@ final class Locator
         }
 
         $range = $anchor->range;
-        $snapshot = $anchor->snapshot;
 
-        if (AnchorKind::File === $anchor->kind || null === $range || null === $snapshot) {
+        if (AnchorKind::File === $anchor->kind || null === $range || null === $anchor->snapshot) {
             return Location::changed($target, $path, null, 1.0);
         }
 
-        $content = $this->renderableContent($gitDir, $entry);
+        $snapshot = $this->snapshotText($reader, $anchor);
+        $content = $this->renderableContent($reader, $entry);
 
-        if (null === $content) {
+        if (null === $content || null === $snapshot) {
             return Location::orphaned($target, OrphanReason::ContentNotFound);
         }
 
         $fileLines = SnapshotCapture::lines($content);
-        $symbolRange = $this->symbolRange($repository, $gitDir, $anchor, $entry);
+        $symbolRange = $this->symbolRange($repository, $reader, $anchor, $entry);
 
         if (null !== $symbolRange) {
             return SnapshotCapture::normalizedHash(self::region($fileLines, $symbolRange)) === $snapshot->normalizedHash
@@ -166,7 +168,7 @@ final class Locator
                 : Location::changed($target, $path, $symbolRange, 1.0);
         }
 
-        $hunks = UnifiedZeroDiffParser::parse($this->reader->unifiedZeroDiff($gitDir, $anchor->blobSha, BlobSha::fromString($entry->objectId)));
+        $hunks = UnifiedZeroDiffParser::parse($reader->unifiedZeroDiff($anchor->blobSha, BlobSha::fromString($entry->objectId)));
         $mapped = RangeMapper::mapRange($range, $hunks);
 
         if ($mapped->untouched && null !== $mapped->range) {
@@ -182,7 +184,7 @@ final class Locator
         if (null !== $mapped->range) {
             $kept = SnapshotCapture::keptLines(self::region($fileLines, $mapped->range));
 
-            return Location::changed($target, $path, $mapped->range, LineSimilarity::between($kept, $snapshot->lines));
+            return Location::changed($target, $path, $mapped->range, LineSimilarity::between($kept, $snapshot->textLines()));
         }
 
         $fuzzy = BestWindow::near($fileLines, $snapshot, $mapped->startLine);
@@ -191,29 +193,63 @@ final class Locator
             return Location::changed($target, $path, $fuzzy->range, $fuzzy->score);
         }
 
-        return $this->searchOtherFiles($gitDir, $anchor, $target, $path) ?? Location::orphaned($target, OrphanReason::RegionDeleted);
+        return $this->searchOtherFiles($reader, $snapshot, $target, $path) ?? Location::orphaned($target, OrphanReason::RegionDeleted);
+    }
+
+    /**
+     * D113: the anchor with the code text of its snapshot, rebuilt from its blob. The text stays null when the rebuild
+     * fails, for example for a blob that GitHub no longer serves.
+     */
+    public function withSnapshotText(CodeReader $reader, Anchor $anchor): Anchor
+    {
+        try {
+            $snapshot = $this->snapshotText($reader, $anchor);
+        } catch (RepositoryUnavailable|RateLimited|GitFailed) {
+            $snapshot = null;
+        }
+
+        return null === $snapshot || $snapshot === $anchor->snapshot
+            ? $anchor
+            : Anchor::of($anchor->kind, $anchor->path, $anchor->commitSha, $anchor->blobSha, $anchor->range, $anchor->symbol, $snapshot);
+    }
+
+    /**
+     * @return ContentSnapshot|null The stored snapshot with its text, else rebuilt from the anchor blob. Null without
+     *                              a snapshot or a blob.
+     */
+    private function snapshotText(CodeReader $reader, Anchor $anchor): ?ContentSnapshot
+    {
+        $snapshot = $anchor->snapshot;
+
+        if (null === $snapshot || null !== $snapshot->lines || null === $anchor->range) {
+            return $snapshot;
+        }
+
+        $blob = $reader->readBlob($anchor->blobSha);
+
+        return null === $blob ? null : SnapshotCapture::capture($blob->bytes, $anchor->range);
     }
 
     /**
      * Architecture section 5.4 `mapPath`. Git pairs a rename only for a path that is gone, so a path that is still a
      * blob maps to itself. A new path that RepoPath refuses counts as deleted.
      */
-    private function mappedEntry(string $gitDir, Anchor $anchor, CommitSha $target): ?TreeEntry
+    private function mappedEntry(CodeReader $reader, Anchor $anchor, CommitSha $target): ?TreeEntry
     {
-        $entry = $this->reader->entryAt($gitDir, $target, $anchor->path);
+        $entry = $reader->entryAt($target, $anchor->path);
 
         if (ObjectType::Blob === $entry?->type) {
             return $entry;
         }
 
-        $newPath = $this->reader->pathAfter($gitDir, $anchor->commitSha, $target, $anchor->path);
+        $newPath = $reader->pathAfter($anchor->commitSha, $target, $anchor->path);
 
         if (null === $newPath || $newPath === $anchor->path->toString()) {
             return null;
         }
 
         try {
-            $renamed = $this->reader->entryAt($gitDir, $target, RepoPath::fromString($newPath));
+            $renamed = $reader->entryAt($target, RepoPath::fromString($newPath));
         } catch (InvalidInput) {
             return null;
         }
@@ -225,7 +261,7 @@ final class Locator
      * The one symbol of the target file with the FQN. A parse error gives no symbols (F12), and two symbols with the
      * FQN give none, as in {@see \App\Application\AnchorFactory}.
      */
-    private function symbolRange(Repository $repository, string $gitDir, Anchor $anchor, TreeEntry $entry): ?LineRange
+    private function symbolRange(Repository $repository, CodeReader $reader, Anchor $anchor, TreeEntry $entry): ?LineRange
     {
         $fqn = AnchorKind::Symbol === $anchor->kind ? $anchor->symbol?->fqn : null;
 
@@ -234,7 +270,7 @@ final class Locator
         }
 
         $matches = array_values(array_filter(
-            $this->blobSymbols->of($repository, $gitDir, $entry)->symbols,
+            $this->blobSymbols->of($repository, $reader, $entry)->symbols,
             static fn (ExtractedSymbol $symbol): bool => $symbol->fqn === $fqn,
         ));
 
@@ -246,18 +282,20 @@ final class Locator
      *
      * @param RepoPath|null $searchedPath Searched already, so it is no candidate
      */
-    private function searchOtherFiles(string $gitDir, Anchor $anchor, CommitSha $target, ?RepoPath $searchedPath): ?Location
+    private function searchOtherFiles(CodeReader $reader, ?ContentSnapshot $snapshot, CommitSha $target, ?RepoPath $searchedPath): ?Location
     {
-        $snapshot = $anchor->snapshot;
-
         if (null === $snapshot || $snapshot->lineCount < self::MIN_SEARCHED_SNAPSHOT_LINES || !SnapshotMatcher::isDistinctive($snapshot)) {
             return null;
         }
 
-        $candidates = array_filter(
-            $this->reader->filesContaining($gitDir, $target, self::searchedText($snapshot)),
-            static fn (string $candidate): bool => $candidate !== $searchedPath?->toString(),
-        );
+        try {
+            $containing = $reader->filesContaining($target, self::searchedText($snapshot));
+        } catch (LimitExceeded) {
+            // A repository above `repository_size` gets no scratch copy, so no search.
+            $containing = [];
+        }
+
+        $candidates = array_filter($containing, static fn (string $candidate): bool => $candidate !== $searchedPath?->toString());
         $matches = [];
 
         foreach (array_slice($candidates, 0, self::MAX_CANDIDATE_FILES) as $candidate) {
@@ -267,8 +305,8 @@ final class Locator
                 continue;
             }
 
-            $entry = $this->reader->entryAt($gitDir, $target, $path);
-            $content = null === $entry ? null : $this->renderableContent($gitDir, $entry);
+            $entry = $reader->entryAt($target, $path);
+            $content = null === $entry ? null : $this->renderableContent($reader, $entry);
 
             foreach (null === $content ? [] : SnapshotMatcher::exactMatches(SnapshotCapture::lines($content), $snapshot) as $range) {
                 $matches[] = [$path, $range];
@@ -290,7 +328,7 @@ final class Locator
     {
         $longest = '';
 
-        foreach ($snapshot->lines as $line) {
+        foreach ($snapshot->textLines() as $line) {
             $trimmed = trim($line);
 
             if (strlen($trimmed) > strlen($longest) && !str_contains($trimmed, "\0")) {
@@ -304,13 +342,13 @@ final class Locator
     /**
      * The rules of {@see FileContent::isRenderable()}: a regular file of at most 1 MiB, not binary.
      */
-    private function renderableContent(string $gitDir, TreeEntry $entry): ?string
+    private function renderableContent(CodeReader $reader, TreeEntry $entry): ?string
     {
         if (!$entry->isRenderableFile()) {
             return null;
         }
 
-        $blob = $this->reader->readBlob($gitDir, BlobSha::fromString($entry->objectId));
+        $blob = $reader->readBlob(BlobSha::fromString($entry->objectId));
 
         return null === $blob || $blob->isBinary() ? null : $blob->bytes;
     }
@@ -331,10 +369,5 @@ final class Locator
     private static function region(array $fileLines, LineRange $range): array
     {
         return array_slice($fileLines, $range->startLine - 1, $range->lineCount());
-    }
-
-    private function gitDir(Repository $repository): string
-    {
-        return $this->paths->clonePath($repository->getTenantId(), $repository->getId());
     }
 }

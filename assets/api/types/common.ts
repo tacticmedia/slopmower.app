@@ -22,6 +22,10 @@ export type EventSeq = number;
 export const REPOSITORY_SOURCES = ['github', 'local'] as const;
 export type RepositorySource = (typeof REPOSITORY_SOURCES)[number];
 
+export const CODE_ACCESSES = ['clone', 'pass_through'] as const;
+/** clone: the server keeps a bare clone. pass_through: the server reads from GitHub per request. Local: always clone. */
+export type CodeAccess = (typeof CODE_ACCESSES)[number];
+
 export const REPOSITORY_ACCESSES = ['active', 'removed'] as const;
 export type RepositoryAccess = (typeof REPOSITORY_ACCESSES)[number];
 

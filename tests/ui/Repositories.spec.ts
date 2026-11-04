@@ -75,6 +75,24 @@ test.describe('Repositories', () => {
         expect(api.bodies('POST', `/api/v1/repositories/${repository.id}/check-every-pull-request`)).toEqual([{ enabled: true }]);
     });
 
+    test('The code-access switch on the repository page asks for confirmation and sends the new mode', async ({ page, api }) => {
+        const repository = { ...fixture<Repository>('repository.github-cloning.json'), id: newId() };
+        new FakeRepositories(api).repositories.push(repository);
+        await page.goto(`/repositories/${repository.id}`);
+        const setting = page.locator('[data-testid="code-access"]');
+        await expect(setting).toContainText('Server copy');
+
+        await setting.getByRole('button', { name: 'Change' }).click();
+        await page.getByRole('menuitemradio', { name: 'Pass-through' }).click();
+        const dialog = page.getByRole('dialog');
+        await expect(dialog).toContainText('Slopmower deletes its copy of the repository.');
+        await dialog.getByRole('button', { name: 'Switch' }).click();
+
+        await expect(setting).toContainText('Pass-through');
+        await expect(dialog).toHaveCount(0);
+        expect(api.bodies('POST', `/api/v1/repositories/${repository.id}/code-access`)).toEqual([{ codeAccess: 'pass_through' }]);
+    });
+
     test('At 390 px and 768 px the review table of a repository does not make the page scroll sideways', async ({ page, api }) => {
         const repositories = new FakeRepositories(api);
         const repository = repositories.addLocal('billing');

@@ -6,7 +6,7 @@ namespace App\Tests\Unit\Git;
 
 use App\Domain\Error\InvalidInput;
 use App\Domain\Git\RefName;
-use App\Git\GitReader;
+use App\Git\GitCodeReader;
 use App\Git\GitRunner;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -33,10 +33,10 @@ final class RefInjectionTest extends KernelTestCase
     #[TestDox('Rejects --upload-pack=x, -h, a..b, and HEAD@{1} before git runs')]
     public function testRejectsRefBeforeGitRuns(string $ref): void
     {
-        $reader = new GitReader(new GitRunner(new NullLogger()));
+        $reader = new GitCodeReader(new GitRunner(new NullLogger()), '/nonexistent/clone.git');
 
         $this->expectException(InvalidInput::class);
 
-        $reader->resolveCommit('/nonexistent/clone.git', RefName::fromString($ref));
+        $reader->resolveCommit(RefName::fromString($ref));
     }
 }

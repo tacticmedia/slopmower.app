@@ -19,6 +19,7 @@ use App\Domain\Git\CommitSha;
 use App\Domain\Git\RefName;
 use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\ReviewId;
+use App\Domain\Repository\CodeAccess;
 use App\Domain\Repository\RepositoryAccess;
 use App\Domain\Review\Command\CloseReview;
 use App\Domain\Review\Command\StartReview;
@@ -26,8 +27,8 @@ use App\Domain\Review\ReviewDecider;
 use App\Entity\Repository;
 use App\Entity\Review;
 use App\EventStore\CommandExecutor;
+use App\Git\CodeReader;
 use App\Git\GitFailed;
-use App\Git\GitReader;
 use App\Git\PinRefs;
 use App\Git\RepositoryLock;
 use App\Git\TenantDataPaths;
@@ -60,7 +61,7 @@ final class ReviewCommands
         private readonly FetchRepository $fetchRepository,
         private readonly RateLimits $rateLimits,
         private readonly UsageLimits $usageLimits,
-        private readonly GitReader $reader,
+        private readonly CodeReaders $readers,
         private readonly PinRefs $pins,
         private readonly RepositoryLock $repositoryLock,
         private readonly MessageBusInterface $bus,
@@ -74,8 +75,8 @@ final class ReviewCommands
     }
 
     /**
-     * V1: fetches unless the ref is a full SHA in the clone, resolves the ref, pins the commit (D26), records
-     * review.started, and queues the index job. A failed record deletes the pin.
+     * V1: fetches unless the ref is a full SHA that the repository has, resolves the ref, pins the commit of a Server
+     * copy (D26), records review.started, and queues the index job. A failed record deletes the pin.
      *
      * @param RefName|null $ref   Null for the default branch
      * @param string|null  $title Null for the default title of {@see self::defaultTitle()}
@@ -90,25 +91,32 @@ final class ReviewCommands
      */
     public function start(RepositoryId $repositoryId, ?RefName $ref, ?string $title, Actor $actor): ReviewId
     {
-        $tenantId = $this->fetchRepository->cloneReady($repositoryId)->getTenantId();
+        $repository = $this->fetchRepository->cloneReady($repositoryId);
+        $tenantId = $repository->getTenantId();
         $this->rateLimits->consumeReviewStart($tenantId);
-        $gitDir = $this->paths->clonePath($tenantId, $repositoryId);
+        $reader = $this->readers->of($repository);
+        $gitDir = CodeAccess::Clone === $repository->getCodeAccess() ? $this->paths->clonePath($tenantId, $repositoryId) : null;
 
-        if (!$this->isFullShaInClone($gitDir, $ref)) {
+        if (!self::hasFullSha($reader, $ref)) {
             $this->fetchRepository->fetchNow($repositoryId);
         }
 
         $defaultBranch = ($this->repositories->findFresh($repositoryId) ?? throw new NotFound())->getDefaultBranch();
         $ref ??= null === $defaultBranch ? throw InvalidInput::field('ref', 'The repository has no default branch. Name a ref.') : RefName::fromString($defaultBranch);
         // In rev-parse a tag of the same name wins over the branch.
-        $commit = $this->reader->resolveCommit($gitDir, $defaultBranch === $ref->toString() ? RefName::fromString("refs/heads/{$defaultBranch}") : $ref);
+        $commit = $reader->resolveCommit($defaultBranch === $ref->toString() ? RefName::fromString("refs/heads/{$defaultBranch}") : $ref);
         $reviewId = ReviewId::generate();
-        $this->pins->pinReview($gitDir, $reviewId, $commit);
+
+        if (null !== $gitDir) {
+            $this->pins->pinReview($gitDir, $reviewId, $commit);
+        }
 
         try {
             $this->recordStarted($reviewId, $repositoryId, new StartReview($title ?? self::defaultTitle($ref, $commit), $ref, $commit), $actor);
         } catch (\Throwable $failure) {
-            $this->pins->unpinReview($gitDir, $reviewId);
+            if (null !== $gitDir) {
+                $this->pins->unpinReview($gitDir, $reviewId);
+            }
 
             throw $failure;
         }
@@ -238,11 +246,11 @@ final class ReviewCommands
         }
     }
 
-    private function isFullShaInClone(string $gitDir, ?RefName $ref): bool
+    private static function hasFullSha(CodeReader $reader, ?RefName $ref): bool
     {
         $sha = null === $ref ? null : self::fullSha($ref);
 
-        return null !== $sha && $this->reader->hasCommit($gitDir, $sha);
+        return null !== $sha && $reader->hasCommit($sha);
     }
 
     private static function fullSha(RefName $ref): ?CommitSha

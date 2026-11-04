@@ -30,4 +30,18 @@ test.describe('RequestAnchor', () => {
         const color = (line: number): Promise<string> => page.locator(`${SNAPSHOT_ROWS}[data-line="${line}"] td`).last().evaluate((cell) => getComputedStyle(cell).color);
         expect(await color(8)).not.toBe(await color(9));
     });
+
+    test('A request whose snapshot has no lines shows "Code not available"', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        const request = review.seedLines(SMALL_FILE, 9, 12, 'Extract the tax calculation.');
+        const { anchor } = request;
+        if (null === anchor || null === anchor.snapshot) {
+            throw new Error('A line request has a snapshot.');
+        }
+        review.requests = [{ ...request, anchor: { ...anchor, snapshot: { ...anchor.snapshot, lines: null, before: null, after: null } } }];
+
+        await openRequest(page, request.id);
+
+        await expect(page.locator('[data-testid="anchor-snapshot"]')).toHaveText('Code not available');
+    });
 });
