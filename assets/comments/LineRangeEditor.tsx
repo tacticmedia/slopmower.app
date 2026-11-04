@@ -15,6 +15,7 @@ type Props = {
     lineCount: number;
     onChange(range: LineRange): void;
     onError(message: string | null): void;
+    onOpenChange?: (open: boolean) => void;
     disabled: boolean;
     ref?: Ref<LineRangeEditorHandle>;
 };
@@ -25,16 +26,20 @@ type Fields = { start: string; end: string };
  * "Update selection" turns the numbers into inputs, and "Done" or Enter applies them. The text and the inputs share
  * one grid cell, and the link comes after it, so nothing moves.
  */
-export function LineRangeEditor({ range, lineCount, onChange, onError, disabled, ref }: Props) {
+export function LineRangeEditor({ range, lineCount, onChange, onError, onOpenChange, disabled, ref }: Props) {
     const [fields, setFields] = useState<Fields | null>(null);
     const startInput = useRef<HTMLInputElement>(null);
     const editing = null !== fields;
 
     useEffect(() => {
-        if (editing) {
-            startInput.current?.select();
+        if (!editing) {
+            return;
         }
-    }, [editing]);
+        startInput.current?.select();
+        onOpenChange?.(true);
+
+        return () => onOpenChange?.(false);
+    }, [editing, onOpenChange]);
 
     const apply = (): LineRange | null => {
         if (null === fields) {

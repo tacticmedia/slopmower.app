@@ -136,7 +136,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F118 | [Flaky tests](F118-flaky-tests.md) | In progress | | |
 | F119 | [Comment form fixes](F119-comment-form-fixes.md) | Done 2026-11-05, [report](reports/F119.md) | 8b1e3724 | src 521 PHP / 37810 lines, 521 types; tests 357 PHP / 34753 lines; assets 204 TS / 13333 lines; check 11m3s |
 | F120 | [Symbols packages on npm ci](F120-symbols-install-on-npm-ci.md) | Done 2026-11-05, [report](reports/F120.md) | 92487dd9 | src 521 PHP / 37802 lines, 521 types; tests 357 PHP / 34731 lines; assets 202 TS / 13066 lines; check 6m53s |
-| F121 | [Update selection without the edit form](F121-move-draft-lines.md) | In progress | | |
+| F121 | [Update selection without the edit form](F121-move-draft-lines.md) | Done 2026-11-05, [report](reports/F121.md) | | src 521 PHP / 37810 lines, 521 types; tests 357 PHP / 34753 lines; assets 204 TS / 13356 lines |
 
 ## Candidates
 

@@ -78,6 +78,27 @@ test.describe('CommentForm', () => {
         ]);
     });
 
+    test('Without the edit form, Update selection highlights the lines, and Done saves the new lines with the stored text', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        const seeded = review.seedDraft({ kind: 'new_request', anchor: { kind: 'range', path: SMALL_FILE, range: { startLine: 9, endLine: 12 } }, title: 'Tax', body: 'Extract the tax calculation.', group: 'Totals' });
+        await openFile(page, review, SMALL_FILE);
+        await waitForHighlighting(page, 12);
+        const draft = page.locator(SAVED_DRAFT).filter({ hasText: 'Extract the tax calculation.' });
+
+        await draft.getByRole('button', { name: 'Update selection', exact: true }).click();
+        await expect.poll(() => selectedLines(page)).toEqual(['9', '10', '11', '12']);
+        await draft.getByRole('textbox', { name: 'Start line' }).fill('5');
+        await draft.getByRole('textbox', { name: 'End line' }).fill('6');
+        await draft.getByRole('button', { name: 'Done', exact: true }).click();
+
+        await expect(page.locator(`[slot="annotation-6"] ${SAVED_DRAFT}`)).toContainText('Extract the tax calculation.');
+        await expect(page.locator(`[slot="annotation-6"] ${SAVED_DRAFT}`).getByTestId('draft-lines')).toHaveText('Lines 5 to 6');
+        await expect.poll(() => selectedLines(page)).toEqual([]);
+        expect(api.callsTo('PATCH', '/api/v1/drafts/:draftId').map(({ params, body }) => [params.draftId, body])).toEqual([
+            [seeded.id, { title: 'Tax', body: 'Extract the tax calculation.', group: 'Totals', anchor: { kind: 'range', path: SMALL_FILE, range: { startLine: 5, endLine: 6 } } }],
+        ]);
+    });
+
     test('A line past the end of the file shows an error and keeps the inputs', async ({ page, api }) => {
         const review = new FakeReview(api);
         review.seedDraft({ kind: 'new_request', anchor: { kind: 'line', path: SMALL_FILE, range: { startLine: 10, endLine: 10 } }, body: 'Use a named constant.' });

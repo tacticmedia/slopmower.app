@@ -4,6 +4,7 @@ import { InlineMessage } from '@primer/react/experimental';
 import { lazy, Suspense, useContext, useEffect, useOptimistic, useRef, useState, useTransition } from 'react';
 import { Link as RouterLink, useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
+import type { LineRange } from '../code/lineHash';
 import { readSessionDraft } from '../layout/useSessionDraft';
 import { RequestTypeLabel } from '../requests/RequestTypeLabel';
 import { CommentBox, type CommentText } from './CommentBox';
@@ -24,8 +25,8 @@ type Props = {
 
 /**
  * A pending comment. The editor stays open while D3 runs and closes when it succeeds. A deleted or sent draft
- * disappears at once and comes back when D4 or D5 fails. In the file view, the editor highlights the lines and can
- * move them (D115).
+ * disappears at once and comes back when D4 or D5 fails. In the file view, the header can move the lines (D115): in the
+ * editor with the text, else at once.
  */
 export function DraftBox({ draft, editable }: Props) {
     const fetcher = useFetcher<ActionResult>();
@@ -38,20 +39,23 @@ export function DraftBox({ draft, editable }: Props) {
     const [savedEdit, setSavedEdit] = useState(false);
     const lines = useContext(DraftLinesContext);
     const [range, setRange] = useState(draft.range);
+    const [shownRange, showRange] = useOptimistic(draft.range, (_current: LineRange | null, next: LineRange) => next);
+    const [rangeOpen, setRangeOpen] = useState(false);
     const [rangeError, setRangeError] = useState<string | null>(null);
     const rangeEditor = useRef<LineRangeEditorHandle>(null);
     const newRequest = null !== draft.requireApproval;
     const error = writing ? null : (rangeError ?? fetcher.data?.error ?? null);
     const highlight = lines?.highlight;
     const { key } = draft;
+    const highlighted = editing ? range : rangeOpen ? shownRange : null;
 
     useEffect(() => {
-        if (editing && null !== range && undefined !== highlight) {
-            highlight(key, range);
+        if (null !== highlighted && undefined !== highlight) {
+            highlight(key, highlighted);
 
             return () => highlight(key, null);
         }
-    }, [editing, range, highlight, key]);
+    }, [highlighted, highlight, key]);
 
     if (savedEdit && !writing) {
         setSavedEdit(false);
@@ -69,6 +73,12 @@ export function DraftBox({ draft, editable }: Props) {
             optimistic();
             await fetcher.submit(intent, { method: 'post', encType: 'application/json' });
         });
+    };
+    const move = (moved: LineRange): void => {
+        if (writing || null === draftId || null === lines || (moved.start === draft.range?.start && moved.end === draft.range.end)) {
+            return;
+        }
+        submit({ intent: 'editDraft', draftId, input: { title: draft.title, body: draft.body, group: draft.group, anchor: lines.anchor(moved) } }, () => showRange(moved));
     };
     const edit = (): void => {
         setRange(draft.range);
@@ -103,8 +113,16 @@ export function DraftBox({ draft, editable }: Props) {
                 </Label>
                 <RequestTypeLabel type={draft.type} />
                 {null !== draft.group && <Label data-testid="draft-group">Group: {draft.group}</Label>}
-                {editing && null !== lines && null !== range ? (
-                    <LineRangeEditor ref={rangeEditor} range={range} lineCount={lines.lineCount} onChange={setRange} onError={setRangeError} disabled={writing} />
+                {null !== lines && null !== shownRange && null !== draftId && editable ? (
+                    <LineRangeEditor
+                        ref={rangeEditor}
+                        range={editing && null !== range ? range : shownRange}
+                        lineCount={lines.lineCount}
+                        onChange={editing ? setRange : move}
+                        onError={setRangeError}
+                        onOpenChange={setRangeOpen}
+                        disabled={writing}
+                    />
                 ) : null === draft.href ? (
                     <span className={styles.lines}>{draft.label}</span>
                 ) : (
