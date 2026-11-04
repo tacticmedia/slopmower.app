@@ -26,7 +26,7 @@ export function requestStage(request: ReviewRequest): string {
         return 0 === asked.questions.length ? 'The agent asked a question. Reply to continue.' : 'The agent asked questions. Answer them to continue.';
     }
     if ('pending' === proposal?.state) {
-        return 'The agent proposed a plan. Approve it or request changes.';
+        return 'agent' === awaiting ? 'Waiting for the agent to answer your reply.' : 'The agent proposed a plan. Approve it, or reply to ask for changes.';
     }
 
     switch (request.status) {
@@ -35,9 +35,6 @@ export function requestStage(request: ReviewRequest): string {
         case 'wont_do':
             return "The agent closed this as won't do. Resolve the conversation to agree, or reopen it.";
         case 'in_progress':
-            if (requireApproval && 'rejected' === proposal?.state) {
-                return 'You requested changes to the plan. The agent revises it.';
-            }
             if (requireApproval && null === proposal) {
                 return 'The agent prepares a plan for your approval before it changes code.';
             }

@@ -49,7 +49,7 @@ final class AllowedActions
             Action::Verify => $isUser && (RequestStatus::ReadyForReview === $status || (RequestStatus::WontDo === $status && ActorKind::Agent === $state->wontDoBy)),
             Action::Reopen => $isUser && in_array($status, [RequestStatus::ReadyForReview, RequestStatus::WontDo, RequestStatus::Verified], true),
             Action::ProposeSolution => $holds,
-            Action::ApproveProposal, Action::RejectProposal => $isUser && $inProgress && true === $state->proposal?->isPending(),
+            Action::ApproveProposal => $isUser && $inProgress && true === $state->proposal?->isPending(),
             Action::SetPlanRequirement => $isUser && !$suggestionPending && ($openOrReopened || $inProgress),
             Action::AcceptSuggestion, Action::DismissSuggestion => $isUser && $suggestionPending,
             Action::SetTitle => $isUser || ($isAgent && null === $state->title),

@@ -19,7 +19,7 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
- * Q14 to Q16. The user opened a request with requireApproval, and the agent claimed it through REST.
+ * Q14 and Q15. The user opened a request with requireApproval, and the agent claimed it through REST.
  */
 final class ProposalTest extends WebTestCase
 {
@@ -80,15 +80,16 @@ final class ProposalTest extends WebTestCase
         self::assertSame(['ready_for_review', 'approved'], [$ready['request']['status'], $ready['request']['proposal']['state']]);
     }
 
-    #[TestDox('A rejected proposal keeps link refused until the agent proposes again')]
-    public function testRejectionNeedsANewProposal(): void
+    #[TestDox('A reply to a pending proposal gives the turn to the agent and keeps link refused until a new proposal, and reject-proposal answers 404 (D110)')]
+    public function testReplyAsksForChanges(): void
     {
         $first = (string) $this->agent('propose', ['plan' => self::PLAN])['events'][0]['eventId'];
 
-        $rejected = self::requestCommand($this->client, $this->requestId, 'reject-proposal', ['proposalEventId' => $first, 'note' => 'Keep the rounding inside `InvoiceTotals`.']);
+        $replied = self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/requests/{$this->requestId}/comments", ['body' => 'Keep the rounding inside `InvoiceTotals`.']), 201, 'request-command-result.schema.json');
 
-        self::assertSame([['eventId' => $first, 'state' => 'rejected'], 'agent'], [$rejected['request']['proposal'], $rejected['request']['awaiting']]);
-        self::assertSame(['request.proposal_rejected', 'Keep the rounding inside `InvoiceTotals`.', null], [$rejected['events'][0]['type'], $rejected['events'][0]['body'], $rejected['events'][0]['diff']]);
+        self::assertSame([['eventId' => $first, 'state' => 'pending'], 'agent'], [$replied['request']['proposal'], $replied['request']['awaiting']]);
+        self::assertNotContains('reject_proposal', $replied['allowedActions']);
+        self::assertApiError(self::apiRequest($this->client, 'POST', "/api/v1/requests/{$this->requestId}/reject-proposal", ['proposalEventId' => $first, 'note' => 'Round per line.']), 404, 'not_found');
         $this->assertLinkRefused();
         $second = $this->agent('propose', ['plan' => 'Round inside `InvoiceTotals::tax()`.']);
         self::assertSame('pending', $second['request']['proposal']['state']);

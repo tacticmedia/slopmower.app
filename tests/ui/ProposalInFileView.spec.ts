@@ -36,4 +36,18 @@ test.describe('ProposalInFileView', () => {
         await expect(page.locator(FILE_HEADER_LABEL)).toHaveCount(0);
         await expect(page.locator(THREAD_HEADER_LABEL)).toHaveCount(0);
     });
+
+    test('Plan to approve is gone after a reply to the plan, while the agent has the turn', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        const request = review.seedLines(SMALL_FILE, 9, 12, 'Extract the tax calculation.');
+        review.agentClaims(request.id);
+        review.agentProposes(request.id, PLAN);
+        review.command(request.id, 'comments', { body: 'Keep the rounding inside InvoiceTotals.' });
+
+        await openFile(page, review, SMALL_FILE);
+
+        await expect(page.locator(`${CODE_THREAD} [data-testid="proposal-state"]`)).toHaveText('Waiting for approval');
+        await expect(page.locator(FILE_HEADER_LABEL)).toHaveCount(0);
+        await expect(page.locator(THREAD_HEADER_LABEL)).toHaveCount(0);
+    });
 });

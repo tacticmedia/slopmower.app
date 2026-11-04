@@ -55,9 +55,9 @@ The **Plan** section shows one of these values:
 |---|---|
 | Required before code changes | You asked for a plan, and the agent has not proposed one. |
 | Not required | You did not ask for a plan. |
-| Waiting for your approval | The agent proposed a plan. Approve it or request changes. |
+| Waiting for your approval | The agent proposed a plan. Approve it, or reply to ask for changes. |
 | Approved | You approved the plan. |
-| Changes requested | You requested changes. The agent proposes again. |
+| Changes requested | An older plan that you sent back. The agent proposes again. |
 | No plan | The work is finished, and the request has no plan. |
 
 When the work is finished, the section shows the decision on the plan, or **No plan**. It never shows **Required before code changes** then.
@@ -76,12 +76,12 @@ Every comment box of a new request has the checkbox **Ask for a plan first**. It
 
 To change it later, for example when a small request turns out to be risky, open the request and click **Ask for a plan first** or **Don't ask for a plan** in the **Plan** section. This works while the request is open, reopened, or in progress. The thread shows the change. When you switch it on while the agent works and no proposal is approved, the agent links no commit until you approve one.
 
-With the checkbox, the agent proposes a solution before it commits: a plan, and for a straightforward change a diff. An agent can also propose on any other request, for example when the request is unclear. **Plan to approve** shows while a proposal waits for you: in the list of requests, on the thread in the code, and in the file header of a file with such a thread.
+With the checkbox, the agent proposes a solution before it commits: a plan, and for a straightforward change a diff. An agent can also propose on any other request, for example when the request is unclear. **Plan to approve** shows while a proposal waits for you, and not after you reply to it: in the list of requests, on the thread in the code, and in the file header of a file with such a thread.
 
-On the request, the proposal shows the plan and the changes of each file of the diff. **Download .diff** saves the diff as a file. While the proposal waits for you, **Approve** and **Request changes** show in the reply box, left of **Reply**.
+On the request, the proposal shows the plan and the changes of each file of the diff. **Download .diff** saves the diff as a file. While the proposal is pending, **Approve** shows in the reply box, left of **Reply**.
 
 - **Approve** lets the agent do the work as proposed. The pull request choice of [Submit feedback](comment.md#submit-feedback) counts.
-- **Request changes** sends the proposal back. Type a note that says what to change. The agent proposes again.
+- To ask for changes, reply. The agent answers your reply or proposes again, and links no commit until you approve a plan. Until a new plan replaces it, you can still approve the current one.
 
 An older proposal keeps its decision: **Approved** or **Changes requested**. An older proposal without a decision shows **Superseded** when a newer one replaced it, or **Withdrawn** when its claim ended, for example after **Unassign**.
 

@@ -15,7 +15,6 @@ import type {
     OpenRequestInput,
     OptionalNoteInput,
     PlanRequirementInput,
-    RejectProposalInput,
     RequiredNoteInput,
     SubmitDraftsInput,
     TitleInput,
@@ -57,13 +56,12 @@ const LANGUAGES: Record<string, string> = { php: 'php', md: 'markdown', ts: 'typ
 /** The V7 languages that V9 parses. */
 const SYMBOL_LANGUAGES: ReadonlySet<string | null> = new Set(['php', 'javascript', 'jsx', 'typescript', 'tsx', 'python', 'go', 'rust', 'java', 'csharp', 'ruby', 'shellscript', 'scala', 'zig', 'lua', 'twig']);
 
-/** The `allowedActions` value of each command path of Q4, Q11 to Q13, Q15, Q16, Q18, and Q21 to Q23. */
+/** The `allowedActions` value of each command path of Q4, Q11 to Q13, Q15, Q18, and Q21 to Q23. */
 const COMMAND_ACTIONS: Record<string, string> = {
     comments: 'reply',
     title: 'set_title',
     'wont-do': 'mark_wont_do',
     'approve-proposal': 'approve_proposal',
-    'reject-proposal': 'reject_proposal',
     'plan-requirement': 'set_plan_requirement',
     'accept-suggestion': 'accept_suggestion',
     'dismiss-suggestion': 'dismiss_suggestion',
@@ -95,7 +93,7 @@ function awaitingOf(status: RequestStatus, closed: boolean, tracking: Tracking, 
     return 'ready_for_review' === status || 'wont_do' === status ? 'user' : 'agent';
 }
 
-/** One review of the docs/specs REST API in memory: V3, V4, V6 to V9, V11 to V13, Q1 to Q4, Q6, Q11 to Q13, Q15, Q16, Q18, Q21 to Q23, and D1 to D5, for the user of `me.local-user.json`. */
+/** One review of the docs/specs REST API in memory: V3, V4, V6 to V9, V11 to V13, Q1 to Q4, Q6, Q11 to Q13, Q15, Q18, Q21 to Q23, and D1 to D5, for the user of `me.local-user.json`. */
 export class FakeReview {
     review: Review;
     requests: Request[] = [];
@@ -351,11 +349,6 @@ export class FakeReview {
                 const { proposalEventId, note } = input as ApproveProposalInput;
 
                 return this.#apply(id, this.#entry('request.proposal_approved', USER, note ?? null, status), { proposal: { eventId: proposalEventId, state: 'approved' } });
-            }
-            case 'reject-proposal': {
-                const { proposalEventId, note } = input as RejectProposalInput;
-
-                return this.#apply(id, this.#entry('request.proposal_rejected', USER, note, status), { proposal: { eventId: proposalEventId, state: 'rejected' } });
             }
             case 'plan-requirement': {
                 const { requireApproval } = input as PlanRequirementInput;
@@ -617,7 +610,7 @@ export class FakeReview {
             const current = this.#present(this.find(requestId));
             const action = COMMAND_ACTIONS[command] ?? command;
             const decision = body as Partial<ApproveProposalInput>;
-            if ('pending' === current.proposal?.state && ['approve-proposal', 'reject-proposal'].includes(command) && decision.proposalEventId !== current.proposal.eventId) {
+            if ('pending' === current.proposal?.state && 'approve-proposal' === command && decision.proposalEventId !== current.proposal.eventId) {
                 return apiError(422, 'invalid_input', 'Is not the current proposal.', { violations: [{ field: 'proposalEventId', message: 'Is not the current proposal.' }] });
             }
 

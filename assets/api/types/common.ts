@@ -106,7 +106,6 @@ export const ACTIONS = [
     'reopen',
     'propose_solution',
     'approve_proposal',
-    'reject_proposal',
     'set_plan_requirement',
     'accept_suggestion',
     'dismiss_suggestion',

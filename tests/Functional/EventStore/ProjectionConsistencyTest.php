@@ -12,6 +12,7 @@ use App\Domain\Event\DecidedEvent;
 use App\Domain\Event\EventType;
 use App\Domain\Event\RequestCommentedEvent;
 use App\Domain\Event\RequestOpenedEvent;
+use App\Domain\Event\RequestProposalRejectedEvent;
 use App\Domain\Event\RequestSuggestionAcceptedEvent;
 use App\Domain\Event\RequestSuggestionDismissedEvent;
 use App\Domain\Git\CommitSha;
@@ -25,7 +26,6 @@ use App\Domain\Request\Command\LinkCommits;
 use App\Domain\Request\Command\MarkReadyForReview;
 use App\Domain\Request\Command\MarkWontDo;
 use App\Domain\Request\Command\ProposeSolution;
-use App\Domain\Request\Command\RejectProposal;
 use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
@@ -87,7 +87,7 @@ final class ProjectionConsistencyTest extends KernelTestCase
     }
 
     /**
-     * Opened with requireApproval. Claim, a rejected and an approved proposal, links (available, pending and unlinked,
+     * Opened with requireApproval. Claim, a stored rejection (D110) and an approved proposal, links (available, pending and unlinked,
      * pending and found), pull request links (linked and unlinked, linked), ready, verify, reopen, and the plan waived.
      */
     private static function fixedRequest(ReviewId $reviewId): RequestId
@@ -102,7 +102,7 @@ final class ProjectionConsistencyTest extends KernelTestCase
 
         $commands->execute(new Claim($requestId), $agent);
         [$rejected] = $commands->execute(new ProposeSolution($requestId, 'Round per invoice.'), $agent);
-        $commands->execute(new RejectProposal($requestId, $rejected->id, 'Round per line.'), $user);
+        self::executor()->execute($reviewId, $user, static fn (): array => [new DecidedEvent(new RequestProposalRejectedEvent($rejected->id, 'Round per line.'), $requestId)]);
         [$approved] = $commands->execute(new ProposeSolution($requestId, 'Round per line.', "diff --git a/src/Billing/InvoiceTotals.php b/src/Billing/InvoiceTotals.php\n"), $agent);
         $commands->execute(new ApproveProposal($requestId, $approved->id), $user);
         self::executor()->execute($reviewId, $agent, static fn (): array => [

@@ -57,7 +57,7 @@ final class AwaitingPolicyTest extends KernelTestCase
         yield 'rule 1 over rule 2: user reply on verified' => ['none', static fn (): RequestScenario => self::userReply(RequestScenario::inState('verified'))];
         yield 'rule 2 over rule 3: user reply to a question' => ['agent', static fn (): RequestScenario => self::userReply(self::agentQuestion(RequestScenario::inState('in_progress')))];
         yield 'rule 2 over rule 3: user reply to a pending proposal' => ['agent', static fn (): RequestScenario => self::userReply(RequestScenario::inState('proposal pending'))];
-        yield 'rule 2 over rule 3: proposal decision after an agent question' => ['agent', static fn (): RequestScenario => self::decision(self::agentQuestion(RequestScenario::inState('proposal pending')), 'reject_proposal')];
+        yield 'rule 2 over rule 3: proposal decision after an agent question' => ['agent', static fn (): RequestScenario => self::decision(self::agentQuestion(RequestScenario::inState('proposal pending')), 'approve_proposal')];
         yield 'rule 2 over rule 3: user reply to a pending suggestion' => ['agent', static fn (): RequestScenario => self::userReply(RequestScenario::inState('suggestion pending'))];
         yield 'rule 2 over rule 3: suggestion accept after an agent question' => ['agent', static fn (): RequestScenario => self::decision(self::agentQuestion(RequestScenario::inState('suggestion pending')), 'accept_suggestion')];
         yield 'rule 3 over rule 4: agent question on reopened' => ['user', static fn (): RequestScenario => self::agentQuestion(RequestScenario::inState('reopened'))];

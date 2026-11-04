@@ -56,8 +56,9 @@ describe('RequestStageTest', () => {
         expect(requestStage(request({ awaiting: 'user', thread: withQuestions }))).toBe('The agent asked questions. Answer them to continue.');
     });
 
-    it('Rule 6: a pending proposal waits for the decision', () => {
-        expect(requestStage(request({ awaiting: 'user', proposal: PENDING, thread: withAgentEntry('request.proposed', false) }))).toBe('The agent proposed a plan. Approve it or request changes.');
+    it('Rule 6: a pending proposal waits for the decision, or for the agent after a reply', () => {
+        expect(requestStage(request({ awaiting: 'user', proposal: PENDING, thread: withAgentEntry('request.proposed', false) }))).toBe('The agent proposed a plan. Approve it, or reply to ask for changes.');
+        expect(requestStage(request({ awaiting: 'agent', proposal: PENDING, thread: withAgentEntry('request.proposed', false) })), 'after a reply').toBe('Waiting for the agent to answer your reply.');
     });
 
     it('Rule 7: a finished request waits for the check', () => {
@@ -70,8 +71,8 @@ describe('RequestStageTest', () => {
         expect(requestStage(request({ status: 'wont_do', awaiting: 'user' }))).toBe("The agent closed this as won't do. Resolve the conversation to agree, or reopen it.");
     });
 
-    it('Rule 9: a rejected plan is revised', () => {
-        expect(requestStage(request({ requireApproval: true, proposal: { ...PENDING, state: 'rejected' } }))).toBe('You requested changes to the plan. The agent revises it.');
+    it('A stored rejected plan shows the claiming agent at work (D110)', () => {
+        expect(requestStage(request({ requireApproval: true, proposal: { ...PENDING, state: 'rejected' } }))).toBe('claude-code laptop is working on this.');
     });
 
     it('Rule 10: a required plan comes before the code', () => {

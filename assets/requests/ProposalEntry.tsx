@@ -6,7 +6,6 @@ import { Link as RouterLink } from 'react-router';
 import type { Ulid } from '../api/types/common';
 import type { ProposalView } from '../comments/threadView';
 import { usePreference } from '../layout/usePreference';
-import { NoteDialog } from './NoteDialog';
 import styles from './Requests.module.css';
 import { SplitDecisionButton } from './SplitDecisionButton';
 import { useRequestCommand } from './useRequestCommand';
@@ -86,46 +85,24 @@ function download(diff: string, fileName: string): void {
 }
 
 /**
- * "Approve" sends Q15 at once, without a pull request choice, so the choice of the review counts (D85). "Request
- * changes" sends Q16 with a required note. It renders on the request detail only.
+ * "Approve" sends Q15 at once, without a pull request choice, so the choice of the review counts (D85). A reply asks
+ * for changes (D110). It renders on the request detail only.
  */
 export function ProposalDecision({ proposalEventId }: { proposalEventId: Ulid }) {
-    const { busy, sent, error, dialog, opener, send, openDialog, closeDialog } = useRequestCommand<'reject_proposal'>();
-    const noteKey = `proposal:${proposalEventId}:reject_proposal`;
+    const { busy, sent, error, send } = useRequestCommand<never>();
 
     return (
         <div className={styles.proposalDecision} data-testid="proposal-decision">
-            <div className={styles.buttons}>
-                <SplitDecisionButton
-                    label="Approve"
-                    onSend={(next) => send({ intent: 'approve_proposal', input: { proposalEventId }, next })}
-                    loading={'approve_proposal' === sent}
-                    disabled={busy}
-                />
-                <Button onClick={(event) => openDialog('reject_proposal', event)} disabled={busy}>
-                    Request changes
-                </Button>
-            </div>
-            {null === dialog && null !== error && (
+            <SplitDecisionButton
+                label="Approve"
+                onSend={(next) => send({ intent: 'approve_proposal', input: { proposalEventId }, next })}
+                loading={'approve_proposal' === sent}
+                disabled={busy}
+            />
+            {null !== error && (
                 <InlineMessage variant="critical" role="alert" data-testid="action-error">
                     {error}
                 </InlineMessage>
-            )}
-            {null !== dialog && (
-                <NoteDialog
-                    title="Request changes"
-                    subtitle="The agent proposes again. Say what to change."
-                    fieldLabel="Note"
-                    rule="required"
-                    submitLabel="Request changes"
-                    buttonType="primary"
-                    draftKey={noteKey}
-                    busy={busy}
-                    error={error}
-                    onSubmit={(note) => send({ intent: 'reject_proposal', input: { proposalEventId, note }, draftKey: noteKey })}
-                    onClose={closeDialog}
-                    returnFocusRef={opener}
-                />
             )}
         </div>
     );

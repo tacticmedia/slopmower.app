@@ -146,7 +146,10 @@ and read their whole thread, because the user rejected an earlier result.
      `git apply --index` fails, implement the approved plan by hand, then drop
      the stash entry. Without a diff, implement the approved plan. Go on
      with step 5.
-   - Changes requested (`rejected`): drop that stash entry, read the note of the
+   - A user comment on a pending proposal asks for a change or a
+     clarification. Answer it with `reply_to_request`, or drop that stash entry
+     and propose again.
+   - `rejected`: drop that stash entry, read the note of the
      `request.proposal_rejected` entry, and propose again.
    - Link no commit while the proposal is pending or rejected, or while
      `requireApproval` is true and no proposal is approved. The server refuses

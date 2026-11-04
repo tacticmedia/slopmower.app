@@ -93,7 +93,7 @@ Skip these on a first pass: `src/Mcp/BundledSchemas.php`, `assets/api/types/`, `
 | `reopen` | `ready_for_review`, `wont_do`, `verified` | `reopened` | User. A dismissed suggestion becomes accepted. |
 | `reply` | Any | Unchanged | User or agent. An agent can set `question`. |
 | `propose_solution` | `in_progress` | Unchanged | Holder. A new proposal replaces the current one. |
-| `approve_proposal`, `reject_proposal` | `in_progress` with a pending proposal | Unchanged | User |
+| `approve_proposal` | `in_progress` with a pending proposal | Unchanged | User |
 | `set_plan_requirement` | `open` without a pending suggestion, `reopened`, `in_progress` | Unchanged | User. The current value writes no event. |
 | `accept_suggestion` | `open` with a pending suggestion | Unchanged | User. Counts as a user message for `awaiting`. |
 | `dismiss_suggestion` | `open` with a pending suggestion | `wont_do` | User, with an optional note |

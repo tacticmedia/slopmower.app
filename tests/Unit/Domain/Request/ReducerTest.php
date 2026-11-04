@@ -170,7 +170,7 @@ final class ReducerTest extends KernelTestCase
         $second = self::proposalEventId($scenario);
         self::assertSame([$second, 'pending'], self::proposal($scenario->state()), 'superseded');
 
-        $scenario->run($scenario->validCommand('reject_proposal'), $user);
+        $scenario->recordRejection();
         self::assertSame([$second, 'rejected'], self::proposal($scenario->state()));
         self::assertSame($scenario->lastSeq(), $scenario->state()->lastUserCommentSeq);
 

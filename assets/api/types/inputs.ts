@@ -78,11 +78,6 @@ export type ApproveProposalInput = {
     note?: string | null;
 };
 
-export type RejectProposalInput = {
-    proposalEventId: Ulid;
-    note: Markdown;
-};
-
 export type CheckEveryPullRequestInput = {
     enabled: boolean;
 };

@@ -116,7 +116,7 @@
   "commits": [],
   "pullRequestUrls": [],
   "pullRequests": [],
-  "allowedActions": ["reply", "release", "mark_wont_do", "approve_proposal", "reject_proposal", "set_plan_requirement", "set_title"],
+  "allowedActions": ["reply", "release", "mark_wont_do", "approve_proposal", "set_plan_requirement", "set_title"],
   "delivery": {
     "workspace": null,
     "pullRequest": null

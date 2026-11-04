@@ -241,7 +241,7 @@ export function userActions(status: RequestStatus, wontDoBy: ActorKind | null = 
         actions.push('reopen');
     }
     if ('in_progress' === status && 'pending' === proposal?.state) {
-        actions.push('approve_proposal', 'reject_proposal');
+        actions.push('approve_proposal');
     }
     if (unfinished && !suggestionPending) {
         actions.push('set_plan_requirement');

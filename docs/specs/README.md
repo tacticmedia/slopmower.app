@@ -245,6 +245,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Comment groups, decision D103: the property `group` of `Request`, `RequestSummary`, and `Draft`, the optional input `group` of Q2, D2, and D3, and the optional query `group` of Q1 and `list_requests`. All are additive. `request.opened` has the payload field `group`, read as null when missing, so stored events need no change.
     - Structured agent questions, decision D107: the optional input `questions` of Q4 and `reply_to_request`, the schema `Question`, and the property `questions` of `Event` and `ThreadEntry`. All are additive. `request.commented` has the payload field `questions`, read as `[]` when missing, so stored events need no change.
     - No pull request choice on an approval, decision D108: Q15 has no input `pullRequest`, and a body with it answers as one without it. `Request.delivery` is `Review.delivery`, so a stored approval with `pullRequest` no longer changes it. Not additive: it removes an input and changes the meaning of `Request.delivery`. Readers ignore the `pullRequest` of a stored `request.proposal_approved`, so stored events need no change.
+    - No rejection of a proposal, decision D110: Q16, the input `RejectProposalInput`, and the `Action` value `reject_proposal` are gone. The user asks for changes with a reply (Q4), which keeps the proposal pending. Not additive: it removes an endpoint and an `Action` value. `ProposalState` keeps `rejected` and `ThreadEntryType` keeps `request.proposal_rejected`, so stored events need no change.
 
 ## 9. Contract tests
 
@@ -349,7 +350,6 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.preferences.json](fixtures/inputs.preferences.json) | `inputs.schema.json#/$defs/PreferencesInput` | A4 |
 | [inputs.propose-solution.json](fixtures/inputs.propose-solution.json) | `inputs.schema.json#/$defs/ProposeSolutionInput` | Q14, `propose_solution` |
 | [inputs.ready.json](fixtures/inputs.ready.json) | `inputs.schema.json#/$defs/RequiredNoteInput` | Q10, Q13 |
-| [inputs.reject-proposal.json](fixtures/inputs.reject-proposal.json) | `inputs.schema.json#/$defs/RejectProposalInput` | Q16 |
 | [inputs.release.json](fixtures/inputs.release.json) | `inputs.schema.json#/$defs/OptionalNoteInput` | Q6, Q12 |
 | [inputs.start-review.json](fixtures/inputs.start-review.json) | `inputs.schema.json#/$defs/StartReviewInput` | V1 |
 | [inputs.submit-drafts.json](fixtures/inputs.submit-drafts.json) | `inputs.schema.json#/$defs/SubmitDraftsInput` | D5 |

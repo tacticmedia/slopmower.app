@@ -290,20 +290,6 @@
         }
       }
     },
-    "RejectProposalInput": {
-      "type": "object",
-      "required": ["proposalEventId", "note"],
-      "properties": {
-        "proposalEventId": {
-          "$ref": "common.schema.json#/$defs/Ulid",
-          "description": "Request.proposal.eventId."
-        },
-        "note": {
-          "$ref": "common.schema.json#/$defs/Markdown",
-          "description": "The changes that the user asks for."
-        }
-      }
-    },
     "CheckEveryPullRequestInput": {
       "type": "object",
       "required": ["enabled"],

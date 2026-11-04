@@ -4,7 +4,6 @@ import type {
     DismissSuggestionInput,
     OptionalNoteInput,
     PlanRequirementInput,
-    RejectProposalInput,
     RequiredNoteInput,
     TitleInput,
     WontDoInput,
@@ -22,7 +21,6 @@ export type RequestCommandIntent = (
     | { intent: 'mark_wont_do'; input: WontDoInput }
     | { intent: 'release'; input: OptionalNoteInput }
     | { intent: 'approve_proposal'; input: ApproveProposalInput; next?: boolean }
-    | { intent: 'reject_proposal'; input: RejectProposalInput }
     | { intent: 'set_plan_requirement'; input: PlanRequirementInput }
     | { intent: 'accept_suggestion'; input: AcceptSuggestionInput; next?: boolean }
     | { intent: 'dismiss_suggestion'; input: DismissSuggestionInput }

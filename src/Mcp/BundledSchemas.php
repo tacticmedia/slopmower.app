@@ -1650,7 +1650,7 @@ final class BundledSchemas
             'Action' => [
                 'anyOf' => [
                     [
-                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal', 'set_plan_requirement', 'accept_suggestion', 'dismiss_suggestion', 'set_title'],
+                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'set_plan_requirement', 'accept_suggestion', 'dismiss_suggestion', 'set_title'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -2278,7 +2278,7 @@ final class BundledSchemas
             'Action' => [
                 'anyOf' => [
                     [
-                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'reject_proposal', 'set_plan_requirement', 'accept_suggestion', 'dismiss_suggestion', 'set_title'],
+                        'enum' => ['reply', 'claim', 'release', 'link_commits', 'unlink_commit', 'link_pull_request', 'unlink_pull_request', 'mark_ready_for_review', 'mark_wont_do', 'verify', 'reopen', 'propose_solution', 'approve_proposal', 'set_plan_requirement', 'accept_suggestion', 'dismiss_suggestion', 'set_title'],
                     ],
                     ['type' => 'string'],
                 ],

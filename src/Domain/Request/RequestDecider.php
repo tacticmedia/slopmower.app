@@ -19,7 +19,6 @@ use App\Domain\Event\RequestOpenedEvent;
 use App\Domain\Event\RequestPlanRequiredEvent;
 use App\Domain\Event\RequestPlanWaivedEvent;
 use App\Domain\Event\RequestProposalApprovedEvent;
-use App\Domain\Event\RequestProposalRejectedEvent;
 use App\Domain\Event\RequestProposedEvent;
 use App\Domain\Event\RequestReadyForReviewEvent;
 use App\Domain\Event\RequestReleasedEvent;
@@ -47,7 +46,6 @@ use App\Domain\Request\Command\MarkReadyForReview;
 use App\Domain\Request\Command\MarkWontDo;
 use App\Domain\Request\Command\Open;
 use App\Domain\Request\Command\ProposeSolution;
-use App\Domain\Request\Command\RejectProposal;
 use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
@@ -161,7 +159,6 @@ final class RequestDecider
             $command instanceof Reopen => new RequestReopenedEvent($command->note),
             $command instanceof ProposeSolution => new RequestProposedEvent($command->plan, null === $command->diff ? null : ProposedDiff::fromString($command->diff)),
             $command instanceof ApproveProposal => new RequestProposalApprovedEvent($command->proposalEventId, $command->note),
-            $command instanceof RejectProposal => new RequestProposalRejectedEvent($command->proposalEventId, $command->note),
             $command instanceof SetPlanRequirement => $command->requireApproval ? new RequestPlanRequiredEvent() : new RequestPlanWaivedEvent(),
             $command instanceof AcceptSuggestion => new RequestSuggestionAcceptedEvent($command->requireApproval ?? $state->requireApproval),
             $command instanceof DismissSuggestion => new RequestSuggestionDismissedEvent($command->note),
@@ -249,10 +246,6 @@ final class RequestDecider
             $command instanceof MarkWontDo => self::reasonViolations($command->reason),
             $command instanceof ProposeSolution => [...self::textViolations('plan', $command->plan), ...self::diffViolations($command->diff)],
             $command instanceof ApproveProposal => self::proposalViolations($byId[$command->requestId->toString()], $command->proposalEventId),
-            $command instanceof RejectProposal => [
-                ...self::proposalViolations($byId[$command->requestId->toString()], $command->proposalEventId),
-                ...self::textViolations('note', $command->note),
-            ],
             $command instanceof SetTitle => self::titleViolations($command->title),
             default => [],
         };
@@ -469,7 +462,6 @@ final class RequestDecider
             $command instanceof Reopen => Action::Reopen,
             $command instanceof ProposeSolution => Action::ProposeSolution,
             $command instanceof ApproveProposal => Action::ApproveProposal,
-            $command instanceof RejectProposal => Action::RejectProposal,
             $command instanceof SetPlanRequirement => Action::SetPlanRequirement,
             $command instanceof AcceptSuggestion => Action::AcceptSuggestion,
             $command instanceof DismissSuggestion => Action::DismissSuggestion,

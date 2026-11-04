@@ -81,7 +81,7 @@ test.describe('RequestDetailLayout', () => {
 
         for (const [requestId, sentence] of [
             [suggested.id, 'The agent suggested this change. Accept it so that an agent can work on it, or dismiss it.'],
-            [planned.id, 'The agent proposed a plan. Approve it or request changes.'],
+            [planned.id, 'The agent proposed a plan. Approve it, or reply to ask for changes.'],
             [ready.id, 'The agent finished. Check the changes, then resolve the conversation or reopen it.'],
             [asked.id, 'The agent asked a question. Reply to continue.'],
         ] as const) {

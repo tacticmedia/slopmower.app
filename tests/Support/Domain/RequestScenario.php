@@ -15,6 +15,7 @@ use App\Domain\Event\DecidedEvent;
 use App\Domain\Event\PullRequestLinkedEvent;
 use App\Domain\Event\PullRequestUnlinkedEvent;
 use App\Domain\Event\RecordedEvent;
+use App\Domain\Event\RequestProposalRejectedEvent;
 use App\Domain\Git\BlobSha;
 use App\Domain\Git\CommitInfo;
 use App\Domain\Git\CommitSha;
@@ -36,7 +37,6 @@ use App\Domain\Request\Command\MarkReadyForReview;
 use App\Domain\Request\Command\MarkWontDo;
 use App\Domain\Request\Command\Open;
 use App\Domain\Request\Command\ProposeSolution;
-use App\Domain\Request\Command\RejectProposal;
 use App\Domain\Request\Command\Release;
 use App\Domain\Request\Command\Reopen;
 use App\Domain\Request\Command\Reply;
@@ -136,7 +136,7 @@ final class RequestScenario
             'wont_do by agent' => $scenario->run(new MarkWontDo($id, self::REASON), $agent),
             'wont_do by user' => $scenario->run(new MarkWontDo($id, self::REASON), self::user()),
             'proposal pending' => $scenario->propose(),
-            'proposal rejected' => [$scenario->propose(), $scenario->run($scenario->validCommand('reject_proposal'), self::user())],
+            'proposal rejected' => [$scenario->propose(), $scenario->recordRejection()],
             'plan required' => [
                 $scenario->run(new MarkReadyForReview($id, 'Extracted TaxRounding.'), $agent),
                 $scenario->run(new Reopen($id, 'Also cover the shipping totals.'), self::user()),
@@ -228,7 +228,6 @@ final class RequestScenario
             'reopen' => new Reopen($id, 'Also cover the shipping totals.'),
             'propose_solution' => new ProposeSolution($id, self::PLAN, self::DIFF),
             'approve_proposal' => new ApproveProposal($id, $proposalEventId),
-            'reject_proposal' => new RejectProposal($id, $proposalEventId, 'Keep the rounding inside `InvoiceTotals`.'),
             'set_plan_requirement' => new SetPlanRequirement($id, !$this->state()->requireApproval),
             'accept_suggestion' => new AcceptSuggestion($id),
             'dismiss_suggestion' => new DismissSuggestion($id, 'The totals round once, by law.'),
@@ -267,6 +266,16 @@ final class RequestScenario
     public function propose(): array
     {
         return $this->run($this->validCommand('propose_solution'), self::claimingAgent());
+    }
+
+    /**
+     * A stored `request.proposal_rejected` of the pending proposal by the user. No command writes one (D110).
+     */
+    public function recordRejection(): RecordedEvent
+    {
+        $proposal = $this->state()->proposal ?? throw new \LogicException('No proposal.');
+
+        return $this->record(new DecidedEvent(new RequestProposalRejectedEvent($proposal->eventId, 'Keep the rounding inside `InvoiceTotals`.'), $this->requestId()), self::user());
     }
 
     /**

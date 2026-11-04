@@ -32,7 +32,7 @@ export function RequestRow({ request }: { request: RequestSummary }) {
                     <span className={styles.labels}>
                         <RequestTypeLabel type={request.type} />
                         <WaitingForYouLabel waiting={'user' === request.awaiting} />
-                        <PlanToApproveLabel pending={'pending' === request.proposal?.state} />
+                        <PlanToApproveLabel pending={'pending' === request.proposal?.state && 'user' === request.awaiting} />
                         <SuggestionLabel pending={'pending' === request.suggestion} />
                         <OutdatedLabel outdated={request.outdated} />
                     </span>

@@ -18,7 +18,6 @@ const COMMAND_PATHS: Record<RequestCommandIntent['intent'], string> = {
     mark_wont_do: 'wont-do',
     release: 'release',
     approve_proposal: 'approve-proposal',
-    reject_proposal: 'reject-proposal',
     set_plan_requirement: 'plan-requirement',
     accept_suggestion: 'accept-suggestion',
     dismiss_suggestion: 'dismiss-suggestion',

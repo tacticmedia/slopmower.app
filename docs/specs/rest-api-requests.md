@@ -22,7 +22,6 @@ This file continues [rest-api.md](rest-api.md). That file has the conventions, t
 | reopen | [Q13](#q13-reopen-a-request) | none | user | `ready_for_review`, `wont_do`, `verified` | `reopened` | `request.reopened` | 409 |
 | propose | [Q14](#q14-propose-a-solution) | `propose_solution` | the claiming agent | `in_progress` | unchanged | `request.proposed` | A new proposal replaces the current one |
 | approve proposal | [Q15](#q15-approve-a-proposal) | none | user | `in_progress` with a pending proposal | unchanged | `request.proposal_approved` | 409 |
-| reject proposal | [Q16](#q16-reject-a-proposal) | none | user | `in_progress` with a pending proposal | unchanged | `request.proposal_rejected` | 409 |
 | plan requirement | [Q18](#q18-change-the-plan-requirement) | none | user | `open` without a pending suggestion, `reopened`, `in_progress` | unchanged | `request.plan_required` or `request.plan_waived` | The current value: 200, no event, `events: []` |
 | accept suggestion | [Q21](#q21-accept-a-suggestion) | none | user | `open` with a pending suggestion | unchanged | `request.suggestion_accepted` | 409 |
 | dismiss suggestion | [Q22](#q22-dismiss-a-suggestion) | none | user | `open` with a pending suggestion | `wont_do` | `request.suggestion_dismissed` | 409 |
@@ -51,7 +50,7 @@ Comment groups: `group` is a free-text label, decision D103 in [architecture.md]
 
 Proposals: the claiming agent proposes a solution in the thread, a Markdown plan with an optional unified diff, before it links commits.
 
-- `proposal` is the current proposal of the claim: `{eventId, state}` with the state `pending`, `approved`, or `rejected`, else null. A new proposal replaces the current one, whatever its state. Release, won't do, and reopen set it to null, so after a reopen the agent proposes again. `ready_for_review` and `verified` keep it.
+- `proposal` is the current proposal of the claim: `{eventId, state}` with the state `pending`, `approved`, or `rejected`, else null. `rejected` comes only from a stored `request.proposal_rejected`, because no command writes one (D110). The user asks for changes with a reply ([Q4](#q4-comment-on-a-request)), which keeps the proposal pending. A new proposal replaces the current one, whatever its state. Release, won't do, and reopen set it to null, so after a reopen the agent proposes again. `ready_for_review` and `verified` keep it.
 - `requireApproval` ("Ask for a plan first") is set when the request opens. The user changes it with [Q18](#q18-change-the-plan-requirement) while the request is `open`, `reopened`, or `in_progress`. A carried request keeps the value of its source.
 - The proposal gate is open when `proposal` is null or approved, and approved when `requireApproval` is true. `link_commits` and `mark_ready_for_review` need it, and so does `link_pull_request` on an `in_progress` request. So a pending or rejected proposal always blocks them.
 - A decision names the proposal in `proposalEventId`. While a proposal is pending, another ID gives 422 `invalid_input`, so the user never approves a proposal that a newer one replaced. Without a pending proposal, the decision gets 409 `invalid_transition`.
@@ -93,7 +92,6 @@ Titles: a request has an optional one-line `title`, and its Markdown `body` is t
 | `reopen` | never | `ready_for_review`, `wont_do`, `verified` |
 | `propose_solution` | `in_progress` and claimed by the caller | never |
 | `approve_proposal` | never | `in_progress` with a pending proposal |
-| `reject_proposal` | never | `in_progress` with a pending proposal |
 | `set_plan_requirement` | never | `open` without a pending suggestion, `reopened`, `in_progress` |
 | `accept_suggestion` | never | `open` with a pending suggestion |
 | `dismiss_suggestion` | never | `open` with a pending suggestion |
@@ -437,14 +435,6 @@ The proposal replaces the current one, also an approved one. The request then wa
 - **Errors:** 422 `invalid_input`: `proposalEventId` is not the pending proposal; 409 `invalid_transition`: no proposal is pending; 409 `review_closed`.
 
 An approval carries no pull request choice, and `Request.delivery` stays the choice of the review (D108).
-
-### Q16 Reject a proposal
-
-- **Request:** `POST /api/v1/requests/{requestId}/reject-proposal`
-- **Authentication:** S
-- **Body:** [`RejectProposalInput`](schemas/inputs.schema.json), `{proposalEventId, note}`. The note says what to change. Example: [fixtures/inputs.reject-proposal.json](fixtures/inputs.reject-proposal.json).
-- **Success:** 200 `RequestCommandResult` with one `request.proposal_rejected` event. `proposal.state` becomes `rejected`, and the request waits for the agent, which proposes again.
-- **Errors:** as [Q15](#q15-approve-a-proposal), and 422 `invalid_input` for a note of whitespace only.
 
 ### Q17 Link a pull request to requests
 

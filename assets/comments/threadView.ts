@@ -46,8 +46,9 @@ export type ThreadView = {
     symbol: string | null;
     comments: CommentView[];
     replyable: boolean;
-    /** The caller may approve or reject the pending proposal. */
+    /** The caller may approve the pending proposal. */
     decidable: boolean;
+    /** A proposal is pending, and the turn is the user's. */
     proposalPending: boolean;
     /** Null for a request of the user. */
     suggestion: SuggestionState | null;
@@ -98,7 +99,7 @@ export function threadView(request: ReviewRequest): ThreadView {
         comments,
         replyable: request.allowedActions.includes('reply'),
         decidable: request.allowedActions.includes('approve_proposal'),
-        proposalPending: 'pending' === request.proposal?.state,
+        proposalPending: 'pending' === request.proposal?.state && 'user' === request.awaiting,
         suggestion: request.suggestion,
         suggestionButtons: suggestionButtons(request.allowedActions),
         carriedFrom: request.carriedFrom,
