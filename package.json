@@ -6,7 +6,7 @@
         "dev": "vite",
         "build": "vite build",
         "build:e2e": "vite build --mode e2e",
-        "postinstall": "node bin/patch-react-router.mjs",
+        "postinstall": "node bin/patch-react-router.mjs && npm ci --prefix symbols --ignore-scripts --no-audit --no-fund",
         "typecheck": "tsc -b",
         "test": "vitest run",
         "test:ui": "playwright test",

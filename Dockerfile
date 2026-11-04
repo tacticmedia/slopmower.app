@@ -34,8 +34,8 @@ COPY --link package.json package-lock.json ./
 COPY --link bin/patch-react-router.mjs bin/
 COPY --link symbols/package.json symbols/package-lock.json symbols/
 
-# The outline of Browser only bundles the grammars of symbols (D114).
-RUN npm ci --no-audit --no-fund && npm ci --prefix symbols --ignore-scripts --no-audit --no-fund && rm -rf /root/.npm
+# The postinstall also installs symbols: the outline of Browser only bundles its grammars (D114).
+RUN npm ci --no-audit --no-fund && rm -rf /root/.npm
 
 COPY --link vite.config.ts tsconfig*.json ./
 COPY --link assets assets
