@@ -131,7 +131,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F113 | [Comment drafts and session keepalive](F113-comment-drafts.md) | Done 2026-11-04, [report](reports/F113.md) | b5a6c2c2 | src 515 PHP / 35473 lines, 515 types; tests 347 PHP / 33031 lines; assets 197 TS / 12456 lines; check 6m39s |
 | F114 | [Remove "Request changes" of a proposal](F114-remove-request-changes.md) | Done 2026-11-04, [report](reports/F114.md) | 297bede2 | src 513 PHP / 35404 lines, 513 types; tests 347 PHP / 33033 lines; assets 197 TS / 12423 lines; check 6m19s |
 | F115 | [Return to the page after sign-in](F115-return-after-sign-in.md) | Done 2026-11-04, [report](reports/F115.md) | 07b8a588 | src 513 PHP / 35404 lines, 513 types; tests 347 PHP / 33047 lines; assets 197 TS / 12427 lines; check 5m33s |
-| F116 | [Pass-through code access](F116-pass-through-code-access.md) | Done 2026-11-04, [report](reports/F116.md) | | src 520 PHP / 37255 lines, 520 types; tests 354 PHP / 34225 lines; assets 199 TS / 12624 lines |
+| F116 | [Pass-through code access](F116-pass-through-code-access.md) | Done 2026-11-04, [report](reports/F116.md) | 4d26b4d8 | src 520 PHP / 37255 lines, 520 types; tests 354 PHP / 34225 lines; assets 199 TS / 12624 lines; check 5m32s |
 | F117 | [Browser only code access](F117-browser-only-code-access.md) | Planned | | |
 
 ## Candidates
@@ -140,6 +140,7 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 
 The findings of the repository audit of 2026-10-28 are [F84](F84-audit-must-fixes.md) to [F87](F87-smaller-audit-findings.md).
 
+- **Changes tab of a commit across many directories on Pass-through.** Q9 reads one tree per changed directory at the parent and at the commit, concurrently. A commit of thousands of files across many directories makes that many GitHub requests. Above a number of directories, two recursive tree reads (with the truncated-tree walk) cost less. From the F116 report.
 - **Return to the page after sign-in.** Scheduled as [F115](F115-return-after-sign-in.md). Sign-in after an expired session lands on `/`, so the stored comment text of D109 comes back only when the user opens the page again. From F113.
 - **Symbol anchor of a restored comment.** The file view opens a stored composer when it mounts, before the symbols load, so a restored comment on a symbol anchors to its lines. A restore that waited for the symbols stalled in about 1 of 3 UI runs: `FileRoute` rendered with the symbols, and React did not commit that render. Root cause not found. From F113, [report](reports/F113.md).
 - **Sentry plugin with glob 14.** `@sentry/vite-plugin` 11.10.0 pulls `glob` 13 and `minimatch` 10.2.6, which has the pattern amplification of GHSA-g3hv-75wg-m249. The fix needs `glob` 14 (`minimatch` 11). Upgrade the plugin when a release uses it. Dependabot alert 15 is dismissed as a tolerable risk, because the only glob patterns are those of `vite.config.ts`. From the Dependabot alerts of 2026-11-04.
