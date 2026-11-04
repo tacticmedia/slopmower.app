@@ -26,7 +26,7 @@ Verified on 2026-11-05 on `main` at `7f4797b4`:
 
 - **Code view:** on each window scroll that sees a new page height, `FileView` of `CodeFile.tsx` calls `reconcileHeights()` of the file instance and `markDOMDirty()` of the virtualizer before the virtualizer renders. Both are public API of `@pierre/diffs`.
 - **CodeView Ctrl or Meta click:** the test checks the part of the page, not the tab of the browser. 16 of 1200 runs with logs in the page failed. In each failure the click was trusted, on the link, with `metaKey` true, with user activation, not default-prevented, and without a navigation in place, the same as in the passes; no tab opened within 8 s. So headless Chromium drops the tab, and opening it is the browser's job (no test of framework behaviour). The test now asserts that the Ctrl or Meta click is not default-prevented and the page stays, and that a plain click is default-prevented and opens the file in place.
-- **ProposalInFileView:** not reproduced: 600 of 600 runs passed at a load of 83 to 96, 300 with the code view change and 300 without it. No change; the candidate is closed with this evidence.
+- **ProposalInFileView:** not reproduced: 600 of 600 runs passed at a load of 85 to 96, 300 with the code view change and 300 without it. No change; the candidate is closed with this evidence.
 - **Reproduce before a fix:** each flaky test is reproduced with `--repeat-each`, under load when it fails only under load, and its cause is found with a trace or with logs.
 - **No retries** and no longer `expect.timeout`.
 
