@@ -133,6 +133,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F115 | [Return to the page after sign-in](F115-return-after-sign-in.md) | Done 2026-11-04, [report](reports/F115.md) | 07b8a588 | src 513 PHP / 35404 lines, 513 types; tests 347 PHP / 33047 lines; assets 197 TS / 12427 lines; check 5m33s |
 | F116 | [Pass-through code access](F116-pass-through-code-access.md) | Done 2026-11-04, [report](reports/F116.md) | 4d26b4d8 | src 520 PHP / 37255 lines, 520 types; tests 354 PHP / 34225 lines; assets 199 TS / 12624 lines; check 5m32s |
 | F117 | [Browser only code access](F117-browser-only-code-access.md) | Done 2026-11-05, [report](reports/F117.md) | 471b5581 | src 521 PHP / 37802 lines, 521 types; tests 357 PHP / 34731 lines; assets 202 TS / 13066 lines; check 5m38s |
+| F120 | [Symbols packages on npm ci](F120-symbols-install-on-npm-ci.md) | In progress | | |
 
 ## Candidates
 
