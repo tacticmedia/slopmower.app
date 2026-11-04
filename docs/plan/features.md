@@ -129,6 +129,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F111 | [Remove the pull request checkbox of Approve](F111-remove-pull-request-checkbox.md) | Done 2026-11-04, [report](reports/F111.md) | 1878aeb8 | src 515 PHP / 35494 lines, 515 types; tests 348 PHP / 33078 lines; assets 195 TS / 12150 lines |
 | F112 | [Drop the pull request choice of Q15](F112-drop-q15-pull-request.md) | Done 2026-11-04, [report](reports/F112.md) | 7323c97d | src 515 PHP / 35473 lines, 515 types; tests 347 PHP / 33031 lines; assets 195 TS / 12148 lines; check 5m52s |
 | F113 | [Comment drafts and session keepalive](F113-comment-drafts.md) | Done 2026-11-04, [report](reports/F113.md) | b5a6c2c2 | src 515 PHP / 35473 lines, 515 types; tests 347 PHP / 33031 lines; assets 197 TS / 12456 lines; check 6m39s |
+| F115 | [Return to the page after sign-in](F115-return-after-sign-in.md) | Planned | | |
 
 ## Candidates
 
@@ -136,7 +137,7 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 
 The findings of the repository audit of 2026-10-28 are [F84](F84-audit-must-fixes.md) to [F87](F87-smaller-audit-findings.md).
 
-- **Return to the page after sign-in.** The SPA shell has no access control, so Symfony stores no target path, and sign-in after an expired session lands on `/`. The stored comment text of D109 comes back only when the user opens the page again. A `target` parameter of `/login`, checked to be a local path, and stored with `TargetPathTrait`, would return to it. From F113.
+- **Return to the page after sign-in.** Scheduled as [F115](F115-return-after-sign-in.md). Sign-in after an expired session lands on `/`, so the stored comment text of D109 comes back only when the user opens the page again. From F113.
 - **Symbol anchor of a restored comment.** The file view opens a stored composer when it mounts, before the symbols load, so a restored comment on a symbol anchors to its lines. A restore that waited for the symbols stalled in about 1 of 3 UI runs: `FileRoute` rendered with the symbols, and React did not commit that render. Root cause not found. From F113, [report](reports/F113.md).
 
 - **Lazy Sentry in the SPA.** `@sentry/react` adds about 87 KB gzip to the entry chunk, also without `SENTRY_DSN_FRONTEND`. A dynamic import when the DSN is set keeps it out, but the router must then wait for it, because `wrapCreateBrowserRouter()` needs the client. From the F77 planning.
