@@ -43,7 +43,7 @@ While a comment box holds text that is not saved, Slopmower asks before it opens
 
 A reload keeps the text that you did not save in the same browser tab: comments, replies, notes, and the feedback summary. After a reload, a comment box on lines opens again on its lines, and an edited pending comment opens in its editor. A note or a summary comes back when you open its dialog again. The text stays until you save it, cancel it, discard it, sign out, or close the tab.
 
-Slopmower keeps you signed in while a page is open. When your session ends anyway, for example after a sleep of your computer, Slopmower shows **You are signed out**. Click **Sign in** to sign in again in the same tab. Your text comes back when you open the same page again. **Dismiss** closes the message, and a save fails until you sign in.
+Slopmower keeps you signed in while a page is open. When your session ends anyway, for example after a sleep of your computer, Slopmower shows **You are signed out**. Click **Sign in** to sign in again in the same tab. After the sign-in, the same page opens again with your text. **Dismiss** closes the message, and a save fails until you sign in.
 
 ## Open a general request
 

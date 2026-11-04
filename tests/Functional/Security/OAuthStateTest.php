@@ -84,6 +84,19 @@ final class OAuthStateTest extends WebTestCase
         self::assertSame(['login' => 'octocat', 'signInMethod' => 'github'], array_intersect_key((array) $me['user'], ['login' => 0, 'signInMethod' => 0]));
     }
 
+    #[TestDox('A GitHub sign-in after a page request without a session returns to that page')]
+    public function testSignInReturnsToThePageThatAskedForIt(): void
+    {
+        $client = static::createClient();
+        $client->request('GET', '/reviews/01J9ZQ4R5T6V7W8X9Y0Z1A2B3C/files/src/Kernel.php');
+        self::assertResponseRedirects('/login');
+        $state = self::connect($client);
+
+        $client->request('GET', '/login/check-github', ['code' => 'a1b2c3d4', 'state' => $state]);
+
+        self::assertResponseRedirects('http://localhost/reviews/01J9ZQ4R5T6V7W8X9Y0Z1A2B3C/files/src/Kernel.php');
+    }
+
     #[TestDox('A kernel that serves many requests, as a FrankenPHP worker does, gives each sign-in its own state')]
     public function testLongRunningKernelGivesEachSignInItsOwnState(): void
     {

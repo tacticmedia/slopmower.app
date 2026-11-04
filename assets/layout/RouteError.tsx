@@ -92,7 +92,10 @@ export function RouteError({ embedded = false }: { embedded?: boolean }) {
             <Heading as="h1">{title}</Heading>
             <p>{detail}</p>
             {signedOut ? (
-                <Link href="/login">Sign in</Link>
+                // The reload lets the firewall store this page as the target of the sign-in (F115).
+                <Button variant="primary" onClick={() => window.location.reload()}>
+                    Sign in
+                </Button>
             ) : (
                 <div className={styles.actions}>
                     {isRouteErrorResponse(error) ? null : (

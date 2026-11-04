@@ -30,14 +30,16 @@ test.describe('RouteError', () => {
         await expect(page.getByRole('link', { name: 'kept-repository' })).toBeVisible();
     });
 
-    test('The signed-out screen offers Sign in and no Try again', async ({ page, api }) => {
+    test('The signed-out screen offers no Try again, and Sign in loads the same page again', async ({ page, api }) => {
         new FakeRepositories(api);
         api.on('GET', '/api/v1/me', () => apiError(401, 'unauthorized', 'Sign in first.'));
 
         await page.goto('/repositories');
 
         await expect(page.getByTestId('route-error').getByRole('heading')).toHaveText('Signed out');
-        await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
         await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0);
+        const documentLoad = page.waitForRequest((request) => request.isNavigationRequest() && request.frame() === page.mainFrame());
+        await page.getByRole('button', { name: 'Sign in' }).click();
+        expect(new URL((await documentLoad).url()).pathname).toBe('/repositories');
     });
 });

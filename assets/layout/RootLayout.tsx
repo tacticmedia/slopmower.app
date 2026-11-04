@@ -66,10 +66,11 @@ export function RootLayout() {
                     onClose={() => setDismissed(true)}
                     footerButtons={[
                         { content: 'Dismiss', onClick: () => setDismissed(true) },
-                        { content: 'Sign in', buttonType: 'primary', onClick: () => window.location.assign('/login') },
+                        // The reload lets the firewall store this page as the target of the sign-in (F115).
+                        { content: 'Sign in', buttonType: 'primary', onClick: () => window.location.reload() },
                     ]}
                 >
-                    Your session has ended. Text that you have not saved stays in this tab. It comes back when you open the same page after you sign in.
+                    Your session has ended. Text that you have not saved stays in this tab. After you sign in, this page opens again with it.
                 </Dialog>
             )}
         </div>

@@ -49,14 +49,16 @@ test.describe('SessionKeepalive', () => {
         expect(api.callsTo('GET', ME), 'A1 stops after the 401.').toHaveLength(loaded + 2);
     });
 
-    test('A tab that becomes visible sends A1 at once, and Sign in opens the sign-in page', async ({ page, api }) => {
+    test('A tab that becomes visible sends A1 at once, and Sign in loads the same page again', async ({ page, api }) => {
         await openLiveFile(page, api);
         signOutElsewhere(api);
 
         await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
 
         await expect(signedOutDialog(page)).toBeVisible();
+        const shownUrl = page.url();
+        const documentLoad = page.waitForRequest((request) => request.isNavigationRequest() && request.frame() === page.mainFrame());
         await signedOutDialog(page).getByRole('button', { name: 'Sign in', exact: true }).click();
-        await expect(page).toHaveURL('/login');
+        expect((await documentLoad).url()).toBe(shownUrl);
     });
 });

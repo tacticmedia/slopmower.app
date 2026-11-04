@@ -78,7 +78,7 @@ final class ShellRouteTest extends WebTestCase
         yield 'an own environment' => [['SENTRY_DSN_FRONTEND' => $dsn, 'SENTRY_ENVIRONMENT' => 'staging'], ['data-release' => null, 'data-sentry-dsn' => $dsn, 'data-sentry-environment' => 'staging']];
     }
 
-    #[TestDox('An anonymous user is redirected to /login')]
+    #[TestDox('An anonymous user is redirected to /login, and the session keeps the page as the target of the sign-in')]
     public function testAnonymousUserIsRedirectedToLogin(): void
     {
         $client = static::createClient();
@@ -86,6 +86,7 @@ final class ShellRouteTest extends WebTestCase
         $client->request('GET', '/reviews/'.self::ID);
 
         self::assertResponseRedirects('/login');
+        self::assertSame('http://localhost/reviews/'.self::ID, $client->getRequest()->getSession()->get('_security.main.target_path'));
     }
 
     #[TestDox('/api/v1/x stays a JSON 404')]
