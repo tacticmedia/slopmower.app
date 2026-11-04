@@ -10,7 +10,7 @@ Workflow, conventions, and status: [feature track](features.md). Requested by Ja
 
 ## Depends on
 
-F116 on `main`: `CodeAccess`, `CodeReader`, `GitHubCodeReader`, the code-access endpoint, the connect choice, and `docs/user/code-access.md`.
+F116 on `main` at `d4c7d9e0` ([report](reports/F116.md)): `CodeAccess`, the `CodeReader` interface with `GitCodeReader` and `GitHubCodeReader` (HTTP in `GitHubRepositoryClient`), the resolver `src/Application/CodeReaders.php`, `src/Git/ScratchCopies.php`, `FetchRepository::readyReader()`, `Locator::withSnapshotText()`, the code-access endpoint R10, the connect choice, and `docs/user/code-access.md` with two modes.
 
 ## Facts
 
@@ -36,6 +36,8 @@ Verified on 2026-11-04 on `main` at `5c2b7572`, and against GitHub with live req
   - V7 returns `renderable`, `lineCount`, `binary`, `symlinkTarget`, `rawUrl` as null.
   - Q9 walks the subtrees whose SHAs differ between the first parent and the commit, as `git diff-tree` does: status by blob SHA, renames only for an equal blob SHA, `binary` and the counts null.
 - **Index.** `indexed_file` rows from `lsTreeRecursive`, no symbols. Quick open finds paths only.
+- **Snapshot rebuild.** `Locator::withSnapshotText()` and the excerpt do not run in Browser only; `get_request` and Q3 return the anchor without snapshot.
+- **Scratch leftovers (F116 follow-up).** Before `ScratchCopies` creates a copy, it deletes the directories under `APP_SCRATCH_DIR` that are older than 1 hour, so the copies of a process that died on a fatal error do not stay in memory. This applies to Pass-through.
 - **Anchors.** `line` and `range` anchors have no snapshot; the range is not checked against the file length. `symbol` anchors answer 422 `invalid_input`. `get_request` has no snapshot and no excerpt; `context` is ignored.
 - **Locator, metadata path.** The same blob at the same path is `exact`. The same blob at another path, found by the differing-subtree walk between the anchor commit and the target, is `shifted`. Anything else is the new status `unverified`: path and lines of the anchor, `outdated` true. Carry-over treats `unverified` like `changed`. Check runs skip `unverified`.
 - **Mode switch.** Entering `browser` deletes the `symbol`, `indexed_blob`, and `location_cache_entry` rows of the repository, and the clone when the old mode was `clone`. Leaving `browser` re-queues the index. Every switch re-queues the location recompute (F116).
@@ -66,7 +68,7 @@ Verified on 2026-11-04 on `main` at `5c2b7572`, and against GitHub with live req
 ## In scope
 
 - Contracts first: `repository.schema.json` and `inputs.schema.json` (`browser`), the code-token endpoint in `docs/specs/rest-api.md`, V7 and Q9 nullable fields, error reason `code_in_browser` and `code_on_server`, location status `unverified`, `anchor.schema.json` (snapshot optional for `line` and `range`), `docs/specs/mcp.md`, fixtures, `BundledSchemas`, `assets/api/types/`.
-- Back end: `CodeAccess`, `GitHubCodeReader`, a code-token controller, `CodeController`, `BlobController`, `SymbolController`, `DeclarationController`, `CommitDiffController`, `AnchorFactory`, `Anchor`, `Locator`, `RequestQuery`, `CarryOverController`, `CheckRunHandler`, `IndexReviewHandler`, the mode switch, `ShellController` (CSP).
+- Back end: `CodeAccess`, `GitHubCodeReader`, `GitHubRepositoryClient`, `CodeReaders`, `ScratchCopies`, a code-token controller, `CodeController`, `BlobController`, `SymbolController`, `DeclarationController`, `CommitDiffController`, `AnchorFactory`, `Anchor`, `Locator`, `RequestQuery`, `CarryOverController`, `CheckRunHandler`, `IndexReviewHandler`, the mode switch, `ShellController` (CSP).
 - Front end: `assets/code/githubCode.ts` (new), `fileData.ts`, `changesData.ts`, `treeData.ts`, `readmeUrl.ts`, `symbolsData.ts` and a symbols worker, `FileRoute.tsx`, `GoToDeclaration`, the symbol anchor controls, `AnchorSnapshot.tsx`, the connect choice, the repository page; `symbols/src/languages.ts`, `symbols/queries/php.scm`, `twig.scm`, `package.json` (`tree-sitter-php`, `tree-sitter-twig`, latest versions checked on npm).
 - Docs: `docs/user/code-access.md`, `privacy.md`, `repositories.md`, both `SKILL.md` copies (no snapshot in Browser only), `docs/architecture.md` (D114, section 5 statuses), `docs/developer-guide.md`.
 
@@ -87,6 +89,7 @@ Functional, with the git-backed GitHub fake of F116:
 - Metadata locate: an unchanged file gives `exact`, the same blob under a new path gives `shifted`, a changed file gives `unverified` with `outdated` true.
 - Q9 on a commit that changes one file in a deep directory requests only the trees on that path (mock transport log), and reports a rename with an equal blob SHA.
 - A `symbol` anchor answers 422 on a Browser only repository.
+- A scratch directory older than 1 hour is gone after the next scratch copy; a younger one stays.
 - Switch Server copy to Browser only: no clone directory, no `symbol` and `indexed_blob` rows of the repository.
 
 UI, on the mocked API with `api.github.com` routed by Playwright:
