@@ -3,7 +3,7 @@
 ## The absolute TL;DR written by a human, for humans
 > Slopmower is a UI bridge between your locally running AI agent and you. It lets you ask questions, comment on, and steer the entire codebase. Let me explain. 
 >
-> Whether hand-chiselled, AI-slopped, or somewhere in between, every codebase gets murky over time. Think of Slopmpower as a codebase-level code review. Not individual commits or PRs - the whole lot. 
+> Whether hand-chiselled, AI-slopped, or somewhere in between, every codebase gets murky over time. Think of Slopmower as a repository-level code review. Not individual commits or PRs - the whole lot. 
 >
 > The main use cases are: (a) you inherit a legacy codebase and intend to use your coding agent to do something about it, and (b) you let your agent work for a while - it looks like it works, but then you open the code and [wtfs per minute](https://www.osnews.com/story/19266/wtfsm/) skyrocket.
 >
