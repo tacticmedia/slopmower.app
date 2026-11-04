@@ -129,6 +129,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F111 | [Remove the pull request checkbox of Approve](F111-remove-pull-request-checkbox.md) | Done 2026-11-04, [report](reports/F111.md) | 1878aeb8 | src 515 PHP / 35494 lines, 515 types; tests 348 PHP / 33078 lines; assets 195 TS / 12150 lines |
 | F112 | [Drop the pull request choice of Q15](F112-drop-q15-pull-request.md) | Done 2026-11-04, [report](reports/F112.md) | 7323c97d | src 515 PHP / 35473 lines, 515 types; tests 347 PHP / 33031 lines; assets 195 TS / 12148 lines; check 5m52s |
 | F113 | [Comment drafts and session keepalive](F113-comment-drafts.md) | Done 2026-11-04, [report](reports/F113.md) | b5a6c2c2 | src 515 PHP / 35473 lines, 515 types; tests 347 PHP / 33031 lines; assets 197 TS / 12456 lines; check 6m39s |
+| F114 | [Remove "Request changes" of a proposal](F114-remove-request-changes.md) | In progress | | |
 | F115 | [Return to the page after sign-in](F115-return-after-sign-in.md) | Planned | | |
 
 ## Candidates
@@ -219,7 +220,7 @@ The findings of the repository audit of 2026-10-28 are [F84](F84-audit-must-fixe
 - **Type filter on the request list.** Show only questions or rules. From the F97 planning.
 - **Next request in Q3.** The request page loader reads Q3, then Q1 for the next request that waits for the user, so each load and live refresh of the page waits for two reads in a row. A `nextRequestId` on Q3 makes it one read; it is a contract change. From the F105 report.
 - **Annotation slot relayout drops the focus.** About 30 ms after a comment box opens in the code view, the view lays out the annotation slot again and hides its content for a frame, so the browser drops the focus. `focusWhenRendered` focuses the field again, but text typed in that frame is lost: 1 of 45 `RangeComment` runs at load 28 with 8 workers. Finding what makes `@pierre/diffs` lay the slot out again would remove the frame. From the F95 fix.
-- **Request changes takes the reply text.** Since F109, "Request changes" sits next to "Reply" but still opens the note dialog. As on GitHub, it could send the text of the reply box as its note, and open the dialog only when the box is empty. From the F109 report.
+- **Request changes takes the reply text.** Dropped: F114 removes "Request changes". Since F109, "Request changes" sits next to "Reply" but still opens the note dialog. As on GitHub, it could send the text of the reply box as its note, and open the dialog only when the box is empty. From the F109 report.
 - **More answer options for agent questions.** F108 offers Yes, No, and text. Options that the agent names, and answers to some of the questions only, are out of its scope. From the F108 planning.
 - **Drop `pullRequest` of Q15.** Scheduled as F112. Since F111 the web UI sends no pull request choice with an approval, so `ApproveProposalInput.pullRequest`, `Proposal.pullRequest`, and the approval branch of `Request.delivery` have no sender in the repository. Removing them is a contract change; stored `request.proposal_approved` events keep the field. From F111.
 
