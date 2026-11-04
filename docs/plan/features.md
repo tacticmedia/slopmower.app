@@ -129,7 +129,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F111 | [Remove the pull request checkbox of Approve](F111-remove-pull-request-checkbox.md) | Done 2026-11-04, [report](reports/F111.md) | 1878aeb8 | src 515 PHP / 35494 lines, 515 types; tests 348 PHP / 33078 lines; assets 195 TS / 12150 lines |
 | F112 | [Drop the pull request choice of Q15](F112-drop-q15-pull-request.md) | Done 2026-11-04, [report](reports/F112.md) | 7323c97d | src 515 PHP / 35473 lines, 515 types; tests 347 PHP / 33031 lines; assets 195 TS / 12148 lines; check 5m52s |
 | F113 | [Comment drafts and session keepalive](F113-comment-drafts.md) | Done 2026-11-04, [report](reports/F113.md) | b5a6c2c2 | src 515 PHP / 35473 lines, 515 types; tests 347 PHP / 33031 lines; assets 197 TS / 12456 lines; check 6m39s |
-| F114 | [Remove "Request changes" of a proposal](F114-remove-request-changes.md) | Done 2026-11-04, [report](reports/F114.md) | | src 513 PHP / 35404 lines, 513 types; tests 347 PHP / 33033 lines; assets 197 TS / 12423 lines; check 6m19s |
+| F114 | [Remove "Request changes" of a proposal](F114-remove-request-changes.md) | Done 2026-11-04, [report](reports/F114.md) | 297bede2 | src 513 PHP / 35404 lines, 513 types; tests 347 PHP / 33033 lines; assets 197 TS / 12423 lines; check 6m19s |
 | F115 | [Return to the page after sign-in](F115-return-after-sign-in.md) | Planned | | |
 
 ## Candidates
