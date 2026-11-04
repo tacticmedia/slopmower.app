@@ -16,6 +16,7 @@ const STATUS_VARIANTS: Record<LocationStatus, NonNullable<LabelProps['variant']>
     shifted: 'accent',
     changed: 'attention',
     orphaned: 'danger',
+    unverified: 'attention',
 };
 
 const STATUS_TEXT: Record<LocationStatus, string> = {
@@ -23,6 +24,7 @@ const STATUS_TEXT: Record<LocationStatus, string> = {
     shifted: 'Shifted',
     changed: 'Changed',
     orphaned: 'Orphaned',
+    unverified: 'Unverified',
 };
 
 const REASON_TEXT: Record<OrphanReason, string> = {
@@ -55,7 +57,9 @@ export function LocationInfo({ location, showPath }: { location: Location | null
             ) : (
                 <>
                     {showPath && <span className={styles.location}>{anchorLocation(location)}</span>}
-                    <span className={styles.muted}>Confidence {Math.round(location.confidence * 100)}%</span>
+                    <span className={styles.muted}>
+                        {'unverified' === location.status ? 'The file changed. Browser only shows the old lines.' : `Confidence ${Math.round(location.confidence * 100)}%`}
+                    </span>
                 </>
             )}
         </p>

@@ -57,6 +57,8 @@ The shortcut does nothing while you type in a comment box or another text field.
 
 Slopmower indexes the symbols of the review commit: classes, methods, functions, and other declarations. **Symbols** in the file header lists the symbols of the file. Choose one to comment on it, as [Comment on code](comment.md#with-the-mouse) shows. **Quick open** and **Go to declaration** use the same index.
 
+A repository with the [code access](code-access.md#browser-only) Browser only has no symbol index: **Symbols** and **Go to declaration** are not shown, and **Quick open** finds files only. Your browser finds the symbols of the open file for the lines that stay at the top, and **View on GitHub** replaces **Raw**.
+
 Symbols are available for PHP, Twig, JavaScript, JSX, TypeScript, TSX, Python, Go, Rust, Java, C#, Ruby, Bash, Scala, Zig, and Lua files. In Twig, a block and a macro are symbols, for example `content` and `row()`, and a `{## #}` documentation comment above the tag is part of the range. A block inside `{% embed %}` is not a symbol. A Zig file with an empty `struct {}`, `enum {}`, `union {}`, or `opaque {}` has no symbols, because the Zig grammar refuses an empty container.
 
 A symbol range includes the doc comment above the symbol, and the decorators, annotations, or attributes of its declaration. A Python docstring is inside the range.

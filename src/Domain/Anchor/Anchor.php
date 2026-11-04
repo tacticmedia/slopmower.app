@@ -38,12 +38,19 @@ final readonly class Anchor
         $isFile = AnchorKind::File === $kind;
         $isSymbol = AnchorKind::Symbol === $kind;
 
-        foreach (['range' => [$range, !$isFile], 'symbol' => [$symbol, $isSymbol], 'snapshot' => [$snapshot, !$isFile]] as $field => [$value, $isRequired]) {
+        foreach (['range' => [$range, !$isFile], 'symbol' => [$symbol, $isSymbol]] as $field => [$value, $isRequired]) {
             if ($isRequired && null === $value) {
                 $violations[] = ['field' => $field, 'message' => "Is required for a {$kind->value} anchor."];
             } elseif (!$isRequired && null !== $value) {
                 $violations[] = ['field' => $field, 'message' => "Must be null for a {$kind->value} anchor."];
             }
+        }
+
+        // A line or range anchor of Browser only has none (D114).
+        if ($isSymbol && null === $snapshot) {
+            $violations[] = ['field' => 'snapshot', 'message' => 'Is required for a symbol anchor.'];
+        } elseif ($isFile && null !== $snapshot) {
+            $violations[] = ['field' => 'snapshot', 'message' => 'Must be null for a file anchor.'];
         }
 
         $violations = [...$violations, ...self::rangeViolations($kind, $range)];

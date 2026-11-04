@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises';
 import { Language, Parser, Query } from 'web-tree-sitter';
 
 /** A language of the service: a grammar, a query file, and the rules that the query cannot express. */
@@ -25,6 +24,18 @@ export type LanguageRow = {
 };
 
 export type LoadedLanguage = { row: LanguageRow; parser: Parser; query: Query };
+
+/**
+ * Where the service and the browser find the files of a row. `runtime` locates `web-tree-sitter.wasm` for a bundle, in
+ * which the package cannot find it next to itself.
+ */
+export type LanguageFiles = {
+    /** `grammar` of a row, as a URL, a path, or the bytes. */
+    grammar(path: string): Promise<string | URL | Uint8Array>;
+    /** The text of `queries/<name>.scm`. */
+    query(name: string): Promise<string>;
+    runtime?: string;
+};
 
 // `/**`, but not the empty comment `/**/`.
 const JSDOC = /^\/\*\*(?!\/)/;
@@ -182,6 +193,21 @@ const LUA: LanguageRow = {
     docCommentAdjacent: true,
 };
 
+/**
+ * For the outline of Browser only (D114), which reads no symbols from the server. The server parses PHP with
+ * nikic/php-parser, so FQNs can differ: no namespace, and `::` before every member.
+ */
+const PHP: LanguageRow = {
+    grammar: 'tree-sitter-php/tree-sitter-php.wasm',
+    query: 'php',
+    separator: '::',
+    wrappers: [],
+    attributes: [],
+    opaque: ['compound_statement', 'anonymous_class'],
+    docComment: JSDOC,
+    docCommentAdjacent: false,
+};
+
 /** By V7 language. `TreeSitterSymbolExtractor::LANGUAGES` lists the same keys. */
 export const LANGUAGES: Readonly<Record<string, LanguageRow>> = {
     javascript: { ...JAVASCRIPT, grammar: 'tree-sitter-javascript/tree-sitter-javascript.wasm' },
@@ -200,14 +226,24 @@ export const LANGUAGES: Readonly<Record<string, LanguageRow>> = {
     lua: LUA,
 };
 
-export async function loadLanguages(): Promise<Map<string, LoadedLanguage>> {
-    await Parser.init();
+/** The languages of the outline in the browser: those of the service, and PHP. */
+export const BROWSER_LANGUAGES: Readonly<Record<string, LanguageRow>> = { ...LANGUAGES, php: PHP };
+
+let parserReady: Promise<void> | null = null;
+
+export async function loadLanguage(row: LanguageRow, files: LanguageFiles): Promise<LoadedLanguage> {
+    const { runtime } = files;
+    await (parserReady ??= Parser.init(undefined === runtime ? undefined : { locateFile: () => runtime }));
+    const language = await Language.load(await files.grammar(row.grammar));
+
+    return { row, parser: new Parser().setLanguage(language), query: new Query(language, await files.query(row.query)) };
+}
+
+export async function loadLanguages(files: LanguageFiles): Promise<Map<string, LoadedLanguage>> {
     const loaded = new Map<string, LoadedLanguage>();
 
     for (const [id, row] of Object.entries(LANGUAGES)) {
-        const language = await Language.load(new URL(`../node_modules/${row.grammar}`, import.meta.url));
-        const source = await readFile(new URL(`../queries/${row.query}.scm`, import.meta.url), 'utf8');
-        loaded.set(id, { row, parser: new Parser().setLanguage(language), query: new Query(language, source) });
+        loaded.set(id, await loadLanguage(row, files));
     }
 
     return loaded;

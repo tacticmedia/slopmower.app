@@ -1,11 +1,12 @@
 import { BookIcon, CheckIcon, FileDirectoryFillIcon, FileIcon, FileSubmoduleIcon, FileSymlinkFileIcon, type Icon } from '@primer/octicons-react';
 import { Link, Spinner } from '@primer/react';
-import { lazy, Suspense, useCallback, useMemo } from 'react';
+import { type ComponentProps, lazy, Suspense, useCallback, useMemo } from 'react';
 import { Link as RouterLink, useLoaderData, useRouteLoaderData } from 'react-router';
 import type { TreeEntry } from '../../api/types/tree-entry';
 import { FileHeader } from '../../review/FileHeader';
 import { directoryHref, fileHref } from '../../review/fileHref';
 import { formatSize } from '../../layout/byteSize';
+import { GitHubImage } from '../../review/GitHubImage';
 import { readmeUrl } from '../../review/readmeUrl';
 import styles from './DirectoryRoute.module.css';
 import type { ReviewData } from './reviewData';
@@ -26,7 +27,15 @@ export function DirectoryRoute() {
     const viewed = useMemo(() => new Set(viewedPaths), [viewedPaths]);
     const { dir, items } = listing;
     const directories = useMemo(() => new Set(items.filter(({ type }) => 'directory' === type).map(({ path }) => path)), [items]);
-    const resolveUrl = useCallback((url: string, attribute: 'href' | 'src') => readmeUrl(url, attribute, { reviewId: review.id, dir, directories }), [review.id, dir, directories]);
+    const gitHubRepositoryId = readme?.repositoryId ?? null;
+    const resolveUrl = useCallback(
+        (url: string, attribute: 'href' | 'src') => readmeUrl(url, attribute, { reviewId: review.id, dir, directories, imagesFromGitHub: null !== gitHubRepositoryId }),
+        [review.id, dir, directories, gitHubRepositoryId],
+    );
+    const image = useMemo(
+        () => (null === gitHubRepositoryId ? undefined : (props: ComponentProps<'img'>) => <GitHubImage {...props} repositoryId={gitHubRepositoryId} commitSha={listing.commitSha} />),
+        [gitHubRepositoryId, listing.commitSha],
+    );
 
     return (
         <section className={styles.directory} aria-label={'' === dir ? review.repositoryName : dir}>
@@ -71,7 +80,7 @@ export function DirectoryRoute() {
                         {readme.entry.name}
                     </h2>
                     <Suspense fallback={<Spinner srText="Loading the README" />}>
-                        <MarkdownBody markdown={readme.markdown} resolveUrl={resolveUrl} readme />
+                        <MarkdownBody markdown={readme.markdown} resolveUrl={resolveUrl} readme image={image} />
                     </Suspense>
                 </section>
             )}

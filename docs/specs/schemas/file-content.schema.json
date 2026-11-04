@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://slopmower.invalid/schemas/v1/file-content.schema.json",
   "title": "FileContent",
-  "description": "Metadata of one file at the review commit. Bytes come from rawUrl.",
+  "description": "Metadata of one file at the review commit. Bytes come from rawUrl. For a browser repository the server reads no file content: binary, renderable, lineCount, symlinkTarget, and rawUrl are null, and the client reads the blob blobSha from GitHub.",
   "type": "object",
   "required": ["reviewId", "commitSha", "path", "blobSha", "mode", "type", "sizeBytes", "language", "binary", "tooLarge", "renderable", "lineCount", "symlinkTarget", "rawUrl"],
   "properties": {
@@ -34,28 +34,29 @@
       "description": "Highlighting language by file name, for example php, javascript, or markdown. Open set."
     },
     "binary": {
-      "type": "boolean",
-      "description": "NUL byte in the first 8000 bytes."
+      "type": ["boolean", "null"],
+      "description": "NUL byte in the first 8000 bytes. Null for browser."
     },
     "tooLarge": {
       "type": "boolean",
       "description": "sizeBytes > 1048576."
     },
     "renderable": {
-      "type": "boolean",
-      "description": "type = file, not binary, not tooLarge."
+      "type": ["boolean", "null"],
+      "description": "type = file, not binary, not tooLarge. Null for browser."
     },
     "lineCount": {
       "type": ["integer", "null"],
       "minimum": 0,
-      "description": "Null when not renderable."
+      "description": "Null when not renderable, and for browser."
     },
     "symlinkTarget": {
       "type": ["string", "null"]
     },
     "rawUrl": {
-      "type": "string",
-      "format": "uri-reference"
+      "type": ["string", "null"],
+      "format": "uri-reference",
+      "description": "V8 of the file. Null for browser."
     }
   }
 }

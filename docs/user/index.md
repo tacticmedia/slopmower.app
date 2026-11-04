@@ -39,7 +39,7 @@ You can have several open reviews of one repository at the same time, for exampl
 | [Getting started](getting-started.md) | Sign in with GitHub, connect a repository, start a review, and connect your agent |
 | [Connect your agent](connect-your-agent.md) | Create a token, configure the MCP server, install the skill, and give your agent a review |
 | [Repositories](repositories.md) | Give Slopmower access, connect a repository, get new commits, and start a review |
-| [Code access](code-access.md) | Server copy or Pass-through: how Slopmower reads the code of a repository, and what it keeps |
+| [Code access](code-access.md) | Server copy, Pass-through, or Browser only: how Slopmower reads the code of a repository, and what it keeps |
 | [Reviewing](reviewing.md) | The review screen, its header, and the review tour |
 | [Browse the code](browse-code.md) | The file tree, the file view, blame, Quick open, symbols, and declarations |
 | [Comment on code](comment.md) | Comment on lines, symbols, and files, open general requests, and submit your feedback |

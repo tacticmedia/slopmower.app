@@ -93,8 +93,8 @@
       "enum": ["github", "local"]
     },
     "CodeAccess": {
-      "enum": ["clone", "pass_through"],
-      "description": "clone: the server keeps a bare clone (Server copy). pass_through: the server reads from GitHub per request and stores no code. A local repository is always clone."
+      "enum": ["clone", "pass_through", "browser"],
+      "description": "clone: the server keeps a bare clone (Server copy). pass_through: the server reads from GitHub per request and stores no code. browser: the server reads only trees, commits, and blame ranges from GitHub, and the browser reads file content from api.github.com (Browser only). A local repository is always clone."
     },
     "RepositoryAccess": {
       "enum": ["active", "removed"]
@@ -124,7 +124,8 @@
       "enum": ["pending", "available"]
     },
     "LocationStatus": {
-      "enum": ["exact", "shifted", "changed", "orphaned"]
+      "enum": ["exact", "shifted", "changed", "orphaned", "unverified"],
+      "description": "unverified: browser only, the path of the anchor has another blob and the server reads no code, so the location is the path and the range of the anchor."
     },
     "OrphanReason": {
       "enum": ["file_deleted", "region_deleted", "ambiguous", "content_not_found"]

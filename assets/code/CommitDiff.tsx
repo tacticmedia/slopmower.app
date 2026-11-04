@@ -159,7 +159,8 @@ function PendingDiff({ height }: { height: string }) {
 }
 
 function LoadedDiff({ repositoryId, file, overflow, pendingHeight }: { repositoryId: string; file: CommitDiffFile; overflow: Overflow; pendingHeight: string }) {
-    const sides = useDiffSides(repositoryId, file.oldBlobSha, file.newBlobSha);
+    // Q9 of Browser only leaves `binary` null (D114).
+    const sides = useDiffSides(repositoryId, file.oldBlobSha, file.newBlobSha, null === file.binary);
 
     if (undefined === sides) {
         return <PendingDiff height={pendingHeight} />;
@@ -171,6 +172,10 @@ function LoadedDiff({ repositoryId, file, overflow, pendingHeight }: { repositor
                 {sides.error}
             </p>
         );
+    }
+
+    if (sides.binary) {
+        return <p className={styles.placeholder}>{diffPlaceholder({ ...file, binary: true })}</p>;
     }
 
     return <SidesDiff file={file} sides={sides} overflow={overflow} pendingHeight={pendingHeight} />;

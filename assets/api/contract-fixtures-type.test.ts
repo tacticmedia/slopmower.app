@@ -20,6 +20,7 @@ import errorRateLimited from '../../docs/specs/fixtures/error.rate-limited.json'
 import errorRepositoryUnavailable from '../../docs/specs/fixtures/error.repository-unavailable.json';
 import errorReviewClosed from '../../docs/specs/fixtures/error.review-closed.json';
 import errorUnauthorized from '../../docs/specs/fixtures/error.unauthorized.json';
+import fileContentBrowser from '../../docs/specs/fixtures/file-content.browser.json';
 import fileContentPhp from '../../docs/specs/fixtures/file-content.php.json';
 import inputsAcceptSuggestion from '../../docs/specs/fixtures/inputs.accept-suggestion.json';
 import inputsApproveProposal from '../../docs/specs/fixtures/inputs.approve-proposal.json';
@@ -57,6 +58,7 @@ import linkCommitsResultAvailable from '../../docs/specs/fixtures/link-commits-r
 import linkCommitsResultPending from '../../docs/specs/fixtures/link-commits-result.pending.json';
 import linkPullRequestResultLinked from '../../docs/specs/fixtures/link-pull-request-result.linked.json';
 import listsCandidateList from '../../docs/specs/fixtures/lists.candidate-list.json';
+import listsCodeToken from '../../docs/specs/fixtures/lists.code-token.json';
 import listsCommitList from '../../docs/specs/fixtures/lists.commit-list.json';
 import listsDeclarationList from '../../docs/specs/fixtures/lists.declaration-list.json';
 import listsDraftList from '../../docs/specs/fixtures/lists.draft-list.json';
@@ -81,6 +83,7 @@ import meAgent from '../../docs/specs/fixtures/me.agent.json';
 import meLocalUser from '../../docs/specs/fixtures/me.local-user.json';
 import mePreferences from '../../docs/specs/fixtures/me.preferences.json';
 import repositoryGithubCloning from '../../docs/specs/fixtures/repository.github-cloning.json';
+import repositoryGithubBrowser from '../../docs/specs/fixtures/repository.github-browser.json';
 import repositoryGithubPassThrough from '../../docs/specs/fixtures/repository.github-pass-through.json';
 import repositoryLocalIdle from '../../docs/specs/fixtures/repository.local-idle.json';
 import requestCommandResultClaim from '../../docs/specs/fixtures/request-command-result.claim.json';
@@ -146,6 +149,7 @@ import type {
     CommitLog,
     DeclarationList,
     DraftList,
+    CodeToken,
     MercureAuthorization,
     RepositoryPage,
     RequestPage,
@@ -198,6 +202,7 @@ const checkedFixtures = {
     'error.repository-unavailable.json': errorRepositoryUnavailable satisfies Widen<ErrorBody>,
     'error.review-closed.json': errorReviewClosed satisfies Widen<ErrorBody>,
     'error.unauthorized.json': errorUnauthorized satisfies Widen<ErrorBody>,
+    'file-content.browser.json': fileContentBrowser satisfies Widen<FileContent>,
     'file-content.php.json': fileContentPhp satisfies Widen<FileContent>,
     'inputs.accept-suggestion.json': inputsAcceptSuggestion satisfies Widen<AcceptSuggestionInput>,
     'inputs.approve-proposal.json': inputsApproveProposal satisfies Widen<ApproveProposalInput>,
@@ -235,6 +240,7 @@ const checkedFixtures = {
     'link-commits-result.pending.json': linkCommitsResultPending satisfies Widen<LinkCommitsResult>,
     'link-pull-request-result.linked.json': linkPullRequestResultLinked satisfies Widen<LinkPullRequestResult>,
     'lists.candidate-list.json': listsCandidateList satisfies Widen<CandidateList>,
+    'lists.code-token.json': listsCodeToken satisfies Widen<CodeToken>,
     'lists.commit-list.json': listsCommitList satisfies Widen<CommitLog>,
     'lists.declaration-list.json': listsDeclarationList satisfies Widen<DeclarationList>,
     'lists.draft-list.json': listsDraftList satisfies Widen<DraftList>,
@@ -259,6 +265,7 @@ const checkedFixtures = {
     'me.local-user.json': meLocalUser satisfies Widen<Me>,
     'me.preferences.json': mePreferences satisfies Widen<Preferences>,
     'repository.github-cloning.json': repositoryGithubCloning satisfies Widen<Repository>,
+    'repository.github-browser.json': repositoryGithubBrowser satisfies Widen<Repository>,
     'repository.github-pass-through.json': repositoryGithubPassThrough satisfies Widen<Repository>,
     'repository.local-idle.json': repositoryLocalIdle satisfies Widen<Repository>,
     'request-command-result.claim.json': requestCommandResultClaim satisfies Widen<RequestCommandResult>,

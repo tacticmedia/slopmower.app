@@ -313,7 +313,8 @@
           "$ref": "common.schema.json#/$defs/Ulid"
         },
         "reason": {
-          "enum": ["cloning", "clone_failed", "fetch_failed", "removed"]
+          "enum": ["cloning", "clone_failed", "fetch_failed", "removed", "code_in_browser", "code_on_server"],
+          "description": "code_in_browser: the operation reads file content, and the repository is browser. code_on_server: the code token of a repository that is not browser."
         }
       }
     },

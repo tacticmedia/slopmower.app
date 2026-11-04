@@ -24,7 +24,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
 /**
- * The {@see CodeReader} of a repository by its code access (D111). Keeps each reader, with its `cat-file` process and
+ * The {@see CodeReader} of a repository by its code access (D111, D114). Keeps each reader, with its `cat-file` process and
  * scratch copies, until {@see reset()}: after each message, and at the end of each request, also after an exception.
  */
 #[AsEventListener(KernelEvents::TERMINATE, method: 'reset')]
@@ -76,6 +76,7 @@ final class CodeReaders implements ResetInterface
             $this->scratch,
             fn (int $sizeBytes) => $this->usageLimits->checkRepositorySize($tenantId, $sizeBytes),
             $this->gitHubGitBaseUrl,
+            CodeAccess::Browser === $repository->getCodeAccess(),
         );
     }
 

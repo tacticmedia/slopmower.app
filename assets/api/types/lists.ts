@@ -101,3 +101,11 @@ export type MercureAuthorization = {
     topics: string[];
     expiresAt: DateTime;
 };
+
+/** R11. Kept in memory only. */
+export type CodeToken = {
+    token: string;
+    expiresAt: DateTime;
+    owner: string;
+    name: string;
+};

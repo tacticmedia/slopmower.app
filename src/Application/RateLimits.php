@@ -7,6 +7,7 @@ namespace App\Application;
 use App\Domain\Error\RateLimited;
 use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\TenantId;
+use App\Domain\Identity\UserId;
 use App\Entity\User;
 use App\Security\AgentUser;
 use Psr\Clock\ClockInterface;
@@ -31,6 +32,8 @@ final class RateLimits
         private readonly RateLimiterFactoryInterface $syncFetchLimiter,
         #[Target('review_start')]
         private readonly RateLimiterFactoryInterface $reviewStartLimiter,
+        #[Target('code_token')]
+        private readonly RateLimiterFactoryInterface $codeTokenLimiter,
         private readonly Security $security,
         private readonly ClockInterface $clock,
     ) {
@@ -81,6 +84,14 @@ final class RateLimits
     public function consumeReviewStart(TenantId $tenantId): void
     {
         $this->consume($this->reviewStartLimiter, $tenantId->toString());
+    }
+
+    /**
+     * @throws RateLimited
+     */
+    public function consumeCodeToken(UserId $userId): void
+    {
+        $this->consume($this->codeTokenLimiter, $userId->toString());
     }
 
     /**

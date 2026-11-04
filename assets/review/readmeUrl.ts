@@ -7,14 +7,16 @@ export type ReadmeBase = {
     dir: string;
     /** The directories of `dir`, by path. V7 refuses a directory, so a link to one must go to its directory view. */
     directories: ReadonlySet<string>;
+    /** Browser only (D114): an image resolves to its repository path, which {@link GitHubImage} reads from GitHub. */
+    imagesFromGitHub?: boolean;
 };
 
 const WITH_SCHEME = /^([a-z][a-z0-9+.-]*:|\/\/)/i;
 
 /**
  * Resolves a relative URL of a README as GitHub does: against the directory of the README, or against the root for a
- * leading `/`. An image reads the bytes through V8. A link opens a file or a directory of the review commit. Absolute
- * URLs and in-page anchors stay.
+ * leading `/`. An image reads the bytes through V8, or is its repository path for GitHub. A link opens a file or a
+ * directory of the review commit. Absolute URLs and in-page anchors stay.
  */
 export function readmeUrl(url: string, attribute: 'href' | 'src', base: ReadmeBase): string {
     if ('' === url || url.startsWith('#') || WITH_SCHEME.test(url)) {
@@ -26,7 +28,7 @@ export function readmeUrl(url: string, attribute: 'href' | 'src', base: ReadmeBa
     const path = resolve(target.startsWith('/') ? '' : base.dir, target);
 
     if ('src' === attribute) {
-        return rawHref(encodeURIComponent(base.reviewId), path);
+        return true === base.imagesFromGitHub ? path : rawHref(encodeURIComponent(base.reviewId), path);
     }
 
     return '' === path || target.endsWith('/') || base.directories.has(path) ? directoryHref(base.reviewId, path) : `${fileHref(base.reviewId, path)}${hash}`;

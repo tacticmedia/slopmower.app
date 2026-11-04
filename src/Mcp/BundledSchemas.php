@@ -22,8 +22,8 @@ final class BundledSchemas
         ],
         '$defs' => [
             'CodeAccess' => [
-                'enum' => ['clone', 'pass_through'],
-                'description' => 'clone: the server keeps a bare clone (Server copy). pass_through: the server reads from GitHub per request and stores no code. A local repository is always clone.',
+                'enum' => ['clone', 'pass_through', 'browser'],
+                'description' => 'clone: the server keeps a bare clone (Server copy). pass_through: the server reads from GitHub per request and stores no code. browser: the server reads only trees, commits, and blame ranges from GitHub, and the browser reads file content from api.github.com (Browser only). A local repository is always clone.',
             ],
             'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
@@ -133,7 +133,7 @@ final class BundledSchemas
                 'properties' => [
                     'state' => [
                         'enum' => ['cloning', 'failed', 'idle', 'fetching', 'unavailable'],
-                        'description' => 'cloning: first clone queued or running, or a codeAccess change in progress; failed: first clone failed, no clone, or for pass_through the last sync failed the access or suspension check; idle: clone ready, or for pass_through the last sync passed; fetching: fetch queued or running; unavailable: access removed, clone deleted. For pass_through a clone or fetch is a head sync: the checks and the default branch head, without code.',
+                        'description' => 'cloning: first clone queued or running, or a codeAccess change in progress; failed: first clone failed, no clone, or for pass_through and browser the last sync failed the access or suspension check; idle: clone ready, or for pass_through and browser the last sync passed; fetching: fetch queued or running; unavailable: access removed, clone deleted. For pass_through and browser a clone or fetch is a head sync: the checks and the default branch head, without code.',
                     ],
                     'lastFetchedAt' => [
                         'anyOf' => [
@@ -252,8 +252,8 @@ final class BundledSchemas
                 'description' => 'What the host of the repository offers.',
             ],
             'CodeAccess' => [
-                'enum' => ['clone', 'pass_through'],
-                'description' => 'clone: the server keeps a bare clone (Server copy). pass_through: the server reads from GitHub per request and stores no code. A local repository is always clone.',
+                'enum' => ['clone', 'pass_through', 'browser'],
+                'description' => 'clone: the server keeps a bare clone (Server copy). pass_through: the server reads from GitHub per request and stores no code. browser: the server reads only trees, commits, and blame ranges from GitHub, and the browser reads file content from api.github.com (Browser only). A local repository is always clone.',
             ],
             'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
@@ -505,7 +505,7 @@ final class BundledSchemas
                 'properties' => [
                     'state' => [
                         'enum' => ['cloning', 'failed', 'idle', 'fetching', 'unavailable'],
-                        'description' => 'cloning: first clone queued or running, or a codeAccess change in progress; failed: first clone failed, no clone, or for pass_through the last sync failed the access or suspension check; idle: clone ready, or for pass_through the last sync passed; fetching: fetch queued or running; unavailable: access removed, clone deleted. For pass_through a clone or fetch is a head sync: the checks and the default branch head, without code.',
+                        'description' => 'cloning: first clone queued or running, or a codeAccess change in progress; failed: first clone failed, no clone, or for pass_through and browser the last sync failed the access or suspension check; idle: clone ready, or for pass_through and browser the last sync passed; fetching: fetch queued or running; unavailable: access removed, clone deleted. For pass_through and browser a clone or fetch is a head sync: the checks and the default branch head, without code.',
                     ],
                     'lastFetchedAt' => [
                         'anyOf' => [
@@ -728,7 +728,13 @@ final class BundledSchemas
                             'properties' => [
                                 'range' => ['$ref' => '#/$defs/LineRange'],
                                 'symbol' => ['type' => 'null'],
-                                'snapshot' => ['$ref' => '#/$defs/ContentSnapshot'],
+                                'snapshot' => [
+                                    'anyOf' => [
+                                        ['$ref' => '#/$defs/ContentSnapshot'],
+                                        ['type' => 'null'],
+                                    ],
+                                    'description' => 'Null for an anchor captured on a browser repository, which reads no code.',
+                                ],
                             ],
                         ],
                     ],
@@ -831,7 +837,7 @@ final class BundledSchemas
                     'pendingCommitCount' => ['type' => 'integer', 'minimum' => 0],
                     'outdated' => [
                         'type' => ['boolean', 'null'],
-                        'description' => 'Location at the default-branch head is changed or orphaned. Null until computed, when the clone is gone, and for a general request.',
+                        'description' => 'Location at the default-branch head is changed, orphaned, or unverified. Null until computed, when the clone is gone, and for a general request.',
                     ],
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
@@ -1236,7 +1242,13 @@ final class BundledSchemas
                             'properties' => [
                                 'range' => ['$ref' => '#/$defs/LineRange'],
                                 'symbol' => ['type' => 'null'],
-                                'snapshot' => ['$ref' => '#/$defs/ContentSnapshot'],
+                                'snapshot' => [
+                                    'anyOf' => [
+                                        ['$ref' => '#/$defs/ContentSnapshot'],
+                                        ['type' => 'null'],
+                                    ],
+                                    'description' => 'Null for an anchor captured on a browser repository, which reads no code.',
+                                ],
                             ],
                         ],
                     ],
@@ -1360,7 +1372,7 @@ final class BundledSchemas
                     'pendingCommitCount' => ['type' => 'integer', 'minimum' => 0],
                     'outdated' => [
                         'type' => ['boolean', 'null'],
-                        'description' => 'Location at the default-branch head is changed or orphaned. Null until computed, when the clone is gone, and for a general request.',
+                        'description' => 'Location at the default-branch head is changed, orphaned, or unverified. Null until computed, when the clone is gone, and for a general request.',
                     ],
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
@@ -1961,7 +1973,13 @@ final class BundledSchemas
                             'properties' => [
                                 'range' => ['$ref' => '#/$defs/LineRange'],
                                 'symbol' => ['type' => 'null'],
-                                'snapshot' => ['$ref' => '#/$defs/ContentSnapshot'],
+                                'snapshot' => [
+                                    'anyOf' => [
+                                        ['$ref' => '#/$defs/ContentSnapshot'],
+                                        ['type' => 'null'],
+                                    ],
+                                    'description' => 'Null for an anchor captured on a browser repository, which reads no code.',
+                                ],
                             ],
                         ],
                     ],
@@ -2015,7 +2033,7 @@ final class BundledSchemas
                         ],
                         'description' => 'Null for file anchors and orphaned locations.',
                     ],
-                    'confidence' => ['type' => 'number', 'minimum' => 0, 'maximum' => 1, 'description' => '1 for exact and shifted. For changed: 1 for a file anchor and for a symbol found by its FQN, else the line similarity of architecture section 5.4. 0 for orphaned.'],
+                    'confidence' => ['type' => 'number', 'minimum' => 0, 'maximum' => 1, 'description' => '1 for exact and shifted. For changed: 1 for a file anchor and for a symbol found by its FQN, else the line similarity of architecture section 5.4. 0 for orphaned and unverified.'],
                     'reason' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/OrphanReason'],
@@ -2059,10 +2077,23 @@ final class BundledSchemas
                             ],
                         ],
                     ],
+                    [
+                        'if' => [
+                            'properties' => [
+                                'status' => ['const' => 'unverified'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'confidence' => ['const' => 0],
+                            ],
+                        ],
+                    ],
                 ],
             ],
             'LocationStatus' => [
-                'enum' => ['exact', 'shifted', 'changed', 'orphaned'],
+                'enum' => ['exact', 'shifted', 'changed', 'orphaned', 'unverified'],
+                'description' => 'unverified: browser only, the path of the anchor has another blob and the server reads no code, so the location is the path and the range of the anchor.',
             ],
             'Markdown' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'GitHub-flavoured Markdown with at least one non-whitespace character.'],
             'ObjectSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full git object ID of a blob, tree, or commit.'],
@@ -2563,7 +2594,13 @@ final class BundledSchemas
                             'properties' => [
                                 'range' => ['$ref' => '#/$defs/LineRange'],
                                 'symbol' => ['type' => 'null'],
-                                'snapshot' => ['$ref' => '#/$defs/ContentSnapshot'],
+                                'snapshot' => [
+                                    'anyOf' => [
+                                        ['$ref' => '#/$defs/ContentSnapshot'],
+                                        ['type' => 'null'],
+                                    ],
+                                    'description' => 'Null for an anchor captured on a browser repository, which reads no code.',
+                                ],
                             ],
                         ],
                     ],
@@ -2687,7 +2724,7 @@ final class BundledSchemas
                     'pendingCommitCount' => ['type' => 'integer', 'minimum' => 0],
                     'outdated' => [
                         'type' => ['boolean', 'null'],
-                        'description' => 'Location at the default-branch head is changed or orphaned. Null until computed, when the clone is gone, and for a general request.',
+                        'description' => 'Location at the default-branch head is changed, orphaned, or unverified. Null until computed, when the clone is gone, and for a general request.',
                     ],
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
@@ -3090,7 +3127,13 @@ final class BundledSchemas
                             'properties' => [
                                 'range' => ['$ref' => '#/$defs/LineRange'],
                                 'symbol' => ['type' => 'null'],
-                                'snapshot' => ['$ref' => '#/$defs/ContentSnapshot'],
+                                'snapshot' => [
+                                    'anyOf' => [
+                                        ['$ref' => '#/$defs/ContentSnapshot'],
+                                        ['type' => 'null'],
+                                    ],
+                                    'description' => 'Null for an anchor captured on a browser repository, which reads no code.',
+                                ],
                             ],
                         ],
                     ],
@@ -3214,7 +3257,7 @@ final class BundledSchemas
                     'pendingCommitCount' => ['type' => 'integer', 'minimum' => 0],
                     'outdated' => [
                         'type' => ['boolean', 'null'],
-                        'description' => 'Location at the default-branch head is changed or orphaned. Null until computed, when the clone is gone, and for a general request.',
+                        'description' => 'Location at the default-branch head is changed, orphaned, or unverified. Null until computed, when the clone is gone, and for a general request.',
                     ],
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
@@ -3613,7 +3656,13 @@ final class BundledSchemas
                             'properties' => [
                                 'range' => ['$ref' => '#/$defs/LineRange'],
                                 'symbol' => ['type' => 'null'],
-                                'snapshot' => ['$ref' => '#/$defs/ContentSnapshot'],
+                                'snapshot' => [
+                                    'anyOf' => [
+                                        ['$ref' => '#/$defs/ContentSnapshot'],
+                                        ['type' => 'null'],
+                                    ],
+                                    'description' => 'Null for an anchor captured on a browser repository, which reads no code.',
+                                ],
                             ],
                         ],
                     ],
@@ -3737,7 +3786,7 @@ final class BundledSchemas
                     'pendingCommitCount' => ['type' => 'integer', 'minimum' => 0],
                     'outdated' => [
                         'type' => ['boolean', 'null'],
-                        'description' => 'Location at the default-branch head is changed or orphaned. Null until computed, when the clone is gone, and for a general request.',
+                        'description' => 'Location at the default-branch head is changed, orphaned, or unverified. Null until computed, when the clone is gone, and for a general request.',
                     ],
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],

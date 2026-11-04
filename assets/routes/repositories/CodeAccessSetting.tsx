@@ -14,12 +14,14 @@ import routeStyles from './RepositoryRoute.module.css';
 const CONS: Record<CodeAccess, string> = {
     clone: 'Slopmower keeps a full copy of the repository with its history.',
     pass_through: 'Each read waits for GitHub; code does not load during a GitHub outage.',
+    browser: 'No symbol search, go to declaration, or symbol anchors. Requests on changed files do not move.',
 };
 
 /** What a switch to the mode does. */
 const SWITCH_EFFECTS: Record<CodeAccess, string> = {
     clone: 'Slopmower clones the repository again. Code loads after the clone.',
     pass_through: 'Slopmower deletes its copy of the repository. Reads go to GitHub from then on.',
+    browser: 'Slopmower deletes its copy of the repository and its symbols. Your browser reads the code from GitHub from then on.',
 };
 
 /** The mode of a GitHub repository. A switch is R10 through the action of the repository route, after a confirmation. */

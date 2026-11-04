@@ -34,6 +34,7 @@ Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json). 
 | [R8](#r8-check-every-pull-request) | POST | `/api/v1/repositories/{repositoryId}/check-every-pull-request` | S | 200 | [`repository.schema.json`](schemas/repository.schema.json) |
 | [R9](#r9-list-the-latest-commits) | GET | `/api/v1/repositories/{repositoryId}/commits` | S, B | 200 | [`lists.schema.json#/$defs/CommitLog`](schemas/lists.schema.json) |
 | [R10](#r10-change-the-code-access) | POST | `/api/v1/repositories/{repositoryId}/code-access` | S | 200 | [`repository.schema.json`](schemas/repository.schema.json) |
+| [R11](#r11-get-a-code-token) | POST | `/api/v1/repositories/{repositoryId}/code-token` | S | 200 | [`lists.schema.json#/$defs/CodeToken`](schemas/lists.schema.json) |
 | [V1](#v1-start-a-review) | POST | `/api/v1/repositories/{repositoryId}/reviews` | S, B | 201 | [`review.schema.json`](schemas/review.schema.json) |
 | [V2](#v2-list-reviews) | GET | `/api/v1/repositories/{repositoryId}/reviews` | S, B | 200 | [`lists.schema.json#/$defs/ReviewPage`](schemas/lists.schema.json) |
 | [V3](#v3-get-a-review) | GET | `/api/v1/reviews/{reviewId}` | S, B | 200 | [`review.schema.json`](schemas/review.schema.json) |
@@ -251,11 +252,11 @@ Example response, [fixtures/lists.candidate-list.json](fixtures/lists.candidate-
 - **Success:** 201 [`Repository`](schemas/repository.schema.json) with `Location: /api/v1/repositories/{id}` for a new repository. 200 with the existing repository when it is already connected.
 - **Errors:**
   - 404 `not_found`: the GitHub ID is not a candidate, or the directory is not a local candidate.
-  - 422 `invalid_input`: `source: local` while local repositories are off, `codeAccess` missing for `github`, or `pass_through` for `local`.
+  - 422 `invalid_input`: `source: local` while local repositories are off, `codeAccess` missing for `github`, or `pass_through` or `browser` for `local`.
   - 422 `invalid_input`: another connected GitHub repository of the tenant has the same name, compared case-insensitively.
   - 409 `limit_exceeded` with `limit: repositories`: a new repository would pass the limit. A repository that is already connected gets 200.
 
-A new repository starts with `sync.state = cloning`, and the server queues a clone job. For `pass_through` the job is a head sync: it runs the access checks and reads the default branch and its head, and it stores no code.
+A new repository starts with `sync.state = cloning`, and the server queues a clone job. For `pass_through` and `browser` the job is a head sync: it runs the access checks and reads the default branch and its head, and it stores no code.
 
 Example response, [fixtures/repository.github-cloning.json](fixtures/repository.github-cloning.json):
 
@@ -291,7 +292,7 @@ A connected local repository after its first clone: [fixtures/repository.local-i
 - **Success:** 202 [`Repository`](schemas/repository.schema.json), whose `sync.state` is `fetching` or `cloning`.
 - **Errors:** 409 `repository_unavailable` with reason `removed`.
 
-The endpoint queues a fetch, a head sync for `pass_through`. If `sync.state` is `failed`, it queues the clone again. A queued fetch or clone is reused. A call during a running fetch queues one more fetch. When the fetch finishes, the server publishes a `repository` live update. The "Refresh" button of the UI calls this endpoint.
+The endpoint queues a fetch, a head sync for `pass_through` and `browser`. If `sync.state` is `failed`, it queues the clone again. A queued fetch or clone is reused. A call during a running fetch queues one more fetch. When the fetch finishes, the server publishes a `repository` live update. The "Refresh" button of the UI calls this endpoint.
 
 ### R6 Delete repository data
 
@@ -311,7 +312,7 @@ Then a Messenger job deletes the clone with its pin refs. The directory or GitHu
 - **Success:** 200 with the bytes of one blob from the clone, or 304.
 - **Errors:**
   - 404 `not_found`: the object is not in the clone, or it is not a blob;
-  - 409 `repository_unavailable`;
+  - 409 `repository_unavailable`, with the reason `code_in_browser` for `browser`;
   - 429 `rate_limited`: GitHub refused a `pass_through` read for the rate limit of the installation.
 
 For `pass_through`, the server streams the blob from `GET repos/{owner}/{repo}/git/blobs/{sha}` and does not write it to disk. A blob that GitHub no longer serves gets 404.
@@ -376,18 +377,35 @@ Example response, [fixtures/lists.commit-list.json](fixtures/lists.commit-list.j
 
 - **Request:** `POST /api/v1/repositories/{repositoryId}/code-access`
 - **Authentication:** S
-- **Body:** [`CodeAccessInput`](schemas/inputs.schema.json), `{"codeAccess": "pass_through"}` or, as in [fixtures/inputs.code-access.json](fixtures/inputs.code-access.json), `{"codeAccess": "clone"}`.
+- **Body:** [`CodeAccessInput`](schemas/inputs.schema.json), `{"codeAccess": "pass_through"}`, `{"codeAccess": "browser"}`, or, as in [fixtures/inputs.code-access.json](fixtures/inputs.code-access.json), `{"codeAccess": "clone"}`.
 - **Success:** 200 [`Repository`](schemas/repository.schema.json) with the new `codeAccess`, [fixtures/repository.github-pass-through.json](fixtures/repository.github-pass-through.json) once the switch has ended.
 - **Errors:**
-  - 422 `invalid_input`: `pass_through` for a local repository;
+  - 422 `invalid_input`: `pass_through` or `browser` for a local repository;
   - 409 `repository_unavailable` with reason `removed`.
 
 The same value changes nothing and returns the repository. A new value sets `sync.state` to `cloning` and queues the clone job, which runs by the `codeAccess` of the repository when it starts:
 
 - Leaving `clone`: the job deletes the clone with its pin refs under the repository lock and sets the clone size to null, then runs the head sync. The index and the location cache stay.
+- Entering `browser`: the request deletes the symbols, the parsed blobs, and the location cache of the repository. The index keeps its paths.
+- Leaving `browser`: the request deletes the location cache, whose `unverified` locations need a new computation.
 - Entering `clone`: the job clones the repository, fetches the commits of the reviews and of the available links of the repository by SHA, and pins them again. A commit that GitHub no longer has stays unpinned. Reads get `repository_unavailable` with reason `cloning` until the clone is ready, as after [R3](#r3-connect-a-repository).
 
 When the job succeeds, the server queues the index job and the location recompute of each open review of the repository. A change publishes the live update `repository`. No MCP tool changes the value.
+
+### R11 Get a code token
+
+- **Request:** `POST /api/v1/repositories/{repositoryId}/code-token`
+- **Authentication:** S
+- **Body:** none.
+- **Success:** 200 [`CodeToken`](schemas/lists.schema.json) with `Cache-Control: no-store`, [fixtures/lists.code-token.json](fixtures/lists.code-token.json).
+- **Errors:**
+  - 409 `repository_unavailable` with the reason `code_on_server`: the repository is not `browser`;
+  - 409 `repository_unavailable` with the reason `cloning`, `clone_failed`, or `removed`, as for the reads of the repository;
+  - 429 `rate_limited`: the `code_token` limit of the user;
+  - 409 `repository_unavailable` with the reason `clone_failed`: the installation is suspended, or the access check of decision D88 in [architecture.md](../architecture.md) answers that the signed-in user has no access;
+  - 409 `repository_unavailable` with the reason `fetch_failed`: GitHub refused the token or the check.
+
+Each call runs the suspension check, then the D88 access check of the signed-in user with the installation token of the server for the repository, `repository_ids: [githubRepositoryId]` and `permissions: {contents: read, metadata: read}`, and answers that token. The server process keeps the token until 5 minutes before it expires, as for its own reads, so the tabs and reloads of a browser share one GitHub token. A token lasts 1 hour. The browser keeps it in memory only, asks again 4 minutes before `expiresAt` and at most once a minute, and reads file content with it from `GET https://api.github.com/repos/{owner}/{name}/git/blobs/{sha}` and, for README images by path, from `GET https://api.github.com/repos/{owner}/{name}/contents/{path}?ref={commitSha}`, both with `Accept: application/vnd.github.raw+json`. After a 401 of GitHub it asks again at once. No MCP tool gives a code token.
 
 ## 5. Reviews and code
 
@@ -552,6 +570,7 @@ Rules:
 - `binary` follows the rule of git: a NUL byte in the first 8,000 bytes.
 - `tooLarge` means `sizeBytes > 1048576`.
 - For `pass_through`, the server reads the tree and the blob from GitHub per request and stores neither. The errors also include 429 `rate_limited` for the GitHub rate limit of the installation.
+- For `browser`, the server reads the tree only. `binary`, `renderable`, `lineCount`, `symlinkTarget`, and `rawUrl` are null, as in [fixtures/file-content.browser.json](fixtures/file-content.browser.json). The client reads the blob `blobSha` from GitHub with the token of [R11](#r11-get-a-code-token) and applies these rules itself.
 - `renderable = type == file && !binary && !tooLarge`. It does not check the encoding: a file that is not valid UTF-8 is renderable, but takes no `line`, `range`, or `symbol` anchor, see [Q2](rest-api-requests.md#q2-open-a-request).
 - Every file takes file comments.
 
@@ -581,7 +600,7 @@ Example response, [fixtures/file-content.php.json](fixtures/file-content.php.jso
 - **Request:** `GET /api/v1/reviews/{reviewId}/raw?path=`
 - **Authentication:** S, B
 - **Success:** 200 with the bytes of the file at the review commit, or 304.
-- **Errors:** as [V7](#v7-get-file-metadata).
+- **Errors:** as [V7](#v7-get-file-metadata), and 409 `repository_unavailable` with the reason `code_in_browser` for `browser`.
 
 Rules:
 
@@ -605,7 +624,7 @@ Vary: Authorization, Cookie
 - **Request:** `GET /api/v1/reviews/{reviewId}/symbols?path=`
 - **Authentication:** S, B
 - **Success:** 200 [`SymbolList`](schemas/lists.schema.json), or 304. The ETag is `W/"v5-<blobSha>"`, see [README section 6](README.md#6-caching-and-etags).
-- **Errors:** as [V7](#v7-get-file-metadata).
+- **Errors:** as [V7](#v7-get-file-metadata), and 409 `repository_unavailable` with the reason `code_in_browser` for `browser`. The browser then parses the file itself.
 
 Rules:
 
@@ -692,7 +711,7 @@ The endpoint works for open and closed reviews, and for reviews of a repository 
 - **Errors:**
   - 404 `not_found`: no such path at the review commit;
   - 422 `invalid_input`: the path is not a PHP file, `*.php`, or it is a directory or a submodule; the query has neither `line` and `column` nor `name`, or it has both; `name` is not a PHP name;
-  - 409 `repository_unavailable`.
+  - 409 `repository_unavailable`, with the reason `code_in_browser` for `browser`.
 
 | Query | Type | Notes |
 |---|---|---|
@@ -755,11 +774,11 @@ The endpoint copies the open requests of the source review into the target revie
 | Location | New anchor | First comment |
 |---|---|---|
 | `exact`, `shifted` | The same kind, at the located path and range, with a new snapshot | None |
-| `changed` | The same kind, at the located path and range, with a new snapshot | The code changed between the two review commits |
+| `changed`, `unverified` | The same kind, at the located path and range, with a new snapshot | The code changed between the two review commits |
 | `orphaned`, and the file still exists, also after a rename | A `file` anchor on that path | The code of the old snapshot, with its commit, path, and lines |
 | `orphaned`, and the file is gone | None: `not_carried`, with the orphan reason as `reason` | None |
 
-- "The same kind": a `file` anchor stays a `file` anchor. A `line` or `range` anchor becomes `line` for one located line and `range` for more. A `symbol` anchor stays `symbol` when its FQN names exactly one symbol of the file at the target review commit, else it becomes `line` or `range` at the located range. When the capture fails, for example because the file is no longer valid UTF-8, the request gets the `file` anchor and the comment of an orphaned location.
+- "The same kind": a `file` anchor stays a `file` anchor. A `line` or `range` anchor becomes `line` for one located line and `range` for more. A `symbol` anchor stays `symbol` when its FQN names exactly one symbol of the file at the target review commit, else it becomes `line` or `range` at the located range. When the capture fails, for example because the file is no longer valid UTF-8, the request gets the `file` anchor and the comment of an orphaned location. On a `browser` repository a `symbol` anchor becomes `line` or `range`, and the new anchor has no snapshot.
 - A general request carries as a general request, with `location` null.
 - One transaction under the tenant lock writes, per carried request, `request.opened` with the source body, the source title, the new anchor, `batchId` null, and `carriedFrom`, followed by `request.commented` with the first comment, if any. Both have the caller as actor. A carried request starts as `open`. Then one `events` live update follows.
 - [Q3](rest-api-requests.md#q3-get-a-request) and every `RequestSummary` show `carriedFrom` of a carried request: the `reviewId` and `requestId` of its source.
@@ -792,6 +811,7 @@ Rules:
   5. files before symbols, then by `declarationStartLine`, then by `fqn` in byte order.
 - Lengths count characters.
 - The list holds the first `limit` hits. It is not paginated.
+- For `browser`, the index has no symbols, so only files are hits.
 - `partial` is true while the index state is not `ready`. The hits then come from what the index job has written: a file that the job has not listed or parsed yet gives no hit.
 
 Example response to `?q=taxrate`, [fixtures/lists.search-hit-list.json](fixtures/lists.search-hit-list.json):
@@ -825,6 +845,7 @@ Rules:
 - `commits` holds each commit of `ranges` once, in the order of its first range. `authorName` is the author name as the commit records it, without a mailmap: a mailmap of the bare clone follows its `HEAD`, which a fetch moves. `summary` is the first line of the commit message. Invalid UTF-8 is replaced.
 - When `.git-blame-ignore-revs` exists at the root of the review commit, the server ignores the commits that it names, as GitHub does, and `ignoreRevsFile` is true. Only lines that are a full commit SHA count. Comments, blank lines, other text, and commits that the repository lacks are skipped. A file without such a line gives `ignoreRevsFile: false`.
 - For `pass_through`, the server reads the GraphQL `blame` of the commit. GitHub has no ignore list, so `.git-blame-ignore-revs` is not read and `ignoreRevsFile` is false. A blame takes up to about 3 s.
+- For `browser`, as for `pass_through`. The server cannot tell a binary file, so the 422 for a file that is not renderable covers only a symlink and a file above 1 MiB.
 - Caching as for V7, with the ETag `W/"v1-<commitSha>-<blobSha>"`. See [README.md section 6](README.md#6-caching-and-etags).
 
 Example response, [fixtures/blame.php.json](fixtures/blame.php.json):

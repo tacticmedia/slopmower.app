@@ -111,6 +111,10 @@ and read their whole thread, because the user rejected an earlier result.
      `anchor.symbol.fqn`. The server rebuilds these lines from the blob of the
      review commit. When the blob is gone, for example after a force-push, they
      are null: use `anchor.path`, `anchor.range`, and `anchor.symbol.fqn`.
+   - On a repository with the code access Browser only, the server reads no
+     code: `anchor.snapshot` and `excerpt` are null, and `location` can be
+     `unverified`, at the old lines of a changed file. Read `anchor.path` at
+     `anchor.commitSha` in your clone, then find those lines at your commit.
    - `context` adds an excerpt of the located code with that many lines around
      it, at most 50.
    - `at` locates the anchor at another commit that the server can read. Use a

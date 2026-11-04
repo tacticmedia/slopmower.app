@@ -144,6 +144,8 @@ If an agent claimed a request and stopped working on it, click **Unassign**. The
 
 A request is **Outdated** when its code changed on the default branch, or when Slopmower cannot find the code there any more. The review view always shows the code at the review commit, so the request stays at its original place. The label tells you that the code on the default branch is different.
 
+With the [code access](code-access.md#browser-only) Browser only, Slopmower cannot read the code, so a request on a file that changed stays on its old lines, with the location **Unverified**, and is **Outdated**.
+
 ## Carry over open requests
 
 When the code moved on, start a new review at the later commit and take the open requests of an older review with you. On the repository page, under **Start a review**, pick the older review in **Carry over open requests from**, then click **Start review**.

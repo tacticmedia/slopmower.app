@@ -35,7 +35,8 @@ use Psr\Cache\CacheItemPoolInterface;
 
 /**
  * D112: reads one GitHub repository per call through {@see GitHubRepositoryClient}. The cache holds tree listings and
- * commit metadata, never blob bodies. {@see close()} deletes the scratch copies.
+ * commit metadata, never blob bodies. {@see close()} deletes the scratch copies. In Browser only (D114) it reads
+ * metadata only: every read of file content answers `code_in_browser`, and changes come from {@see TreeDiff}.
  */
 final class GitHubCodeReader implements CodeReader
 {
@@ -116,6 +117,7 @@ final class GitHubCodeReader implements CodeReader
         private readonly ScratchCopies $scratch,
         private readonly \Closure $checkScratchSize,
         private readonly string $gitBaseUrl,
+        private readonly bool $browserOnly,
     ) {
     }
 
@@ -191,6 +193,10 @@ final class GitHubCodeReader implements CodeReader
      */
     public function changedFiles(?CommitSha $parent, CommitSha $commit): array
     {
+        if ($this->browserOnly) {
+            return $this->treeChanges($parent, $commit);
+        }
+
         $files = [];
         $path = "commits/{$commit}";
 
@@ -259,6 +265,7 @@ final class GitHubCodeReader implements CodeReader
      */
     public function openBlob(BlobSha $blob): ?StreamedBlob
     {
+        $this->refuseInBrowser();
         $response = $this->api->find("git/blobs/{$blob}", ['Accept' => self::RAW_MEDIA_TYPE, 'Accept-Encoding' => 'identity']);
 
         if (null === $response) {
@@ -295,6 +302,8 @@ final class GitHubCodeReader implements CodeReader
      */
     public function readBlob(BlobSha $blob): ?Blob
     {
+        $this->refuseInBrowser();
+
         if (isset($this->blobs[$blob->toString()])) {
             return new Blob($blob, $this->blobs[$blob->toString()]);
         }
@@ -311,11 +320,11 @@ final class GitHubCodeReader implements CodeReader
 
     /**
      * The `renamed` and `removed` files of `compare`, which lists at most 300 files. GitHub compares from the merge base
-     * of the two commits, which is $from when $to follows it.
+     * of the two commits, which is $from when $to follows it. Browser only compares the trees of the two commits.
      */
     public function pathAfter(CommitSha $from, CommitSha $to, RepoPath $path): ?string
     {
-        $changedPaths = $this->changedPaths["{$from}\0{$to}"] ??= $this->comparedPaths($from, $to);
+        $changedPaths = $this->changedPaths["{$from}\0{$to}"] ??= $this->browserOnly ? self::movedPaths($this->treeChanges($from, $to)) : $this->comparedPaths($from, $to);
 
         return \array_key_exists($path->toString(), $changedPaths) ? $changedPaths[$path->toString()] : $path->toString();
     }
@@ -325,6 +334,7 @@ final class GitHubCodeReader implements CodeReader
      */
     public function unifiedZeroDiff(BlobSha $from, BlobSha $to): string
     {
+        $this->refuseInBrowser();
         $repository = $this->diffRepository ??= $this->scratch->emptyRepository();
 
         foreach ([$from, $to] as $blob) {
@@ -404,6 +414,8 @@ final class GitHubCodeReader implements CodeReader
      */
     public function withLocalCopy(CommitSha $commit, callable $callback): mixed
     {
+        $this->refuseInBrowser();
+
         if (!isset($this->copies[$commit->toString()])) {
             $sizeBytes = $this->sizeBytes();
 
@@ -414,6 +426,8 @@ final class GitHubCodeReader implements CodeReader
             $command = FetchCommand::gitHub($this->gitBaseUrl, $this->name, $this->api->token());
             $this->copies[$commit->toString()] = $this->scratch->copy($this->repositoryId, $command->url, $command->secretConfiguration, $commit);
         }
+
+        $this->scratch->markInUse($this->copies[$commit->toString()]);
 
         return $callback($this->copies[$commit->toString()]);
     }
@@ -608,20 +622,59 @@ final class GitHubCodeReader implements CodeReader
      */
     private function comparedPaths(CommitSha $from, CommitSha $to): array
     {
-        $changedPaths = [];
         $body = $this->api->json($this->api->get("compare/{$from}...{$to}"));
+        $changes = array_values(array_filter(array_map(self::change(...), \is_array($body['files'] ?? null) ? $body['files'] : [])));
 
-        foreach (\is_array($body['files'] ?? null) ? $body['files'] : [] as $file) {
-            $change = self::change($file);
+        return self::movedPaths(array_map(static fn (array $change): ChangedFile => new ChangedFile($change['status'], $change['path'], $change['oldPath'], null, null, null, null, null, null), $changes));
+    }
 
-            match ($change['status'] ?? null) {
-                ChangeStatus::Renamed => $changedPaths[(string) $change['oldPath']] = $change['path'],
-                ChangeStatus::Deleted => $changedPaths[$change['path']] = null,
+    /**
+     * @param list<ChangedFile> $changes
+     *
+     * @return array<string, string|null> The new path by the old path of a rename, null for a deletion
+     */
+    private static function movedPaths(array $changes): array
+    {
+        $movedPaths = [];
+
+        foreach ($changes as $change) {
+            match ($change->status) {
+                ChangeStatus::Renamed => $movedPaths[(string) $change->oldPath] = $change->path,
+                ChangeStatus::Deleted => $movedPaths[$change->path] = null,
                 default => null,
             };
         }
 
-        return $changedPaths;
+        return $movedPaths;
+    }
+
+    /**
+     * @return list<ChangedFile>
+     */
+    private function treeChanges(?CommitSha $from, CommitSha $to): array
+    {
+        return TreeDiff::changes(
+            $from,
+            $to,
+            fn (array $directories, bool $recursive) => $this->prefetchTrees($directories, $recursive),
+            function (CommitSha $commit, ?string $directory, bool $recursive): ?array {
+                try {
+                    return $this->tree($commit, $directory, $recursive);
+                } catch (GitFailed) {
+                    return null;
+                }
+            },
+        );
+    }
+
+    /**
+     * @throws RepositoryUnavailable With `code_in_browser`
+     */
+    private function refuseInBrowser(): void
+    {
+        if ($this->browserOnly) {
+            throw new RepositoryUnavailable($this->repositoryId, RepositoryUnavailableReason::CodeInBrowser);
+        }
     }
 
     /**

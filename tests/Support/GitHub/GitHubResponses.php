@@ -121,6 +121,9 @@ final class GitHubResponses
     /** @var list<string> The paths below `repos/` and `graphql` of the requests, in order */
     private array $repositoryCalls = [];
 
+    /** @var list<mixed> The JSON bodies of the installation token requests, in order */
+    private array $installationTokenRequests = [];
+
     /** @var array<string, array{int, array<string, string>, string}> Status, headers, and body by path prefix below `repos/{owner}/{name}/` */
     private array $codeReadAnswers = [];
 
@@ -152,7 +155,7 @@ final class GitHubResponses
             'GET https://api.github.com/user' === $request => self::USER_FIXTURE_BY_ACCESS_TOKEN[self::bearerToken($options)] ?? null,
             'GET https://api.github.com/user/emails' === $request => 'user-emails-forbidden',
             str_starts_with($request, 'GET '.self::API.'user/installations') => self::LISTING_FIXTURES_BY_ACCESS_TOKEN[self::bearerToken($options)][substr($url, \strlen(self::API))] ?? null,
-            1 === preg_match('~^POST https://api\.github\.com/app/installations/\d+/access_tokens$~', $request) => self::installationTokenFixture($options),
+            1 === preg_match('~^POST https://api\.github\.com/app/installations/\d+/access_tokens$~', $request) => $this->installationTokenFixture($options),
             1 === preg_match('~^GET https://api\.github\.com/repos/[^/]+/[^/]+/pulls/\d+$~', $request) => self::PULL_REQUESTS_INSTALLATION_TOKEN === self::bearerToken($options)
                 ? self::PULL_REQUEST_FIXTURES[substr($url, \strlen(self::API))] ?? 'pull-request-not-found'
                 : 'user-unauthorized',
@@ -209,6 +212,14 @@ final class GitHubResponses
     public function repositoryCalls(): array
     {
         return $this->repositoryCalls;
+    }
+
+    /**
+     * @return list<mixed> The JSON bodies of the installation token requests so far
+     */
+    public function installationTokenRequests(): array
+    {
+        return $this->installationTokenRequests;
     }
 
     public function gitBacked(string $fullName): GitBackedGitHub
@@ -292,10 +303,11 @@ final class GitHubResponses
     /**
      * @param array{normalized_headers?: array<string, list<string>>, body?: mixed} $options
      */
-    private static function installationTokenFixture(array $options): string
+    private function installationTokenFixture(array $options): string
     {
         $isAppJwt = self::isAppJwt($options);
         $body = \is_string($options['body'] ?? null) ? json_decode($options['body'], true) : null;
+        $this->installationTokenRequests[] = $body;
         $isLimited = \is_array($body)
             && ['permissions', 'repository_ids'] === array_keys(self::sorted($body))
             && \is_array($body['repository_ids']) && 1 === \count($body['repository_ids']) && \is_int($body['repository_ids'][0] ?? null);

@@ -1,7 +1,7 @@
 import type { Actor } from './actor';
 import type { Action, CommitSha, DateTime, ErrorCode, RequestStatus, Ulid, UsageLimit } from './common';
 
-export const REPOSITORY_UNAVAILABLE_REASONS = ['cloning', 'clone_failed', 'fetch_failed', 'removed'] as const;
+export const REPOSITORY_UNAVAILABLE_REASONS = ['cloning', 'clone_failed', 'fetch_failed', 'removed', 'code_in_browser', 'code_on_server'] as const;
 export type RepositoryUnavailableReason = (typeof REPOSITORY_UNAVAILABLE_REASONS)[number];
 
 export type InvalidInputDetails = {

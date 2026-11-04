@@ -32,11 +32,15 @@ WORKDIR /app
 
 COPY --link package.json package-lock.json ./
 COPY --link bin/patch-react-router.mjs bin/
+COPY --link symbols/package.json symbols/package-lock.json symbols/
 
-RUN npm ci --no-audit --no-fund && rm -rf /root/.npm
+# The outline of Browser only bundles the grammars of symbols (D114).
+RUN npm ci --no-audit --no-fund && npm ci --prefix symbols --ignore-scripts --no-audit --no-fund && rm -rf /root/.npm
 
 COPY --link vite.config.ts tsconfig*.json ./
 COPY --link assets assets
+COPY --link symbols/src symbols/src
+COPY --link symbols/queries symbols/queries
 
 # D100. The secret is not part of the cache key, the arguments are, so an upload build never reuses a build without them.
 ARG SENTRY_ORG

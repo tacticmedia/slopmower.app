@@ -4,11 +4,12 @@ import { HelpLink } from '../../layout/HelpLink';
 import { HELP } from '../../layout/helpLinks';
 import styles from './CodeAccess.module.css';
 
-export const CODE_ACCESS_NAMES: Record<CodeAccess, string> = { clone: 'Server copy', pass_through: 'Pass-through' };
+export const CODE_ACCESS_NAMES: Record<CodeAccess, string> = { clone: 'Server copy', pass_through: 'Pass-through', browser: 'Browser only' };
 
 const SUMMARIES: Record<CodeAccess, string> = {
     clone: 'Slopmower keeps a copy of the repository. Fastest; works during a GitHub outage.',
     pass_through: 'Slopmower reads the code from GitHub on each request and stores none.',
+    browser: 'Your browser reads the code from GitHub. Slopmower never reads the files, and some features are off.',
 };
 
 type Props = {
@@ -16,7 +17,7 @@ type Props = {
     onChange: (codeAccess: CodeAccess) => void;
 };
 
-/** The mode of the next GitHub connect (D111). Nothing is preselected, and Connect waits for a choice. */
+/** The mode of the next GitHub connect (D111, D114). Nothing is preselected, and Connect waits for a choice. */
 export function CodeAccessChoice({ value, onChange }: Props) {
     return (
         <div className={styles.choice}>

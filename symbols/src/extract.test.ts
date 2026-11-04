@@ -2,11 +2,12 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { SYMBOL_KINDS } from '../../assets/api/types/common.ts';
 import { extract, ROLES, type SymbolTable } from './extract.ts';
-import { type LoadedLanguage, loadLanguages } from './languages.ts';
+import { BROWSER_LANGUAGES, type LoadedLanguage, loadLanguage, loadLanguages } from './languages.ts';
+import { NODE_FILES } from './nodeFiles.ts';
 
 type Row = [kind: string, fqn: string, name: string, parentFqn: string | null, start: number, end: number, declarationStartLine: number, docStartLine: number | null];
 
-const languages = await loadLanguages();
+const languages = await loadLanguages(NODE_FILES);
 
 function language(id: string): LoadedLanguage {
     const loaded = languages.get(id);
@@ -317,6 +318,43 @@ describe('ExtractTest', () => {
             ['function', 'parse()', 'parse', null, 1, 6, 2, 1],
             ['function', 'parse()', 'parse', null, 7, 7, 7, null],
         ]);
+    });
+
+    it('The PHP outline of the browser gives classes and their members, without a namespace', async () => {
+        const php = await loadLanguage(BROWSER_LANGUAGES.php ?? expect.unreachable(), NODE_FILES);
+        const source = [
+            '<?php',
+            '',
+            'namespace App\\Billing;',
+            '',
+            '/** Totals. */',
+            '#[Final]',
+            'final class Invoice',
+            '{',
+            '    public const SCALE = 2;',
+            '',
+            '    private int $total = 0;',
+            '',
+            '    public function total(): int',
+            '    {',
+            '        return $this->total;',
+            '    }',
+            '}',
+            '',
+        ].join('\n');
+
+        expect(rows(extract(php, source))).toEqual([
+            ['class', 'Invoice', 'Invoice', null, 5, 17, 6, 5],
+            ['class_constant', 'Invoice::SCALE', 'SCALE', 'Invoice', 9, 9, 9, null],
+            ['property', 'Invoice::total', 'total', 'Invoice', 11, 11, 11, null],
+            ['method', 'Invoice::total()', 'total', 'Invoice', 13, 16, 13, null],
+        ]);
+    });
+
+    it('The outline worker of the SPA bundles the grammar of every browser language', () => {
+        const worker = readFileSync(new URL('../../assets/code/outlineWorker.ts', import.meta.url), 'utf8');
+
+        expect(Object.values(BROWSER_LANGUAGES).filter(({ grammar }) => !worker.includes(`'../../symbols/node_modules/${grammar}'`))).toEqual([]);
     });
 
     it('Every kind that a query captures is a SymbolKind of the contract', () => {

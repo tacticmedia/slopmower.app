@@ -56,18 +56,20 @@ export function FileRoute() {
     // The blame view keeps one row height, so it has no threads and no line wrap.
     const blameMode = null !== blame;
     const writable = commentable && !blameMode;
-    const { symbols, failed: symbolsFailed } = useFileSymbols(review.id, content.path, null !== text);
+    // Browser only (D114): V7 gives no raw URL, and the server has no symbols.
+    const browserOnly = null === content.rawUrl;
+    const { symbols, failed: symbolsFailed } = useFileSymbols(review.id, content.path, null === text ? null : { language: content.language, text, inBrowser: browserOnly });
     const fileThreads = useMemo(() => comments.threads.filter((thread) => null === thread.range), [comments.threads]);
     const filePendingDrafts = useMemo(() => comments.drafts.filter((draft) => null === draft.range), [comments.drafts]);
     const fileComposer = null !== comments.composer && null === comments.composer.range ? comments.composer : null;
     const [wrap, setWrap] = usePreference('wrap');
     // V14 resolves names in PHP files only.
-    const navigable = 'php' === content.language && null !== text;
+    const navigable = 'php' === content.language && null !== text && !browserOnly;
     const goTo = useGoToDeclaration(review.id, content.path);
     const { select } = selection;
     const { open } = comments;
     // An exact symbol range anchors to the symbol.
-    const openLines = useCallback((range: LineRange) => open(range, null === symbols ? null : matchingSymbol(symbols, range)), [open, symbols]);
+    const openLines = useCallback((range: LineRange) => open(range, null === symbols || browserOnly ? null : matchingSymbol(symbols, range)), [open, symbols, browserOnly]);
     const commentOnLines = useCallback(
         (range: LineRange) => {
             select(range);
@@ -142,7 +144,7 @@ export function FileRoute() {
                     </Button>
                 )}
                 {writable && null !== text && null !== content.lineCount && <CommentOnLinesForm lineCount={content.lineCount} onSubmit={commentOnLines} />}
-                {writable && null !== text && <SymbolsMenu symbols={symbols} failed={symbolsFailed} onChoose={commentOnSymbol} />}
+                {writable && null !== text && !browserOnly && <SymbolsMenu symbols={symbols} failed={symbolsFailed} onChoose={commentOnSymbol} />}
                 {writable && (
                     <Button size="small" onClick={() => open(null)}>
                         Comment on file
@@ -150,7 +152,7 @@ export function FileRoute() {
                 )}
                 {/* The route stays mounted across files, so the key drops the result of another file. */}
                 <ViewedCheckbox key={content.path} path={content.path} viewed={viewedPaths.includes(content.path)} disabled={!commentable} />
-                <RawActions content={content} text={text} />
+                <RawActions content={content} text={text} repositoryName={review.repositoryName} />
             </FileHeader>
             {blame?.ignoreRevsFile && (
                 <p className={styles.ignoreRevs} data-testid="ignore-revs">
@@ -209,15 +211,23 @@ function ViewSwitch({ reviewId, path, blame, canBlame }: { reviewId: string; pat
     );
 }
 
-/** V8 serves the bytes as `text/plain` with a sandbox CSP, so "Raw" opens them in a tab. */
-function RawActions({ content, text }: { content: FileContent; text: string | null }) {
+/** V8 serves the bytes as `text/plain` with a sandbox CSP, so "Raw" opens them in a tab. Browser only has no V8. */
+function RawActions({ content, text, repositoryName }: { content: FileContent; text: string | null; repositoryName: string }) {
+    const { rawUrl } = content;
+
     return (
         <ButtonGroup>
-            <Button as="a" size="small" href={content.rawUrl} target="_blank" rel="noreferrer">
-                Raw
-            </Button>
+            {null === rawUrl ? (
+                <Button as="a" size="small" href={`https://github.com/${repositoryName}/blob/${content.commitSha}/${content.path.split('/').map(encodeURIComponent).join('/')}`} target="_blank" rel="noreferrer">
+                    View on GitHub
+                </Button>
+            ) : (
+                <Button as="a" size="small" href={rawUrl} target="_blank" rel="noreferrer">
+                    Raw
+                </Button>
+            )}
             {null !== text && <CopyButton text={text} label="Copy raw file" iconOnly />}
-            <IconButton as="a" size="small" href={content.rawUrl} download={content.path.slice(content.path.lastIndexOf('/') + 1)} icon={DownloadIcon} aria-label="Download raw file" />
+            {null !== rawUrl && <IconButton as="a" size="small" href={rawUrl} download={content.path.slice(content.path.lastIndexOf('/') + 1)} icon={DownloadIcon} aria-label="Download raw file" />}
         </ButtonGroup>
     );
 }

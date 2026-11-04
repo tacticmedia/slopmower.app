@@ -11,6 +11,8 @@ use App\Domain\Error\RateLimited;
 use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Error\RepositoryUnavailableReason;
 use App\Domain\Git\RepoPath;
+use App\Domain\Repository\CodeAccess;
+use App\Entity\Repository;
 use App\Entity\Review;
 use App\Git\CodeReader;
 use App\Git\TreeEntry;
@@ -19,6 +21,7 @@ use App\Index\IndexSql;
 use App\Live\LivePublisher;
 use App\Live\LiveTopics;
 use App\Message\IndexReview;
+use App\Repository\RepositoryRepository;
 use App\Repository\ReviewRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -43,6 +46,7 @@ final class IndexReviewHandler
 
     public function __construct(
         private readonly ReviewRepository $reviews,
+        private readonly RepositoryRepository $repositories,
         private readonly FetchRepository $fetchRepository,
         private readonly BlobSymbols $blobSymbols,
         private readonly IndexSql $indexSql,
@@ -94,8 +98,9 @@ final class IndexReviewHandler
     }
 
     /**
-     * Inserts every listed path. Rows of the commit that another review or an earlier run stored stay.
-     * Publishes the progress at most once per {@see PUBLISH_INTERVAL_SECONDS}, after a write of the parsed blobs.
+     * Inserts every listed path. Rows of the commit that another review or an earlier run stored stay. Browser only
+     * parses nothing (D114). Publishes the progress at most once per {@see PUBLISH_INTERVAL_SECONDS}, after a write of
+     * the parsed blobs.
      */
     private function index(Review $review, float $publishedAtUnixSeconds): void
     {
@@ -105,12 +110,20 @@ final class IndexReviewHandler
         // V6 to V9 take only paths that RepoPath accepts, and git accepts more.
         $entries = array_values(array_filter($reader->lsTreeRecursive($commit), self::hasRepoPath(...)));
         $this->indexSql->insertFiles($repository->getTenantId(), $repository->getId(), $commit, $entries);
+
+        if (CodeAccess::Browser === $repository->getCodeAccess()) {
+            $review->recordIndexProgress(count($entries), count($entries), 0);
+
+            return;
+        }
+
         $symbolCounts = $this->indexSql->storedSymbolCounts($repository->getTenantId(), $repository->getId(), $commit);
         $unparsed = array_unique(array_map(
             static fn (TreeEntry $entry): string => $entry->objectId,
             array_filter($entries, fn (TreeEntry $entry): bool => !isset($symbolCounts[$entry->objectId]) && $this->blobSymbols->supports(RepoPath::fromString($entry->path))),
         ));
-        $parse = fn (CodeReader $reader): null => $this->parseEntries($review, $reader, $entries, $symbolCounts, $publishedAtUnixSeconds);
+        $codeAccess = $repository->getCodeAccess();
+        $parse = fn (CodeReader $reader): null => $this->parseEntries($review, $reader, $entries, $symbolCounts, $publishedAtUnixSeconds, $codeAccess);
 
         if (count($unparsed) > $this->maxBlobReads) {
             $reader->withLocalCopy($commit, $parse);
@@ -120,10 +133,13 @@ final class IndexReviewHandler
     }
 
     /**
+     * A switch of the code access during the job stops it without a write, because Browser only keeps no symbols
+     * (D114), and the switch queues a new index job.
+     *
      * @param list<TreeEntry>    $entries
      * @param array<string, int> $symbolCounts The stored symbol counts by blob
      */
-    private function parseEntries(Review $review, CodeReader $reader, array $entries, array $symbolCounts, float $publishedAtUnixSeconds): null
+    private function parseEntries(Review $review, CodeReader $reader, array $entries, array $symbolCounts, float $publishedAtUnixSeconds, CodeAccess $codeAccess): null
     {
         $repository = $review->getRepository();
         $filesTotal = count($entries);
@@ -152,6 +168,10 @@ final class IndexReviewHandler
             $publish = $nowUnixSeconds - $publishedAtUnixSeconds >= self::PUBLISH_INTERVAL_SECONDS;
 
             if ($publish || $parsedRows >= self::WRITE_BATCH_ROWS) {
+                if ($this->switched($repository, $codeAccess)) {
+                    return null;
+                }
+
                 $this->indexSql->insertBlobs($repository->getTenantId(), $repository->getId(), $parsed);
                 $parsed = [];
                 $parsedRows = 0;
@@ -163,9 +183,16 @@ final class IndexReviewHandler
             }
         }
 
-        $this->indexSql->insertBlobs($repository->getTenantId(), $repository->getId(), $parsed);
+        if (!$this->switched($repository, $codeAccess)) {
+            $this->indexSql->insertBlobs($repository->getTenantId(), $repository->getId(), $parsed);
+        }
 
         return null;
+    }
+
+    private function switched(Repository $repository, CodeAccess $codeAccess): bool
+    {
+        return $codeAccess !== $this->repositories->findFresh($repository->getId())?->getCodeAccess();
     }
 
     /**

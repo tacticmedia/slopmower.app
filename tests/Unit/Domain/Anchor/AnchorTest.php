@@ -58,7 +58,8 @@ final class AnchorTest extends KernelTestCase
     public static function invalidFields(): iterable
     {
         yield 'file with range, symbol, and snapshot' => [AnchorKind::File, LineRange::of(1, 2), self::symbol(), self::snapshot(2), ['range', 'symbol', 'snapshot']];
-        yield 'line without range and snapshot' => [AnchorKind::Line, null, null, null, ['range', 'snapshot']];
+        yield 'line without range' => [AnchorKind::Line, null, null, null, ['range']];
+        yield 'symbol without snapshot' => [AnchorKind::Symbol, LineRange::of(38, 49), self::symbol(), null, ['snapshot']];
         yield 'line with a symbol' => [AnchorKind::Line, LineRange::of(3, 3), self::symbol(), self::snapshot(1), ['symbol']];
         yield 'line over two lines' => [AnchorKind::Line, LineRange::of(3, 4), null, self::snapshot(2), ['range.endLine']];
         yield 'range of one line' => [AnchorKind::Range, LineRange::of(3, 3), null, self::snapshot(1), ['range.endLine']];

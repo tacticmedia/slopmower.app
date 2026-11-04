@@ -9,8 +9,11 @@ use App\Application\Query\DeclarationList;
 use App\Application\Query\FileQuery;
 use App\Controller\Api\Input\DeclarationQuery;
 use App\Domain\Error\InvalidInput;
+use App\Domain\Error\RepositoryUnavailable;
+use App\Domain\Error\RepositoryUnavailableReason;
 use App\Domain\Git\BlobSha;
 use App\Domain\Git\RepoPath;
+use App\Domain\Repository\CodeAccess;
 use App\Entity\Review;
 use App\Index\FileLanguage;
 use App\Index\IndexSql;
@@ -46,6 +49,11 @@ final class DeclarationController extends AbstractController
         $repository = $review->getRepository();
         $reader = $fetchRepository->readyReader($repository->getId());
         $entry = $files->entry($reader, $review, $path);
+
+        if (CodeAccess::Browser === $repository->getCodeAccess()) {
+            throw new RepositoryUnavailable($repository->getId(), RepositoryUnavailableReason::CodeInBrowser);
+        }
+
         $blob = $entry->isRenderableFile() ? $reader->readBlob(BlobSha::fromString($entry->objectId)) : null;
         $source = null === $blob || $blob->isBinary() ? null : $blob->bytes;
         $references = match (true) {

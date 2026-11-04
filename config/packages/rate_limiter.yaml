@@ -34,3 +34,9 @@ framework:
             rate: { interval: '1 hour', amount: '%env(int:APP_RATE_LIMIT_REVIEW_START_PER_HOUR)%' }
             cache_pool: rate_limiter.cache
             lock_factory: null
+        code_token:
+            policy: token_bucket
+            limit: '%env(int:APP_RATE_LIMIT_CODE_TOKEN_PER_HOUR)%'
+            rate: { interval: '1 hour', amount: '%env(int:APP_RATE_LIMIT_CODE_TOKEN_PER_HOUR)%' }
+            cache_pool: rate_limiter.cache
+            lock_factory: null

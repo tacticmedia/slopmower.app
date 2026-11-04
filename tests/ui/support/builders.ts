@@ -15,7 +15,7 @@ import type { CommitDiff, CommitDiffFile } from '../../../assets/api/types/commi
 import type { Declaration } from '../../../assets/api/types/declaration';
 import type { ErrorBody, ErrorDetails } from '../../../assets/api/types/error';
 import type { Event } from '../../../assets/api/types/event';
-import type { CandidateList, CommitLog, DeclarationList, MercureAuthorization, ReviewPage, SearchHitList } from '../../../assets/api/types/lists';
+import type { CandidateList, CodeToken, CommitLog, DeclarationList, MercureAuthorization, ReviewPage, SearchHitList } from '../../../assets/api/types/lists';
 import type { Me } from '../../../assets/api/types/me';
 import type { Repository } from '../../../assets/api/types/repository';
 import type { RepositoryCandidate } from '../../../assets/api/types/repository-candidate';
@@ -74,6 +74,11 @@ export function mercureAuthorization(): MercureAuthorization {
     const tenantId = me().tenantId;
 
     return { ...authorization, topics: authorization.topics.map((topic) => topic.replace(/tenants\/[^/]+/, `tenants/${tenantId}`)), expiresAt: now(3600) };
+}
+
+/** R11, valid for an hour, as GitHub gives it. */
+export function codeToken(): CodeToken {
+    return { ...fixture<CodeToken>('lists.code-token.json'), expiresAt: now(3600) };
 }
 
 export function errorBody(code: string, message: string, details: ErrorDetails | null = null): ErrorBody {

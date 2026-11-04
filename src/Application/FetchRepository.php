@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application;
 
+use App\Anchoring\LocationCacheSql;
 use App\Application\Event\RepositoryChanged;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Error\NotFound;
@@ -18,6 +19,7 @@ use App\Entity\Repository;
 use App\Git\CodeReader;
 use App\Git\RepositoryLock;
 use App\Git\TenantDataPaths;
+use App\Index\IndexSql;
 use App\Message\CloneRepositoryJob;
 use App\Message\DeleteCloneJob;
 use App\Message\FetchRepositoryJob;
@@ -48,6 +50,8 @@ final class FetchRepository
         private readonly RateLimits $rateLimits,
         private readonly TenantDataPaths $paths,
         private readonly CodeReaders $readers,
+        private readonly IndexSql $indexSql,
+        private readonly LocationCacheSql $locationCache,
         private readonly MessageBusInterface $bus,
         private readonly EventDispatcherInterface $dispatcher,
         private readonly Connection $connection,
@@ -92,10 +96,11 @@ final class FetchRepository
     }
 
     /**
-     * R10 (D111): a new code access queues the clone job, which deletes the clone of a change to Pass-through and clones
-     * after a change to Server copy. The same value changes nothing.
+     * R10 (D111): a new code access queues the clone job, which deletes the clone of a change away from Server copy and
+     * clones after a change to Server copy. The same value changes nothing. Entering Browser only deletes the symbols,
+     * the parsed blobs, and the location cache, and leaving it deletes its `unverified` locations (D114).
      *
-     * @throws InvalidInput          Pass-through for a local repository
+     * @throws InvalidInput          Pass-through or Browser only for a local repository
      * @throws RepositoryUnavailable With the reason `removed`
      */
     public function changeCodeAccess(Repository $repository, CodeAccess $codeAccess): void
@@ -106,13 +111,26 @@ final class FetchRepository
             throw InvalidInput::field('codeAccess', 'A local repository is always clone.');
         }
 
-        if (SyncState::Unavailable === $this->repositories->findFresh($repository->getId())?->getSyncState()) {
+        $current = $this->repositories->findFresh($repository->getId());
+        $previous = $current?->getCodeAccess();
+
+        if (SyncState::Unavailable === $current?->getSyncState()) {
             throw new RepositoryUnavailable($repository->getId(), RepositoryUnavailableReason::Removed);
         }
 
-        if ($this->repositories->changeCodeAccess($repository->getId(), $codeAccess)) {
-            $this->queueClone($repository);
+        if (!$this->repositories->changeCodeAccess($repository->getId(), $codeAccess)) {
+            return;
         }
+
+        if (CodeAccess::Browser === $codeAccess) {
+            $this->indexSql->deleteParsedBlobs($repository->getTenantId(), $repository->getId());
+        }
+
+        if (CodeAccess::Browser === $codeAccess || CodeAccess::Browser === $previous) {
+            $this->locationCache->deleteOfRepository($repository->getTenantId(), $repository->getId());
+        }
+
+        $this->queueClone($repository);
     }
 
     /**

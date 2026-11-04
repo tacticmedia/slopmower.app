@@ -31,7 +31,7 @@ final class ShellRouteTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('body > div#root:empty'));
         self::assertCount(1, $crawler->filter('script[type="module"][src^="/build-e2e/"]'));
-        self::assertResponseHeaderSame('Content-Security-Policy', "img-src 'self' data: https://avatars.githubusercontent.com");
+        self::assertResponseHeaderSame('Content-Security-Policy', "img-src 'self' data: blob: https://avatars.githubusercontent.com");
     }
 
     /**

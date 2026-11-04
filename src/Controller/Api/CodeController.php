@@ -105,7 +105,9 @@ final class CodeController extends AbstractController
         $path = RepoPath::fromString((string) $query->path);
         $reader = $this->fetchRepository->readyReader($review->getRepository()->getId());
         $entry = $this->files->entry($reader, $review, $path);
-        $headers = ['ETag' => 'W/"'.self::FILE_ETAG_VERSION."-{$entry->objectId}\""] + self::FILE_CACHE_HEADERS;
+        // The body of Browser only differs.
+        $browser = CodeAccess::Browser === $review->getRepository()->getCodeAccess() ? '-browser' : '';
+        $headers = ['ETag' => 'W/"'.self::FILE_ETAG_VERSION."{$browser}-{$entry->objectId}\""] + self::FILE_CACHE_HEADERS;
         $notModified = new Response(null, Response::HTTP_OK, $headers);
 
         return $notModified->isNotModified($request) ? $notModified : $this->json($this->files->get($reader, $review, $entry), Response::HTTP_OK, $headers);
@@ -144,7 +146,8 @@ final class CodeController extends AbstractController
             return $notModified;
         }
 
-        if (!$this->files->get($reader, $review, $entry)->isRenderable()) {
+        // Browser only cannot tell a binary file.
+        if (!($this->files->get($reader, $review, $entry)->isRenderable() ?? $entry->isRenderableFile())) {
             throw InvalidInput::field('path', 'Must name a renderable file: not a symlink, not binary, and at most 1 MiB.');
         }
 

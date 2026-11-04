@@ -113,14 +113,15 @@
         "additions": {
           "type": ["integer", "null"],
           "minimum": 0,
-          "description": "Null for binary files."
+          "description": "Null for binary files, and for browser."
         },
         "deletions": {
           "type": ["integer", "null"],
           "minimum": 0
         },
         "binary": {
-          "type": "boolean"
+          "type": ["boolean", "null"],
+          "description": "Null for browser: the server reads no blob, and the client reads both sides from GitHub."
         },
         "tooLarge": {
           "type": "boolean",

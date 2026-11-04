@@ -91,5 +91,9 @@ test.describe('Repositories', () => {
         await page.locator('[data-testid="code-access"]').getByRole('button', { name: 'Change' }).click();
         await page.getByRole('menuitemradio', { name: 'Pass-through' }).click();
         await captureScreen('Code access switch', page.getByRole('dialog'));
+        await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click();
+        await page.locator('[data-testid="code-access"]').getByRole('button', { name: 'Change' }).click();
+        await page.getByRole('menuitemradio', { name: 'Browser only' }).click();
+        await captureScreen('Code access switch to Browser only', page.getByRole('dialog'));
     });
 });

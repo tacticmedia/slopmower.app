@@ -57,12 +57,14 @@ db-test: ## Create app_test and app_e2e when they are missing, then migrate them
 
 test: ## Unit and functional suites
 ifneq ($(PACKAGE_JSON),)
+test: symbols/node_modules/.package-lock.json
 	test -f public/build-e2e/entrypoints.json || npm run build:e2e
 endif
 	$(PHP) bin/phpunit --testsuite unit,functional
 
 e2e: ## Full-stack suite: Playwright in the php container against the e2e site on port 8081
 ifneq ($(PACKAGE_JSON),)
+e2e: symbols/node_modules/.package-lock.json
 	npm run build:e2e
 endif
 	$(PHP) sh -c 'npm --prefix vendor/playwright-php/playwright/bin install --save-exact --no-audit --no-fund "playwright@$$PLAYWRIGHT_VERSION"'
@@ -91,19 +93,22 @@ front: symbols/node_modules/.package-lock.json
 	npm run typecheck && npm test
 endif
 
-# Installs again when the lock file is newer than the installed packages.
+# Installs again when the lock file is newer than the installed packages. The SPA bundles the grammars and the queries
+# of symbols for the outline of Browser only (D114).
 symbols/node_modules/.package-lock.json: symbols/package-lock.json
 	npm ci --prefix symbols --ignore-scripts --no-audit --no-fund
 	touch $@
 
 ui: ## Playwright suite against the mocked API on the host, port UI_PORT
 ifneq ($(PACKAGE_JSON),)
+ui: symbols/node_modules/.package-lock.json
 	npx playwright install chromium
 	npm run test:ui
 endif
 
 journeys: ## Screenshots of the journeys against the mocked API on the host, port JOURNEY_PORT, for /_dev/screenshots. Not a gate.
 ifneq ($(PACKAGE_JSON),)
+journeys: symbols/node_modules/.package-lock.json
 	npx playwright install chromium
 	npm run test:journeys
 	@echo "Review the screenshots at http://localhost:$(or $(HTTP_PORT),8000)/_dev/screenshots"

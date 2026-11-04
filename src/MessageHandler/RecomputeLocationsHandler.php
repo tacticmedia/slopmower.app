@@ -31,7 +31,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 #[AsMessageHandler]
 final class RecomputeLocationsHandler
 {
-    private const array OUTDATED_STATUSES = [LocationStatus::Changed, LocationStatus::Orphaned];
+    private const array OUTDATED_STATUSES = [LocationStatus::Changed, LocationStatus::Orphaned, LocationStatus::Unverified];
 
     public function __construct(
         private readonly ReviewRepository $reviews,

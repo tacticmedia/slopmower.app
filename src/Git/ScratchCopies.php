@@ -8,7 +8,9 @@ use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Error\RepositoryUnavailableReason;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\RepositoryId;
+use Psr\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 
@@ -20,6 +22,9 @@ final class ScratchCopies
 {
     private const float FETCH_TIMEOUT_SECONDS = 300.0;
 
+    /** A process that died on a fatal error left the copies that are older. */
+    private const int LEFTOVER_AGE_SECONDS = 3600;
+
     private readonly string $root;
 
     public function __construct(
@@ -30,6 +35,7 @@ final class ScratchCopies
         string $projectDir,
         #[Autowire(param: 'kernel.environment')]
         private readonly string $environment,
+        private readonly ClockInterface $clock,
     ) {
         $this->root = Path::makeAbsolute($scratchDir, $projectDir);
     }
@@ -62,6 +68,7 @@ final class ScratchCopies
             throw new \LogicException("APP_SCRATCH_DIR {$this->root} is not on a tmpfs.");
         }
 
+        $this->removeLeftovers();
         $gitDir = Path::join($this->root, bin2hex(random_bytes(16)).'.git');
         $this->git->run($gitDir, ['init', '--bare', '--quiet']);
 
@@ -70,6 +77,7 @@ final class ScratchCopies
 
     public function writeBlob(GitCodeReader $repository, string $bytes): void
     {
+        $this->markInUse($repository);
         $this->git->run($repository->gitDir, ['hash-object', '-w', '--stdin'], standardInput: $bytes);
     }
 
@@ -77,6 +85,31 @@ final class ScratchCopies
     {
         $copy->close();
         new Filesystem()->remove($copy->gitDir);
+    }
+
+    /**
+     * The sweep of {@see removeLeftovers()} goes by the modification time, so each use renews it.
+     */
+    public function markInUse(GitCodeReader $copy): void
+    {
+        @touch($copy->gitDir, $this->clock->now()->getTimestamp());
+    }
+
+    private function removeLeftovers(): void
+    {
+        $oldestUnixSeconds = $this->clock->now()->getTimestamp() - self::LEFTOVER_AGE_SECONDS;
+
+        foreach (glob(Path::join($this->root, '*.git'), \GLOB_ONLYDIR) ?: [] as $directory) {
+            // Another process can remove it meanwhile.
+            $modifiedUnixSeconds = @filemtime($directory);
+
+            try {
+                if (false !== $modifiedUnixSeconds && $modifiedUnixSeconds < $oldestUnixSeconds) {
+                    new Filesystem()->remove($directory);
+                }
+            } catch (IOExceptionInterface) {
+            }
+        }
     }
 
     /**

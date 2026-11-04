@@ -19,6 +19,7 @@ type Props = { commits: LatestCommitsData; lastFetchedAt: DateTime | null; codeA
 const UNAVAILABLE_NOTICES: Record<CodeAccess, string> = {
     clone: 'Commits show when the clone is ready.',
     pass_through: 'Commits show when the repository is ready.',
+    browser: 'Commits show when the repository is ready.',
 };
 
 export function LatestCommits({ commits: { branch, log, error }, lastFetchedAt, codeAccess }: Props) {

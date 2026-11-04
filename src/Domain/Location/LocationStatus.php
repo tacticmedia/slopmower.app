@@ -10,4 +10,6 @@ enum LocationStatus: string
     case Shifted = 'shifted';
     case Changed = 'changed';
     case Orphaned = 'orphaned';
+    /** D114: Browser only, the file changed and no code was read. */
+    case Unverified = 'unverified';
 }

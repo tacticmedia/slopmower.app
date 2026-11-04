@@ -75,6 +75,7 @@ class LocationCacheEntry implements TenantOwned
             LocationStatus::Shifted => Location::shifted($this->targetSha, $path ?? throw $missing('path'), $range),
             LocationStatus::Changed => Location::changed($this->targetSha, $path ?? throw $missing('path'), $range, $this->confidence),
             LocationStatus::Orphaned => Location::orphaned($this->targetSha, $this->reason ?? throw $missing('reason')),
+            LocationStatus::Unverified => Location::unverified($this->targetSha, $path ?? throw $missing('path'), $range),
         };
     }
 }

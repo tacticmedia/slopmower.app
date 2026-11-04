@@ -4,13 +4,13 @@ import { snapshotRows } from './snapshotRows';
 
 /**
  * The anchored lines as captured at the review commit, between dimmed context lines. Q3 gives null lines when it
- * cannot rebuild them (D113).
+ * cannot rebuild them (D113), and Browser only gives no snapshot (D114).
  */
 export function AnchorSnapshot({ anchor }: { anchor: Anchor }) {
-    if (null === anchor.snapshot) {
+    if ('file' === anchor.kind) {
         return <p className={styles.muted}>This request is about the whole file.</p>;
     }
-    if (!anchor.snapshot.lines) {
+    if (!anchor.snapshot?.lines) {
         return (
             <p className={styles.muted} data-testid="anchor-snapshot">
                 Code not available

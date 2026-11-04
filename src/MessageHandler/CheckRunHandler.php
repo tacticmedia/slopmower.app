@@ -16,6 +16,7 @@ use App\Domain\Identity\EventId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Location\Location;
+use App\Domain\Location\LocationStatus;
 use App\Domain\Repository\CodeAccess;
 use App\Domain\Repository\RepositoryAccess;
 use App\Domain\Repository\RepositorySource;
@@ -337,12 +338,15 @@ final class CheckRunHandler
     }
 
     /**
-     * A failure gives no location, so one request that git cannot locate does not stop the check run.
+     * A failure gives no location, so one request that git cannot locate does not stop the check run. An `unverified`
+     * location of Browser only gives none either, so its old lines get no annotation.
      */
     private function locate(Repository $repository, RequestId $requestId, EventId $openedEventId, Anchor $anchor, CommitSha $headSha): ?Location
     {
         try {
-            return $this->locator->locate($repository, $openedEventId, $anchor, $headSha);
+            $location = $this->locator->locate($repository, $openedEventId, $anchor, $headSha);
+
+            return LocationStatus::Unverified === $location->status ? null : $location;
         } catch (GitFailed $failure) {
             $this->logger->error('The location of the request {requestId} failed.', ['requestId' => $requestId->toString(), 'exception' => $failure]);
 

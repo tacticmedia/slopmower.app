@@ -69,13 +69,42 @@ final class InstallationTokenProvider
      */
     public function forRepository(int $installationId, int $repositoryId, array $permissions): string
     {
-        $key = self::tokenKey($installationId, $repositoryId, $permissions);
-        [$kept, $keptUntilUnixSeconds] = $this->repositoryTokens[$key] ?? ['', 0];
+        return $this->withExpiry($installationId, $repositoryId, $permissions)[0];
+    }
 
-        if ($keptUntilUnixSeconds > $this->clock->now()->getTimestamp()) {
-            return $kept;
+    /**
+     * {@see forRepository()} with the expiry of the kept token.
+     *
+     * @param array<string, string> $permissions
+     *
+     * @return array{string, \DateTimeImmutable}
+     *
+     * @throws GitHubRequestFailed
+     */
+    public function withExpiry(int $installationId, int $repositoryId, array $permissions): array
+    {
+        $key = self::tokenKey($installationId, $repositoryId, $permissions);
+        [$kept, $expiresAtUnixSeconds] = $this->repositoryTokens[$key] ?? ['', 0];
+
+        if ($expiresAtUnixSeconds - self::TOKEN_REUSE_MARGIN_SECONDS > $this->clock->now()->getTimestamp()) {
+            return [$kept, new \DateTimeImmutable("@{$expiresAtUnixSeconds}")];
         }
 
+        [$token, $expiresAt] = $this->mint($installationId, $repositoryId, $permissions);
+        $this->repositoryTokens[$key] = [$token, $expiresAt->getTimestamp()];
+
+        return [$token, $expiresAt];
+    }
+
+    /**
+     * @param array<string, string> $permissions
+     *
+     * @return array{string, \DateTimeImmutable} The token and its expiry
+     *
+     * @throws GitHubRequestFailed
+     */
+    private function mint(int $installationId, int $repositoryId, array $permissions): array
+    {
         $status = 0;
 
         try {
@@ -100,11 +129,8 @@ final class InstallationTokenProvider
 
         $expiresAt = \is_string($body['expires_at'] ?? null) ? strtotime($body['expires_at']) : false;
 
-        if (false !== $expiresAt) {
-            $this->repositoryTokens[$key] = [$token, $expiresAt - self::TOKEN_REUSE_MARGIN_SECONDS];
-        }
-
-        return $token;
+        // GitHub gives every token an expiry, so a missing one makes a token that is never kept.
+        return [$token, new \DateTimeImmutable('@'.(false === $expiresAt ? $this->clock->now()->getTimestamp() : $expiresAt))];
     }
 
     /**

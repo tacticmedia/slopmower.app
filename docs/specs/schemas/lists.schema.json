@@ -282,6 +282,29 @@
           "$ref": "common.schema.json#/$defs/DateTime"
         }
       }
+    },
+    "CodeToken": {
+      "type": "object",
+      "required": ["token", "expiresAt", "owner", "name"],
+      "description": "A GitHub installation token for one browser repository, with contents: read and metadata: read. The client keeps it in memory only.",
+      "properties": {
+        "token": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expiresAt": {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The owner part of the GitHub name, for api.github.com/repos/{owner}/{name}."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     }
   }
 }

@@ -96,7 +96,15 @@
                 "type": "null"
               },
               "snapshot": {
-                "$ref": "#/$defs/ContentSnapshot"
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/ContentSnapshot"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Null for an anchor captured on a browser repository, which reads no code."
               }
             }
           }

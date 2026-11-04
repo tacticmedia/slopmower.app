@@ -8,8 +8,11 @@ use App\Application\FetchRepository;
 use App\Application\Query\FileQuery;
 use App\Application\Query\SymbolList;
 use App\Controller\Api\Input\FilePathQuery;
+use App\Domain\Error\RepositoryUnavailable;
+use App\Domain\Error\RepositoryUnavailableReason;
 use App\Domain\Git\BlobSha;
 use App\Domain\Git\RepoPath;
+use App\Domain\Repository\CodeAccess;
 use App\Entity\Review;
 use App\Index\BlobSymbols;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
@@ -43,6 +46,11 @@ final class SymbolController extends AbstractController
         $path = RepoPath::fromString((string) $query->path);
         $reader = $fetchRepository->readyReader($review->getRepository()->getId());
         $entry = $files->entry($reader, $review, $path);
+
+        if (CodeAccess::Browser === $review->getRepository()->getCodeAccess()) {
+            throw new RepositoryUnavailable($review->getRepository()->getId(), RepositoryUnavailableReason::CodeInBrowser);
+        }
+
         $headers = ['ETag' => 'W/"'.self::ETAG_VERSION."-{$entry->objectId}\"", 'Cache-Control' => 'private, no-cache', 'Vary' => 'Authorization, Cookie'];
         $notModified = new Response(null, Response::HTTP_OK, $headers);
 

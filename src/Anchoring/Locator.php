@@ -26,6 +26,7 @@ use App\Domain\Matching\LineSimilarity;
 use App\Domain\Matching\RangeMapper;
 use App\Domain\Matching\SnapshotMatcher;
 use App\Domain\Matching\UnifiedZeroDiffParser;
+use App\Domain\Repository\CodeAccess;
 use App\Entity\Repository;
 use App\Git\CodeReader;
 use App\Git\GitFailed;
@@ -34,10 +35,11 @@ use App\Git\TreeEntry;
 use App\Index\BlobSymbols;
 use App\Index\ExtractedSymbol;
 use App\Repository\LocationCacheEntryRepository;
+use App\Repository\RepositoryRepository;
 
 /**
  * Architecture section 5.4 `locate` through the code reader of the repository, with the cache of section 5.2. The caller
- * checks that the code is ready and that the target commit exists.
+ * checks that the code is ready and that the target commit exists. Browser only compares blob SHAs (D114).
  */
 final class Locator
 {
@@ -54,6 +56,7 @@ final class Locator
         private readonly BlobSymbols $blobSymbols,
         private readonly LocationCacheEntryRepository $cache,
         private readonly LocationCacheSql $cacheSql,
+        private readonly RepositoryRepository $repositories,
     ) {
     }
 
@@ -70,8 +73,13 @@ final class Locator
             return $cached->toLocation();
         }
 
+        $codeAccess = $repository->getCodeAccess();
         $location = $this->compute($repository, $this->readers->of($repository), $anchor, $targetSha);
-        $this->cacheSql->insert($repository->getTenantId(), $repository->getId(), $openedEventId, $location);
+
+        // A location of the mode before an R10 switch must not outlive the deletion of the cache (D114).
+        if ($codeAccess === $this->repositories->findFresh($repository->getId())?->getCodeAccess()) {
+            $this->cacheSql->insert($repository->getTenantId(), $repository->getId(), $openedEventId, $location);
+        }
 
         return $location;
     }
@@ -136,6 +144,14 @@ final class Locator
     {
         $entry = $this->mappedEntry($reader, $anchor, $target);
 
+        if (CodeAccess::Browser === $repository->getCodeAccess()) {
+            return match (true) {
+                null === $entry => Location::orphaned($target, OrphanReason::FileDeleted),
+                $entry->objectId === $anchor->blobSha->toString() => self::exactOrShifted($anchor, $target, RepoPath::fromString($entry->path), $anchor->range),
+                default => Location::unverified($target, $anchor->path, $anchor->range),
+            };
+        }
+
         if (null === $entry) {
             return $this->searchOtherFiles($reader, $this->snapshotText($reader, $anchor), $target, null) ?? Location::orphaned($target, OrphanReason::FileDeleted);
         }
@@ -148,11 +164,16 @@ final class Locator
 
         $range = $anchor->range;
 
-        if (AnchorKind::File === $anchor->kind || null === $range || null === $anchor->snapshot) {
+        if (AnchorKind::File === $anchor->kind || null === $range) {
             return Location::changed($target, $path, null, 1.0);
         }
 
         $snapshot = $this->snapshotText($reader, $anchor);
+
+        if (null === $snapshot && null === $anchor->snapshot) {
+            return Location::changed($target, $path, null, 1.0);
+        }
+
         $content = $this->renderableContent($reader, $entry);
 
         if (null === $content || null === $snapshot) {
@@ -214,20 +235,28 @@ final class Locator
     }
 
     /**
+     * Also captures the snapshot of a line or range anchor of Browser only, which has none (D114). Browser only never
+     * calls it.
+     *
      * @return ContentSnapshot|null The stored snapshot with its text, else rebuilt from the anchor blob. Null without
-     *                              a snapshot or a blob.
+     *                              a range, a blob, or the lines of the range.
      */
     private function snapshotText(CodeReader $reader, Anchor $anchor): ?ContentSnapshot
     {
         $snapshot = $anchor->snapshot;
 
-        if (null === $snapshot || null !== $snapshot->lines || null === $anchor->range) {
+        if (null !== $snapshot?->lines || null === $anchor->range) {
             return $snapshot;
         }
 
         $blob = $reader->readBlob($anchor->blobSha);
 
-        return null === $blob ? null : SnapshotCapture::capture($blob->bytes, $anchor->range);
+        try {
+            return null === $blob ? null : SnapshotCapture::capture($blob->bytes, $anchor->range);
+        } catch (InvalidInput) {
+            // The range of Browser only is not checked against the file.
+            return null;
+        }
     }
 
     /**

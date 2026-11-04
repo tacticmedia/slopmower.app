@@ -32,7 +32,8 @@ export type Anchor =
           blobSha: ObjectSha;
           range: LineRange;
           symbol: null;
-          snapshot: ContentSnapshot;
+          /** Null for an anchor of a browser repository. */
+          snapshot: ContentSnapshot | null;
       }
     | {
           kind: 'symbol';

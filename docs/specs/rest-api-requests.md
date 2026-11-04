@@ -151,6 +151,7 @@ Example response, [fixtures/lists.request-page.json](fixtures/lists.request-page
 
 - Without `at`, the server computes `location` at the default-branch head, with `target: default_branch`. `location` is null when the clone is gone.
 - `anchor.snapshot` holds `lines`, `before`, and `after` rebuilt from `anchor.blobSha` and `anchor.range`, 3 lines on each side, because a new anchor stores no code text (D113). When the rebuild fails, for example for a blob that GitHub no longer serves, they are null.
+- On a `browser` repository the server rebuilds no snapshot text, `excerpt` is null, and `context` is ignored. `location` follows the blob SHA rules of [README.md section 7](README.md#7-repository-sources-names-and-commit-availability).
 - A general request has `location` and `excerpt` null. The server checks only the syntax of `at` and `context`, so it never resolves `at` and never sends `commit_not_found` or `repository_unavailable` for it. Example: [fixtures/request.general.json](fixtures/request.general.json).
 - `thread` holds, in `seq` order:
   - the events of the request;
@@ -228,6 +229,7 @@ The endpoint returns the diff data of one linked commit for the verify view.
 
 - It compares the commit with its first parent: `git diff-tree -r -M --numstat` plus the raw output. It lists at most 300 files. `truncated` is true when more files changed.
 - For `pass_through`, the server reads the files of `GET repos/{owner}/{repo}/commits/{sha}`, at most 3,000, and the old blob, the modes, and the sizes from the trees of both commits. `binary` is true when `additions + deletions` is 0 and the old and the new blob differ, an absent side counting as the empty blob. A pure rename or mode change of a binary file then has counts 0 and shows as unchanged.
+- For `browser`, the server compares the trees of both commits and descends only into the subtrees whose SHAs differ, as `git diff-tree -r` does. The status comes from the blob SHAs and the modes. A deleted and an added path with the same blob SHA give `renamed`, and nothing else does. `binary`, `additions`, and `deletions` are null, and the client reads both sides from GitHub.
 - `files` lists the files that touch the anchor first, then the other files, each group in the order of `git diff-tree`. So the cut at 300 files keeps the files that touch the anchor.
 - `location` is the request located at this commit, with `target: linked_commit`.
 - `touchesAnchor` is true when `path` equals `location.path`. When `location` is null or orphaned, it is true when `path` or `oldPath` equals the anchor path.
@@ -278,6 +280,7 @@ The endpoint opens a request at once. The web UI does not call it: a new request
 - `range` requires `endLine > startLine`.
 - `file` works for any file, including binary and too-large files.
 - `line`, `range`, and `symbol` require a renderable file in valid UTF-8.
+- On a `browser` repository the server reads no blob: a `symbol` anchor answers 422 `invalid_input` on `anchor.kind`, and a `line` or `range` anchor has `snapshot` null. It requires a file that is no symlink and at most 1 MiB, and its range is not checked against the length of the file.
 
 Example body, [fixtures/inputs.open-request.json](fixtures/inputs.open-request.json):
 

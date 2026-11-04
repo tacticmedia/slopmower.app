@@ -80,7 +80,7 @@ The body is `{"error": {"code", "message", "details"}}`. `message` is English an
 | `review_closed` | 409 | A write on a closed review or on one of its requests | `{reviewId, closedAt}` |
 | `commits_not_available` | 409 | `mark_ready_for_review` while a linked commit is still `pending` after one fetch, or a commit diff of a pending link | `{pendingCommits: [sha]}` |
 | `commit_not_found` | 422 | A ref or commit that the caller named, such as `at` or the review `ref`, is not in the server clone after one fetch, or for `codeAccess: pass_through` not on GitHub. An endpoint that does not fetch, such as [R9](rest-api.md#r9-list-the-latest-commits), checks the clone as it is. On `pass_through`, an ambiguous SHA prefix also answers `commit_not_found`, because GitHub answers it as a missing commit. | `{commit}` |
-| `repository_unavailable` | 409 | The operation needs the code or a sync, and the repository is cloning, its clone or its access check failed, its fetch or GitHub read failed, or its access was removed | `{repositoryId, reason: cloning\|clone_failed\|fetch_failed\|removed}` |
+| `repository_unavailable` | 409 | The operation needs the code or a sync, and the repository is cloning, its clone or its access check failed, its fetch or GitHub read failed, or its access was removed. `code_in_browser`: the operation reads file content of a `browser` repository. `code_on_server`: [R11](rest-api.md#r11-get-a-code-token) for a repository that is not `browser`. | `{repositoryId, reason: cloning\|clone_failed\|fetch_failed\|removed\|code_in_browser\|code_on_server}` |
 | `rate_limited` | 429 | A rate limit refused the call, or GitHub refused a read of a `pass_through` repository for the rate limit of the installation. See [Rate limits](#rate-limits). | `{retryAfterSeconds, limit}` |
 | `limit_exceeded` | 409 | The call would pass a usage limit of the tenant. See [Usage limits](#usage-limits). | `{limit, max, current}` |
 | `internal_error` | 500 | An unexpected failure. The server logs it with the exception. The message is generic. | null |
@@ -94,7 +94,7 @@ Check order:
 5. 400 or 422 `invalid_input`.
 6. 409 `review_closed`.
 7. 409 `invalid_transition`.
-8. `repository_unavailable`, `commit_not_found`, and `commits_not_available`. The limiters `review_start` and `sync_fetch` answer 429 `rate_limited` at the step that they protect.
+8. `repository_unavailable`, `commit_not_found`, and `commits_not_available`. The limiters `review_start`, `sync_fetch`, and `code_token` answer 429 `rate_limited` at the step that they protect.
 9. 409 `limit_exceeded`.
 
 If an ID is not visible, the caller gets 404 before any 403.
@@ -117,11 +117,12 @@ Each call consumes one token of every limiter that applies to it. The limits are
 | `mcp_http` | Each HTTP request to `/_mcp` | User | 600 per minute, token bucket |
 | `sync_fetch` | Each synchronous fetch: [V1](rest-api.md#v1-start-a-review), [Q3](rest-api-requests.md#q3-get-a-request) with `at`, and [Q10](rest-api-requests.md#q10-mark-ready-for-review) | Repository | 10 per minute, token bucket |
 | `review_start` | Each [V1](rest-api.md#v1-start-a-review) | Tenant | 30 per hour, token bucket |
+| `code_token` | Each [R11](rest-api.md#r11-get-a-code-token) of a `browser` repository that is ready | User | 600 per hour, token bucket |
 
 - REST: a refused call gets 429 `rate_limited` with `Retry-After` in seconds, `X-RateLimit-Limit`, and `X-RateLimit-Remaining`. `details.retryAfterSeconds` equals `Retry-After`, and `details.limit` equals `X-RateLimit-Limit`.
 - MCP: a refused `tools/call` is an `isError` result with `rate_limited`. `mcp_http` is the last line of defence: a refused HTTP request gets HTTP 429 with the same headers and Error body, before JSON-RPC.
 - `/webhook/github` has no rate limit. Its signature check protects it.
-- `codeAccess: pass_through`: a read that GitHub refuses with 403 or 429 and `x-ratelimit-remaining: 0` gets 429 `rate_limited`. `Retry-After` and `details.retryAfterSeconds` are the seconds until `x-ratelimit-reset`, and `details.limit` is `x-ratelimit-limit`.
+- `codeAccess: pass_through` and `browser`: a read of the server that GitHub refuses with 403 or 429 and `x-ratelimit-remaining: 0` gets 429 `rate_limited`. `Retry-After` and `details.retryAfterSeconds` are the seconds until `x-ratelimit-reset`, and `details.limit` is `x-ratelimit-limit`.
 
 ### Usage limits
 
@@ -133,7 +134,7 @@ The [plan of the tenant](webhooks-and-live-updates.md#marketplace-plans) sets ea
 | `open_reviews` | Open reviews of the tenant | 20 | [V1](rest-api.md#v1-start-a-review) |
 | `requests_per_review` | Requests of the review | 1,000 | [Q2](rest-api-requests.md#q2-open-a-request), [Q20](rest-api-requests.md#q20-suggest-a-request), [D5](rest-api-requests.md#d5-submit-drafts) for its `new_request` drafts, and [V15](rest-api.md#v15-carry-over-open-requests) for the carried requests |
 | `repository_size` | Bytes of one clone: `size` plus `size-pack` of `git count-objects -v`, because git keeps a fetch of fewer than 100 objects loose. For `pass_through`, the GitHub `size` before a scratch copy. | 2 GiB | Clone and fetch, and each scratch copy |
-| `tenant_storage` | Bytes of all clones of the tenant. A `pass_through` repository has no clone and counts 0. | 10 GiB | Clone and fetch |
+| `tenant_storage` | Bytes of all clones of the tenant. A `pass_through` or `browser` repository has no clone and counts 0. | 10 GiB | Clone and fetch |
 
 - A call that would pass a limit gets 409 `limit_exceeded`. `details.current` is the use before the call, and `details.max` is the limit. Sizes are in bytes.
 - A clone above a size limit fails: `sync.state` is `failed`, `sync.lastError` names the limit, and the server deletes the clone. For a GitHub repository, the server also checks the `size` of the repository in the GitHub API before the clone.
@@ -152,7 +153,7 @@ The [plan of the tenant](webhooks-and-live-updates.md#marketplace-plans) sets ea
 | Endpoint | ETag | Cache-Control | 304 |
 |---|---|---|---|
 | `GET /reviews/{id}/raw`, `GET /repositories/{id}/blobs/{sha}` | `"<blobSha>"`, strong | `private, max-age=31536000, immutable` | When `If-None-Match` matches with the weak comparison, or is `*` |
-| `GET /reviews/{id}/file` | `W/"v2-<blobSha>"`. Increase `v2` when the representation changes, also for a new `language` value of a file name. | `private, no-cache` | Same rule |
+| `GET /reviews/{id}/file` | `W/"v2-<blobSha>"`, and `W/"v2-browser-<blobSha>"` for `browser`. Increase `v2` when the representation changes, also for a new `language` value of a file name. | `private, no-cache` | Same rule |
 | `GET /reviews/{id}/symbols` | `W/"v5-<blobSha>"`. Increase `v5` when the representation changes, also for a changed grammar or query of a language. | `private, no-cache` | Same rule |
 | `GET /reviews/{id}/blame` | `W/"v1-<commitSha>-<blobSha>"`, from the review commit and the file. Increase `v1` when the representation changes. | `private, no-cache` | Same rule |
 | Everything else | none | `no-store` | never |
@@ -173,9 +174,15 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
   3. Any other value is a local directory name, compared exactly.
 - **Uniqueness.** Names are unique per tenant: GitHub names always contain `/`, local names never do. A second connect of the same source identity returns the existing repository.
 - **Local directories.** The server resolves the directory with `realpath()`. Its parent must equal `realpath(APP_LOCAL_REPOSITORIES_DIR)`, so symlinks cannot escape the mount. For a local source, the `git upload-pack` command that reads the source runs with `-c safe.directory=<realpath>` and `-c safe.directory=<realpath>/.git`. The server never writes to the source directory.
-- **Code access.** `codeAccess` of a GitHub repository is `clone` (Server copy) or `pass_through`. A local repository is always `clone`. The user picks it at [R3](rest-api.md#r3-connect-a-repository) and changes it with [R10](rest-api.md#r10-change-the-code-access).
+- **Code access.** `codeAccess` of a GitHub repository is `clone` (Server copy), `pass_through`, or `browser` (Browser only). A local repository is always `clone`. The user picks it at [R3](rest-api.md#r3-connect-a-repository) and changes it with [R10](rest-api.md#r10-change-the-code-access).
 - **Server clone.** Every `clone` repository has one bare clone at `$APP_TENANT_DATA_DIR/<tenantId>/repositories/<repositoryId>.git`. Two tenants that connect the same source get two clones.
 - **Pass-through.** A `pass_through` repository has no clone. Each read goes to the GitHub REST API, and blame to GraphQL, with an installation token, and the server holds code in memory only during a request or a job. The symbol index and `git grep` of the re-anchoring use a scratch copy: a `git fetch --depth=1` of one commit into a directory under `APP_SCRATCH_DIR`, a tmpfs. A diff of two blobs writes them into an empty scratch repository there. One HTTP request or job reuses the copy of a commit and deletes it at its end. A sync of a `pass_through` repository is a head sync: the suspension and access checks, the default branch, and its head, without code.
+- **Browser only.** A `browser` repository has no clone and no scratch copy, and the server reads no file content. It reads from GitHub only the repository, refs, commits, commit lists, trees, and the GraphQL blame, as for `pass_through`, so every `pass_through` rule of these reads holds for `browser` too. Its sync is a head sync. The browser reads file content from `api.github.com` with the token of [R11](rest-api.md#r11-get-a-code-token).
+  - [R7](rest-api.md#r7-get-a-blob), [V8](rest-api.md#v8-get-raw-file-content), [V9](rest-api.md#v9-list-symbols), and [V14](rest-api.md#v14-find-declarations) answer 409 `repository_unavailable` with the reason `code_in_browser`. [V7](rest-api.md#v7-get-file-metadata) and [Q9](rest-api-requests.md#q9-get-a-commit-diff) leave out what needs a blob.
+  - The index of a review holds the paths, without symbols, so [V16](rest-api.md#v16-search-files-and-symbols) finds files only.
+  - A `symbol` anchor answers 422 `invalid_input`. A `line` or `range` anchor has no snapshot, see [Q2](rest-api-requests.md#q2-open-a-request).
+  - Re-anchoring compares blob SHAs only: the blob of the anchor at its path is `exact`, and the same blob at another path is `shifted`. The other path comes from the trees that differ between the anchor commit and the target. Another blob at the path of the anchor is `unverified`, with the path and the range of the anchor, and sets `outdated`. A path that is gone, without the same blob at another path, is `orphaned` with `file_deleted`.
+  - An anchor that Browser only captured without a snapshot gets its snapshot from its blob in the other modes, after a switch.
 - **Fetch.** A fetch from the source takes `+refs/heads/*:refs/heads/*` and `+refs/tags/*:refs/tags/*` with `--prune`, never `--mirror`. A second `git fetch` then gets the pending linked SHAs of links from the last 7 days by ID into `refs/slopmower/commits/<sha>`. One unknown SHA fails a whole `git fetch`, so when the second fetch fails, the server fetches one SHA per command and ignores the failures. The pending SHAs come after the heads, the tags, and `HEAD`, and they stop at the timeout of the fetch without failing it. An older pending link stays `pending` until a branch or a tag brings its commit.
 - **Pin refs.** At review start the server writes `refs/slopmower/reviews/<reviewId>` to the review commit. When a linked commit is present in the clone, the server writes `refs/slopmower/commits/<sha>`. The fetch refspecs never touch the `refs/slopmower/` namespace, so force-pushes, pruning, and `git gc` cannot remove reviewed or linked commits. Deleting a review, unlinking the last link of a commit, or deleting the repository data deletes the matching pin refs. A `pass_through` repository has no pin refs: a review commit that GitHub deletes after a force-push becomes unreadable.
 - **Available.** A commit is *available* when `git cat-file -e <sha>^{commit}` succeeds in the clone, or for `pass_through` when `GET repos/{owner}/{repo}/git/commits/{sha}` answers 200. GitHub also answers for commits of forks of the repository. For a local source, a local commit becomes available at the next fetch, without a push. For a GitHub source, the commit must be pushed.
@@ -298,7 +305,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [link-commits-result.schema.json](schemas/link-commits-result.schema.json) | `https://slopmower.invalid/schemas/v1/link-commits-result.schema.json` | Result of `link_commits` |
 | [link-pull-request-result.schema.json](schemas/link-pull-request-result.schema.json) | `https://slopmower.invalid/schemas/v1/link-pull-request-result.schema.json` | Result of `link_pull_request` |
 | [me.schema.json](schemas/me.schema.json) | `https://slopmower.invalid/schemas/v1/me.schema.json` | The caller, the tenant, the features, the plan, the usage, the links, and the preferences, plus `TenantPlan`, `LimitUsage`, and `Preferences` |
-| [lists.schema.json](schemas/lists.schema.json) | `https://slopmower.invalid/schemas/v1/lists.schema.json` | `$defs` only: every page and list, and `MercureAuthorization` |
+| [lists.schema.json](schemas/lists.schema.json) | `https://slopmower.invalid/schemas/v1/lists.schema.json` | `$defs` only: every page and list, `MercureAuthorization`, and `CodeToken` |
 | [inputs.schema.json](schemas/inputs.schema.json) | `https://slopmower.invalid/schemas/v1/inputs.schema.json` | `$defs` only: every REST request body |
 | [live-update.schema.json](schemas/live-update.schema.json) | `https://slopmower.invalid/schemas/v1/live-update.schema.json` | Data of one Mercure update, IDs only |
 
@@ -331,6 +338,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [error.repository-unavailable.json](fixtures/error.repository-unavailable.json) | `error.schema.json` | R5, R9, V1, V6 to V9, V14, V17, Q2, Q3, Q9, Q10, Q20 |
 | [error.review-closed.json](fixtures/error.review-closed.json) | `error.schema.json` | Writes on a closed review |
 | [error.unauthorized.json](fixtures/error.unauthorized.json) | `error.schema.json` | Any endpoint, the MCP transport |
+| [file-content.browser.json](fixtures/file-content.browser.json) | `file-content.schema.json` | V7 of a `browser` repository |
 | [file-content.php.json](fixtures/file-content.php.json) | `file-content.schema.json` | V7 |
 | [inputs.accept-suggestion.json](fixtures/inputs.accept-suggestion.json) | `inputs.schema.json#/$defs/AcceptSuggestionInput` | Q21 |
 | [inputs.approve-proposal.json](fixtures/inputs.approve-proposal.json) | `inputs.schema.json#/$defs/ApproveProposalInput` | Q15 |
@@ -368,6 +376,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [link-commits-result.pending.json](fixtures/link-commits-result.pending.json) | `link-commits-result.schema.json` | Q7, `link_commits` |
 | [link-pull-request-result.linked.json](fixtures/link-pull-request-result.linked.json) | `link-pull-request-result.schema.json` | Q17, `link_pull_request` |
 | [lists.candidate-list.json](fixtures/lists.candidate-list.json) | `lists.schema.json#/$defs/CandidateList` | R2 |
+| [lists.code-token.json](fixtures/lists.code-token.json) | `lists.schema.json#/$defs/CodeToken` | R11 |
 | [lists.commit-list.json](fixtures/lists.commit-list.json) | `lists.schema.json#/$defs/CommitLog` | R9 |
 | [lists.declaration-list.json](fixtures/lists.declaration-list.json) | `lists.schema.json#/$defs/DeclarationList` | V14 |
 | [lists.draft-list.json](fixtures/lists.draft-list.json) | `lists.schema.json#/$defs/DraftList` | D1 |
@@ -392,6 +401,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [me.local-user.json](fixtures/me.local-user.json) | `me.schema.json` | A1 with a local sign-in session |
 | [me.preferences.json](fixtures/me.preferences.json) | `me.schema.json#/$defs/Preferences` | A4 |
 | [repository.github-cloning.json](fixtures/repository.github-cloning.json) | `repository.schema.json` | R3, R4, R5 |
+| [repository.github-browser.json](fixtures/repository.github-browser.json) | `repository.schema.json` | R4, R10 of a `browser` repository |
 | [repository.github-pass-through.json](fixtures/repository.github-pass-through.json) | `repository.schema.json` | R4, R10 |
 | [repository.local-idle.json](fixtures/repository.local-idle.json) | `repository.schema.json` | R3, R4, R5 |
 | [request-command-result.claim.json](fixtures/request-command-result.claim.json) | `request-command-result.schema.json` | Q5, `claim_request` |

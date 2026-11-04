@@ -22,7 +22,7 @@ test.describe('GitHubCandidates', () => {
         await expect(page.locator(SECTION).getByRole('link', { name: 'Refresh' })).toHaveAttribute('href', '/github/installed');
     });
 
-    test('Connect is disabled until a mode is picked, and the request body carries it', async ({ page, api }) => {
+    test('Connect offers three modes, is disabled until one is picked, and the request body carries it', async ({ page, api }) => {
         const candidates = fixture<CandidateList>('lists.candidate-list.json');
         const repositories = new FakeRepositories(api);
         repositories.addLocal('billing');
@@ -32,11 +32,12 @@ test.describe('GitHubCandidates', () => {
         const connect = page.locator(SECTION).getByRole('button', { name: 'Connect acme/shipping' });
         await expect(connect).toBeDisabled();
 
-        await page.locator(SECTION).getByRole('radio', { name: 'Pass-through' }).check();
+        await expect(page.locator(SECTION).getByRole('radio')).toHaveCount(3);
+        await page.locator(SECTION).getByRole('radio', { name: 'Browser only' }).check();
         await connect.click();
 
         const row = page.locator('[data-testid="connected-repositories"] tr').filter({ hasText: 'acme/shipping' });
         await expect(row.locator('[data-testid="sync-state"]')).toHaveText('Connecting');
-        expect(api.bodies('POST', '/api/v1/repositories')).toEqual([{ source: 'github', githubRepositoryId: 812399, codeAccess: 'pass_through' }]);
+        expect(api.bodies('POST', '/api/v1/repositories')).toEqual([{ source: 'github', githubRepositoryId: 812399, codeAccess: 'browser' }]);
     });
 });

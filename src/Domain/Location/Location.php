@@ -44,6 +44,14 @@ final readonly class Location
         return new self($targetSha, LocationStatus::Changed, $path, $range, $confidence, null);
     }
 
+    /**
+     * The path and the range of the anchor.
+     */
+    public static function unverified(CommitSha $targetSha, RepoPath $path, ?LineRange $range): self
+    {
+        return new self($targetSha, LocationStatus::Unverified, $path, $range, 0.0, null);
+    }
+
     public static function orphaned(CommitSha $targetSha, OrphanReason $reason): self
     {
         return new self($targetSha, LocationStatus::Orphaned, null, null, 0.0, $reason);

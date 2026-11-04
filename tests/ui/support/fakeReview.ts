@@ -26,7 +26,7 @@ import type { Request } from '../../../assets/api/types/request';
 import type { Review } from '../../../assets/api/types/review';
 import type { Symbol as CodeSymbol } from '../../../assets/api/types/symbol';
 import type { TreeEntry } from '../../../assets/api/types/tree-entry';
-import { AGENT, commandResult, newId, now, request as openedRequest, requestSummary, review as reviewBuilder, sha1, snapshot, threadEntry, USER, userActions } from './builders';
+import { AGENT, codeToken, commandResult, newId, now, request as openedRequest, requestSummary, review as reviewBuilder, sha1, snapshot, threadEntry, USER, userActions } from './builders';
 import { codeViewFiles, codeViewSymbols, type FileSet } from './files';
 import { type ApiCall, apiError, json, type MockApi, type MockResponse, noContent, text } from './mockApi';
 
@@ -36,6 +36,8 @@ export type FakeReviewOptions = {
     review?: Partial<Review>;
     files?: FileSet;
     symbols?: Record<string, CodeSymbol[]>;
+    /** D114: V7 leaves out what needs the blob, V8 and V9 answer `code_in_browser`, and R11 gives a token. */
+    browserOnly?: boolean;
 };
 
 /** The fields of `RequestState` that `awaiting`, `closed`, and `allowedActions` derive from. */
@@ -106,6 +108,7 @@ export class FakeReview {
     deleted = false;
     readonly #files = new Map<string, StoredFile>();
     readonly #symbols: Record<string, CodeSymbol[]>;
+    readonly #browserOnly: boolean;
     readonly #draftAnchors = new Map<string, AnchorInput | null>();
     readonly #tracking = new Map<string, Tracking>();
     #seq: number;
@@ -114,6 +117,7 @@ export class FakeReview {
         this.review = reviewBuilder({ id: newId(), ...options.review });
         this.#seq = this.review.lastEventSeq;
         this.#symbols = options.symbols ?? codeViewSymbols();
+        this.#browserOnly = options.browserOnly ?? false;
         for (const [path, content] of Object.entries(options.files ?? codeViewFiles())) {
             this.#files.set(path, this.#storedFile(path, content));
         }
@@ -123,6 +127,11 @@ export class FakeReview {
 
     get id(): string {
         return this.review.id;
+    }
+
+    /** The bytes of a blob of the review commit, for the GitHub of Browser only. */
+    blob(blobSha: string): string | undefined {
+        return [...this.#files.values()].find(({ content }) => content.blobSha === blobSha)?.bytes;
     }
 
     fileUrl(path: string, hash = ''): string {
@@ -397,6 +406,8 @@ export class FakeReview {
             lines.pop();
         }
 
+        const unread = this.#browserOnly ? { binary: null, renderable: null, lineCount: null, symlinkTarget: null, rawUrl: null } : {};
+
         return {
             bytes,
             lines,
@@ -415,6 +426,7 @@ export class FakeReview {
                 lineCount: null === content ? null : lines.length,
                 symlinkTarget: null,
                 rawUrl: `/api/v1/reviews/${this.id}/raw?path=${encodeURIComponent(path)}`,
+                ...unread,
             },
         };
     }
@@ -453,7 +465,7 @@ export class FakeReview {
             return { ...base, kind: 'symbol', range: symbol.range, symbol: { language, kind: symbol.kind, fqn: symbol.fqn }, snapshot: snapshot(file.lines, symbol.range) };
         }
 
-        return { ...base, kind: input.kind, range: input.range, symbol: null, snapshot: snapshot(file.lines, input.range) };
+        return { ...base, kind: input.kind, range: input.range, symbol: null, snapshot: this.#browserOnly ? null : snapshot(file.lines, input.range) };
     }
 
     #blame(content: FileContent, lineCount: number): Blame {
@@ -593,6 +605,13 @@ export class FakeReview {
                 return noContent();
             }),
         );
+
+        if (this.#browserOnly) {
+            const inBrowser = () => apiError(409, 'repository_unavailable', 'The repository is unavailable: code_in_browser.', { repositoryId: this.review.repositoryId, reason: 'code_in_browser' });
+            api.on('GET', `${base}/raw`, ours(inBrowser));
+            api.on('GET', `${base}/symbols`, ours(inBrowser));
+            api.on('POST', '/api/v1/repositories/:repositoryId/code-token', ({ params }) => (params.repositoryId === this.review.repositoryId ? json('lists.schema.json#/$defs/CodeToken', codeToken()) : undefined));
+        }
     }
 
     #registerRequests(api: MockApi): void {

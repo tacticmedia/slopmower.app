@@ -3,6 +3,7 @@ import { actionError } from '../../api/actionResult';
 import { apiGet, apiGetText } from '../../api/client';
 import type { TreeListing } from '../../api/types/lists';
 import type { TreeEntry } from '../../api/types/tree-entry';
+import { gitHubBlob, isCodeInBrowser, reviewRepositoryId } from '../../code/githubCode';
 import { encodedRouteParam } from '../encodedRouteParam';
 
 /** The data of the `tree-entries` route that the directory fetchers load. */
@@ -10,7 +11,8 @@ export type TreeResult = TreeListing | { error: string };
 
 export type DirectoryView = {
     listing: TreeListing;
-    readme: { entry: TreeEntry; markdown: string } | null;
+    /** `repositoryId` is set when the README came from GitHub, for Browser only (D114), and its images come from there too. */
+    readme: { entry: TreeEntry; markdown: string; repositoryId: string | null } | null;
 };
 
 const README = /^readme\.md$/i;
@@ -53,5 +55,19 @@ export async function directoryLoader({ request, params }: LoaderFunctionArgs): 
     const listing = await listDirectory(reviewId, params['*'] ?? '', request.signal);
     const entry = listing.items.find(({ type, name }) => 'file' === type && README.test(name)) ?? null;
 
-    return { listing, readme: null === entry ? null : { entry, markdown: await apiGetText(rawHref(reviewId, entry.path), request.signal) } };
+    return { listing, readme: null === entry ? null : await readme(listing.reviewId, entry, request.signal) };
+}
+
+/** V8, or the blob from GitHub when V8 answers `code_in_browser`. */
+async function readme(reviewId: string, entry: TreeEntry, signal: AbortSignal): Promise<DirectoryView['readme']> {
+    try {
+        return { entry, markdown: await apiGetText(rawHref(encodeURIComponent(reviewId), entry.path), signal), repositoryId: null };
+    } catch (error) {
+        if (!isCodeInBrowser(error)) {
+            throw error;
+        }
+        const repositoryId = await reviewRepositoryId(reviewId);
+
+        return { entry, markdown: new TextDecoder().decode(await gitHubBlob(repositoryId, entry.sha, signal)), repositoryId };
+    }
 }

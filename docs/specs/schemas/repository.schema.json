@@ -158,7 +158,7 @@
       "properties": {
         "state": {
           "enum": ["cloning", "failed", "idle", "fetching", "unavailable"],
-          "description": "cloning: first clone queued or running, or a codeAccess change in progress; failed: first clone failed, no clone, or for pass_through the last sync failed the access or suspension check; idle: clone ready, or for pass_through the last sync passed; fetching: fetch queued or running; unavailable: access removed, clone deleted. For pass_through a clone or fetch is a head sync: the checks and the default branch head, without code."
+          "description": "cloning: first clone queued or running, or a codeAccess change in progress; failed: first clone failed, no clone, or for pass_through and browser the last sync failed the access or suspension check; idle: clone ready, or for pass_through and browser the last sync passed; fetching: fetch queued or running; unavailable: access removed, clone deleted. For pass_through and browser a clone or fetch is a head sync: the checks and the default branch head, without code."
         },
         "lastFetchedAt": {
           "anyOf": [

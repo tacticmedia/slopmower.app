@@ -24,7 +24,7 @@ To review the repositories on your own disk, without GitHub, see [Run it locally
 ## Connect a repository
 
 1. Open **Repositories**.
-2. For a GitHub repository, choose the **Code access**: **Server copy** or **Pass-through**. [Code access](code-access.md) compares them.
+2. For a GitHub repository, choose the **Code access**: **Server copy**, **Pass-through**, or **Browser only**. [Code access](code-access.md) compares them.
 3. Click **Connect** next to a repository under **GitHub repositories** or **Local directories**.
 
 The repository appears under **Connected repositories**, and its row in the list of candidates shows **Connected**. When you connect from the first step of Getting started, the repository page opens. With Server copy, and for a local repository, Slopmower makes its copy of the repository. With Pass-through, it checks its access on GitHub. When the status is **Ready**, you can start a review.
@@ -38,10 +38,10 @@ Your plan limits the number of connected repositories and the size of the copies
 | Status | Meaning |
 |---|---|
 | Cloning | Slopmower makes its copy of the repository |
-| Connecting | Slopmower checks its access to a Pass-through repository on GitHub. After a change to Pass-through, it first deletes its copy. |
-| Fetching | Slopmower fetches new commits, or reads the new head of the default branch for Pass-through |
+| Connecting | Slopmower checks its access to a Pass-through or Browser only repository on GitHub. After a change to one of them, it first deletes its copy. |
+| Fetching | Slopmower fetches new commits, or reads the new head of the default branch for Pass-through and Browser only |
 | Ready | Slopmower can read the code |
-| Failed | The first copy failed, or for Pass-through the access check failed. The error shows below the status. |
+| Failed | The first copy failed, or for Pass-through and Browser only the access check failed. The error shows below the status. |
 | Unavailable | Slopmower has no access to the repository any more, and it deleted its copy, when it had one |
 
 After the first fetch, the status also shows when Slopmower fetched last. When a copy or a fetch fails, the error shows below the status until the next one succeeds.

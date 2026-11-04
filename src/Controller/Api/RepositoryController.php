@@ -11,6 +11,8 @@ use App\Application\FetchRepository;
 use App\Application\GitHubRepositoriesLock;
 use App\Application\Query\CommitLog;
 use App\Application\Query\RepositoryQuery;
+use App\Application\RateLimits;
+use App\Application\ServerClone;
 use App\Application\UsageLimits;
 use App\Controller\Api\Input\CheckEveryPullRequestInput;
 use App\Controller\Api\Input\CodeAccessInput;
@@ -21,6 +23,8 @@ use App\Controller\Api\Input\RepositoryListQuery;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Error\LimitExceeded;
 use App\Domain\Error\NotFound;
+use App\Domain\Error\RepositoryUnavailable;
+use App\Domain\Error\RepositoryUnavailableReason;
 use App\Domain\Git\RefName;
 use App\Domain\Repository\CodeAccess;
 use App\Domain\Repository\RepositorySource;
@@ -49,7 +53,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
- * R1, R3 to R6, and R8 to R10 of docs/specs/rest-api.md section 4. A path ID that the SQL filter hides resolves to 404.
+ * R1, R3 to R6, and R8 to R11 of docs/specs/rest-api.md section 4. A path ID that the SQL filter hides resolves to 404.
  */
 #[Route('/api/v1/repositories', name: 'api_repository_')]
 final class RepositoryController extends AbstractController
@@ -168,6 +172,29 @@ final class RepositoryController extends AbstractController
         $this->fetchRepository->changeCodeAccess($repository, $input->codeAccess ?? throw new \LogicException('The input validation requires the value.'));
 
         return $this->json($this->repositories->get($repository->getId()));
+    }
+
+    #[Route('/{repositoryId}/code-token', name: 'code_token', methods: ['POST'])]
+    #[IsGranted(User::ROLE, message: CurrentActor::SESSION_ONLY)]
+    public function codeToken(
+        #[MapEntity(id: 'repositoryId')] Repository $repository,
+        RateLimits $rateLimits,
+        ServerClone $serverClone,
+    ): JsonResponse {
+        if (CodeAccess::Browser !== $repository->getCodeAccess()) {
+            throw new RepositoryUnavailable($repository->getId(), RepositoryUnavailableReason::CodeOnServer);
+        }
+
+        $ready = $this->fetchRepository->cloneReady($repository->getId());
+        $user = $this->getUser();
+        \assert($user instanceof User);
+        $rateLimits->consumeCodeToken($user->getId());
+        [$token, $expiresAt] = $serverClone->browserToken($ready);
+        [$owner, $name] = explode('/', $ready->getName()->toString(), 2);
+        $response = $this->json(['token' => $token, 'expiresAt' => $expiresAt, 'owner' => $owner, 'name' => $name]);
+        $response->headers->set('Cache-Control', 'no-store');
+
+        return $response;
     }
 
     #[Route('/{repositoryId}/check-every-pull-request', name: 'check_every_pull_request', methods: ['POST'])]

@@ -17,7 +17,8 @@ export type CommitDiffFile = {
     /** Null for binary files. */
     additions: number | null;
     deletions: number | null;
-    binary: boolean;
+    /** Null for a browser repository, whose sides come from GitHub. */
+    binary: boolean | null;
     /** A side is above 1 MiB; no diff shown. */
     tooLarge: boolean;
     touchesAnchor: boolean;

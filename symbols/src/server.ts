@@ -2,6 +2,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import type { AddressInfo } from 'node:net';
 import { extract } from './extract.ts';
 import { loadLanguages } from './languages.ts';
+import { NODE_FILES } from './nodeFiles.ts';
 
 /** The `symbols` image sets `0.0.0.0`. */
 const HOST = process.env.SYMBOLS_HOST || '127.0.0.1';
@@ -12,7 +13,7 @@ const PORT = Number(process.env.SYMBOLS_PORT || 3000);
 /** The V7 limit of a renderable file. */
 const MAX_BLOB_BYTES = 1_048_576;
 
-const languages = await loadLanguages();
+const languages = await loadLanguages(NODE_FILES);
 
 function send(response: ServerResponse, status: number, body: unknown): void {
     response.writeHead(status, { 'Content-Type': 'application/json' }).end(JSON.stringify(body));

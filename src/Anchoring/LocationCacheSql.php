@@ -32,6 +32,7 @@ final class LocationCacheSql
         VALUES (:tenantId, :openedEventId, :targetSha, :repositoryId, :status, :path, :startLine, :endLine, :confidence, :reason)
         ON CONFLICT DO NOTHING
         SQL;
+    private const string DELETE_OF_REPOSITORY = 'DELETE FROM location_cache_entry WHERE tenant_id = :tenantId AND repository_id = :repositoryId';
 
     public function __construct(private readonly Connection $connection)
     {
@@ -58,5 +59,10 @@ final class LocationCacheSql
                 'reason' => $location->reason?->value,
             ], ['startLine' => Types::INTEGER, 'endLine' => Types::INTEGER, 'confidence' => Types::FLOAT]);
         });
+    }
+
+    public function deleteOfRepository(TenantId $tenantId, RepositoryId $repositoryId): void
+    {
+        $this->connection->executeStatement(self::DELETE_OF_REPOSITORY, ['tenantId' => $tenantId->toRfc4122(), 'repositoryId' => $repositoryId->toRfc4122()]);
     }
 }

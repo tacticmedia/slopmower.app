@@ -22,7 +22,7 @@ export type EventSeq = number;
 export const REPOSITORY_SOURCES = ['github', 'local'] as const;
 export type RepositorySource = (typeof REPOSITORY_SOURCES)[number];
 
-export const CODE_ACCESSES = ['clone', 'pass_through'] as const;
+export const CODE_ACCESSES = ['clone', 'pass_through', 'browser'] as const;
 /** clone: the server keeps a bare clone. pass_through: the server reads from GitHub per request. Local: always clone. */
 export type CodeAccess = (typeof CODE_ACCESSES)[number];
 
@@ -53,7 +53,7 @@ export type ActorKind = (typeof ACTOR_KINDS)[number];
 export const COMMIT_LINK_STATES = ['pending', 'available'] as const;
 export type CommitLinkState = (typeof COMMIT_LINK_STATES)[number];
 
-export const LOCATION_STATUSES = ['exact', 'shifted', 'changed', 'orphaned'] as const;
+export const LOCATION_STATUSES = ['exact', 'shifted', 'changed', 'orphaned', 'unverified'] as const;
 export type LocationStatus = (typeof LOCATION_STATUSES)[number];
 
 export const ORPHAN_REASONS = ['file_deleted', 'region_deleted', 'ambiguous', 'content_not_found'] as const;

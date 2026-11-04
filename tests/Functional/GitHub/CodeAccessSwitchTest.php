@@ -98,6 +98,43 @@ final class CodeAccessSwitchTest extends WebTestCase
         self::assertSame(SyncState::Idle, self::storedRepository($this->repository)->getSyncState());
     }
 
+    #[TestDox('Entering Browser only deletes the clone, the symbols, the parsed blobs, and the location cache, and keeps the paths')]
+    public function testSwitchToBrowserOnlyDeletesCodeRows(): void
+    {
+        $reviewId = self::getContainer()->get(ReviewCommands::class)->start($this->repository->getId(), null, null, Actor::user(self::user($this->repository)->getId()));
+        self::runQueuedMessages();
+        $requestId = (string) self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/reviews/{$reviewId}/requests", [
+            'anchor' => ['kind' => 'range', 'path' => 'src/Tax.php', 'range' => ['startLine' => 3, 'endLine' => 4]],
+            'body' => 'Name the tax.',
+        ]), 201, 'request.schema.json')['id'];
+        self::assertApiResponse(self::apiRequest($this->client, 'GET', "/api/v1/requests/{$requestId}"), 200, 'request.schema.json');
+        $before = [$this->repositoryRowCount('indexed_blob'), $this->repositoryRowCount('location_cache_entry')];
+
+        $this->switchTo('browser');
+        $cachedAfterSwitch = $this->repositoryRowCount('location_cache_entry');
+        self::runQueuedMessages();
+
+        self::assertDirectoryDoesNotExist($this->clonePath);
+        self::assertSame([[1, 1], 0], [$before, $cachedAfterSwitch]);
+        self::assertSame([0, 0, 2], [$this->repositoryRowCount('indexed_blob'), $this->repositoryRowCount('symbol'), $this->indexedFileCount()]);
+        self::assertSame(SyncState::Idle, self::storedRepository($this->repository)->getSyncState());
+    }
+
+    #[TestDox('Leaving Browser only parses the symbols of the open reviews again')]
+    public function testLeavingBrowserOnlyIndexesAgain(): void
+    {
+        self::getContainer()->get(ReviewCommands::class)->start($this->repository->getId(), null, null, Actor::user(self::user($this->repository)->getId()));
+        self::runQueuedMessages();
+        $this->switchTo('browser');
+        self::runQueuedMessages();
+        $inBrowser = $this->repositoryRowCount('symbol');
+
+        $this->switchTo('clone');
+        self::runQueuedMessages();
+
+        self::assertSame([0, 1], [$inBrowser, $this->repositoryRowCount('symbol')]);
+    }
+
     #[TestDox('A fetch job queued before a switch to Pass-through and run after its clone job creates no clone')]
     public function testFetchQueuedBeforeTheSwitchCreatesNoClone(): void
     {
@@ -164,7 +201,12 @@ final class CodeAccessSwitchTest extends WebTestCase
 
     private function indexedFileCount(): int
     {
-        return (int) self::getContainer()->get(Connection::class)->fetchOne('SELECT count(*) FROM indexed_file WHERE repository_id = ?', [$this->repository->getId()->toRfc4122()]);
+        return $this->repositoryRowCount('indexed_file');
+    }
+
+    private function repositoryRowCount(string $table): int
+    {
+        return (int) self::getContainer()->get(Connection::class)->fetchOne("SELECT count(*) FROM {$table} WHERE repository_id = ?", [$this->repository->getId()->toRfc4122()]);
     }
 
     private static function user(Repository $repository): User

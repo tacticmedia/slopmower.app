@@ -30,7 +30,7 @@ final readonly class ConnectRepositoryInput
             return RepositorySource::Github === $input->source;
         }, constraints: [new Assert\NotNull()])]
         #[Assert\When(expression: static function (self $input): bool {
-            return RepositorySource::Local === $input->source && CodeAccess::PassThrough === $input->codeAccess;
+            return RepositorySource::Local === $input->source && \in_array($input->codeAccess, [CodeAccess::PassThrough, CodeAccess::Browser], true);
         }, constraints: [new Assert\IsNull(message: 'Must be absent or clone for a local repository.')])]
         public ?CodeAccess $codeAccess = null,
     ) {

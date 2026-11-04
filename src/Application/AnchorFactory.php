@@ -16,6 +16,7 @@ use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Error\ReviewClosed;
 use App\Domain\Git\BlobSha;
 use App\Domain\Git\RepoPath;
+use App\Domain\Repository\CodeAccess;
 use App\Entity\Review;
 use App\Git\CodeReader;
 use App\Git\GitFailed;
@@ -25,7 +26,7 @@ use App\Index\ExtractedSymbol;
 
 /**
  * Q2 anchor capture at the review commit, architecture section 5.1. The snapshot comes from the code reader and keeps no
- * code text (D113).
+ * code text (D113). Browser only reads no blob, so it takes no symbol anchor and captures no snapshot (D114).
  */
 final class AnchorFactory
 {
@@ -53,6 +54,12 @@ final class AnchorFactory
                 throw InvalidInput::field('symbol', $isSymbol ? 'Is required for a symbol anchor.' : "Must be null for a {$kind->value} anchor.");
             }
 
+            $browser = CodeAccess::Browser === $review->getRepository()->getCodeAccess();
+
+            if ($isSymbol && $browser) {
+                throw InvalidInput::field('kind', 'A symbol anchor needs the code on the server, and this repository is Browser only.');
+            }
+
             $repoPath = RepoPath::fromString($path);
             $range = self::range($kind, $startLine, $endLine);
             $reader = $this->readyReader($review);
@@ -67,6 +74,12 @@ final class AnchorFactory
 
             if (AnchorKind::File === $kind) {
                 return Anchor::of(AnchorKind::File, $repoPath, $review->getCommitSha(), $blobSha, null, null, null);
+            }
+
+            if ($browser) {
+                return $entry->isRenderableFile()
+                    ? Anchor::of($kind, $repoPath, $review->getCommitSha(), $blobSha, $range, null, null)
+                    : throw InvalidInput::field('path', "A {$kind->value} anchor needs a regular file of at most 1 MiB.");
             }
 
             $text = $this->files->get($reader, $review, $entry)->text()

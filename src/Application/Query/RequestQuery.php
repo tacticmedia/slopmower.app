@@ -20,6 +20,7 @@ use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Location\LocationTarget;
+use App\Domain\Repository\CodeAccess;
 use App\Domain\Repository\RepositorySource;
 use App\Domain\Request\AllowedActions;
 use App\Domain\Request\Awaiting;
@@ -115,13 +116,15 @@ final class RequestQuery
         // request.opened, whose ID is the cache key of the location.
         $opened = $thread[0]->event ?? null;
         $repository = $request->getReview()->getRepository();
+        // D114: Browser only reads no code text.
+        $readsCode = CodeAccess::Browser !== $repository->getCodeAccess();
         $location = null;
         $excerpt = null;
 
         if (null !== $anchor && null !== $target && $opened?->event instanceof RequestOpenedEvent) {
             $located = $this->locator->locate($repository, $opened->id, $anchor, $target[1]);
             $location = LocationView::of($target[0], $located);
-            $excerpt = null === $contextLines ? null : $this->locator->excerpt($repository, $located, $contextLines);
+            $excerpt = null === $contextLines || !$readsCode ? null : $this->locator->excerpt($repository, $located, $contextLines);
         }
 
         return new RequestView(
@@ -132,7 +135,7 @@ final class RequestQuery
             AllowedActions::for($summary->state, $request->getReview()->toSnapshot(), $caller),
             $location,
             $excerpt,
-            null === $anchor ? null : $this->withSnapshotText($repository->getId(), $anchor),
+            null === $anchor || !$readsCode ? $anchor : $this->withSnapshotText($repository->getId(), $anchor),
         );
     }
 

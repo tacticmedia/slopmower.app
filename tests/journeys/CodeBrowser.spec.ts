@@ -2,6 +2,7 @@ import type { BlameCommit } from '../../assets/api/types/blame';
 import type { SearchHit } from '../../assets/api/types/search-hit';
 import { now, searchHitList, sha1 } from '../ui/support/builders';
 import { openFile, waitForHighlighting } from '../ui/support/codeView';
+import { FakeGitHub } from '../ui/support/fakeGitHub';
 import { FakeReview } from '../ui/support/fakeReview';
 import { codeViewFiles, NESTED_FILE, ROUND_FQN, SMALL_FILE, SYMBOL_FILE } from '../ui/support/files';
 import { json } from '../ui/support/mockApi';
@@ -87,5 +88,14 @@ test.describe('CodeBrowser', () => {
         await page.locator('[data-testid="submit-feedback"]').click();
         await page.locator('[data-testid="submit-feedback-form"] textarea[name="summary"]').fill('First pass over the billing code.');
         await captureScreen('Submit feedback with drafts', page.locator('[data-testid="submit-feedback-form"]'));
+    });
+
+    test('A Browser only repository shows the file from GitHub without the server features', async ({ page, api, captureScreen }) => {
+        const review = new FakeReview(api, { browserOnly: true });
+        await new FakeGitHub(page, (blobSha) => review.blob(blobSha)).install();
+
+        await openFile(page, review, SYMBOL_FILE);
+        await waitForHighlighting(page, 17);
+        await captureScreen('Browser only file header', page.locator('[data-testid="file-header"]'));
     });
 });

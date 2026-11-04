@@ -11,6 +11,7 @@ use App\Domain\Error\InvalidInput;
 use App\Domain\Error\LimitExceeded;
 use App\Domain\Error\RateLimited;
 use App\Domain\Error\RepositoryUnavailable;
+use App\Domain\Error\RepositoryUnavailableReason;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\RefName;
 use App\Domain\Identity\RepositoryId;
@@ -94,7 +95,7 @@ final class ServerClone
      */
     public function fetch(Repository $repository, bool $clone, float $timeoutSeconds, bool $collectGarbage = false): ?RepositoryFetched
     {
-        if (CodeAccess::PassThrough === $repository->getCodeAccess()) {
+        if (CodeAccess::Clone !== $repository->getCodeAccess()) {
             return $this->headSync($repository, $clone);
         }
 
@@ -190,7 +191,7 @@ final class ServerClone
     }
 
     /**
-     * D112, a sync of Pass-through: the checks of {@see gitHubToken()}, then the default branch and its head from GitHub,
+     * D112, a sync of Pass-through and Browser only: the checks of {@see gitHubToken()}, then the default branch and its head from GitHub,
      * without code. The clone job of a change from Server copy deletes the clone with its pins first, under the lock of
      * the caller. A failed check sets `failed`.
      *
@@ -201,6 +202,7 @@ final class ServerClone
     private function headSync(Repository $repository, bool $clone): ?RepositoryFetched
     {
         $id = $repository->getId();
+        $syncedAs = $repository->getCodeAccess();
 
         try {
             if ($clone) {
@@ -217,24 +219,43 @@ final class ServerClone
                 $head = null;
             }
 
-            $this->repositories->recordSuccess($id, CodeAccess::PassThrough, $this->clock->now(), null === $head ? null : $defaultBranch, $head);
+            $this->repositories->recordSuccess($id, $syncedAs, $this->clock->now(), null === $head ? null : $defaultBranch, $head);
         } catch (SourceUnavailable $failure) {
             $this->logger->warning('The head sync of repository {repositoryId} failed a check.', ['repositoryId' => $id->toString(), 'exception' => $failure]);
-            $this->repositories->recordAccessFailure($id, $failure->getMessage(), CodeAccess::PassThrough);
+            $this->repositories->recordAccessFailure($id, $failure->getMessage(), $syncedAs);
 
             return null;
         } catch (GitHubRequestFailed|RepositoryUnavailable|RateLimited|IOExceptionInterface $failure) {
             $this->logger->warning('The head sync of repository {repositoryId} failed.', ['repositoryId' => $id->toString(), 'exception' => $failure]);
-            $this->repositories->recordFailure($id, trim(explode("\n", ($failure->getPrevious() ?? $failure)->getMessage(), 2)[0]), CodeAccess::PassThrough);
+            $this->repositories->recordFailure($id, trim(explode("\n", ($failure->getPrevious() ?? $failure)->getMessage(), 2)[0]), $syncedAs);
 
             return null;
         } catch (\Throwable $failure) {
-            $this->repositories->recordFailure($id, self::UNEXPECTED_FAILURE, CodeAccess::PassThrough);
+            $this->repositories->recordFailure($id, self::UNEXPECTED_FAILURE, $syncedAs);
 
             throw $failure;
         }
 
         return new RepositoryFetched($repository->getTenantId(), $id, $repository->getDefaultBranchHead(), $head);
+    }
+
+    /**
+     * R11 (D114): the kept token of `contents: read` that the reads of the server use, after the checks of a head sync,
+     * so the tabs of a browser share one GitHub token.
+     *
+     * @return array{string, \DateTimeImmutable} The token and its expiry
+     *
+     * @throws RepositoryUnavailable With `clone_failed` for a failed check, and `fetch_failed` when GitHub fails
+     */
+    public function browserToken(Repository $repository): array
+    {
+        try {
+            return $this->checkedToken($repository);
+        } catch (SourceUnavailable $failure) {
+            throw new RepositoryUnavailable($repository->getId(), RepositoryUnavailableReason::CloneFailed, $failure);
+        } catch (GitHubRequestFailed $failure) {
+            throw new RepositoryUnavailable($repository->getId(), RepositoryUnavailableReason::FetchFailed, $failure);
+        }
     }
 
     /**
@@ -360,14 +381,25 @@ final class ServerClone
      */
     private function gitHubToken(Repository $repository): string
     {
+        return $this->checkedToken($repository)[0];
+    }
+
+    /**
+     * @return array{string, \DateTimeImmutable} The token and its expiry
+     *
+     * @throws SourceUnavailable   While the installation is suspended, or without access of the user
+     * @throws GitHubRequestFailed
+     */
+    private function checkedToken(Repository $repository): array
+    {
         $installationId = $repository->getGithubInstallationId() ?? throw new \LogicException('A GitHub repository has an installation ID.');
 
         if ($this->installations->isSuspended($installationId)) {
             throw new SourceUnavailable(self::GITHUB_SUSPENDED);
         }
 
-        $token = $this->installationTokens->forRepository($installationId, (int) $repository->getGithubRepositoryId(), InstallationTokenProvider::CONTENTS_READ);
-        $this->checkUserAccess($repository, $token);
+        $token = $this->installationTokens->withExpiry($installationId, (int) $repository->getGithubRepositoryId(), InstallationTokenProvider::CONTENTS_READ);
+        $this->checkUserAccess($repository, $token[0]);
 
         return $token;
     }

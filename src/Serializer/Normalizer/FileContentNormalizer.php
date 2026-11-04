@@ -45,7 +45,8 @@ final class FileContentNormalizer implements NormalizerInterface, NormalizerAwar
             'renderable' => $data->isRenderable(),
             'lineCount' => $data->lineCount(),
             'symlinkTarget' => $data->symlinkTarget(),
-            'rawUrl' => $this->urlGenerator->generate('api_review_raw', ['reviewId' => $data->reviewId, 'path' => $data->path->toString()]),
+            // Browser only serves no bytes.
+            'rawUrl' => null === $data->binary ? null : $this->urlGenerator->generate('api_review_raw', ['reviewId' => $data->reviewId, 'path' => $data->path->toString()]),
         ], $format, $context);
         \assert(\is_array($normalized));
 

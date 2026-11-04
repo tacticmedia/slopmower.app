@@ -17,7 +17,8 @@ use App\Git\TreeEntry;
 final readonly class FileContent
 {
     /**
-     * @param Blob|null $blob Null when the blob is too large to hold
+     * @param bool|null $binary Null in Browser only, which reads no blob
+     * @param Blob|null $blob   Null when the blob is too large to hold, and in Browser only
      */
     public function __construct(
         public ReviewId $reviewId,
@@ -27,7 +28,7 @@ final readonly class FileContent
         public string $mode,
         public bool $symlink,
         public int $sizeBytes,
-        public bool $binary,
+        public ?bool $binary,
         private ?Blob $blob,
     ) {
     }
@@ -37,9 +38,12 @@ final readonly class FileContent
         return $this->sizeBytes > TreeEntry::MAX_RENDERABLE_BYTES;
     }
 
-    public function isRenderable(): bool
+    /**
+     * Null in Browser only.
+     */
+    public function isRenderable(): ?bool
     {
-        return !$this->symlink && !$this->binary && !$this->isTooLarge();
+        return null === $this->binary ? null : !$this->symlink && !$this->binary && !$this->isTooLarge();
     }
 
     public function text(): ?string

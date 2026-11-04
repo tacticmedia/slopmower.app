@@ -46,6 +46,7 @@ The [usage limits](../specs/README.md#usage-limits) are the values of the [plan 
 | `APP_RATE_LIMIT_MCP_HTTP_PER_MINUTE` | `600` | HTTP requests to `/_mcp` per API token, at least 1 |
 | `APP_RATE_LIMIT_SYNC_FETCH_PER_MINUTE` | `10` | Synchronous fetches per repository, at least 1 |
 | `APP_RATE_LIMIT_REVIEW_START_PER_HOUR` | `30` | Review starts per tenant, at least 1 |
+| `APP_RATE_LIMIT_CODE_TOKEN_PER_HOUR` | `600` | Code tokens of Browser only per user, at least 1 |
 
 - Each paid plan in `APP_PAID_PLANS` has the keys `name`, `marketplace_plan_id`, `rank` of at least 1, and the five limits of the free plan in lower case without the prefix, with `0` for off. The plan of a tenant is the plan with the highest rank among its GitHub accounts. A wrong entry fails every request that reads a plan, and the error names the entry.
 

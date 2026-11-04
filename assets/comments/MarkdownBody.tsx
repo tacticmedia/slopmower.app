@@ -1,5 +1,5 @@
 import '@primer/css/dist/markdown.css';
-import { type ComponentProps, useMemo } from 'react';
+import { type ComponentProps, type ReactNode, useMemo } from 'react';
 import Markdown, { type Components, defaultUrlTransform, type UrlTransform } from 'react-markdown';
 import { Link as RouterLink } from 'react-router';
 import remarkGfm from 'remark-gfm';
@@ -13,12 +13,14 @@ type Props = {
     resolveUrl?: (url: string, attribute: 'href' | 'src') => string;
     /** README text size instead of the comment size. */
     readme?: boolean;
+    /** Renders an image instead of `img`, with the `src` of `resolveUrl`. */
+    image?: (props: ComponentProps<'img'>) => ReactNode;
 };
 
 /**
  * react-markdown turns raw HTML into text and drops unsafe URLs, so a comment cannot inject markup.
  */
-export function MarkdownBody({ markdown, resolveUrl, readme = false }: Props) {
+export function MarkdownBody({ markdown, resolveUrl, readme = false, image }: Props) {
     const urlTransform = useMemo<UrlTransform | undefined>(() => {
         if (undefined === resolveUrl) {
             return undefined;
@@ -30,7 +32,7 @@ export function MarkdownBody({ markdown, resolveUrl, readme = false }: Props) {
             return '' === safe ? safe : resolveUrl(safe, 'src' === key ? 'src' : 'href');
         };
     }, [resolveUrl]);
-    const components = useMemo<Components | undefined>(() => (undefined === resolveUrl ? undefined : { a: ShellLink }), [resolveUrl]);
+    const components = useMemo<Components | undefined>(() => (undefined === resolveUrl ? undefined : { a: ShellLink, ...(undefined === image ? {} : { img: image }) }), [resolveUrl, image]);
 
     return (
         <div className={`markdown-body ${readme ? styles.readme : styles.body}`} data-testid="markdown-body">

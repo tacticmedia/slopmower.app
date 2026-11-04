@@ -153,7 +153,7 @@ final class CarryOverController extends AbstractController
             $moved = $this->capture($target, $anchor, $location->path, $location->range);
 
             if (null !== $moved) {
-                $comment = LocationStatus::Changed === $location->status ? self::changedComment($anchor->commitSha, $targetSha) : null;
+                $comment = \in_array($location->status, [LocationStatus::Changed, LocationStatus::Unverified], true) ? self::changedComment($anchor->commitSha, $targetSha) : null;
 
                 return ['anchor' => $moved, 'comment' => $comment, 'location' => $location->status];
             }

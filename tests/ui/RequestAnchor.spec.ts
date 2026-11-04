@@ -44,4 +44,13 @@ test.describe('RequestAnchor', () => {
 
         await expect(page.locator('[data-testid="anchor-snapshot"]')).toHaveText('Code not available');
     });
+
+    test('A range request without a snapshot, as Browser only captures it, shows "Code not available"', async ({ page, api }) => {
+        const review = new FakeReview(api, { browserOnly: true });
+        const request = review.seedLines(SMALL_FILE, 9, 12, 'Extract the tax calculation.');
+
+        await openRequest(page, request.id);
+
+        await expect(page.locator('[data-testid="anchor-snapshot"]')).toHaveText('Code not available');
+    });
 });

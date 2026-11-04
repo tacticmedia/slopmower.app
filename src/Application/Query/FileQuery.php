@@ -8,6 +8,7 @@ use App\Domain\Error\InvalidInput;
 use App\Domain\Error\NotFound;
 use App\Domain\Git\BlobSha;
 use App\Domain\Git\RepoPath;
+use App\Domain\Repository\CodeAccess;
 use App\Entity\Review;
 use App\Git\CodeReader;
 use App\Git\GitFailed;
@@ -34,7 +35,8 @@ final class FileQuery
     }
 
     /**
-     * Reads only the bytes of the binary check of a blob above {@see TreeEntry::MAX_RENDERABLE_BYTES}.
+     * Reads only the bytes of the binary check of a blob above {@see TreeEntry::MAX_RENDERABLE_BYTES}, and no byte in
+     * Browser only (D114).
      *
      * @param TreeEntry $entry From {@see entry()}
      *
@@ -44,7 +46,8 @@ final class FileQuery
     {
         $blobSha = BlobSha::fromString($entry->objectId);
         $sizeBytes = $entry->sizeBytes ?? throw new \LogicException("The blob {$blobSha} has no size.");
-        $blob = $sizeBytes > TreeEntry::MAX_RENDERABLE_BYTES ? null : $reader->readBlob($blobSha);
+        $readsCode = CodeAccess::Browser !== $review->getRepository()->getCodeAccess();
+        $blob = !$readsCode || $sizeBytes > TreeEntry::MAX_RENDERABLE_BYTES ? null : $reader->readBlob($blobSha);
 
         return new FileContent(
             $review->getId(),
@@ -54,7 +57,7 @@ final class FileQuery
             $entry->mode,
             $entry->isSymlink(),
             $sizeBytes,
-            $blob?->isBinary() ?? self::isBinaryAtStart($reader, $blobSha),
+            $readsCode ? $blob?->isBinary() ?? self::isBinaryAtStart($reader, $blobSha) : null,
             $blob,
         );
     }

@@ -13,6 +13,7 @@ final readonly class ChangedFile
      * @param string      $path      The new path, the old path for a deletion
      * @param string|null $oldPath   Renames and copies only
      * @param int|null    $additions Null for a binary file
+     * @param bool        $blobsRead False for a change of Browser only, whose counts and binary flag nobody knows
      */
     public function __construct(
         public ChangeStatus $status,
@@ -24,11 +25,12 @@ final readonly class ChangedFile
         public ?string $newObjectId,
         public ?int $additions,
         public ?int $deletions,
+        private bool $blobsRead = true,
     ) {
     }
 
-    public function isBinary(): bool
+    public function isBinary(): ?bool
     {
-        return null === $this->additions;
+        return $this->blobsRead ? null === $this->additions : null;
     }
 }
