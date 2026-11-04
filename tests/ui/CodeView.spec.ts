@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { CODE_HOST, location, openFile } from './support/codeView';
 import { FakeReview } from './support/fakeReview';
 import { SMALL_FILE, SYMBOL_FILE } from './support/files';
@@ -7,6 +7,14 @@ import { expect, test } from './support/test';
 
 function treeItem(page: Page, path: string) {
     return page.locator(`[data-testid="file-tree"] [data-path="${path}"]`);
+}
+
+/** After the next click on `link`, its attribute `data-prevented` says whether the page prevented the browser's navigation. */
+async function recordNextClick(link: Locator): Promise<void> {
+    await link.evaluate((element) => {
+        element.removeAttribute('data-prevented');
+        element.addEventListener('click', (event) => setTimeout(() => element.setAttribute('data-prevented', String(event.defaultPrevented))), { once: true });
+    });
 }
 
 /** The label of a directory opens its directory view. The chevron only toggles it. */
@@ -37,7 +45,8 @@ test.describe('CodeView', () => {
         await expect(page.locator('[data-testid="file-header"]')).toContainText(SMALL_FILE);
     });
 
-    test('A file in the tree is a link: a Ctrl or Meta click opens a new page, and a click opens it in place', async ({ page, api }) => {
+    // The new tab of a Ctrl or Meta click is the browser's. Headless Chromium drops about 1 in 75 of them (F118 report).
+    test('A file in the tree is a link: a Ctrl or Meta click is left to the browser, and a click opens it in place', async ({ page, api }) => {
         const review = new FakeReview(api);
         await openFile(page, review, SMALL_FILE);
         const file = treeItem(page, SYMBOL_FILE);
@@ -46,17 +55,16 @@ test.describe('CodeView', () => {
         expect(await file.evaluate((link) => getComputedStyle(link).textDecorationLine)).toBe('none');
         expect(await file.evaluate((link) => getComputedStyle(link).color)).toBe(await treeItem(page, 'src/Billing').evaluate((item) => getComputedStyle(item).color));
 
-        const opened = page.context().waitForEvent('page');
+        await recordNextClick(file);
         await file.click({ modifiers: ['ControlOrMeta'] });
-        const newPage = await opened;
-        await newPage.waitForURL((url) => url.pathname === review.fileUrl(SYMBOL_FILE));
-        await newPage.close();
+        await expect(file).toHaveAttribute('data-prevented', 'false');
         expect(location(page)).toBe(review.fileUrl(SMALL_FILE));
 
+        await recordNextClick(file);
         await file.click();
 
+        await expect(file).toHaveAttribute('data-prevented', 'true');
         await expect(page.locator('[data-testid="file-header"]')).toContainText(SYMBOL_FILE);
-        expect(page.context().pages()).toHaveLength(1);
     });
 
     test('Line 1 text is readable from the shadow root', async ({ page, api }) => {

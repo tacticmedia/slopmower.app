@@ -484,6 +484,8 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 - `context.route` also intercepts the imports of the `@pierre/diffs` worker. `page.route` is enough for `/api/v1`.
 - The worker pool renders with `useTokenTransformer`, so each code token is an element with `data-char`, its UTF-16 offset in the line. A Cmd-click is `click({ modifiers: ['ControlOrMeta'] })` on such a token.
 - `@pierre/diffs` draws no row until the worker pool of the page is ready, which takes seconds on a loaded host, and `onPostRender` also reports the empty render of the mount. A placeholder height stays until the view has a `[data-line]` row, as in `SidesDiff` of `CommitDiff.tsx`. A test waits for a row, never for a fixed time.
+- `@pierre/diffs` measures the page height at its resize notifications and the file height after its renders. A window scroll in the frame that makes the file taller, for example the focus of a new comment box, renders no rows, and the focused element of an annotation loses the focus. `FileView` of `CodeFile.tsx` measures again on such a scroll. See F118.
+- Headless Chromium opens no tab for about 1 in 75 Ctrl or Meta clicks on a link. A test checks that the page leaves the click to the browser: not default-prevented and no navigation in place. See F118.
 
 ### Journeys and the screenshot review
 

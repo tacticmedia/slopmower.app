@@ -1,5 +1,5 @@
 import { cleanLastNewline, type FileContents, type LineAnnotation, type SelectedLineRange, VirtualizedFile, Virtualizer } from '@pierre/diffs';
-import { File, type FileOptions, VirtualizerContext, WorkerPoolContextProvider } from '@pierre/diffs/react';
+import { File, type FileOptions, useVirtualizer, VirtualizerContext, WorkerPoolContextProvider } from '@pierre/diffs/react';
 import { BaseStyles } from '@primer/react';
 import { memo, type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CodeAnnotation } from './annotations';
@@ -122,6 +122,7 @@ const FileView = memo(function FileView({
     const [geometry, setGeometry] = useState<LineGeometry | null>(null);
     const commentable = null !== onComment;
     const navigable = null !== onNavigate;
+    const virtualizer = useVirtualizer();
 
     useEffect(() => {
         commentHandler.current = onComment;
@@ -158,6 +159,24 @@ const FileView = memo(function FileView({
             cancelAnimationFrame(frame);
         };
     }, []);
+
+    // The virtualizer reads the page height at its resize notifications and the file height after its renders. A scroll
+    // in the frame that makes the file taller, as the focus of a new comment box does, would render no rows, and the
+    // comment box would lose the focus.
+    useEffect(() => {
+        let pageHeightPx = document.documentElement.scrollHeight;
+        const followPageHeight = (): void => {
+            const heightPx = document.documentElement.scrollHeight;
+            if (heightPx !== pageHeightPx) {
+                pageHeightPx = heightPx;
+                rendered.current?.file.reconcileHeights();
+                virtualizer?.markDOMDirty();
+            }
+        };
+        window.addEventListener('scroll', followPageHeight, { passive: true });
+
+        return () => window.removeEventListener('scroll', followPageHeight);
+    }, [virtualizer]);
 
     // The scroll to a line yields to the user. Capture, because the view stops the propagation of a press on the gutter "+".
     useEffect(() => {
