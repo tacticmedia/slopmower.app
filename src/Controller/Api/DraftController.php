@@ -112,12 +112,13 @@ final class DraftController extends AbstractController
 
     #[Route('/api/v1/drafts/{draftId}', name: 'update', methods: ['PATCH'])]
     #[IsGranted(DraftVoter::OWN, subject: 'draft', statusCode: Response::HTTP_NOT_FOUND)]
-    public function update(#[MapEntity(id: 'draftId')] Draft $draft, #[MapRequestPayload(acceptFormat: 'json')] UpdateDraftInput $input): JsonResponse
+    public function update(#[MapEntity(id: 'draftId')] Draft $draft, #[MapRequestPayload(acceptFormat: 'json')] UpdateDraftInput $input, AnchorFactory $anchors): JsonResponse
     {
         \assert(null !== $input->body);
-        $this->inLock($draft, function (Draft $draft) use ($input): void {
-            // The edit refuses title, requireApproval, type, and group on a reply, and invalid_input comes before review_closed.
-            $draft->edit($input->title, $input->body, $input->requireApproval, $input->type, $input->group, $this->clock->now());
+        $anchor = self::capture($anchors, $draft->getReview(), $input->anchor);
+        $this->inLock($draft, function (Draft $draft) use ($input, $anchor): void {
+            // The edit refuses title, requireApproval, type, group, and anchor on a reply, and invalid_input comes before review_closed.
+            $draft->edit($input->title, $input->body, $input->requireApproval, $input->type, $input->group, $anchor, $this->clock->now());
             $this->entityManager->refresh($draft->getReview());
             $draft->getReview()->assertOpen();
             $this->entityManager->flush();

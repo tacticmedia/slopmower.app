@@ -133,6 +133,8 @@ export type UpdateDraftInput = {
     type?: RequestType | null;
     /** Replaced with `body`: absent or null removes it. new_request drafts only. */
     group?: string | null;
+    /** Moves a new_request draft (D115). Absent or null keeps the anchor. */
+    anchor?: AnchorInput | null;
 };
 
 /** A missing key is null. */

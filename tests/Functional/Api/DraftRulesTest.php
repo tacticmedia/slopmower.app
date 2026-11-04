@@ -109,7 +109,6 @@ final class DraftRulesTest extends WebTestCase
         $patched = self::assertApiResponse(self::apiRequest($this->client, 'PATCH', "/api/v1/drafts/{$draft['id']}", [
             'body' => 'Use `Money` for totals and taxes.',
             'kind' => 'reply',
-            'anchor' => ['kind' => 'file', 'path' => 'README.md'],
         ]), 200, 'draft.schema.json');
 
         self::assertSame(array_replace($draft, ['body' => 'Use `Money` for totals and taxes.', 'updatedAt' => '2026-09-29T07:14:30Z']), $patched);
@@ -234,6 +233,29 @@ final class DraftRulesTest extends WebTestCase
         $updated = self::assertApiError(self::apiRequest($this->client, 'PATCH', "/api/v1/drafts/{$reply['id']}", ['title' => 'Totals', 'body' => 'Plan first.']), 422, 'invalid_input');
 
         self::assertSame([['title'], ['title']], [array_column($created['details']['violations'] ?? [], 'field'), array_column($updated['details']['violations'] ?? [], 'field')]);
+        self::assertSame([$reply], self::listDrafts($this->client, $this->reviewId));
+    }
+
+    #[TestDox('D3 with an anchor moves a new request draft, captured as in D2, and keeps its ID and createdAt')]
+    public function testPatchMovesTheAnchor(): void
+    {
+        $draft = self::createDraft($this->client, $this->reviewId, ['kind' => 'line', 'path' => self::INVOICE_TOTALS, 'range' => ['startLine' => 3, 'endLine' => 3]]);
+        $anchor = ['kind' => 'range', 'path' => self::INVOICE_TOTALS, 'range' => ['startLine' => 5, 'endLine' => 9]];
+
+        $moved = self::assertApiResponse(self::apiRequest($this->client, 'PATCH', "/api/v1/drafts/{$draft['id']}", ['body' => 'Extract the tax calculation.', 'anchor' => $anchor]), 200, 'draft.schema.json');
+
+        self::assertEquals(self::createDraft($this->client, $this->reviewId, $anchor)['anchor'], $moved['anchor']);
+        self::assertSame([$draft['id'], $draft['createdAt']], [$moved['id'], $moved['createdAt']]);
+    }
+
+    #[TestDox('An anchor on a reply draft gives 422 in D3')]
+    public function testReplyDraftRefusesAnchor(): void
+    {
+        $reply = self::createReplyDraft($this->client, $this->reviewId, (string) self::openRequest($this->client, $this->reviewId)['id']);
+
+        $updated = self::assertApiError(self::apiRequest($this->client, 'PATCH', "/api/v1/drafts/{$reply['id']}", ['body' => 'Plan first.', 'anchor' => ['kind' => 'file', 'path' => 'README.md']]), 422, 'invalid_input');
+
+        self::assertSame(['anchor'], array_column($updated['details']['violations'] ?? [], 'field'));
         self::assertSame([$reply], self::listDrafts($this->client, $this->reviewId));
     }
 

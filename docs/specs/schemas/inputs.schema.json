@@ -582,6 +582,17 @@
             }
           ],
           "description": "Replaces the group: absent or null removes it. A group on a reply draft answers 422."
+        },
+        "anchor": {
+          "anyOf": [
+            {
+              "$ref": "anchor.schema.json#/$defs/AnchorInput"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Moves a new_request draft, captured as in D2. Absent or null keeps the anchor. An anchor on a reply draft answers 422."
         }
       }
     },

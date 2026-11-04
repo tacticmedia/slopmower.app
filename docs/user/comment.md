@@ -9,7 +9,7 @@ You can comment on a line, a range of lines, a symbol, or a file. A new comment 
 | Target | What to do |
 |---|---|
 | One line | Move the pointer over the line number and click the blue **+**. The comment box opens below the line. |
-| A range of lines | Drag from the **+**. Or select the lines first: drag over the line numbers, or click the first line number and shift-click the last one. Then click the **+** on the last selected line. The comment box opens below the last line. |
+| A range of lines | Drag from the **+**. Or select the lines first: drag over the line numbers, or click the first line number and shift-click the last one. Then click the **+** on the last selected line. The comment box opens below the last line. A drag that reaches the top or the bottom of the window scrolls the page. |
 | A symbol | Open **Symbols** in the file header and choose a class, method, function, or other symbol. Or select exactly the lines of a symbol. The comment then belongs to the symbol, and it follows the symbol when the code moves. |
 | A file | Click **Comment on file** in the file header. |
 
@@ -53,7 +53,7 @@ The list shows **General** in place of a location. No file view shows a general 
 
 ## Title and description
 
-A request has a description and an optional title, like a GitHub issue. A comment box that opens a request has a one-line **Title** field above the **Description**. Leave the title empty if the first line of the description says enough. In the **Title** field, Enter moves to the **Description**. A reply has no title.
+A request has a description and an optional title, like a GitHub issue. A comment box that opens a request has a one-line **Title** field above the **Description**. The empty fields show their names. Leave the title empty if the first line of the description says enough. In the **Title** field, Enter moves to the **Description**. A reply has no title.
 
 The heading of the request, its row in the list of requests, its thread in the code, and the browser tab show the title. A request without a title shows the first line of its description as plain text, without Markdown syntax, and its heading is dimmed. Your agent gives each untitled request a title from its description before it starts work, and it gives each of its suggestions a title.
 
@@ -76,4 +76,4 @@ Submitting feedback does not end the review. You can add more comments and submi
 
 A reply in a thread is not a draft. **Reply** sends it at once, because the agent often waits for your answer. The buttons of a request, for example **Verify** or **Approve**, also act at once.
 
-You can edit or delete a draft before you submit it. **Edit** also changes its type and its group. **Pending drafts** on the **Requests** tab lists all your drafts: new requests and replies. Each draft links to its lines or to the request that it replies to.
+You can edit or delete a draft before you submit it. **Edit** also changes its type and its group, and highlights the lines of the draft. To move a draft on lines to other lines, click **Update selection** next to its lines while you edit it, type the first and the last line, and click **Done** or press Enter. **Update comment** saves the new lines with the text, and **Cancel** keeps the old lines. **Pending drafts** on the **Requests** tab lists all your drafts: new requests and replies. Each draft links to its lines or to the request that it replies to.

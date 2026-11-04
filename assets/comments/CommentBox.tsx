@@ -181,6 +181,7 @@ export function CommentBox({
             preview={preview}
             onPreviewChange={setPreview}
             aria-label={titled ? undefined : label}
+            placeholder={titled ? 'Description' : undefined}
             readOnly={busy}
         />
     );
@@ -195,17 +196,57 @@ export function CommentBox({
             {titled ? (
                 <>
                     <FormControl>
-                        <FormControl.Label>Title</FormControl.Label>
-                        <TextInput value={title} onChange={(event) => setTitle(event.target.value)} onKeyDown={pressTitleKey} maxLength={TITLE_MAX_CHARACTERS} block readOnly={busy} />
-                        <FormControl.Caption>Optional.</FormControl.Caption>
+                        <FormControl.Label visuallyHidden>Title</FormControl.Label>
+                        <TextInput value={title} onChange={(event) => setTitle(event.target.value)} onKeyDown={pressTitleKey} maxLength={TITLE_MAX_CHARACTERS} placeholder="Title (optional)" block readOnly={busy} />
                     </FormControl>
                     <FormControl id={editorId}>
-                        <FormControl.Label>Description</FormControl.Label>
+                        <FormControl.Label visuallyHidden>Description</FormControl.Label>
                         {description}
                     </FormControl>
                 </>
             ) : (
                 description
+            )}
+            {undefined !== askForPlan && (
+                <div className={styles.requestOptions}>
+                    <span className={styles.option}>
+                        <label htmlFor={typeId} className={styles.optionLabel}>
+                            Type
+                        </label>
+                        <Select id={typeId} value={type} onChange={(event) => setType(event.target.value)} disabled={busy}>
+                            {REQUEST_TYPES.map((known) => (
+                                <Select.Option key={known} value={known}>
+                                    {REQUEST_TYPE_NAMES[known]}
+                                </Select.Option>
+                            ))}
+                        </Select>
+                    </span>
+                    <span className={styles.option}>
+                        <label htmlFor={groupId} className={styles.optionLabel}>
+                            Group
+                        </label>
+                        <TextInput
+                            id={groupId}
+                            value={group}
+                            onChange={(event) => setGroup(event.target.value)}
+                            list={`${groupId}-labels`}
+                            maxLength={GROUP_MAX_CHARACTERS}
+                            placeholder="Optional"
+                            readOnly={busy}
+                        />
+                        <datalist id={`${groupId}-labels`}>
+                            {groups.map((label) => (
+                                <option key={label} value={label} />
+                            ))}
+                        </datalist>
+                    </span>
+                    {'question' !== type && (
+                        <FormControl disabled={busy}>
+                            <Checkbox checked={requireApproval} onChange={(event) => setRequireApproval(event.target.checked)} />
+                            <FormControl.Label>Ask for a plan first</FormControl.Label>
+                        </FormControl>
+                    )}
+                </div>
             )}
             {null !== error && (
                 <InlineMessage variant="critical" role="alert" data-testid="comment-error">
@@ -213,47 +254,6 @@ export function CommentBox({
                 </InlineMessage>
             )}
             <div className={styles.actions}>
-                {undefined !== askForPlan && (
-                    <div className={styles.requestOptions}>
-                        <span className={styles.option}>
-                            <label htmlFor={typeId} className={styles.optionLabel}>
-                                Type
-                            </label>
-                            <Select id={typeId} value={type} onChange={(event) => setType(event.target.value)} disabled={busy}>
-                                {REQUEST_TYPES.map((known) => (
-                                    <Select.Option key={known} value={known}>
-                                        {REQUEST_TYPE_NAMES[known]}
-                                    </Select.Option>
-                                ))}
-                            </Select>
-                        </span>
-                        <span className={styles.option}>
-                            <label htmlFor={groupId} className={styles.optionLabel}>
-                                Group
-                            </label>
-                            <TextInput
-                                id={groupId}
-                                value={group}
-                                onChange={(event) => setGroup(event.target.value)}
-                                list={`${groupId}-labels`}
-                                maxLength={GROUP_MAX_CHARACTERS}
-                                placeholder="Optional"
-                                readOnly={busy}
-                            />
-                            <datalist id={`${groupId}-labels`}>
-                                {groups.map((label) => (
-                                    <option key={label} value={label} />
-                                ))}
-                            </datalist>
-                        </span>
-                        {'question' !== type && (
-                            <FormControl disabled={busy}>
-                                <Checkbox checked={requireApproval} onChange={(event) => setRequireApproval(event.target.checked)} />
-                                <FormControl.Label>Ask for a plan first</FormControl.Label>
-                            </FormControl>
-                        )}
-                    </div>
-                )}
                 {actions}
                 {undefined !== cancel && (
                     <Button onClick={cancel} disabled={busy}>

@@ -46,6 +46,7 @@ type Props = {
     preview: boolean;
     onPreviewChange(preview: boolean): void;
     'aria-label'?: string;
+    placeholder?: string;
     readOnly: boolean;
     ref: RefObject<HTMLTextAreaElement | null>;
 };
@@ -54,7 +55,7 @@ type Props = {
  * The buttons and the shortcuts click hidden elements of markdown-toolbar-element, and Tab edits through
  * `execCommand`, so undo works. The text field stays mounted while Preview shows.
  */
-export function MarkdownEditor({ id, value, onChange, preview, onPreviewChange, 'aria-label': ariaLabel, readOnly, ref }: Props) {
+export function MarkdownEditor({ id, value, onChange, preview, onPreviewChange, 'aria-label': ariaLabel, placeholder = 'Leave a comment', readOnly, ref }: Props) {
     const editor = useRef<HTMLDivElement>(null);
     const toolbar = useRef<HTMLElement>(null);
     const format = (tag: FormatTag): void => toolbar.current?.querySelector(tag)?.click();
@@ -120,7 +121,7 @@ export function MarkdownEditor({ id, value, onChange, preview, onPreviewChange, 
                         onChange={(event) => onChange(event.target.value)}
                         onKeyDown={pressFieldKey}
                         aria-label={ariaLabel}
-                        placeholder="Leave a comment"
+                        placeholder={placeholder}
                         block
                         resize="vertical"
                         rows={4}

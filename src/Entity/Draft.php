@@ -114,10 +114,11 @@ class Draft implements TenantOwned
      *
      * @param bool|null        $requireApproval Null keeps the value
      * @param RequestType|null $type            Null keeps the value
+     * @param Anchor|null      $anchor          Captured at the review commit. Null keeps the anchor
      *
-     * @throws InvalidInput For a reply that gets a title, a requireApproval, a type, or a group
+     * @throws InvalidInput For a reply that gets a title, a requireApproval, a type, a group, or an anchor
      */
-    public function edit(?string $title, string $body, ?bool $requireApproval, ?RequestType $type, ?string $group, \DateTimeImmutable $now): void
+    public function edit(?string $title, string $body, ?bool $requireApproval, ?RequestType $type, ?string $group, ?Anchor $anchor, \DateTimeImmutable $now): void
     {
         if (null !== $title && DraftKind::Reply === $this->kind) {
             throw InvalidInput::field('title', 'Only a new request has a title.');
@@ -135,11 +136,16 @@ class Draft implements TenantOwned
             throw InvalidInput::field('group', 'Only a new request has a group.');
         }
 
+        if (null !== $anchor && DraftKind::Reply === $this->kind) {
+            throw InvalidInput::field('anchor', 'Only a new request has an anchor.');
+        }
+
         $this->title = self::trimmed($title);
         $this->body = $body;
         $this->requireApproval = $requireApproval ?? $this->requireApproval;
         $this->type = $type ?? $this->type;
         $this->group = self::trimmed($group);
+        $this->anchor = $anchor ?? $this->anchor;
         $this->updatedAt = self::storedTime($now);
     }
 

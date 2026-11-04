@@ -609,11 +609,11 @@ The server captures and validates the anchor at creation, as in [Q2](#q2-open-a-
 
 - **Request:** `PATCH /api/v1/drafts/{draftId}`
 - **Authentication:** S
-- **Body:** [`UpdateDraftInput`](schemas/inputs.schema.json), `{title?, body, requireApproval?, type?, group?}`. `title`, `body`, and `group` replace the stored values together, so an absent or null `title` or `group` removes it. An absent or null `requireApproval` or `type` keeps the value. Example: [fixtures/inputs.update-draft.json](fixtures/inputs.update-draft.json).
+- **Body:** [`UpdateDraftInput`](schemas/inputs.schema.json), `{title?, body, requireApproval?, type?, group?, anchor?}`. `title`, `body`, and `group` replace the stored values together, so an absent or null `title` or `group` removes it. An absent or null `requireApproval`, `type`, or `anchor` keeps the value. Example: [fixtures/inputs.update-draft.json](fixtures/inputs.update-draft.json).
 - **Success:** 200 [`Draft`](schemas/draft.schema.json)
-- **Errors:** 422 `invalid_input` for a `title` or `group` that breaks the limits, an unknown `type`, and `title`, `requireApproval`, `type`, or `group` on a reply draft; 409 `review_closed`.
+- **Errors:** 422 `invalid_input` for anchor errors, a `title` or `group` that breaks the limits, an unknown `type`, and `title`, `requireApproval`, `type`, `group`, or `anchor` on a reply draft; 409 `review_closed`; 409 `repository_unavailable`: the clone is gone, for an `anchor`.
 
-The anchor cannot change. To move a draft, delete it and create a new one.
+`anchor` moves a `new_request` draft (D115). The server captures and validates it as in [D2](#d2-create-a-draft). The draft keeps its ID and its place in the submission order.
 
 ### D4 Delete a draft
 

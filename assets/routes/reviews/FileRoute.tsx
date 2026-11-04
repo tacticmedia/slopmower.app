@@ -10,10 +10,11 @@ import type { Symbol as CodeSymbol } from '../../api/types/symbol';
 import { type CodeAnnotation, NO_ANNOTATIONS, stableAnnotations, threadsByLine } from '../../code/annotations';
 import type { LineGeometry, NamePosition, Overflow } from '../../code/CodeFile';
 import { type LineRange, lineRange } from '../../code/lineHash';
-import { bottomLine, type GestureRange } from '../../code/rangeSelection';
+import { anchorInput, bottomLine, type GestureRange } from '../../code/rangeSelection';
 import { enclosingScopes, matchingSymbol, symbolKindLabel } from '../../code/symbolMatch';
 import { CommentBox, type CommentText } from '../../comments/CommentBox';
 import { CommentOnLinesForm } from '../../comments/CommentOnLinesForm';
+import { type DraftLines, DraftLinesContext } from '../../comments/draftLines';
 import { type DraftView, fileDraftViews } from '../../comments/draftView';
 import { ThreadList } from '../../comments/ThreadList';
 import { type Composer, storedComposerRange, useFileComments } from '../../comments/useFileComments';
@@ -77,6 +78,18 @@ export function FileRoute() {
         },
         [select, openLines],
     );
+    // The pending comment whose edit highlights its lines.
+    const [draftHighlight, setDraftHighlight] = useState<{ key: string; range: LineRange } | null>(null);
+    const highlightDraft = useCallback((key: string, range: LineRange | null) => setDraftHighlight((current) => (null === range ? (current?.key === key ? null : current) : { key, range })), []);
+    const { lineCount, path } = content;
+    const draftLines = useMemo<DraftLines | null>(() => {
+        if (null === lineCount) {
+            return null;
+        }
+        const symbolAt = (range: LineRange): string | null => (null === symbols || browserOnly ? null : (matchingSymbol(symbols, range)?.fqn ?? null));
+
+        return { lineCount, anchor: (range) => anchorInput(path, range, symbolAt(range)), highlight: highlightDraft };
+    }, [lineCount, path, symbols, browserOnly, highlightDraft]);
     const commentOnSymbol = useCallback(
         (symbol: CodeSymbol) => {
             const range = lineRange(symbol.range.startLine, symbol.range.endLine);
@@ -171,18 +184,21 @@ export function FileRoute() {
                     <FilePlaceholder content={content} />
                 </div>
             ) : (
-                <Code
-                    content={content}
-                    text={text}
-                    selection={selection}
-                    comments={comments}
-                    caller={caller}
-                    onComment={writable ? openLines : null}
-                    onNavigate={navigable ? goTo.atPosition : null}
-                    overflow={wrap && !blameMode ? 'wrap' : 'scroll'}
-                    onTopLineChange={followTopLine}
-                    blame={blame}
-                />
+                <DraftLinesContext value={draftLines}>
+                    <Code
+                        content={content}
+                        text={text}
+                        selection={selection}
+                        comments={comments}
+                        caller={caller}
+                        onComment={writable ? openLines : null}
+                        onNavigate={navigable ? goTo.atPosition : null}
+                        overflow={wrap && !blameMode ? 'wrap' : 'scroll'}
+                        onTopLineChange={followTopLine}
+                        blame={blame}
+                        highlight={draftHighlight?.range ?? null}
+                    />
+                </DraftLinesContext>
             )}
         </section>
     );
@@ -246,11 +262,13 @@ type CodeProps = {
     onTopLineChange(line: number): void;
     /** Set in the blame view, which shows no threads. */
     blame: Blame | null;
+    /** Shown instead of the selection. */
+    highlight: LineRange | null;
 };
 
 const draftLine = (draft: DraftView): number | null => (null === draft.range ? null : bottomLine(draft.range));
 
-function Code({ content, text, selection, comments, caller, onComment, onNavigate, overflow, onTopLineChange, blame }: CodeProps) {
+function Code({ content, text, selection, comments, caller, onComment, onNavigate, overflow, onTopLineChange, blame, highlight }: CodeProps) {
     const { composer, threads, drafts, submit, cancel } = comments;
     const commentable = null !== onComment;
     const composerLine = null !== composer && null !== composer.range ? bottomLine(composer.range) : null;
@@ -294,6 +312,7 @@ function Code({ content, text, selection, comments, caller, onComment, onNavigat
                     blobSha={content.blobSha}
                     contents={text}
                     selection={selection.selection}
+                    highlight={highlight}
                     onSelectionChange={selection.change}
                     onSelectionCommit={selection.commit}
                     annotations={null === blame ? currentAnnotations : NO_ANNOTATIONS}

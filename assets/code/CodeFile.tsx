@@ -7,7 +7,7 @@ import { characterColumn } from './characterColumn';
 import { type LineRange, lineRange } from './lineHash';
 import type { GestureRange } from './rangeSelection';
 import styles from './CodeFile.module.css';
-import { centredScrollTop, isBelowHeader, stickyHeaderPx, USER_INPUT_EVENTS } from './scrollTarget';
+import { centredScrollTop, dragScrollStepPx, isBelowHeader, stickyHeaderPx, USER_INPUT_EVENTS } from './scrollTarget';
 import { HIGHLIGHTER_OPTIONS, POOL_OPTIONS, THEME } from './workerPool';
 
 export type Overflow = 'scroll' | 'wrap';
@@ -24,6 +24,8 @@ export type CodeFileProps = {
     blobSha: string;
     contents: string;
     selection: LineRange | null;
+    /** Shown instead of `selection`, without a scroll to it. */
+    highlight?: LineRange | null;
     /** Every change, also during a drag. Feed it back into `selection`. */
     onSelectionChange(selection: LineRange | null): void;
     /** The selection after the pointer is released. */
@@ -83,6 +85,8 @@ export const CodeFile = memo(function CodeFile(props: CodeFileProps) {
 
 type ScrollRequest = { range: LineRange; moves: number; startedAtMs: number; running: boolean };
 
+type Pointer = { x: number; y: number; pointerId: number; pointerType: string };
+
 type ScrollStep = 'done' | 'moved' | 'waiting';
 
 const FileView = memo(function FileView({
@@ -90,6 +94,7 @@ const FileView = memo(function FileView({
     blobSha,
     contents,
     selection,
+    highlight = null,
     onSelectionChange,
     onSelectionCommit,
     annotations,
@@ -112,6 +117,8 @@ const FileView = memo(function FileView({
     const measureTopLine = useRef<() => void>(() => undefined);
     const latestSelection = useRef(selection);
     const hoveredToken = useRef<HTMLElement | null>(null);
+    const pressedPointer = useRef<Pointer | null>(null);
+    const stopDragScroll = useRef<(() => void) | null>(null);
     const [geometry, setGeometry] = useState<LineGeometry | null>(null);
     const commentable = null !== onComment;
     const navigable = null !== onNavigate;
@@ -176,6 +183,23 @@ const FileView = memo(function FileView({
 
     useEffect(() => (navigable ? underlineWhileModifierHeld(hoveredToken) : undefined), [navigable]);
 
+    // Capture: the view handles the press inside its shadow root, after this.
+    useEffect(() => {
+        const element = container.current;
+        if (null === element) {
+            return;
+        }
+        const press = ({ clientX, clientY, pointerId, pointerType }: PointerEvent): void => {
+            pressedPointer.current = { x: clientX, y: clientY, pointerId, pointerType };
+        };
+        element.addEventListener('pointerdown', press, { capture: true, passive: true });
+
+        return () => {
+            element.removeEventListener('pointerdown', press, { capture: true });
+            stopDragScroll.current?.();
+        };
+    }, []);
+
     // The language follows the name, so equal bytes at another path need their own highlighting.
     const file = useMemo<FileContents>(() => ({ name: path, contents: cleanLastNewline(contents), cacheKey: `${blobSha}:${path}` }), [path, blobSha, contents]);
     const latestContents = useRef(file.contents);
@@ -185,7 +209,8 @@ const FileView = memo(function FileView({
     }, [file]);
 
     const lineAnnotations = useMemo<LineAnnotation<undefined>[]>(() => [...annotations], [annotations]);
-    const selectedLines = useMemo<SelectedLineRange | null>(() => (null === selection ? null : { start: selection.start, end: selection.end }), [selection]);
+    const shownLines = highlight ?? selection;
+    const selectedLines = useMemo<SelectedLineRange | null>(() => (null === shownLines ? null : { start: shownLines.start, end: shownLines.end }), [shownLines]);
     const reportSelection = useCallback(
         (range: SelectedLineRange | null) => {
             reported.current = toLineRange(range);
@@ -217,11 +242,23 @@ const FileView = memo(function FileView({
         };
         step();
     }, []);
+    const startDragScroll = useCallback(
+        (range: SelectedLineRange | null) => {
+            reportSelection(range);
+            const pointer = pressedPointer.current;
+            if (null === stopDragScroll.current && null !== pointer && 'touch' !== pointer.pointerType && null !== container.current) {
+                stopDragScroll.current = scrollWhileSelecting(container.current, pointer, () => {
+                    stopDragScroll.current = null;
+                });
+            }
+        },
+        [reportSelection],
+    );
     const options = useMemo<FileViewOptions>(
         () => ({
             ...BASE_VIEW_OPTIONS,
             overflow,
-            onLineSelectionStart: reportSelection,
+            onLineSelectionStart: startDragScroll,
             onLineSelectionChange: reportSelection,
             // Not `onLineSelected`: the view also fires it when it applies the controlled selection, and a commit of
             // that would replace the hash during a navigation. The end of a gesture comes with the same range.
@@ -258,7 +295,7 @@ const FileView = memo(function FileView({
                   }
                 : {}),
         }),
-        [reportSelection, onSelectionCommit, scrollWhenRendered, commentable, navigable, overflow],
+        [reportSelection, startDragScroll, onSelectionCommit, scrollWhenRendered, commentable, navigable, overflow],
     );
     // Without the wrapper, annotation content inherits the code font of the view.
     const renderSlot = useCallback((annotation: LineAnnotation<undefined>) => <BaseStyles>{renderAnnotation(annotation.lineNumber)}</BaseStyles>, [renderAnnotation]);
@@ -319,6 +356,55 @@ function scrollWindowTo(top: number, firstRowRendered: boolean): ScrollStep {
     }
 
     return firstRowRendered ? 'done' : 'waiting';
+}
+
+/**
+ * The view extends a selection on `pointermove` only, at the row under the pointer, and never scrolls. Until the
+ * release, each frame scrolls the window while the pointer is near the top or the bottom of the window and more code
+ * lies beyond that edge, then sends a `pointermove` at the pointer, kept inside the code, so the selection follows.
+ *
+ * @returns The stop
+ */
+function scrollWhileSelecting(code: HTMLElement, pressed: Pointer, onStop: () => void): () => void {
+    let pointer = pressed;
+    let frame = 0;
+    const move = (event: PointerEvent): void => {
+        if (event.isTrusted && event.pointerId === pointer.pointerId) {
+            pointer = { ...pointer, x: event.clientX, y: event.clientY };
+        }
+    };
+    const step = (): void => {
+        const area = code.getBoundingClientRect();
+        const headerPx = stickyHeaderPx();
+        const stepPx = dragScrollStepPx(pointer.y, headerPx, window.innerHeight);
+        const fromY = window.scrollY;
+        if ((stepPx < 0 && area.top < headerPx) || (stepPx > 0 && area.bottom > window.innerHeight)) {
+            window.scrollBy({ top: stepPx, behavior: 'instant' });
+        }
+        const movedPx = window.scrollY - fromY;
+        if (0 !== movedPx) {
+            const clientX = Math.min(Math.max(pointer.x, area.left + 1), area.right - 1);
+            const clientY = Math.min(Math.max(pointer.y, Math.max(headerPx, area.top - movedPx) + 1), Math.min(window.innerHeight, area.bottom - movedPx) - 1);
+            document.dispatchEvent(new PointerEvent('pointermove', { pointerId: pointer.pointerId, pointerType: pointer.pointerType, clientX, clientY, bubbles: true, composed: true }));
+        }
+        frame = requestAnimationFrame(step);
+    };
+    const stop = (event?: PointerEvent): void => {
+        if (undefined !== event && event.pointerId !== pointer.pointerId) {
+            return;
+        }
+        cancelAnimationFrame(frame);
+        window.removeEventListener('pointermove', move, { capture: true });
+        window.removeEventListener('pointerup', stop, { capture: true });
+        window.removeEventListener('pointercancel', stop, { capture: true });
+        onStop();
+    };
+    window.addEventListener('pointermove', move, { capture: true, passive: true });
+    window.addEventListener('pointerup', stop, { capture: true });
+    window.addEventListener('pointercancel', stop, { capture: true });
+    frame = requestAnimationFrame(step);
+
+    return () => stop();
 }
 
 /**

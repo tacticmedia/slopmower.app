@@ -580,7 +580,7 @@ export class FakeReview {
                 if (null !== closed) {
                     return closed;
                 }
-                const { title, body, requireApproval, type, group } = call.body as UpdateDraftInput;
+                const { title, body, requireApproval, type, group, anchor } = call.body as UpdateDraftInput;
                 if (null != requireApproval && 'reply' === draft.kind) {
                     return apiError(422, 'invalid_input', 'Only a new request asks for a plan first.', { violations: [{ field: 'requireApproval', message: 'Only a new request asks for a plan first.' }] });
                 }
@@ -590,8 +590,11 @@ export class FakeReview {
                 if (null != group && 'reply' === draft.kind) {
                     return apiError(422, 'invalid_input', 'Only a new request has a group.', { violations: [{ field: 'group', message: 'Only a new request has a group.' }] });
                 }
+                if (null != anchor && 'reply' === draft.kind) {
+                    return apiError(422, 'invalid_input', 'Only a new request has an anchor.', { violations: [{ field: 'anchor', message: 'Only a new request has an anchor.' }] });
+                }
                 // D3 replaces the title and the group with the body.
-                const updated = { ...draft, title: title?.trim() ?? null, body, requireApproval: requireApproval ?? draft.requireApproval, type: type ?? draft.type, group: group?.trim() ?? null, updatedAt: now() } as Draft;
+                const updated = { ...draft, title: title?.trim() ?? null, body, requireApproval: requireApproval ?? draft.requireApproval, type: type ?? draft.type, group: group?.trim() ?? null, anchor: null == anchor ? draft.anchor : this.#anchor(anchor), updatedAt: now() } as Draft;
                 this.drafts = this.drafts.map((known) => (known.id === draft.id ? updated : known));
 
                 return json('draft.schema.json', updated);

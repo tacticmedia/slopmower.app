@@ -256,6 +256,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Structured agent questions, decision D107: the optional input `questions` of Q4 and `reply_to_request`, the schema `Question`, and the property `questions` of `Event` and `ThreadEntry`. All are additive. `request.commented` has the payload field `questions`, read as `[]` when missing, so stored events need no change.
     - No pull request choice on an approval, decision D108: Q15 has no input `pullRequest`, and a body with it answers as one without it. `Request.delivery` is `Review.delivery`, so a stored approval with `pullRequest` no longer changes it. Not additive: it removes an input and changes the meaning of `Request.delivery`. Readers ignore the `pullRequest` of a stored `request.proposal_approved`, so stored events need no change.
     - No rejection of a proposal, decision D110: Q16, the input `RejectProposalInput`, and the `Action` value `reject_proposal` are gone. The user asks for changes with a reply (Q4), which keeps the proposal pending. Not additive: it removes an endpoint and an `Action` value. `ProposalState` keeps `rejected` and `ThreadEntryType` keeps `request.proposal_rejected`, so stored events need no change.
+    - Draft anchor change, decision D115: the optional input `anchor` of D3, which moves a `new_request` draft. It is additive.
 
 ## 9. Contract tests
 
