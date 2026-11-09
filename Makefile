@@ -10,7 +10,7 @@ CONSOLE        = $(PHP) bin/console
 PACKAGE_JSON   = $(wildcard package.json)
 
 .DEFAULT_GOAL = help
-.PHONY: help up down sh worker-restart console composer mate migration db-reset fixtures db-test test e2e stan cs cs-fix lint front ui journeys prod-check act check
+.PHONY: help up down sh worker-restart console composer mate migration db-reset fixtures db-test test e2e stan cs cs-fix lint front ui journeys prod-check act pentest check
 
 help: ## List the targets
 	@grep -hE '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "%-16s %s\n", $$1, $$2}'
@@ -120,6 +120,9 @@ prod-check: ## Build the frankenphp_prod image, then lint its container, check t
 act: ## .github/workflows/qa.yml with act, in var/act/workspace, on its own compose project and ports
 	bin/act-run
 	mkdir -p $(ACT_VERIFIED) && touch $(ACT_VERIFIED)/$(ACT_HASH)
+
+pentest: ## Shannon against a disposable HTTPS stack on port 8343, arguments of shannon start in c="..." (F122)
+	bin/pentest $(c)
 
 # The files that define the workflow, the stack, or a gate.
 ACT_INPUTS = $(wildcard .github/workflows/*) .actrc .github/act.env bin/act-run bin/prod-check .dockerignore \

@@ -1,74 +1,37 @@
-# Describe your target environment (optional, max 500 chars)
-description: "Codebase review tool facilitating a two-way high-volume, high-complexity communication channel between a developer and their coding agent"
+# Shannon configuration of make pentest (F122). Schema: apps/worker/configs/config-schema.json of KeygraphHQ/shannon v3.5.0.
 
-# Limit which vulnerability classes run end-to-end (optional, default: all five)
-# vuln_classes: [injection, xss, auth, authz, ssrf]
+description: "Slopmower: code review between a developer and a coding agent. Symfony JSON API at /api/v1, MCP server at /_mcp, React SPA, PostgreSQL, Mercure. A disposable local stack in APP_ENV=dev with synthetic data."
 
-# Skip the exploitation phase (optional, default: "true")
-# exploit: "false"
+rules_of_engagement: |
+  - Send requests only to https://host.docker.internal:8343. The other ports of host.docker.internal belong to other applications.
+  - The "Sign in as pentest" button (POST /login/local) is a dev-only stand-in for GitHub sign-in that production does not have. Use it to sign in. Do not test, exploit, or report it.
 
-# Free-form rules of engagement (optional)
-# rules_of_engagement: |
-#   - No password brute-force; cap login attempts at 5 per account.
-#   - Throttle to under 5 requests per second per endpoint; back off 60s on any 429.
-#   - Use placeholders like [order_id] in deliverables — no real data values.
-
-
-# Limit which vulnerability classes run end-to-end (optional, default: all five)
-# vuln_classes: [injection, xss, auth, authz, ssrf]
-
-# Skip the exploitation phase (optional, default: "true")
-# exploit: "false"
-
-# Free-form rules of engagement (optional)
-# rules_of_engagement: |
-#   - No password brute-force; cap login attempts at 5 per account.
-#   - Throttle to under 5 requests per second per endpoint; back off 60s on any 429.
-#   - Use placeholders like [order_id] in deliverables — no real data values.
-#
-#authentication:
-#    login_type: form
-#    login_url: ""
-#    credentials:
-#        username: ""
-#        password: ""
-#
-#        # Optional mailbox credentials for magic-link / email-OTP flows.
-#        # email_login:
-#        #   address: "inbox@example.com"
-#        #   password: "mailbox-password"
-#        #   totp_secret: "JBSWY3DPEHPK3PXP"
-#
-#    # Natural language instructions for login flow
-#    login_flow:
-#        - "Type $username into the Work e-mail field"
-#        - "Type $password into the Password field"
-#        - "Click the 'Continue' button"
-#
-#    success_condition:
-#        type: url_contains
-#        value: "/"
+authentication:
+  login_type: form
+  login_url: "https://host.docker.internal:8343/login"
+  credentials:
+    username: pentest
+  login_flow:
+    - "Click the 'Sign in as pentest' button"
+  success_condition:
+    type: url_contains
+    value: "/repositories"
 
 rules:
-    # Supported types: url_path, subdomain, domain, method, header, parameter, code_path
-    avoid:
-        - description: "AI should avoid testing logout functionality"
-          type: url_path
-          value: "/logout"
+  avoid:
+    - description: "Logout ends the session"
+      type: url_path
+      value: "/logout"
+    - description: "Symfony profiler, dev only"
+      type: url_path
+      value: "/_profiler"
+    - description: "Symfony debug toolbar, dev only"
+      type: url_path
+      value: "/_wdt"
+    - description: "QA screenshot review, dev only"
+      type: url_path
+      value: "/_dev"
+    # No code_path rule for .claude/: Shannon also denies it under any parent, which blocks its own /tmp/.claude/skills.
 
-        # code_path values are repo-relative file paths or globs (e.g. "src/auth.ts", "src/vendor/**").
-        # - description: "Out-of-scope vendored libraries"
-        #   type: code_path
-        #   value: "src/vendor/**"
-
-#    focus:
-#        - description: "AI should emphasize testing API endpoints"
-#          type: url_path
-#          value: "/api"
-
-# Filters applied by the report agent when assembling the final report (optional).
-# report:
-#   min_severity: low                   # drop findings below this severity (low | medium | high | critical)
-#   min_confidence: low                 # drop findings below this confidence (low | medium | high)
-#   guidance: |
-#     Drop findings about missing security headers and rate-limit gaps.
+report:
+  guidance: "Drop findings about dev-only surfaces that production does not have: the local sign-in without a password, the Symfony profiler, debug error pages, and the values in .env.dev. Keep findings about the defaults in .env."
