@@ -137,6 +137,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F119 | [Comment form fixes](F119-comment-form-fixes.md) | Done 2026-11-05, [report](reports/F119.md) | 8b1e3724 | src 521 PHP / 37810 lines, 521 types; tests 357 PHP / 34753 lines; assets 204 TS / 13333 lines; check 11m3s |
 | F120 | [Symbols packages on npm ci](F120-symbols-install-on-npm-ci.md) | Done 2026-11-05, [report](reports/F120.md) | 92487dd9 | src 521 PHP / 37802 lines, 521 types; tests 357 PHP / 34731 lines; assets 202 TS / 13066 lines; check 6m53s |
 | F121 | [Update selection without the edit form](F121-move-draft-lines.md) | Done 2026-11-05, [report](reports/F121.md) | b63180a0 | src 521 PHP / 37810 lines, 521 types; tests 357 PHP / 34753 lines; assets 204 TS / 13356 lines; check 6m12s |
+| F122 | [Shannon pentest of a disposable HTTPS stack](F122-shannon-pentest.md) | In progress | | |
 
 ## Candidates
 
@@ -144,6 +145,7 @@ Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also
 
 The findings of the repository audit of 2026-10-28 are [F84](F84-audit-must-fixes.md) to [F87](F87-smaller-audit-findings.md).
 
+- **Second tenant for the pentest.** `make pentest` signs Shannon in as the one local user, so Shannon cannot test the isolation between tenants with two real sessions. A second login, for example a second dev fixture user with its own sign-in, gives Shannon two accounts. From the F122 planning.
 - **Flaky CodeView Ctrl or Meta click test (known issue).** Scheduled as [F118](F118-flaky-tests.md). `tests/ui/CodeView.spec.ts` "A file in the tree is a link: a Ctrl or Meta click opens a new page, and a click opens it in place": `waitForEvent('page')` times out. 100 local runs failed 2 times on the F117 branch and 1 time on `a3c4a81e`; it failed the first two `make act` runs of F117. In the act trace the click ends and no page opens. From the F117 report.
 - **Twig outline in Browser only.** The published `tree-sitter-twig` 0.8.2 wasm does not load in `web-tree-sitter` 0.27. A wasm built with `tree-sitter-cli` 0.25 or newer, or a new release of the package, adds Twig to `BROWSER_LANGUAGES` with a `twig.scm` query. From the F117 report.
 - **UI test of README images in Browser only.** `GitHubImage` has no UI test, because the GitHub fake of the UI suite answers `git/blobs` only for text. From the F117 report.
