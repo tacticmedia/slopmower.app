@@ -137,7 +137,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F119 | [Comment form fixes](F119-comment-form-fixes.md) | Done 2026-11-05, [report](reports/F119.md) | 8b1e3724 | src 521 PHP / 37810 lines, 521 types; tests 357 PHP / 34753 lines; assets 204 TS / 13333 lines; check 11m3s |
 | F120 | [Symbols packages on npm ci](F120-symbols-install-on-npm-ci.md) | Done 2026-11-05, [report](reports/F120.md) | 92487dd9 | src 521 PHP / 37802 lines, 521 types; tests 357 PHP / 34731 lines; assets 202 TS / 13066 lines; check 6m53s |
 | F121 | [Update selection without the edit form](F121-move-draft-lines.md) | Done 2026-11-05, [report](reports/F121.md) | b63180a0 | src 521 PHP / 37810 lines, 521 types; tests 357 PHP / 34753 lines; assets 204 TS / 13356 lines; check 6m12s |
-| F122 | [Shannon pentest of a disposable HTTPS stack](F122-shannon-pentest.md) | In progress | | |
+| F122 | [Shannon pentest of a disposable HTTPS stack](F122-shannon-pentest.md) | Done 2026-11-09, [report](reports/F122.md) | 0329c2f0 | src 521 PHP / 37810 lines, 521 types; tests 357 PHP / 34753 lines; assets 204 TS / 13371 lines; check 15m23s |
 | F123 | [No gap before "Update selection"](F123-line-range-gap.md) | Done 2026-11-09, [report](reports/F123.md) | 48182a1b | src 521 PHP / 37810 lines, 521 types; tests 357 PHP / 34753 lines; assets 204 TS / 13371 lines; check 6m6s |
 
 ## Candidates
