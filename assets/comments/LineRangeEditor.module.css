@@ -6,17 +6,8 @@
     font-size: var(--text-body-size-small);
 }
 
-.cell {
-    display: inline-grid;
-}
-
-.cell > * {
-    grid-area: 1 / 1;
+.editor > * {
     white-space: nowrap;
-}
-
-.hidden {
-    visibility: hidden;
 }
 
 .number {

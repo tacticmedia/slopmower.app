@@ -22,10 +22,7 @@ type Props = {
 
 type Fields = { start: string; end: string };
 
-/**
- * "Update selection" turns the numbers into inputs, and "Done" or Enter applies them. The text and the inputs share
- * one grid cell, and the link comes after it, so nothing moves.
- */
+/** "Update selection" turns the numbers into inputs, and "Done" or Enter applies them. */
 export function LineRangeEditor({ range, lineCount, onChange, onError, onOpenChange, disabled, ref }: Props) {
     const [fields, setFields] = useState<Fields | null>(null);
     const startInput = useRef<HTMLInputElement>(null);
@@ -69,7 +66,7 @@ export function LineRangeEditor({ range, lineCount, onChange, onError, onOpenCha
             setFields(null);
         }
     };
-    const number = (name: keyof Fields, label: string) => (
+    const number = (open: Fields, name: keyof Fields, label: string) => (
         <input
             ref={'start' === name ? startInput : undefined}
             className={styles.number}
@@ -78,23 +75,22 @@ export function LineRangeEditor({ range, lineCount, onChange, onError, onOpenCha
             aria-label={label}
             inputMode="numeric"
             autoComplete="off"
-            value={fields?.[name] ?? String(range[name])}
-            onChange={(event) => setFields({ ...(fields ?? { start: '', end: '' }), [name]: event.target.value })}
+            value={open[name]}
+            onChange={(event) => setFields({ ...open, [name]: event.target.value })}
             onKeyDown={pressKey}
-            readOnly={!editing || disabled}
+            readOnly={disabled}
         />
     );
 
     return (
         <span className={styles.editor}>
-            <span className={styles.cell}>
-                <span className={editing ? styles.hidden : undefined} data-testid="draft-lines">
-                    {linesText(range)}
+            {null === fields ? (
+                <span data-testid="draft-lines">{linesText(range)}</span>
+            ) : (
+                <span data-testid="draft-line-fields">
+                    Lines {number(fields, 'start', 'Start line')} to {number(fields, 'end', 'End line')}
                 </span>
-                <span className={editing ? undefined : styles.hidden} data-testid="draft-line-fields">
-                    Lines {number('start', 'Start line')} to {number('end', 'End line')}
-                </span>
-            </span>
+            )}
             <Link as="button" type="button" className={styles.toggle} onClick={editing ? () => void apply() : () => setFields({ start: String(range.start), end: String(range.end) })} disabled={disabled}>
                 {editing ? 'Done' : 'Update selection'}
             </Link>

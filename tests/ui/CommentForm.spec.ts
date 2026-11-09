@@ -5,6 +5,8 @@ import { SMALL_FILE } from './support/files';
 import { expect, test } from './support/test';
 
 const EDITOR = 'form[aria-label="Edit pending comment"]';
+/** `gap` of `.editor` in LineRangeEditor.module.css. */
+const EDITOR_GAP_PX = 8;
 
 async function editDraft(page: Page, body: string): Promise<Locator> {
     const draft = page.locator(SAVED_DRAFT).filter({ hasText: body });
@@ -15,11 +17,14 @@ async function editDraft(page: Page, body: string): Promise<Locator> {
     return draft;
 }
 
-function headerBox(draft: Locator): Promise<{ linkX: number; headerHeight: number }> {
+/** The gap is from the end of the shown lines, text or inputs, to the link. */
+function headerBox(draft: Locator): Promise<{ gapPx: number; headerHeight: number }> {
     return draft.locator('header').evaluate((header) => {
         const link = [...header.querySelectorAll('button')].find((button) => ['Update selection', 'Done'].includes(button.textContent ?? ''));
+        const lines = document.createRange();
+        lines.selectNodeContents(header.querySelector('[data-testid="draft-lines"], [data-testid="draft-line-fields"]') ?? header);
 
-        return { linkX: link?.getBoundingClientRect().x ?? NaN, headerHeight: header.getBoundingClientRect().height };
+        return { gapPx: Math.round((link?.getBoundingClientRect().left ?? NaN) - lines.getBoundingClientRect().right), headerHeight: header.getBoundingClientRect().height };
     });
 }
 
@@ -53,13 +58,14 @@ test.describe('CommentForm', () => {
         await expect.poll(() => selectedLines(page)).toEqual([]);
     });
 
-    test('Update selection and Done move the lines without a layout shift, and Update comment sends the new anchor', async ({ page, api }) => {
+    test('Update selection comes after the lines and Done after the inputs, the header keeps its height, and Update comment sends the new anchor', async ({ page, api }) => {
         const review = new FakeReview(api);
         const seeded = review.seedDraft({ kind: 'new_request', anchor: { kind: 'range', path: SMALL_FILE, range: { startLine: 9, endLine: 12 } }, body: 'Extract the tax calculation.' });
         await openFile(page, review, SMALL_FILE);
         await waitForHighlighting(page, 12);
         const draft = await editDraft(page, 'Extract the tax calculation.');
         const before = await headerBox(draft);
+        expect(before.gapPx).toBe(EDITOR_GAP_PX);
 
         await draft.getByRole('button', { name: 'Update selection', exact: true }).click();
         expect(await headerBox(draft)).toEqual(before);
@@ -99,12 +105,13 @@ test.describe('CommentForm', () => {
         ]);
     });
 
-    test('A line past the end of the file shows an error and keeps the inputs', async ({ page, api }) => {
+    test('A one-line comment has no gap before Update selection, and a line past the end of the file shows an error and keeps the inputs', async ({ page, api }) => {
         const review = new FakeReview(api);
         review.seedDraft({ kind: 'new_request', anchor: { kind: 'line', path: SMALL_FILE, range: { startLine: 10, endLine: 10 } }, body: 'Use a named constant.' });
         await openFile(page, review, SMALL_FILE);
         await waitForHighlighting(page, 10);
         const draft = await editDraft(page, 'Use a named constant.');
+        expect((await headerBox(draft)).gapPx).toBe(EDITOR_GAP_PX);
 
         await draft.getByRole('button', { name: 'Update selection', exact: true }).click();
         await draft.getByRole('textbox', { name: 'End line' }).fill('99');
