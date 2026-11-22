@@ -13,11 +13,19 @@ use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\Uid\Ulid;
 
 /**
- * config/packages/doctrine.yaml registers it once per {@see Identifier} subclass, with the class name as the type name:
+ * config/packages/doctrine_types.php registers it once per {@see Identifier} subclass, with the class name as the type name:
  * `#[ORM\Column(type: TenantId::class)]`. The column is a native uuid, as for the ulid type.
  */
 final class IdentifierType extends Type
 {
+    /** @var class-string<Identifier> */
+    private readonly string $identifierClass;
+
+    public function __construct(string $identifierClass)
+    {
+        $this->identifierClass = is_subclass_of($identifierClass, Identifier::class) ? $identifierClass : throw new \LogicException("{$identifierClass} is no Identifier class.");
+    }
+
     public function getSQLDeclaration(array $column, AbstractPlatform $platform): string
     {
         return $platform->getGuidTypeDeclarationSQL($column);
@@ -25,7 +33,7 @@ final class IdentifierType extends Type
 
     public function convertToPHPValue(mixed $value, AbstractPlatform $platform): ?Identifier
     {
-        return null === $value ? null : $this->identifierClass()::fromUlid($this->ulid($value));
+        return null === $value ? null : $this->identifierClass::fromUlid($this->ulid($value));
     }
 
     /**
@@ -33,33 +41,19 @@ final class IdentifierType extends Type
      */
     public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): ?string
     {
-        $class = $this->identifierClass();
-
         return match (true) {
             null === $value => null,
-            $value instanceof $class => $value->toRfc4122(),
+            $value instanceof $this->identifierClass => $value->toRfc4122(),
             default => $this->ulid($value)->toRfc4122(),
         };
     }
 
-    /**
-     * @return class-string<Identifier>
-     */
-    private function identifierClass(): string
-    {
-        $class = self::lookupName($this);
-
-        return is_subclass_of($class, Identifier::class) ? $class : throw new \LogicException("The type name {$class} is no Identifier class.");
-    }
-
     private function ulid(mixed $value): Ulid
     {
-        $class = $this->identifierClass();
-
         try {
-            return Ulid::fromString(\is_string($value) ? $value : throw InvalidType::new($value, $class, ['null', 'string', $class]));
+            return Ulid::fromString(\is_string($value) ? $value : throw InvalidType::new($value, $this->identifierClass, ['null', 'string', $this->identifierClass]));
         } catch (\InvalidArgumentException $error) {
-            throw ValueNotConvertible::new($value, $class, $error->getMessage(), $error);
+            throw ValueNotConvertible::new($value, $this->identifierClass, $error->getMessage(), $error);
         }
     }
 }

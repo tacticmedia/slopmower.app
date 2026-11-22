@@ -1,4 +1,4 @@
-# Written by hand: symfony/mcp-bundle 0.14.1 has no Flex recipe.
+# Written by hand: the Flex recipe of symfony/mcp-bundle is not installed.
 mcp:
     resource: .
     type: mcp

@@ -60,7 +60,7 @@ trait TokenSettings
     {
         $row = $this->page->locator('xpath=//table[@aria-labelledby="api-tokens"]/tbody/tr[th[normalize-space()="'.$tokenName.'"]]');
         $this->expect($row)->toHaveCount(1);
-        // playwright-php 1.5.0 sends allTextContents() to its server, which has no such action.
+        // playwright-php 1.6.0 sends allTextContents() to its server, which has no such action.
         $headers = $this->page->locator(self::TOKENS_TABLE.' thead th')->evaluateAll('(headers) => headers.map((header) => header.textContent)');
         self::assertIsArray($headers);
         $index = array_search($column, $headers, true);

@@ -16,9 +16,9 @@ use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * One request per MCP session at a time: the SDK queues each response in the session and rewrites the whole session
- * without a lock, so two parallel requests of one session can lose or swap a response. No tool suspends, so the SDK
- * answers with JSON and touches the session only inside handle().
+ * One request per MCP session at a time: the SDK reads the session, applies the keys that the request changed, and
+ * writes it back without a lock, so two parallel requests of one session can lose a change. No tool suspends, so the
+ * SDK answers with JSON and touches the session only inside handle().
  */
 #[AsDecorator('mcp.server.slopmower.controller')]
 final class SessionLockedMcpController

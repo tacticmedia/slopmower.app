@@ -144,6 +144,7 @@ COPY --link docker/frankenphp/conf.d/20-app.prod.ini $PHP_INI_DIR/app.conf.d/
 COPY --link docker/frankenphp/Caddyfile.prod /etc/frankenphp/Caddyfile
 
 COPY --link --exclude=var --from=frankenphp_prod_builder /app /app
-COPY --link --chown=www-data:www-data --from=frankenphp_prod_builder /app/var /app/var
+# 33 is www-data: COPY --link resolves no user names.
+COPY --link --chown=33:33 --from=frankenphp_prod_builder /app/var /app/var
 
 USER www-data

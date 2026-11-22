@@ -10,7 +10,7 @@ Status: backlog. The proof of concept uses the `file` session store of `symfony/
 
 ## What
 
-- `symfony/mcp-bundle` 0.14.1 offers the session stores `file`, `memory`, `cache`, and `framework`. The `cache` store needs a PSR-16 service. Check the options of the installed bundle version with `bin/console config:dump-reference mcp` before the work starts.
+- `symfony/mcp-bundle` 0.15.0 offers the session stores `file`, `memory`, `cache`, and `framework`. The `cache` store needs a PSR-16 service. Check the options of the installed bundle version with `bin/console config:dump-reference mcp` before the work starts.
 - Use the `cache` store with a PostgreSQL-backed pool: Symfony Cache's DBAL adapter, wrapped as PSR-16 with `Symfony\Component\Cache\Psr16Cache`.
 - Set a session lifetime, and prune expired entries with a scheduled command.
 - Keep the `file` store as the default for a single container, selected by configuration.

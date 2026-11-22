@@ -21,9 +21,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-/**
- * The types come from the DBAL configuration, which the connection registers.
- */
 final class CustomTypeTest extends KernelTestCase
 {
     private const string COMMIT = '79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091';
@@ -31,19 +28,14 @@ final class CustomTypeTest extends KernelTestCase
     private const string ULID = '01K6AZZ9Y8X7W6V5T4S3R2Q1P0';
     private const string UUID = '019995ff-a7c8-e9f8-6d97-44c8f02b86c0';
 
-    protected function setUp(): void
-    {
-        self::getContainer()->get(Connection::class);
-    }
-
     #[TestDox('Converts valid values in both directions')]
     #[DataProvider('validValues')]
     public function testConvertsValidValues(string $type, ?object $value, ?string $databaseValue): void
     {
         $platform = new PostgreSQLPlatform();
 
-        self::assertSame($databaseValue, Type::getType($type)->convertToDatabaseValue($value, $platform));
-        self::assertEquals($value, Type::getType($type)->convertToPHPValue($databaseValue, $platform));
+        self::assertSame($databaseValue, self::type($type)->convertToDatabaseValue($value, $platform));
+        self::assertEquals($value, self::type($type)->convertToPHPValue($databaseValue, $platform));
     }
 
     /**
@@ -65,7 +57,7 @@ final class CustomTypeTest extends KernelTestCase
     #[TestDox('Takes the ULID string of a route parameter for an ID')]
     public function testTakesUlidStringForId(): void
     {
-        self::assertSame(self::UUID, Type::getType(ReviewId::class)->convertToDatabaseValue(self::ULID, new PostgreSQLPlatform()));
+        self::assertSame(self::UUID, self::type(ReviewId::class)->convertToDatabaseValue(self::ULID, new PostgreSQLPlatform()));
     }
 
     #[TestDox('Rejects an invalid value for the database')]
@@ -74,7 +66,7 @@ final class CustomTypeTest extends KernelTestCase
     {
         $this->expectException(ConversionException::class);
 
-        Type::getType($type)->convertToDatabaseValue($value, new PostgreSQLPlatform());
+        self::type($type)->convertToDatabaseValue($value, new PostgreSQLPlatform());
     }
 
     /**
@@ -93,7 +85,7 @@ final class CustomTypeTest extends KernelTestCase
     {
         $this->expectException(ConversionException::class);
 
-        Type::getType($type)->convertToPHPValue($databaseValue, new PostgreSQLPlatform());
+        self::type($type)->convertToPHPValue($databaseValue, new PostgreSQLPlatform());
     }
 
     /**
@@ -107,5 +99,13 @@ final class CustomTypeTest extends KernelTestCase
         yield 'anchor without fields' => [AnchorType::NAME, '{"kind": "file"}'];
         yield 'anchor that is no JSON' => [AnchorType::NAME, 'file'];
         yield 'ID that is no ULID' => [TenantId::class, 'not-a-ulid'];
+    }
+
+    /**
+     * The connection holds the types, not the global registry of DBAL.
+     */
+    private static function type(string $name): Type
+    {
+        return self::getContainer()->get(Connection::class)->getConfiguration()->getTypeProvider()->get($name);
     }
 }

@@ -14,14 +14,25 @@ use Doctrine\DBAL\Types\Exception\ValueNotConvertible;
 use Doctrine\DBAL\Types\Type;
 
 /**
- * config/packages/doctrine.yaml registers it once per value class, with the class name as the type name:
+ * config/packages/doctrine_types.php registers it once per value class, with the class name as the type name:
  * `#[ORM\Column(type: CommitSha::class)]`.
  */
 final class StringValueType extends Type
 {
+    /** @var class-string<CommitSha|BlobSha|RepoPath> */
+    private readonly string $valueClass;
+
+    public function __construct(string $valueClass)
+    {
+        $this->valueClass = match ($valueClass) {
+            CommitSha::class, BlobSha::class, RepoPath::class => $valueClass,
+            default => throw new \LogicException("{$valueClass} is no string value class."),
+        };
+    }
+
     public function getSQLDeclaration(array $column, AbstractPlatform $platform): string
     {
-        return match ($this->valueClass()) {
+        return match ($this->valueClass) {
             CommitSha::class, BlobSha::class => $platform->getStringTypeDeclarationSQL([...$column, 'length' => 64]),
             RepoPath::class => $platform->getClobTypeDeclarationSQL($column),
         };
@@ -33,34 +44,19 @@ final class StringValueType extends Type
             return null;
         }
 
-        $class = $this->valueClass();
-
         try {
-            return $class::fromString(\is_string($value) ? $value : throw ValueNotConvertible::new($value, $class));
+            return $this->valueClass::fromString(\is_string($value) ? $value : throw ValueNotConvertible::new($value, $this->valueClass));
         } catch (InvalidInput $error) {
-            throw ValueNotConvertible::new($value, $class, $error->getMessage(), $error);
+            throw ValueNotConvertible::new($value, $this->valueClass, $error->getMessage(), $error);
         }
     }
 
     public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): ?string
     {
-        $class = $this->valueClass();
-
         return match (true) {
             null === $value => null,
-            $value instanceof $class => $value->toString(),
-            default => throw InvalidType::new($value, $class, ['null', $class]),
-        };
-    }
-
-    /**
-     * @return class-string<CommitSha|BlobSha|RepoPath>
-     */
-    private function valueClass(): string
-    {
-        return match ($class = self::lookupName($this)) {
-            CommitSha::class, BlobSha::class, RepoPath::class => $class,
-            default => throw new \LogicException("The type name {$class} is no string value class."),
+            $value instanceof $this->valueClass => $value->toString(),
+            default => throw InvalidType::new($value, $this->valueClass, ['null', $this->valueClass]),
         };
     }
 }

@@ -76,7 +76,7 @@ final class DeleteAccountTest extends WebTestCase
         self::assertApiResponse(self::apiRequest($this->client, 'GET', '/api/v1/me'), 200, 'me.schema.json');
     }
 
-    #[TestDox('The response is 202 and clears the session cookie and the double-submit cookie')]
+    #[TestDox('The response is 202 and clears the session cookie, the double-submit cookie, and the Mercure cookie')]
     public function testResponseIsAcceptedAndClearsTheSessionCookie(): void
     {
         [$sessionCookie] = $this->client->getCookieJar()->all();
@@ -91,7 +91,7 @@ final class DeleteAccountTest extends WebTestCase
             static fn (HttpCookie $cookie): string => $cookie->getName(),
             array_filter($response->headers->getCookies(), static fn (HttpCookie $cookie): bool => $cookie->isCleared()),
         );
-        self::assertEqualsCanonicalizing([$sessionCookie->getName(), $doubleSubmitCookie], $cleared);
+        self::assertEqualsCanonicalizing([$sessionCookie->getName(), $doubleSubmitCookie, 'mercureAuthorization'], $cleared);
         self::assertEquals([new PurgeTenantJob($this->user->getTenantId())], array_map(static fn (Envelope $envelope): object => $envelope->getMessage(), [...self::asyncTransport()->getSent()]));
         self::assertApiError(self::apiRequest($this->client, 'GET', '/api/v1/me'), 401, 'unauthorized');
     }

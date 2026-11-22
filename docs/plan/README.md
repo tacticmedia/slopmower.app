@@ -346,7 +346,7 @@ Every milestone:
    - `make act`, when a file of `ACT_INPUTS` changed since the last green run.
 3. Schema changes have generated migrations, applied to the dev and test databases.
 4. Responses validate against docs/specs, and every new route and tool has a cross-tenant case.
-5. The exact pins hold: `mcp/sdk` 0.8.1, `symfony/mcp-bundle` 0.14.1, `symfony/reprise` 1.3.0, `@symfony/reprise` 1.3.0, `@pierre/diffs` 1.5.2.
+5. The exact pins hold: `mcp/sdk` 0.9.0, `symfony/mcp-bundle` 0.15.0, `symfony/reprise` 1.4.0, `@symfony/reprise` 1.4.0, `@pierre/diffs` 1.5.2.
 6. File sizes are within the limits. No TODO without a backlog entry.
 7. The report is written, the status table is updated, and nothing is committed without Jan's permission in the session.
 
@@ -375,37 +375,37 @@ The session writes it into `reports/MNN.md`:
 
 ## Verified versions
 
-Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08; the `symfony/scheduler` row on 2026-10-13; the `sentry/*` row on 2026-10-15; the `tacticmedia/qa-bundle` and `@tacticmedia/qa-capture` rows on 2026-10-16; the `react-joyride` row on 2026-10-19; the `@sentry/react` row on 2026-10-28; the `@sentry/vite-plugin` row and the F100 versions on 2026-11-03. `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
+Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08; the `symfony/scheduler` row on 2026-10-13; the `sentry/*` row on 2026-10-15; the `tacticmedia/qa-bundle` and `@tacticmedia/qa-capture` rows on 2026-10-16; the `react-joyride` row on 2026-10-19; the `@sentry/react` row on 2026-10-28; the `@sentry/vite-plugin` row and the F100 versions on 2026-11-03; the Composer rows and the `@symfony/reprise` version on 2026-11-22 (F125). `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
 
 | Package | Version | Source |
 |---|---|---|
 | PHP | 8.5.11 | https://www.php.net/releases/index.php?json&version=8 |
-| Symfony | 8.1.8. 8.2 is due 11/2026. 8.1 ends 01/2027. | https://symfony.com/releases/8.1.json |
+| Symfony | 8.1.11. 8.2 is at 8.2.0-BETA2. 8.1 ends 01/2027. | https://symfony.com/releases/8.1.json |
 | PostgreSQL | 18.6, Docker tag `18-alpine` | https://www.postgresql.org/versions.json |
 | FrankenPHP | 1.12.7, Docker tag `dunglas/frankenphp:1.12.7-php8.5-trixie`, worker mode through Symfony Runtime's `FrankenPhpWorkerRunner` | https://github.com/php/frankenphp/releases/tag/v1.12.7 |
 | dunglas/symfony-docker | Template, guide "Using Symfony Docker with an existing project" | https://github.com/dunglas/symfony-docker |
 | Node.js | 24 LTS, 24.21.0 | https://nodejs.org/dist/index.json |
 | Node.js in the `php` image | 24.21.0 from `node:24-trixie-slim`, npm 11.19.0 | `node --version` in the `php` container |
-| `doctrine/orm`, `doctrine/doctrine-migrations-bundle`, `symfony/messenger` with the Doctrine transport | 3.7.4, 4.0.1, 8.1, installed | `composer show` |
-| `symfony/process`, `symfony/uid` | 8.1.7, 8.1.8 | https://repo.packagist.org/p2/symfony/process.json |
-| `mcp/sdk`, `symfony/mcp-bundle` | 0.8.1, 0.14.1, exact pins | https://repo.packagist.org/p2/mcp/sdk.json |
+| `doctrine/orm`, `doctrine/doctrine-bundle`, `doctrine/doctrine-migrations-bundle`, `symfony/messenger` with the Doctrine transport | 3.8.0, 3.4.2, 4.0.1, 8.1, installed, with `doctrine/dbal` 4.6.0 | `composer show` |
+| `symfony/process`, `symfony/uid` | 8.1.10, 8.1.9 | https://repo.packagist.org/p2/symfony/process.json |
+| `mcp/sdk`, `symfony/mcp-bundle` | 0.9.0, 0.15.0, exact pins. `mcp/sdk` 0.10.0 exists, and no bundle release accepts it. | https://repo.packagist.org/p2/mcp/sdk.json |
 | `nyholm/psr7` | 1.8 | https://repo.packagist.org/p2/nyholm/psr7.json |
-| `hwi/oauth-bundle` | 2.5.0 of 2026-02-19, MIT, PHP 8.3 or later, Symfony `^6.4\|^7.4\|^8.0`, uses Symfony HttpClient | https://repo.packagist.org/p2/hwi/oauth-bundle.json |
-| `lcobucci/jwt` | 5.6.0, for the GitHub App JWT | https://repo.packagist.org/p2/lcobucci/jwt.json |
-| `symfony/mercure-bundle` | 0.5.0 | https://repo.packagist.org/p2/symfony/mercure-bundle.json |
+| `hwi/oauth-bundle` | 2.6.0 of 2026-10-27, MIT, PHP 8.3 or later, Symfony `^6.4\|^7.4\|^8.1`, uses Symfony HttpClient | https://repo.packagist.org/p2/hwi/oauth-bundle.json |
+| `lcobucci/jwt` | 5.7.0, for the GitHub App JWT | https://repo.packagist.org/p2/lcobucci/jwt.json |
+| `symfony/mercure-bundle` | 0.7.0, with `symfony/mercure` 0.10.0 | https://repo.packagist.org/p2/symfony/mercure-bundle.json |
 | `symfony/webhook`, `symfony/remote-event` | 8.1.7, 8.1.0 | https://repo.packagist.org/p2/symfony/webhook.json |
-| `symfony/scheduler` | 8.1.8 | https://repo.packagist.org/p2/symfony/scheduler.json |
-| `sentry/sentry`, `sentry/sentry-symfony` | 4.34.0, 5.14.0 | https://repo.packagist.org/p2/sentry/sentry-symfony.json |
-| `symfony/reprise`, `@symfony/reprise` | 1.3.0, exact pins, stable since 1.0.0 of 2026-08-26 | https://repo.packagist.org/p2/symfony/reprise.json |
+| `symfony/scheduler` | 8.1.10 | https://repo.packagist.org/p2/symfony/scheduler.json |
+| `sentry/sentry`, `sentry/sentry-symfony` | 4.38.0, 5.17.0 | https://repo.packagist.org/p2/sentry/sentry-symfony.json |
+| `symfony/reprise`, `@symfony/reprise` | 1.4.0, exact pins, stable since 1.0.0 of 2026-08-26 | https://repo.packagist.org/p2/symfony/reprise.json |
 | `nikic/php-parser` | 5.9.0 | https://repo.packagist.org/p2/nikic/php-parser.json |
 | `twig/markdown-extra` | 3.29.0 | https://repo.packagist.org/p2/twig/markdown-extra.json |
-| `league/commonmark` | 2.10.3 | https://repo.packagist.org/p2/league/commonmark.json |
-| `opis/json-schema` | 2.6.0, draft 2020-12 | https://repo.packagist.org/p2/opis/json-schema.json |
-| `phpunit/phpunit`, `phpstan/phpstan` | 13.4.6, 2.3.0 | https://repo.packagist.org/p2/phpunit/phpunit.json |
-| `symfony/ai-mate`, `symfony/ai-monolog-mate-extension`, `symfony/ai-symfony-mate-extension` | 0.14.0, dev only | https://repo.packagist.org/p2/symfony/ai-mate.json |
-| `playwright-php/playwright` | 1.5.0, exact pin. Its Node server uses npm `playwright` 1.63.0. | https://repo.packagist.org/p2/playwright-php/playwright.json |
+| `league/commonmark` | 2.10.7 | https://repo.packagist.org/p2/league/commonmark.json |
+| `opis/json-schema` | 2.6.2, draft 2020-12 | https://repo.packagist.org/p2/opis/json-schema.json |
+| `phpunit/phpunit`, `phpstan/phpstan` | 13.4.8, 2.3.7 | https://repo.packagist.org/p2/phpunit/phpunit.json |
+| `symfony/ai-mate`, `symfony/ai-monolog-mate-extension`, `symfony/ai-symfony-mate-extension` | 0.15.0, dev only | https://repo.packagist.org/p2/symfony/ai-mate.json |
+| `playwright-php/playwright` | 1.6.0, exact pin. Its Node server uses npm `playwright` 1.63.0. | https://repo.packagist.org/p2/playwright-php/playwright.json |
 | `tacticmedia/qa-bundle` | 2.0.0, dev only, MIT. The review page `/_dev/screenshots` needs `ext-gd`, which only the `frankenphp_dev` image installs. | https://repo.packagist.org/p2/tacticmedia/qa-bundle.json |
-| `friendsofphp/php-cs-fixer` | 3.95.27 | https://repo.packagist.org/p2/friendsofphp/php-cs-fixer.json |
+| `friendsofphp/php-cs-fixer` | 3.95.32. It refuses PHP 8.6. | https://repo.packagist.org/p2/friendsofphp/php-cs-fixer.json |
 | `react`, `react-dom`, `@types/react`, `@types/react-dom` | 19.3.0 | https://www.npmjs.com/package/react |
 | `react-router` | 8.4.0, Data Mode. Peers `react` and `react-dom` `>=19.2.7`. | https://www.npmjs.com/package/react-router |
 | `vite`, `@vitejs/plugin-react`, `typescript` | 8.3.5, 6.1.1, 7.0.2 | https://www.npmjs.com/package/vite |
@@ -427,25 +427,27 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 ### Recipes and bundles
 
 - **HWIOAuthBundle.** Its recipe is a contrib recipe. Version 2.5.0 requires `symfony/form`, so keep Form. It has no PKCE. Its `csrf` option defaults to `false`: set it to `true`. Its failure handler stores no error in the session, so `Security\SignInErrorListener` stores it for `/login`. It throws plain `AuthenticationException`s, for example for a wrong `state`, so `translations/security.en.xlf` maps their message key to "Signing in with GitHub failed. Try again."
-- **symfony/mcp-bundle 0.14.1.** It has no Flex recipe. Only `config/bundles.php` gets `Symfony\AI\McpBundle\McpBundle`. Write `config/packages/mcp.yaml` and `config/routes/mcp.yaml` by hand. The HTTP transport needs `nyholm/psr7`. The `nyholm/psr7` and `php-http/discovery` recipes both alias the PSR-17 interfaces: keep one set.
-- **MCP bundle options.** `http.allowed_hosts` defaults to localhost only, as DNS rebinding protection. The HTTP path is `servers.<name>.http.path`. The session store is one of `file`, `memory`, `cache`, or `framework`. The `cache` store needs a PSR-16 service. The default directory of the `file` store is under `%kernel.cache_dir%`, which `cache:clear` removes, so set `directory` explicitly.
-- **mcp/sdk 0.8.1 behaviour:**
+- **symfony/mcp-bundle 0.15.0.** Its Flex recipe is not installed: `config/bundles.php` has `Symfony\AI\McpBundle\McpBundle`, and `config/packages/mcp.yaml` and `config/routes/mcp.yaml` are written by hand. The HTTP transport needs `nyholm/psr7`. The `nyholm/psr7` and `php-http/discovery` recipes both alias the PSR-17 interfaces: keep one set.
+- **MCP bundle options.** `http.allowed_hosts` defaults to localhost only, as DNS rebinding protection. `http.allowed_origins` is empty by default: a request with an `Origin` header of another origin gets 403, and the scheme and the port count. The HTTP path is `servers.<name>.http.path`. The session store is one of `file`, `memory`, `cache`, or `framework`. The `cache` store needs a PSR-16 service. The default directory of the `file` store is under `%kernel.cache_dir%`, which `cache:clear` removes, so set `directory` explicitly. `session.lock` is off by default. `App\Mcp\SessionLockedMcpController` holds the session lock.
+- **mcp/sdk 0.9.0 behaviour:**
   - input-schema failures return JSON-RPC -32602, not `isError`;
   - any exception other than `ToolCallException` becomes -32603 and loses its message;
   - a `ToolCallException` becomes an `isError` result with the message as text and no `structuredContent`;
+  - a `structuredContent` that does not match the `outputSchema` of the tool becomes an `isError` result with the validation errors as text;
   - object and DTO parameters are not supported;
   - a nullable scalar parameter generates a type list with `null` first, a nullable enum or array parameter with `null` last;
   - a `list<string>` docblock produces `items: {}`, which accepts any element: array parameters need `#[Schema(items: ...)]`;
   - `outputSchema` comes only from `#[McpTool]`, so it must be a constant expression;
   - `structuredContent` must be a JSON object in the 2025-11-25 protocol era;
   - anything written to stdout corrupts the stdio transport.
-- **Mercure hub URL.** Always set `hubs.default.url`. When it is unset, the bundle compiles `FrankenPhpHub`, which calls `mercure_publish()`, a function that `10-app.ini` disables. See `$builtinHub = !isset($hub['url'])` in `MercureExtension.php`.
-- **`mercure_publish()` is disabled.** Only FrankenPHP defines it, and the Mercure bundle changes its configuration tree when it exists. `docker/frankenphp/conf.d/10-app.ini` sets `disable_functions = mercure_publish`, so FrankenPHP and the CLI build the same container and write the same `config/reference.php`.
-- **Mercure 1.x.** FrankenPHP 1.12.7 bundles Mercure 0.24.2. The first FrankenPHP release with Mercure 1.x needs these changes in one step:
-  - `protocol_version: '1.0'` on the hub in `config/packages/mercure.yaml`;
-  - the `iss`, `sub`, and `client_id` claims in `mercure.hubs.default.jwt.claims`. `aud` defaults to `public_url`, but the app publishes to the internal `MERCURE_URL`, so pin the hub's `resource_identifier` or set `aud`, as the bundle's `claims` option describes;
+- **Mercure hub URL.** Always set `hubs.default.url`. For an empty URL, `HubFactory::create()` of the bundle returns `FrankenPhpHub`, which calls `mercure_publish()`, a function that `10-app.ini` disables.
+- **`mercure_publish()` is disabled.** Only FrankenPHP defines it. `docker/frankenphp/conf.d/10-app.ini` sets `disable_functions = mercure_publish`. `symfony/mercure-bundle` 0.7.0 builds the same container with and without the function.
+- **Mercure 1.x.** FrankenPHP 1.12.7 bundles Mercure 0.24.2, and FrankenPHP 1.14.0 bundles Mercure 1.1.6. `symfony/mercure-bundle` 0.7.0 defaults to protocol 1.0, so `config/packages/mercure.yaml` sets `protocol_version: '0.x'`. The first FrankenPHP release with Mercure 1.x needs these changes in one step. None is checked against a 1.x hub:
+  - `protocol_version: '1.0'` on the hub in `config/packages/mercure.yaml`, and the 0.6 recipe of the bundle, which adds `MERCURE_JWT_ISSUER`;
+  - the `iss`, `sub`, and `client_id` claims in `mercure.hubs.default.jwt.claims`. `aud` defaults to `public_url`, and the publisher token also gets `url`, so the internal `MERCURE_URL` needs no `resource_identifier` on the hub;
   - `issuer` blocks in the Caddyfile. Mercure 1.0 refuses the top-level `publisher_jwt` and `subscriber_jwt` directives unless `protocol_version_compatibility 8` is set;
-  - `cookie_name: mercureAuthorization`, because the 1.0 default `__Secure-mercure_access_token` cannot be set over plain HTTP.
+  - `cookie_name: mercureAuthorization`, because the 1.0 default `__Secure-mercure_access_token` cannot be set over plain HTTP. In debug mode the bundle uses `mercure_access_token`;
+  - the subscriber side. `Symfony\Component\Mercure\ProtocolVersion` names the query parameters `match` and `match_<type>` in place of `topic`, and the JWT claim `authorization_details` in place of `mercure`. That reaches A3 of docs/specs, `MercureAuthorizeTest`, `HubIsolationTest`, and `assets/live/`.
 - **Reprise recipe.** It re-creates `assets/app.js` and `assets/styles/app.css`, and edits `templates/base.html.twig`.
 - **symfony/rate-limiter 8.1.** It has no Flex recipe. `framework.rate_limiter` refuses a `lock_factory` while `framework.lock` is off, so `config/packages/rate_limiter.yaml` sets `lock_factory: null`, and `Kernel::process()` gives each limiter the advisory-lock `LockFactory`. The policies read `microtime()`, not the Symfony clock. `tests/Support/Clock/rate-limiter-time.php`, which `tests/bootstrap.php` loads first, shadows it with the global clock, so `ClockSensitiveTrait::mockTime()` drives the limiters. A token bucket adds its whole `amount` once per interval.
 - **symfony/webhook.** The recipe route prefix is `/webhook`, so the GitHub endpoint is `/webhook/github`. A request parser that returns `null` makes Symfony answer 406. Return a `RemoteEvent` for every verified delivery.
@@ -459,6 +461,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 - **One database role.** Do not add init scripts under `/docker-entrypoint-initdb.d/`. A second role needs the facts in [database-hardening.md](../backlog/database-hardening.md).
 - **Image build context.** `.dockerignore` excludes `docs/` and every `*.md` file. `DocsCatalog` reads `docs/user/` and `docs/specs/schemas/` at run time, so a production stage that copies the source must include both, or `/docs` answers 500.
 - **Worker cache.** The compose `worker` sets `APP_CACHE_DIR=var/cache/worker`, so it builds its own container in `var/cache/worker/dev`. A rebuild of `var/cache/dev` by the `php` container removes container files that a worker on the shared cache still loads, and such a worker dies with its message delivered until the 15-minute redelivery.
+- **PHP 8.6.** `dunglas/frankenphp:1.14.0-php8.6-trixie` cannot be the base image yet. `install-php-extensions xdebug` fails in it, because Xdebug 3.5.3, the newest release on PECL, allows PHP up to 8.5.99. php-cs-fixer 3.95.32, the newest release, exits 1 on PHP 8.6 unless the configuration allows an unsupported PHP version. The image has no `mbstring`: add it to `install-php-extensions`. See [reports/F125.md](reports/F125.md).
 - **A new package in worker mode.** A FrankenPHP worker keeps the Composer autoloader that it loaded at its start. After `composer install` adds a package, run `docker compose restart php`, or the dev app answers with "Class not found". Tests run in new processes and do not show it.
 
 ### CI and act
@@ -473,7 +476,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 ### PHPStan level 8
 
 - phpstan-doctrine needs `objectManagerLoader`: `tests/object-manager.php`.
-- phpstan-doctrine finds a type descriptor by the DBAL type class, so DQL results of `IdentifierType` and `StringValueType` columns are `mixed`. A descriptor for the class gives `Identifier` for every ID column, and `doctrine.columnType` then fails on each typed ID property. A descriptor per type name needs a subclass of `DefaultDescriptorRegistry`, which PHPStan reports as `phpstanApi.class`.
+- phpstan-doctrine finds a type descriptor by the type name in the global DBAL registry and then by the DBAL type class. The connection holds the types of `config/packages/doctrine_types.php`, not the global registry, so DQL results of `IdentifierType` and `StringValueType` columns are `mixed`. A descriptor for the class gives `Identifier` for every ID column, and `doctrine.columnType` then fails on each typed ID property. A descriptor per type name needs a subclass of `DefaultDescriptorRegistry`, which PHPStan reports as `phpstanApi.class`.
 
 ### Mocked UI suite
 
@@ -500,7 +503,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 - **Sessions.** The `test` environment uses `mock_file` sessions. A real browser must use the `e2e` environment.
 - **Build output.** `npm run build` writes the bundles to `public/build`, and it and the Vite dev server write `public/entrypoints.json`, which the dev worker watches. The E2E suite uses its own build in `public/build-e2e`.
 - **Server-sent events in a functional test.** `EventSourceHttpClient::stream()` ends with its first timeout chunk, and a timeout chunk that `isTimeout()` does not check throws "Idle timeout reached". Pass the whole wait as the stream timeout and check `isTimeout()`, as `HubIsolationTest` does.
-- **Full-stack suite, playwright-php 1.5.0:**
+- **Full-stack suite, playwright-php 1.6.0:**
   - `getByRole()` without `exact: true` matches a case-insensitive substring of the name. Pass `'exact' => true`.
   - `allTextContents()` and `allInnerTexts()` fail with "Unknown action", because the Node server has no such action. Use `evaluateAll()`.
   - `filter(['has' => $locator])` puts the selector string of `$locator` into a CSS `:has()`. A CSS locator works. A role, text, or chained locator fails with a selector parse error.

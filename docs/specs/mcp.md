@@ -6,7 +6,7 @@ The MCP server gives coding agents the agent side of the request workflow. It ca
 
 | Item | Value |
 |---|---|
-| Endpoint | `https://<host>/_mcp`, Streamable HTTP, through the HTTP transport of `symfony/mcp-bundle` 0.14.1 with `mcp/sdk` 0.8.1. The transport needs `nyholm/psr7`. The local development environment serves `http://localhost:8000/_mcp`. |
+| Endpoint | `https://<host>/_mcp`, Streamable HTTP, through the HTTP transport of `symfony/mcp-bundle` 0.15.0 with `mcp/sdk` 0.9.0. The transport needs `nyholm/psr7`. The local development environment serves `http://localhost:8000/_mcp`. |
 | Server name, version | `slopmower`, `1.0.0` |
 | Protocol | The handshake era up to 2025-11-25 with MCP sessions, and 2026-07-28 with `server/discover` |
 | Sessions | The `file` session store of the bundle, in `var/mcp-sessions`. The default directory is under `%kernel.cache_dir%`, which `cache:clear` removes, so the configuration sets `directory`. One `php` container serves `/_mcp`, so a file store is enough. A shared store is the backlog item `docs/backlog/mcp-session-store.md`. |

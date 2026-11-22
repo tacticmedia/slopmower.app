@@ -1,4 +1,4 @@
-# Written by hand: symfony/mcp-bundle 0.14.1 has no Flex recipe. docs/specs/mcp.md section 1.
+# Written by hand: the Flex recipe of symfony/mcp-bundle is not installed. docs/specs/mcp.md section 1.
 mcp:
     servers:
         slopmower:

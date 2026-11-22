@@ -141,7 +141,7 @@ A session of a local sign-in, on an instance with the usage limits off: [fixture
 Right away, in the same request:
 
 - the server revokes all tokens;
-- it invalidates the session, and the response clears the cookie;
+- it invalidates the session, and the response clears the session cookie and the Mercure subscriber cookie of [A3](#a3-authorize-live-updates);
 - it marks the tenant as being deleted. After that, a sign-in, a session, or a token of the tenant gets 401, and every other caller gets 404 for its IDs.
 
 Then a Messenger job deletes all rows and files of the tenant, including the clones and their pin refs. The GitHub App stays installed until the user uninstalls it on GitHub.

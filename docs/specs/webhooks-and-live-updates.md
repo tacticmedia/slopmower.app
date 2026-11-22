@@ -117,7 +117,7 @@ An MCP tool name also stands for its REST endpoint.
 | Item | Value |
 |---|---|
 | Hub | Built into FrankenPHP. The public URL `MERCURE_PUBLIC_URL` is `https://<host>/.well-known/mercure`, the same origin as the UI. The local development environment uses `http://localhost:8000/.well-known/mercure`. The hub URL is always set, because without it the bundle compiles `FrankenPhpHub` and console processes fail. |
-| Publisher | `symfony/mercure-bundle` 0.5.0, `HubInterface::publish()`. Every update is `private: true`. |
+| Publisher | `symfony/mercure-bundle` 0.7.0 with `protocol_version: '0.x'`, `HubInterface::publish()`. Every update is `private: true`. |
 | Subscriber authorization | The cookie that [A3](rest-api.md#a3-authorize-live-updates) sets. The JWT claim `mercure.subscribe` holds the two selectors of the tenant below. `exp` is now plus 3,600 s. Agents do not subscribe: they poll `get_updates`. |
 | Base | `{base}` = `DEFAULT_URI` without a trailing slash, for example `https://slopmower.example` |
 | Payloads | IDs only. The browser reloads the data through REST. Mercure carries no second copy of the data model. |
