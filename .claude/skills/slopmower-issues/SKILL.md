@@ -29,6 +29,23 @@ the `slopmower` MCP server.
 A `?` marks an optional parameter. An issue is named by its key: the project
 key, a hyphen, and a number, for example `SM-12`.
 
+## Writing
+
+The user and later sessions read every text of an issue. Write for them.
+
+- Technical English: short sentences, active voice, present tense, one
+  statement per sentence, one word for one thing.
+- No mannered prose: no greeting, praise, apology, or filler, and no summary
+  of what the issue already says.
+- As short as possible. Write a fact with its source, a decision with its
+  reason, a deviation, a question, or a next step. If a text adds nothing
+  that a later reader needs, do not write it.
+- One comment states one thing. A progress comment has no prefix. Another
+  one starts with its kind: `Decision:`, `Finding:`, `Deviation:`,
+  `Scope creep:`, `Papercut:`, or `Question:`.
+- `result` is a short list: what changed, the commit SHAs, the tests with
+  their counts, and each deviation.
+
 ## 1. Find the project
 
 Call `list_projects`. The project of this repository is the one whose
@@ -151,6 +168,7 @@ order in which they happened.
 
 ## Rules
 
+- Follow the section "Writing" in every text.
 - One issue per user request. A step is a comment.
 - Look through the open issues before you create one.
 - Put the issue key into the commit subject.

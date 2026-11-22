@@ -42,7 +42,7 @@ mcp:
 ## 2. Server instructions
 
 ```text
-Issues: call list_projects. If a project lists this repository, track each user request that changes code, documentation, or configuration as an issue of it, and follow the skill slopmower-issues. If none does, do not use the issue tools.
+Issues: call list_projects. If a project lists this repository, track each user request that changes code, documentation, or configuration as its issue, and follow the skill slopmower-issues. Otherwise use no issue tool. Write short technical English.
 
 Change requests: the user wrote them while reviewing this repository at a pinned commit. Each asks for one change and belongs to one review; several reviews can be open.
 

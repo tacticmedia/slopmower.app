@@ -4714,7 +4714,7 @@ final class BundledSchemas
         [
             'name' => 'comment_on_issue',
             'title' => 'Comment on issue',
-            'description' => 'Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. With awaiting_user_input, name in a comment what the user must decide.',
+            'description' => 'Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. With awaiting_user_input, name in a comment what the user must decide. Write technical English, as short as possible, and only what a later reader needs.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
@@ -4729,7 +4729,7 @@ final class BundledSchemas
         [
             'name' => 'create_issue',
             'title' => 'Create issue',
-            'description' => 'Create an issue of a project. Its key is the project key, a hyphen, and the next number of the project, for example SM-12. Look through the open issues of the project first, and continue one that covers the request. status is draft while the problem is incomplete, and backlog or todo when it is ready; backlog and todo need problem.',
+            'description' => 'Create an issue of a project. Its key is the project key, a hyphen, and the next number of the project, for example SM-12. Look through the open issues of the project first, and continue one that covers the request. status is draft while the problem is incomplete, and backlog or todo when it is ready; backlog and todo need problem. Write technical English, as short as possible, and only what a later reader needs.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
@@ -5319,7 +5319,7 @@ final class BundledSchemas
         [
             'name' => 'update_issue',
             'title' => 'Update issue',
-            'description' => 'Change the title or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem: what the user wants, and how to tell that it is done. plan: the steps, the files, and the tests. result: what was done, with the commit SHAs, and each deviation from the plan. followUps: what came up and was left out. A plan with new text clears its approval. An agent cannot change plan in in_progress or in_review, and no field of an issue in done or wont_do.',
+            'description' => 'Change the title or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem: what the user wants, and how to tell that it is done. plan: the steps, the files, and the tests. result: what was done, with the commit SHAs, and each deviation from the plan. followUps: what came up and was left out. A plan with new text clears its approval. An agent cannot change plan in in_progress or in_review, and no field of an issue in done or wont_do. Write technical English, as short as possible, and only what a later reader needs.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
