@@ -56,7 +56,7 @@ export type IssueLink = {
     createdAt: DateTime;
 };
 
-/** One entry of the thread. The fields of another kind are null. A `section_changed` entry has no text. */
+/** One entry of the thread. The fields of another kind are null. A new version replaces an entry, and the replaced entry stays. */
 export type IssueEntry = {
     id: Ulid;
     kind: IssueEntryKind;
@@ -64,6 +64,7 @@ export type IssueEntry = {
     label: CommentLabel | null;
     actor: Actor;
     createdAt: DateTime;
+    /** A comment, or with `history` the text of this version of a section. */
     body: Markdown | null;
     section: IssueSection | null;
     from: IssueStatus | null;
@@ -72,6 +73,10 @@ export type IssueEntry = {
     reviewer: string | null;
     reviewNote: Markdown | null;
     planRevision: Ulid | null;
+    /** The entry that this entry replaced. */
+    replaces: Ulid | null;
+    /** The entry that replaced this entry. Null for a current entry. */
+    replacedBy: Ulid | null;
 };
 
 /** A comment entry with its issue: an item of `list_comments`. */
@@ -84,7 +89,7 @@ export type IssueComment = {
     body: Markdown;
 };
 
-/** The result of `get_issue`: links and thread oldest first. */
+/** The result of `get_issue`: links and thread oldest first. Without `history`, the thread has no replaced entry. */
 export type IssueDetail = {
     issue: Issue;
     links: IssueLink[];

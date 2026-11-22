@@ -128,25 +128,6 @@ li.row {
     background-color: var(--bgColor-default);
 }
 
-.sectionHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--base-size-8);
-    min-height: var(--base-size-40);
-    padding: var(--base-size-4) var(--base-size-8) var(--base-size-4) var(--base-size-16);
-    border-bottom: var(--borderWidth-thin) solid var(--borderColor-muted);
-    border-top-left-radius: var(--borderRadius-medium);
-    border-top-right-radius: var(--borderRadius-medium);
-    background-color: var(--bgColor-muted);
-}
-
-.sectionTitle {
-    margin: 0;
-    font-size: var(--text-body-size-medium);
-    font-weight: var(--base-text-weight-semibold);
-}
-
 .sectionEditor {
     padding: var(--base-size-8);
 }
@@ -193,6 +174,39 @@ li.row {
     font-weight: var(--base-text-weight-semibold);
 }
 
+/* The row "Current": a link to the entry of each section, or "Write". */
+.current {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-8) var(--base-size-16);
+    min-height: var(--base-size-40);
+    padding: var(--base-size-8) var(--base-size-16);
+    border: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-radius: var(--borderRadius-medium);
+    background-color: var(--bgColor-muted);
+    font-size: var(--text-body-size-medium);
+}
+
+.currentItem {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--base-size-6);
+}
+
+/* On its own line, below the links. */
+.currentEditor {
+    flex: 1 1 100%;
+    order: 1;
+}
+
+/* The entry that the hash of the URL names. */
+.linked .entry {
+    border-radius: var(--borderRadius-medium);
+    outline: var(--borderWidth-thick) solid var(--borderColor-accent-emphasis);
+    outline-offset: var(--base-size-4);
+}
+
 .entry {
     display: flex;
     flex-direction: column;
@@ -200,8 +214,43 @@ li.row {
     min-width: 0;
 }
 
+.entryHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--base-size-8);
+}
+
 .entryLine {
     margin: 0;
+}
+
+.replaced {
+    flex: 1;
+    min-width: 0;
+}
+
+.replacedLine {
+    color: var(--fgColor-muted);
+    cursor: pointer;
+}
+
+.replaced[open] > .replacedLine {
+    margin-bottom: var(--base-size-8);
+}
+
+.chevron {
+    transition: transform 0.1s;
+}
+
+.replaced[open] .chevron {
+    transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .chevron {
+        transition: none;
+    }
 }
 
 .entryText {

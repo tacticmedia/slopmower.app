@@ -12,6 +12,7 @@ use App\Domain\Error\NotFound;
 use App\Domain\Identity\IssueEntryId;
 use App\Domain\Identity\IssueId;
 use App\Domain\Issue\CommentLabel;
+use App\Domain\Issue\IssueEntryKind;
 use App\Domain\Issue\IssueKey;
 use App\Domain\Issue\IssueRules;
 use App\Domain\Issue\IssueSection;
@@ -135,14 +136,16 @@ final class IssueCommands
     /**
      * In any status: no rule of {@see IssueRules} binds a comment.
      *
+     * @param IssueEntryId|null $replaces A comment of the issue that the new comment replaces (D123)
+     *
      * @throws NotFound|InvalidInput
      */
-    public function comment(IssueKey $key, string $body, CommentLabel $label, Actor $actor): Issue
+    public function comment(IssueKey $key, string $body, CommentLabel $label, Actor $actor, ?IssueEntryId $replaces = null): Issue
     {
-        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $body, $label, $actor): Issue {
+        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $body, $label, $actor, $replaces): Issue {
             $issue = $this->issues->issue($key, LockMode::PESSIMISTIC_WRITE);
             self::requireText('body', $body);
-            $this->entityManager->persist(IssueEntry::comment($issue, $actor, $body, $label, $now));
+            $this->entityManager->persist(IssueEntry::comment($issue, $actor, $body, $label, $now, null === $replaces ? null : $this->replaceable($issue, $replaces, $actor)));
             $issue->touch($now);
 
             return $issue;
@@ -187,6 +190,35 @@ final class IssueCommands
 
             return $issue;
         });
+    }
+
+    /**
+     * Under the row lock of $issue, so no second comment replaces the same one.
+     *
+     * @throws NotFound     An entry that the caller cannot see
+     * @throws InvalidInput
+     */
+    private function replaceable(Issue $issue, IssueEntryId $id, Actor $actor): IssueEntry
+    {
+        $entry = $this->entry('entry.id = :id', $id) ?? throw new NotFound();
+
+        return match (true) {
+            $entry->getIssue() !== $issue || IssueEntryKind::Comment !== $entry->getKind() => throw InvalidInput::field('replaces', 'Is no comment of this issue.'),
+            null !== $this->entry('entry.replaces = :id', $id) => throw InvalidInput::field('replaces', 'This comment is replaced already. Replace the comment that replaced it.'),
+            ActorKind::Agent === $actor->kind && ActorKind::User === $entry->getActor()->kind => throw InvalidInput::field('replaces', 'An agent cannot replace a comment of a user.'),
+            default => $entry,
+        };
+    }
+
+    private function entry(string $where, IssueEntryId $id): ?IssueEntry
+    {
+        return $this->entityManager->createQueryBuilder()
+            ->select('entry')
+            ->from(IssueEntry::class, 'entry')
+            ->where($where)
+            ->setParameter('id', $id, IssueEntryId::class)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 
     /**

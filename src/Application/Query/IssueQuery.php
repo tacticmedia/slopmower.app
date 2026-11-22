@@ -118,9 +118,11 @@ final class IssueQuery
     /**
      * The issue, its links, and its thread, each oldest first.
      *
+     * @param bool $history False: no replaced entry, and no text in a section_changed entry, because the issue has it (D123)
+     *
      * @throws NotFound
      */
-    public function get(IssueKey $key, Actor $actor): IssueDetail
+    public function get(IssueKey $key, Actor $actor, bool $history = false): IssueDetail
     {
         $issue = $this->issue($key);
         /** @var list<IssueLink> $links */
@@ -145,16 +147,26 @@ final class IssueQuery
             ->orderBy('entry.id')
             ->getQuery()
             ->getResult();
+        [$replaces, $replacedBy] = self::replacements($thread);
+        $entries = [];
+
+        foreach ($thread as $entry) {
+            $id = $entry->getId()->toString();
+
+            if ($history || !isset($replacedBy[$id])) {
+                $entries[] = self::entry($entry, $history, $replaces[$id] ?? null, $replacedBy[$id] ?? null);
+            }
+        }
 
         return new IssueDetail(
             $this->view($issue, $actor),
             array_map(static fn (IssueLink $link): array => ['issue' => IssueSummaryView::of($link->other($issue)), 'note' => $link->getNote(), 'createdBy' => $link->getCreatedBy(), 'createdAt' => $link->getCreatedAt()], $links),
-            array_map(self::entry(...), $thread),
+            $entries,
         );
     }
 
     /**
-     * The comment entries of every issue of the project, newest first by entry ID.
+     * The comment entries of every issue of the project that no comment replaced, newest first by entry ID.
      *
      * @throws NotFound
      * @throws InvalidInput A malformed cursor, or a cursor of other filters
@@ -168,6 +180,7 @@ final class IssueQuery
             ->join('entry.issue', 'issue')
             ->where('issue.project = :project')
             ->andWhere('entry.kind = :kind')
+            ->andWhere('NOT EXISTS (SELECT newer.id FROM '.IssueEntry::class.' newer WHERE newer.replaces = entry)')
             ->setParameter('project', $this->project($projectKey)->getId(), ProjectId::class)
             ->setParameter('kind', IssueEntryKind::Comment)
             ->orderBy('entry.id', \SortDirection::Descending)
@@ -325,9 +338,46 @@ final class IssueQuery
     }
 
     /**
+     * Who replaced whom (D123): the next entry of a section replaces the one before it, a comment replaces the comment
+     * that it names, and the plan version after an approved one replaces that approval.
+     *
+     * @param list<IssueEntry> $thread Oldest first
+     *
+     * @return array{array<string, IssueEntryId>, array<string, IssueEntryId>} By entry ID: the entry that it replaced, and the entry that replaced it
+     */
+    private static function replacements(array $thread): array
+    {
+        $replaces = $replacedBy = $newestOfSection = [];
+
+        foreach ($thread as $entry) {
+            $section = $entry->get('section');
+            $replaced = null === $section ? $entry->getReplaces()?->getId() : $newestOfSection[$section] ?? null;
+
+            if (null !== $section) {
+                $newestOfSection[$section] = $entry->getId();
+            }
+
+            if (null !== $replaced) {
+                $replaces[$entry->getId()->toString()] = $replaced;
+                $replacedBy[$replaced->toString()] = $entry->getId();
+            }
+        }
+
+        foreach ($thread as $entry) {
+            $nextPlan = $replacedBy[$entry->get('planRevision') ?? ''] ?? null;
+
+            if (null !== $nextPlan) {
+                $replacedBy[$entry->getId()->toString()] = $nextPlan;
+            }
+        }
+
+        return [$replaces, $replacedBy];
+    }
+
+    /**
      * @return array<string, mixed> An IssueEntry of issue.schema.json
      */
-    private static function entry(IssueEntry $entry): array
+    private static function entry(IssueEntry $entry, bool $history, ?IssueEntryId $replaces, ?IssueEntryId $replacedBy): array
     {
         return [
             'id' => $entry->getId(),
@@ -335,8 +385,7 @@ final class IssueQuery
             'label' => $entry->getLabel(),
             'actor' => $entry->getActor(),
             'createdAt' => $entry->getCreatedAt(),
-            // The body of a section_changed entry is a revision of the section, which the thread leaves out.
-            'body' => IssueEntryKind::Comment === $entry->getKind() ? $entry->getBody() : null,
+            'body' => $history || IssueEntryKind::Comment === $entry->getKind() ? $entry->getBody() : null,
             'section' => $entry->get('section'),
             'from' => $entry->get('from'),
             'to' => $entry->get('to'),
@@ -344,6 +393,8 @@ final class IssueQuery
             'reviewer' => $entry->get('reviewer'),
             'reviewNote' => $entry->get('reviewNote'),
             'planRevision' => $entry->get('planRevision'),
+            'replaces' => $replaces,
+            'replacedBy' => $replacedBy,
         ];
     }
 }

@@ -41,6 +41,7 @@ final class ToolsListContractTest extends WebTestCase
         'project' => 'common.schema.json#/$defs/ProjectKey',
         'reason' => 'common.schema.json#/$defs/NoNulText',
         'ref' => 'common.schema.json#/$defs/NoNulText',
+        'replaces' => 'common.schema.json#/$defs/Ulid',
         'repository' => 'common.schema.json#/$defs/NoNulText',
         'requestId' => 'common.schema.json#/$defs/Ulid',
         'requestIds' => 'common.schema.json#/$defs/Ulid',

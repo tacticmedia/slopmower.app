@@ -16,8 +16,8 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * One entry of the thread of an issue. Append-only: it has no setter. The section_changed entries are the revision
- * history of a section, and the ID of the newest one of the plan is the plan revision (D116).
+ * One entry of the thread of an issue. Append-only: it has no setter. The section_changed entries are the versions of
+ * a section, and the ID of the newest one of the plan is the plan revision (D116).
  */
 #[ORM\Entity]
 class IssueEntry implements TenantOwned
@@ -49,13 +49,17 @@ class IssueEntry implements TenantOwned
     #[ORM\Column(type: Types::JSONB)]
     private array $data;
 
+    /** Of a comment: the comment that it replaces (D123). Owning side only, because an inverse one-to-one loads one query per entry. */
+    #[ORM\OneToOne]
+    private ?IssueEntry $replaces;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
     /**
      * @param array<string, string|null> $data
      */
-    private function __construct(Issue $issue, Actor $actor, IssueEntryKind $kind, ?string $body, array $data, \DateTimeImmutable $createdAt, ?CommentLabel $label = null)
+    private function __construct(Issue $issue, Actor $actor, IssueEntryKind $kind, ?string $body, array $data, \DateTimeImmutable $createdAt, ?CommentLabel $label = null, ?self $replaces = null)
     {
         $this->id = IssueEntryId::generate();
         $this->tenantId = $issue->getTenantId();
@@ -65,12 +69,13 @@ class IssueEntry implements TenantOwned
         $this->label = $label;
         $this->body = $body;
         $this->data = $data;
+        $this->replaces = $replaces;
         $this->createdAt = $createdAt;
     }
 
-    public static function comment(Issue $issue, Actor $actor, string $body, CommentLabel $label, \DateTimeImmutable $createdAt): self
+    public static function comment(Issue $issue, Actor $actor, string $body, CommentLabel $label, \DateTimeImmutable $createdAt, ?self $replaces = null): self
     {
-        return new self($issue, $actor, IssueEntryKind::Comment, $body, [], $createdAt, $label);
+        return new self($issue, $actor, IssueEntryKind::Comment, $body, [], $createdAt, $label, $replaces);
     }
 
     public static function statusChanged(Issue $issue, Actor $actor, IssueStatus $from, IssueStatus $to, ?string $note, ?string $reviewer, \DateTimeImmutable $createdAt): self
@@ -139,6 +144,11 @@ class IssueEntry implements TenantOwned
     public function get(string $key): ?string
     {
         return $this->data[$key] ?? null;
+    }
+
+    public function getReplaces(): ?self
+    {
+        return $this->replaces;
     }
 
     public function getCreatedAt(): \DateTimeImmutable

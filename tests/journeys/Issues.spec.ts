@@ -15,7 +15,7 @@ function issue(overrides: Partial<Issue>, ...thread: IssueEntry[]): IssueDetail 
 }
 
 test.describe('Issues', () => {
-    test('The projects, the issues of a project, an issue with its labelled thread, and the comments of a project', async ({ page, api, captureScreen }) => {
+    test('The projects, the issues of a project, an issue with its timeline, and the comments of a project', async ({ page, api, captureScreen }) => {
         const issues = new FakeIssues(api);
         issues.projects = [project(), project({ key: 'DOC', name: 'Documentation', approvalMode: 'user', repositories: [] })];
         issues.add(
@@ -51,6 +51,9 @@ test.describe('Issues', () => {
         await page.getByRole('link', { name: 'Round invoice totals once per invoice' }).click();
         await captureScreen('Issue', page.getByTestId('issue-thread'));
 
+        await page.locator('[data-testid="issue-entry"][data-replaced="true"] summary').first().click({ position: { x: 8, y: 8 } });
+        await captureScreen('Issue replaced version', page.getByText('Round the total in'));
+
         await page.goto('/projects/BILL/comments');
         await captureScreen('Comments of a project', page.getByTestId('comment-list'));
     });
@@ -84,7 +87,7 @@ test.describe('Issues', () => {
         await page.waitForURL('/issues/BILL-13');
 
         await page.goto('/issues/BILL-12');
-        await page.getByRole('button', { name: 'Edit Result' }).click();
+        await page.getByRole('button', { name: 'Write Result' }).click();
         await page.getByRole('textbox', { name: 'Result' }).fill('Added `TaxRounding::perInvoice()` in a1b2c3d. No deviation.');
         await captureScreen('Issue section editor', page.getByRole('textbox', { name: 'Result' }));
         await page.getByRole('button', { name: 'Cancel' }).click();

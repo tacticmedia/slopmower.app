@@ -126,9 +126,9 @@ final class McpTools
      *
      * @return array<string, mixed>
      */
-    public function commentOnIssue(string $issue, string $body, CommentLabel $label = CommentLabel::Comment): array
+    public function commentOnIssue(string $issue, string $body, CommentLabel $label = CommentLabel::Comment, ?string $replaces = null): array
     {
-        return $this->issueWrite('comment_on_issue', fn (Actor $actor): Issue => $this->issueCommands->comment(IssueKey::fromString($issue, 'issue'), $body, $label, $actor));
+        return $this->issueWrite('comment_on_issue', fn (Actor $actor): Issue => $this->issueCommands->comment(IssueKey::fromString($issue, 'issue'), $body, $label, $actor, null === $replaces ? null : IssueEntryId::fromString($replaces, 'replaces')));
     }
 
     /**
@@ -146,9 +146,9 @@ final class McpTools
      *
      * @return array<string, mixed>
      */
-    public function getIssue(string $issue): array
+    public function getIssue(string $issue, bool $history = false): array
     {
-        return $this->run('get_issue', fn (): IssueDetail => $this->issues->get(IssueKey::fromString($issue, 'issue'), $this->currentActor->get()));
+        return $this->run('get_issue', fn (): IssueDetail => $this->issues->get(IssueKey::fromString($issue, 'issue'), $this->currentActor->get(), $history));
     }
 
     /**

@@ -12,7 +12,7 @@ const PLAN_APPROVAL = '/api/v1/issues/:issueKey/plan-approval';
 const ISSUE = '/api/v1/issues/:issueKey';
 const STATUS = '/api/v1/issues/:issueKey/status';
 
-/** `BILL-12` of `issue.detail.json`: in progress, with a plan that an agent approved. */
+/** `BILL-12` of `issue.detail.json`: in progress, with a second plan version that an agent approved, and a replaced comment. */
 async function openIssue(page: Page, api: MockApi): Promise<FakeIssues> {
     const issues = new FakeIssues(api);
     issues.add(issueDetail());
@@ -22,8 +22,13 @@ async function openIssue(page: Page, api: MockApi): Promise<FakeIssues> {
     return issues;
 }
 
+/** The text of the current version of a section, in its entry of the timeline. */
 function section(page: Page, name: string): Locator {
     return page.locator(`[data-testid="issue-section"][data-section="${name}"]`);
+}
+
+function replacedEntries(page: Page, kind: string): Locator {
+    return page.locator(`[data-testid="issue-entry"][data-kind="${kind}"][data-replaced="true"]`);
 }
 
 async function chooseStatus(page: Page, name: string): Promise<void> {
@@ -49,29 +54,63 @@ test.describe('Issues', () => {
         expect(api.callsTo('GET', '/api/v1/projects/:projectKey/issues').at(-1)?.query.get('status')).toBe('draft');
     });
 
-    test('The issue page shows the four sections as Markdown, the link with its note, and the thread', async ({ page, api }) => {
+    test('The issue page shows each section version as Markdown in the timeline, the row "Current", the link with its note, and each entry', async ({ page, api }) => {
         await openIssue(page, api);
+        const current = page.getByTestId('issue-current');
 
         await expect(page.getByRole('heading', { level: 1 })).toHaveText(`Round invoice totals once per invoice ${ISSUE_KEY}`);
         await expect(section(page, 'problem').locator('code')).toHaveText('InvoiceTotalsTest');
         await expect(section(page, 'plan').locator('ol > li')).toHaveCount(3);
-        await expect(section(page, 'result')).toContainText('Not written yet.');
-        await expect(section(page, 'followUps')).toContainText('Not written yet.');
+        await expect(current.getByRole('link')).toHaveText(['Problem', 'Plan']);
+        await expect(current.getByRole('button', { name: 'Write Result' })).toBeVisible();
+        await expect(current.getByRole('button', { name: 'Write Follow-ups' })).toBeVisible();
         await expect(page.getByTestId('issue-links')).toContainText('BILL-9 Round shipping totals per line');
         await expect(page.getByTestId('issue-links')).toContainText('BILL-9 owns the shipping totals, which this issue leaves alone.');
         await expect(page.getByTestId('issue-entry')).toHaveText([
-            /claude-code laptop.*changed the problem/,
-            /claude-code laptop.*changed the plan/,
+            /claude-code laptop.*Problem changed the problem/,
+            /claude-code laptop.*Plan changed the plan.*Replaced/,
+            /claude-code laptop.*Plan changed the plan/,
             /claude-code laptop.*approved the plan, reviewed by plan-reviewer,.*The plan covers the rounding and its test\./,
             /claude-code laptop.*changed the status from To do to In progress/,
+            /claude-code laptop.*commented.*Replaced/,
             /claude-code laptop.*commented.*InvoiceTotals::round\(\) stays as a deprecated wrapper/,
             /claude-code laptop.*commented.*TaxRounding::perInvoice\(\) is in\. The test is next\./,
         ]);
     });
 
+    test('A replaced plan version is closed and names its successor, and the current one is open with "Approve plan"', async ({ page, api }) => {
+        await openIssue(page, api);
+        const replaced = replacedEntries(page, 'section_changed');
+
+        await expect(replaced).toHaveCount(1);
+        await expect(replaced.getByText('Round the total in')).toBeHidden();
+        await expect(replaced.getByRole('link', { name: 'Newer version' })).toHaveAttribute('href', `/issues/${ISSUE_KEY}#entry-${PLAN_REVISION}`);
+        await expect(section(page, 'plan').locator('ol > li').first()).toBeVisible();
+        await expect(section(page, 'plan').getByRole('button', { name: 'Approve plan' })).toBeVisible();
+    });
+
+    test('A link of the row "Current" scrolls to the entry of its section and focuses it', async ({ page, api }) => {
+        await page.setViewportSize({ width: 1280, height: 320 });
+        await openIssue(page, api);
+        const plan = page.locator(`#entry-${PLAN_REVISION}`);
+        await expect(plan).not.toBeInViewport();
+
+        await page.getByTestId('issue-current').getByRole('link', { name: 'Plan' }).click();
+
+        await expect(page).toHaveURL(`/issues/${ISSUE_KEY}#entry-${PLAN_REVISION}`);
+        await expect(plan).toBeInViewport({ ratio: 0.5 });
+        await expect(plan).toBeFocused();
+    });
+
+    test('A replaced comment is closed', async ({ page, api }) => {
+        await openIssue(page, api);
+
+        await expect(replacedEntries(page, 'comment').getByText('goes, because')).toBeHidden();
+    });
+
     test('A comment shows its label next to its actor, and the label Comment shows no badge', async ({ page, api }) => {
         await openIssue(page, api);
-        const comments = page.locator('[data-testid="issue-entry"][data-kind="comment"]');
+        const comments = page.locator('[data-testid="issue-entry"][data-kind="comment"][data-replaced="false"]');
 
         await expect(comments).toHaveCount(2);
         await expect(comments.first().getByTestId('comment-label')).toHaveText('Decision');
@@ -86,14 +125,14 @@ test.describe('Issues', () => {
         await page.getByRole('menuitemradio', { name: 'Decision' }).click();
 
         await expect(page).toHaveURL(`/issues/${ISSUE_KEY}?label=decision`);
-        await expect(entries).toHaveText([/Decision.*InvoiceTotals::round\(\) stays as a deprecated wrapper/]);
+        await expect(entries).toHaveText([/Decision.*Replaced/, /Decision.*InvoiceTotals::round\(\) stays as a deprecated wrapper/]);
 
         await page.getByRole('button', { name: 'Label: Decision' }).click();
         await page.getByRole('menuitemradio', { name: 'Papercut' }).click();
 
         await expect(page.getByTestId('issue-thread-empty')).toContainText('No comment has this label.');
         await page.getByRole('link', { name: 'Clear the filter' }).click();
-        await expect(entries).toHaveCount(6);
+        await expect(entries).toHaveCount(8);
     });
 
     test('A comment posts its body with the label comment and shows in the thread as the comment of the user', async ({ page, api }) => {
@@ -173,7 +212,7 @@ test.describe('Issues', () => {
         issues.changePlan(ISSUE_KEY, '   ');
         await page.reload();
 
-        await expect(section(page, 'plan')).toContainText('Not written yet.');
+        await expect(page.getByRole('button', { name: 'Write Plan' })).toBeVisible();
         await expect(page.getByRole('button', { name: 'Approve plan' })).toHaveCount(0);
     });
 
@@ -267,20 +306,37 @@ test.describe('Issues', () => {
         expect(api.bodies('PATCH', ISSUE)).toEqual([{ title: 'Round invoice totals once' }]);
     });
 
-    test('"Edit" of a section saves its text, and Save is off while the text is empty', async ({ page, api }) => {
+    test('"Write" of a section without text saves it as a new entry, and Save is off while the text is empty', async ({ page, api }) => {
         await openIssue(page, api);
-        const result = section(page, 'result');
 
-        await result.getByRole('button', { name: 'Edit Result' }).click();
-        const field = result.getByRole('textbox', { name: 'Result' });
-        await expect(result.getByRole('button', { name: 'Save' })).toBeDisabled();
+        await page.getByRole('button', { name: 'Write Result' }).click();
+        const field = page.getByRole('textbox', { name: 'Result' });
+        await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
         await field.fill('Added `TaxRounding::perInvoice()` in a1b2c3d.');
-        await result.getByRole('button', { name: 'Save' }).click();
+        await page.getByRole('button', { name: 'Save' }).click();
 
-        await expect(result.locator('code')).toHaveText('TaxRounding::perInvoice()');
+        await expect(section(page, 'result').locator('code')).toHaveText('TaxRounding::perInvoice()');
         await expect(field).toHaveCount(0);
-        await expect(page.getByTestId('issue-entry').last()).toHaveText(/jan changed the result/);
+        await expect(page.getByTestId('issue-entry').last()).toHaveText(/jan Result changed the result/);
+        await expect(page.getByTestId('issue-current').getByRole('link', { name: 'Result' })).toBeVisible();
         expect(api.bodies('PATCH', ISSUE)).toEqual([{ result: 'Added `TaxRounding::perInvoice()` in a1b2c3d.' }]);
+    });
+
+    test('"Revise" sends the changed text, which becomes a new version at the end, and the version before it is replaced', async ({ page, api }) => {
+        await openIssue(page, api);
+
+        await page.getByRole('button', { name: 'Revise Plan' }).click();
+        const field = page.getByRole('textbox', { name: 'Plan' });
+        await expect(field).toHaveValue(/^1\. Add `TaxRounding::perInvoice\(\)`/);
+        // The plan text is not on the page while the editor is open, so nothing is there to approve.
+        await expect(page.getByRole('button', { name: 'Approve plan' })).toHaveCount(0);
+        await field.fill('Round once per invoice line.');
+        await page.getByRole('button', { name: 'Save' }).click();
+
+        await expect(page.getByTestId('issue-entry').last()).toHaveText(/jan Plan changed the plan.*Round once per invoice line\./);
+        await expect(replacedEntries(page, 'section_changed')).toHaveCount(2);
+        await expect(replacedEntries(page, 'plan_approved')).toHaveCount(1);
+        expect(api.bodies('PATCH', ISSUE)).toEqual([{ plan: 'Round once per invoice line.' }]);
     });
 
     test('A refused section keeps its text in the editor, also after a reload', async ({ page, api }) => {
@@ -290,8 +346,7 @@ test.describe('Issues', () => {
         const plan = section(page, 'plan');
         const field = plan.getByRole('textbox', { name: 'Plan' });
 
-        await plan.getByRole('button', { name: 'Edit Plan' }).click();
-        await expect(field).toHaveValue(/^1\. Add `TaxRounding::perInvoice\(\)`/);
+        await page.getByRole('button', { name: 'Revise Plan' }).click();
         await field.fill('Round once per invoice line.');
         await plan.getByRole('button', { name: 'Save' }).click();
 

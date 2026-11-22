@@ -714,6 +714,17 @@
           ],
           "default": "comment",
           "description": "Absent or null: comment. An unknown value answers 422."
+        },
+        "replaces": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Ulid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The ID of a comment of this issue that the new comment replaces. Absent or null: the comment replaces none."
         }
       }
     },

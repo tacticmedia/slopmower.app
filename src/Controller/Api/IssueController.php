@@ -10,6 +10,7 @@ use App\Controller\Api\Input\ApprovePlanInput;
 use App\Controller\Api\Input\CreateIssueInput;
 use App\Controller\Api\Input\IssueCommentInput;
 use App\Controller\Api\Input\IssueCommentListQuery;
+use App\Controller\Api\Input\IssueDetailQuery;
 use App\Controller\Api\Input\IssueListQuery;
 use App\Controller\Api\Input\IssueStatusInput;
 use App\Controller\Api\Input\UpdateIssueInput;
@@ -54,9 +55,12 @@ final class IssueController extends AbstractController
     }
 
     #[Route('/issues/{issueKey}', name: 'get', methods: ['GET'])]
-    public function get(#[ValueResolver(IssueKeyResolver::class)] Issue $issue): JsonResponse
-    {
-        return $this->json($this->issues->get($issue->getKey(), $this->currentActor->get()));
+    public function get(
+        #[ValueResolver(IssueKeyResolver::class)] Issue $issue,
+        #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)]
+        IssueDetailQuery $query = new IssueDetailQuery(),
+    ): JsonResponse {
+        return $this->json($this->issues->get($issue->getKey(), $this->currentActor->get(), $query->history));
     }
 
     #[Route('/issues/{issueKey}/comments', name: 'comment', methods: ['POST'])]
@@ -67,7 +71,9 @@ final class IssueController extends AbstractController
         \assert(null !== $input->body);
         $actor = $this->currentActor->get();
 
-        return $this->json($this->issues->view($this->commands->comment($issue->getKey(), $input->body, $input->label ?? CommentLabel::Comment, $actor), $actor), Response::HTTP_CREATED);
+        $replaces = null === $input->replaces ? null : IssueEntryId::fromString($input->replaces, 'replaces');
+
+        return $this->json($this->issues->view($this->commands->comment($issue->getKey(), $input->body, $input->label ?? CommentLabel::Comment, $actor, $replaces), $actor), Response::HTTP_CREATED);
     }
 
     #[Route('/projects/{projectKey}/comments', name: 'comments', methods: ['GET'])]

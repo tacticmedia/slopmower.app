@@ -4370,7 +4370,7 @@ final class BundledSchemas
             'thread' => [
                 'type' => 'array',
                 'items' => ['$ref' => '#/$defs/IssueEntry'],
-                'description' => 'Oldest first.',
+                'description' => 'Oldest first. Without history: no entry with replacedBy.',
             ],
         ],
         '$defs' => [
@@ -4521,8 +4521,8 @@ final class BundledSchemas
             ],
             'IssueEntry' => [
                 'type' => 'object',
-                'required' => ['id', 'kind', 'label', 'actor', 'createdAt', 'body', 'section', 'from', 'to', 'note', 'reviewer', 'reviewNote', 'planRevision'],
-                'description' => 'One entry of the thread of an issue. The thread only grows.',
+                'required' => ['id', 'kind', 'label', 'actor', 'createdAt', 'body', 'section', 'from', 'to', 'note', 'reviewer', 'reviewNote', 'planRevision', 'replaces', 'replacedBy'],
+                'description' => 'One entry of the thread of an issue. The thread only grows: a new version replaces an entry, and the replaced entry stays.',
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
                     'kind' => ['$ref' => '#/$defs/IssueEntryKind'],
@@ -4538,7 +4538,7 @@ final class BundledSchemas
                     'body' => [
                         'type' => ['string', 'null'],
                         'maxLength' => 65536,
-                        'description' => 'comment: the Markdown comment; else null. A section_changed entry carries its section and no text.',
+                        'description' => 'comment: the Markdown comment. section_changed: the Markdown text of this version of the section with history, and null without it, because the issue has the current text. Else null.',
                     ],
                     'section' => [
                         'anyOf' => [
@@ -4583,6 +4583,20 @@ final class BundledSchemas
                             ['type' => 'null'],
                         ],
                         'description' => 'plan_approved only: the plan revision that the approval read.',
+                    ],
+                    'replaces' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The ID of the entry that this entry replaced. section_changed: the entry of the version before it. comment: the comment that its writer named. Else null.',
+                    ],
+                    'replacedBy' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The ID of the entry that replaced this entry. Null for a current entry. section_changed: the next entry of its section. comment: the comment that names it in replaces. plan_approved: the plan version after the one that it approved.',
                     ],
                 ],
             ],
@@ -4855,7 +4869,7 @@ final class BundledSchemas
         [
             'name' => 'comment_on_issue',
             'title' => 'Comment on issue',
-            'description' => 'Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. label says what the comment is, and list_comments finds the comments of a project by it. With awaiting_user_input, name in a comment with the label question what the user must decide. Write technical English, as short as possible, and only what a later reader needs.',
+            'description' => 'Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. label says what the comment is, and list_comments finds the comments of a project by it. With awaiting_user_input, name in a comment with the label question what the user must decide. When a comment of an agent no longer holds, write the new one with replaces, the id of the old one, and do not write a second comment about it: the old one stays in the history, and get_issue and list_comments leave it out. You cannot replace a comment of a user. Write technical English, as short as possible, and only what a later reader needs.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
@@ -4866,6 +4880,12 @@ final class BundledSchemas
                         'description' => 'comment: progress or a remark. decision: a choice, with its reason and what it rules out. question: needs an answer from the user. finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent.',
                         'default' => 'comment',
                         'enum' => ['comment', 'decision', 'question', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'],
+                    ],
+                    'replaces' => [
+                        'type' => ['null', 'string'],
+                        'description' => 'id of the comment of this issue that the new comment replaces',
+                        'default' => null,
+                        'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$',
                     ],
                 ],
                 'required' => ['issue', 'body'],
@@ -4905,11 +4925,12 @@ final class BundledSchemas
         [
             'name' => 'get_issue',
             'title' => 'Get issue',
-            'description' => 'Read one issue in full: the four sections, planRevision, the plan approval, allowedStatuses, its links, and its thread. A section_changed entry of the thread names its section and holds no text.',
+            'description' => 'Read one issue: the four sections, planRevision, the plan approval, allowedStatuses, its links, and its thread. By default the thread is the current content: it has no replaced entry, and a section_changed entry names its section and holds no text, because the issue has it. history: true returns the full log: every entry, also each earlier version of a section with its text in body, and each replaced comment. replacedBy of an entry is the id of the entry that replaced it, or null.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
                     'issue' => ['type' => 'string', 'description' => 'Issue key, for example SM-12', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$'],
+                    'history' => ['type' => 'boolean', 'description' => 'true: also the replaced entries, and the text of each section version', 'default' => false],
                 ],
                 'required' => ['issue'],
             ],
@@ -5041,7 +5062,7 @@ final class BundledSchemas
         [
             'name' => 'list_comments',
             'title' => 'List comments',
-            'description' => 'List the comments of every issue of one project, newest first, each with its issue, its label, and its body. label returns only the comments with that label: every decision, or every papercut, of the project is one call.',
+            'description' => 'List the comments of every issue of one project, newest first, each with its issue, its label, and its body. A replaced comment is left out. label returns only the comments with that label: every decision, or every papercut, of the project is one call.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [

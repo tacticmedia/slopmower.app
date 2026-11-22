@@ -18,11 +18,11 @@ the `slopmower` MCP server.
 |---|---|---|
 | `list_projects` | `cursor?`, `limit?` | Find the project that owns this repository, with its `approvalMode` |
 | `list_issues` | `project`, `status?`, `cursor?`, `limit?` | Look through the issues of the project, newest change first |
-| `get_issue` | `issue` | Read one issue with its sections, its links, and its thread |
+| `get_issue` | `issue`, `history?` | Read one issue with its sections, its links, and its thread: the current content, or the full log with `history` |
 | `create_issue` | `project`, `title`, `problem?`, `status?` | Start an issue, `draft` by default |
 | `update_issue` | `issue`, `title?`, `problem?`, `plan?`, `result?`, `followUps?` | Write the title or a section |
 | `set_issue_status` | `issue`, `status`, `note?`, `reviewer?` | Move the issue to another status |
-| `comment_on_issue` | `issue`, `body`, `label?` | Record a step, a question, or a decision in the thread, with its label |
+| `comment_on_issue` | `issue`, `body`, `label?`, `replaces?` | Record a step, a question, or a decision in the thread, with its label, or replace a comment that no longer holds |
 | `list_comments` | `project`, `label?`, `cursor?`, `limit?` | Read the comments of the project across its issues, all or those of one label |
 | `link_issues` | `issue`, `target`, `note` | Link two issues, with the reason |
 | `approve_plan` | `issue`, `planRevision`, `reviewer`, `reviewNote` | Record the review of the plan by another agent |
@@ -59,6 +59,23 @@ The user and later sessions read every text of an issue. Write for them.
 
 `list_comments` with a `label` returns the comments of that label across
 the issues of the project, for example every decision or every papercut.
+
+## Versions
+
+Nothing in an issue changes in place. A new version replaces an entry of the
+thread, and the replaced entry stays in the history.
+
+- A section with new text is a new version of that section.
+- When a comment of an agent no longer holds, call `comment_on_issue` with
+  the new text and `replaces`, the `id` of that comment in the thread. Do not
+  write a second comment that corrects the first one. You cannot replace a
+  comment of the user.
+- `get_issue` returns the current content: the sections, and the thread
+  without the replaced entries. Work from it.
+- `get_issue` with `history: true` returns the full log: each earlier version
+  of a section with its text in `body`, and each replaced comment.
+  `replacedBy` of an entry is the `id` of the entry that replaced it. Read
+  the history only when you need to know what changed.
 
 ## 1. Find the project
 
@@ -207,8 +224,8 @@ A tool error is a result with `isError: true`. Its text is JSON:
 | Code | Meaning | Action |
 |---|---|---|
 | `unauthorized` | The token is missing, wrong, revoked, or expired. It arrives as HTTP 401 from the server, not as a tool result. | Tell the user to check `SLOPMOWER_TOKEN`. Go on as section 7 says. |
-| `not_found` | No such project or issue for this token. A token for one repository sees only the project of that repository. | Check the key, then list again |
-| `invalid_input` | The input failed a check, or the write breaks a rule. `details.violations[0].field` names what is wrong: `problem`, `plan`, or `result` is missing, or the plan has no approval; `status` is the status that the issue has, or one that only the user sets; `note` or `reviewer` is missing; `planRevision` is not the newest; `issue` is in `done` or `wont_do`, or only the user approves its plan; `target` is the issue itself or has the link already. | Read the message, fix the issue or the input, and call again |
+| `not_found` | No such project, issue, or entry of `replaces` for this token. A token for one repository sees only the project of that repository. | Check the key or the `id`, then list again |
+| `invalid_input` | The input failed a check, or the write breaks a rule. `details.violations[0].field` names what is wrong: `problem`, `plan`, or `result` is missing, or the plan has no approval; `status` is the status that the issue has, or one that only the user sets; `note` or `reviewer` is missing; `planRevision` is not the newest; `issue` is in `done` or `wont_do`, or only the user approves its plan; `target` is the issue itself or has the link already; `replaces` is no comment of the issue, is replaced already, or is a comment of the user. | Read the message, fix the issue or the input, and call again |
 | `rate_limited` | Too many calls in a short time | Wait `details.retryAfterSeconds` seconds, then retry |
 | `internal_error` | An unexpected server failure | Try once more, then go on as section 7 says |
 

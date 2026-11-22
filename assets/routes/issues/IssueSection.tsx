@@ -1,24 +1,17 @@
 import { Button } from '@primer/react';
-import { useId } from 'react';
 import { useFetcher } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
 import type { IssueSection as Section } from '../../api/types/common';
 import type { Issue } from '../../api/types/issue';
 import { CommentBox } from '../../comments/CommentBox';
-import { MarkdownBody } from '../../comments/MarkdownBody';
 import { ActionErrorMessage } from '../../layout/ActionErrorMessage';
 import { readSessionDraft } from '../../layout/useSessionDraft';
 import { useSubmitOnce } from '../../layout/useSubmitOnce';
 import styles from './Issues.module.css';
 import type { IssueIntent } from './issueData';
-import { useIssueWrite } from './useIssueWrite';
+import { type IssueWrite, useIssueWrite } from './useIssueWrite';
 
-export const SECTIONS: readonly { section: Section; title: string }[] = [
-    { section: 'problem', title: 'Problem' },
-    { section: 'plan', title: 'Plan' },
-    { section: 'result', title: 'Result' },
-    { section: 'followUps', title: 'Follow-ups' },
-];
+export const SECTION_TITLES: Record<Section, string> = { problem: 'Problem', plan: 'Plan', result: 'Result', followUps: 'Follow-ups' };
 
 /** What a section holds: the placeholder of its editor. */
 export const SECTION_CONTENT: Record<Section, string> = {
@@ -28,65 +21,52 @@ export const SECTION_CONTENT: Record<Section, string> = {
     followUps: 'What came up and was left out',
 };
 
+/** Whitespace only is no text, as the rules of the server read a section. */
+export function hasText(issue: Issue, section: Section): boolean {
+    return '' !== (issue[section] ?? '').trim();
+}
+
+function draftKey(issue: Issue, section: Section): string {
+    return `issue:${issue.key}:${section}`;
+}
+
+/** The write of one section. Its editor is open at once for an edit that a reload kept. */
+export function useSectionWrite(issue: Issue, section: Section): IssueWrite {
+    return useIssueWrite(() => null !== readSessionDraft(draftKey(issue, section)));
+}
+
 /**
- * A section as Markdown. "Edit" opens the comment box in its place: I7 with the text, a session draft per issue and
- * section, and the leave guard. The editor closes when the write succeeds, and an edit that a reload kept opens it again.
+ * The comment box with the text that the section has: a session draft per issue and section, and the leave guard.
+ * "Save" sends I7, which appends the new version to the timeline. The editor closes when the write succeeds.
  */
-export function IssueSection({ issue, section, title }: { issue: Issue; section: Section; title: string }) {
-    const headingId = useId();
-    const draftKey = `issue:${issue.key}:${section}`;
-    const { busy, error, open: editing, setOpen, send } = useIssueWrite(() => null !== readSessionDraft(draftKey));
-    const text = issue[section];
+export function SectionEditor({ issue, section, write }: { issue: Issue; section: Section; write: IssueWrite }) {
+    const key = draftKey(issue, section);
 
     return (
-        <section className={styles.section} aria-labelledby={headingId} data-testid="issue-section" data-section={section}>
-            <div className={styles.sectionHeader}>
-                <h2 id={headingId} className={styles.sectionTitle}>
-                    {title}
-                </h2>
-                {!editing && (
-                    <Button size="small" variant="invisible" aria-label={`Edit ${title}`} onClick={() => setOpen(true)}>
-                        Edit
-                    </Button>
-                )}
-            </div>
-            {editing ? (
-                <div className={styles.sectionEditor}>
-                    <CommentBox
-                        label={title}
-                        placeholder={SECTION_CONTENT[section]}
-                        submitLabel="Save"
-                        draftKey={draftKey}
-                        onSubmit={({ body }) => send({ intent: 'update', input: { [section]: body }, draftKey })}
-                        onCancel={() => setOpen(false)}
-                        initialBody={text ?? ''}
-                        initialTextSaved
-                        error={error}
-                        busy={busy}
-                        focusOnMount
-                    />
-                </div>
-            ) : (
-                <div className={styles.sectionBody}>{null === text || '' === text.trim() ? <span className={styles.muted}>Not written yet.</span> : <MarkdownBody markdown={text} />}</div>
-            )}
-            {'plan' === section && canApprove(issue) && <ApprovePlan planRevision={issue.planRevision} />}
-        </section>
+        <CommentBox
+            label={SECTION_TITLES[section]}
+            labelVisible
+            placeholder={SECTION_CONTENT[section]}
+            submitLabel="Save"
+            draftKey={key}
+            onSubmit={({ body }) => write.send({ intent: 'update', input: { [section]: body }, draftKey: key })}
+            onCancel={() => write.setOpen(false)}
+            initialBody={issue[section] ?? ''}
+            initialTextSaved
+            error={write.error}
+            busy={write.busy}
+            focusOnMount
+        />
     );
 }
 
 /** A user approves the plan of the page while the issue is open. An approval of an agent does not count in the mode `user`. */
-function canApprove(issue: Issue): issue is Issue & { planRevision: string } {
-    return (
-        null !== issue.planRevision &&
-        '' !== (issue.plan ?? '').trim() &&
-        'done' !== issue.status &&
-        'wont_do' !== issue.status &&
-        'user' !== issue.planApproval?.approvedBy.kind
-    );
+export function canApprove(issue: Issue): issue is Issue & { planRevision: string } {
+    return null !== issue.planRevision && hasText(issue, 'plan') && 'done' !== issue.status && 'wont_do' !== issue.status && 'user' !== issue.planApproval?.approvedBy.kind;
 }
 
 /** I4 for the plan revision that the page shows. A refusal stays visible while the loader shows the newest plan, so only another issue remounts the form. */
-function ApprovePlan({ planRevision }: { planRevision: string }) {
+export function ApprovePlan({ planRevision }: { planRevision: string }) {
     const fetcher = useFetcher<ActionResult>();
     const intent: IssueIntent = { intent: 'approve_plan', input: { planRevision } };
     const submitOnce = useSubmitOnce(() => fetcher.submit(intent, { method: 'post', encType: 'application/json' }));

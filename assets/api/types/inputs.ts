@@ -170,6 +170,8 @@ export type IssueCommentInput = {
     body: Markdown;
     /** Absent or null: comment. */
     label?: CommentLabel | null;
+    /** The comment of the issue that this comment replaces. */
+    replaces?: Ulid | null;
 };
 
 export type ApprovePlanInput = {

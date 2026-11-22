@@ -28,8 +28,8 @@ use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 /**
  * Sends each request body fixture of docs/specs/README.md section 11 to its endpoint. The fixture IDs stand for rows
  * of the test: the review repository, the review, a first request, a second request, the proposal of the agent on
- * the first request, a draft, and the plan revision of an issue. `{targetReviewId}` is a second review of the
- * repository, `{issueKey}` is the issue BILL-1, and `{projectKey}` is its project BILL.
+ * the first request, a draft, the plan revision of an issue, and a comment of the agent on it. `{targetReviewId}` is a
+ * second review of the repository, `{issueKey}` is the issue BILL-1, and `{projectKey}` is its project BILL.
  */
 final class InputFixturesTest extends WebTestCase
 {
@@ -65,6 +65,8 @@ final class InputFixturesTest extends WebTestCase
 
     private const string FIXTURE_PLAN_REVISION = '01K7F3C5D6E7F8G9H0J1K2M3N4';
 
+    private const string FIXTURE_COMMENT_ID = '01K7F3EZG9H0J1K2M3N4P5Q6R7';
+
     private const string RESULT = 'request-command-result.schema.json';
 
     /**
@@ -72,7 +74,7 @@ final class InputFixturesTest extends WebTestCase
      * requests that the agent claims first, whether a draft must exist, whether the agent proposes on the first
      * request, whether the agent links the fixture URL to the first request, whether the agent suggested the first
      * request, whether the review is of the GitHub repository acme/billing, with general requests and no clone, and
-     * whether the issue BILL-1 exists with a plan.
+     * whether the issue BILL-1 exists with a plan and a comment of the agent.
      */
     private const array CASES = [
         'inputs.accept-suggestion.json' => ['schema' => 'inputs.schema.json#/$defs/AcceptSuggestionInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/accept-suggestion', 'status' => 200, 'response' => self::RESULT, 'suggested' => true],
@@ -173,6 +175,9 @@ final class InputFixturesTest extends WebTestCase
             $mcp = new McpTestClient($client, $secret);
             self::assertToolResult($mcp, $mcp->callTool('create_issue', ['project' => 'BILL', 'title' => 'Round invoice totals once per invoice']), 'create_issue');
             $ids[self::FIXTURE_PLAN_REVISION] = (string) self::assertToolResult($mcp, $mcp->callTool('update_issue', ['issue' => 'BILL-1', 'plan' => 'Add `TaxRounding::perInvoice()`.']), 'update_issue')['planRevision'];
+            self::assertToolResult($mcp, $mcp->callTool('comment_on_issue', ['issue' => 'BILL-1', 'body' => '`round()` goes.']), 'comment_on_issue');
+            $thread = self::assertToolResult($mcp, $mcp->callTool('get_issue', ['issue' => 'BILL-1']), 'get_issue')['thread'];
+            $ids[self::FIXTURE_COMMENT_ID] = (string) array_last($thread)['id'];
         }
 
         $body = json_decode($json, true, flags: \JSON_THROW_ON_ERROR);

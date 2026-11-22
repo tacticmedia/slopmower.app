@@ -292,6 +292,73 @@ final class IssueToolsTest extends WebTestCase
         self::assertSame([], $this->call('list_comments', ['project' => 'SM', 'label' => 'decision'])['items']);
     }
 
+    #[TestDox('get_issue leaves out a replaced plan version and its approval, and history returns every entry with its text and replacedBy')]
+    public function testReplacedPlanVersion(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM', ApprovalMode::AgentReview);
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'problem' => self::PROBLEM])['key']];
+        $newPlan = self::PLAN.' 3. Update the README.';
+        $first = $this->call('update_issue', $issue + ['plan' => self::PLAN])['planRevision'];
+        $this->call('approve_plan', $issue + ['planRevision' => $first, 'reviewer' => self::REVIEWER, 'reviewNote' => self::REVIEW_NOTE]);
+        $second = $this->call('update_issue', $issue + ['plan' => $newPlan])['planRevision'];
+        $row = static fn (array $entry): array => [$entry['kind'], $entry['section'], $entry['body'], $entry['replaces'], $entry['replacedBy']];
+
+        $current = $this->call('get_issue', $issue)['thread'];
+        $history = $this->call('get_issue', $issue + ['history' => true])['thread'];
+
+        self::assertSame([['section_changed', 'problem', null, null, null], ['section_changed', 'plan', null, $first, null]], array_map($row, $current));
+        self::assertSame([
+            ['section_changed', 'problem', self::PROBLEM, null, null],
+            ['section_changed', 'plan', self::PLAN, null, $second],
+            ['plan_approved', null, null, null, $second],
+            ['section_changed', 'plan', $newPlan, $first, null],
+        ], array_map($row, $history));
+    }
+
+    #[TestDox('A comment with replaces takes the replaced comment out of get_issue and list_comments, and history keeps it')]
+    public function testReplacedComment(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once'])['key']];
+        $this->call('comment_on_issue', $issue + ['body' => '`round()` goes.', 'label' => 'decision']);
+        $old = $this->call('get_issue', $issue)['thread'][0]['id'];
+        $row = static fn (array $entry): array => [$entry['body'], $entry['replaces'], $entry['replacedBy']];
+
+        $this->call('comment_on_issue', $issue + ['body' => '`round()` stays.', 'label' => 'decision', 'replaces' => $old]);
+        $current = $this->call('get_issue', $issue)['thread'];
+        $history = $this->call('get_issue', $issue + ['history' => true])['thread'];
+
+        self::assertSame([['`round()` stays.', $old, null]], array_map($row, $current));
+        self::assertSame([['`round()` goes.', null, $current[0]['id']], ['`round()` stays.', $old, null]], array_map($row, $history));
+        self::assertSame(['`round()` stays.'], array_column($this->call('list_comments', ['project' => 'SM'])['items'], 'body'));
+    }
+
+    #[TestDox('comment_on_issue refuses on replaces a section entry, a comment of another issue, a comment of a user, and a replaced comment')]
+    public function testReplacesRefusals(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'problem' => self::PROBLEM]);
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode']);
+        $this->call('comment_on_issue', ['issue' => 'SM-1', 'body' => '`round()` goes.']);
+        $this->call('comment_on_issue', ['issue' => 'SM-2', 'body' => 'The PDF has no footer.']);
+        $this->client->loginUser($this->user, 'web');
+        self::assertSame(201, self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/comments', ['body' => 'Keep `round()` as deprecated.'])->getStatusCode());
+        [$section, $comment, $ofUser] = array_column($this->call('get_issue', ['issue' => 'SM-1'])['thread'], 'id');
+        $ofOtherIssue = $this->call('get_issue', ['issue' => 'SM-2'])['thread'][0]['id'];
+        $replace = ['issue' => 'SM-1', 'body' => '`round()` stays.'];
+
+        $refusals = array_map(fn (string $id): array => $this->refusal('comment_on_issue', $replace + ['replaces' => $id]), [$section, $ofOtherIssue, $ofUser]);
+        $this->call('comment_on_issue', $replace + ['replaces' => $comment]);
+        $refusals[] = $this->refusal('comment_on_issue', $replace + ['replaces' => $comment]);
+
+        self::assertSame(['replaces', 'replaces', 'replaces', 'replaces'], array_column($refusals, 'field'));
+        self::assertSame(
+            ['Is no comment of this issue.', 'Is no comment of this issue.', 'An agent cannot replace a comment of a user.', 'This comment is replaced already. Replace the comment that replaced it.'],
+            array_column($refusals, 'message'),
+        );
+        self::assertCount(4, $this->call('get_issue', ['issue' => 'SM-1', 'history' => true])['thread'], 'A refused comment is not stored.');
+    }
+
     #[TestDox('A link needs a note and is on both issues, and a second link of the pair or a link to the issue itself is refused')]
     public function testLinks(): void
     {

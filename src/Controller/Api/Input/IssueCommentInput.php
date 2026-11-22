@@ -17,6 +17,8 @@ final readonly class IssueCommentInput
         #[Assert\Length(max: 65536)]
         public ?string $body = null,
         public ?CommentLabel $label = null,
+        #[Assert\Ulid]
+        public ?string $replaces = null,
     ) {
     }
 }

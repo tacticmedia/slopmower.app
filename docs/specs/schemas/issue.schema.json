@@ -163,8 +163,8 @@
     },
     "IssueEntry": {
       "type": "object",
-      "required": ["id", "kind", "label", "actor", "createdAt", "body", "section", "from", "to", "note", "reviewer", "reviewNote", "planRevision"],
-      "description": "One entry of the thread of an issue. The thread only grows.",
+      "required": ["id", "kind", "label", "actor", "createdAt", "body", "section", "from", "to", "note", "reviewer", "reviewNote", "planRevision", "replaces", "replacedBy"],
+      "description": "One entry of the thread of an issue. The thread only grows: a new version replaces an entry, and the replaced entry stays.",
       "properties": {
         "id": {
           "$ref": "common.schema.json#/$defs/Ulid"
@@ -192,7 +192,7 @@
         "body": {
           "type": ["string", "null"],
           "maxLength": 65536,
-          "description": "comment: the Markdown comment; else null. A section_changed entry carries its section and no text."
+          "description": "comment: the Markdown comment. section_changed: the Markdown text of this version of the section with history, and null without it, because the issue has the current text. Else null."
         },
         "section": {
           "anyOf": [
@@ -253,6 +253,28 @@
             }
           ],
           "description": "plan_approved only: the plan revision that the approval read."
+        },
+        "replaces": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Ulid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The ID of the entry that this entry replaced. section_changed: the entry of the version before it. comment: the comment that its writer named. Else null."
+        },
+        "replacedBy": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Ulid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The ID of the entry that replaced this entry. Null for a current entry. section_changed: the next entry of its section. comment: the comment that names it in replaces. plan_approved: the plan version after the one that it approved."
         }
       }
     },
@@ -305,7 +327,7 @@
           "items": {
             "$ref": "#/$defs/IssueEntry"
           },
-          "description": "Oldest first."
+          "description": "Oldest first. Without history: no entry with replacedBy."
         }
       }
     }

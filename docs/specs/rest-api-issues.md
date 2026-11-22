@@ -74,20 +74,25 @@ The list is sorted by `updatedAt` descending, then by `id` descending. The MCP t
 
 - **Request:** `GET /api/v1/issues/{issueKey}`
 - **Authentication:** S, B
-- **Success:** 200 [`IssueDetail`](schemas/issue.schema.json): the issue, its links, and its thread, each oldest first. A link shows the other issue. `allowedStatuses` holds the statuses that the rules allow the caller to set. Example: [fixtures/issue.detail.json](fixtures/issue.detail.json).
+- **Success:** 200 [`IssueDetail`](schemas/issue.schema.json): the issue, its links, and its thread, each oldest first. A link shows the other issue. `allowedStatuses` holds the statuses that the rules allow the caller to set. Example: [fixtures/issue.detail.json](fixtures/issue.detail.json), with `history=true`.
 - **Errors:** common errors only.
 
-The MCP tool `get_issue` returns the same body.
+| Query | Type | Default | Notes |
+|---|---|---|---|
+| `history` | boolean | false | false: the current content. The thread has no replaced entry, and a `section_changed` entry has `body` null, because the issue has the text. true: every entry, and a `section_changed` entry has the text of its version in `body`. |
+
+An entry is replaced when its `replacedBy` is not null, as the [issue tools](mcp.md#issue-tools) define. The MCP tool `get_issue` returns the same body.
 
 ### I3 Comment on an issue
 
 - **Request:** `POST /api/v1/issues/{issueKey}/comments`
 - **Authentication:** S, B
-- **Body:** [`IssueCommentInput`](schemas/inputs.schema.json), `{body, label}`. `label` is a `CommentLabel` of [common.schema.json](schemas/common.schema.json), by default `comment`. Example: [fixtures/inputs.issue-comment.json](fixtures/inputs.issue-comment.json).
-- **Success:** 201 [`Issue`](schemas/issue.schema.json), without its links and its thread. The comment is a `comment` entry of the thread with the label and with the caller as its actor. It is allowed in any status.
-- **Errors:** 422 `invalid_input`:
-  - on `body`, "Must contain a non-whitespace character.";
-  - on `label`, for a value outside `CommentLabel`.
+- **Body:** [`IssueCommentInput`](schemas/inputs.schema.json), `{body, label, replaces}`. `label` is a `CommentLabel` of [common.schema.json](schemas/common.schema.json), by default `comment`. `replaces` is the ID of a comment of this issue that no longer holds. Example: [fixtures/inputs.issue-comment.json](fixtures/inputs.issue-comment.json).
+- **Success:** 201 [`Issue`](schemas/issue.schema.json), without its links and its thread. The comment is a `comment` entry of the thread with the label and with the caller as its actor. It is allowed in any status. With `replaces`, the named comment is replaced: it stays stored, and I2 without `history` and I5 leave it out.
+- **Errors**, in this order:
+  - 422 `invalid_input` on `body`, "Must contain a non-whitespace character.", on `label`, for a value outside `CommentLabel`, and on `replaces`, for a value that is no ULID;
+  - 404 `not_found`, for a `replaces` that names no entry that the caller can see;
+  - 422 `invalid_input` on `replaces`, for an entry that is no comment of this issue, for a comment that is replaced already, and for a comment of a user when the caller is a token.
 
 A token call gives the same result as the MCP tool `comment_on_issue`.
 
@@ -96,7 +101,7 @@ A token call gives the same result as the MCP tool `comment_on_issue`.
 - **Request:** `POST /api/v1/issues/{issueKey}/plan-approval`
 - **Authentication:** S
 - **Body:** [`ApprovePlanInput`](schemas/inputs.schema.json), `{planRevision}`: `Issue.planRevision` of the plan that the user read. Example: [fixtures/inputs.approve-plan.json](fixtures/inputs.approve-plan.json).
-- **Success:** 200 [`Issue`](schemas/issue.schema.json). The approval is a `plan_approved` entry with the user as its actor, `reviewer` and `reviewNote` null, and `planRevision`. It becomes `planApproval` and replaces an earlier approval, also one of an agent.
+- **Success:** 200 [`Issue`](schemas/issue.schema.json). The approval is a `plan_approved` entry with the user as its actor, `reviewer` and `reviewNote` null, and `planRevision`. It becomes `planApproval`, also after an approval of an agent. The entry of the earlier approval stays in the thread.
 - **Errors:** 422 `invalid_input`:
   - on `plan`, when the issue has no plan;
   - on `planRevision`, when it is not the newest revision of the plan. The client reads the issue again and approves its `planRevision`.
@@ -109,7 +114,7 @@ An agent does not call I4. Its approval is the MCP tool `approve_plan`, which re
 
 - **Request:** `GET /api/v1/projects/{projectKey}/comments`
 - **Authentication:** S, B
-- **Success:** 200 [`IssueCommentPage`](schemas/lists.schema.json): the `comment` entries of every issue of the project, each with the summary of its issue, its label, its actor, and its body. Entries of another kind are left out. Example: [fixtures/lists.issue-comment-page.json](fixtures/lists.issue-comment-page.json).
+- **Success:** 200 [`IssueCommentPage`](schemas/lists.schema.json): the `comment` entries of every issue of the project, each with the summary of its issue, its label, its actor, and its body. Entries of another kind and replaced comments are left out. Example: [fixtures/lists.issue-comment-page.json](fixtures/lists.issue-comment-page.json).
 - **Errors:** 422 `invalid_input` for a cursor sent with another `label` than that of the page that returned it.
 
 | Query | Type | Default | Notes |
@@ -138,7 +143,7 @@ A token call gives the same result as the MCP tool `create_issue`.
 - **Request:** `PATCH /api/v1/issues/{issueKey}`
 - **Authentication:** S, B
 - **Body:** [`UpdateIssueInput`](schemas/inputs.schema.json), `{title, problem, plan, result, followUps}`. Absent or null keeps a field. A text has at least 1 character, so no section is cleared. Example: [fixtures/inputs.update-issue.json](fixtures/inputs.update-issue.json).
-- **Success:** 200 [`Issue`](schemas/issue.schema.json). Each section with new text writes a `section_changed` entry, and a `plan` with new text clears `planApproval`. A value that equals the stored one changes nothing.
+- **Success:** 200 [`Issue`](schemas/issue.schema.json). Each section with new text writes a `section_changed` entry with that text, which replaces the entry of the version before it, and a `plan` with new text clears `planApproval`. A value that equals the stored one changes nothing.
 - **Errors:** 422 `invalid_input`:
   - for a body without a field;
   - on `title`, for whitespace only, more than 200 characters, or a line break;

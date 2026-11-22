@@ -238,11 +238,17 @@ Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 
 ### Issue tools
 
-Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121, D122). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs. The REST endpoints of [rest-api-issues.md](rest-api-issues.md) share the model and the rules of this section.
+Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121 to D123). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs. The REST endpoints of [rest-api-issues.md](rest-api-issues.md) share the model and the rules of this section.
 
 - **Visibility.** A token of one repository sees only the project of that repository, with its issues. A project without a repository is invisible to it. Any other key gets `not_found`.
 - **Sections.** An issue has the Markdown sections `problem`, `plan`, `result`, and `followUps`, each null or at most 65,536 characters.
-- **Thread.** Each write that changes the issue appends its entry in the same transaction and sets `updatedAt`. The entry kinds are `comment`, `status_changed`, `section_changed`, and `plan_approved`. A `section_changed` entry stores the new text, and `get_issue` returns its section without the text. The plan revision of an issue is the ID of the newest `section_changed` entry of `plan`.
+- **Thread.** Each write that changes the issue appends its entry in the same transaction and sets `updatedAt`. The entry kinds are `comment`, `status_changed`, `section_changed`, and `plan_approved`. No write changes or removes a stored entry. A `section_changed` entry stores the new text, so it is one version of its section. The plan revision of an issue is the ID of the newest `section_changed` entry of `plan`.
+- **Replaced entries.** A new version replaces an entry, and the replaced entry stays in the thread (D123). `replacedBy` of an entry is the ID of the entry that replaced it, and null for a current entry. `replaces` is the ID of the entry that it replaced, or null.
+  - A `section_changed` entry is replaced by the next entry of its section. The server reads this from the order of the entries and stores nothing for it.
+  - A `comment` is replaced by the comment that names it in `replaces`. A comment is replaced only once: a third version names the second one. An agent replaces only a comment of an agent, because a user controls the text of a user.
+  - A `plan_approved` entry whose `planRevision` is not the plan revision of the issue is replaced by the plan version after the one that it approved. Its `replaces` is null.
+  - A `status_changed` entry is never replaced.
+  - `get_issue` returns the current content: no replaced entry, and a `section_changed` entry with `body` null, because the issue has the text. With `history: true` it returns every entry, and a `section_changed` entry has the text of its version in `body`. `list_comments` returns no replaced comment.
 - **Labels.** A `comment` entry has a `label` of the closed set `CommentLabel` of [common.schema.json](schemas/common.schema.json), which says what the comment is: `comment`, `decision`, `question`, `finding`, `deviation`, `scope_creep`, `papercut`, or `review`. A comment stored without a label reads as `comment`. An entry of another kind has `label` null (D121).
 - **Approval.** `planApproval` holds the approval of the plan of `planRevision`. A `plan` with new text clears it. The same text changes nothing and writes no entry. An approval of an agent has a `reviewer` and a `reviewNote`. An approval of a user, REST [I4](rest-api-issues.md#i4-approve-the-plan), has both null.
 - **Rules.** The server checks the state that a write gives (D117). The content rules hold for every actor. The approval rules bind agents only, and the MCP actor is always an agent.
@@ -281,9 +287,9 @@ Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121, D122). A projec
 ### 4.21 `get_issue`
 
 - **Output:** [`issue.schema.json#/$defs/IssueDetail`](schemas/issue.schema.json).
-- **Behaviour:** REST I2: the issue, its links, and its thread, each oldest first. A link shows the other issue. `allowedStatuses` holds the statuses that `set_issue_status` takes from the caller, with a note and a reviewer where the rules need them.
+- **Behaviour:** REST I2: the issue, its links, and its thread, each oldest first. A link shows the other issue. `allowedStatuses` holds the statuses that `set_issue_status` takes from the caller, with a note and a reviewer where the rules need them. `history` is false by default: the thread is the current content, as "Replaced entries" says. `history: true` returns every entry with the text of each section version.
 - **Errors:** `not_found`.
-- **Example:** arguments `{"issue":"BILL-12"}`. `structuredContent`: [fixtures/issue.detail.json](fixtures/issue.detail.json).
+- **Example:** arguments `{"issue":"BILL-12","history":true}`. `structuredContent`: [fixtures/issue.detail.json](fixtures/issue.detail.json).
 
 ### 4.22 `create_issue`
 
@@ -295,7 +301,7 @@ Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121, D122). A projec
 ### 4.23 `update_issue`
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json).
-- **Behaviour:** REST I7: changes the given fields. Null leaves a field as it is. Each section with new text writes a `section_changed` entry, and a `plan` with new text clears `planApproval`. A call whose values equal the stored ones changes nothing.
+- **Behaviour:** REST I7: changes the given fields. Null leaves a field as it is. Each section with new text writes a `section_changed` entry with that text, which replaces the entry of the version before it, and a `plan` with new text clears `planApproval`. A call whose values equal the stored ones changes nothing.
 - **Errors:** `not_found`, `invalid_input` for a call with no field, a title of whitespace only or with a line break, or a broken rule of the issue tools.
 - **Example:** arguments `{"issue":"BILL-12","plan":"1. Add `TaxRounding::perInvoice()` ..."}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with a new `planRevision` and `planApproval` null.
 
@@ -309,9 +315,9 @@ Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121, D122). A projec
 ### 4.25 `comment_on_issue`
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json).
-- **Behaviour:** REST I3 with the body `{body, label}`: appends a `comment` entry with the label, in any status. `label` is `comment` by default.
-- **Errors:** `not_found`, `invalid_input` for a body of whitespace only. A `label` outside `CommentLabel` is JSON-RPC -32602.
-- **Example:** arguments `{"issue":"BILL-12","label":"decision"}` plus the `body` of [fixtures/inputs.issue-comment.json](fixtures/inputs.issue-comment.json). The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json).
+- **Behaviour:** REST I3 with the body `{body, label, replaces}`: appends a `comment` entry with the label, in any status. `label` is `comment` by default. `replaces` is the ID of a comment of the issue that no longer holds: the new comment replaces it, and `get_issue` without `history` and `list_comments` leave the replaced one out.
+- **Errors:** `not_found` for the issue and for a `replaces` that names no entry that the token sees, `invalid_input` for a body of whitespace only, and on `replaces` for an entry that is no comment of this issue, for a comment that is replaced already, and for a comment of a user. A `label` outside `CommentLabel` and a `replaces` that is no ULID are JSON-RPC -32602.
+- **Example:** arguments `{"issue":"BILL-12"}` plus the `body`, the `label`, and the `replaces` of [fixtures/inputs.issue-comment.json](fixtures/inputs.issue-comment.json). The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json).
 
 ### 4.26 `link_issues`
 
@@ -323,14 +329,14 @@ Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121, D122). A projec
 ### 4.27 `approve_plan`
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json).
-- **Behaviour:** records the review of the plan by another agent: a `plan_approved` entry with `reviewer`, `reviewNote`, and `planRevision`, which becomes `planApproval`. The server cannot prove the review. A second approval replaces the first one. The approval of a user has no tool: REST [I4](rest-api-issues.md#i4-approve-the-plan).
+- **Behaviour:** records the review of the plan by another agent: a `plan_approved` entry with `reviewer`, `reviewNote`, and `planRevision`, which becomes `planApproval`. The server cannot prove the review. A second approval becomes `planApproval`, and the entry of the first one stays in the thread. The approval of a user has no tool: REST [I4](rest-api-issues.md#i4-approve-the-plan).
 - **Errors:** `not_found`, `invalid_input` on `issue` when `approvalMode` is `user` or the issue is in `done` or `wont_do`, on `plan` for an issue without a plan, on `planRevision` for a revision that is not the newest, on `reviewer` for whitespace only, and on `reviewNote` for fewer than 20 characters after trimming.
 - **Example:** arguments `{"issue":"BILL-12","planRevision":"01K7F3C5D6E7F8G9H0J1K2M3N4","reviewer":"plan-reviewer"}` plus the `reviewNote` of the fixture give [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json).
 
 ### 4.28 `list_comments`
 
 - **Output:** [`lists.schema.json#/$defs/IssueCommentPage`](schemas/lists.schema.json).
-- **Behaviour:** REST I5: the `comment` entries of every issue of the project, newest first by entry ID, each with the summary of its issue, its label, its actor, and its body. `label` returns only the comments with that label. `limit` is 1 to 200, by default 50.
+- **Behaviour:** REST I5: the `comment` entries of every issue of the project, newest first by entry ID, each with the summary of its issue, its label, its actor, and its body. A replaced comment is left out. `label` returns only the comments with that label. `limit` is 1 to 200, by default 50.
 - **Errors:** `not_found` for the project, `invalid_input` for the cursor or a cursor sent with another filter.
 - **Example:** arguments `{"project":"BILL"}`. `structuredContent`: [fixtures/lists.issue-comment-page.json](fixtures/lists.issue-comment-page.json).
 
@@ -375,7 +381,7 @@ Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121, D122). A projec
 | `set_request_title` | `POST /api/v1/requests/{id}/title` |
 | `list_projects` | `GET /api/v1/projects` |
 | `list_issues` | `GET /api/v1/projects/{projectKey}/issues?status=` |
-| `get_issue` | `GET /api/v1/issues/{issueKey}` |
+| `get_issue` | `GET /api/v1/issues/{issueKey}?history=` |
 | `comment_on_issue` | `POST /api/v1/issues/{issueKey}/comments` |
 | `list_comments` | `GET /api/v1/projects/{projectKey}/comments?label=` |
 | `create_issue` | `POST /api/v1/projects/{projectKey}/issues` |

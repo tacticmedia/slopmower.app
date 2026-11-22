@@ -138,8 +138,9 @@ export async function projectCommentsLoader(args: LoaderFunctionArgs): Promise<P
     return { project, comments: items };
 }
 
+/** I2 with the replaced entries and the text of each section version, for the timeline. */
 export function issueLoader({ request, params }: LoaderFunctionArgs): Promise<IssueDetail> {
-    return apiGet<IssueDetail>(`/api/v1/issues/${encodedRouteParam(params, 'issueKey')}`, request.signal);
+    return apiGet<IssueDetail>(`/api/v1/issues/${encodedRouteParam(params, 'issueKey')}?history=true`, request.signal);
 }
 
 const ISSUE_WRITES: Record<IssueIntent['intent'], { method: 'POST' | 'PATCH'; path: string }> = {

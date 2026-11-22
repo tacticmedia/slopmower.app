@@ -79,6 +79,28 @@ final class IssueApiTest extends WebTestCase
         self::assertSame([['comment', 'user', $this->user->getId()->toString(), 'Keep `round()` as deprecated.']], array_map(static fn (array $entry): array => [$entry['kind'], $entry['actor']['kind'], $entry['actor']['userId'], $entry['body']], $thread));
     }
 
+    #[TestDox('I3 with replaces replaces a comment of an agent and of a user, and I2 with history=true answers each replaced entry with its text')]
+    public function testReplacesAndHistory(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $firstPlan = $this->plannedIssue('todo');
+        $this->agent('update_issue', ['issue' => 'SM-1', 'plan' => self::PLAN.' 3. Update the README.']);
+        $this->agent('comment_on_issue', ['issue' => 'SM-1', 'body' => '`round()` goes.']);
+        $comment = $this->agent('get_issue', ['issue' => 'SM-1'])['thread'][2]['id'];
+        $row = static fn (array $entry): array => [$entry['kind'], $entry['body'], $entry['replaces']];
+
+        self::assertApiResponse(self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/comments', ['body' => 'Keep `round()` as deprecated.', 'replaces' => $comment]), 201, self::ISSUE);
+        $current = self::assertApiResponse(self::apiRequest($this->client, 'GET', '/api/v1/issues/SM-1'), 200, 'issue.schema.json#/$defs/IssueDetail')['thread'];
+        $history = self::assertApiResponse(self::apiRequest($this->client, 'GET', '/api/v1/issues/SM-1?history=true'), 200, 'issue.schema.json#/$defs/IssueDetail')['thread'];
+
+        self::assertSame([['section_changed', null, null], ['section_changed', null, $firstPlan], ['comment', 'Keep `round()` as deprecated.', $comment]], array_map($row, $current));
+        self::assertSame(
+            [['section_changed', self::PROBLEM, null], ['section_changed', self::PLAN, null], ['section_changed', self::PLAN.' 3. Update the README.', $firstPlan], ['comment', '`round()` goes.', null], ['comment', 'Keep `round()` as deprecated.', $comment]],
+            array_map($row, $history),
+        );
+        self::assertApiResponse(self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/comments', ['body' => 'Remove `round()` in 3.0.', 'replaces' => $current[2]['id']]), 201, self::ISSUE);
+    }
+
     #[TestDox('I3 refuses an unknown label with 422 on label, and writes no comment')]
     public function testUnknownLabelIsRefused(): void
     {

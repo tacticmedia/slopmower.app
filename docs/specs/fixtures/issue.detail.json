@@ -74,14 +74,39 @@
         "avatarUrl": null
       },
       "createdAt": "2026-10-02T09:01:12Z",
-      "body": null,
+      "body": "Invoice totals round each line, so an invoice of three lines can be 1 cent off.\n\nDone when `InvoiceTotalsTest` has a case with three lines of 0.335 and the total is 1.01.",
       "section": "problem",
       "from": null,
       "to": null,
       "note": null,
       "reviewer": null,
       "reviewNote": null,
-      "planRevision": null
+      "planRevision": null,
+      "replaces": null,
+      "replacedBy": null
+    },
+    {
+      "id": "01K7F3BZD6E7F8G9H0J1K2M3N4",
+      "kind": "section_changed",
+      "label": null,
+      "actor": {
+        "kind": "agent",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "agentName": "claude-code laptop",
+        "name": "claude-code laptop",
+        "avatarUrl": null
+      },
+      "createdAt": "2026-10-02T09:05:20Z",
+      "body": "1. Round the total in `InvoiceTotals::total()`.\n2. Test: a case with three lines of 0.335.",
+      "section": "plan",
+      "from": null,
+      "to": null,
+      "note": null,
+      "reviewer": null,
+      "reviewNote": null,
+      "planRevision": null,
+      "replaces": null,
+      "replacedBy": "01K7F3C5D6E7F8G9H0J1K2M3N4"
     },
     {
       "id": "01K7F3C5D6E7F8G9H0J1K2M3N4",
@@ -95,14 +120,16 @@
         "avatarUrl": null
       },
       "createdAt": "2026-10-02T09:08:47Z",
-      "body": null,
+      "body": "1. Add `TaxRounding::perInvoice()` in `src/Billing/TaxRounding.php`.\n2. Use it in `InvoiceTotals::total()`.\n3. Test: a case with three lines of 0.335 in `tests/Billing/InvoiceTotalsTest.php`.",
       "section": "plan",
       "from": null,
       "to": null,
       "note": null,
       "reviewer": null,
       "reviewNote": null,
-      "planRevision": null
+      "planRevision": null,
+      "replaces": "01K7F3BZD6E7F8G9H0J1K2M3N4",
+      "replacedBy": null
     },
     {
       "id": "01K7F3D6E7F8G9H0J1K2M3N4P5",
@@ -123,7 +150,9 @@
       "note": null,
       "reviewer": "plan-reviewer",
       "reviewNote": "The plan covers the rounding and its test. It leaves the shipping totals alone, which is right: BILL-9 owns them.",
-      "planRevision": "01K7F3C5D6E7F8G9H0J1K2M3N4"
+      "planRevision": "01K7F3C5D6E7F8G9H0J1K2M3N4",
+      "replaces": null,
+      "replacedBy": null
     },
     {
       "id": "01K7F3E7F8G9H0J1K2M3N4P5Q6",
@@ -144,7 +173,32 @@
       "note": null,
       "reviewer": null,
       "reviewNote": null,
-      "planRevision": null
+      "planRevision": null,
+      "replaces": null,
+      "replacedBy": null
+    },
+    {
+      "id": "01K7F3EHG9H0J1K2M3N4P5Q6R7",
+      "kind": "comment",
+      "label": "decision",
+      "actor": {
+        "kind": "agent",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "agentName": "claude-code laptop",
+        "name": "claude-code laptop",
+        "avatarUrl": null
+      },
+      "createdAt": "2026-10-02T09:14:55Z",
+      "body": "`InvoiceTotals::round()` goes, because `InvoiceTotals::total()` was its only caller.",
+      "section": null,
+      "from": null,
+      "to": null,
+      "note": null,
+      "reviewer": null,
+      "reviewNote": null,
+      "planRevision": null,
+      "replaces": null,
+      "replacedBy": "01K7F3EZG9H0J1K2M3N4P5Q6R7"
     },
     {
       "id": "01K7F3EZG9H0J1K2M3N4P5Q6R7",
@@ -165,7 +219,9 @@
       "note": null,
       "reviewer": null,
       "reviewNote": null,
-      "planRevision": null
+      "planRevision": null,
+      "replaces": "01K7F3EHG9H0J1K2M3N4P5Q6R7",
+      "replacedBy": null
     },
     {
       "id": "01K7F3F8G9H0J1K2M3N4P5Q6R7",
@@ -186,7 +242,9 @@
       "note": null,
       "reviewer": null,
       "reviewNote": null,
-      "planRevision": null
+      "planRevision": null,
+      "replaces": null,
+      "replacedBy": null
     }
   ]
 }

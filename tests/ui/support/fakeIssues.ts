@@ -85,7 +85,7 @@ export class FakeIssues {
             if (undefined !== refused) {
                 return refused;
             }
-            this.issues.set(created.key, { issue: created, links: [], thread: null === problem ? [] : [entry('section_changed', { section: 'problem' })] });
+            this.issues.set(created.key, { issue: created, links: [], thread: null === problem ? [] : [entry('section_changed', { section: 'problem', body: problem })] });
 
             return json('issue.schema.json', created, 201);
         });
@@ -97,7 +97,7 @@ export class FakeIssues {
                 for (const section of ISSUE_SECTIONS) {
                     const text = input[section];
                     if (null !== text && undefined !== text && text !== detail.issue[section]) {
-                        const changed = entry('section_changed', { section });
+                        const changed = entry('section_changed', { section, body: text });
                         entries.push(changed);
                         Object.assign(changes, { [section]: text }, 'plan' === section ? { planRevision: changed.id, planApproval: null } : {});
                     }
@@ -133,7 +133,9 @@ export class FakeIssues {
 
             return json('lists.schema.json#/$defs/IssuePage', { items, nextCursor: null });
         });
-        api.on('GET', '/api/v1/issues/:issueKey', ({ params }) => this.#answer(params.issueKey, (detail) => json('issue.schema.json#/$defs/IssueDetail', detail)));
+        api.on('GET', '/api/v1/issues/:issueKey', ({ params, query }) =>
+            this.#answer(params.issueKey, (detail) => json('issue.schema.json#/$defs/IssueDetail', 'true' === query.get('history') ? detail : { ...detail, thread: currentContent(detail.thread) })),
+        );
         api.on('POST', '/api/v1/issues/:issueKey/comments', ({ params, body }) =>
             this.#answer(params.issueKey, (detail) => {
                 const { body: text, label } = body as IssueCommentInput;
@@ -169,8 +171,10 @@ export class FakeIssues {
             const items = [...this.issues.values()]
                 .filter(({ issue }) => issue.project.key === params.projectKey)
                 .flatMap(({ issue: { key, title, status, updatedAt }, thread }) =>
-                    thread.flatMap(({ id, label: entryLabel, actor, createdAt, body }) =>
-                        null === entryLabel || null === body || (null !== label && entryLabel !== label) ? [] : [{ id, issue: { key, title, status, updatedAt }, label: entryLabel, actor, createdAt, body }],
+                    thread.flatMap(({ id, label: entryLabel, actor, createdAt, body, replacedBy }) =>
+                        null === entryLabel || null === body || null !== replacedBy || (null !== label && entryLabel !== label)
+                            ? []
+                            : [{ id, issue: { key, title, status, updatedAt }, label: entryLabel, actor, createdAt, body }],
                     ),
                 )
                 .toSorted((first, second) => second.id.localeCompare(first.id));
@@ -191,7 +195,7 @@ export class FakeIssues {
         if (undefined === detail) {
             throw new Error(`No issue ${issueKey}.`);
         }
-        const changed = { ...entry('section_changed', { section: 'plan' }), actor: detail.issue.createdBy };
+        const changed = { ...entry('section_changed', { section: 'plan', body: plan }), actor: detail.issue.createdBy };
         this.#write(detail, { plan, planRevision: changed.id, planApproval: null }, changed);
     }
 
@@ -203,7 +207,7 @@ export class FakeIssues {
 
     #write(detail: IssueDetail, changes: Partial<Issue>, ...entries: IssueEntry[]): Issue {
         const issue = { ...detail.issue, ...changes, updatedAt: now() };
-        this.issues.set(issue.key, { ...detail, issue, thread: [...detail.thread, ...entries] });
+        this.issues.set(issue.key, { ...detail, issue, thread: versioned([...detail.thread, ...entries]) });
 
         return issue;
     }
@@ -211,7 +215,48 @@ export class FakeIssues {
 
 /** An entry of the signed-in user. */
 function entry(kind: IssueEntry['kind'], fields: Partial<IssueEntry>): IssueEntry {
-    return { id: newId(), kind, label: null, actor: USER, createdAt: now(), body: null, section: null, from: null, to: null, note: null, reviewer: null, reviewNote: null, planRevision: null, ...fields };
+    return {
+        id: newId(),
+        kind,
+        label: null,
+        actor: USER,
+        createdAt: now(),
+        body: null,
+        section: null,
+        from: null,
+        to: null,
+        note: null,
+        reviewer: null,
+        reviewNote: null,
+        planRevision: null,
+        replaces: null,
+        replacedBy: null,
+        ...fields,
+    };
+}
+
+/** `replaces` and `replacedBy` of the section versions and the plan approvals, from the entry order, as the server derives them. */
+function versioned(thread: IssueEntry[]): IssueEntry[] {
+    const entries = thread.map((known) => ({ ...known }));
+    const newest = new Map<string, IssueEntry>();
+    for (const version of entries.filter(({ section }) => null !== section)) {
+        const before = newest.get(version.section ?? '');
+        if (undefined !== before) {
+            before.replacedBy = version.id;
+            version.replaces = before.id;
+        }
+        newest.set(version.section ?? '', version);
+    }
+    for (const approval of entries.filter(({ kind }) => 'plan_approved' === kind)) {
+        approval.replacedBy = entries.find(({ id }) => id === approval.planRevision)?.replacedBy ?? null;
+    }
+
+    return entries;
+}
+
+/** I2 without `history`: no replaced entry, and no text in a section version. */
+function currentContent(thread: IssueEntry[]): IssueEntry[] {
+    return thread.filter(({ replacedBy }) => null === replacedBy).map((known) => (null === known.section ? known : { ...known, body: null }));
 }
 
 function notFound(): MockResponse {

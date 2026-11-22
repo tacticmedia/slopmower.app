@@ -267,6 +267,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Issue endpoints, decision D120: the endpoints P1 and I1 to I4 of [rest-api-issues.md](rest-api-issues.md), and the inputs `IssueCommentInput` and `ApprovePlanInput`. All are additive. An approval by a user has `reviewer` and `reviewNote` null, and it returns an issue in `awaiting_user_input` with a `problem` to `todo`.
     - Comment labels, decision D121: the closed set `CommentLabel`, the property `label` of `IssueEntry`, the optional input `label` of I3 and `comment_on_issue`, the endpoint I5 and the tool `list_comments`, and the schemas `IssueComment` and `IssueCommentPage`. All are additive. Without `label`, a comment gets `comment`, and a comment stored without a label reads as `comment`.
     - Projects and issue writes in REST, decision D122: the endpoints P2, P3, and I6 to I8 of [rest-api-issues.md](rest-api-issues.md), and the inputs `CreateProjectInput`, `UpdateProjectInput`, `CreateIssueInput`, `UpdateIssueInput`, and `IssueStatusInput`. All are additive. No rule of the issue tools changes: a user was bound by the content rules only. The refusal of an empty section names no tool, because a user reads it too.
+    - Timeline of an issue, decision D123: the properties `replaces` and `replacedBy` of `IssueEntry`, the optional input `replaces` of I3 and `comment_on_issue`, and the optional `history` of I2 and `get_issue`. Not additive: without `history`, I2 and `get_issue` leave out each replaced entry, and I5 and `list_comments` leave out each replaced comment. With `history`, a `section_changed` entry has its text in `body`. The stored entries need no change.
 
 ## 9. Contract tests
 
@@ -353,7 +354,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [error.unauthorized.json](fixtures/error.unauthorized.json) | `error.schema.json` | Any endpoint, the MCP transport |
 | [file-content.browser.json](fixtures/file-content.browser.json) | `file-content.schema.json` | V7 of a `browser` repository |
 | [file-content.php.json](fixtures/file-content.php.json) | `file-content.schema.json` | V7 |
-| [issue.detail.json](fixtures/issue.detail.json) | `issue.schema.json#/$defs/IssueDetail` | I2, `get_issue` |
+| [issue.detail.json](fixtures/issue.detail.json) | `issue.schema.json#/$defs/IssueDetail` | I2 and `get_issue` with `history` |
 | [issue.plan-approved.json](fixtures/issue.plan-approved.json) | `issue.schema.json` | `approve_plan`, and the shape of every issue write: I3, I4, I6 to I8, and the write tools |
 | [inputs.accept-suggestion.json](fixtures/inputs.accept-suggestion.json) | `inputs.schema.json#/$defs/AcceptSuggestionInput` | Q21 |
 | [inputs.approve-plan.json](fixtures/inputs.approve-plan.json) | `inputs.schema.json#/$defs/ApprovePlanInput` | I4 |
@@ -371,7 +372,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.create-project.json](fixtures/inputs.create-project.json) | `inputs.schema.json#/$defs/CreateProjectInput` | P2 |
 | [inputs.create-token.json](fixtures/inputs.create-token.json) | `inputs.schema.json#/$defs/CreateTokenInput` | T2 |
 | [inputs.dismiss-suggestion.json](fixtures/inputs.dismiss-suggestion.json) | `inputs.schema.json#/$defs/DismissSuggestionInput` | Q22 |
-| [inputs.issue-comment.json](fixtures/inputs.issue-comment.json) | `inputs.schema.json#/$defs/IssueCommentInput` | I3 with a label, `comment_on_issue` |
+| [inputs.issue-comment.json](fixtures/inputs.issue-comment.json) | `inputs.schema.json#/$defs/IssueCommentInput` | I3 with a label and `replaces`, `comment_on_issue` |
 | [inputs.issue-status.json](fixtures/inputs.issue-status.json) | `inputs.schema.json#/$defs/IssueStatusInput` | I8 with the note of `wont_do`, `set_issue_status` |
 | [inputs.link-commits.json](fixtures/inputs.link-commits.json) | `inputs.schema.json#/$defs/LinkCommitsInput` | Q7 |
 | [inputs.link-pull-request.json](fixtures/inputs.link-pull-request.json) | `inputs.schema.json#/$defs/LinkPullRequestInput` | Q17 |
