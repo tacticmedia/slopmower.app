@@ -27,6 +27,7 @@ Verified on 2026-11-22:
 - `SkillMatchesToolsTest` requires the "Tools" table of `docs/user/skill/SKILL.md` to equal `tools/list`, and `SkillFrontmatterTest` caps that file at 500 lines. `McpHandshakeTest` pins the server instructions to `docs/specs/mcp.md` section 2.
 - `PullRequestRepository` locks a row with `PESSIMISTIC_WRITE` and the refresh hint in DQL.
 - The MCP actor is always an agent, so no user approval, user comment, or user status change exists before the web interface.
+- Claude Code cuts the server instructions at 4,096 characters and shows only the text before the cut ([MCP documentation](https://code.claude.com/docs/en/mcp.md), "Tool search for MCP server authors"). The instructions have 4,060 characters today.
 
 ## Decisions
 
@@ -86,6 +87,7 @@ Verified on 2026-11-22:
 
 **Agent guidance.**
 - The server instructions start with one short paragraph: when `list_projects` returns a project that owns this repository, track each request that changes code, documentation, or configuration as an issue of it, and follow the skill `slopmower-issues`; without such a project, do not use the issue tools. The `description` of `config/packages/mcp.yaml` names issues.
+- The instructions stay at 4,096 characters or less, and a test pins that length. The paragraph on issues has at most 450 characters. The text on change requests gets shorter by tighter wording and keeps every rule.
 - The skill `slopmower-issues` is `docs/user/skill-issues/SKILL.md`, with the same bytes in `.claude/skills/slopmower-issues/SKILL.md`. Its "Tools" table has the nine tools. The tests of the public skill also read it: tool names and parameters of both tables together equal `tools/list`, the frontmatter rules, the equal copies.
 - The skill says:
   - **When to track:** a user request that changes code, documentation, or configuration and is more than a quick answer. A step of a tracked issue is a comment, not an issue. Look through the open issues of the project first. Tell the user in one line which issue was created or continued.
