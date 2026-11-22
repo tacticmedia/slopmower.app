@@ -6,7 +6,7 @@ Workflow, conventions, and status: [feature track](features.md). From Jan in a s
 
 - `make composer c="audit"` exits 0, so the step of `.github/workflows/qa.yml` passes.
 - Every Composer package is at its newest version that resolves.
-- The images run PHP 8.6 on FrankenPHP 1.14.
+- The runtime, PHP 8.6 on FrankenPHP 1.14, is not part of this feature. Xdebug 3.5.3 and php-cs-fixer 3.95.32, the newest releases, refuse PHP 8.6, and the decision below stops on that. The [report](reports/F125.md) holds the evidence and the facts for that step, which continues as its own entry.
 
 ## Depends on
 
@@ -36,7 +36,6 @@ Not checked. Verify each one first, and report a blocker instead of working arou
 ## Decisions
 
 - `mcp/sdk` goes to the newest 0.9 release, `symfony/mcp-bundle` to 0.15.0. Both stay exact pins. `mcp/sdk` 0.10 waits for a bundle release.
-- `composer.json` requires `"php": ">=8.6"`.
 - npm packages change only where a Composer package forces it: `@symfony/reprise` with `symfony/reprise`, and `@playwright/test` with `PLAYWRIGHT_VERSION` when `playwright-php/playwright` 1.6.0 needs a newer Playwright.
 - If the hub is Mercure 1.x, the change of [README](README.md#known-gotchas) "Mercure 1.x" goes in as one step: `protocol_version`, the JWT claims, the `issuer` blocks, the cookie name.
 - A package that has no release for PHP 8.6 stops the feature. No `--ignore-platform-req`, no fork, no development branch.
@@ -44,10 +43,9 @@ Not checked. Verify each one first, and report a blocker instead of working arou
 ## In scope
 
 - `composer.json`, `composer.lock`, `symfony.lock`, and the recipe changes that the updates bring.
-- `Dockerfile`: the base image `dunglas/frankenphp:1.14.0-php8.6-trixie`, `mbstring` in `install-php-extensions`, and every extension of `composer.json` in `php -m`.
 - `src/Mcp/`, `tests/Support/Mcp/`, `config/packages/mcp.yaml`, `config/routes/mcp.yaml`: the changes that `mcp/sdk` 0.9 and the bundle 0.15.0 need.
-- `config/packages/mercure.yaml` and `docker/frankenphp/Caddyfile`, when the hub is Mercure 1.x.
-- Code that PHP 8.6 or a new package version breaks or deprecates.
+- `config/packages/mercure.yaml`: the protocol version of the hub in the image.
+- Code that a new package version breaks or deprecates.
 - `package.json` and `package-lock.json` for the two coupled packages.
 - The version text: "Verified versions", "Definition of done" item 5, and "Known gotchas" of [README](README.md); `docs/specs/mcp.md` section 1; `docs/deployment/`; `docs/developer-guide.md` where it names a version.
 
@@ -62,9 +60,8 @@ Not checked. Verify each one first, and report a blocker instead of working arou
 
 - `make composer c="audit"` exits 0.
 - `make composer c="outdated --direct --strict"` lists only `mcp/sdk`.
-- `docker compose exec -T php php -v` shows PHP 8.6, and `frankenphp version` shows 1.14.0.
 - Every test of the MCP suite passes unchanged in what it asserts. A test changes only where the protocol of `mcp/sdk` 0.9 differs, and the report names each one.
-- `HubIsolationTest` passes against the hub of the new image.
+- `HubIsolationTest` passes.
 
 ## Verification
 
