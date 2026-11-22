@@ -16,6 +16,8 @@ use App\Tests\Support\Environment\EnvironmentVariables;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
 use App\Tests\Support\GitHub\GitHubPullRequests;
 use App\Tests\Support\GitHub\GitHubRows;
+use App\Tests\Support\Mcp\McpAssertions;
+use App\Tests\Support\Mcp\McpTestClient;
 use App\Tests\Support\Messenger\QueuedMessages;
 use App\Tests\Support\Source\LocalSources;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -26,7 +28,8 @@ use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 /**
  * Sends each request body fixture of docs/specs/README.md section 11 to its endpoint. The fixture IDs stand for rows
  * of the test: the review repository, the review, a first request, a second request, the proposal of the agent on
- * the first request, and a draft. `{targetReviewId}` is a second review of the repository.
+ * the first request, a draft, and the plan revision of an issue. `{targetReviewId}` is a second review of the
+ * repository, and `{issueKey}` is the issue BILL-1.
  */
 final class InputFixturesTest extends WebTestCase
 {
@@ -39,6 +42,7 @@ final class InputFixturesTest extends WebTestCase
     use GitHubRows;
     use JsonApiAssertions;
     use LocalSources;
+    use McpAssertions;
     use QueuedMessages;
     use RequestApiFixtures;
     use ResetDatabase;
@@ -59,16 +63,20 @@ final class InputFixturesTest extends WebTestCase
 
     private const string FIXTURE_DRAFT_ID = '01K6D0DRAFT000000000000001';
 
+    private const string FIXTURE_PLAN_REVISION = '01K7F3C5D6E7F8G9H0J1K2M3N4';
+
     private const string RESULT = 'request-command-result.schema.json';
 
     /**
      * Per fixture: its schema, the endpoint, the success status and schema, whether an agent token calls, the fixture
      * requests that the agent claims first, whether a draft must exist, whether the agent proposes on the first
      * request, whether the agent links the fixture URL to the first request, whether the agent suggested the first
-     * request, and whether the review is of the GitHub repository acme/billing, with general requests and no clone.
+     * request, whether the review is of the GitHub repository acme/billing, with general requests and no clone, and
+     * whether the issue BILL-1 exists with a plan.
      */
     private const array CASES = [
         'inputs.accept-suggestion.json' => ['schema' => 'inputs.schema.json#/$defs/AcceptSuggestionInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/accept-suggestion', 'status' => 200, 'response' => self::RESULT, 'suggested' => true],
+        'inputs.approve-plan.json' => ['schema' => 'inputs.schema.json#/$defs/ApprovePlanInput', 'method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/plan-approval', 'status' => 200, 'response' => 'issue.schema.json', 'issue' => true],
         'inputs.approve-proposal.json' => ['schema' => 'inputs.schema.json#/$defs/ApproveProposalInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/approve-proposal', 'status' => 200, 'response' => self::RESULT, 'claimed' => [self::FIXTURE_REQUEST_ID], 'proposed' => true],
         'inputs.carry-over.json' => ['schema' => 'inputs.schema.json#/$defs/CarryOverInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{targetReviewId}/carry-over', 'status' => 200, 'response' => 'carry-over-result.schema.json'],
         'inputs.close-review.json' => ['schema' => 'inputs.schema.json#/$defs/CloseReviewInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/close', 'status' => 200, 'response' => 'review.schema.json'],
@@ -81,6 +89,7 @@ final class InputFixturesTest extends WebTestCase
         'inputs.create-draft-reply.json' => ['schema' => 'inputs.schema.json#/$defs/CreateDraftInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/drafts', 'status' => 201, 'response' => 'draft.schema.json'],
         'inputs.create-token.json' => ['schema' => 'inputs.schema.json#/$defs/CreateTokenInput', 'method' => 'POST', 'path' => '/api/v1/tokens', 'status' => 201, 'response' => 'api-token.schema.json#/$defs/ApiTokenWithSecret'],
         'inputs.dismiss-suggestion.json' => ['schema' => 'inputs.schema.json#/$defs/DismissSuggestionInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/dismiss-suggestion', 'status' => 200, 'response' => self::RESULT, 'suggested' => true],
+        'inputs.issue-comment.json' => ['schema' => 'inputs.schema.json#/$defs/IssueCommentInput', 'method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/comments', 'status' => 201, 'response' => 'issue.schema.json', 'issue' => true],
         'inputs.link-commits.json' => ['schema' => 'inputs.schema.json#/$defs/LinkCommitsInput', 'method' => 'POST', 'path' => '/api/v1/commit-links', 'status' => 200, 'response' => 'link-commits-result.schema.json', 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID, self::FIXTURE_SECOND_REQUEST_ID]],
         'inputs.link-pull-request.json' => ['schema' => 'inputs.schema.json#/$defs/LinkPullRequestInput', 'method' => 'POST', 'path' => '/api/v1/pull-request-links', 'status' => 200, 'response' => 'link-pull-request-result.schema.json', 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID, self::FIXTURE_SECOND_REQUEST_ID], 'github' => true],
         'inputs.open-general-request.json' => ['schema' => 'inputs.schema.json#/$defs/OpenRequestInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/requests', 'status' => 201, 'response' => 'request.schema.json'],
@@ -103,7 +112,7 @@ final class InputFixturesTest extends WebTestCase
     ];
 
     /**
-     * @param array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true, linked?: true, suggested?: true, github?: true} $case
+     * @param array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true, linked?: true, suggested?: true, github?: true, issue?: true} $case
      */
     #[TestDox('Every request body fixture of docs/specs is accepted by its endpoint')]
     #[DataProvider('fixtures')]
@@ -154,6 +163,13 @@ final class InputFixturesTest extends WebTestCase
             $ids[self::FIXTURE_PROPOSAL_EVENT_ID] = (string) $proposed['request']['proposal']['eventId'];
         }
 
+        if (isset($case['issue'])) {
+            self::storeProject($user->getTenantId(), 'BILL');
+            $mcp = new McpTestClient($client, $secret);
+            self::assertToolResult($mcp, $mcp->callTool('create_issue', ['project' => 'BILL', 'title' => 'Round invoice totals once per invoice']), 'create_issue');
+            $ids[self::FIXTURE_PLAN_REVISION] = (string) self::assertToolResult($mcp, $mcp->callTool('update_issue', ['issue' => 'BILL-1', 'plan' => 'Add `TaxRounding::perInvoice()`.']), 'update_issue')['planRevision'];
+        }
+
         $body = json_decode($json, true, flags: \JSON_THROW_ON_ERROR);
         self::assertIsArray($body);
         array_walk_recursive($body, static function (mixed &$value) use ($ids): void {
@@ -168,6 +184,7 @@ final class InputFixturesTest extends WebTestCase
             '{repositoryId}' => $repositoryId,
             '{requestId}' => $ids[self::FIXTURE_REQUEST_ID],
             '{draftId}' => $ids[self::FIXTURE_DRAFT_ID] ?? '',
+            '{issueKey}' => 'BILL-1',
             '{targetReviewId}' => str_contains($case['path'], '{targetReviewId}') ? (string) self::startReviewThroughApi($client, $repositoryId)['id'] : '',
         ]);
 
@@ -177,7 +194,7 @@ final class InputFixturesTest extends WebTestCase
     }
 
     /**
-     * @return iterable<string, array{string, array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true, linked?: true, suggested?: true, github?: true}}>
+     * @return iterable<string, array{string, array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true, linked?: true, suggested?: true, github?: true, issue?: true}}>
      */
     public static function fixtures(): iterable
     {

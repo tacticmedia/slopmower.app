@@ -23,6 +23,7 @@ import errorUnauthorized from '../../docs/specs/fixtures/error.unauthorized.json
 import fileContentBrowser from '../../docs/specs/fixtures/file-content.browser.json';
 import fileContentPhp from '../../docs/specs/fixtures/file-content.php.json';
 import inputsAcceptSuggestion from '../../docs/specs/fixtures/inputs.accept-suggestion.json';
+import inputsApprovePlan from '../../docs/specs/fixtures/inputs.approve-plan.json';
 import inputsApproveProposal from '../../docs/specs/fixtures/inputs.approve-proposal.json';
 import inputsCarryOver from '../../docs/specs/fixtures/inputs.carry-over.json';
 import inputsCloseReview from '../../docs/specs/fixtures/inputs.close-review.json';
@@ -35,6 +36,7 @@ import inputsCreateDraftNewRequest from '../../docs/specs/fixtures/inputs.create
 import inputsCreateDraftReply from '../../docs/specs/fixtures/inputs.create-draft-reply.json';
 import inputsCreateToken from '../../docs/specs/fixtures/inputs.create-token.json';
 import inputsDismissSuggestion from '../../docs/specs/fixtures/inputs.dismiss-suggestion.json';
+import inputsIssueComment from '../../docs/specs/fixtures/inputs.issue-comment.json';
 import inputsLinkCommits from '../../docs/specs/fixtures/inputs.link-commits.json';
 import inputsLinkPullRequest from '../../docs/specs/fixtures/inputs.link-pull-request.json';
 import inputsOpenGeneralRequest from '../../docs/specs/fixtures/inputs.open-general-request.json';
@@ -120,6 +122,7 @@ import type { ErrorBody } from './types/error';
 import type { FileContent } from './types/file-content';
 import type {
     AcceptSuggestionInput,
+    ApprovePlanInput,
     ApproveProposalInput,
     CarryOverInput,
     CloseReviewInput,
@@ -129,6 +132,7 @@ import type {
     CreateDraftInput,
     CreateTokenInput,
     DismissSuggestionInput,
+    IssueCommentInput,
     LinkCommitsInput,
     LinkPullRequestInput,
     OpenRequestInput,
@@ -212,6 +216,7 @@ const checkedFixtures = {
     'file-content.browser.json': fileContentBrowser satisfies Widen<FileContent>,
     'file-content.php.json': fileContentPhp satisfies Widen<FileContent>,
     'inputs.accept-suggestion.json': inputsAcceptSuggestion satisfies Widen<AcceptSuggestionInput>,
+    'inputs.approve-plan.json': inputsApprovePlan satisfies Widen<ApprovePlanInput>,
     'inputs.approve-proposal.json': inputsApproveProposal satisfies Widen<ApproveProposalInput>,
     'inputs.carry-over.json': inputsCarryOver satisfies Widen<CarryOverInput>,
     'inputs.close-review.json': inputsCloseReview satisfies Widen<CloseReviewInput>,
@@ -224,6 +229,7 @@ const checkedFixtures = {
     'inputs.create-draft-reply.json': inputsCreateDraftReply satisfies Widen<CreateDraftInput>,
     'inputs.create-token.json': inputsCreateToken satisfies Widen<CreateTokenInput>,
     'inputs.dismiss-suggestion.json': inputsDismissSuggestion satisfies Widen<DismissSuggestionInput>,
+    'inputs.issue-comment.json': inputsIssueComment satisfies Widen<IssueCommentInput>,
     'inputs.link-commits.json': inputsLinkCommits satisfies Widen<LinkCommitsInput>,
     'inputs.link-pull-request.json': inputsLinkPullRequest satisfies Widen<LinkPullRequestInput>,
     'inputs.open-general-request.json': inputsOpenGeneralRequest satisfies Widen<OpenRequestInput>,

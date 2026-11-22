@@ -120,7 +120,7 @@ final class McpTools
     }
 
     /**
-     * Section 4.25.
+     * Section 4.25: REST I3.
      *
      * @return array<string, mixed>
      */
@@ -140,7 +140,7 @@ final class McpTools
     }
 
     /**
-     * Section 4.21.
+     * Section 4.21: REST I2.
      *
      * @return array<string, mixed>
      */
@@ -233,7 +233,7 @@ final class McpTools
     }
 
     /**
-     * Section 4.20.
+     * Section 4.20: REST I1.
      *
      * @return array<string, mixed>
      */
@@ -243,7 +243,7 @@ final class McpTools
     }
 
     /**
-     * Section 4.19.
+     * Section 4.19: REST P1.
      *
      * @return array<string, mixed>
      */

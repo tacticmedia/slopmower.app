@@ -11,6 +11,8 @@ use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Environment\EnvironmentVariables;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
 use App\Tests\Support\Fixtures\TenantFixtures;
+use App\Tests\Support\Mcp\McpAssertions;
+use App\Tests\Support\Mcp\McpTestClient;
 use App\Tests\Support\Source\LocalSources;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -28,6 +30,7 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
     use EnvironmentVariables;
     use JsonApiAssertions;
     use LocalSources;
+    use McpAssertions;
     use ResetDatabase;
     use TemporaryDirectories;
 
@@ -119,8 +122,9 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
     }
 
     /**
-     * The other tenant connected the local source "billing", has a review of it with a request, and has an API token.
-     * The signed-in tenant has its own repository "alpha" and an API token.
+     * The other tenant connected the local source "billing", has a review of it with a request, has an API token, and
+     * has the project OILUOILU with one issue. The signed-in tenant has its own repository "alpha" and an API token. No
+     * ULID holds a letter of the project key, and 8 letters do not occur by chance in a token secret or a Mercure JWT.
      *
      * @return array{KernelBrowser, array<string, string>, string} The client, the IDs of the other tenant by placeholder
      *                                                             name, and the secret of the signed-in tenant's token
@@ -133,7 +137,9 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
         $other = TenantFixtures::of(self::getContainer())->withLogin('other')->create();
         $otherReview = self::storeReview($other, 'billing');
         $otherRequest = self::storeRequest($otherReview);
-        [$otherToken] = self::storeToken($other);
+        [$otherToken, $otherSecret] = self::storeToken($other);
+        self::storeProject($other->getTenantId(), 'OILUOILU');
+        self::assertToolResult($otherMcp = new McpTestClient($client, $otherSecret), $otherMcp->callTool('create_issue', ['project' => 'OILUOILU', 'title' => 'Use Money']), 'create_issue');
         $user = self::signIn($client);
         self::storeRepository($user->getTenantId(), 'alpha');
         [, $secret] = self::storeToken($user);
@@ -148,6 +154,8 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
             'blobSha' => $source->revParse('main:README.md'),
             'tokenId' => $otherToken->getId()->toString(),
             'commitSha' => $otherReview->getCommitSha()->toString(),
+            'projectKey' => 'OILUOILU',
+            'issueKey' => 'OILUOILU-1',
         ], $secret];
     }
 }

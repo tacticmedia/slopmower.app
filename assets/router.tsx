@@ -7,6 +7,9 @@ import { LoadingPage } from './layout/LoadingPage';
 import { RootLayout } from './layout/RootLayout';
 import { RouteError } from './layout/RouteError';
 import { removeSessionDrafts } from './layout/useSessionDraft';
+import { issueAction, issueLoader, projectLoader, projectsLoader } from './routes/issues/issueData';
+import { ProjectRoute } from './routes/issues/ProjectRoute';
+import { ProjectsRoute } from './routes/issues/ProjectsRoute';
 import { RepositoriesRoute, repositoriesAction, repositoriesLoader } from './routes/repositories/RepositoriesRoute';
 import { RepositoryRoute, repositoryAction, repositoryLoader } from './routes/repositories/RepositoryRoute';
 import { commitDiffLoader, diffSidesLoader, shouldRevalidateChanges } from './routes/requests/changesData';
@@ -96,6 +99,14 @@ export const router = wrapCreateBrowserRouter(createBrowserRouter)([
                     },
                     { path: 'repositories/:repositoryId/diff-sides', loader: diffSidesLoader, shouldRevalidate: shouldRevalidateChanges },
                     { path: 'repositories/:repositoryId/carry-over-sources', loader: carryOverSourcesLoader },
+                    { path: 'projects', loader: projectsLoader, element: <ProjectsRoute /> },
+                    { path: 'projects/:projectKey', loader: projectLoader, element: <ProjectRoute /> },
+                    {
+                        path: 'issues/:issueKey',
+                        loader: issueLoader,
+                        action: issueAction,
+                        lazy: { Component: () => import('./routes/issues/IssueRoute').then(({ IssueRoute }) => IssueRoute) },
+                    },
                     { path: 'settings', loader: settingsLoader, action: settingsAction, element: <SettingsRoute /> },
                 ],
             },

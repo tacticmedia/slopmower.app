@@ -694,6 +694,26 @@
           "description": "Replaces the completed tours. Absent or null keeps them. An unknown name or a name twice answers 422."
         }
       }
+    },
+    "IssueCommentInput": {
+      "type": "object",
+      "required": ["body"],
+      "properties": {
+        "body": {
+          "$ref": "common.schema.json#/$defs/Markdown",
+          "description": "The comment on the issue."
+        }
+      }
+    },
+    "ApprovePlanInput": {
+      "type": "object",
+      "required": ["planRevision"],
+      "properties": {
+        "planRevision": {
+          "$ref": "common.schema.json#/$defs/Ulid",
+          "description": "Issue.planRevision of the plan that the user read, so a newer plan is never approved by mistake."
+        }
+      }
     }
   }
 }

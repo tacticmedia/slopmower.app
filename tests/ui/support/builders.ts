@@ -15,8 +15,10 @@ import type { CommitDiff, CommitDiffFile } from '../../../assets/api/types/commi
 import type { Declaration } from '../../../assets/api/types/declaration';
 import type { ErrorBody, ErrorDetails } from '../../../assets/api/types/error';
 import type { Event } from '../../../assets/api/types/event';
-import type { CandidateList, CodeToken, CommitLog, DeclarationList, MercureAuthorization, ReviewPage, SearchHitList } from '../../../assets/api/types/lists';
+import type { Issue, IssueDetail } from '../../../assets/api/types/issue';
+import type { CandidateList, CodeToken, CommitLog, DeclarationList, MercureAuthorization, ProjectPage, ReviewPage, SearchHitList } from '../../../assets/api/types/lists';
 import type { Me } from '../../../assets/api/types/me';
+import type { Project } from '../../../assets/api/types/project';
 import type { Repository } from '../../../assets/api/types/repository';
 import type { RepositoryCandidate } from '../../../assets/api/types/repository-candidate';
 import type { Request } from '../../../assets/api/types/request';
@@ -333,4 +335,16 @@ export function modifiedFile(path: string, oldText: string, newText: string, tou
 
 export function addedFile(path: string, text: string): CommitDiffFile {
     return { ...modifiedFile(path, '', text, false), status: 'added', oldBlobSha: null, oldMode: null, deletions: 0 };
+}
+
+/** The project `BILL` of `lists.project-page.json`. */
+export function project(overrides: Partial<Project> = {}): Project {
+    return { ...fixture<ProjectPage>('lists.project-page.json').items[0], ...overrides } as Project;
+}
+
+/** `issue.detail.json`: `BILL-12` in progress, with a plan that an agent approved, one link, and its thread. */
+export function issueDetail(overrides: Partial<Issue> = {}): IssueDetail {
+    const detail = fixture<IssueDetail>('issue.detail.json');
+
+    return { ...detail, issue: { ...detail.issue, ...overrides } };
 }

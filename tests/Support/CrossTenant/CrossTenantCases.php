@@ -10,12 +10,16 @@ namespace App\Tests\Support\CrossTenant;
  * case without a placeholder expects its success response, which holds none of the other tenant's IDs.
  * `schema` is null for a response without a JSON body: no body, or bytes. A body value `{name}`, also in a list, takes
  * an ID too. `bearer` cases call with an API token of the caller's tenant, because sessions may not call them. `query`
- * holds the query parameters of the call.
+ * holds the query parameters of the call. `{projectKey}` and `{issueKey}` take the keys of the other tenant's project and
+ * issue.
  */
 final class CrossTenantCases
 {
     /** No event of the other tenant: the request ID in the path answers not_found first. */
     private const string PROPOSAL_EVENT_ID = '01K6C2EVT00000000000001862';
+
+    /** No entry of the other tenant: the issue key in the path answers not_found first. */
+    private const string PLAN_REVISION = '01K7F3C5D6E7F8G9H0J1K2M3N4';
 
     /**
      * @return array<string, array{method: string, path: string, body: array<string, mixed>|null, status: int, schema: string|null, bearer?: true, query?: array<string, string>}>
@@ -85,6 +89,11 @@ final class CrossTenantCases
             'api_token_list' => ['method' => 'GET', 'path' => '/api/v1/tokens', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/TokenList'],
             'api_token_create' => ['method' => 'POST', 'path' => '/api/v1/tokens', 'body' => ['name' => 'codex desktop'], 'status' => 201, 'schema' => 'api-token.schema.json#/$defs/ApiTokenWithSecret'],
             'api_token_revoke' => ['method' => 'DELETE', 'path' => '/api/v1/tokens/{tokenId}', 'body' => null, 'status' => 204, 'schema' => null],
+            'api_project_list' => ['method' => 'GET', 'path' => '/api/v1/projects', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/ProjectPage'],
+            'api_issue_list' => ['method' => 'GET', 'path' => '/api/v1/projects/{projectKey}/issues', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/IssuePage'],
+            'api_issue_get' => ['method' => 'GET', 'path' => '/api/v1/issues/{issueKey}', 'body' => null, 'status' => 200, 'schema' => 'issue.schema.json#/$defs/IssueDetail'],
+            'api_issue_comment' => ['method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/comments', 'body' => ['body' => 'Keep the old method.'], 'status' => 201, 'schema' => 'issue.schema.json'],
+            'api_issue_approve_plan' => ['method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/plan-approval', 'body' => ['planRevision' => self::PLAN_REVISION], 'status' => 200, 'schema' => 'issue.schema.json'],
         ];
     }
 }

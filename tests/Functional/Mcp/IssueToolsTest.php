@@ -323,7 +323,7 @@ final class IssueToolsTest extends WebTestCase
         $number = IssueKey::fromString($issueKey, 'issue')->number;
         self::getContainer()->get(TenantFilter::class)->suspend(function () use ($entityManager, $number, $planRevision): void {
             $issue = $entityManager->getRepository(Issue::class)->findOneBy(['number' => $number]) ?? self::fail("No issue {$number}.");
-            $approval = IssueEntry::planApproved($issue, Actor::user($this->user->getId()), 'jan', 'Approved by the user.', IssueEntryId::fromString($planRevision), Clock::get()->now());
+            $approval = IssueEntry::planApproved($issue, Actor::user($this->user->getId()), null, null, IssueEntryId::fromString($planRevision), Clock::get()->now());
             $entityManager->persist($approval);
             $issue->approvePlan($approval);
             $entityManager->flush();

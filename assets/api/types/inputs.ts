@@ -165,3 +165,12 @@ export type PreferencesInput = {
     /** Replaces the list. Absent or null keeps it. */
     completedTours?: Tour[] | null;
 };
+
+export type IssueCommentInput = {
+    body: Markdown;
+};
+
+export type ApprovePlanInput = {
+    /** Issue.planRevision of the plan that the user read. */
+    planRevision: Ulid;
+};

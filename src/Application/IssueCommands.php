@@ -6,6 +6,7 @@ namespace App\Application;
 
 use App\Application\Query\IssueQuery;
 use App\Domain\Actor\Actor;
+use App\Domain\Actor\ActorKind;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Error\NotFound;
 use App\Domain\Identity\IssueEntryId;
@@ -23,8 +24,9 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 
 /**
- * The writes of the issue tracker (D116, D117), docs/specs/mcp.md sections 4.22 to 4.27. Each write runs in one
- * transaction under the row lock of its issue, appends its entry, and passes {@see IssueRules} before it commits.
+ * The writes of the issue tracker (D116, D117): docs/specs/mcp.md sections 4.22 to 4.27, and I3 and I4 of
+ * docs/specs/rest-api-issues.md. Each write runs in one transaction under the row lock of its issue, appends its entry,
+ * and passes {@see IssueRules} before it commits.
  */
 final class IssueCommands
 {
@@ -100,22 +102,32 @@ final class IssueCommands
     }
 
     /**
-     * The review of the plan by another agent, which the server cannot prove.
+     * An agent records the review of the plan by another agent, which the server cannot prove. A user approves without
+     * a reviewer and a review note, and that returns an issue in awaiting_user_input to todo, which needs a problem.
      *
      * @throws NotFound|InvalidInput
      */
-    public function approvePlan(IssueKey $key, IssueEntryId $planRevision, string $reviewer, string $reviewNote, Actor $actor): Issue
+    public function approvePlan(IssueKey $key, IssueEntryId $planRevision, ?string $reviewer, ?string $reviewNote, Actor $actor): Issue
     {
         return $this->write($key, $actor, function (Issue $issue, \DateTimeImmutable $now) use ($planRevision, $reviewer, $reviewNote, $actor): void {
-            self::requireText('reviewer', $reviewer);
+            $byUser = ActorKind::User === $actor->kind;
 
-            if (mb_strlen(trim($reviewNote), 'UTF-8') < self::REVIEW_NOTE_MIN_CHARACTERS) {
-                throw InvalidInput::field('reviewNote', 'Must have at least 20 characters after trimming.');
+            if (!$byUser) {
+                self::requireText('reviewer', $reviewer ?? '');
+
+                if (mb_strlen(trim($reviewNote ?? ''), 'UTF-8') < self::REVIEW_NOTE_MIN_CHARACTERS) {
+                    throw InvalidInput::field('reviewNote', 'Must have at least 20 characters after trimming.');
+                }
             }
 
             $approval = IssueEntry::planApproved($issue, $actor, $reviewer, $reviewNote, $planRevision, $now);
             $this->entityManager->persist($approval);
             $issue->approvePlan($approval);
+
+            if ($byUser && IssueStatus::AwaitingUserInput === $issue->getStatus() && '' !== trim($issue->getSection(IssueSection::Problem) ?? '')) {
+                $this->entityManager->persist(IssueEntry::statusChanged($issue, $actor, IssueStatus::AwaitingUserInput, IssueStatus::Todo, null, null, $now));
+                $issue->setStatus(IssueStatus::Todo, $now);
+            }
         });
     }
 

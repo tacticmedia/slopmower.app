@@ -1,6 +1,6 @@
 # Slopmower REST API v1
 
-This file has the endpoint index and the account, repository, review, and code endpoints. [rest-api-requests.md](rest-api-requests.md) has the requests, updates, drafts, API tokens, and the routes outside `/api/v1`. The MCP tools in [mcp.md](mcp.md) return the same JSON.
+This file has the endpoint index and the account, repository, review, and code endpoints. [rest-api-requests.md](rest-api-requests.md) has the requests, updates, drafts, API tokens, and the routes outside `/api/v1`. [rest-api-issues.md](rest-api-issues.md) has the projects and the issues. The MCP tools in [mcp.md](mcp.md) return the same JSON.
 
 ## 1. Conventions
 
@@ -82,12 +82,17 @@ Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json). 
 | [T1](rest-api-requests.md#t1-list-api-tokens) | GET | `/api/v1/tokens` | S | 200 | [`lists.schema.json#/$defs/TokenList`](schemas/lists.schema.json) |
 | [T2](rest-api-requests.md#t2-create-an-api-token) | POST | `/api/v1/tokens` | S | 201 | [`api-token.schema.json#/$defs/ApiTokenWithSecret`](schemas/api-token.schema.json) |
 | [T3](rest-api-requests.md#t3-revoke-an-api-token) | DELETE | `/api/v1/tokens/{tokenId}` | S | 204 | none |
+| [P1](rest-api-issues.md#p1-list-projects) | GET | `/api/v1/projects` | S, B | 200 | [`lists.schema.json#/$defs/ProjectPage`](schemas/lists.schema.json) |
+| [I1](rest-api-issues.md#i1-list-issues) | GET | `/api/v1/projects/{projectKey}/issues` | S, B | 200 | [`lists.schema.json#/$defs/IssuePage`](schemas/lists.schema.json) |
+| [I2](rest-api-issues.md#i2-get-an-issue) | GET | `/api/v1/issues/{issueKey}` | S, B | 200 | [`issue.schema.json#/$defs/IssueDetail`](schemas/issue.schema.json) |
+| [I3](rest-api-issues.md#i3-comment-on-an-issue) | POST | `/api/v1/issues/{issueKey}/comments` | S, B | 201 | [`issue.schema.json`](schemas/issue.schema.json) |
+| [I4](rest-api-issues.md#i4-approve-the-plan) | POST | `/api/v1/issues/{issueKey}/plan-approval` | S | 200 | [`issue.schema.json`](schemas/issue.schema.json) |
 
 Common errors are not repeated per endpoint:
 
 - every endpoint: 401 `unauthorized`, 429 `rate_limited` of the limiters `api_token` and `api_user`, and 500 `internal_error`, as [README.md section 4](README.md#rate-limits) describes;
 - 403 `forbidden`, as [README.md section 3](README.md#3-authentication-actors-and-scope) describes;
-- 404 `not_found` for any ID that the caller cannot see;
+- 404 `not_found` for any ID or key that the caller cannot see;
 - 400 or 422 `invalid_input` for malformed input.
 
 The "Errors" lines below list only the specific cases.

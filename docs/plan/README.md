@@ -27,8 +27,9 @@ The spec files that milestones name:
 | File | Content |
 |---|---|
 | [docs/specs/README.md](../specs/README.md) | Conventions: formats, authentication, actors, error model and check order, pagination, ETags, repository sources, versioning |
-| [docs/specs/rest-api.md](../specs/rest-api.md) | The endpoint index with the IDs A1 to T3 in section 2, and the account, repository, review, and code endpoints |
+| [docs/specs/rest-api.md](../specs/rest-api.md) | The endpoint index with the IDs A1 to I4 in section 2, and the account, repository, review, and code endpoints |
 | [docs/specs/rest-api-requests.md](../specs/rest-api-requests.md) | Requests, updates, drafts, API tokens, and the routes outside `/api/v1` |
+| [docs/specs/rest-api-issues.md](../specs/rest-api-issues.md) | Projects and issues: P1 and I1 to I4 |
 | [docs/specs/mcp.md](../specs/mcp.md) | Every MCP tool, the server `instructions`, the error mapping |
 | [docs/specs/webhooks-and-live-updates.md](../specs/webhooks-and-live-updates.md) | GitHub webhooks, fetch triggers, Mercure topics and payloads |
 | `docs/specs/schemas/<name>.schema.json` | JSON Schemas, draft 2020-12, `$id` base `https://slopmower.invalid/schemas/v1/` |
@@ -246,7 +247,7 @@ make up
   | `src/EventStore`, `src/Projection` | Event log writes and projections |
   | `src/Git`, `src/Source` | Git primitives and repository sources |
   | `src/Tenancy`, `src/Security` | Tenant context, SQL filters, authenticators |
-  | `src/Controller` | `Api/`, `E2e/`, and the controllers outside `/api/v1` |
+  | `src/Controller` | `Api/` with the value resolver of `{issueKey}`, `E2e/`, and the controllers outside `/api/v1` |
   | `src/Http` | The `/api/v1` listeners, the cursor codec, the `QueryInput` marker, the Sentry `before_send` callback |
   | `src/Serializer/Normalizer` | The value normalizers, and one normalizer per schema whose response class cannot be schema-shaped. REST and MCP share them. |
   | `src/Mcp` | `McpTools` with every tool, the session decorators, generated `BundledSchemas` |
@@ -260,7 +261,7 @@ make up
   - Use attributes: `#[Route]`, `#[IsGranted]`, `#[MapRequestPayload]`, `#[MapQueryString]`, `#[AsCommand]`, `#[AsMessageHandler]`, `#[AsEventListener]`, `#[Autowire]`, `#[When]`. A route that exists only in one environment also sets `env:` on `#[Route]`.
   - Rely on autowiring. No YAML service definition unless it is unavoidable.
 - Paginated lists use `Http\Cursor`: `decode()` checks the sort key types, and `next()` makes `nextCursor`. The updates feed V10 takes the event `seq` as its cursor.
-- A controller maps the input and returns the normalized JSON. Logic that another caller shares is in a service. Logic with no other consumer stays in the controller, in the action or a private method. Path IDs resolve to visible entities in argument value resolvers, so the error check order of docs/specs holds. See M11. Errors are `DomainError` subclasses. `ApiExceptionListener` maps them for REST, and `McpTools::run()` maps them for MCP.
+- A controller maps the input and returns the normalized JSON. Logic that another caller shares is in a service. Logic with no other consumer stays in the controller, in the action or a private method. Path IDs and path keys resolve to visible entities in argument value resolvers, so the error check order of docs/specs holds: `#[MapEntity]`, or `Controller\Api\IssueKeyResolver` for an `{issueKey}`. See M11. Errors are `DomainError` subclasses. `ApiExceptionListener` maps them for REST, and `McpTools::run()` maps them for MCP.
 - Reads:
   - A read that several callers share, REST and MCP (D37) or a controller and a use case, is one method of an `Application\Query` service. A method that builds the same view as such a read stays next to it, for example `ReviewQuery::get()`.
   - A read with one caller stays in its controller, for example Q9 in `CommitDiffController`.
@@ -314,7 +315,7 @@ Suite markers: **U** unit, **F** functional, **E** full-stack E2E, **V** Vitest,
   - Wait for conditions. Never sleep.
 - Vitest tests cover pure TypeScript only. They live in `*.test.ts` files next to the code.
 - UI tests live in `tests/ui/*.spec.ts`. Playwright Test runs them against the SPA that `tests/ui/vite.config.ts` builds, with no PHP, database, or git. Each spec has one `test.describe`, and each title is one short sentence about behaviour.
-  - Import `test` and `expect` from `tests/ui/support/test.ts`. Its `api` fixture answers `/api/v1/**` and `POST /logout` through one `page.route` dispatcher. Register routes, or the fakes `FakeReview` and `FakeRepositories`, before `page.goto()`. `FakeRepositories.tokens` is the `FakeTokens` of T1 to T3, because the repository screens read T1 for the getting started steps. The fakes follow the docs/specs rules: statuses, refusals, and the `awaiting` rules of architecture section 6.
+  - Import `test` and `expect` from `tests/ui/support/test.ts`. Its `api` fixture answers `/api/v1/**` and `POST /logout` through one `page.route` dispatcher. Register routes, or the fakes `FakeReview`, `FakeRepositories`, and `FakeIssues`, before `page.goto()`. `FakeRepositories.tokens` is the `FakeTokens` of T1 to T3, because the repository screens read T1 for the getting started steps. The fakes follow the docs/specs rules: statuses, refusals, and the `awaiting` rules of architecture section 6.
   - Bodies come from `tests/ui/support/builders.ts`, which starts from `docs/specs/fixtures/` and uses the types of `assets/api/types/`. `json()` validates each body against `docs/specs/schemas/`.
   - A request without a route, a write without the double-submit CSRF proof, a body that does not validate, or an uncaught page error fails the test.
   - Assert a server-side effect through the request that the page sent: `api.bodies()` or `api.callsTo()`.

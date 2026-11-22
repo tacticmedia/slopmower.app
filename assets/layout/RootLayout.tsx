@@ -29,17 +29,20 @@ export function RootLayout() {
                         <span className={styles.brandName}>Slopmower</span>
                     </Header.Link>
                 </Header.Item>
-                <Header.Item full>
+                <Header.Item full className={styles.navigationItem}>
                     <nav aria-label="Main" className={styles.navigation}>
                         <Header.Link as={NavLink} to="/repositories">
                             Repositories
+                        </Header.Link>
+                        <Header.Link as={NavLink} to="/projects">
+                            Issues
                         </Header.Link>
                         <Header.Link as={NavLink} to="/settings">
                             Settings
                         </Header.Link>
                     </nav>
                 </Header.Item>
-                <Header.Item>
+                <Header.Item className={styles.helpItem}>
                     <HelpMenu />
                 </Header.Item>
                 <Header.Item className={styles.user}>

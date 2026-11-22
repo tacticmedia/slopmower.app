@@ -65,6 +65,7 @@ final class IssueRulesTest extends KernelTestCase
     {
         yield 'user: no approval' => [ApprovalMode::User, null, 'plan'];
         yield 'user: approved by an agent' => [ApprovalMode::User, ActorKind::Agent, 'plan'];
+        yield 'user: approved by a user' => [ApprovalMode::User, ActorKind::User, null];
         yield 'agent_review: no approval' => [ApprovalMode::AgentReview, null, 'plan'];
         yield 'agent_review: approved by an agent with a reviewer' => [ApprovalMode::AgentReview, ActorKind::Agent, null];
         yield 'agent_review: approved by a user' => [ApprovalMode::AgentReview, ActorKind::User, null];

@@ -1,0 +1,173 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-16);
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-8);
+}
+
+.back {
+    align-self: flex-start;
+    font-size: var(--text-body-size-small);
+}
+
+.title {
+    overflow-wrap: anywhere;
+}
+
+.key {
+    color: var(--fgColor-muted);
+    font-weight: var(--base-text-weight-normal);
+    white-space: nowrap;
+}
+
+.state {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-8);
+    margin: 0;
+}
+
+.muted {
+    color: var(--fgColor-muted);
+}
+
+.count {
+    font-size: var(--text-body-size-medium);
+    font-weight: var(--base-text-weight-semibold);
+}
+
+/* The request row without its icon column. `li` wins over the rule of the request row in any bundle order. */
+li.row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'body aside';
+}
+
+@media (width < 544px) {
+    li.row {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            'body'
+            'aside';
+    }
+}
+
+.emptyTable {
+    grid-area: table;
+    margin: var(--base-size-8) 0 0;
+    color: var(--fgColor-muted);
+}
+
+/* Narrow: the sidebar, then the main column, as the request page. */
+.layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--base-size-16);
+}
+
+.main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-16);
+    min-width: 0;
+}
+
+@media (min-width: 1012px) {
+    .layout {
+        grid-template-columns: minmax(0, 1fr) 256px;
+        grid-template-areas: 'main sidebar';
+        column-gap: var(--base-size-24);
+    }
+
+    .main {
+        grid-area: main;
+    }
+
+    .sidebar {
+        grid-area: sidebar;
+        align-self: start;
+    }
+}
+
+.section {
+    border: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-radius: var(--borderRadius-medium);
+    background-color: var(--bgColor-default);
+}
+
+.sectionTitle {
+    margin: 0;
+    padding: var(--base-size-8) var(--base-size-16);
+    border-bottom: var(--borderWidth-thin) solid var(--borderColor-muted);
+    border-top-left-radius: var(--borderRadius-medium);
+    border-top-right-radius: var(--borderRadius-medium);
+    background-color: var(--bgColor-muted);
+    font-size: var(--text-body-size-medium);
+    font-weight: var(--base-text-weight-semibold);
+}
+
+.sectionBody {
+    padding: var(--base-size-16);
+    font-size: var(--text-body-size-medium);
+    overflow-wrap: anywhere;
+}
+
+.sectionFooter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--base-size-8);
+    padding: var(--base-size-12) var(--base-size-16);
+    border-top: var(--borderWidth-thin) solid var(--borderColor-muted);
+}
+
+.thread {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-16);
+}
+
+.threadTitle {
+    margin: 0;
+    font-size: var(--text-title-size-small);
+    font-weight: var(--base-text-weight-semibold);
+}
+
+.entry {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-8);
+    min-width: 0;
+}
+
+.entryLine {
+    margin: 0;
+}
+
+.entryText {
+    padding: var(--base-size-12) var(--base-size-16);
+    border: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-radius: var(--borderRadius-medium);
+    background-color: var(--bgColor-default);
+    color: var(--fgColor-default);
+    overflow-wrap: anywhere;
+}
+
+.link {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-4);
+}
+
+.linkTitle {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-6);
+}

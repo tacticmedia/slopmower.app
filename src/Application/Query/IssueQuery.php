@@ -30,7 +30,8 @@ use Doctrine\ORM\Query;
 use Symfony\Bridge\Doctrine\Types\UlidType;
 
 /**
- * The reads of the issue tracker (D116), docs/specs/mcp.md sections 4.19 to 4.21.
+ * The reads of the issue tracker (D116): docs/specs/mcp.md sections 4.19 to 4.21, and P1, I1, and I2 of
+ * docs/specs/rest-api-issues.md.
  */
 final class IssueQuery
 {

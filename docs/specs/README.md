@@ -9,6 +9,7 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 | [README.md](README.md) | Conventions, authentication, errors, pagination, caching, repository sources, versioning, schema and fixture index |
 | [rest-api.md](rest-api.md) | REST endpoint index, account, repositories, reviews and code |
 | [rest-api-requests.md](rest-api-requests.md) | REST requests, updates, drafts, API tokens, and the routes outside `/api/v1` |
+| [rest-api-issues.md](rest-api-issues.md) | REST projects and issues: the lists, an issue with its thread, a comment, and the plan approval of a user |
 | [mcp.md](mcp.md) | MCP endpoint, server instructions, the 27 tools, the issue rules, error mapping, parity with REST |
 | [mcp-tools.json](mcp-tools.json) | The name, title, description, input schema, annotations, and output schema of each MCP tool, in the order of `tools/list` |
 | [webhooks-and-live-updates.md](webhooks-and-live-updates.md) | GitHub webhooks, fetch triggers and post-fetch steps, Mercure live updates |
@@ -262,13 +263,14 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - No rejection of a proposal, decision D110: Q16, the input `RejectProposalInput`, and the `Action` value `reject_proposal` are gone. The user asks for changes with a reply (Q4), which keeps the proposal pending. Not additive: it removes an endpoint and an `Action` value. `ProposalState` keeps `rejected` and `ThreadEntryType` keeps `request.proposal_rejected`, so stored events need no change.
     - Draft anchor change, decision D115: the optional input `anchor` of D3, which moves a `new_request` draft. It is additive.
     - Issue tracker, decisions D116 to D118: the nine issue tools of [mcp.md](mcp.md#issue-tools), the schemas `Project` and `Issue` with their pages, the definitions `ProjectKey`, `IssueKey`, `IssueStatus`, `ApprovalMode`, `IssueSection`, and `IssueEntryKind`, and the second skill. All are additive. Issues are not event data.
+    - Issue endpoints, decision D120: the endpoints P1 and I1 to I4 of [rest-api-issues.md](rest-api-issues.md), and the inputs `IssueCommentInput` and `ApprovePlanInput`. All are additive. An approval by a user has `reviewer` and `reviewNote` null, and it returns an issue in `awaiting_user_input` with a `problem` to `todo`.
 
 ## 9. Contract tests
 
 - Functional tests validate REST responses with `JsonApiAssertions::assertApiResponse()`, which uses `opis/json-schema` 2.6.0.
 - Every MCP `structuredContent` is validated against the `outputSchema` of its tool.
 - Every fixture in [section 11](#11-fixtures) is validated against the schema that the table names. The TypeScript types of the web UI are checked against the same fixture files.
-- `McpRestParityTest` compares the MCP and REST payloads of every tool with a REST endpoint: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, and every write tool of the requests and reviews. See [mcp.md](mcp.md#6-mcp-and-rest).
+- `McpRestParityTest` compares the MCP and REST payloads of every tool with a REST endpoint: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, every write tool of the requests and reviews, `list_projects`, `list_issues`, `get_issue`, and `comment_on_issue`. See [mcp.md](mcp.md#6-mcp-and-rest).
 
 ## 10. Schemas
 
@@ -315,7 +317,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.schema.json](schemas/inputs.schema.json) | `https://slopmower.invalid/schemas/v1/inputs.schema.json` | `$defs` only: every REST request body |
 | [live-update.schema.json](schemas/live-update.schema.json) | `https://slopmower.invalid/schemas/v1/live-update.schema.json` | Data of one Mercure update, IDs only |
 | [project.schema.json](schemas/project.schema.json) | `https://slopmower.invalid/schemas/v1/project.schema.json` | A project of the issue tracker, with the names of its repositories |
-| [issue.schema.json](schemas/issue.schema.json) | `https://slopmower.invalid/schemas/v1/issue.schema.json` | An issue without its links and its thread, plus `PlanApproval`, `IssueSummary`, `IssueLink`, `IssueEntry`, and `IssueDetail`, the result of `get_issue` |
+| [issue.schema.json](schemas/issue.schema.json) | `https://slopmower.invalid/schemas/v1/issue.schema.json` | An issue without its links and its thread, plus `PlanApproval`, `IssueSummary`, `IssueLink`, `IssueEntry`, and `IssueDetail`, the result of I2 and `get_issue` |
 
 ## 11. Fixtures
 
@@ -348,9 +350,10 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [error.unauthorized.json](fixtures/error.unauthorized.json) | `error.schema.json` | Any endpoint, the MCP transport |
 | [file-content.browser.json](fixtures/file-content.browser.json) | `file-content.schema.json` | V7 of a `browser` repository |
 | [file-content.php.json](fixtures/file-content.php.json) | `file-content.schema.json` | V7 |
-| [issue.detail.json](fixtures/issue.detail.json) | `issue.schema.json#/$defs/IssueDetail` | `get_issue` |
-| [issue.plan-approved.json](fixtures/issue.plan-approved.json) | `issue.schema.json` | `approve_plan`, and the shape of every issue write |
+| [issue.detail.json](fixtures/issue.detail.json) | `issue.schema.json#/$defs/IssueDetail` | I2, `get_issue` |
+| [issue.plan-approved.json](fixtures/issue.plan-approved.json) | `issue.schema.json` | `approve_plan`, and the shape of every issue write: I3, I4, and the write tools |
 | [inputs.accept-suggestion.json](fixtures/inputs.accept-suggestion.json) | `inputs.schema.json#/$defs/AcceptSuggestionInput` | Q21 |
+| [inputs.approve-plan.json](fixtures/inputs.approve-plan.json) | `inputs.schema.json#/$defs/ApprovePlanInput` | I4 |
 | [inputs.approve-proposal.json](fixtures/inputs.approve-proposal.json) | `inputs.schema.json#/$defs/ApproveProposalInput` | Q15 |
 | [inputs.carry-over.json](fixtures/inputs.carry-over.json) | `inputs.schema.json#/$defs/CarryOverInput` | V15 |
 | [inputs.close-review.json](fixtures/inputs.close-review.json) | `inputs.schema.json#/$defs/CloseReviewInput` | V4 |
@@ -363,6 +366,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.create-draft-reply.json](fixtures/inputs.create-draft-reply.json) | `inputs.schema.json#/$defs/CreateDraftInput` | D2 |
 | [inputs.create-token.json](fixtures/inputs.create-token.json) | `inputs.schema.json#/$defs/CreateTokenInput` | T2 |
 | [inputs.dismiss-suggestion.json](fixtures/inputs.dismiss-suggestion.json) | `inputs.schema.json#/$defs/DismissSuggestionInput` | Q22 |
+| [inputs.issue-comment.json](fixtures/inputs.issue-comment.json) | `inputs.schema.json#/$defs/IssueCommentInput` | I3 |
 | [inputs.link-commits.json](fixtures/inputs.link-commits.json) | `inputs.schema.json#/$defs/LinkCommitsInput` | Q7 |
 | [inputs.link-pull-request.json](fixtures/inputs.link-pull-request.json) | `inputs.schema.json#/$defs/LinkPullRequestInput` | Q17 |
 | [inputs.open-general-request.json](fixtures/inputs.open-general-request.json) | `inputs.schema.json#/$defs/OpenRequestInput` | Q2 with a title |
@@ -390,9 +394,9 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [lists.commit-list.json](fixtures/lists.commit-list.json) | `lists.schema.json#/$defs/CommitLog` | R9 |
 | [lists.declaration-list.json](fixtures/lists.declaration-list.json) | `lists.schema.json#/$defs/DeclarationList` | V14 |
 | [lists.draft-list.json](fixtures/lists.draft-list.json) | `lists.schema.json#/$defs/DraftList` | D1 |
-| [lists.issue-page.json](fixtures/lists.issue-page.json) | `lists.schema.json#/$defs/IssuePage` | `list_issues` |
+| [lists.issue-page.json](fixtures/lists.issue-page.json) | `lists.schema.json#/$defs/IssuePage` | I1, `list_issues` |
 | [lists.mercure-authorization.json](fixtures/lists.mercure-authorization.json) | `lists.schema.json#/$defs/MercureAuthorization` | A3 |
-| [lists.project-page.json](fixtures/lists.project-page.json) | `lists.schema.json#/$defs/ProjectPage` | `list_projects` |
+| [lists.project-page.json](fixtures/lists.project-page.json) | `lists.schema.json#/$defs/ProjectPage` | P1, `list_projects` |
 | [lists.repository-page.json](fixtures/lists.repository-page.json) | `lists.schema.json#/$defs/RepositoryPage` | R1, `list_repositories` |
 | [lists.request-page.json](fixtures/lists.request-page.json) | `lists.schema.json#/$defs/RequestPage` | Q1, `list_requests` |
 | [lists.review-page.json](fixtures/lists.review-page.json) | `lists.schema.json#/$defs/ReviewPage` | V2, `list_reviews` |

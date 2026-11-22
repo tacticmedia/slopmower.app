@@ -81,7 +81,10 @@ class IssueEntry implements TenantOwned
         return new self($issue, $actor, IssueEntryKind::SectionChanged, $text, ['section' => $section->value], $createdAt);
     }
 
-    public static function planApproved(Issue $issue, Actor $actor, string $reviewer, string $reviewNote, IssueEntryId $planRevision, \DateTimeImmutable $createdAt): self
+    /**
+     * A user approves without a reviewer and a review note.
+     */
+    public static function planApproved(Issue $issue, Actor $actor, ?string $reviewer, ?string $reviewNote, IssueEntryId $planRevision, \DateTimeImmutable $createdAt): self
     {
         return new self($issue, $actor, IssueEntryKind::PlanApproved, null, ['reviewer' => $reviewer, 'reviewNote' => $reviewNote, 'planRevision' => $planRevision->toString()], $createdAt);
     }

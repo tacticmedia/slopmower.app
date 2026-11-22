@@ -11,8 +11,11 @@ use App\Domain\Error\InvalidInput;
  */
 final readonly class IssueKey implements \Stringable
 {
-    public const string PROJECT_KEY_PATTERN = '/^[A-Z]{2,10}$/D';
-    private const string PATTERN = '/^([A-Z]{2,10})-([1-9][0-9]{0,8})$/D';
+    /** Without delimiters: the route requirement of a path key. */
+    public const string PROJECT_KEY_REQUIREMENT = '[A-Z]{2,10}';
+    public const string REQUIREMENT = '('.self::PROJECT_KEY_REQUIREMENT.')-([1-9][0-9]{0,8})';
+    public const string PROJECT_KEY_PATTERN = '/^'.self::PROJECT_KEY_REQUIREMENT.'$/D';
+    private const string PATTERN = '/^'.self::REQUIREMENT.'$/D';
 
     public function __construct(
         public string $projectKey,

@@ -86,3 +86,20 @@
         white-space: nowrap;
     }
 }
+
+/* Below 380 px, the three navigation links take a second row. */
+@media (max-width: 379.98px) {
+    .header {
+        flex-wrap: wrap;
+        row-gap: var(--base-size-8);
+    }
+
+    .navigationItem {
+        order: 1;
+        flex-basis: 100%;
+    }
+
+    .helpItem {
+        margin-left: auto;
+    }
+}

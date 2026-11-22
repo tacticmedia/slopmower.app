@@ -94,7 +94,7 @@ final class IssueRules
             !$isNew => null,
             $isAgent && ApprovalMode::User === $mode => ['issue', 'Only the user approves a plan of this project, because its approval mode is user. Set awaiting_user_input, and name in a comment what the user must decide.'],
             self::isEmpty($after->plan) => ['plan', 'The issue has no plan. Write it with update_issue.'],
-            $after->approvedRevision !== $after->planRevision => ['planRevision', 'The plan changed after this revision. Call get_issue, and review the plan of its planRevision.'],
+            $after->approvedRevision !== $after->planRevision => ['planRevision', 'The plan changed after this revision. Read the plan again, and approve its newest revision.'],
             default => null,
         };
     }
