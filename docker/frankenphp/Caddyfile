@@ -21,6 +21,9 @@
 	encode zstd br gzip
 
 	mercure {
+		# Handlers with one name are one hub: the pentest stack serves this site over HTTP and HTTPS.
+		name dev
+		protocol_version_compatibility 8
 		publisher_jwt {env.MERCURE_JWT_SECRET}
 		subscriber_jwt {env.MERCURE_JWT_SECRET}
 		cors_origins http://localhost:{$HTTP_PORT:8000}
@@ -48,9 +51,11 @@
 	encode zstd br gzip
 
 	mercure {
+		name e2e
+		protocol_version_compatibility 8
 		publisher_jwt {env.MERCURE_JWT_SECRET}
 		subscriber_jwt {env.MERCURE_JWT_SECRET}
-		# The default bolt transport is shared by every hub that uses it.
+		# The default bolt transport is one file: a second hub on it does not start.
 		transport local
 	}
 

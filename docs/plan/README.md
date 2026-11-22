@@ -378,14 +378,14 @@ The session writes it into `reports/MNN.md`:
 
 ## Verified versions
 
-Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08; the `symfony/scheduler` row on 2026-10-13; the `sentry/*` row on 2026-10-15; the `tacticmedia/qa-bundle` and `@tacticmedia/qa-capture` rows on 2026-10-16; the `react-joyride` row on 2026-10-19; the `@sentry/react` row on 2026-10-28; the `@sentry/vite-plugin` row and the F100 versions on 2026-11-03; the Composer rows and the `@symfony/reprise` version on 2026-11-22 (F125). `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
+Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08; the `symfony/scheduler` row on 2026-10-13; the `sentry/*` row on 2026-10-15; the `tacticmedia/qa-bundle` and `@tacticmedia/qa-capture` rows on 2026-10-16; the `react-joyride` row on 2026-10-19; the `@sentry/react` row on 2026-10-28; the `@sentry/vite-plugin` row and the F100 versions on 2026-11-03; the Composer rows and the `@symfony/reprise` version on 2026-11-22 (F125); the PHP and FrankenPHP rows on 2026-11-22 (SM-8). `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
 
 | Package | Version | Source |
 |---|---|---|
-| PHP | 8.5.11 | https://www.php.net/releases/index.php?json&version=8 |
+| PHP | 8.5.13 | https://www.php.net/releases/index.php?json&version=8 |
 | Symfony | 8.1.11. 8.2 is at 8.2.0-BETA2. 8.1 ends 01/2027. | https://symfony.com/releases/8.1.json |
 | PostgreSQL | 18.6, Docker tag `18-alpine` | https://www.postgresql.org/versions.json |
-| FrankenPHP | 1.12.7, Docker tag `dunglas/frankenphp:1.12.7-php8.5-trixie`, worker mode through Symfony Runtime's `FrankenPhpWorkerRunner` | https://github.com/php/frankenphp/releases/tag/v1.12.7 |
+| FrankenPHP | 1.14.0, Docker tag `dunglas/frankenphp:1.14.0-php8.5-trixie`, with Caddy 2.11.9 and Mercure 1.1.6, worker mode through Symfony Runtime's `FrankenPhpWorkerRunner` | https://github.com/php/frankenphp/releases/tag/v1.14.0 |
 | dunglas/symfony-docker | Template, guide "Using Symfony Docker with an existing project" | https://github.com/dunglas/symfony-docker |
 | Node.js | 24 LTS, 24.21.0 | https://nodejs.org/dist/index.json |
 | Node.js in the `php` image | 24.21.0 from `node:24-trixie-slim`, npm 11.19.0 | `node --version` in the `php` container |
@@ -443,14 +443,11 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
   - `outputSchema` comes only from `#[McpTool]`, so it must be a constant expression;
   - `structuredContent` must be a JSON object in the 2025-11-25 protocol era;
   - anything written to stdout corrupts the stdio transport.
-- **Mercure hub URL.** Always set `hubs.default.url`. For an empty URL, `HubFactory::create()` of the bundle returns `FrankenPhpHub`, which calls `mercure_publish()`, a function that `10-app.ini` disables.
-- **`mercure_publish()` is disabled.** Only FrankenPHP defines it. `docker/frankenphp/conf.d/10-app.ini` sets `disable_functions = mercure_publish`. `symfony/mercure-bundle` 0.7.0 builds the same container with and without the function.
-- **Mercure 1.x.** FrankenPHP 1.12.7 bundles Mercure 0.24.2, and FrankenPHP 1.14.0 bundles Mercure 1.1.6. `symfony/mercure-bundle` 0.7.0 defaults to protocol 1.0, so `config/packages/mercure.yaml` sets `protocol_version: '0.x'`. The first FrankenPHP release with Mercure 1.x needs these changes in one step. None is checked against a 1.x hub:
-  - `protocol_version: '1.0'` on the hub in `config/packages/mercure.yaml`, and the 0.6 recipe of the bundle, which adds `MERCURE_JWT_ISSUER`;
-  - the `iss`, `sub`, and `client_id` claims in `mercure.hubs.default.jwt.claims`. `aud` defaults to `public_url`, and the publisher token also gets `url`, so the internal `MERCURE_URL` needs no `resource_identifier` on the hub;
-  - `issuer` blocks in the Caddyfile. Mercure 1.0 refuses the top-level `publisher_jwt` and `subscriber_jwt` directives unless `protocol_version_compatibility 8` is set;
-  - `cookie_name: mercureAuthorization`, because the 1.0 default `__Secure-mercure_access_token` cannot be set over plain HTTP. In debug mode the bundle uses `mercure_access_token`;
-  - the subscriber side. `Symfony\Component\Mercure\ProtocolVersion` names the query parameters `match` and `match_<type>` in place of `topic`, and the JWT claim `authorization_details` in place of `mercure`. That reaches A3 of docs/specs, `MercureAuthorizeTest`, `HubIsolationTest`, and `assets/live/`.
+- **Mercure hub URL.** Always set `hubs.default.url`. For an empty URL, `HubFactory::create()` of the bundle returns `FrankenPhpHub`, which calls `mercure_publish()`. Only FrankenPHP defines that function, so the Messenger worker and the console cannot publish.
+- **Mercure 1.x in compatibility mode.** FrankenPHP 1.14.0 bundles Mercure 1.1.6, and the application speaks protocol 0.x. The move to protocol 1.0 is the issue SM-84.
+  - `symfony/mercure-bundle` 0.7.0 defaults to protocol 1.0, so `config/packages/mercure.yaml` sets `protocol_version: '0.x'`.
+  - Each `mercure` block of `docker/frankenphp/Caddyfile` sets `protocol_version_compatibility 8`. Without it the hub refuses `publisher_jwt` and `subscriber_jwt`, and FrankenPHP does not start. The mode needs the build tags `deprecated_topic` and `deprecated_claim`, which `frankenphp build-info` lists for the image.
+  - Each hub has a name, `dev` and `e2e`: only one hub of a Caddy configuration can have none. A site with two addresses, as `compose.pentest.yaml` sets, gets one `mercure` handler per server, and handlers with one name are one hub.
 - **Reprise recipe.** It re-creates `assets/app.js` and `assets/styles/app.css`, and edits `templates/base.html.twig`.
 - **symfony/rate-limiter 8.1.** It has no Flex recipe. `framework.rate_limiter` refuses a `lock_factory` while `framework.lock` is off, so `config/packages/rate_limiter.yaml` sets `lock_factory: null`, and `Kernel::process()` gives each limiter the advisory-lock `LockFactory`. The policies read `microtime()`, not the Symfony clock. `tests/Support/Clock/rate-limiter-time.php`, which `tests/bootstrap.php` loads first, shadows it with the global clock, so `ClockSensitiveTrait::mockTime()` drives the limiters. A token bucket adds its whole `amount` once per interval.
 - **symfony/webhook.** The recipe route prefix is `/webhook`, so the GitHub endpoint is `/webhook/github`. A request parser that returns `null` makes Symfony answer 406. Return a `RemoteEvent` for every verified delivery.

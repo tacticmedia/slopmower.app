@@ -745,7 +745,7 @@ These documents cover the local development environment, the QA workflow (D62), 
 
 | Service | Runs | Notes |
 |---|---|---|
-| `php` | FrankenPHP 1.12.7 with the built-in Mercure hub | The `dev` application at `http://localhost:8000` over HTTP, in worker mode. The `e2e` site on `:8081` in the same container, in classic mode, for the full-stack E2E tests. |
+| `php` | FrankenPHP 1.14.0 with the built-in Mercure hub | The `dev` application at `http://localhost:8000` over HTTP, in worker mode. The `e2e` site on `:8081` in the same container, in classic mode, for the full-stack E2E tests. |
 | `worker` | `messenger:consume async scheduler_default --keepalive` | Same image and volumes as `php`. `--keepalive` renews the delivery of a running job, so a long index job is not delivered twice. It also runs the jobs of `App\Schedule`: each day it prunes `rate_limiter.cache` and deletes the messages of the queue `failed` that are older than 30 days, and each hour it queues the lost index jobs (D95). Its own cache directory, `APP_CACHE_DIR=var/cache/worker`, so a rebuild of the `php` container's cache does not remove files that it loads. |
 | `symbols` | Node 24 with web-tree-sitter, the `symbols` stage of the Dockerfile | The symbol extraction of every [symbol language](#symbol-languages) but PHP (D56), on port 3000 inside the network. Compose mounts `symbols/src` and `symbols/queries` read-only and runs `node --watch`. `php` starts after its health check passes. |
 | `database` | `postgres:18-alpine` | The data volume mounts `/var/lib/postgresql`. One database role. |
@@ -847,7 +847,7 @@ CI (D62): `.github/workflows/qa.yml` runs on every push and pull request. One jo
 | D38 | Git secrets | Tokens reach git only through `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`, and `GIT_CONFIG_VALUE_<n>` environment variables, never through argv, because `symfony/process` exception messages print the argv |
 | D39 | Locks | `symfony/lock` with PostgreSQL advisory locks, because the `php` and `worker` containers share the clones |
 | D40 | MCP sessions | The bundle's `file` session store under `var/mcp-sessions`, because there is one `php` container. A shared store: [mcp-session-store.md](backlog/mcp-session-store.md). |
-| D41 | Mercure hub URL | Always set. Without it the bundle uses `FrankenPhpHub`, which calls `mercure_publish()`, a function that `docker/frankenphp/conf.d/10-app.ini` disables. |
+| D41 | Mercure hub URL | Always set. Without it the bundle uses `FrankenPhpHub`, which calls `mercure_publish()`. Only FrankenPHP defines that function, so the Messenger worker and the console cannot publish. |
 | D42 | Live update payloads | IDs only. Clients read the data again through REST. The browser revalidates its React Router loaders, so there is one data model. |
 | D43 | Dev transport | The dev app runs over HTTP at `http://localhost:8000`. Localhost is a secure context, so the clipboard API and EventSource work. TLS is operations. |
 | D44 | Convention tests | Meta-tests enforce the test rules, the file-size rule, and the purity of `src/Domain`, so the rules hold without review effort. Purity keeps the deciders, reducers, event codecs, and matching algorithms testable without the kernel. |

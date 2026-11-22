@@ -1,10 +1,10 @@
 mercure:
     hubs:
         default:
-            # D41: without a URL the bundle uses FrankenPhpHub, which calls mercure_publish(), disabled in 10-app.ini.
+            # D41: without a URL the bundle uses FrankenPhpHub, which calls mercure_publish(). The CLI does not define it.
             url: '%env(MERCURE_URL)%'
             public_url: '%env(MERCURE_PUBLIC_URL)%'
-            # The bundle defaults to 1.0. The hubs speak 0.x: Mercure 0.24.2 in the php image, the production hub in compatibility mode.
+            # The bundle defaults to 1.0. The hub of the php image and the production hub are Mercure 1.x in compatibility mode.
             protocol_version: '0.x'
             jwt:
                 secret: '%env(MERCURE_JWT_SECRET)%'
