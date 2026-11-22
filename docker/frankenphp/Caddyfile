@@ -13,12 +13,18 @@
 	}
 }
 
+(compress_except_hub) {
+	# A compressed event stream costs memory per subscriber and is open to BREACH-style attacks.
+	@compressible not path /.well-known/mercure
+	encode @compressible zstd br gzip
+}
+
 # dev environment, worker mode
 {$SERVER_NAME} {
 	import redact_mercure_authorization
 
 	root /app/public
-	encode zstd br gzip
+	import compress_except_hub
 
 	mercure {
 		# Handlers with one name are one hub: the pentest stack serves this site over HTTP and HTTPS.
@@ -48,7 +54,7 @@
 	import redact_mercure_authorization
 
 	root /app/public
-	encode zstd br gzip
+	import compress_except_hub
 
 	mercure {
 		name e2e

@@ -28,7 +28,7 @@ final class HubIsolationTest extends WebTestCase
 
     private const float WAIT_SECONDS = 2.0;
 
-    #[TestDox("A's JWT receives A's update and not B's within 2 seconds")]
+    #[TestDox("A's JWT receives A's update and not B's within 2 seconds, on a stream without compression")]
     public function testSubscriberReceivesOnlyItsTenantsUpdates(): void
     {
         $client = static::createClient();
@@ -44,9 +44,10 @@ final class HubIsolationTest extends WebTestCase
         $reviewB = ReviewId::generate();
         $subscribed = [$topics->repositories($tenantB), $topics->review($tenantB, $reviewB), $topics->review($tenantA, $reviewA)];
         $sse = new EventSourceHttpClient(HttpClient::create());
-        $source = $sse->connect($hubUrl.'?topic='.implode('&topic=', array_map(rawurlencode(...), $subscribed)), ['headers' => ['Cookie' => "{$cookie->getName()}={$cookie->getValue()}"]]);
+        $source = $sse->connect($hubUrl.'?topic='.implode('&topic=', array_map(rawurlencode(...), $subscribed)), ['headers' => ['Cookie' => "{$cookie->getName()}={$cookie->getValue()}", 'Accept-Encoding' => 'gzip']]);
         // The hub sends the headers after it registered the subscriber.
         self::assertSame(200, $source->getStatusCode());
+        self::assertArrayNotHasKey('content-encoding', $source->getHeaders());
 
         $publisher->publish($topics->repositories($tenantB), ['type' => 'candidates_changed']);
         $publisher->publish($topics->review($tenantB, $reviewB), ['type' => 'index', 'reviewId' => $reviewB->toString()]);
