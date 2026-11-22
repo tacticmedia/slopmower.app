@@ -1,10 +1,12 @@
 # Feature track
 
-Workflow and conventions: [README](README.md). The proof of concept (M00 to M35) and the [simplification plan](simplification.md) are complete. New product work runs here, one feature at a time.
+Workflow and conventions: [README](README.md). The proof of concept (M00 to M35) and the [simplification plan](simplification.md) are complete.
+
+**The feature track is closed.** F126 is its last entry. New work is an issue of the project `SM` in the Slopmower issue tracker ([D119](../architecture.md#11-decisions), [AGENTS.md](../../AGENTS.md#hard-rule-every-feature-request-is-an-issue)). This file, the scope files, and the reports hold the work up to F126.
 
 ## Rules
 
-- Hard rule: every feature request is documented in this repository before any code. [AGENTS.md](../../AGENTS.md#hard-rule-every-feature-request-is-documented) states it in full.
+- Hard rule, up to F126: every feature request is documented in this repository before any code. Since F126 it is an issue, as [AGENTS.md](../../AGENTS.md#hard-rule-every-feature-request-is-an-issue) states.
 - A feature starts as a row in the status table and a scope file `Fnn-<name>.md` in the milestone format: Goal, Depends on, In scope, Out of scope, Acceptance tests, Verification.
 - Specs first. A feature that changes a contract amends `docs/specs/` before the code, and records the decision in [architecture section 11](../architecture.md#11-decisions).
 - `make check` is green at the end of a feature. One feature, one commit on `main`.
@@ -145,7 +147,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 
 ## Candidates
 
-Ideas from review sessions, not scheduled yet. Once F01 is merged, each can also be opened as a general request in Slopmower itself.
+Ideas from review sessions that were not scheduled when the track closed. The entries without "Scheduled as" or "Dropped" are the `backlog` issues SM-22 to SM-83 of the project `SM`, in the order of this list. "Mercure protocol 1.0" is part of SM-8. Change the issue, not this list.
 
 The findings of the repository audit of 2026-10-28 are [F84](F84-audit-must-fixes.md) to [F87](F87-smaller-audit-findings.md).
 

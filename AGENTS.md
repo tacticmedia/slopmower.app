@@ -6,26 +6,30 @@ Twig, API Platform, Messenger, or Lock are installed unless one of those says so
 
 ## Project documentation
 
-Every session starts at [docs/plan/README.md](docs/plan/README.md). It says how to start, which milestone comes next, and which documents are the sources of truth. The product requirements are in [docs/requirements.md](docs/requirements.md), the architecture is in [docs/architecture.md](docs/architecture.md), and the API contracts are in [docs/specs/](docs/specs/).
+Every session starts at [docs/plan/README.md](docs/plan/README.md): the environment, the commands, the conventions, and the sources of truth. The work itself is in the issue tracker, see the next section. The product requirements are in [docs/requirements.md](docs/requirements.md), the architecture is in [docs/architecture.md](docs/architecture.md), and the API contracts are in [docs/specs/](docs/specs/).
 
-## Hard rule: every feature request is documented
+## Hard rule: every feature request is an issue
 
-No feature, refactoring, or behaviour change lives only in a session. The repository is the record, so any later session can continue without the conversation.
+No feature, refactoring, or behaviour change lives only in a session. The record is the Slopmower issue tracker: the project `SM` of the instance that the main checkout runs, through the `slopmower` MCP server (D119). The skill `slopmower-issues` has the workflow, and any later session continues from the issue without the conversation.
 
-- **Before any code:** the request has a row in [docs/plan/features.md](docs/plan/features.md) and a scope file `docs/plan/Fnn-<name>.md`. The scope file has a goal, decisions, in scope, out of scope, acceptance tests, and verification.
-- **An idea that is not scheduled** goes to the Candidates list of `features.md` in the session where it comes up.
-- **Every source counts:** Jan in a session, a change request in Slopmower (also when Slopmower reviews itself), a review finding, or a follow-up in a report.
-- **Local fixes:** a change request that asks only for a local fix is documented by its own thread and its linked commits. A request that asks for more gets a scope file, and its thread links that file.
-- **Decisions:** they go into the scope file in the session that makes them. A decision about the architecture or a contract also goes into [architecture section 11](docs/architecture.md#11-decisions).
-- **Reports:** `docs/plan/reports/Fnn.md` records what was built and every deviation from the scope file.
-- **Unfinished work:** a session that stops with work unfinished writes the state into the status row and the report: the done parts and the next step.
+- **Before any code:** the request is an issue of `SM` with its `problem`, and its `plan` is approved as the approval mode of the project says. Look through the open issues before you create one.
+- **An idea that is not scheduled** becomes a `draft` or `backlog` issue in the session where it comes up.
+- **Every source counts:** Jan in a session, a change request in Slopmower (also when Slopmower reviews itself), a review finding, or a follow-up of another issue.
+- **Local fixes:** a change request that asks only for a local fix is documented by its own thread and its linked commits. A request that asks for more gets an issue, and its thread names the issue key.
+- **Decisions:** they go into the issue in the session that makes them, in the plan or as a comment. A decision about the architecture or a contract also goes into [architecture section 11](docs/architecture.md#11-decisions).
+- **Result:** the `result` section records what was built, the commit SHAs, and every deviation from the plan. Each follow-up becomes a `draft` issue that is linked to its origin.
+- **Commits:** the issue key is in the commit subject, for example `feat: SM-12 search issues`.
+- **Unfinished work:** a session that stops with work unfinished writes the state into the issue as a comment: the done parts and the next step.
+- **Server down:** start the stack with `make up`. If the server still does not answer, keep working and write the entries when it answers again.
+- **Copy:** `make issues-dump` copies the record to `var/backups/`. Run it after a session that changed issues and before `make db-reset`.
+- **History:** [docs/plan/features.md](docs/plan/features.md), its scope files, and its reports hold the work up to F126. They are closed.
 
 ## Hard rule: bugs and issues before features
 
 Fix the bugs and known issues first, and add features after that.
-- **Known issues** are open bugs, deferred review findings, follow-ups in `docs/plan/reports/`, and "Remains" or "Candidate" entries of the developer guide ledger.
-- **Order:** they get their own entry in [docs/plan/features.md](docs/plan/features.md), ahead of any feature that is not started.
-- **Bugs found mid-feature:** a bug found while a feature is in progress goes ahead of the next feature.
+- **Known issues** are open bugs, deferred review findings, and follow-ups. Each is an issue of `SM`.
+- **Order:** a bug or a known issue goes to `todo` and is worked ahead of any feature that is not started.
+- **Bugs found mid-feature:** a bug found while a feature is in progress gets its own issue and goes ahead of the next feature.
 
 ## Ask before generating
 
