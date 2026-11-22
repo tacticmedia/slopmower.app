@@ -272,7 +272,7 @@ final class McpRestParityTest extends WebTestCase
     /**
      * SM-1 and SM-2 are twins at a frozen time, so the bodies of the two comments differ only in the key.
      */
-    #[TestDox('list_projects, list_issues, get_issue, and comment_on_issue return the same bodies as P1, I1, I2, and I3')]
+    #[TestDox('list_projects, list_issues, get_issue, comment_on_issue, and list_comments return the same bodies as P1, I1, I2, I3, and I5')]
     public function testIssueToolsEqualRestEndpoints(): void
     {
         self::mockTime('2026-09-29 07:40:00');
@@ -296,12 +296,18 @@ final class McpRestParityTest extends WebTestCase
             self::assertSame($rest, $mcp, $tool);
         }
 
-        $comment = ['body' => '`TaxRounding::perInvoice()` is in.'];
+        $comment = ['body' => '`TaxRounding::perInvoice()` is in.', 'label' => 'finding'];
         $mcp = self::assertToolResult($this->mcp, $this->mcp->callTool('comment_on_issue', ['issue' => 'SM-1', ...$comment]), 'comment_on_issue');
         $rest = self::assertApiResponse(self::bearerRequest($this->client, $this->secret, 'POST', '/api/v1/issues/SM-2/comments', $comment), 201, self::TOOL_SCHEMAS['comment_on_issue']);
 
         self::assertSame($mcp, self::canonical($rest, 'SM-2', 'SM-1'));
         self::assertSame('agent', $mcp['createdBy']['kind']);
+
+        $restComments = self::assertApiResponse(self::bearerRequest($this->client, $this->secret, 'GET', '/api/v1/projects/SM/comments?label=finding'), 200, self::TOOL_SCHEMAS['list_comments']);
+        $mcpComments = self::assertToolResult($this->mcp, $this->mcp->callTool('list_comments', ['project' => 'SM', 'label' => 'finding']), 'list_comments');
+
+        self::assertSame($restComments, $mcpComments);
+        self::assertSame([['SM-2', 'finding'], ['SM-1', 'finding']], array_map(static fn (array $item): array => [$item['issue']['key'], $item['label']], $mcpComments['items']), 'The label of I3 and of the tool.');
     }
 
     #[TestDox('link_pull_request on a local repository gives invalid_input on url')]

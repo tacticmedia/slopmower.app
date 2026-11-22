@@ -66,6 +66,7 @@ import listsCodeToken from '../../docs/specs/fixtures/lists.code-token.json';
 import listsCommitList from '../../docs/specs/fixtures/lists.commit-list.json';
 import listsDeclarationList from '../../docs/specs/fixtures/lists.declaration-list.json';
 import listsDraftList from '../../docs/specs/fixtures/lists.draft-list.json';
+import listsIssueCommentPage from '../../docs/specs/fixtures/lists.issue-comment-page.json';
 import listsIssuePage from '../../docs/specs/fixtures/lists.issue-page.json';
 import listsMercureAuthorization from '../../docs/specs/fixtures/lists.mercure-authorization.json';
 import listsProjectPage from '../../docs/specs/fixtures/lists.project-page.json';
@@ -159,6 +160,7 @@ import type {
     DeclarationList,
     DraftList,
     CodeToken,
+    IssueCommentPage,
     IssuePage,
     MercureAuthorization,
     ProjectPage,
@@ -259,6 +261,7 @@ const checkedFixtures = {
     'lists.commit-list.json': listsCommitList satisfies Widen<CommitLog>,
     'lists.declaration-list.json': listsDeclarationList satisfies Widen<DeclarationList>,
     'lists.draft-list.json': listsDraftList satisfies Widen<DraftList>,
+    'lists.issue-comment-page.json': listsIssueCommentPage satisfies Widen<IssueCommentPage>,
     'lists.issue-page.json': listsIssuePage satisfies Widen<IssuePage>,
     'lists.mercure-authorization.json': listsMercureAuthorization satisfies Widen<MercureAuthorization>,
     'lists.project-page.json': listsProjectPage satisfies Widen<ProjectPage>,

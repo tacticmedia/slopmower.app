@@ -337,6 +337,22 @@
           "$ref": "#/$defs/NextCursor"
         }
       }
+    },
+    "IssueCommentPage": {
+      "type": "object",
+      "required": ["items", "nextCursor"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "issue.schema.json#/$defs/IssueComment"
+          },
+          "description": "Newest first."
+        },
+        "nextCursor": {
+          "$ref": "#/$defs/NextCursor"
+        }
+      }
     }
   }
 }

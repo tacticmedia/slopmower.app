@@ -702,6 +702,18 @@
         "body": {
           "$ref": "common.schema.json#/$defs/Markdown",
           "description": "The comment on the issue."
+        },
+        "label": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/CommentLabel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "comment",
+          "description": "Absent or null: comment. An unknown value answers 422."
         }
       }
     },

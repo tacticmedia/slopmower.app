@@ -48,6 +48,7 @@ final class McpCrossTenantCases
             'comment_on_issue' => [['issue' => '{issueKey}', 'body' => 'Done.']],
             'link_issues' => [['issue' => '{issueKey}', 'target' => '{issueKey}', 'note' => 'The same change.'], ['issue' => 'SM-1', 'target' => '{issueKey}', 'note' => 'The same change.']],
             'approve_plan' => [['issue' => '{issueKey}', 'planRevision' => self::PLAN_REVISION, 'reviewer' => 'plan-reviewer', 'reviewNote' => 'The plan covers the rounding and its test.']],
+            'list_comments' => [['project' => '{projectKey}']],
         ];
     }
 }

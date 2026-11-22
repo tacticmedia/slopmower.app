@@ -4225,6 +4225,136 @@ final class BundledSchemas
         ],
     ];
 
+    /** lists.schema.json#/$defs/IssueCommentPage */
+    public const array ISSUE_COMMENT_PAGE = [
+        'type' => 'object',
+        'required' => ['items', 'nextCursor'],
+        'properties' => [
+            'items' => [
+                'type' => 'array',
+                'items' => ['$ref' => '#/$defs/IssueComment'],
+                'description' => 'Newest first.',
+            ],
+            'nextCursor' => ['$ref' => '#/$defs/NextCursor'],
+        ],
+        '$defs' => [
+            'Actor' => [
+                'title' => 'Actor',
+                'type' => 'object',
+                'required' => ['kind', 'userId', 'agentName', 'name', 'avatarUrl'],
+                'properties' => [
+                    'kind' => ['$ref' => '#/$defs/ActorKind'],
+                    'userId' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The user; for an agent, the user it acts for.',
+                    ],
+                    'agentName' => [
+                        'type' => ['string', 'null'],
+                        'minLength' => 1,
+                        'maxLength' => 64,
+                        'description' => 'API token name. Agents only.',
+                    ],
+                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
+                    'avatarUrl' => [
+                        'type' => ['string', 'null'],
+                        'format' => 'uri',
+                        'description' => 'Users only.',
+                    ],
+                ],
+                'allOf' => [
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'user'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['$ref' => '#/$defs/Ulid'],
+                                'agentName' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'agent'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['$ref' => '#/$defs/Ulid'],
+                                'agentName' => ['type' => 'string'],
+                                'avatarUrl' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'system'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['type' => 'null'],
+                                'agentName' => ['type' => 'null'],
+                                'avatarUrl' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'ActorKind' => [
+                'enum' => ['user', 'agent', 'system'],
+            ],
+            'CommentLabel' => [
+                'enum' => ['comment', 'decision', 'question', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'],
+                'description' => 'What a comment of an issue is (D121). comment: progress or a remark. decision: a choice, with its reason and what it rules out. question: needs an answer from the user. finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent.',
+            ],
+            'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
+            'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
+            'IssueComment' => [
+                'type' => 'object',
+                'required' => ['id', 'issue', 'label', 'actor', 'createdAt', 'body'],
+                'description' => 'A comment entry with its issue: an item of I5 and list_comments.',
+                'properties' => [
+                    'id' => ['$ref' => '#/$defs/Ulid', 'description' => 'The ID of the entry in the thread of its issue.'],
+                    'issue' => ['$ref' => '#/$defs/IssueSummary'],
+                    'label' => ['$ref' => '#/$defs/CommentLabel'],
+                    'actor' => ['$ref' => '#/$defs/Actor'],
+                    'createdAt' => ['$ref' => '#/$defs/DateTime'],
+                    'body' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'The Markdown comment.'],
+                ],
+            ],
+            'IssueKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
+            'IssueStatus' => [
+                'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'awaiting_user_input', 'in_review', 'done', 'wont_do'],
+                'description' => 'done means delivered. done and wont_do end an issue (D117).',
+            ],
+            'IssueSummary' => [
+                'type' => 'object',
+                'required' => ['key', 'title', 'status', 'updatedAt'],
+                'properties' => [
+                    'key' => ['$ref' => '#/$defs/IssueKey'],
+                    'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
+                    'status' => ['$ref' => '#/$defs/IssueStatus'],
+                    'updatedAt' => ['$ref' => '#/$defs/DateTime'],
+                ],
+            ],
+            'NextCursor' => [
+                'anyOf' => [
+                    ['$ref' => '#/$defs/Cursor'],
+                    ['type' => 'null'],
+                ],
+            ],
+            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+        ],
+    ];
+
     /** issue.schema.json#/$defs/IssueDetail */
     public const array ISSUE_DETAIL = [
         'type' => 'object',
@@ -4321,6 +4451,10 @@ final class BundledSchemas
                 'enum' => ['user', 'agent_review', 'self'],
                 'description' => 'Who approves a plan and ends an issue of the project. user: only a signed-in user. agent_review: also an agent, with the name of a reviewing agent and its review on record. self: no approval (D117).',
             ],
+            'CommentLabel' => [
+                'enum' => ['comment', 'decision', 'question', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'],
+                'description' => 'What a comment of an issue is (D121). comment: progress or a remark. decision: a choice, with its reason and what it rules out. question: needs an answer from the user. finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent.',
+            ],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
             'Issue' => [
                 'title' => 'Issue',
@@ -4387,11 +4521,18 @@ final class BundledSchemas
             ],
             'IssueEntry' => [
                 'type' => 'object',
-                'required' => ['id', 'kind', 'actor', 'createdAt', 'body', 'section', 'from', 'to', 'note', 'reviewer', 'reviewNote', 'planRevision'],
+                'required' => ['id', 'kind', 'label', 'actor', 'createdAt', 'body', 'section', 'from', 'to', 'note', 'reviewer', 'reviewNote', 'planRevision'],
                 'description' => 'One entry of the thread of an issue. The thread only grows.',
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
                     'kind' => ['$ref' => '#/$defs/IssueEntryKind'],
+                    'label' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/CommentLabel'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'comment: its label; else null.',
+                    ],
                     'actor' => ['$ref' => '#/$defs/Actor'],
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                     'body' => [
@@ -4714,12 +4855,18 @@ final class BundledSchemas
         [
             'name' => 'comment_on_issue',
             'title' => 'Comment on issue',
-            'description' => 'Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. With awaiting_user_input, name in a comment what the user must decide. Write technical English, as short as possible, and only what a later reader needs.',
+            'description' => 'Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. label says what the comment is, and list_comments finds the comments of a project by it. With awaiting_user_input, name in a comment with the label question what the user must decide. Write technical English, as short as possible, and only what a later reader needs.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
                     'issue' => ['type' => 'string', 'description' => 'Issue key, for example SM-12', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$'],
                     'body' => ['type' => 'string', 'description' => 'Markdown comment', 'minLength' => 1, 'maxLength' => 65536, 'pattern' => '^[^\\x00]*$'],
+                    'label' => [
+                        'type' => 'string',
+                        'description' => 'comment: progress or a remark. decision: a choice, with its reason and what it rules out. question: needs an answer from the user. finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent.',
+                        'default' => 'comment',
+                        'enum' => ['comment', 'decision', 'question', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'],
+                    ],
                 ],
                 'required' => ['issue', 'body'],
             ],
@@ -4890,6 +5037,34 @@ final class BundledSchemas
             ],
             'annotations' => ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false],
             'outputSchema' => self::LINK_PULL_REQUEST_RESULT,
+        ],
+        [
+            'name' => 'list_comments',
+            'title' => 'List comments',
+            'description' => 'List the comments of every issue of one project, newest first, each with its issue, its label, and its body. label returns only the comments with that label: every decision, or every papercut, of the project is one call.',
+            'inputSchema' => [
+                'type' => 'object',
+                'properties' => [
+                    'project' => ['type' => 'string', 'description' => 'Project key from list_projects, for example SM', 'pattern' => '^[A-Z]{2,10}$'],
+                    'label' => [
+                        'type' => ['string', 'null'],
+                        'description' => 'Only comments with this label',
+                        'default' => null,
+                        'enum' => ['comment', 'decision', 'question', 'finding', 'deviation', 'scope_creep', 'papercut', 'review', null],
+                    ],
+                    'cursor' => [
+                        'type' => ['null', 'string'],
+                        'description' => 'nextCursor of the previous page',
+                        'default' => null,
+                        'minLength' => 1,
+                        'pattern' => '^[^\\x00]*$',
+                    ],
+                    'limit' => ['type' => 'integer', 'description' => 'Page size', 'default' => 50, 'minimum' => 1, 'maximum' => 200],
+                ],
+                'required' => ['project'],
+            ],
+            'annotations' => ['readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false],
+            'outputSchema' => self::ISSUE_COMMENT_PAGE,
         ],
         [
             'name' => 'list_issues',

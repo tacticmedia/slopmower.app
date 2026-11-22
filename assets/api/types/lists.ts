@@ -3,7 +3,7 @@ import type { Commit } from './commit';
 import type { CommitSha, Cursor, DateTime, ObjectSha, RepoPath, ReviewState, Ulid } from './common';
 import type { Declaration } from './declaration';
 import type { Draft } from './draft';
-import type { IssueSummary } from './issue';
+import type { IssueComment, IssueSummary } from './issue';
 import type { Project } from './project';
 import type { Repository } from './repository';
 import type { RepositoryCandidate } from './repository-candidate';
@@ -113,6 +113,12 @@ export type ProjectPage = {
 /** `list_issues`: newest `updatedAt` first. */
 export type IssuePage = {
     items: IssueSummary[];
+    nextCursor: NextCursor;
+};
+
+/** `list_comments`: newest first. */
+export type IssueCommentPage = {
+    items: IssueComment[];
     nextCursor: NextCursor;
 };
 

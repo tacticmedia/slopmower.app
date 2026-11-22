@@ -8,8 +8,10 @@ use App\Application\IssueCommands;
 use App\Application\Query\IssueQuery;
 use App\Controller\Api\Input\ApprovePlanInput;
 use App\Controller\Api\Input\IssueCommentInput;
+use App\Controller\Api\Input\IssueCommentListQuery;
 use App\Controller\Api\Input\IssueListQuery;
 use App\Domain\Identity\IssueEntryId;
+use App\Domain\Issue\CommentLabel;
 use App\Domain\Issue\IssueKey;
 use App\Entity\Issue;
 use App\Entity\Project;
@@ -26,7 +28,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * I1 to I4 of docs/specs/rest-api-issues.md. A path key that the SQL filters hide resolves to 404.
+ * I1 to I5 of docs/specs/rest-api-issues.md. A path key that the SQL filters hide resolves to 404.
  */
 #[Route('/api/v1', name: 'api_issue_', requirements: ['projectKey' => IssueKey::PROJECT_KEY_REQUIREMENT, 'issueKey' => IssueKey::REQUIREMENT])]
 final class IssueController extends AbstractController
@@ -61,7 +63,16 @@ final class IssueController extends AbstractController
         \assert(null !== $input->body);
         $actor = $this->currentActor->get();
 
-        return $this->json($this->issues->view($this->commands->comment($issue->getKey(), $input->body, $actor), $actor), Response::HTTP_CREATED);
+        return $this->json($this->issues->view($this->commands->comment($issue->getKey(), $input->body, $input->label ?? CommentLabel::Comment, $actor), $actor), Response::HTTP_CREATED);
+    }
+
+    #[Route('/projects/{projectKey}/comments', name: 'comments', methods: ['GET'])]
+    public function comments(
+        #[MapEntity(mapping: ['projectKey' => 'key'])] Project $project,
+        #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)]
+        IssueCommentListQuery $query = new IssueCommentListQuery(),
+    ): JsonResponse {
+        return $this->json($this->issues->comments($project->getKey(), $query->label, $query->limit, $query->cursor));
     }
 
     /**

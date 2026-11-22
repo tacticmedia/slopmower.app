@@ -9,8 +9,8 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 | [README.md](README.md) | Conventions, authentication, errors, pagination, caching, repository sources, versioning, schema and fixture index |
 | [rest-api.md](rest-api.md) | REST endpoint index, account, repositories, reviews and code |
 | [rest-api-requests.md](rest-api-requests.md) | REST requests, updates, drafts, API tokens, and the routes outside `/api/v1` |
-| [rest-api-issues.md](rest-api-issues.md) | REST projects and issues: the lists, an issue with its thread, a comment, and the plan approval of a user |
-| [mcp.md](mcp.md) | MCP endpoint, server instructions, the 27 tools, the issue rules, error mapping, parity with REST |
+| [rest-api-issues.md](rest-api-issues.md) | REST projects and issues: the lists, an issue with its thread, a comment, the plan approval of a user, and the comments of a project |
+| [mcp.md](mcp.md) | MCP endpoint, server instructions, the 28 tools, the issue rules, error mapping, parity with REST |
 | [mcp-tools.json](mcp-tools.json) | The name, title, description, input schema, annotations, and output schema of each MCP tool, in the order of `tools/list` |
 | [webhooks-and-live-updates.md](webhooks-and-live-updates.md) | GitHub webhooks, fetch triggers and post-fetch steps, Mercure live updates |
 | [schemas/](schemas/) | 35 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
@@ -209,7 +209,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
    - changing a type, format, or nullability. Making a non-null field nullable is breaking.
    - a new required input;
    - tighter validation;
-   - new values in **closed** sets: `RequestStatus`, `Awaiting`, `Resolution`, `AnchorKind`, `ActorKind`, `CommitLinkState`, `LocationStatus`, `OrphanReason`, `ProposalState`, `PullRequestState`, `SuggestionState`, `RepositorySource`, `RepositoryAccess`, `ReviewState`, `IndexState`, `CarryOverOutcome`, `IssueStatus`, `ApprovalMode`, `IssueSection`, `sync.state`, token `scope` and `state`, commit file `status`, tree entry `type`;
+   - new values in **closed** sets: `RequestStatus`, `Awaiting`, `Resolution`, `AnchorKind`, `ActorKind`, `CommitLinkState`, `LocationStatus`, `OrphanReason`, `ProposalState`, `PullRequestState`, `SuggestionState`, `RepositorySource`, `RepositoryAccess`, `ReviewState`, `IndexState`, `CarryOverOutcome`, `IssueStatus`, `ApprovalMode`, `IssueSection`, `CommentLabel`, `sync.state`, token `scope` and `state`, commit file `status`, tree entry `type`;
    - a different HTTP status or error code for an existing situation;
    - changed defaults, sort orders, or pagination style;
    - a changed meaning of an existing field.
@@ -264,13 +264,14 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Draft anchor change, decision D115: the optional input `anchor` of D3, which moves a `new_request` draft. It is additive.
     - Issue tracker, decisions D116 to D118: the nine issue tools of [mcp.md](mcp.md#issue-tools), the schemas `Project` and `Issue` with their pages, the definitions `ProjectKey`, `IssueKey`, `IssueStatus`, `ApprovalMode`, `IssueSection`, and `IssueEntryKind`, and the second skill. All are additive. Issues are not event data.
     - Issue endpoints, decision D120: the endpoints P1 and I1 to I4 of [rest-api-issues.md](rest-api-issues.md), and the inputs `IssueCommentInput` and `ApprovePlanInput`. All are additive. An approval by a user has `reviewer` and `reviewNote` null, and it returns an issue in `awaiting_user_input` with a `problem` to `todo`.
+    - Comment labels, decision D121: the closed set `CommentLabel`, the property `label` of `IssueEntry`, the optional input `label` of I3 and `comment_on_issue`, the endpoint I5 and the tool `list_comments`, and the schemas `IssueComment` and `IssueCommentPage`. All are additive. Without `label`, a comment gets `comment`, and a comment stored without a label reads as `comment`.
 
 ## 9. Contract tests
 
 - Functional tests validate REST responses with `JsonApiAssertions::assertApiResponse()`, which uses `opis/json-schema` 2.6.0.
 - Every MCP `structuredContent` is validated against the `outputSchema` of its tool.
 - Every fixture in [section 11](#11-fixtures) is validated against the schema that the table names. The TypeScript types of the web UI are checked against the same fixture files.
-- `McpRestParityTest` compares the MCP and REST payloads of every tool with a REST endpoint: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, every write tool of the requests and reviews, `list_projects`, `list_issues`, `get_issue`, and `comment_on_issue`. See [mcp.md](mcp.md#6-mcp-and-rest).
+- `McpRestParityTest` compares the MCP and REST payloads of every tool with a REST endpoint: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, every write tool of the requests and reviews, `list_projects`, `list_issues`, `get_issue`, `comment_on_issue`, and `list_comments`. See [mcp.md](mcp.md#6-mcp-and-rest).
 
 ## 10. Schemas
 
@@ -317,7 +318,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.schema.json](schemas/inputs.schema.json) | `https://slopmower.invalid/schemas/v1/inputs.schema.json` | `$defs` only: every REST request body |
 | [live-update.schema.json](schemas/live-update.schema.json) | `https://slopmower.invalid/schemas/v1/live-update.schema.json` | Data of one Mercure update, IDs only |
 | [project.schema.json](schemas/project.schema.json) | `https://slopmower.invalid/schemas/v1/project.schema.json` | A project of the issue tracker, with the names of its repositories |
-| [issue.schema.json](schemas/issue.schema.json) | `https://slopmower.invalid/schemas/v1/issue.schema.json` | An issue without its links and its thread, plus `PlanApproval`, `IssueSummary`, `IssueLink`, `IssueEntry`, and `IssueDetail`, the result of I2 and `get_issue` |
+| [issue.schema.json](schemas/issue.schema.json) | `https://slopmower.invalid/schemas/v1/issue.schema.json` | An issue without its links and its thread, plus `PlanApproval`, `IssueSummary`, `IssueLink`, `IssueEntry`, `IssueComment`, and `IssueDetail`, the result of I2 and `get_issue` |
 
 ## 11. Fixtures
 
@@ -366,7 +367,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.create-draft-reply.json](fixtures/inputs.create-draft-reply.json) | `inputs.schema.json#/$defs/CreateDraftInput` | D2 |
 | [inputs.create-token.json](fixtures/inputs.create-token.json) | `inputs.schema.json#/$defs/CreateTokenInput` | T2 |
 | [inputs.dismiss-suggestion.json](fixtures/inputs.dismiss-suggestion.json) | `inputs.schema.json#/$defs/DismissSuggestionInput` | Q22 |
-| [inputs.issue-comment.json](fixtures/inputs.issue-comment.json) | `inputs.schema.json#/$defs/IssueCommentInput` | I3 |
+| [inputs.issue-comment.json](fixtures/inputs.issue-comment.json) | `inputs.schema.json#/$defs/IssueCommentInput` | I3 with a label, `comment_on_issue` |
 | [inputs.link-commits.json](fixtures/inputs.link-commits.json) | `inputs.schema.json#/$defs/LinkCommitsInput` | Q7 |
 | [inputs.link-pull-request.json](fixtures/inputs.link-pull-request.json) | `inputs.schema.json#/$defs/LinkPullRequestInput` | Q17 |
 | [inputs.open-general-request.json](fixtures/inputs.open-general-request.json) | `inputs.schema.json#/$defs/OpenRequestInput` | Q2 with a title |
@@ -394,6 +395,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [lists.commit-list.json](fixtures/lists.commit-list.json) | `lists.schema.json#/$defs/CommitLog` | R9 |
 | [lists.declaration-list.json](fixtures/lists.declaration-list.json) | `lists.schema.json#/$defs/DeclarationList` | V14 |
 | [lists.draft-list.json](fixtures/lists.draft-list.json) | `lists.schema.json#/$defs/DraftList` | D1 |
+| [lists.issue-comment-page.json](fixtures/lists.issue-comment-page.json) | `lists.schema.json#/$defs/IssueCommentPage` | I5, `list_comments` |
 | [lists.issue-page.json](fixtures/lists.issue-page.json) | `lists.schema.json#/$defs/IssuePage` | I1, `list_issues` |
 | [lists.mercure-authorization.json](fixtures/lists.mercure-authorization.json) | `lists.schema.json#/$defs/MercureAuthorization` | A3 |
 | [lists.project-page.json](fixtures/lists.project-page.json) | `lists.schema.json#/$defs/ProjectPage` | P1, `list_projects` |

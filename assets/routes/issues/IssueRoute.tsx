@@ -1,20 +1,21 @@
 import { ArrowSwitchIcon, CheckIcon, CommentIcon, DotFillIcon, type Icon, PencilIcon } from '@primer/octicons-react';
-import { Button, Heading, Label, Link, RelativeTime, Timeline } from '@primer/react';
-import { type ReactNode, useId, useTransition } from 'react';
-import { Link as RouterLink, useFetcher, useLoaderData } from 'react-router';
+import { Button, Heading, Link, RelativeTime, Select, Timeline } from '@primer/react';
+import { type ReactNode, useId, useState, useTransition } from 'react';
+import { Link as RouterLink, useFetcher, useLoaderData, useSearchParams } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
-import type { Actor } from '../../api/types/actor';
-import type { IssueSection } from '../../api/types/common';
+import { COMMENT_LABELS, type CommentLabel, type IssueSection } from '../../api/types/common';
 import type { Issue, IssueDetail, IssueEntry, IssueLink } from '../../api/types/issue';
 import { CommentBox, type CommentText } from '../../comments/CommentBox';
+import boxStyles from '../../comments/CommentBox.module.css';
 import { MarkdownBody } from '../../comments/MarkdownBody';
 import { ActionErrorMessage } from '../../layout/ActionErrorMessage';
 import { useDocumentTitle } from '../../layout/useDocumentTitle';
 import { useSubmitOnce } from '../../layout/useSubmitOnce';
 import sidebarStyles from '../../requests/RequestSidebar.module.css';
+import { ActorName, COMMENT_LABEL_TEXT, CommentLabelBadge, CommentLabelFilter, NoCommentWithLabel } from './CommentParts';
 import { IssueStatusLabel } from './IssueStatusLabel';
 import styles from './Issues.module.css';
-import type { IssueIntent } from './issueData';
+import { type IssueIntent, labelFilter } from './issueData';
 import { APPROVAL_MODE_NAMES } from './ProjectsRoute';
 
 const SECTIONS: readonly { section: IssueSection; title: string }[] = [
@@ -32,6 +33,8 @@ const SECTION_NAMES: Record<IssueSection, string> = { problem: 'problem', plan: 
  */
 export function IssueRoute() {
     const { issue, links, thread } = useLoaderData<IssueDetail>();
+    const filter = labelFilter(useSearchParams()[0]);
+    const entries = null === filter ? thread : thread.filter((entry) => filter === entry.label);
     useDocumentTitle(`${issue.key} ${issue.title}`);
 
     return (
@@ -72,15 +75,23 @@ export function IssueRoute() {
                         </SectionBox>
                     ))}
                     <section className={styles.thread} aria-labelledby="issue-thread">
-                        <h2 id="issue-thread" className={styles.threadTitle}>
-                            Thread
-                        </h2>
-                        {thread.length > 0 && (
+                        <div className={styles.threadHeader}>
+                            <h2 id="issue-thread" className={styles.threadTitle}>
+                                Thread
+                            </h2>
+                            <CommentLabelFilter />
+                        </div>
+                        {entries.length > 0 && (
                             <Timeline clipSidebar data-testid="issue-thread">
-                                {thread.map((entry) => (
+                                {entries.map((entry) => (
                                     <ThreadEntry key={entry.id} entry={entry} />
                                 ))}
                             </Timeline>
+                        )}
+                        {0 === entries.length && null !== filter && (
+                            <p className={styles.muted} data-testid="issue-thread-empty">
+                                <NoCommentWithLabel />
+                            </p>
                         )}
                         <CommentForm key={issue.key} issueKey={issue.key} />
                     </section>
@@ -207,7 +218,8 @@ function ThreadEntry({ entry }: { entry: IssueEntry }) {
             </Timeline.Badge>
             <Timeline.Body className={styles.entry}>
                 <p className={styles.entryLine}>
-                    <ActorName actor={entry.actor} /> <EntryAction entry={entry} /> <RelativeTime datetime={entry.createdAt} />
+                    <ActorName actor={entry.actor} />
+                    <CommentLabelBadge label={entry.label} /> <EntryAction entry={entry} /> <RelativeTime datetime={entry.createdAt} />
                 </p>
                 {null !== text && (
                     <div className={styles.entryText}>
@@ -240,29 +252,21 @@ function EntryAction({ entry }: { entry: IssueEntry }) {
     return 'comment' === entry.kind ? 'commented' : entry.kind;
 }
 
-function ActorName({ actor }: { actor: Actor }) {
-    return (
-        <>
-            <strong>{actor.name}</strong>
-            {'agent' === actor.kind && (
-                <>
-                    {' '}
-                    <Label variant="secondary">Agent</Label>
-                </>
-            )}
-        </>
-    );
-}
-
+/** The label returns to `comment` after a write. A refused write keeps it, as the box keeps its text. */
 function CommentForm({ issueKey }: { issueKey: string }) {
     const fetcher = useFetcher<ActionResult>();
     const [commenting, startComment] = useTransition();
+    const [label, setLabel] = useState<CommentLabel>('comment');
+    const [sent, setSent] = useState(false);
+    const labelId = useId();
     const draftKey = `issue:${issueKey}:comment`;
+    const error = commenting ? null : (fetcher.data?.error ?? null);
     const comment = ({ body }: CommentText): boolean => {
         if (commenting) {
             return false;
         }
-        const intent: IssueIntent = { intent: 'comment', input: { body }, draftKey };
+        const intent: IssueIntent = { intent: 'comment', input: { body, label }, draftKey };
+        setSent(true);
         startComment(async () => {
             await fetcher.submit(intent, { method: 'post', encType: 'application/json' });
         });
@@ -270,5 +274,35 @@ function CommentForm({ issueKey }: { issueKey: string }) {
         return true;
     };
 
-    return <CommentBox label="Comment" submitLabel="Comment" draftKey={draftKey} onSubmit={comment} error={commenting ? null : (fetcher.data?.error ?? null)} busy={commenting} />;
+    if (sent && !commenting) {
+        setSent(false);
+        if (null === error) {
+            setLabel('comment');
+        }
+    }
+
+    return (
+        <CommentBox
+            label="Comment"
+            submitLabel="Comment"
+            draftKey={draftKey}
+            onSubmit={comment}
+            error={error}
+            busy={commenting}
+            actions={
+                <span className={boxStyles.option}>
+                    <label htmlFor={labelId} className={boxStyles.optionLabel}>
+                        Label
+                    </label>
+                    <Select id={labelId} value={label} onChange={(event) => setLabel(COMMENT_LABELS.find((known) => known === event.target.value) ?? 'comment')} disabled={commenting}>
+                        {COMMENT_LABELS.map((known) => (
+                            <Select.Option key={known} value={known}>
+                                {COMMENT_LABEL_TEXT[known]}
+                            </Select.Option>
+                        ))}
+                    </Select>
+                </span>
+            }
+        />
+    );
 }

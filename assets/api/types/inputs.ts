@@ -1,6 +1,6 @@
 import type { AnchorInput } from './anchor';
 import type { TokenName } from './api-token';
-import type { CodeAccess, CommitSha, DateTime, Delivery, Markdown, PullRequestUrl, RepoPath, RequestType, Tour, Ulid, UnifiedDiff } from './common';
+import type { CodeAccess, CommentLabel, CommitSha, DateTime, Delivery, Markdown, PullRequestUrl, RepoPath, RequestType, Tour, Ulid, UnifiedDiff } from './common';
 import type { LocalDirectory } from './repository';
 
 export type ConnectRepositoryInput =
@@ -168,6 +168,8 @@ export type PreferencesInput = {
 
 export type IssueCommentInput = {
     body: Markdown;
+    /** Absent or null: comment. */
+    label?: CommentLabel | null;
 };
 
 export type ApprovePlanInput = {

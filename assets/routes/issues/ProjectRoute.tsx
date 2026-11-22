@@ -40,6 +40,9 @@ export function ProjectRoute() {
                         {issues.length} {1 === issues.length ? 'issue' : 'issues'}
                     </span>
                     <div className={headerStyles.tools}>
+                        <Link as={RouterLink} to={`/projects/${project.key}/comments`} className={styles.toolLink}>
+                            Comments
+                        </Link>
                         <ActionMenu>
                             <ActionMenu.Button size="small">Status: {null === filter ? 'All' : ISSUE_STATUS_TEXT[filter]}</ActionMenu.Button>
                             <ActionMenu.Overlay>

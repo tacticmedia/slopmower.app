@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Api\Input;
 
+use App\Domain\Issue\CommentLabel;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -15,6 +16,7 @@ final readonly class IssueCommentInput
         #[Assert\NotNull]
         #[Assert\Length(max: 65536)]
         public ?string $body = null,
+        public ?CommentLabel $label = null,
     ) {
     }
 }

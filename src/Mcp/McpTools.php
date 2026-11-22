@@ -6,6 +6,7 @@ namespace App\Mcp;
 
 use App\Application\AnchorFactory;
 use App\Application\IssueCommands;
+use App\Application\Query\IssueCommentPage;
 use App\Application\Query\IssueDetail;
 use App\Application\Query\IssuePage;
 use App\Application\Query\IssueQuery;
@@ -44,6 +45,7 @@ use App\Domain\Git\RefName;
 use App\Domain\Identity\IssueEntryId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
+use App\Domain\Issue\CommentLabel;
 use App\Domain\Issue\IssueKey;
 use App\Domain\Issue\IssueStatus;
 use App\Domain\Request\Awaiting;
@@ -124,9 +126,9 @@ final class McpTools
      *
      * @return array<string, mixed>
      */
-    public function commentOnIssue(string $issue, string $body): array
+    public function commentOnIssue(string $issue, string $body, CommentLabel $label = CommentLabel::Comment): array
     {
-        return $this->issueWrite('comment_on_issue', fn (Actor $actor): Issue => $this->issueCommands->comment(IssueKey::fromString($issue, 'issue'), $body, $actor));
+        return $this->issueWrite('comment_on_issue', fn (Actor $actor): Issue => $this->issueCommands->comment(IssueKey::fromString($issue, 'issue'), $body, $label, $actor));
     }
 
     /**
@@ -230,6 +232,16 @@ final class McpTools
             $note,
             $this->currentActor->get(),
         ));
+    }
+
+    /**
+     * Section 4.28: REST I5.
+     *
+     * @return array<string, mixed>
+     */
+    public function listComments(string $project, ?CommentLabel $label = null, ?string $cursor = null, int $limit = 50): array
+    {
+        return $this->run('list_comments', fn (): IssueCommentPage => $this->issues->comments($project, $label, $limit, $cursor));
     }
 
     /**

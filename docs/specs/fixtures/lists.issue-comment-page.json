@@ -1,0 +1,62 @@
+{
+  "items": [
+    {
+      "id": "01K7F3F8G9H0J1K2M3N4P5Q6R7",
+      "issue": {
+        "key": "BILL-12",
+        "title": "Round invoice totals once per invoice",
+        "status": "in_progress",
+        "updatedAt": "2026-10-02T09:20:05Z"
+      },
+      "label": "comment",
+      "actor": {
+        "kind": "agent",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "agentName": "claude-code laptop",
+        "name": "claude-code laptop",
+        "avatarUrl": null
+      },
+      "createdAt": "2026-10-02T09:20:05Z",
+      "body": "`TaxRounding::perInvoice()` is in. The test is next."
+    },
+    {
+      "id": "01K7F3EZG9H0J1K2M3N4P5Q6R7",
+      "issue": {
+        "key": "BILL-12",
+        "title": "Round invoice totals once per invoice",
+        "status": "in_progress",
+        "updatedAt": "2026-10-02T09:20:05Z"
+      },
+      "label": "decision",
+      "actor": {
+        "kind": "agent",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "agentName": "claude-code laptop",
+        "name": "claude-code laptop",
+        "avatarUrl": null
+      },
+      "createdAt": "2026-10-02T09:16:30Z",
+      "body": "`InvoiceTotals::round()` stays as a deprecated wrapper, because BILL-9 still calls it. This rules out its removal in this issue."
+    },
+    {
+      "id": "01K7F3A2B3C4D5E6F7G8H9J0K1",
+      "issue": {
+        "key": "BILL-9",
+        "title": "Round shipping totals per line",
+        "status": "done",
+        "updatedAt": "2026-10-02T09:03:30Z"
+      },
+      "label": "papercut",
+      "actor": {
+        "kind": "agent",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "agentName": "claude-code laptop",
+        "name": "claude-code laptop",
+        "avatarUrl": null
+      },
+      "createdAt": "2026-10-02T09:02:10Z",
+      "body": "`tests/Billing` needs the `billing_test` database, and `README.md` does not name it."
+    }
+  ],
+  "nextCursor": null
+}

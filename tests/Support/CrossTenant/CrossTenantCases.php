@@ -94,6 +94,7 @@ final class CrossTenantCases
             'api_issue_get' => ['method' => 'GET', 'path' => '/api/v1/issues/{issueKey}', 'body' => null, 'status' => 200, 'schema' => 'issue.schema.json#/$defs/IssueDetail'],
             'api_issue_comment' => ['method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/comments', 'body' => ['body' => 'Keep the old method.'], 'status' => 201, 'schema' => 'issue.schema.json'],
             'api_issue_approve_plan' => ['method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/plan-approval', 'body' => ['planRevision' => self::PLAN_REVISION], 'status' => 200, 'schema' => 'issue.schema.json'],
+            'api_issue_comments' => ['method' => 'GET', 'path' => '/api/v1/projects/{projectKey}/comments', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/IssueCommentPage'],
         ];
     }
 }

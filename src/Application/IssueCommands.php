@@ -11,6 +11,7 @@ use App\Domain\Error\InvalidInput;
 use App\Domain\Error\NotFound;
 use App\Domain\Identity\IssueEntryId;
 use App\Domain\Identity\IssueId;
+use App\Domain\Issue\CommentLabel;
 use App\Domain\Issue\IssueKey;
 use App\Domain\Issue\IssueRules;
 use App\Domain\Issue\IssueSection;
@@ -136,12 +137,12 @@ final class IssueCommands
      *
      * @throws NotFound|InvalidInput
      */
-    public function comment(IssueKey $key, string $body, Actor $actor): Issue
+    public function comment(IssueKey $key, string $body, CommentLabel $label, Actor $actor): Issue
     {
-        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $body, $actor): Issue {
+        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $body, $label, $actor): Issue {
             $issue = $this->issues->issue($key, LockMode::PESSIMISTIC_WRITE);
             self::requireText('body', $body);
-            $this->entityManager->persist(IssueEntry::comment($issue, $actor, $body, $now));
+            $this->entityManager->persist(IssueEntry::comment($issue, $actor, $body, $label, $now));
             $issue->touch($now);
 
             return $issue;

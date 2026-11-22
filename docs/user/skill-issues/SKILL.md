@@ -22,7 +22,8 @@ the `slopmower` MCP server.
 | `create_issue` | `project`, `title`, `problem?`, `status?` | Start an issue, `draft` by default |
 | `update_issue` | `issue`, `title?`, `problem?`, `plan?`, `result?`, `followUps?` | Write the title or a section |
 | `set_issue_status` | `issue`, `status`, `note?`, `reviewer?` | Move the issue to another status |
-| `comment_on_issue` | `issue`, `body` | Record a step, a question, or a decision in the thread |
+| `comment_on_issue` | `issue`, `body`, `label?` | Record a step, a question, or a decision in the thread, with its label |
+| `list_comments` | `project`, `label?`, `cursor?`, `limit?` | Read the comments of the project across its issues, all or those of one label |
 | `link_issues` | `issue`, `target`, `note` | Link two issues, with the reason |
 | `approve_plan` | `issue`, `planRevision`, `reviewer`, `reviewNote` | Record the review of the plan by another agent |
 
@@ -40,11 +41,24 @@ The user and later sessions read every text of an issue. Write for them.
 - As short as possible. Write a fact with its source, a decision with its
   reason, a deviation, a question, or a next step. If a text adds nothing
   that a later reader needs, do not write it.
-- One comment states one thing. A progress comment has no prefix. Another
-  one starts with its kind: `Decision:`, `Finding:`, `Deviation:`,
-  `Scope creep:`, `Papercut:`, or `Question:`.
+- One comment states one thing. Give it the `label` of the table below that
+  says what it is. Do not start the text with the label as a word.
 - `result` is a short list: what changed, the commit SHAs, the tests with
   their counts, and each deviation.
+
+| Label | Use it for |
+|---|---|
+| `comment` | Progress or a remark. The default. |
+| `decision` | A choice, with its reason and what it rules out |
+| `question` | Something that needs an answer from the user |
+| `finding` | A verified fact, with its source |
+| `deviation` | Work that differs from the plan |
+| `scope_creep` | Work that came up and was left out, or was added |
+| `papercut` | A small friction in the tools, the code, or the process |
+| `review` | The findings of a reviewing agent |
+
+`list_comments` with a `label` returns the comments of that label across
+the issues of the project, for example every decision or every papercut.
 
 ## 1. Find the project
 
@@ -106,8 +120,8 @@ parameter that you leave out stays as it is.
    - `self`: the plan needs no approval.
    - `agent_review`: another agent reviews it, as section 5 describes.
    - `user`: only the user approves it. Call `set_issue_status` with
-     `awaiting_user_input`, name in a comment what the user must decide, tell
-     the user, and stop the work on this issue.
+     `awaiting_user_input`, name in a comment with the label `question` what
+     the user must decide, tell the user, and stop the work on this issue.
 5. Call `set_issue_status` with `in_progress` before you edit. `todo` to
    `in_progress` is the claim.
 6. Do the work. Record each important step or decision with

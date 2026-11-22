@@ -4,7 +4,7 @@ import type { Project } from '../../../assets/api/types/project';
 import { newId, now, project, USER } from './builders';
 import { apiError, json, type MockApi, type MockResponse } from './mockApi';
 
-/** The issue tracker in memory: P1 and I1 to I4, with the rules of docs/specs/rest-api-issues.md. */
+/** The issue tracker in memory: P1 and I1 to I5, with the rules of docs/specs/rest-api-issues.md. */
 export class FakeIssues {
     projects: Project[] = [project()];
     /** By issue key. */
@@ -28,12 +28,12 @@ export class FakeIssues {
         api.on('GET', '/api/v1/issues/:issueKey', ({ params }) => this.#answer(params.issueKey, (detail) => json('issue.schema.json#/$defs/IssueDetail', detail)));
         api.on('POST', '/api/v1/issues/:issueKey/comments', ({ params, body }) =>
             this.#answer(params.issueKey, (detail) => {
-                const { body: text } = body as IssueCommentInput;
+                const { body: text, label } = body as IssueCommentInput;
                 if ('' === text.trim()) {
                     return refusal('body', 'Must contain a non-whitespace character.');
                 }
 
-                return json('issue.schema.json', this.#write(detail, {}, entry('comment', { body: text })), 201);
+                return json('issue.schema.json', this.#write(detail, {}, entry('comment', { body: text, label: label ?? 'comment' })), 201);
             }),
         );
         api.on('POST', '/api/v1/issues/:issueKey/plan-approval', ({ params, body }) =>
@@ -53,6 +53,22 @@ export class FakeIssues {
                 return json('issue.schema.json', this.#write(detail, changes, approved, ...(toTodo ? [entry('status_changed', { from: issue.status, to: 'todo' })] : [])));
             }),
         );
+        api.on('GET', '/api/v1/projects/:projectKey/comments', ({ params, query }) => {
+            if (!this.projects.some(({ key }) => key === params.projectKey)) {
+                return notFound();
+            }
+            const label = query.get('label');
+            const items = [...this.issues.values()]
+                .filter(({ issue }) => issue.project.key === params.projectKey)
+                .flatMap(({ issue: { key, title, status, updatedAt }, thread }) =>
+                    thread.flatMap(({ id, label: entryLabel, actor, createdAt, body }) =>
+                        null === entryLabel || null === body || (null !== label && entryLabel !== label) ? [] : [{ id, issue: { key, title, status, updatedAt }, label: entryLabel, actor, createdAt, body }],
+                    ),
+                )
+                .toSorted((first, second) => second.id.localeCompare(first.id));
+
+            return json('lists.schema.json#/$defs/IssueCommentPage', { items, nextCursor: null });
+        });
     }
 
     add(detail: IssueDetail): IssueDetail {
@@ -87,7 +103,7 @@ export class FakeIssues {
 
 /** An entry of the signed-in user. */
 function entry(kind: IssueEntry['kind'], fields: Partial<IssueEntry>): IssueEntry {
-    return { id: newId(), kind, actor: USER, createdAt: now(), body: null, section: null, from: null, to: null, note: null, reviewer: null, reviewNote: null, planRevision: null, ...fields };
+    return { id: newId(), kind, label: null, actor: USER, createdAt: now(), body: null, section: null, from: null, to: null, note: null, reviewer: null, reviewNote: null, planRevision: null, ...fields };
 }
 
 function notFound(): MockResponse {

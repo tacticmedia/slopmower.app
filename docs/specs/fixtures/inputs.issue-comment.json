@@ -1,3 +1,4 @@
 {
-  "body": "Keep `round()` as deprecated. The shipping totals stay in BILL-9."
+  "body": "Keep `round()` as deprecated. The shipping totals stay in BILL-9.",
+  "label": "decision"
 }

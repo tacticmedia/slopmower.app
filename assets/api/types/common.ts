@@ -237,6 +237,10 @@ export const ISSUE_ENTRY_KINDS = ['comment', 'status_changed', 'section_changed'
 export type KnownIssueEntryKind = (typeof ISSUE_ENTRY_KINDS)[number];
 export type IssueEntryKind = OpenSet<KnownIssueEntryKind>;
 
+/** What a comment of an issue is (D121). */
+export const COMMENT_LABELS = ['comment', 'decision', 'question', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'] as const;
+export type CommentLabel = (typeof COMMENT_LABELS)[number];
+
 /** How the agent delivers its work (D85). Null lets the agent decide. */
 export type Delivery = {
     workspace: Workspace | null;

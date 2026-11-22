@@ -87,6 +87,7 @@ Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json). 
 | [I2](rest-api-issues.md#i2-get-an-issue) | GET | `/api/v1/issues/{issueKey}` | S, B | 200 | [`issue.schema.json#/$defs/IssueDetail`](schemas/issue.schema.json) |
 | [I3](rest-api-issues.md#i3-comment-on-an-issue) | POST | `/api/v1/issues/{issueKey}/comments` | S, B | 201 | [`issue.schema.json`](schemas/issue.schema.json) |
 | [I4](rest-api-issues.md#i4-approve-the-plan) | POST | `/api/v1/issues/{issueKey}/plan-approval` | S | 200 | [`issue.schema.json`](schemas/issue.schema.json) |
+| [I5](rest-api-issues.md#i5-list-the-comments-of-a-project) | GET | `/api/v1/projects/{projectKey}/comments` | S, B | 200 | [`lists.schema.json#/$defs/IssueCommentPage`](schemas/lists.schema.json) |
 
 Common errors are not repeated per endpoint:
 

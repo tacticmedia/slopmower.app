@@ -10,6 +10,7 @@ use App\Domain\Error\NotFound;
 use App\Domain\Identity\IssueEntryId;
 use App\Domain\Identity\IssueId;
 use App\Domain\Identity\ProjectId;
+use App\Domain\Issue\CommentLabel;
 use App\Domain\Issue\IssueEntryKind;
 use App\Domain\Issue\IssueKey;
 use App\Domain\Issue\IssueRules;
@@ -30,8 +31,8 @@ use Doctrine\ORM\Query;
 use Symfony\Bridge\Doctrine\Types\UlidType;
 
 /**
- * The reads of the issue tracker (D116): docs/specs/mcp.md sections 4.19 to 4.21, and P1, I1, and I2 of
- * docs/specs/rest-api-issues.md.
+ * The reads of the issue tracker (D116, D121): docs/specs/mcp.md sections 4.19 to 4.21 and 4.28, and P1, I1, I2, and I5
+ * of docs/specs/rest-api-issues.md.
  */
 final class IssueQuery
 {
@@ -141,6 +142,44 @@ final class IssueQuery
             $this->view($issue, $actor),
             array_map(static fn (IssueLink $link): array => ['issue' => IssueSummaryView::of($link->other($issue)), 'note' => $link->getNote(), 'createdBy' => $link->getCreatedBy(), 'createdAt' => $link->getCreatedAt()], $links),
             array_map(self::entry(...), $thread),
+        );
+    }
+
+    /**
+     * The comment entries of every issue of the project, newest first by entry ID.
+     *
+     * @throws NotFound
+     * @throws InvalidInput A malformed cursor, or a cursor of other filters
+     */
+    public function comments(string $projectKey, ?CommentLabel $label, int $limit, ?string $cursor): IssueCommentPage
+    {
+        $filters = ['project' => $projectKey, 'label' => $label?->value];
+        $builder = $this->entityManager->createQueryBuilder()
+            ->select('entry', 'issue')
+            ->from(IssueEntry::class, 'entry')
+            ->join('entry.issue', 'issue')
+            ->where('issue.project = :project')
+            ->andWhere('entry.kind = :kind')
+            ->setParameter('project', $this->project($projectKey)->getId(), ProjectId::class)
+            ->setParameter('kind', IssueEntryKind::Comment)
+            ->orderBy('entry.id', \SortDirection::Descending)
+            ->setMaxResults($limit + 1);
+
+        if (null !== $label) {
+            // A comment stored without a label counts as comment, as IssueEntry::getLabel() reads it.
+            $builder->andWhere('COALESCE(entry.label, :unlabelled) = :label')->setParameter('unlabelled', CommentLabel::Comment)->setParameter('label', $label);
+        }
+
+        if (null !== $cursor) {
+            $builder->andWhere('entry.id < :beforeId')->setParameter('beforeId', Cursor::decode($cursor, $filters, 'ulid')[0], UlidType::NAME);
+        }
+
+        /** @var list<IssueEntry> $rows */
+        $rows = $builder->getQuery()->getResult();
+
+        return new IssueCommentPage(
+            array_map(static fn (IssueEntry $entry): array => ['id' => $entry->getId(), 'issue' => IssueSummaryView::of($entry->getIssue()), 'label' => $entry->getLabel(), 'actor' => $entry->getActor(), 'createdAt' => $entry->getCreatedAt(), 'body' => $entry->getBody()], array_slice($rows, 0, $limit)),
+            Cursor::next($rows, $limit, $filters, static fn (IssueEntry $entry): array => [$entry->getId()->toString()]),
         );
     }
 
@@ -285,6 +324,7 @@ final class IssueQuery
         return [
             'id' => $entry->getId(),
             'kind' => $entry->getKind(),
+            'label' => $entry->getLabel(),
             'actor' => $entry->getActor(),
             'createdAt' => $entry->getCreatedAt(),
             // The body of a section_changed entry is a revision of the section, which the thread leaves out.

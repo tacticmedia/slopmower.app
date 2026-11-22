@@ -163,7 +163,7 @@
     },
     "IssueEntry": {
       "type": "object",
-      "required": ["id", "kind", "actor", "createdAt", "body", "section", "from", "to", "note", "reviewer", "reviewNote", "planRevision"],
+      "required": ["id", "kind", "label", "actor", "createdAt", "body", "section", "from", "to", "note", "reviewer", "reviewNote", "planRevision"],
       "description": "One entry of the thread of an issue. The thread only grows.",
       "properties": {
         "id": {
@@ -171,6 +171,17 @@
         },
         "kind": {
           "$ref": "common.schema.json#/$defs/IssueEntryKind"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/CommentLabel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "comment: its label; else null."
         },
         "actor": {
           "$ref": "actor.schema.json"
@@ -242,6 +253,35 @@
             }
           ],
           "description": "plan_approved only: the plan revision that the approval read."
+        }
+      }
+    },
+    "IssueComment": {
+      "type": "object",
+      "required": ["id", "issue", "label", "actor", "createdAt", "body"],
+      "description": "A comment entry with its issue: an item of I5 and list_comments.",
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/Ulid",
+          "description": "The ID of the entry in the thread of its issue."
+        },
+        "issue": {
+          "$ref": "#/$defs/IssueSummary"
+        },
+        "label": {
+          "$ref": "common.schema.json#/$defs/CommentLabel"
+        },
+        "actor": {
+          "$ref": "actor.schema.json"
+        },
+        "createdAt": {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "The Markdown comment."
         }
       }
     },

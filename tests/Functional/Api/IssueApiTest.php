@@ -79,6 +79,18 @@ final class IssueApiTest extends WebTestCase
         self::assertSame([['comment', 'user', $this->user->getId()->toString(), 'Keep `round()` as deprecated.']], array_map(static fn (array $entry): array => [$entry['kind'], $entry['actor']['kind'], $entry['actor']['userId'], $entry['body']], $thread));
     }
 
+    #[TestDox('I3 refuses an unknown label with 422 on label, and writes no comment')]
+    public function testUnknownLabelIsRefused(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once']);
+
+        $error = self::assertApiError(self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/comments', ['body' => 'Keep `round()` as deprecated.', 'label' => 'idea']), 422, 'invalid_input');
+
+        self::assertSame(['label'], array_column($error['details']['violations'] ?? [], 'field'));
+        self::assertSame([], $this->agent('get_issue', ['issue' => 'SM-1'])['thread']);
+    }
+
     #[TestDox('I4 writes an approval that get_issue shows with the actor kind user and no reviewer')]
     public function testApprovalOfTheUser(): void
     {

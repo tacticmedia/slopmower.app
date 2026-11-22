@@ -1,6 +1,7 @@
 import type { Actor } from './actor';
 import type {
     ApprovalMode,
+    CommentLabel,
     DateTime,
     IssueEntryKind,
     IssueKey,
@@ -59,6 +60,8 @@ export type IssueLink = {
 export type IssueEntry = {
     id: Ulid;
     kind: IssueEntryKind;
+    /** Null for an entry that is no comment. */
+    label: CommentLabel | null;
     actor: Actor;
     createdAt: DateTime;
     body: Markdown | null;
@@ -69,6 +72,16 @@ export type IssueEntry = {
     reviewer: string | null;
     reviewNote: Markdown | null;
     planRevision: Ulid | null;
+};
+
+/** A comment entry with its issue: an item of `list_comments`. */
+export type IssueComment = {
+    id: Ulid;
+    issue: IssueSummary;
+    label: CommentLabel;
+    actor: Actor;
+    createdAt: DateTime;
+    body: Markdown;
 };
 
 /** The result of `get_issue`: links and thread oldest first. */

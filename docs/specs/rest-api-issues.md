@@ -55,9 +55,11 @@ The MCP tool `get_issue` returns the same body.
 
 - **Request:** `POST /api/v1/issues/{issueKey}/comments`
 - **Authentication:** S, B
-- **Body:** [`IssueCommentInput`](schemas/inputs.schema.json), `{body}`. Example: [fixtures/inputs.issue-comment.json](fixtures/inputs.issue-comment.json).
-- **Success:** 201 [`Issue`](schemas/issue.schema.json), without its links and its thread. The comment is a `comment` entry of the thread with the caller as its actor. It is allowed in any status.
-- **Errors:** 422 `invalid_input` on `body`, "Must contain a non-whitespace character.".
+- **Body:** [`IssueCommentInput`](schemas/inputs.schema.json), `{body, label}`. `label` is a `CommentLabel` of [common.schema.json](schemas/common.schema.json), by default `comment`. Example: [fixtures/inputs.issue-comment.json](fixtures/inputs.issue-comment.json).
+- **Success:** 201 [`Issue`](schemas/issue.schema.json), without its links and its thread. The comment is a `comment` entry of the thread with the label and with the caller as its actor. It is allowed in any status.
+- **Errors:** 422 `invalid_input`:
+  - on `body`, "Must contain a non-whitespace character.";
+  - on `label`, for a value outside `CommentLabel`.
 
 A token call gives the same result as the MCP tool `comment_on_issue`.
 
@@ -74,3 +76,18 @@ A token call gives the same result as the MCP tool `comment_on_issue`.
 The approval of a user is valid in every approval mode. An approval of an issue in `awaiting_user_input` sets the status `todo` and writes a `status_changed` entry, when the issue has a `problem`. Without a `problem` the status stays, because `todo` needs one. An issue in `done` or `wont_do` has no own error.
 
 An agent does not call I4. Its approval is the MCP tool `approve_plan`, which records the review of another agent.
+
+### I5 List the comments of a project
+
+- **Request:** `GET /api/v1/projects/{projectKey}/comments`
+- **Authentication:** S, B
+- **Success:** 200 [`IssueCommentPage`](schemas/lists.schema.json): the `comment` entries of every issue of the project, each with the summary of its issue, its label, its actor, and its body. Entries of another kind are left out. Example: [fixtures/lists.issue-comment-page.json](fixtures/lists.issue-comment-page.json).
+- **Errors:** 422 `invalid_input` for a cursor sent with another `label` than that of the page that returned it.
+
+| Query | Type | Default | Notes |
+|---|---|---|---|
+| `label` | CommentLabel | all | One value. A comment stored without a label counts as `comment`. |
+| `limit` | integer 1-200 | 50 | |
+| `cursor` | Cursor | none | |
+
+The list is sorted by the entry `id` descending, which is newest first. The MCP tool `list_comments` returns the same body.

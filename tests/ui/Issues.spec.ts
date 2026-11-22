@@ -1,7 +1,7 @@
 import type { Locator, Page } from '@playwright/test';
 import { issueDetail } from './support/builders';
 import { FakeIssues } from './support/fakeIssues';
-import type { MockApi } from './support/mockApi';
+import { apiError, type MockApi } from './support/mockApi';
 import { expect, test } from './support/test';
 
 const ISSUE_KEY = 'BILL-12';
@@ -56,11 +56,39 @@ test.describe('Issues', () => {
             /claude-code laptop.*changed the plan/,
             /claude-code laptop.*approved the plan, reviewed by plan-reviewer,.*The plan covers the rounding and its test\./,
             /claude-code laptop.*changed the status from To do to In progress/,
+            /claude-code laptop.*commented.*InvoiceTotals::round\(\) stays as a deprecated wrapper/,
             /claude-code laptop.*commented.*TaxRounding::perInvoice\(\) is in\. The test is next\./,
         ]);
     });
 
-    test('A comment posts its body and shows in the thread as the comment of the user', async ({ page, api }) => {
+    test('A comment shows its label next to its actor, and the label Comment shows no badge', async ({ page, api }) => {
+        await openIssue(page, api);
+        const comments = page.locator('[data-testid="issue-entry"][data-kind="comment"]');
+
+        await expect(comments).toHaveCount(2);
+        await expect(comments.first().getByTestId('comment-label')).toHaveText('Decision');
+        await expect(comments.last().getByTestId('comment-label')).toHaveCount(0);
+    });
+
+    test('The label filter of the thread shows only the comments of that label', async ({ page, api }) => {
+        await openIssue(page, api);
+        const entries = page.getByTestId('issue-entry');
+
+        await page.getByRole('button', { name: 'Label: All' }).click();
+        await page.getByRole('menuitemradio', { name: 'Decision' }).click();
+
+        await expect(page).toHaveURL(`/issues/${ISSUE_KEY}?label=decision`);
+        await expect(entries).toHaveText([/Decision.*InvoiceTotals::round\(\) stays as a deprecated wrapper/]);
+
+        await page.getByRole('button', { name: 'Label: Decision' }).click();
+        await page.getByRole('menuitemradio', { name: 'Papercut' }).click();
+
+        await expect(page.getByTestId('issue-thread-empty')).toContainText('No comment has this label.');
+        await page.getByRole('link', { name: 'Clear the filter' }).click();
+        await expect(entries).toHaveCount(6);
+    });
+
+    test('A comment posts its body with the label comment and shows in the thread as the comment of the user', async ({ page, api }) => {
         await openIssue(page, api);
         const field = page.getByRole('textbox', { name: 'Comment' });
 
@@ -69,7 +97,55 @@ test.describe('Issues', () => {
 
         await expect(page.getByTestId('issue-entry').last()).toHaveText(/jan commented.*Keep round\(\) as deprecated\./);
         await expect(field).toHaveValue('');
-        expect(api.bodies('POST', COMMENTS)).toEqual([{ body: 'Keep `round()` as deprecated.' }]);
+        expect(api.bodies('POST', COMMENTS)).toEqual([{ body: 'Keep `round()` as deprecated.', label: 'comment' }]);
+    });
+
+    test('The comment form posts the chosen label, and the select returns to Comment', async ({ page, api }) => {
+        await openIssue(page, api);
+        const label = page.getByRole('combobox', { name: 'Label' });
+
+        await label.selectOption('Decision');
+        await page.getByRole('textbox', { name: 'Comment' }).fill('Keep `round()` as deprecated.');
+        await page.getByRole('button', { name: 'Comment', exact: true }).click();
+
+        await expect(page.getByTestId('issue-entry').last()).toHaveText(/jan Decision commented.*Keep round\(\) as deprecated\./);
+        await expect(label).toHaveValue('comment');
+        expect(api.bodies('POST', COMMENTS)).toEqual([{ body: 'Keep `round()` as deprecated.', label: 'decision' }]);
+    });
+
+    test('A refused comment keeps the chosen label and the text', async ({ page, api }) => {
+        await openIssue(page, api);
+        const message = 'This value is too long. It should have 65536 characters or less.';
+        api.on('POST', COMMENTS, () => apiError(422, 'invalid_input', `Invalid input. body: ${message}`, { violations: [{ field: 'body', message }] }));
+        const label = page.getByRole('combobox', { name: 'Label' });
+        const field = page.getByRole('textbox', { name: 'Comment' });
+
+        await label.selectOption('Decision');
+        await field.fill('Keep `round()` as deprecated.');
+        await page.getByRole('button', { name: 'Comment', exact: true }).click();
+
+        await expect(page.getByTestId('comment-error')).toContainText(message);
+        await expect(label).toHaveValue('decision');
+        await expect(field).toHaveValue('Keep `round()` as deprecated.');
+    });
+
+    test('The comments page of a project filters by label and links each comment to its issue', async ({ page, api }) => {
+        const issues = new FakeIssues(api);
+        issues.add(issueDetail());
+        const rows = page.getByTestId('comment-row');
+        await page.goto('/projects/BILL');
+        await page.getByRole('link', { name: 'Comments', exact: true }).click();
+        await expect(page).toHaveURL('/projects/BILL/comments');
+        await expect(rows).toHaveText([/Round invoice totals once per invoice.*BILL-12.*TaxRounding::perInvoice\(\) is in/, /Round invoice totals once per invoice.*Decision.*BILL-12.*InvoiceTotals::round\(\) stays/]);
+
+        await page.getByRole('button', { name: 'Label: All' }).click();
+        await page.getByRole('menuitemradio', { name: 'Decision' }).click();
+
+        await expect(page).toHaveURL('/projects/BILL/comments?label=decision');
+        await expect(rows).toHaveCount(1);
+        expect(api.callsTo('GET', '/api/v1/projects/:projectKey/comments').at(-1)?.query.get('label')).toBe('decision');
+        await rows.getByRole('link', { name: 'Round invoice totals once per invoice' }).click();
+        await expect(page).toHaveURL(`/issues/${ISSUE_KEY}`);
     });
 
     test('"Approve plan" shows for a plan that an agent approved and posts the plan revision of the page', async ({ page, api }) => {

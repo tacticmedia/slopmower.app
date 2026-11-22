@@ -51,6 +51,7 @@ final class CrossTenantCoverageTest extends WebTestCase
         'shell_home' => 'shell',
         'shell_issue' => 'shell',
         'shell_project' => 'shell',
+        'shell_project_comments' => 'shell',
         'shell_projects' => 'shell',
         'shell_repositories' => 'shell',
         'shell_repository' => 'shell',

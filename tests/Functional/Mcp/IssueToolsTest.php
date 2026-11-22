@@ -25,7 +25,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;
 
 /**
- * docs/specs/mcp.md sections 4.19 to 4.27. The agent of a token for all repositories works on the issues of the
+ * docs/specs/mcp.md sections 4.19 to 4.28. The agent of a token for all repositories works on the issues of the
  * project SM.
  */
 final class IssueToolsTest extends WebTestCase
@@ -236,6 +236,62 @@ final class IssueToolsTest extends WebTestCase
         self::assertSame($this->user->getId()->toString(), $thread[0]['actor']['userId']);
     }
 
+    #[TestDox('comment_on_issue stores the label, by default comment, and get_issue shows it')]
+    public function testCommentLabel(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once'])['key']];
+
+        $this->call('comment_on_issue', $issue + ['body' => 'The test is next.']);
+        $this->call('comment_on_issue', $issue + ['body' => 'Round once per invoice, not per line.', 'label' => 'decision']);
+        $this->call('set_issue_status', $issue + ['status' => 'wont_do', 'note' => 'SM-9 covers it.']);
+
+        self::assertSame(
+            [['comment', 'comment'], ['comment', 'decision'], ['status_changed', null]],
+            array_map(static fn (array $entry): array => [$entry['kind'], $entry['label']], $this->call('get_issue', $issue)['thread']),
+        );
+    }
+
+    #[TestDox('list_comments returns the comments of one label across the issues of the project, newest first, and none of another project')]
+    public function testListCommentsByLabel(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        self::storeProject($this->user->getTenantId(), 'DOC');
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'problem' => self::PROBLEM]);
+        $second = $this->call('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode']);
+        $this->call('create_issue', ['project' => 'DOC', 'title' => 'Describe the rounding']);
+        $this->call('comment_on_issue', ['issue' => 'SM-1', 'body' => 'Round once per invoice.', 'label' => 'decision']);
+        $this->call('comment_on_issue', ['issue' => 'SM-1', 'body' => 'The test is next.']);
+        $commented = $this->call('comment_on_issue', ['issue' => 'SM-2', 'body' => 'Keep `round()` as deprecated.', 'label' => 'decision']);
+        $this->call('comment_on_issue', ['issue' => 'DOC-1', 'body' => 'Describe it in the README.', 'label' => 'decision']);
+        $row = static fn (array $comment): array => [$comment['issue']['key'], $comment['label'], $comment['body']];
+
+        $decisions = $this->call('list_comments', ['project' => 'SM', 'label' => 'decision']);
+        $all = $this->call('list_comments', ['project' => 'SM']);
+        $firstPage = $this->call('list_comments', ['project' => 'SM', 'limit' => 1]);
+        $secondPage = $this->call('list_comments', ['project' => 'SM', 'limit' => 1, 'cursor' => $firstPage['nextCursor']]);
+
+        self::assertSame([['SM-2', 'decision', 'Keep `round()` as deprecated.'], ['SM-1', 'decision', 'Round once per invoice.']], array_map($row, $decisions['items']));
+        self::assertNull($decisions['nextCursor']);
+        self::assertSame(['key' => 'SM-2', 'title' => $second['title'], 'status' => 'draft', 'updatedAt' => $commented['updatedAt']], $decisions['items'][0]['issue']);
+        self::assertSame(self::AGENT_NAME, $decisions['items'][0]['actor']['agentName']);
+        self::assertSame([['SM-2', 'decision'], ['SM-1', 'comment'], ['SM-1', 'decision']], array_map(static fn (array $comment): array => [$comment['issue']['key'], $comment['label']], $all['items']), 'No section_changed entry, and no comment of DOC.');
+        self::assertSame(['Keep `round()` as deprecated.', 'The test is next.'], [$firstPage['items'][0]['body'], $secondPage['items'][0]['body']]);
+    }
+
+    #[TestDox('A comment stored without a label reads as comment, in get_issue and in the label filter of list_comments')]
+    public function testCommentWithoutALabelReadsAsComment(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once'])['key']];
+        $this->call('comment_on_issue', $issue + ['body' => 'Round once per invoice.', 'label' => 'decision']);
+        self::getContainer()->get(EntityManagerInterface::class)->getConnection()->executeStatement('UPDATE issue_entry SET label = NULL');
+
+        self::assertSame('comment', $this->call('get_issue', $issue)['thread'][0]['label']);
+        self::assertSame(['comment'], array_column($this->call('list_comments', ['project' => 'SM', 'label' => 'comment'])['items'], 'label'));
+        self::assertSame([], $this->call('list_comments', ['project' => 'SM', 'label' => 'decision'])['items']);
+    }
+
     #[TestDox('A link needs a note and is on both issues, and a second link of the pair or a link to the issue itself is refused')]
     public function testLinks(): void
     {
@@ -259,7 +315,7 @@ final class IssueToolsTest extends WebTestCase
         self::assertSame([], $origin['thread'], 'A link writes no entry.');
     }
 
-    #[TestDox('A token of one repository sees only the issues of its project, and no project without a repository')]
+    #[TestDox('A token of one repository sees only the issues and the comments of its project, and no project without a repository')]
     public function testRepositoryTokenSeesItsProject(): void
     {
         $tenantId = $this->user->getTenantId();
@@ -270,20 +326,24 @@ final class IssueToolsTest extends WebTestCase
 
         foreach (['SM', 'DOC', 'OPS'] as $project) {
             $this->call('create_issue', ['project' => $project, 'title' => "An issue of {$project}"]);
+            $this->call('comment_on_issue', ['issue' => "{$project}-1", 'body' => "A comment of {$project}."]);
         }
 
         $scoped = new McpTestClient($this->client, self::storeToken($this->user, $alpha, name: 'scoped agent')[1]);
         $allProjects = $this->call('list_projects', []);
         $projects = self::assertToolResult($scoped, $scoped->callTool('list_projects'), 'list_projects');
         $issues = self::assertToolResult($scoped, $scoped->callTool('list_issues', ['project' => 'SM']), 'list_issues');
+        $comments = self::assertToolResult($scoped, $scoped->callTool('list_comments', ['project' => 'SM']), 'list_comments');
 
         self::assertSame([['DOC', ['beta']], ['OPS', []], ['SM', ['alpha']]], array_map(static fn (array $project): array => [$project['key'], $project['repositories']], $allProjects['items']));
         self::assertSame([['key' => 'SM', 'name' => 'Project SM', 'approvalMode' => 'self', 'repositories' => ['alpha']]], $projects['items']);
         self::assertSame(['SM-1'], array_column($issues['items'], 'key'));
+        self::assertSame(['A comment of SM.'], array_column($comments['items'], 'body'));
         self::assertSame('SM-2', self::assertToolResult($scoped, $scoped->callTool('create_issue', ['project' => 'SM', 'title' => 'From the scoped agent']), 'create_issue')['key']);
 
         foreach (['DOC', 'OPS'] as $hidden) {
             self::assertToolError($scoped->callTool('list_issues', ['project' => $hidden]), 'not_found');
+            self::assertToolError($scoped->callTool('list_comments', ['project' => $hidden]), 'not_found');
             self::assertToolError($scoped->callTool('create_issue', ['project' => $hidden, 'title' => 'Hidden']), 'not_found');
             self::assertToolError($scoped->callTool('get_issue', ['issue' => "{$hidden}-1"]), 'not_found');
             self::assertToolError($scoped->callTool('link_issues', ['issue' => 'SM-1', 'target' => "{$hidden}-1", 'note' => 'The same change.']), 'not_found');

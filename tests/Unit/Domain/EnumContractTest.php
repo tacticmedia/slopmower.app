@@ -12,6 +12,7 @@ use App\Domain\ApiToken\TokenScope;
 use App\Domain\Error\RepositoryUnavailableReason;
 use App\Domain\Event\EventType;
 use App\Domain\Issue\ApprovalMode;
+use App\Domain\Issue\CommentLabel;
 use App\Domain\Issue\IssueEntryKind;
 use App\Domain\Issue\IssueSection;
 use App\Domain\Issue\IssueStatus;
@@ -69,6 +70,7 @@ final class EnumContractTest extends KernelTestCase
             RepositorySource::class, RepositoryAccess::class, ReviewState::class, IndexState::class, RequestStatus::class,
             Awaiting::class, Resolution::class, AnchorKind::class, ActorKind::class, CommitLinkState::class,
             LocationStatus::class, OrphanReason::class, SuggestionState::class, IssueStatus::class, ApprovalMode::class, IssueSection::class,
+            CommentLabel::class,
         ];
 
         foreach ($closedSets as $enum) {

@@ -8,6 +8,7 @@ use App\Doctrine\Embeddable\ActorEmbeddable;
 use App\Domain\Actor\Actor;
 use App\Domain\Identity\IssueEntryId;
 use App\Domain\Identity\TenantId;
+use App\Domain\Issue\CommentLabel;
 use App\Domain\Issue\IssueEntryKind;
 use App\Domain\Issue\IssueSection;
 use App\Domain\Issue\IssueStatus;
@@ -38,6 +39,9 @@ class IssueEntry implements TenantOwned
     #[ORM\Column(enumType: IssueEntryKind::class)]
     private IssueEntryKind $kind;
 
+    #[ORM\Column(nullable: true, enumType: CommentLabel::class)]
+    private ?CommentLabel $label;
+
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $body;
 
@@ -51,21 +55,22 @@ class IssueEntry implements TenantOwned
     /**
      * @param array<string, string|null> $data
      */
-    private function __construct(Issue $issue, Actor $actor, IssueEntryKind $kind, ?string $body, array $data, \DateTimeImmutable $createdAt)
+    private function __construct(Issue $issue, Actor $actor, IssueEntryKind $kind, ?string $body, array $data, \DateTimeImmutable $createdAt, ?CommentLabel $label = null)
     {
         $this->id = IssueEntryId::generate();
         $this->tenantId = $issue->getTenantId();
         $this->issue = $issue;
         $this->actor = ActorEmbeddable::of($actor);
         $this->kind = $kind;
+        $this->label = $label;
         $this->body = $body;
         $this->data = $data;
         $this->createdAt = $createdAt;
     }
 
-    public static function comment(Issue $issue, Actor $actor, string $body, \DateTimeImmutable $createdAt): self
+    public static function comment(Issue $issue, Actor $actor, string $body, CommentLabel $label, \DateTimeImmutable $createdAt): self
     {
-        return new self($issue, $actor, IssueEntryKind::Comment, $body, [], $createdAt);
+        return new self($issue, $actor, IssueEntryKind::Comment, $body, [], $createdAt, $label);
     }
 
     public static function statusChanged(Issue $issue, Actor $actor, IssueStatus $from, IssueStatus $to, ?string $note, ?string $reviewer, \DateTimeImmutable $createdAt): self
@@ -104,9 +109,23 @@ class IssueEntry implements TenantOwned
         return $this->actor->toActor() ?? throw new \UnexpectedValueException('An issue entry has an actor.');
     }
 
+    public function getIssue(): Issue
+    {
+        return $this->issue;
+    }
+
     public function getKind(): IssueEntryKind
     {
         return $this->kind;
+    }
+
+    /**
+     * Null for an entry that is no comment. A comment with a null column reads as `comment`: a `make issues-dump` file
+     * without the column restores to such rows.
+     */
+    public function getLabel(): ?CommentLabel
+    {
+        return IssueEntryKind::Comment === $this->kind ? $this->label ?? CommentLabel::Comment : null;
     }
 
     public function getBody(): ?string

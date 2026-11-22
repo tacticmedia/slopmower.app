@@ -75,7 +75,7 @@
         {
             "name": "comment_on_issue",
             "title": "Comment on issue",
-            "description": "Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. With awaiting_user_input, name in a comment what the user must decide. Write technical English, as short as possible, and only what a later reader needs.",
+            "description": "Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. label says what the comment is, and list_comments finds the comments of a project by it. With awaiting_user_input, name in a comment with the label question what the user must decide. Write technical English, as short as possible, and only what a later reader needs.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -90,6 +90,21 @@
                         "minLength": 1,
                         "maxLength": 65536,
                         "pattern": "^[^\\x00]*$"
+                    },
+                    "label": {
+                        "type": "string",
+                        "description": "comment: progress or a remark. decision: a choice, with its reason and what it rules out. question: needs an answer from the user. finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent.",
+                        "default": "comment",
+                        "enum": [
+                            "comment",
+                            "decision",
+                            "question",
+                            "finding",
+                            "deviation",
+                            "scope_creep",
+                            "papercut",
+                            "review"
+                        ]
                     }
                 },
                 "required": [
@@ -402,6 +417,67 @@
                 "openWorldHint": false
             },
             "outputSchema": "link-pull-request-result.schema.json"
+        },
+        {
+            "name": "list_comments",
+            "title": "List comments",
+            "description": "List the comments of every issue of one project, newest first, each with its issue, its label, and its body. label returns only the comments with that label: every decision, or every papercut, of the project is one call.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "project": {
+                        "type": "string",
+                        "description": "Project key from list_projects, for example SM",
+                        "pattern": "^[A-Z]{2,10}$"
+                    },
+                    "label": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Only comments with this label",
+                        "default": null,
+                        "enum": [
+                            "comment",
+                            "decision",
+                            "question",
+                            "finding",
+                            "deviation",
+                            "scope_creep",
+                            "papercut",
+                            "review",
+                            null
+                        ]
+                    },
+                    "cursor": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "nextCursor of the previous page",
+                        "default": null,
+                        "minLength": 1,
+                        "pattern": "^[^\\x00]*$"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Page size",
+                        "default": 50,
+                        "minimum": 1,
+                        "maximum": 200
+                    }
+                },
+                "required": [
+                    "project"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": true,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            },
+            "outputSchema": "lists.schema.json#/$defs/IssueCommentPage"
         },
         {
             "name": "list_issues",
