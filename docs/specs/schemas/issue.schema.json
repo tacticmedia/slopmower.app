@@ -1,0 +1,273 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://slopmower.invalid/schemas/v1/issue.schema.json",
+  "title": "Issue",
+  "description": "An issue without its links and its thread: the result of every issue write.",
+  "type": "object",
+  "required": ["key", "title", "status", "problem", "plan", "result", "followUps", "project", "planRevision", "planApproval", "allowedStatuses", "createdBy", "createdAt", "updatedAt"],
+  "properties": {
+    "key": {
+      "$ref": "common.schema.json#/$defs/IssueKey"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "status": {
+      "$ref": "common.schema.json#/$defs/IssueStatus"
+    },
+    "problem": {
+      "type": ["string", "null"],
+      "maxLength": 65536,
+      "description": "Markdown: what the user wants, and how to tell that it is done."
+    },
+    "plan": {
+      "type": ["string", "null"],
+      "maxLength": 65536,
+      "description": "Markdown: the steps, the files, and the tests."
+    },
+    "result": {
+      "type": ["string", "null"],
+      "maxLength": 65536,
+      "description": "Markdown: what was done, with the commit SHAs, and each deviation from the plan."
+    },
+    "followUps": {
+      "type": ["string", "null"],
+      "maxLength": 65536,
+      "description": "Markdown: what came up and was left out."
+    },
+    "project": {
+      "type": "object",
+      "required": ["key", "name", "approvalMode"],
+      "properties": {
+        "key": {
+          "$ref": "common.schema.json#/$defs/ProjectKey"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "approvalMode": {
+          "$ref": "common.schema.json#/$defs/ApprovalMode"
+        }
+      }
+    },
+    "planRevision": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The ID of the newest section_changed entry of plan. Null without a plan. approve_plan names it."
+    },
+    "planApproval": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PlanApproval"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The approval of the plan of planRevision. A plan with new text clears it."
+    },
+    "allowedStatuses": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/IssueStatus"
+      },
+      "description": "The statuses that set_issue_status takes from the caller now, with a note and a reviewer where the rules need them."
+    },
+    "createdBy": {
+      "$ref": "actor.schema.json"
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/DateTime"
+    },
+    "updatedAt": {
+      "$ref": "common.schema.json#/$defs/DateTime"
+    }
+  },
+  "$defs": {
+    "PlanApproval": {
+      "type": "object",
+      "required": ["approvedBy", "approvedAt", "reviewer", "reviewNote"],
+      "properties": {
+        "approvedBy": {
+          "$ref": "actor.schema.json"
+        },
+        "approvedAt": {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        "reviewer": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "The name of the agent that reviewed the plan. Null for an approval of a user."
+        },
+        "reviewNote": {
+          "type": ["string", "null"],
+          "maxLength": 65536,
+          "description": "Markdown: the findings of the reviewer. Null for an approval of a user."
+        }
+      }
+    },
+    "IssueSummary": {
+      "type": "object",
+      "required": ["key", "title", "status", "updatedAt"],
+      "properties": {
+        "key": {
+          "$ref": "common.schema.json#/$defs/IssueKey"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "status": {
+          "$ref": "common.schema.json#/$defs/IssueStatus"
+        },
+        "updatedAt": {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        }
+      }
+    },
+    "IssueLink": {
+      "type": "object",
+      "required": ["issue", "note", "createdBy", "createdAt"],
+      "description": "A link of two issues. It has no direction, so both issues show it.",
+      "properties": {
+        "issue": {
+          "$ref": "#/$defs/IssueSummary",
+          "description": "The other issue of the link."
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "Markdown: the reason for the link."
+        },
+        "createdBy": {
+          "$ref": "actor.schema.json"
+        },
+        "createdAt": {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        }
+      }
+    },
+    "IssueEntry": {
+      "type": "object",
+      "required": ["id", "kind", "actor", "createdAt", "body", "section", "from", "to", "note", "reviewer", "reviewNote", "planRevision"],
+      "description": "One entry of the thread of an issue. The thread only grows.",
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/Ulid"
+        },
+        "kind": {
+          "$ref": "common.schema.json#/$defs/IssueEntryKind"
+        },
+        "actor": {
+          "$ref": "actor.schema.json"
+        },
+        "createdAt": {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        "body": {
+          "type": ["string", "null"],
+          "maxLength": 65536,
+          "description": "comment: the Markdown comment; else null. A section_changed entry carries its section and no text."
+        },
+        "section": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/IssueSection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "section_changed only. The ID of such an entry of plan is a plan revision."
+        },
+        "from": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/IssueStatus"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "status_changed only."
+        },
+        "to": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/IssueStatus"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "status_changed only."
+        },
+        "note": {
+          "type": ["string", "null"],
+          "maxLength": 65536,
+          "description": "status_changed only: the Markdown note of the change, when one was given."
+        },
+        "reviewer": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "status_changed and plan_approved: the name of the reviewing agent, when one was given."
+        },
+        "reviewNote": {
+          "type": ["string", "null"],
+          "maxLength": 65536,
+          "description": "plan_approved only: the Markdown findings of the reviewer."
+        },
+        "planRevision": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Ulid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "plan_approved only: the plan revision that the approval read."
+        }
+      }
+    },
+    "IssueDetail": {
+      "type": "object",
+      "required": ["issue", "links", "thread"],
+      "description": "The result of get_issue.",
+      "properties": {
+        "issue": {
+          "$ref": "issue.schema.json"
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/IssueLink"
+          },
+          "description": "Oldest first."
+        },
+        "thread": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/IssueEntry"
+          },
+          "description": "Oldest first."
+        }
+      }
+    }
+  }
+}

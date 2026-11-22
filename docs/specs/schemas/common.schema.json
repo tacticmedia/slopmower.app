@@ -314,6 +314,38 @@
         }
       },
       "description": "A question of an agent comment, or a question with its answer on a user comment (D107)."
+    },
+    "ProjectKey": {
+      "type": "string",
+      "pattern": "^[A-Z]{2,10}$",
+      "description": "The key of a project: 2 to 10 upper-case letters, unique per tenant. It never changes."
+    },
+    "IssueKey": {
+      "type": "string",
+      "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$",
+      "description": "The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12."
+    },
+    "IssueStatus": {
+      "enum": ["draft", "backlog", "todo", "in_progress", "awaiting_user_input", "in_review", "done", "wont_do"],
+      "description": "done means delivered. done and wont_do end an issue (D117)."
+    },
+    "ApprovalMode": {
+      "enum": ["user", "agent_review", "self"],
+      "description": "Who approves a plan and ends an issue of the project. user: only a signed-in user. agent_review: also an agent, with the name of a reviewing agent and its review on record. self: no approval (D117)."
+    },
+    "IssueSection": {
+      "enum": ["problem", "plan", "result", "followUps"]
+    },
+    "IssueEntryKind": {
+      "anyOf": [
+        {
+          "enum": ["comment", "status_changed", "section_changed", "plan_approved"]
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "Open set."
     }
   }
 }

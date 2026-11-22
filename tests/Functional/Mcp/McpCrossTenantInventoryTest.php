@@ -110,8 +110,9 @@ final class McpCrossTenantInventoryTest extends WebTestCase
     }
 
     /**
-     * The other tenant connected the local source "billing" and has a review of it with a request. The token's tenant
-     * has its own repository "alpha".
+     * The other tenant connected the local source "billing" and has a review of it with a request, and the project OILU
+     * with one issue. The token's tenant has its own repository "alpha" and its own issue SM-1. No ULID holds the letters
+     * of OILU.
      *
      * @return array{McpTestClient, array<string, string>} The client, and the IDs of the other tenant by placeholder name
      */
@@ -123,13 +124,20 @@ final class McpCrossTenantInventoryTest extends WebTestCase
         $user = TenantFixtures::of(self::getContainer())->create();
         self::storeRepository($user->getTenantId(), 'alpha');
         [, $secret] = self::storeToken($user);
+        self::storeProject($other->getTenantId(), 'OILU');
+        self::storeProject($user->getTenantId(), 'SM');
+        self::assertToolResult($otherMcp = new McpTestClient($client, self::storeToken($other)[1]), $otherMcp->callTool('create_issue', ['project' => 'OILU', 'title' => 'Use Money']), 'create_issue');
+        $mcp = new McpTestClient($client, $secret);
+        self::assertToolResult($mcp, $mcp->callTool('create_issue', ['project' => 'SM', 'title' => 'Use Money']), 'create_issue');
 
-        return [new McpTestClient($client, $secret), [
+        return [$mcp, [
             'tenantId' => $other->getTenantId()->toString(),
             'userId' => $other->getId()->toString(),
             'repositoryId' => $otherReview->getRepository()->getId()->toString(),
             'reviewId' => $otherReview->getId()->toString(),
             'requestId' => self::storeRequest($otherReview)->getId()->toString(),
+            'projectKey' => 'OILU',
+            'issueKey' => 'OILU-1',
         ]];
     }
 }

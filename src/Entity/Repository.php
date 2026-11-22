@@ -92,6 +92,10 @@ class Repository implements TenantOwned
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
+    /** The project of the issue tracker that owns the repository (D116). */
+    #[ORM\ManyToOne]
+    private ?Project $project = null;
+
     private function __construct(TenantId $tenantId, RepositoryName $name, \DateTimeImmutable $createdAt)
     {
         $this->id = RepositoryId::generate();
@@ -248,6 +252,20 @@ class Repository implements TenantOwned
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function getProject(): ?Project
+    {
+        return $this->project;
+    }
+
+    public function assignProject(Project $project): void
+    {
+        if (!$project->getTenantId()->equals($this->tenantId)) {
+            throw new \LogicException('The project belongs to another tenant.');
+        }
+
+        $this->project = $project;
     }
 
     public function isFetchRequested(): bool

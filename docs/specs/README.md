@@ -9,10 +9,10 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 | [README.md](README.md) | Conventions, authentication, errors, pagination, caching, repository sources, versioning, schema and fixture index |
 | [rest-api.md](rest-api.md) | REST endpoint index, account, repositories, reviews and code |
 | [rest-api-requests.md](rest-api-requests.md) | REST requests, updates, drafts, API tokens, and the routes outside `/api/v1` |
-| [mcp.md](mcp.md) | MCP endpoint, server instructions, the 18 tools, error mapping, parity with REST |
+| [mcp.md](mcp.md) | MCP endpoint, server instructions, the 27 tools, the issue rules, error mapping, parity with REST |
 | [mcp-tools.json](mcp-tools.json) | The name, title, description, input schema, annotations, and output schema of each MCP tool, in the order of `tools/list` |
 | [webhooks-and-live-updates.md](webhooks-and-live-updates.md) | GitHub webhooks, fetch triggers and post-fetch steps, Mercure live updates |
-| [schemas/](schemas/) | 33 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
+| [schemas/](schemas/) | 35 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
 | [fixtures/](fixtures/) | One realistic example per response shape, error code, live-update type, and request body. See [section 11](#11-fixtures). |
 
 ## 2. Conventions
@@ -49,6 +49,10 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 | pull request `url` | `https`, at most 2,048 characters, no whitespace. For a GitHub repository, `https://github.com/{owner}/{name}/pull/{number}` of the review's repository, compared case-insensitively. The server stores such a URL with the repository name as connected. A local repository accepts any such URL as written. |
 | token `name` | 1 to 64 characters, pattern in [api-token.schema.json](schemas/api-token.schema.json) |
 | pending suggestions | At most 500 per review. One more gets 422 `invalid_input`. |
+| issue `title` | 1 to 200 characters after trimming, one line without CR or LF, at least one non-whitespace character. The server stores it trimmed. |
+| issue `problem`, `plan`, `result`, `followUps`, comment `body`, link `note`, status `note` | 1 to 65,536 characters. A section or a status `note` of whitespace only counts as empty for the [issue rules](mcp.md#issue-tools). A comment `body` and a link `note` need one non-whitespace character. |
+| issue `reviewer` | 1 to 64 characters |
+| issue `reviewNote` | at least 20 characters after trimming, at most 65,536 characters |
 
 ## 3. Authentication, actors, and scope
 
@@ -63,7 +67,7 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 - **401 headers.** Every 401 carries `WWW-Authenticate: Bearer realm="slopmower"`. When the request sent a token, the header adds `, error="invalid_token"`.
 - **CSRF.** Session writes must pass `SameOriginCsrfTokenManager` with the stateless token ID `api`. The request needs `Sec-Fetch-Site: same-origin`, an `Origin` or `Referer` header that matches the host, or a double-submit token of at least 24 characters in the `csrf-token` header. An origin header that does not match fails also with the token. A failure gets 403 `forbidden`.
 - **Tenant context.** Each request sets a fail-closed tenant context from the session user or from the token. A Doctrine SQL filter limits every ORM query to that tenant. Without a tenant context, no tenant data is read.
-- **Visibility.** A caller sees only its own tenant. A token scoped to one repository sees only that repository and its reviews, requests, drafts, and blobs. Any ID outside that visibility gets **404 `not_found`**, in the path, the query, or the body. An unknown name in the MCP `repository` argument, and a connect input that is not a candidate, also get 404. `GET /api/v1/repositories?name=` returns an empty page instead.
+- **Visibility.** A caller sees only its own tenant. A token scoped to one repository sees only that repository and its reviews, requests, drafts, and blobs. Any ID outside that visibility gets **404 `not_found`**, in the path, the query, or the body. An unknown name in the MCP `repository` argument, and a connect input that is not a candidate, also get 404. `GET /api/v1/repositories?name=` returns an empty page instead. Of the issue tracker, such a token sees only the project of its repository, with its issues, their entries, and the links between them. A project without a repository is invisible to it (D116).
 - **Actor kinds.** The "Authentication" column of the [endpoint index](rest-api.md#2-endpoint-index) lists the modes that may call each endpoint. A token call to an `S`-only endpoint, or a session call to a `B`-only endpoint, gets 403 `forbidden`.
 
 ## 4. Errors
@@ -195,7 +199,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
    - new endpoints and tools;
    - new optional input fields or query parameters whose absence keeps the old behaviour;
    - new response properties;
-   - new values in **open** sets: `Action`, `EventType`, `ThreadEntryType`, `ErrorCode`, `SymbolKind`, `UsageLimit`, `Tour`, `Workspace`, `RequestType`, `language`, the live-update `type`, and the search hit `kind`;
+   - new values in **open** sets: `Action`, `EventType`, `ThreadEntryType`, `ErrorCode`, `SymbolKind`, `UsageLimit`, `Tour`, `Workspace`, `RequestType`, `IssueEntryKind`, `language`, the live-update `type`, and the search hit `kind`;
    - new error codes for new situations;
    - relaxed validation, for example higher limits;
    - new headers.
@@ -204,7 +208,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
    - changing a type, format, or nullability. Making a non-null field nullable is breaking.
    - a new required input;
    - tighter validation;
-   - new values in **closed** sets: `RequestStatus`, `Awaiting`, `Resolution`, `AnchorKind`, `ActorKind`, `CommitLinkState`, `LocationStatus`, `OrphanReason`, `ProposalState`, `PullRequestState`, `SuggestionState`, `RepositorySource`, `RepositoryAccess`, `ReviewState`, `IndexState`, `CarryOverOutcome`, `sync.state`, token `scope` and `state`, commit file `status`, tree entry `type`;
+   - new values in **closed** sets: `RequestStatus`, `Awaiting`, `Resolution`, `AnchorKind`, `ActorKind`, `CommitLinkState`, `LocationStatus`, `OrphanReason`, `ProposalState`, `PullRequestState`, `SuggestionState`, `RepositorySource`, `RepositoryAccess`, `ReviewState`, `IndexState`, `CarryOverOutcome`, `IssueStatus`, `ApprovalMode`, `IssueSection`, `sync.state`, token `scope` and `state`, commit file `status`, tree entry `type`;
    - a different HTTP status or error code for an existing situation;
    - changed defaults, sort orders, or pagination style;
    - a changed meaning of an existing field.
@@ -224,7 +228,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
    - Deprecated REST endpoints send `Deprecation: @<unix time>` as in RFC 9745, `Sunset: <HTTP-date>` as in RFC 8594, and `Link: <https://<host>/docs/<page>>; rel="deprecation"`.
    - The description of a deprecated MCP tool starts with `Deprecated: use <tool>.`
    - A v2 runs next to v1 for at least 90 days.
-7. **SKILL.md** carries `metadata: {api: "v1"}` in its frontmatter and names only v1 tools. Its source is `docs/user/skill/SKILL.md`, and `GET /docs/skill/SKILL.md` serves it raw. The PHPUnit skill test fails when the skill names a tool that does not exist.
+7. **SKILL.md** carries `metadata: {api: "v1"}` in its frontmatter and names only v1 tools. Its source is `docs/user/skill/SKILL.md`, and `GET /docs/skill/SKILL.md` serves it raw. The second skill `slopmower-issues`, `docs/user/skill-issues/SKILL.md`, has the issue tools and the same frontmatter, and no public route yet. The PHPUnit skill test fails when the tools of the two skills together differ from `tools/list`.
 8. **Stored events** are never rewritten. New payload fields are additive, and readers use a default for a missing field. The API `Event` is a derived representation, not the stored payload.
 9. **MCP protocol revisions**, 2025-11-25 with the handshake and 2026-07-28 stateless, are independent of the API version. Every output schema keeps an object root, which the handshake era requires.
 10. **Amendments before the first release.** Until the first release, v1 is amended in place, without a v2, because its only clients are the web UI and the bundled skill. The amendments:
@@ -257,13 +261,14 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - No pull request choice on an approval, decision D108: Q15 has no input `pullRequest`, and a body with it answers as one without it. `Request.delivery` is `Review.delivery`, so a stored approval with `pullRequest` no longer changes it. Not additive: it removes an input and changes the meaning of `Request.delivery`. Readers ignore the `pullRequest` of a stored `request.proposal_approved`, so stored events need no change.
     - No rejection of a proposal, decision D110: Q16, the input `RejectProposalInput`, and the `Action` value `reject_proposal` are gone. The user asks for changes with a reply (Q4), which keeps the proposal pending. Not additive: it removes an endpoint and an `Action` value. `ProposalState` keeps `rejected` and `ThreadEntryType` keeps `request.proposal_rejected`, so stored events need no change.
     - Draft anchor change, decision D115: the optional input `anchor` of D3, which moves a `new_request` draft. It is additive.
+    - Issue tracker, decisions D116 to D118: the nine issue tools of [mcp.md](mcp.md#issue-tools), the schemas `Project` and `Issue` with their pages, the definitions `ProjectKey`, `IssueKey`, `IssueStatus`, `ApprovalMode`, `IssueSection`, and `IssueEntryKind`, and the second skill. All are additive. Issues are not event data.
 
 ## 9. Contract tests
 
 - Functional tests validate REST responses with `JsonApiAssertions::assertApiResponse()`, which uses `opis/json-schema` 2.6.0.
 - Every MCP `structuredContent` is validated against the `outputSchema` of its tool.
 - Every fixture in [section 11](#11-fixtures) is validated against the schema that the table names. The TypeScript types of the web UI are checked against the same fixture files.
-- `McpRestParityTest` compares the MCP and REST payloads of every tool: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, and every write tool. See [mcp.md](mcp.md#6-mcp-and-rest).
+- `McpRestParityTest` compares the MCP and REST payloads of every tool with a REST endpoint: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, and every write tool of the requests and reviews. See [mcp.md](mcp.md#6-mcp-and-rest).
 
 ## 10. Schemas
 
@@ -276,7 +281,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 
 | File | `$id` | Content |
 |---|---|---|
-| [common.schema.json](schemas/common.schema.json) | `https://slopmower.invalid/schemas/v1/common.schema.json` | `$defs` only: IDs, SHAs, paths, times, cursors, `NoNulText`, `Markdown`, `Title`, `Group`, `UnifiedDiff`, `Proposal`, and the shared enums |
+| [common.schema.json](schemas/common.schema.json) | `https://slopmower.invalid/schemas/v1/common.schema.json` | `$defs` only: IDs, SHAs, paths, times, cursors, `NoNulText`, `Markdown`, `Title`, `Group`, `UnifiedDiff`, `Proposal`, `ProjectKey`, `IssueKey`, and the shared enums |
 | [error.schema.json](schemas/error.schema.json) | `https://slopmower.invalid/schemas/v1/error.schema.json` | Error body and the `details` shape per code |
 | [actor.schema.json](schemas/actor.schema.json) | `https://slopmower.invalid/schemas/v1/actor.schema.json` | Actor: user, agent, or system |
 | [anchor.schema.json](schemas/anchor.schema.json) | `https://slopmower.invalid/schemas/v1/anchor.schema.json` | Anchor of a request with a code location, plus `LineRange`, `SymbolRef`, `ContentSnapshot`, `AnchorSummary`, `AnchorInput`. A general request has no anchor. |
@@ -309,11 +314,13 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [lists.schema.json](schemas/lists.schema.json) | `https://slopmower.invalid/schemas/v1/lists.schema.json` | `$defs` only: every page and list, `MercureAuthorization`, and `CodeToken` |
 | [inputs.schema.json](schemas/inputs.schema.json) | `https://slopmower.invalid/schemas/v1/inputs.schema.json` | `$defs` only: every REST request body |
 | [live-update.schema.json](schemas/live-update.schema.json) | `https://slopmower.invalid/schemas/v1/live-update.schema.json` | Data of one Mercure update, IDs only |
+| [project.schema.json](schemas/project.schema.json) | `https://slopmower.invalid/schemas/v1/project.schema.json` | A project of the issue tracker, with the names of its repositories |
+| [issue.schema.json](schemas/issue.schema.json) | `https://slopmower.invalid/schemas/v1/issue.schema.json` | An issue without its links and its thread, plus `PlanApproval`, `IssueSummary`, `IssueLink`, `IssueEntry`, and `IssueDetail`, the result of `get_issue` |
 
 ## 11. Fixtures
 
 - A fixture is a complete, realistic document. Its name is `<schema>.<case>.json`, where `<schema>` is the base name of its schema file.
-- Most fixtures tell one story: the user reviews `acme/billing` at commit `79f8595a4c1e`, opens two requests, and the agent `claude-code laptop` works on them and suggests one more. The others show a closed review, other token states, and a local sign-in.
+- Most fixtures tell one story: the user reviews `acme/billing` at commit `79f8595a4c1e`, opens two requests, and the agent `claude-code laptop` works on them and suggests one more. The others show a closed review, other token states, a local sign-in, and the issue `BILL-12` of the project `BILL`.
 - Every fixture must validate against the schema in the table. Every inline JSON example in these specification files that names a fixture must equal that fixture.
 
 | Fixture | Schema | Used by |
@@ -341,6 +348,8 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [error.unauthorized.json](fixtures/error.unauthorized.json) | `error.schema.json` | Any endpoint, the MCP transport |
 | [file-content.browser.json](fixtures/file-content.browser.json) | `file-content.schema.json` | V7 of a `browser` repository |
 | [file-content.php.json](fixtures/file-content.php.json) | `file-content.schema.json` | V7 |
+| [issue.detail.json](fixtures/issue.detail.json) | `issue.schema.json#/$defs/IssueDetail` | `get_issue` |
+| [issue.plan-approved.json](fixtures/issue.plan-approved.json) | `issue.schema.json` | `approve_plan`, and the shape of every issue write |
 | [inputs.accept-suggestion.json](fixtures/inputs.accept-suggestion.json) | `inputs.schema.json#/$defs/AcceptSuggestionInput` | Q21 |
 | [inputs.approve-proposal.json](fixtures/inputs.approve-proposal.json) | `inputs.schema.json#/$defs/ApproveProposalInput` | Q15 |
 | [inputs.carry-over.json](fixtures/inputs.carry-over.json) | `inputs.schema.json#/$defs/CarryOverInput` | V15 |
@@ -381,7 +390,9 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [lists.commit-list.json](fixtures/lists.commit-list.json) | `lists.schema.json#/$defs/CommitLog` | R9 |
 | [lists.declaration-list.json](fixtures/lists.declaration-list.json) | `lists.schema.json#/$defs/DeclarationList` | V14 |
 | [lists.draft-list.json](fixtures/lists.draft-list.json) | `lists.schema.json#/$defs/DraftList` | D1 |
+| [lists.issue-page.json](fixtures/lists.issue-page.json) | `lists.schema.json#/$defs/IssuePage` | `list_issues` |
 | [lists.mercure-authorization.json](fixtures/lists.mercure-authorization.json) | `lists.schema.json#/$defs/MercureAuthorization` | A3 |
+| [lists.project-page.json](fixtures/lists.project-page.json) | `lists.schema.json#/$defs/ProjectPage` | `list_projects` |
 | [lists.repository-page.json](fixtures/lists.repository-page.json) | `lists.schema.json#/$defs/RepositoryPage` | R1, `list_repositories` |
 | [lists.request-page.json](fixtures/lists.request-page.json) | `lists.schema.json#/$defs/RequestPage` | Q1, `list_requests` |
 | [lists.review-page.json](fixtures/lists.review-page.json) | `lists.schema.json#/$defs/ReviewPage` | V2, `list_reviews` |

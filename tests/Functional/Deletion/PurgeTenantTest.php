@@ -17,6 +17,7 @@ use App\Tests\Support\Deletion\DeletionFixtures;
 use App\Tests\Support\Environment\EnvironmentVariables;
 use App\Tests\Support\Filesystem\TemporaryDirectories;
 use App\Tests\Support\GitHub\GitHubRows;
+use App\Tests\Support\Mcp\McpTestClient;
 use App\Tests\Support\Messenger\QueuedMessages;
 use App\Tests\Support\Source\LocalSources;
 use Doctrine\DBAL\Connection;
@@ -70,6 +71,8 @@ final class PurgeTenantTest extends WebTestCase
         self::storePullRequest($repositoryId);
         self::storeInstallation($this->user->getTenantId());
         self::storeCandidate($this->user->getTenantId());
+        $this->storeLinkedIssues($this->other, self::storeToken($this->other)[1]);
+        $this->storeLinkedIssues($this->user, $secret);
     }
 
     #[TestDox('information_schema shows 0 rows of the tenant in every table with tenant_id')]
@@ -123,6 +126,22 @@ final class PurgeTenantTest extends WebTestCase
         self::assertDirectoryExists(self::getContainer()->get(TenantDataPaths::class)->tenantPath($this->other->getTenantId()));
         $this->client->loginUser($this->other, 'web');
         self::assertSame(1, self::assertApiResponse(self::apiRequest($this->client, 'GET', '/api/v1/repositories'), 200, 'lists.schema.json#/$defs/RepositoryPage')['items'][0]['openReviewCount'] ?? null);
+    }
+
+    /**
+     * The project SM with two linked issues, one with a plan approval, so project, issue, issue_entry, and issue_link
+     * have rows of the tenant, and an issue points to an entry.
+     */
+    private function storeLinkedIssues(User $user, #[\SensitiveParameter] string $secret): void
+    {
+        self::storeProject($user->getTenantId(), 'SM');
+        $mcp = new McpTestClient($this->client, $secret);
+        $mcp->callTool('create_issue', ['project' => 'SM', 'title' => 'Round once']);
+        $planned = $mcp->callTool('update_issue', ['issue' => 'SM-1', 'plan' => 'Add `TaxRounding`.']);
+        self::assertIsArray($planned['structuredContent'] ?? null, (string) json_encode($planned));
+        $mcp->callTool('approve_plan', ['issue' => 'SM-1', 'planRevision' => $planned['structuredContent']['planRevision'], 'reviewer' => 'plan-reviewer', 'reviewNote' => 'The plan covers the rounding.']);
+        $mcp->callTool('create_issue', ['project' => 'SM', 'title' => 'Round twice']);
+        self::assertFalse($mcp->callTool('link_issues', ['issue' => 'SM-2', 'target' => 'SM-1', 'note' => 'The same rounding.'])['isError'] ?? false);
     }
 
     private function deleteAccountAndRunThePurge(): void

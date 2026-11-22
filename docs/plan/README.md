@@ -161,7 +161,8 @@ PHP, Composer, the console, and PHPUnit run in the `php` container. `make` wraps
 | `make mate c="<arguments>"` | `vendor/bin/mate <arguments>`: Symfony AI Mate tools, for example `tools:list` or `tools:call monolog-tail --level=ERROR`. The project tools `review-list` and `review-events` in `mate/src` read the reviews and the event log of the dev database, as `mate/INSTRUCTIONS.md` describes. |
 | `make migration` | `bin/console make:migration --no-interaction` |
 | `make db-reset` | Dev database: drop, create, migrate. Ask Jan first. Run `make fixtures` after it. |
-| `make fixtures` | `bin/console foundry:load-fixtures dev --append --no-transaction`: the local user of `APP_LOCAL_SIGN_IN`, the agent token `APP_DEV_API_TOKEN` of `.env.dev`, and the local repository `APP_DEV_REPOSITORY`. A second load adds no row. |
+| `make fixtures` | `bin/console foundry:load-fixtures dev --append --no-transaction`: the local user of `APP_LOCAL_SIGN_IN`, the agent token `APP_DEV_API_TOKEN` of `.env.dev`, the local repository `APP_DEV_REPOSITORY`, and the project `SM` of the issue tracker, which owns that repository. A second load adds no row. |
+| `make issues-dump` | `pg_dump --data-only --disable-triggers` of `project`, `issue`, `issue_entry`, and `issue_link` of the dev database into `var/backups/issues-<UTC time>.sql` (D119). A failed dump leaves a `.part` file and no `.sql` file. |
 | `make db-test` | Databases `app_test` and `app_e2e`: create each one if it is missing, then migrate it |
 | `make test` | `bin/phpunit --testsuite unit,functional`. Runs `npm run build:e2e` first when `package.json` exists and `public/build-e2e/entrypoints.json` is missing. |
 | `make e2e` | `npm run build:e2e` on the host when `package.json` exists, then in the `php` container: `npm install --save-exact playwright@$PLAYWRIGHT_VERSION` for the playwright-php server, `vendor/bin/playwright-install chromium` (returns at once when the browser is present), and `bin/phpunit --testsuite e2e` |
@@ -238,7 +239,7 @@ make up
 
   | Directory | Content |
   |---|---|
-  | `src/Domain` | Pure PHP, so unit tests run it without the kernel (D44). It imports only `App\Domain`, `Symfony\Component\Uid`, and PHP core. |
+  | `src/Domain` | Pure PHP, so unit tests run it without the kernel (D44). It imports only `App\Domain`, `Symfony\Component\Uid`, and PHP core. `src/Domain/Issue` holds the rules of the issue tracker (D117). |
   | `src/Application` | Use cases and queries |
   | `src/Entity`, `src/Repository` | Doctrine entities and repositories |
   | `src/Doctrine` | DBAL types, DQL functions, and embeddables |
@@ -249,6 +250,7 @@ make up
   | `src/Http` | The `/api/v1` listeners, the cursor codec, the `QueryInput` marker, the Sentry `before_send` callback |
   | `src/Serializer/Normalizer` | The value normalizers, and one normalizer per schema whose response class cannot be schema-shaped. REST and MCP share them. |
   | `src/Mcp` | `McpTools` with every tool, the session decorators, generated `BundledSchemas` |
+  | `docs/user/skill`, `docs/user/skill-issues` | The two Agent Skills: `slopmower` for the requests, `slopmower-issues` for the issue tracker. `.claude/skills/<name>/SKILL.md` holds the same bytes. |
   | `src/Live`, `src/Index`, `src/Anchoring`, `src/Docs` | Mercure, symbol index, re-anchoring, public documentation |
   | `src/Message`, `src/MessageHandler`, `src/Messenger`, `src/Schedule.php` | Messenger messages, every Messenger handler, middleware, the SQL of the queue `failed`, the schedule of the recurring jobs |
   | `src/Command`, `src/GitHub`, `src/Webhook` | Operator commands, GitHub API, GitHub webhooks |

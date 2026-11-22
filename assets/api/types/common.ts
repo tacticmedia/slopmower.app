@@ -18,6 +18,10 @@ export type Question = { question: string; detail: Markdown | null; answer: stri
 export type UnifiedDiff = string;
 export type Cursor = string;
 export type EventSeq = number;
+/** 2 to 10 upper-case letters. */
+export type ProjectKey = string;
+/** The project key, a hyphen, and the number of the issue in the project: `SM-12`. */
+export type IssueKey = string;
 
 export const REPOSITORY_SOURCES = ['github', 'local'] as const;
 export type RepositorySource = (typeof REPOSITORY_SOURCES)[number];
@@ -208,6 +212,30 @@ export type Workspace = OpenSet<KnownWorkspace>;
 export const REQUEST_TYPES = ['change', 'question', 'rule'] as const;
 export type KnownRequestType = (typeof REQUEST_TYPES)[number];
 export type RequestType = OpenSet<KnownRequestType>;
+
+/** `done` and `wont_do` end an issue (D117). */
+export const ISSUE_STATUSES = [
+    'draft',
+    'backlog',
+    'todo',
+    'in_progress',
+    'awaiting_user_input',
+    'in_review',
+    'done',
+    'wont_do',
+] as const;
+export type IssueStatus = (typeof ISSUE_STATUSES)[number];
+
+/** Who approves a plan and ends an issue of a project (D117). */
+export const APPROVAL_MODES = ['user', 'agent_review', 'self'] as const;
+export type ApprovalMode = (typeof APPROVAL_MODES)[number];
+
+export const ISSUE_SECTIONS = ['problem', 'plan', 'result', 'followUps'] as const;
+export type IssueSection = (typeof ISSUE_SECTIONS)[number];
+
+export const ISSUE_ENTRY_KINDS = ['comment', 'status_changed', 'section_changed', 'plan_approved'] as const;
+export type KnownIssueEntryKind = (typeof ISSUE_ENTRY_KINDS)[number];
+export type IssueEntryKind = OpenSet<KnownIssueEntryKind>;
 
 /** How the agent delivers its work (D85). Null lets the agent decide. */
 export type Delivery = {

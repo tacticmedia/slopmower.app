@@ -1,0 +1,166 @@
+{
+  "issue": {
+    "key": "BILL-12",
+    "title": "Round invoice totals once per invoice",
+    "status": "in_progress",
+    "problem": "Invoice totals round each line, so an invoice of three lines can be 1 cent off.\n\nDone when `InvoiceTotalsTest` has a case with three lines of 0.335 and the total is 1.01.",
+    "plan": "1. Add `TaxRounding::perInvoice()` in `src/Billing/TaxRounding.php`.\n2. Use it in `InvoiceTotals::total()`.\n3. Test: a case with three lines of 0.335 in `tests/Billing/InvoiceTotalsTest.php`.",
+    "result": null,
+    "followUps": null,
+    "project": {
+      "key": "BILL",
+      "name": "Billing",
+      "approvalMode": "agent_review"
+    },
+    "planRevision": "01K7F3C5D6E7F8G9H0J1K2M3N4",
+    "planApproval": {
+      "approvedBy": {
+        "kind": "agent",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "agentName": "claude-code laptop",
+        "name": "claude-code laptop",
+        "avatarUrl": null
+      },
+      "approvedAt": "2026-10-02T09:12:40Z",
+      "reviewer": "plan-reviewer",
+      "reviewNote": "The plan covers the rounding and its test. It leaves the shipping totals alone, which is right: BILL-9 owns them."
+    },
+    "allowedStatuses": [
+      "draft",
+      "backlog",
+      "todo",
+      "awaiting_user_input",
+      "wont_do"
+    ],
+    "createdBy": {
+      "kind": "agent",
+      "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+      "agentName": "claude-code laptop",
+      "name": "claude-code laptop",
+      "avatarUrl": null
+    },
+    "createdAt": "2026-10-02T09:01:12Z",
+    "updatedAt": "2026-10-02T09:20:05Z"
+  },
+  "links": [
+    {
+      "issue": {
+        "key": "BILL-9",
+        "title": "Round shipping totals per line",
+        "status": "done",
+        "updatedAt": "2026-10-02T09:03:30Z"
+      },
+      "note": "BILL-9 owns the shipping totals, which this issue leaves alone.",
+      "createdBy": {
+        "kind": "agent",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "agentName": "claude-code laptop",
+        "name": "claude-code laptop",
+        "avatarUrl": null
+      },
+      "createdAt": "2026-10-02T09:03:30Z"
+    }
+  ],
+  "thread": [
+    {
+      "id": "01K7F3B4C5D6E7F8G9H0J1K2M3",
+      "kind": "section_changed",
+      "actor": {
+        "kind": "agent",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "agentName": "claude-code laptop",
+        "name": "claude-code laptop",
+        "avatarUrl": null
+      },
+      "createdAt": "2026-10-02T09:01:12Z",
+      "body": null,
+      "section": "problem",
+      "from": null,
+      "to": null,
+      "note": null,
+      "reviewer": null,
+      "reviewNote": null,
+      "planRevision": null
+    },
+    {
+      "id": "01K7F3C5D6E7F8G9H0J1K2M3N4",
+      "kind": "section_changed",
+      "actor": {
+        "kind": "agent",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "agentName": "claude-code laptop",
+        "name": "claude-code laptop",
+        "avatarUrl": null
+      },
+      "createdAt": "2026-10-02T09:08:47Z",
+      "body": null,
+      "section": "plan",
+      "from": null,
+      "to": null,
+      "note": null,
+      "reviewer": null,
+      "reviewNote": null,
+      "planRevision": null
+    },
+    {
+      "id": "01K7F3D6E7F8G9H0J1K2M3N4P5",
+      "kind": "plan_approved",
+      "actor": {
+        "kind": "agent",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "agentName": "claude-code laptop",
+        "name": "claude-code laptop",
+        "avatarUrl": null
+      },
+      "createdAt": "2026-10-02T09:12:40Z",
+      "body": null,
+      "section": null,
+      "from": null,
+      "to": null,
+      "note": null,
+      "reviewer": "plan-reviewer",
+      "reviewNote": "The plan covers the rounding and its test. It leaves the shipping totals alone, which is right: BILL-9 owns them.",
+      "planRevision": "01K7F3C5D6E7F8G9H0J1K2M3N4"
+    },
+    {
+      "id": "01K7F3E7F8G9H0J1K2M3N4P5Q6",
+      "kind": "status_changed",
+      "actor": {
+        "kind": "agent",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "agentName": "claude-code laptop",
+        "name": "claude-code laptop",
+        "avatarUrl": null
+      },
+      "createdAt": "2026-10-02T09:13:02Z",
+      "body": null,
+      "section": null,
+      "from": "todo",
+      "to": "in_progress",
+      "note": null,
+      "reviewer": null,
+      "reviewNote": null,
+      "planRevision": null
+    },
+    {
+      "id": "01K7F3F8G9H0J1K2M3N4P5Q6R7",
+      "kind": "comment",
+      "actor": {
+        "kind": "agent",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "agentName": "claude-code laptop",
+        "name": "claude-code laptop",
+        "avatarUrl": null
+      },
+      "createdAt": "2026-10-02T09:20:05Z",
+      "body": "`TaxRounding::perInvoice()` is in. The test is next.",
+      "section": null,
+      "from": null,
+      "to": null,
+      "note": null,
+      "reviewer": null,
+      "reviewNote": null,
+      "planRevision": null
+    }
+  ]
+}

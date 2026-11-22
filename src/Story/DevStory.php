@@ -9,6 +9,8 @@ use App\Domain\ApiToken\ApiTokenSecret;
 use App\Domain\ApiToken\ApiTokenState;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Error\NotFound;
+use App\Domain\Issue\ApprovalMode;
+use App\Entity\Project;
 use App\Entity\User;
 use App\Factory\ApiTokenFactory;
 use App\Repository\ApiTokenRepository;
@@ -22,13 +24,15 @@ use Zenstruck\Foundry\Attribute\AsFixture;
 use Zenstruck\Foundry\Story;
 
 /**
- * The local user, its agent token, and the repository APP_DEV_REPOSITORY. A second load adds no row. Loads without a
+ * The local user, its agent token, the repository APP_DEV_REPOSITORY, and the project SM of the issue tracker, which
+ * owns that repository (D119). A second load adds no row and keeps the approval mode of the project. Loads without a
  * transaction: {@see \App\Application\FetchRepository::queueClone()} refuses an open one.
  */
 #[AsFixture(name: 'dev')]
 final class DevStory extends Story
 {
     public const string TOKEN_NAME = 'Claude Code (dev)';
+    public const string PROJECT_KEY = 'SM';
 
     public function __construct(
         private readonly LocalUserProvisioner $users,
@@ -59,7 +63,8 @@ final class DevStory extends Story
         $user = $this->users->provision($this->login);
         $this->tenantContext->set($user->getTenantId());
         $this->token($user, $secret);
-        $this->repository();
+        $this->repository($this->project($user));
+        $this->entityManager->flush();
     }
 
     /**
@@ -82,12 +87,33 @@ final class DevStory extends Story
         ApiTokenFactory::createOne(['user' => $user, 'name' => self::TOKEN_NAME, 'secret' => $secret]);
     }
 
-    private function repository(): void
+    private function project(User $user): Project
+    {
+        $project = $this->entityManager->getRepository(Project::class)->findOneBy(['key' => self::PROJECT_KEY]);
+
+        if (null === $project) {
+            $project = new Project($user->getTenantId(), self::PROJECT_KEY, 'Slopmower', ApprovalMode::AgentReview, $this->clock->now());
+            $this->entityManager->persist($project);
+        }
+
+        return $project;
+    }
+
+    /**
+     * A repository that has a project keeps it.
+     */
+    private function repository(Project $project): void
     {
         try {
-            $this->connectLocalRepository->connect($this->directory);
+            $repository = $this->connectLocalRepository->connect($this->directory)->repository;
         } catch (InvalidInput|NotFound $skipped) {
             $this->logger->warning('Skipped the repository APP_DEV_REPOSITORY "{directory}": {reason}', ['directory' => $this->directory, 'reason' => $skipped->getMessage()]);
+
+            return;
+        }
+
+        if (null === $repository->getProject()) {
+            $repository->assignProject($project);
         }
     }
 }

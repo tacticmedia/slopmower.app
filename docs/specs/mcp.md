@@ -29,7 +29,7 @@ mcp:
     slopmower:
       name: slopmower
       version: 1.0.0
-      description: Change requests from Slopmower, for the coding agent that implements them.
+      description: Change requests and issues from Slopmower, for the coding agent that works on them.
       instructions: '%app.mcp_instructions%'   # the string in section 2
       transports: { stdio: false, http: true }
       http: { path: /_mcp, allowed_hosts: ['%env(APP_PUBLIC_HOST)%'] }
@@ -42,33 +42,35 @@ mcp:
 ## 2. Server instructions
 
 ```text
-Slopmower stores change requests that the user wrote while reviewing this repository at a pinned commit. Each request asks for one change and belongs to exactly one review; several reviews can be open at once.
+Issues: call list_projects. If a project lists this repository, track each user request that changes code, documentation, or configuration as an issue of it, and follow the skill slopmower-issues. If none does, do not use the issue tools.
 
-1. Identify the repository: owner/name from `git remote get-url origin` for GitHub, or the name of the repository's root directory for a local repository. list_repositories shows what this token can see.
-2. list_reviews(repository) returns the open reviews. Work on the one the user named; if several are open and none was named, ask.
-3. To review code, start_review or use the named review, read the code at its commitSha, and call suggest_request once per finding with the narrowest anchor and a title of at most 80 characters. Do not edit code for a suggestion. A pending suggestion allows only reply_to_request.
-4. get_updates(review) without a cursor returns what waits for you. Keep the returned cursor and pass it in the next call; if hasMore is true, call again at once.
-5. For each request with awaiting "agent", reopened ones first: get_request, then reply_to_request (questions, one short question each, when you need answers; the user answers each with Yes, No, or text in a comment whose questions hold the answers; then move on), or claim_request before you edit code. A request with `title` null has no title. Before you claim it, call set_request_title with one line of at most 80 characters that summarizes its body.
-6. Read type in get_request. change: work as below. question: claim_request, answer with reply_to_request, change no code, then mark_ready_for_review with a note that points to the answer; name a needed change in the answer, do not make it. rule: claim_request, add the rule as one bullet in the user's words under `## Rules from Slopmower` in AGENTS.md at the repository root, and create the file when it is missing. In the same commit, add `@AGENTS.md` to CLAUDE.md when it exists and does not import AGENTS.md, and fix the anchored code when it breaks the rule. Then link_commits and mark_ready_for_review. Follow the rule from then on.
-7. Requests with the same group are one unit of feedback: list_requests(review, group) returns them all. Claim each, make one change in one commit, link_commits with every request of the group, and mark_ready_for_review on each with the same note. With requireApproval, propose_solution with the same plan on each.
-8. When requireApproval is true, or the request is unclear or large, propose_solution after the claim and take the next request. The decision comes back through get_updates. Link no commit before proposal.state is approved. A user comment on a pending proposal asks for a change or a clarification: answer it with reply_to_request, or propose again. On "rejected", read the note and propose again.
-9. Work where delivery.workspace of get_request says: current_branch, the checked-out branch; new_branch, one branch per review that you name; worktree, a git worktree with its own branch; null, your choice. Commit per request, then link_commits with the full SHA and every request that the commit covers. GitHub repositories: push before mark_ready_for_review. delivery.pullRequest true: open a pull request, then link_pull_request with its URL and every request that it covers; false: open none; null: open one only when the user or the repository's instructions ask. With current_branch on the default branch and pullRequest true, ask in the thread first. unlink_pull_request removes a link made by mistake. Local repositories: committing is enough, and they have no pull requests.
-10. Finish with mark_ready_for_review (what changed, how you tested it), or mark_wont_do with evidence the user can check, or release_request if you stop.
+Change requests: the user wrote them while reviewing this repository at a pinned commit. Each asks for one change and belongs to one review; several reviews can be open.
 
-Never verify, reopen, accept or dismiss suggestions, or decide on proposals. Open requests only with suggest_request. Errors are isError results whose text is {"error":{"code","message","details"}}. On invalid_transition call get_request and read allowedActions and proposal. On review_closed stop working on that review.
+1. Identify the repository: owner/name from `git remote get-url origin` for GitHub, or the root directory name for a local one. list_repositories shows what this token sees.
+2. list_reviews(repository) returns the open reviews. Use the one the user named; if several are open and none was named, ask.
+3. To review code, start_review or use the named review, read the code at its commitSha, and call suggest_request once per finding with the narrowest anchor and a title of at most 80 characters. Edit no code for a suggestion. A pending suggestion allows only reply_to_request.
+4. get_updates(review) without a cursor returns what waits for you. Pass the returned cursor in the next call; if hasMore is true, call again now.
+5. For each request with awaiting "agent", reopened ones first: get_request, then reply_to_request (questions, one short question each, if you need answers; the user answers each with Yes, No, or text in a comment whose questions hold the answers; then move on), or claim_request before you edit code. If `title` is null, call set_request_title before the claim: one line of at most 80 characters that summarizes the body.
+6. Read type in get_request. change: work as below. question: claim_request, answer with reply_to_request, change no code, then mark_ready_for_review with a note that points to the answer; name a needed change in the answer, do not make it. rule: claim_request, add the rule as one bullet in the user's words under `## Rules from Slopmower` in AGENTS.md at the repository root; create it if it is missing. In the same commit, add `@AGENTS.md` to CLAUDE.md if it exists and does not import AGENTS.md, and fix the anchored code if it breaks the rule. Then link_commits and mark_ready_for_review. Follow the rule from then on.
+7. Requests with the same group are one unit of feedback: list_requests(review, group) returns them. Claim each, make one change in one commit, link_commits with every request of the group, and mark_ready_for_review on each with the same note. With requireApproval, propose_solution with the same plan on each.
+8. With requireApproval, or for an unclear or large request, propose_solution after the claim and take the next request. The decision comes through get_updates. Link no commit before proposal.state is approved. A user comment on a pending proposal asks for a change or a clarification: answer with reply_to_request or propose again. On "rejected", read the note and propose again.
+9. Work where delivery.workspace of get_request says: current_branch, the checked-out branch; new_branch, one branch per review, named by you; worktree, a git worktree with its own branch; null, your choice. Commit per request, then link_commits with the full SHA and every request it covers. GitHub: push before mark_ready_for_review. delivery.pullRequest true: open a pull request, then link_pull_request with its URL and every request it covers; false: open none; null: open one only if the user or the repository's instructions ask. With current_branch on the default branch and pullRequest true, ask in the thread first. unlink_pull_request removes a wrong link. Local repositories: a commit is enough; they have no pull requests.
+10. Finish with mark_ready_for_review (what changed, how you tested it), mark_wont_do with evidence the user can check, or release_request if you stop.
+
+Never verify, reopen, accept or dismiss suggestions, or decide on proposals. Open requests only with suggest_request. Errors are isError results whose text is {"error":{"code","message","details"}}. On invalid_transition call get_request and read allowedActions and proposal. On review_closed stop work on that review.
 ```
 
 ## 3. Conventions
 
 - **One definition.** [mcp-tools.json](mcp-tools.json) holds each tool in the order of `tools/list`: `name`, `title`, `description`, `inputSchema`, `annotations`, and `outputSchema` as a reference into [schemas/](schemas/). The members other than `outputSchema` are what `tools/list` answers. `ToolsListContractTest` compares them (D99).
-- **Adapter.** `App\Mcp\ToolLoader` registers each tool with the method of `App\Mcp\McpTools` whose name is the camel case of the tool name, for example `claimRequest`. Its parameters are the input properties in order, with a default exactly for each property that is not required, and a test checks that. The SDK casts each argument to its parameter type, so parameters are scalars, backed enums, lists of strings, and the `questions` list of `reply_to_request`, whose objects the input schema checks. Each method calls the same application service as REST and returns the normalized array. So `structuredContent` equals the REST JSON, and `content[0].text` holds the same data as JSON text.
+- **Adapter.** `App\Mcp\ToolLoader` registers each tool with the method of `App\Mcp\McpTools` whose name is the camel case of the tool name, for example `claimRequest`. Its parameters are the input properties in order, with a default exactly for each property that is not required, and a test checks that. The SDK casts each argument to its parameter type, so parameters are scalars, backed enums, lists of strings, and the `questions` list of `reply_to_request`, whose objects the input schema checks. Each method calls the same application service as REST and returns the normalized array. So `structuredContent` equals the REST JSON, and `content[0].text` holds the same data as JSON text. The issue tools of sections 4.19 to 4.27 have no REST endpoint yet: they call `App\Application\IssueCommands` and `App\Application\Query\IssueQuery`.
 - **Output schemas.** Each output schema is a bundled copy of a file in [schemas/](schemas/): the root with `type: "object"`, `properties`, and `required` at the top level, plus a `$defs` section with every referenced definition, with each `$ref` rewritten to `#/$defs/<Name>`. The command `bin/console app:schema:bundle` generates `src/Mcp/BundledSchemas.php` with one `public const array` per root and `TOOLS`, the tools of `mcp-tools.json` with each output schema as its root constant. A test fails when the generated file differs from the output of the command.
 - **Annotations.** All tools set `destructiveHint: false` and `openWorldHint: false`. The read tools set `readOnlyHint: true` and `idempotentHint: true`. The table in section 4 lists them per tool.
 - **Domain errors.** The adapter catches `DomainError` and throws `ToolCallException(json_encode(['error' => ['code' => ..., 'message' => ..., 'details' => ...]]))`. The SDK turns that into `{"isError": true, "content": [{"type": "text", "text": "<Error JSON>"}]}`, with **no `structuredContent`**. So clients that validate `structuredContent` against the `outputSchema` do not reject the error.
 - **Rate limits.** The adapter consumes the limiters of [README.md](README.md#rate-limits) before each tool runs, so every tool can return `rate_limited`. The tool lists below do not repeat it.
 - **Other exceptions.** The adapter catches every other `Throwable`, logs it, and throws `ToolCallException` with code `internal_error`. The agent therefore never gets a bare -32603.
 - **Protocol-level errors.** The SDK answers these before the tool runs. An unknown tool gives JSON-RPC error -32602 without `data`. Arguments that violate `inputSchema` give -32602 with `data.validation_errors`. Any `inputSchema` keyword can fail, for example `pattern`, `minLength`, `maximum`, `enum`, `type`, or a missing required field. Semantic checks give `isError` with `invalid_input`, for example a body of whitespace only, or a reason shorter than 20 characters after trimming.
-- **Patterns.** Each input `pattern` equals the pattern of its definition in [common.schema.json](schemas/common.schema.json): `Ulid`, `CommitSha`, `CommitShaPrefix`, `PullRequestUrl`, or `NoNulText` for every other string. PostgreSQL cannot store a NUL byte. A test checks each pattern.
+- **Patterns.** Each input `pattern` equals the pattern of its definition in [common.schema.json](schemas/common.schema.json): `Ulid`, `CommitSha`, `CommitShaPrefix`, `PullRequestUrl`, `ProjectKey`, `IssueKey`, or `NoNulText` for every other string. PostgreSQL cannot store a NUL byte. A test checks each pattern.
 
 ## 4. Tools
 
@@ -94,6 +96,15 @@ The title, the description, the input schema, and the annotations of each tool a
 | [`start_review`](#416-start_review) | Start review | false | false | [`review.schema.json`](schemas/review.schema.json) | [V1](rest-api.md#v1-start-a-review) |
 | [`suggest_request`](#417-suggest_request) | Suggest request | false | false | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) | [Q20](rest-api-requests.md#q20-suggest-a-request) |
 | [`set_request_title`](#418-set_request_title) | Set request title | false | false | [`request-command-result.schema.json`](schemas/request-command-result.schema.json) | [Q23](rest-api-requests.md#q23-set-the-title) |
+| [`list_projects`](#419-list_projects) | List projects | true | true | [`lists.schema.json#/$defs/ProjectPage`](schemas/lists.schema.json) | none yet |
+| [`list_issues`](#420-list_issues) | List issues | true | true | [`lists.schema.json#/$defs/IssuePage`](schemas/lists.schema.json) | none yet |
+| [`get_issue`](#421-get_issue) | Get issue | true | true | [`issue.schema.json#/$defs/IssueDetail`](schemas/issue.schema.json) | none yet |
+| [`create_issue`](#422-create_issue) | Create issue | false | false | [`issue.schema.json`](schemas/issue.schema.json) | none yet |
+| [`update_issue`](#423-update_issue) | Update issue | false | true | [`issue.schema.json`](schemas/issue.schema.json) | none yet |
+| [`set_issue_status`](#424-set_issue_status) | Set issue status | false | false | [`issue.schema.json`](schemas/issue.schema.json) | none yet |
+| [`comment_on_issue`](#425-comment_on_issue) | Comment on issue | false | false | [`issue.schema.json`](schemas/issue.schema.json) | none yet |
+| [`link_issues`](#426-link_issues) | Link issues | false | false | [`issue.schema.json`](schemas/issue.schema.json) | none yet |
+| [`approve_plan`](#427-approve_plan) | Approve plan | false | false | [`issue.schema.json`](schemas/issue.schema.json) | none yet |
 
 Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 
@@ -224,14 +235,101 @@ Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 - **Errors:** `not_found`, `review_closed`, `invalid_transition` when the request has a title, `invalid_input` for a title of whitespace only or with a line break.
 - **Example:** arguments `{"id":"01K6B3P2A9QRSTVWXYZ012345C"}` plus the `title` of [fixtures/inputs.title.json](fixtures/inputs.title.json) give [fixtures/request-command-result.retitled.json](fixtures/request-command-result.retitled.json).
 
+### Issue tools
+
+Sections 4.19 to 4.27 are the issue tracker (D116 to D118). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs.
+
+- **Visibility.** A token of one repository sees only the project of that repository, with its issues. A project without a repository is invisible to it. Any other key gets `not_found`.
+- **Sections.** An issue has the Markdown sections `problem`, `plan`, `result`, and `followUps`, each null or at most 65,536 characters.
+- **Thread.** Each write that changes the issue appends its entry in the same transaction and sets `updatedAt`. The entry kinds are `comment`, `status_changed`, `section_changed`, and `plan_approved`. A `section_changed` entry stores the new text, and `get_issue` returns its section without the text. The plan revision of an issue is the ID of the newest `section_changed` entry of `plan`.
+- **Approval.** `planApproval` holds the approval of the plan of `planRevision`. A `plan` with new text clears it. The same text changes nothing and writes no entry.
+- **Rules.** The server checks the state that a write gives (D117). The content rules hold for every actor. The approval rules bind agents only, and the MCP actor is always an agent.
+
+  | Status | What must hold | Field of the refusal |
+  |---|---|---|
+  | `backlog`, `todo`, `in_progress`, `in_review`, `done` | `problem` is not empty | `problem` |
+  | `in_progress`, `in_review`, `done` | `plan` is not empty and approved as `approvalMode` says: `user`, by a user; `agent_review`, by a user or by an agent with a reviewer; `self`, no approval | `plan` |
+  | `in_review`, `done` | `result` is not empty | `result` |
+  | `done`, `wont_do`, set by an agent | `user`: refused. `agent_review`: `reviewer` and `note` given. `self`: allowed. | `status`, `reviewer`, `note` |
+  | `wont_do` | `note` given | `note` |
+
+  - A section of whitespace only is empty, and so are a `note` and a `reviewer`.
+  - An agent cannot set the status that the issue has: `status`. `todo` to `in_progress` is the claim.
+  - An agent changes no field and no status of an issue in `done` or `wont_do`: `issue`. It can comment on it and link it.
+  - An agent cannot change `plan` in `in_progress` or `in_review`: `plan`. A deviation goes into `result`.
+- **Refusals.** A refusal of a rule is `isError` with `invalid_input`, and `details.violations[0]` has the field of the table or the bullet and the reason as its message. The issue tools never return `invalid_transition` or `review_closed`.
+
+### 4.19 `list_projects`
+
+- **Output:** [`lists.schema.json#/$defs/ProjectPage`](schemas/lists.schema.json).
+- **Behaviour:** the projects that the token sees, in key order, each with the names of its repositories that the token sees, in name order. `limit` is 1 to 500, by default 100.
+- **Errors:** `invalid_input` for the cursor.
+- **Example:** arguments `{}`. `structuredContent`: [fixtures/lists.project-page.json](fixtures/lists.project-page.json).
+
+### 4.20 `list_issues`
+
+- **Output:** [`lists.schema.json#/$defs/IssuePage`](schemas/lists.schema.json).
+- **Behaviour:** the summaries of the issues of the project, newest `updatedAt` first, then by ID. `status` returns only the issues with that status. `limit` is 1 to 200, by default 50.
+- **Errors:** `not_found` for the project, `invalid_input` for the cursor or a cursor sent with another filter.
+- **Example:** arguments `{"project":"BILL"}`. `structuredContent`: [fixtures/lists.issue-page.json](fixtures/lists.issue-page.json).
+
+### 4.21 `get_issue`
+
+- **Output:** [`issue.schema.json#/$defs/IssueDetail`](schemas/issue.schema.json).
+- **Behaviour:** the issue, its links, and its thread, each oldest first. A link shows the other issue. `allowedStatuses` holds the statuses that `set_issue_status` takes from the caller, with a note and a reviewer where the rules need them.
+- **Errors:** `not_found`.
+- **Example:** arguments `{"issue":"BILL-12"}`. `structuredContent`: [fixtures/issue.detail.json](fixtures/issue.detail.json).
+
+### 4.22 `create_issue`
+
+- **Output:** [`issue.schema.json`](schemas/issue.schema.json).
+- **Behaviour:** a new issue with the next number of the project, which the server takes under a lock on the project row. `status` is `draft`, `backlog`, or `todo`, by default `draft`. A `problem` writes a `section_changed` entry. The server stores the title trimmed.
+- **Errors:** `not_found` for the project, `invalid_input` for a title of whitespace only or with a line break, or on `problem` for `backlog` or `todo` without a problem.
+- **Example:** arguments `{"project":"BILL","title":"Round invoice totals once per invoice"}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with status `draft` and the sections null.
+
+### 4.23 `update_issue`
+
+- **Output:** [`issue.schema.json`](schemas/issue.schema.json).
+- **Behaviour:** changes the given fields. Null leaves a field as it is. Each section with new text writes a `section_changed` entry, and a `plan` with new text clears `planApproval`. A call whose values equal the stored ones changes nothing.
+- **Errors:** `not_found`, `invalid_input` for a call with no field, a title of whitespace only or with a line break, or a broken rule of the issue tools.
+- **Example:** arguments `{"issue":"BILL-12","plan":"1. Add `TaxRounding::perInvoice()` ..."}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with a new `planRevision` and `planApproval` null.
+
+### 4.24 `set_issue_status`
+
+- **Output:** [`issue.schema.json`](schemas/issue.schema.json).
+- **Behaviour:** moves the issue to `status` under the rules of the issue tools, and writes a `status_changed` entry with `from`, `to`, `note`, and `reviewer`. Any status can follow any other status when the rules hold.
+- **Errors:** `not_found`, `invalid_input` for a broken rule.
+- **Example:** arguments `{"issue":"BILL-12","status":"in_progress"}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with status `in_progress`.
+
+### 4.25 `comment_on_issue`
+
+- **Output:** [`issue.schema.json`](schemas/issue.schema.json).
+- **Behaviour:** appends a `comment` entry, in any status.
+- **Errors:** `not_found`, `invalid_input` for a body of whitespace only.
+- **Example:** arguments ``{"issue":"BILL-12","body":"`TaxRounding::perInvoice()` is in. The test is next."}``. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json).
+
+### 4.26 `link_issues`
+
+- **Output:** [`issue.schema.json`](schemas/issue.schema.json): the issue of `issue`.
+- **Behaviour:** one link per pair of issues, without a direction: `get_issue` of each issue shows it. The link sets `updatedAt` of both issues and writes no entry. The issues can belong to two projects.
+- **Errors:** `not_found` for either issue, `invalid_input` on `target` for a link of an issue to itself or a second link of the pair, and on `note` for a note of whitespace only.
+- **Example:** arguments `{"issue":"BILL-12","target":"BILL-9","note":"BILL-9 owns the shipping totals, which this issue leaves alone."}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json).
+
+### 4.27 `approve_plan`
+
+- **Output:** [`issue.schema.json`](schemas/issue.schema.json).
+- **Behaviour:** records the review of the plan by another agent: a `plan_approved` entry with `reviewer`, `reviewNote`, and `planRevision`, which becomes `planApproval`. The server cannot prove the review. A second approval replaces the first one.
+- **Errors:** `not_found`, `invalid_input` on `issue` when `approvalMode` is `user` or the issue is in `done` or `wont_do`, on `plan` for an issue without a plan, on `planRevision` for a revision that is not the newest, on `reviewer` for whitespace only, and on `reviewNote` for fewer than 20 characters after trimming.
+- **Example:** arguments `{"issue":"BILL-12","planRevision":"01K7F3C5D6E7F8G9H0J1K2M3N4","reviewer":"plan-reviewer"}` plus the `reviewNote` of the fixture give [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json).
+
 ## 5. Error codes in MCP
 
 | Code | Delivered as | Agent action |
 |---|---|---|
 | `unauthorized` | HTTP 401 on the transport, never a tool result | Tell the user to check `SLOPMOWER_TOKEN` |
 | `not_found` | isError | Check the ID or name, then list again. Repositories outside the token scope also answer `not_found`. |
-| `invalid_input` | isError. Schema violations come as JSON-RPC -32602. | Fix the input |
-| `invalid_transition` | isError | `get_request`, then read `allowedActions`, `proposal`, `suggestion`, `title`, and `details.claimedBy` |
+| `invalid_input` | isError. Schema violations come as JSON-RPC -32602. | Fix the input. From an issue tool: read `details.violations[0]`, which names the field that breaks a rule of the [issue tools](#issue-tools), fix the issue, then call again. |
+| `invalid_transition` | isError, never from an issue tool | `get_request`, then read `allowedActions`, `proposal`, `suggestion`, `title`, and `details.claimedBy` |
 | `review_closed` | isError | Stop working on that review |
 | `commits_not_available` | isError | Push, or commit for local repositories, then call `mark_ready_for_review` again |
 | `commit_not_found` | isError | Push the commit, or leave out `at` |
@@ -263,8 +361,9 @@ Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 | `start_review` | `GET /api/v1/repositories?name=` then `POST /api/v1/repositories/{id}/reviews` |
 | `suggest_request` | `POST /api/v1/reviews/{id}/suggestions` |
 | `set_request_title` | `POST /api/v1/requests/{id}/title` |
+| `list_projects`, `list_issues`, `get_issue`, `create_issue`, `update_issue`, `set_issue_status`, `comment_on_issue`, `link_issues`, `approve_plan` | none yet |
 
-`McpRestParityTest` compares the MCP and REST payloads of every tool: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, and every write tool.
+`McpRestParityTest` compares the MCP and REST payloads of every tool with a REST endpoint: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, and every write tool of the requests and reviews.
 
 ## 7. Wire examples
 

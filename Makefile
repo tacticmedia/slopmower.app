@@ -10,7 +10,7 @@ CONSOLE        = $(PHP) bin/console
 PACKAGE_JSON   = $(wildcard package.json)
 
 .DEFAULT_GOAL = help
-.PHONY: help up down sh worker-restart console composer mate migration db-reset fixtures db-test test e2e stan cs cs-fix lint front ui journeys prod-check act pentest check
+.PHONY: help up down sh worker-restart console composer mate migration db-reset fixtures issues-dump db-test test e2e stan cs cs-fix lint front ui journeys prod-check act pentest check
 
 help: ## List the targets
 	@grep -hE '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "%-16s %s\n", $$1, $$2}'
@@ -46,8 +46,15 @@ db-reset: ## Drop, create, and migrate the dev database. Ask Jan first. Run make
 	$(CONSOLE) doctrine:migrations:migrate --no-interaction --all-or-nothing --allow-no-migration
 	$(DOCKER_COMPOSE) start worker
 
-fixtures: ## Load the dev set: the local user, the token APP_DEV_API_TOKEN of .env.dev, and APP_DEV_REPOSITORY. Idempotent.
+fixtures: ## Load the dev set: the local user, the token APP_DEV_API_TOKEN of .env.dev, APP_DEV_REPOSITORY, and the project SM. Idempotent.
 	$(CONSOLE) foundry:load-fixtures dev --append --no-transaction
+
+# A failed dump leaves a .part file and no .sql file.
+issues-dump: ## Copy the issue tracker of the dev database to var/backups/issues-<UTC time>.sql
+	@mkdir -p var/backups
+	@file=var/backups/issues-$$(date -u +%Y%m%dT%H%M%SZ).sql; \
+	$(DOCKER_COMPOSE) exec -T database sh -c 'pg_dump -U "$$POSTGRES_USER" --data-only --disable-triggers -t project -t issue -t issue_entry -t issue_link "$$POSTGRES_DB"' > $$file.part \
+	&& mv $$file.part $$file && echo "Wrote $$file"
 
 db-test: ## Create app_test and app_e2e when they are missing, then migrate them
 	$(CONSOLE) doctrine:database:create --if-not-exists --env=test

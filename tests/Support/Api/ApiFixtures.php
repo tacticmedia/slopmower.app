@@ -14,10 +14,12 @@ use App\Domain\Git\RefName;
 use App\Domain\Git\RepoPath;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Identity\TenantId;
+use App\Domain\Issue\ApprovalMode;
 use App\Domain\Repository\RepositoryName;
 use App\Entity\ApiToken;
 use App\Entity\ChangeRequest;
 use App\Entity\Draft;
+use App\Entity\Project;
 use App\Entity\Repository;
 use App\Entity\Review;
 use App\Entity\User;
@@ -54,6 +56,28 @@ trait ApiFixtures
         $entityManager->clear();
 
         return $repository;
+    }
+
+    /**
+     * A project of the issue tracker, which owns $repository when one is given. Clears the entity manager.
+     */
+    private static function storeProject(TenantId $tenantId, string $key, ApprovalMode $approvalMode = ApprovalMode::Self, ?Repository $repository = null): Project
+    {
+        $container = self::getContainer();
+        $entityManager = $container->get(EntityManagerInterface::class);
+        $project = new Project($tenantId, $key, "Project {$key}", $approvalMode, Clock::get()->now());
+        $entityManager->persist($project);
+
+        if (null !== $repository) {
+            $stored = $container->get(TenantFilter::class)->suspend(static fn (): ?Repository => $entityManager->find(Repository::class, $repository->getId()));
+            \assert($stored instanceof Repository);
+            $stored->assignProject($project);
+        }
+
+        $entityManager->flush();
+        $entityManager->clear();
+
+        return $project;
     }
 
     /**

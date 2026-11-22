@@ -305,6 +305,38 @@
           "minLength": 1
         }
       }
+    },
+    "ProjectPage": {
+      "type": "object",
+      "required": ["items", "nextCursor"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "project.schema.json"
+          },
+          "description": "In key order."
+        },
+        "nextCursor": {
+          "$ref": "#/$defs/NextCursor"
+        }
+      }
+    },
+    "IssuePage": {
+      "type": "object",
+      "required": ["items", "nextCursor"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "issue.schema.json#/$defs/IssueSummary"
+          },
+          "description": "Newest updatedAt first."
+        },
+        "nextCursor": {
+          "$ref": "#/$defs/NextCursor"
+        }
+      }
     }
   }
 }

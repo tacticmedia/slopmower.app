@@ -123,7 +123,7 @@ The spikes were joined into one end-to-end demonstration. A Symfony API, install
 
 | Type | Fields and types | Rules |
 |---|---|---|
-| `TenantId`, `UserId`, `RepositoryId`, `ReviewId`, `RequestId`, `CommentId`, `EventId`, `BatchId`, `DraftId`, `ApiTokenId` | `Symfony\Component\Uid\Ulid` | 26 characters, Crockford base32 |
+| `TenantId`, `UserId`, `RepositoryId`, `ReviewId`, `RequestId`, `CommentId`, `EventId`, `BatchId`, `DraftId`, `ApiTokenId`, `ProjectId`, `IssueId`, `IssueEntryId` | `Symfony\Component\Uid\Ulid` | 26 characters, Crockford base32 |
 | `CommitSha`, `BlobSha` | `string` | `^[0-9a-f]{40}$` or `^[0-9a-f]{64}$` for SHA-256 repositories |
 | `RepositorySource` | enum: `github`, `local` | |
 | `CodeAccess` | enum: `clone`, `pass_through`, `browser` | How the server reads the code of a repository (D111, D114). `local` is always `clone`. |
@@ -151,6 +151,12 @@ The spikes were joined into one end-to-end demonstration. A Symfony API, install
 | `Proposal` | `eventId: EventId` (the `request.proposed` event), `state: ProposalState` | The current proposal of a claim |
 | `SuggestionState` | enum: `pending`, `accepted`, `dismissed` | Section 6. A closed set (D72). |
 | `ProposedDiff` | `string` | A unified diff in git format: 1 to 65,536 characters, 1 to 9 lines that start with `diff --git ` |
+| `IssueKey` | `projectKey: string`, `number: int` | `<project key>-<number>`, for example `SM-12`. The project key has 2 to 10 upper-case letters (D116). |
+| `IssueStatus` | enum: `draft`, `backlog`, `todo`, `in_progress`, `awaiting_user_input`, `in_review`, `done`, `wont_do` | `done` and `wont_do` end an issue (D117) |
+| `ApprovalMode` | enum: `user`, `agent_review`, `self` | Who approves a plan and ends an issue of a project (D117) |
+| `IssueSection` | enum: `problem`, `plan`, `result`, `followUps` | |
+| `IssueEntryKind` | enum: `comment`, `status_changed`, `section_changed`, `plan_approved` | Open set |
+| `IssueState` | `status: IssueStatus`, `problem`, `plan`, `result`, `planRevision: ?string`, `approvedBy: ?ActorKind`, `reviewer: ?string`, `approvedRevision: ?string` | What `IssueRules` reads of an issue. `IssueRules::check()` is the one function of D117 that checks the state that a write gives. |
 
 ### Entities
 
@@ -172,8 +178,12 @@ Every entity except `Tenant`, `WebhookDelivery`, and `MarketplaceAccount` carrie
 | `Draft` | `id`, `tenantId`, `review: Review`, `user: User`, `kind: new_request\|reply`, `anchor: ?Anchor`, `request: ?ChangeRequest`, `title: ?string` (always null for a reply), `body: string`, `requireApproval: bool` (always false for a reply), `type: RequestType` (always `change` for a reply), `group: ?string` (always null for a reply), `createdAt`, `updatedAt` |
 | `ViewedFile` | `id`, `tenantId`, `review: Review`, `user: User`, `path: RepoPath`, `pathHash: string` (SHA-256 of the path, in the unique key) |
 | `ApiToken` | `id`, `tenantId`, `user: User`, `name: string` (the agent name), `repository: ?Repository` (null means all repositories of the tenant), `tokenHash: string` (SHA-256), `prefix: string` (for display), `createdAt`, `expiresAt: ?DateTimeImmutable`, `lastUsedAt: ?DateTimeImmutable`, `revokedAt: ?DateTimeImmutable` |
+| `Project` | `id`, `tenantId`, `key: string` (2 to 10 upper-case letters, unique per tenant, never changes), `name: string`, `approvalMode: ApprovalMode`, `nextIssueNumber: int`, `createdAt`. `Repository.project: ?Project` names the project that owns a repository (D116). |
+| `Issue` | `id`, `tenantId`, `project: Project`, `number: int` (unique per project, taken from `nextIssueNumber` under the row lock of the project), `title: string`, `status: IssueStatus`, `problem`, `plan`, `result`, `followUps` (Markdown, nullable), `planApproval: ?IssueEntry` (the `plan_approved` entry of the plan as it is, with `ON DELETE SET NULL`), `createdBy: Actor`, `createdAt`, `updatedAt` |
+| `IssueEntry` | `id`, `tenantId`, `issue: Issue`, `actor: Actor`, `kind: IssueEntryKind`, `body: ?string` (the comment, or the new text of a section), `data` (jsonb: `from`, `to`, `note`, `reviewer` of a status change, `section` of a section change, `reviewer`, `reviewNote`, `planRevision` of a plan approval), `createdAt`. Append-only. The ID of the newest `section_changed` entry of `plan` is the plan revision. |
+| `IssueLink` | `tenantId`, `issue: Issue`, `target: Issue`, `note: string`, `createdBy: Actor`, `createdAt`. The primary key is the pair. A link has no direction: the write refuses the pair in the other order, and both issues show it. |
 
-`ChangeRequest`, `Comment`, `CommitLink`, and the event columns of `Review` are projections of the event log. `User` and `Tenant` are separate so that a tenant can get more users later. Each request, comment, draft, viewed-file mark, and `get_updates` cursor belongs to exactly one review.
+`ChangeRequest`, `Comment`, `CommitLink`, and the event columns of `Review` are projections of the event log. `Project`, `Issue`, `IssueEntry`, and `IssueLink` are state-stored and no event writes them, because the event log is bound to a review (D116): each write locks its issue row, changes it, and appends its entry in one transaction. `User` and `Tenant` are separate so that a tenant can get more users later. Each request, comment, draft, viewed-file mark, and `get_updates` cursor belongs to exactly one review.
 
 ### Events
 
@@ -279,7 +289,7 @@ publish one live update for the transaction
 | Raw SQL | The SQL filter does not cover DBAL queries or identity-map hits. Every raw SQL statement on a tenant table names its tenant column: `tenant_id`, or `id` on the `tenant` table. An audit test checks this. The entity manager is cleared between worker requests and between Messenger messages. |
 | Files | Clones in `<data>/tenants/<tenantId>/repositories/<repositoryId>.git`. Paths come from IDs, never from input. Two tenants who connect the same repository get two clones. The scratch copies of `pass_through` have random names under `APP_SCRATCH_DIR`, and one request or message deletes its own (D112). The keys of the cache pool `github_code.cache` hold the repository ID. |
 | Live updates | Mercure topics contain the tenant ID. The subscriber token allows only the tenant's own topics. |
-| Scoped tokens | A token scoped to one repository sees only that repository and its reviews. Everything else answers `not_found`. |
+| Scoped tokens | A token scoped to one repository sees only that repository and its reviews, and of the issue tracker the project of that repository with its issues, their entries, and the links between them. Everything else answers `not_found`. |
 | GitHub | Each installation token is limited to one repository and the permissions of its job: `contents: read`, `pull_requests: read`, or `checks: write` |
 | Tests | A cross-tenant suite calls every route and MCP tool with another tenant's IDs and expects 404. See section 10. |
 
@@ -630,7 +640,7 @@ Error codes for all adapters. The body is `{"error": {"code", "message", "detail
 {"mcpServers": {"slopmower": {"type": "http", "url": "https://<host>/_mcp", "headers": {"Authorization": "Bearer ${SLOPMOWER_TOKEN}"}}}}
 ```
 
-The 18 tools, their inputs, and their annotations are in [specs/mcp.md](specs/mcp.md#4-tools) and [specs/mcp-tools.json](specs/mcp-tools.json).
+The 27 tools, their inputs, and their annotations are in [specs/mcp.md](specs/mcp.md#4-tools) and [specs/mcp-tools.json](specs/mcp-tools.json). Nine of them are the issue tracker (D118), which has no REST endpoint yet.
 
 All tools set `destructiveHint: false` and `openWorldHint: false`. Parameters are scalars, backed enums, and arrays of scalars, because the SDK does not support object parameters. [specs/mcp-tools.json](specs/mcp-tools.json) holds the full contract of each tool, and `App\Mcp\ToolLoader` registers the tools from it (D99). A domain error becomes a `ToolCallException` with the Error JSON as text, so the result has `isError: true` and no `structuredContent`. Every other exception becomes `internal_error`. Input-schema violations give JSON-RPC error -32602 before the tool runs. `unauthorized` arrives as HTTP 401 on the transport, and `forbidden` never occurs in MCP.
 
@@ -656,6 +666,7 @@ Operator commands: rebuild projections, rebuild an index, purge a tenant. `app:s
 
 - The skill source is [docs/user/skill/SKILL.md](user/skill/SKILL.md). The application serves it raw at `GET /docs/skill/SKILL.md`. The developer installs it into `.claude/skills/slopmower/SKILL.md` of the reviewed repository with one `curl` command. See D9 and D28. This repository has the same file there, and `SkillMatchesToolsTest` keeps the two equal.
 - The skill teaches the agent to identify the repository, to call `list_reviews` and ask the user when several reviews are open and none was named, to poll `get_updates(review, cursor)`, to answer or ask in threads, to claim before editing, to propose a plan first when the request asks for one, with a diff for a straightforward change, to commit per request, to link commits with the full SHA, to link a pull request only when it opened one, to push for GitHub sources, to commit on a branch for local sources, to justify every refusal with evidence, and to stop on `review_closed`. When the user asks for a code review, it teaches the agent to start a review or use the named one and to call `suggest_request` once per finding with the narrowest anchor, without editing code.
+- The second skill `slopmower-issues`, [docs/user/skill-issues/SKILL.md](user/skill-issues/SKILL.md), teaches the issue workflow of D117: find the project of the repository, track each user request that changes code, documentation, or configuration as an issue, write the problem and the plan, get the plan approved as the approval mode says, record the result with its commits, and end the issue. The server instructions point to it (D118). It has no public route yet. This repository has it in `.claude/skills/slopmower-issues/SKILL.md`, and the skill tests read both skills: each tool is in the "Tools" table of one of them.
 - The public pages in `docs/user/*.md` render at `/docs/<slug>` through `twig/markdown-extra` with `league/commonmark`, configured to escape raw HTML and drop unsafe links. Each heading gets a GitHub-style `id` and no visible permalink, so a `<slug>.md#fragment` link jumps to its heading. Slugs come from a whitelist built from the directory listing. No path comes from input.
 - The pages are the help center of the app (D79): a hand-written navigation by section, a `<title>` from the first H1, "On this page" on long pages, and light and dark mode. Every link of the SPA into `/docs` is a constant of `assets/layout/helpLinks.ts`.
 

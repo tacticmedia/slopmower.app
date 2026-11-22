@@ -11,6 +11,10 @@ use App\Domain\ApiToken\ApiTokenState;
 use App\Domain\ApiToken\TokenScope;
 use App\Domain\Error\RepositoryUnavailableReason;
 use App\Domain\Event\EventType;
+use App\Domain\Issue\ApprovalMode;
+use App\Domain\Issue\IssueEntryKind;
+use App\Domain\Issue\IssueSection;
+use App\Domain\Issue\IssueStatus;
 use App\Domain\Location\LocationStatus;
 use App\Domain\Location\OrphanReason;
 use App\Domain\Repository\RepositoryAccess;
@@ -64,7 +68,7 @@ final class EnumContractTest extends KernelTestCase
         $closedSets = [
             RepositorySource::class, RepositoryAccess::class, ReviewState::class, IndexState::class, RequestStatus::class,
             Awaiting::class, Resolution::class, AnchorKind::class, ActorKind::class, CommitLinkState::class,
-            LocationStatus::class, OrphanReason::class, SuggestionState::class,
+            LocationStatus::class, OrphanReason::class, SuggestionState::class, IssueStatus::class, ApprovalMode::class, IssueSection::class,
         ];
 
         foreach ($closedSets as $enum) {
@@ -80,6 +84,7 @@ final class EnumContractTest extends KernelTestCase
         yield 'Tour' => [Tour::class, 'common.schema.json', ['$defs', 'Tour', 'anyOf', '0', 'enum']];
         yield 'Workspace' => [Workspace::class, 'common.schema.json', ['$defs', 'Workspace', 'anyOf', '0', 'enum']];
         yield 'RequestType' => [RequestType::class, 'common.schema.json', ['$defs', 'RequestType', 'anyOf', '0', 'enum']];
+        yield 'IssueEntryKind' => [IssueEntryKind::class, 'common.schema.json', ['$defs', 'IssueEntryKind', 'anyOf', '0', 'enum']];
         yield 'SyncState' => [SyncState::class, 'repository.schema.json', ['$defs', 'Sync', 'properties', 'state', 'enum']];
         yield 'SignInMethod' => [SignInMethod::class, 'me.schema.json', ['properties', 'user', 'properties', 'signInMethod', 'enum']];
         yield 'RepositoryUnavailableReason' => [RepositoryUnavailableReason::class, 'error.schema.json', ['$defs', 'RepositoryUnavailableDetails', 'properties', 'reason', 'enum']];

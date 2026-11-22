@@ -34,6 +34,10 @@ final class BundleSchemasCommand
         'LINK_COMMITS_RESULT' => 'link-commits-result.schema.json',
         'LINK_PULL_REQUEST_RESULT' => 'link-pull-request-result.schema.json',
         'REVIEW' => 'review.schema.json',
+        'PROJECT_PAGE' => 'lists.schema.json#/$defs/ProjectPage',
+        'ISSUE_PAGE' => 'lists.schema.json#/$defs/IssuePage',
+        'ISSUE_DETAIL' => 'issue.schema.json#/$defs/IssueDetail',
+        'ISSUE' => 'issue.schema.json',
     ];
 
     /** Keys that identify a file. A bundled copy lives inside another document. */

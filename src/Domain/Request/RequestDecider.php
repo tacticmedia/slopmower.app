@@ -256,7 +256,7 @@ final class RequestDecider
      *
      * @return list<array{field: string, message: string}>
      */
-    private static function titleViolations(?string $title, string $field = 'title'): array
+    public static function titleViolations(?string $title, string $field = 'title'): array
     {
         $message = match (true) {
             null === $title => null,

@@ -1,0 +1,14 @@
+{
+  "items": [
+    {
+      "key": "BILL",
+      "name": "Billing",
+      "approvalMode": "agent_review",
+      "repositories": [
+        "acme/billing",
+        "billing"
+      ]
+    }
+  ],
+  "nextCursor": null
+}

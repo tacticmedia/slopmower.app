@@ -4142,8 +4142,561 @@ final class BundledSchemas
         ],
     ];
 
+    /** lists.schema.json#/$defs/ProjectPage */
+    public const array PROJECT_PAGE = [
+        'type' => 'object',
+        'required' => ['items', 'nextCursor'],
+        'properties' => [
+            'items' => [
+                'type' => 'array',
+                'items' => ['$ref' => '#/$defs/Project'],
+                'description' => 'In key order.',
+            ],
+            'nextCursor' => ['$ref' => '#/$defs/NextCursor'],
+        ],
+        '$defs' => [
+            'ApprovalMode' => [
+                'enum' => ['user', 'agent_review', 'self'],
+                'description' => 'Who approves a plan and ends an issue of the project. user: only a signed-in user. agent_review: also an agent, with the name of a reviewing agent and its review on record. self: no approval (D117).',
+            ],
+            'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
+            'NextCursor' => [
+                'anyOf' => [
+                    ['$ref' => '#/$defs/Cursor'],
+                    ['type' => 'null'],
+                ],
+            ],
+            'Project' => [
+                'title' => 'Project',
+                'description' => 'A project of the issue tracker. A repository belongs to at most one project (D116).',
+                'type' => 'object',
+                'required' => ['key', 'name', 'approvalMode', 'repositories'],
+                'properties' => [
+                    'key' => ['$ref' => '#/$defs/ProjectKey'],
+                    'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255],
+                    'approvalMode' => ['$ref' => '#/$defs/ApprovalMode'],
+                    'repositories' => [
+                        'type' => 'array',
+                        'items' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255],
+                        'description' => 'The names of the repositories of the project that the caller sees, as in Repository.name, in name order.',
+                    ],
+                ],
+            ],
+            'ProjectKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}$', 'description' => 'The key of a project: 2 to 10 upper-case letters, unique per tenant. It never changes.'],
+        ],
+    ];
+
+    /** lists.schema.json#/$defs/IssuePage */
+    public const array ISSUE_PAGE = [
+        'type' => 'object',
+        'required' => ['items', 'nextCursor'],
+        'properties' => [
+            'items' => [
+                'type' => 'array',
+                'items' => ['$ref' => '#/$defs/IssueSummary'],
+                'description' => 'Newest updatedAt first.',
+            ],
+            'nextCursor' => ['$ref' => '#/$defs/NextCursor'],
+        ],
+        '$defs' => [
+            'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
+            'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
+            'IssueKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
+            'IssueStatus' => [
+                'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'awaiting_user_input', 'in_review', 'done', 'wont_do'],
+                'description' => 'done means delivered. done and wont_do end an issue (D117).',
+            ],
+            'IssueSummary' => [
+                'type' => 'object',
+                'required' => ['key', 'title', 'status', 'updatedAt'],
+                'properties' => [
+                    'key' => ['$ref' => '#/$defs/IssueKey'],
+                    'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
+                    'status' => ['$ref' => '#/$defs/IssueStatus'],
+                    'updatedAt' => ['$ref' => '#/$defs/DateTime'],
+                ],
+            ],
+            'NextCursor' => [
+                'anyOf' => [
+                    ['$ref' => '#/$defs/Cursor'],
+                    ['type' => 'null'],
+                ],
+            ],
+        ],
+    ];
+
+    /** issue.schema.json#/$defs/IssueDetail */
+    public const array ISSUE_DETAIL = [
+        'type' => 'object',
+        'required' => ['issue', 'links', 'thread'],
+        'description' => 'The result of get_issue.',
+        'properties' => [
+            'issue' => ['$ref' => '#/$defs/Issue'],
+            'links' => [
+                'type' => 'array',
+                'items' => ['$ref' => '#/$defs/IssueLink'],
+                'description' => 'Oldest first.',
+            ],
+            'thread' => [
+                'type' => 'array',
+                'items' => ['$ref' => '#/$defs/IssueEntry'],
+                'description' => 'Oldest first.',
+            ],
+        ],
+        '$defs' => [
+            'Actor' => [
+                'title' => 'Actor',
+                'type' => 'object',
+                'required' => ['kind', 'userId', 'agentName', 'name', 'avatarUrl'],
+                'properties' => [
+                    'kind' => ['$ref' => '#/$defs/ActorKind'],
+                    'userId' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The user; for an agent, the user it acts for.',
+                    ],
+                    'agentName' => [
+                        'type' => ['string', 'null'],
+                        'minLength' => 1,
+                        'maxLength' => 64,
+                        'description' => 'API token name. Agents only.',
+                    ],
+                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
+                    'avatarUrl' => [
+                        'type' => ['string', 'null'],
+                        'format' => 'uri',
+                        'description' => 'Users only.',
+                    ],
+                ],
+                'allOf' => [
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'user'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['$ref' => '#/$defs/Ulid'],
+                                'agentName' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'agent'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['$ref' => '#/$defs/Ulid'],
+                                'agentName' => ['type' => 'string'],
+                                'avatarUrl' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'system'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['type' => 'null'],
+                                'agentName' => ['type' => 'null'],
+                                'avatarUrl' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'ActorKind' => [
+                'enum' => ['user', 'agent', 'system'],
+            ],
+            'ApprovalMode' => [
+                'enum' => ['user', 'agent_review', 'self'],
+                'description' => 'Who approves a plan and ends an issue of the project. user: only a signed-in user. agent_review: also an agent, with the name of a reviewing agent and its review on record. self: no approval (D117).',
+            ],
+            'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
+            'Issue' => [
+                'title' => 'Issue',
+                'description' => 'An issue without its links and its thread: the result of every issue write.',
+                'type' => 'object',
+                'required' => ['key', 'title', 'status', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt'],
+                'properties' => [
+                    'key' => ['$ref' => '#/$defs/IssueKey'],
+                    'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
+                    'status' => ['$ref' => '#/$defs/IssueStatus'],
+                    'problem' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 65536,
+                        'description' => 'Markdown: what the user wants, and how to tell that it is done.',
+                    ],
+                    'plan' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 65536,
+                        'description' => 'Markdown: the steps, the files, and the tests.',
+                    ],
+                    'result' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 65536,
+                        'description' => 'Markdown: what was done, with the commit SHAs, and each deviation from the plan.',
+                    ],
+                    'followUps' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 65536,
+                        'description' => 'Markdown: what came up and was left out.',
+                    ],
+                    'project' => [
+                        'type' => 'object',
+                        'required' => ['key', 'name', 'approvalMode'],
+                        'properties' => [
+                            'key' => ['$ref' => '#/$defs/ProjectKey'],
+                            'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255],
+                            'approvalMode' => ['$ref' => '#/$defs/ApprovalMode'],
+                        ],
+                    ],
+                    'planRevision' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The ID of the newest section_changed entry of plan. Null without a plan. approve_plan names it.',
+                    ],
+                    'planApproval' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/PlanApproval'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The approval of the plan of planRevision. A plan with new text clears it.',
+                    ],
+                    'allowedStatuses' => [
+                        'type' => 'array',
+                        'uniqueItems' => true,
+                        'items' => ['$ref' => '#/$defs/IssueStatus'],
+                        'description' => 'The statuses that set_issue_status takes from the caller now, with a note and a reviewer where the rules need them.',
+                    ],
+                    'createdBy' => ['$ref' => '#/$defs/Actor'],
+                    'createdAt' => ['$ref' => '#/$defs/DateTime'],
+                    'updatedAt' => ['$ref' => '#/$defs/DateTime'],
+                ],
+            ],
+            'IssueEntry' => [
+                'type' => 'object',
+                'required' => ['id', 'kind', 'actor', 'createdAt', 'body', 'section', 'from', 'to', 'note', 'reviewer', 'reviewNote', 'planRevision'],
+                'description' => 'One entry of the thread of an issue. The thread only grows.',
+                'properties' => [
+                    'id' => ['$ref' => '#/$defs/Ulid'],
+                    'kind' => ['$ref' => '#/$defs/IssueEntryKind'],
+                    'actor' => ['$ref' => '#/$defs/Actor'],
+                    'createdAt' => ['$ref' => '#/$defs/DateTime'],
+                    'body' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 65536,
+                        'description' => 'comment: the Markdown comment; else null. A section_changed entry carries its section and no text.',
+                    ],
+                    'section' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/IssueSection'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'section_changed only. The ID of such an entry of plan is a plan revision.',
+                    ],
+                    'from' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/IssueStatus'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'status_changed only.',
+                    ],
+                    'to' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/IssueStatus'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'status_changed only.',
+                    ],
+                    'note' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 65536,
+                        'description' => 'status_changed only: the Markdown note of the change, when one was given.',
+                    ],
+                    'reviewer' => [
+                        'type' => ['string', 'null'],
+                        'minLength' => 1,
+                        'maxLength' => 64,
+                        'description' => 'status_changed and plan_approved: the name of the reviewing agent, when one was given.',
+                    ],
+                    'reviewNote' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 65536,
+                        'description' => 'plan_approved only: the Markdown findings of the reviewer.',
+                    ],
+                    'planRevision' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'plan_approved only: the plan revision that the approval read.',
+                    ],
+                ],
+            ],
+            'IssueEntryKind' => [
+                'anyOf' => [
+                    [
+                        'enum' => ['comment', 'status_changed', 'section_changed', 'plan_approved'],
+                    ],
+                    ['type' => 'string'],
+                ],
+                'description' => 'Open set.',
+            ],
+            'IssueKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
+            'IssueLink' => [
+                'type' => 'object',
+                'required' => ['issue', 'note', 'createdBy', 'createdAt'],
+                'description' => 'A link of two issues. It has no direction, so both issues show it.',
+                'properties' => [
+                    'issue' => ['$ref' => '#/$defs/IssueSummary', 'description' => 'The other issue of the link.'],
+                    'note' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'Markdown: the reason for the link.'],
+                    'createdBy' => ['$ref' => '#/$defs/Actor'],
+                    'createdAt' => ['$ref' => '#/$defs/DateTime'],
+                ],
+            ],
+            'IssueSection' => [
+                'enum' => ['problem', 'plan', 'result', 'followUps'],
+            ],
+            'IssueStatus' => [
+                'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'awaiting_user_input', 'in_review', 'done', 'wont_do'],
+                'description' => 'done means delivered. done and wont_do end an issue (D117).',
+            ],
+            'IssueSummary' => [
+                'type' => 'object',
+                'required' => ['key', 'title', 'status', 'updatedAt'],
+                'properties' => [
+                    'key' => ['$ref' => '#/$defs/IssueKey'],
+                    'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
+                    'status' => ['$ref' => '#/$defs/IssueStatus'],
+                    'updatedAt' => ['$ref' => '#/$defs/DateTime'],
+                ],
+            ],
+            'PlanApproval' => [
+                'type' => 'object',
+                'required' => ['approvedBy', 'approvedAt', 'reviewer', 'reviewNote'],
+                'properties' => [
+                    'approvedBy' => ['$ref' => '#/$defs/Actor'],
+                    'approvedAt' => ['$ref' => '#/$defs/DateTime'],
+                    'reviewer' => [
+                        'type' => ['string', 'null'],
+                        'minLength' => 1,
+                        'maxLength' => 64,
+                        'description' => 'The name of the agent that reviewed the plan. Null for an approval of a user.',
+                    ],
+                    'reviewNote' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 65536,
+                        'description' => 'Markdown: the findings of the reviewer. Null for an approval of a user.',
+                    ],
+                ],
+            ],
+            'ProjectKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}$', 'description' => 'The key of a project: 2 to 10 upper-case letters, unique per tenant. It never changes.'],
+            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+        ],
+    ];
+
+    /** issue.schema.json */
+    public const array ISSUE = [
+        'title' => 'Issue',
+        'description' => 'An issue without its links and its thread: the result of every issue write.',
+        'type' => 'object',
+        'required' => ['key', 'title', 'status', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt'],
+        'properties' => [
+            'key' => ['$ref' => '#/$defs/IssueKey'],
+            'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
+            'status' => ['$ref' => '#/$defs/IssueStatus'],
+            'problem' => [
+                'type' => ['string', 'null'],
+                'maxLength' => 65536,
+                'description' => 'Markdown: what the user wants, and how to tell that it is done.',
+            ],
+            'plan' => [
+                'type' => ['string', 'null'],
+                'maxLength' => 65536,
+                'description' => 'Markdown: the steps, the files, and the tests.',
+            ],
+            'result' => [
+                'type' => ['string', 'null'],
+                'maxLength' => 65536,
+                'description' => 'Markdown: what was done, with the commit SHAs, and each deviation from the plan.',
+            ],
+            'followUps' => [
+                'type' => ['string', 'null'],
+                'maxLength' => 65536,
+                'description' => 'Markdown: what came up and was left out.',
+            ],
+            'project' => [
+                'type' => 'object',
+                'required' => ['key', 'name', 'approvalMode'],
+                'properties' => [
+                    'key' => ['$ref' => '#/$defs/ProjectKey'],
+                    'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255],
+                    'approvalMode' => ['$ref' => '#/$defs/ApprovalMode'],
+                ],
+            ],
+            'planRevision' => [
+                'anyOf' => [
+                    ['$ref' => '#/$defs/Ulid'],
+                    ['type' => 'null'],
+                ],
+                'description' => 'The ID of the newest section_changed entry of plan. Null without a plan. approve_plan names it.',
+            ],
+            'planApproval' => [
+                'anyOf' => [
+                    ['$ref' => '#/$defs/PlanApproval'],
+                    ['type' => 'null'],
+                ],
+                'description' => 'The approval of the plan of planRevision. A plan with new text clears it.',
+            ],
+            'allowedStatuses' => [
+                'type' => 'array',
+                'uniqueItems' => true,
+                'items' => ['$ref' => '#/$defs/IssueStatus'],
+                'description' => 'The statuses that set_issue_status takes from the caller now, with a note and a reviewer where the rules need them.',
+            ],
+            'createdBy' => ['$ref' => '#/$defs/Actor'],
+            'createdAt' => ['$ref' => '#/$defs/DateTime'],
+            'updatedAt' => ['$ref' => '#/$defs/DateTime'],
+        ],
+        '$defs' => [
+            'Actor' => [
+                'title' => 'Actor',
+                'type' => 'object',
+                'required' => ['kind', 'userId', 'agentName', 'name', 'avatarUrl'],
+                'properties' => [
+                    'kind' => ['$ref' => '#/$defs/ActorKind'],
+                    'userId' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The user; for an agent, the user it acts for.',
+                    ],
+                    'agentName' => [
+                        'type' => ['string', 'null'],
+                        'minLength' => 1,
+                        'maxLength' => 64,
+                        'description' => 'API token name. Agents only.',
+                    ],
+                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
+                    'avatarUrl' => [
+                        'type' => ['string', 'null'],
+                        'format' => 'uri',
+                        'description' => 'Users only.',
+                    ],
+                ],
+                'allOf' => [
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'user'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['$ref' => '#/$defs/Ulid'],
+                                'agentName' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'agent'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['$ref' => '#/$defs/Ulid'],
+                                'agentName' => ['type' => 'string'],
+                                'avatarUrl' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'system'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['type' => 'null'],
+                                'agentName' => ['type' => 'null'],
+                                'avatarUrl' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'ActorKind' => [
+                'enum' => ['user', 'agent', 'system'],
+            ],
+            'ApprovalMode' => [
+                'enum' => ['user', 'agent_review', 'self'],
+                'description' => 'Who approves a plan and ends an issue of the project. user: only a signed-in user. agent_review: also an agent, with the name of a reviewing agent and its review on record. self: no approval (D117).',
+            ],
+            'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
+            'IssueKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
+            'IssueStatus' => [
+                'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'awaiting_user_input', 'in_review', 'done', 'wont_do'],
+                'description' => 'done means delivered. done and wont_do end an issue (D117).',
+            ],
+            'PlanApproval' => [
+                'type' => 'object',
+                'required' => ['approvedBy', 'approvedAt', 'reviewer', 'reviewNote'],
+                'properties' => [
+                    'approvedBy' => ['$ref' => '#/$defs/Actor'],
+                    'approvedAt' => ['$ref' => '#/$defs/DateTime'],
+                    'reviewer' => [
+                        'type' => ['string', 'null'],
+                        'minLength' => 1,
+                        'maxLength' => 64,
+                        'description' => 'The name of the agent that reviewed the plan. Null for an approval of a user.',
+                    ],
+                    'reviewNote' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 65536,
+                        'description' => 'Markdown: the findings of the reviewer. Null for an approval of a user.',
+                    ],
+                ],
+            ],
+            'ProjectKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}$', 'description' => 'The key of a project: 2 to 10 upper-case letters, unique per tenant. It never changes.'],
+            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+        ],
+    ];
+
     /** docs/specs/mcp-tools.json */
     public const array TOOLS = [
+        [
+            'name' => 'approve_plan',
+            'title' => 'Approve plan',
+            'description' => 'Record that another agent or subagent reviewed the plan of an issue. Use it in a project with approvalMode agent_review, before you set in_progress. The reviewer reads the plan of planRevision; reviewer is its name and reviewNote its findings. The author of a plan does not review it. Fails with invalid_input in approvalMode user, for an issue without a plan, and for a planRevision that is not the newest: then call get_issue and review the newest plan. A plan with new text clears the approval.',
+            'inputSchema' => [
+                'type' => 'object',
+                'properties' => [
+                    'issue' => ['type' => 'string', 'description' => 'Issue key, for example SM-12', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$'],
+                    'planRevision' => ['type' => 'string', 'description' => 'planRevision of the issue, as the reviewer read it', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'],
+                    'reviewer' => ['type' => 'string', 'description' => 'Name of the agent or subagent that reviewed the plan', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$'],
+                    'reviewNote' => ['type' => 'string', 'description' => 'Markdown: the findings of the reviewer, at least 20 characters', 'minLength' => 20, 'maxLength' => 65536, 'pattern' => '^[^\\x00]*$'],
+                ],
+                'required' => ['issue', 'planRevision', 'reviewer', 'reviewNote'],
+            ],
+            'annotations' => ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => false, 'openWorldHint' => false],
+            'outputSchema' => self::ISSUE,
+        ],
         [
             'name' => 'claim_request',
             'title' => 'Claim request',
@@ -4157,6 +4710,64 @@ final class BundledSchemas
             ],
             'annotations' => ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false],
             'outputSchema' => self::REQUEST_COMMAND_RESULT,
+        ],
+        [
+            'name' => 'comment_on_issue',
+            'title' => 'Comment on issue',
+            'description' => 'Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. With awaiting_user_input, name in a comment what the user must decide.',
+            'inputSchema' => [
+                'type' => 'object',
+                'properties' => [
+                    'issue' => ['type' => 'string', 'description' => 'Issue key, for example SM-12', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$'],
+                    'body' => ['type' => 'string', 'description' => 'Markdown comment', 'minLength' => 1, 'maxLength' => 65536, 'pattern' => '^[^\\x00]*$'],
+                ],
+                'required' => ['issue', 'body'],
+            ],
+            'annotations' => ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => false, 'openWorldHint' => false],
+            'outputSchema' => self::ISSUE,
+        ],
+        [
+            'name' => 'create_issue',
+            'title' => 'Create issue',
+            'description' => 'Create an issue of a project. Its key is the project key, a hyphen, and the next number of the project, for example SM-12. Look through the open issues of the project first, and continue one that covers the request. status is draft while the problem is incomplete, and backlog or todo when it is ready; backlog and todo need problem.',
+            'inputSchema' => [
+                'type' => 'object',
+                'properties' => [
+                    'project' => ['type' => 'string', 'description' => 'Project key from list_projects, for example SM', 'pattern' => '^[A-Z]{2,10}$'],
+                    'title' => ['type' => 'string', 'description' => 'One line that names the issue', 'minLength' => 1, 'maxLength' => 200, 'pattern' => '^[^\\x00]*$'],
+                    'problem' => [
+                        'type' => ['null', 'string'],
+                        'description' => 'Markdown: what the user wants, and how to tell that it is done',
+                        'default' => null,
+                        'minLength' => 1,
+                        'maxLength' => 65536,
+                        'pattern' => '^[^\\x00]*$',
+                    ],
+                    'status' => [
+                        'type' => 'string',
+                        'description' => 'The first status',
+                        'default' => 'draft',
+                        'enum' => ['draft', 'backlog', 'todo'],
+                    ],
+                ],
+                'required' => ['project', 'title'],
+            ],
+            'annotations' => ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => false, 'openWorldHint' => false],
+            'outputSchema' => self::ISSUE,
+        ],
+        [
+            'name' => 'get_issue',
+            'title' => 'Get issue',
+            'description' => 'Read one issue in full: the four sections, planRevision, the plan approval, allowedStatuses, its links, and its thread. A section_changed entry of the thread names its section and holds no text.',
+            'inputSchema' => [
+                'type' => 'object',
+                'properties' => [
+                    'issue' => ['type' => 'string', 'description' => 'Issue key, for example SM-12', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$'],
+                ],
+                'required' => ['issue'],
+            ],
+            'annotations' => ['readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false],
+            'outputSchema' => self::ISSUE_DETAIL,
         ],
         [
             'name' => 'get_request',
@@ -4236,6 +4847,22 @@ final class BundledSchemas
             'outputSchema' => self::LINK_COMMITS_RESULT,
         ],
         [
+            'name' => 'link_issues',
+            'title' => 'Link issues',
+            'description' => 'Link two issues, with the reason in note. A link has no direction: both issues show it. Link a follow-up issue to its origin. A link of an issue to itself, and a second link of the same two issues, fail with invalid_input.',
+            'inputSchema' => [
+                'type' => 'object',
+                'properties' => [
+                    'issue' => ['type' => 'string', 'description' => 'Issue key, for example SM-12', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$'],
+                    'target' => ['type' => 'string', 'description' => 'Key of the other issue', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$'],
+                    'note' => ['type' => 'string', 'description' => 'Markdown: the reason for the link', 'minLength' => 1, 'maxLength' => 65536, 'pattern' => '^[^\\x00]*$'],
+                ],
+                'required' => ['issue', 'target', 'note'],
+            ],
+            'annotations' => ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => false, 'openWorldHint' => false],
+            'outputSchema' => self::ISSUE,
+        ],
+        [
             'name' => 'link_pull_request',
             'title' => 'Link pull request',
             'description' => 'Record that a pull request implements one or more requests: each one in_progress and held by you, or ready_for_review. For a GitHub repository the URL is https://github.com/{owner}/{name}/pull/{number} of the reviewed repository. A local repository has no pull requests. Linking does not change the status. Open a pull request when delivery.pullRequest of get_request is true; when it is null, only when the user or the repository\'s instructions ask for it.',
@@ -4263,6 +4890,55 @@ final class BundledSchemas
             ],
             'annotations' => ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false],
             'outputSchema' => self::LINK_PULL_REQUEST_RESULT,
+        ],
+        [
+            'name' => 'list_issues',
+            'title' => 'List issues',
+            'description' => 'List the issues of one project as summaries, newest updatedAt first. Call get_issue for the sections, the links, and the thread.',
+            'inputSchema' => [
+                'type' => 'object',
+                'properties' => [
+                    'project' => ['type' => 'string', 'description' => 'Project key from list_projects, for example SM', 'pattern' => '^[A-Z]{2,10}$'],
+                    'status' => [
+                        'type' => ['string', 'null'],
+                        'description' => 'Only issues with this status',
+                        'default' => null,
+                        'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'awaiting_user_input', 'in_review', 'done', 'wont_do', null],
+                    ],
+                    'cursor' => [
+                        'type' => ['null', 'string'],
+                        'description' => 'nextCursor of the previous page',
+                        'default' => null,
+                        'minLength' => 1,
+                        'pattern' => '^[^\\x00]*$',
+                    ],
+                    'limit' => ['type' => 'integer', 'description' => 'Page size', 'default' => 50, 'minimum' => 1, 'maximum' => 200],
+                ],
+                'required' => ['project'],
+            ],
+            'annotations' => ['readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false],
+            'outputSchema' => self::ISSUE_PAGE,
+        ],
+        [
+            'name' => 'list_projects',
+            'title' => 'List projects',
+            'description' => 'List the projects of the issue tracker that this token sees, with key, name, approvalMode, and the names of their repositories. Track the work on a repository as issues of the project that lists it. A token of one repository sees only the project of that repository.',
+            'inputSchema' => [
+                'type' => 'object',
+                'properties' => [
+                    'cursor' => [
+                        'type' => ['null', 'string'],
+                        'description' => 'nextCursor of the previous page',
+                        'default' => null,
+                        'minLength' => 1,
+                        'pattern' => '^[^\\x00]*$',
+                    ],
+                    'limit' => ['type' => 'integer', 'description' => 'Page size', 'default' => 100, 'minimum' => 1, 'maximum' => 500],
+                ],
+                'required' => [],
+            ],
+            'annotations' => ['readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false],
+            'outputSchema' => self::PROJECT_PAGE,
         ],
         [
             'name' => 'list_repositories',
@@ -4481,6 +5157,41 @@ final class BundledSchemas
             'outputSchema' => self::REQUEST_COMMAND_RESULT,
         ],
         [
+            'name' => 'set_issue_status',
+            'title' => 'Set issue status',
+            'description' => 'Move an issue to another status. The server checks the state that the move gives: backlog, todo, in_progress, in_review, and done need problem; in_progress, in_review, and done need a plan that is approved as approvalMode says; in_review and done need result; wont_do needs note. done and wont_do from an agent: refused in approvalMode user, with reviewer and note in agent_review, free in self. todo to in_progress is the claim. A refusal is invalid_input on the field that breaks the rule. allowedStatuses of the issue lists what you can set now.',
+            'inputSchema' => [
+                'type' => 'object',
+                'properties' => [
+                    'issue' => ['type' => 'string', 'description' => 'Issue key, for example SM-12', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$'],
+                    'status' => [
+                        'type' => 'string',
+                        'description' => 'The new status',
+                        'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'awaiting_user_input', 'in_review', 'done', 'wont_do'],
+                    ],
+                    'note' => [
+                        'type' => ['null', 'string'],
+                        'description' => 'Markdown: why, for the thread. Required for wont_do, and for done in approvalMode agent_review',
+                        'default' => null,
+                        'minLength' => 1,
+                        'maxLength' => 65536,
+                        'pattern' => '^[^\\x00]*$',
+                    ],
+                    'reviewer' => [
+                        'type' => ['null', 'string'],
+                        'description' => 'Name of the agent or subagent that reviewed the result. Required for done and wont_do in approvalMode agent_review',
+                        'default' => null,
+                        'minLength' => 1,
+                        'maxLength' => 64,
+                        'pattern' => '^[^\\x00]*$',
+                    ],
+                ],
+                'required' => ['issue', 'status'],
+            ],
+            'annotations' => ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => false, 'openWorldHint' => false],
+            'outputSchema' => self::ISSUE,
+        ],
+        [
             'name' => 'set_request_title',
             'title' => 'Set request title',
             'description' => 'Set the title of a request whose title is null: one line of at most 80 characters that summarizes its body. Call it before you claim such a request. Fails with invalid_transition when the request has a title; only the user changes a title.',
@@ -4604,6 +5315,60 @@ final class BundledSchemas
             ],
             'annotations' => ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => false, 'openWorldHint' => false],
             'outputSchema' => self::REQUEST_COMMAND_RESULT,
+        ],
+        [
+            'name' => 'update_issue',
+            'title' => 'Update issue',
+            'description' => 'Change the title or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem: what the user wants, and how to tell that it is done. plan: the steps, the files, and the tests. result: what was done, with the commit SHAs, and each deviation from the plan. followUps: what came up and was left out. A plan with new text clears its approval. An agent cannot change plan in in_progress or in_review, and no field of an issue in done or wont_do.',
+            'inputSchema' => [
+                'type' => 'object',
+                'properties' => [
+                    'issue' => ['type' => 'string', 'description' => 'Issue key, for example SM-12', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$'],
+                    'title' => [
+                        'type' => ['null', 'string'],
+                        'description' => 'One line that names the issue',
+                        'default' => null,
+                        'minLength' => 1,
+                        'maxLength' => 200,
+                        'pattern' => '^[^\\x00]*$',
+                    ],
+                    'problem' => [
+                        'type' => ['null', 'string'],
+                        'description' => 'Markdown: what the user wants, and how to tell that it is done',
+                        'default' => null,
+                        'minLength' => 1,
+                        'maxLength' => 65536,
+                        'pattern' => '^[^\\x00]*$',
+                    ],
+                    'plan' => [
+                        'type' => ['null', 'string'],
+                        'description' => 'Markdown: the steps, the files, and the tests',
+                        'default' => null,
+                        'minLength' => 1,
+                        'maxLength' => 65536,
+                        'pattern' => '^[^\\x00]*$',
+                    ],
+                    'result' => [
+                        'type' => ['null', 'string'],
+                        'description' => 'Markdown: what was done, with the commit SHAs, and each deviation from the plan',
+                        'default' => null,
+                        'minLength' => 1,
+                        'maxLength' => 65536,
+                        'pattern' => '^[^\\x00]*$',
+                    ],
+                    'followUps' => [
+                        'type' => ['null', 'string'],
+                        'description' => 'Markdown: what came up and was left out',
+                        'default' => null,
+                        'minLength' => 1,
+                        'maxLength' => 65536,
+                        'pattern' => '^[^\\x00]*$',
+                    ],
+                ],
+                'required' => ['issue'],
+            ],
+            'annotations' => ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false],
+            'outputSchema' => self::ISSUE,
         ],
     ];
 }

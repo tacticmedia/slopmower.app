@@ -13,7 +13,11 @@ use App\Entity\GitHubCandidate;
 use App\Entity\GitHubInstallation;
 use App\Entity\IndexedBlob;
 use App\Entity\IndexedFile;
+use App\Entity\Issue;
+use App\Entity\IssueEntry;
+use App\Entity\IssueLink;
 use App\Entity\LocationCacheEntry;
+use App\Entity\Project;
 use App\Entity\PullRequest;
 use App\Entity\Repository;
 use App\Entity\Review;
@@ -27,8 +31,9 @@ use Doctrine\ORM\Query\Filter\SQLFilter;
 
 /**
  * Enabled only for a bearer request of a token scoped to one repository. Rows of other repositories do not exist for
- * that request, so their IDs answer 404. Fails closed for a tenant entity without a rule. Like {@see TenantSqlFilter},
- * it does not cover DBAL queries or identity-map hits.
+ * that request, so their IDs answer 404. Of the issue tracker, it sees the project of its repository (D116). Fails
+ * closed for a tenant entity without a rule. Like {@see TenantSqlFilter}, it does not cover DBAL queries or
+ * identity-map hits.
  */
 final class RepositoryScopeSqlFilter extends SQLFilter
 {
@@ -49,6 +54,7 @@ final class RepositoryScopeSqlFilter extends SQLFilter
         $repositoryId = $this->getParameter(self::PARAMETER);
         $reviewsOfRepository = "SELECT scope_review.id FROM review scope_review WHERE scope_review.repository_id = {$repositoryId}";
         $repositoryColumn = static fn (string $column): string => "SELECT scope_repository.{$column} FROM repository scope_repository WHERE scope_repository.id = {$repositoryId}";
+        $issuesOfProject = "SELECT scope_issue.id FROM issue scope_issue WHERE scope_issue.project_id IN ({$repositoryColumn('project_id')})";
 
         return match ($class) {
             Repository::class => "{$targetTableAlias}.id = {$repositoryId}",
@@ -57,6 +63,10 @@ final class RepositoryScopeSqlFilter extends SQLFilter
             GitHubCandidate::class => "{$targetTableAlias}.github_repository_id IN ({$repositoryColumn('github_repository_id')})",
             ChangeRequest::class, ReviewEvent::class, Draft::class, ViewedFile::class => "{$targetTableAlias}.review_id IN ({$reviewsOfRepository})",
             Comment::class, CommitLink::class => "{$targetTableAlias}.request_id IN (SELECT scope_request.id FROM change_request scope_request WHERE scope_request.review_id IN ({$reviewsOfRepository}))",
+            Project::class => "{$targetTableAlias}.id IN ({$repositoryColumn('project_id')})",
+            Issue::class => "{$targetTableAlias}.project_id IN ({$repositoryColumn('project_id')})",
+            IssueEntry::class => "{$targetTableAlias}.issue_id IN ({$issuesOfProject})",
+            IssueLink::class => "{$targetTableAlias}.issue_id IN ({$issuesOfProject}) AND {$targetTableAlias}.target_id IN ({$issuesOfProject})",
             default => throw new \LogicException("The repository scope has no rule for {$class}."),
         };
     }

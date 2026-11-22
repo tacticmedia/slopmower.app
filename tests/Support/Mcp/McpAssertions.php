@@ -32,6 +32,15 @@ trait McpAssertions
         'start_review' => 'review.schema.json',
         'suggest_request' => 'request-command-result.schema.json',
         'set_request_title' => 'request-command-result.schema.json',
+        'list_projects' => 'lists.schema.json#/$defs/ProjectPage',
+        'list_issues' => 'lists.schema.json#/$defs/IssuePage',
+        'get_issue' => 'issue.schema.json#/$defs/IssueDetail',
+        'create_issue' => 'issue.schema.json',
+        'update_issue' => 'issue.schema.json',
+        'set_issue_status' => 'issue.schema.json',
+        'comment_on_issue' => 'issue.schema.json',
+        'link_issues' => 'issue.schema.json',
+        'approve_plan' => 'issue.schema.json',
     ];
 
     /**

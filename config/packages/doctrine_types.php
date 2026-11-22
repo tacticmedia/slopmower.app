@@ -14,6 +14,9 @@ use App\Domain\Identity\DraftId;
 use App\Domain\Identity\EventId;
 use App\Domain\Identity\GitHubCandidateId;
 use App\Domain\Identity\GitHubInstallationId;
+use App\Domain\Identity\IssueEntryId;
+use App\Domain\Identity\IssueId;
+use App\Domain\Identity\ProjectId;
 use App\Domain\Identity\PullRequestId;
 use App\Domain\Identity\RepositoryId;
 use App\Domain\Identity\RequestId;
@@ -35,6 +38,9 @@ return static function (ContainerConfigurator $container): void {
             EventId::class,
             GitHubCandidateId::class,
             GitHubInstallationId::class,
+            IssueEntryId::class,
+            IssueId::class,
+            ProjectId::class,
             PullRequestId::class,
             RepositoryId::class,
             RequestId::class,

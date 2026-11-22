@@ -13,6 +13,8 @@ use App\Domain\Git\RepoPath;
 use App\Domain\Identity\CommentId;
 use App\Domain\Identity\EventId;
 use App\Domain\Identity\RepositoryId;
+use App\Domain\Issue\ApprovalMode;
+use App\Domain\Issue\IssueStatus;
 use App\Domain\Location\Location;
 use App\Domain\Repository\RepositoryName;
 use App\Entity\ChangeRequest;
@@ -21,6 +23,10 @@ use App\Entity\Draft;
 use App\Entity\GitHubAccountType;
 use App\Entity\GitHubCandidate;
 use App\Entity\GitHubInstallation;
+use App\Entity\Issue;
+use App\Entity\IssueEntry;
+use App\Entity\IssueLink;
+use App\Entity\Project;
 use App\Entity\PullRequest;
 use App\Entity\Repository;
 use App\Entity\Review;
@@ -71,6 +77,7 @@ final class RepositoryScopeSqlFilterTest extends KernelTestCase
             self::entityManager()->persist(new GitHubCandidate($tenantId, $githubRepositoryId, 5551, 'acme', RepositoryName::github($name), true, 'main', "https://github.com/{$name}", $time));
         }
 
+        self::persistIssues($review->getRepository(), $other);
         self::entityManager()->flush();
         $eventId = EventId::generate();
         self::insertEvent(new RecordedEvent($eventId, $tenantId, 1, $scenario->review()->id, $requestId, RequestScenario::claimingAgent(), $time, new RequestClaimedEvent()));
@@ -78,11 +85,36 @@ final class RepositoryScopeSqlFilterTest extends KernelTestCase
         self::getContainer()->get(LocationCacheSql::class)->insert($tenantId, $review->getRepository()->getId(), $eventId, Location::exact($review->getCommitSha(), RepoPath::fromString('src/Totals.php'), null));
         $unscoped = ['ApiToken' => 0, 'User' => 1];
         $noReviewData = ['ChangeRequest' => 0, 'Comment' => 0, 'CommitLink' => 0, 'Draft' => 0];
-        $noIndex = ['IndexedBlob' => 0, 'IndexedFile' => 0, 'LocationCacheEntry' => 0];
+        $noIndex = ['IndexedBlob' => 0, 'IndexedFile' => 0];
+        $noIssues = ['Issue' => 0, 'IssueEntry' => 0, 'IssueLink' => 0, 'LocationCacheEntry' => 0, 'Project' => 0];
 
-        self::assertSame(['ChangeRequest' => 1, 'Comment' => 1, 'CommitLink' => 1, 'Draft' => 1, 'GitHubCandidate' => 0, 'GitHubInstallation' => 0, 'IndexedBlob' => 1, 'IndexedFile' => 1, 'LocationCacheEntry' => 1, 'PullRequest' => 0, 'Repository' => 1, 'Review' => 1, 'ReviewEvent' => 1, 'Symbol' => 1, 'ViewedFile' => 1] + $unscoped, self::rowCounts($review->getRepository()->getId()));
-        self::assertSame($noReviewData + ['GitHubCandidate' => 0, 'GitHubInstallation' => 0] + $noIndex + ['PullRequest' => 0, 'Repository' => 1, 'Review' => 0, 'ReviewEvent' => 0, 'Symbol' => 0, 'ViewedFile' => 0] + $unscoped, self::rowCounts($other->getId()));
-        self::assertSame($noReviewData + ['GitHubCandidate' => 1, 'GitHubInstallation' => 1] + $noIndex + ['PullRequest' => 1, 'Repository' => 1, 'Review' => 0, 'ReviewEvent' => 0, 'Symbol' => 0, 'ViewedFile' => 0] + $unscoped, self::rowCounts($gitHub->getId()), 'Only its candidate, its installation, and its pull request.');
+        self::assertSame(['ChangeRequest' => 1, 'Comment' => 1, 'CommitLink' => 1, 'Draft' => 1, 'GitHubCandidate' => 0, 'GitHubInstallation' => 0, 'IndexedBlob' => 1, 'IndexedFile' => 1, 'Issue' => 2, 'IssueEntry' => 1, 'IssueLink' => 1, 'LocationCacheEntry' => 1, 'Project' => 1, 'PullRequest' => 0, 'Repository' => 1, 'Review' => 1, 'ReviewEvent' => 1, 'Symbol' => 1, 'ViewedFile' => 1] + $unscoped, self::rowCounts($review->getRepository()->getId()), 'Its project with two issues, their entry, and the link between them.');
+        self::assertSame($noReviewData + ['GitHubCandidate' => 0, 'GitHubInstallation' => 0] + $noIndex + ['Issue' => 1, 'IssueEntry' => 1, 'IssueLink' => 0, 'LocationCacheEntry' => 0, 'Project' => 1, 'PullRequest' => 0, 'Repository' => 1, 'Review' => 0, 'ReviewEvent' => 0, 'Symbol' => 0, 'ViewedFile' => 0] + $unscoped, self::rowCounts($other->getId()), 'Its project with one issue. No link to an issue of another project.');
+        self::assertSame($noReviewData + ['GitHubCandidate' => 1, 'GitHubInstallation' => 1] + $noIndex + $noIssues + ['PullRequest' => 1, 'Repository' => 1, 'Review' => 0, 'ReviewEvent' => 0, 'Symbol' => 0, 'ViewedFile' => 0] + $unscoped, self::rowCounts($gitHub->getId()), 'Only its candidate, its installation, and its pull request. A repository without a project sees no project.');
+    }
+
+    /**
+     * The project SM of $first with two linked issues, the project DOC of $second with one issue that an issue of SM
+     * links, and the project OPS without a repository. The first issue of each project has one entry.
+     */
+    private static function persistIssues(Repository $first, Repository $second): void
+    {
+        $time = new \DateTimeImmutable(self::TIME);
+        $issues = [];
+
+        foreach (['SM' => $first, 'DOC' => $second, 'OPS' => null] as $key => $repository) {
+            $project = new Project($first->getTenantId(), $key, $key, ApprovalMode::Self, $time);
+            $repository?->assignProject($project);
+            $issues[$key] = new Issue($project, $project->takeIssueNumber(), 'Round once', IssueStatus::Draft, RequestScenario::user(), $time);
+            self::entityManager()->persist($project);
+            self::entityManager()->persist($issues[$key]);
+            self::entityManager()->persist(IssueEntry::comment($issues[$key], RequestScenario::user(), 'Started.', $time));
+        }
+
+        $sibling = new Issue($issues['SM']->getProject(), 2, 'Round twice', IssueStatus::Draft, RequestScenario::user(), $time);
+        self::entityManager()->persist($sibling);
+        self::entityManager()->persist(new IssueLink($issues['SM'], $sibling, 'The same rounding.', RequestScenario::user(), $time));
+        self::entityManager()->persist(new IssueLink($sibling, $issues['DOC'], 'The documentation of it.', RequestScenario::user(), $time));
     }
 
     /**

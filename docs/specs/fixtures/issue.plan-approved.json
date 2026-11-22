@@ -1,0 +1,43 @@
+{
+  "key": "BILL-12",
+  "title": "Round invoice totals once per invoice",
+  "status": "todo",
+  "problem": "Invoice totals round each line, so an invoice of three lines can be 1 cent off.\n\nDone when `InvoiceTotalsTest` has a case with three lines of 0.335 and the total is 1.01.",
+  "plan": "1. Add `TaxRounding::perInvoice()` in `src/Billing/TaxRounding.php`.\n2. Use it in `InvoiceTotals::total()`.\n3. Test: a case with three lines of 0.335 in `tests/Billing/InvoiceTotalsTest.php`.",
+  "result": null,
+  "followUps": null,
+  "project": {
+    "key": "BILL",
+    "name": "Billing",
+    "approvalMode": "agent_review"
+  },
+  "planRevision": "01K7F3C5D6E7F8G9H0J1K2M3N4",
+  "planApproval": {
+    "approvedBy": {
+      "kind": "agent",
+      "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+      "agentName": "claude-code laptop",
+      "name": "claude-code laptop",
+      "avatarUrl": null
+    },
+    "approvedAt": "2026-10-02T09:12:40Z",
+    "reviewer": "plan-reviewer",
+    "reviewNote": "The plan covers the rounding and its test. It leaves the shipping totals alone, which is right: BILL-9 owns them."
+  },
+  "allowedStatuses": [
+    "draft",
+    "backlog",
+    "in_progress",
+    "awaiting_user_input",
+    "wont_do"
+  ],
+  "createdBy": {
+    "kind": "agent",
+    "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+    "agentName": "claude-code laptop",
+    "name": "claude-code laptop",
+    "avatarUrl": null
+  },
+  "createdAt": "2026-10-02T09:01:12Z",
+  "updatedAt": "2026-10-02T09:12:40Z"
+}

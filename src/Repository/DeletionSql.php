@@ -83,7 +83,11 @@ final class DeletionSql
         'DELETE FROM api_token WHERE tenant_id = :tenantId',
         'DELETE FROM github_candidate WHERE tenant_id = :tenantId',
         'DELETE FROM github_installation WHERE tenant_id = :tenantId',
+        'DELETE FROM issue_link WHERE tenant_id = :tenantId',
+        'DELETE FROM issue_entry WHERE tenant_id = :tenantId',
+        'DELETE FROM issue WHERE tenant_id = :tenantId',
         'DELETE FROM repository WHERE tenant_id = :tenantId',
+        'DELETE FROM project WHERE tenant_id = :tenantId',
         'DELETE FROM app_user WHERE tenant_id = :tenantId',
         'DELETE FROM tenant WHERE id = :tenantId',
     ];

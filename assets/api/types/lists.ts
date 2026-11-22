@@ -3,6 +3,8 @@ import type { Commit } from './commit';
 import type { CommitSha, Cursor, DateTime, ObjectSha, RepoPath, ReviewState, Ulid } from './common';
 import type { Declaration } from './declaration';
 import type { Draft } from './draft';
+import type { IssueSummary } from './issue';
+import type { Project } from './project';
 import type { Repository } from './repository';
 import type { RepositoryCandidate } from './repository-candidate';
 import type { RequestSummary } from './request-summary';
@@ -100,6 +102,18 @@ export type MercureAuthorization = {
     /** Topic selectors in the subscriber JWT. */
     topics: string[];
     expiresAt: DateTime;
+};
+
+/** `list_projects`: in key order. */
+export type ProjectPage = {
+    items: Project[];
+    nextCursor: NextCursor;
+};
+
+/** `list_issues`: newest `updatedAt` first. */
+export type IssuePage = {
+    items: IssueSummary[];
+    nextCursor: NextCursor;
 };
 
 /** R11. Kept in memory only. */

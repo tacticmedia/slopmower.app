@@ -5,8 +5,14 @@ declare(strict_types=1);
 namespace App\Mcp;
 
 use App\Application\AnchorFactory;
+use App\Application\IssueCommands;
+use App\Application\Query\IssueDetail;
+use App\Application\Query\IssuePage;
+use App\Application\Query\IssueQuery;
+use App\Application\Query\IssueView;
 use App\Application\Query\LinkCommitsResult;
 use App\Application\Query\LinkPullRequestResult;
+use App\Application\Query\ProjectPage;
 use App\Application\Query\RepositoryPage;
 use App\Application\Query\RepositoryQuery;
 use App\Application\Query\RequestCommandResult;
@@ -35,8 +41,11 @@ use App\Domain\Event\RecordedEvent;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\CommitShaPrefix;
 use App\Domain\Git\RefName;
+use App\Domain\Identity\IssueEntryId;
 use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
+use App\Domain\Issue\IssueKey;
+use App\Domain\Issue\IssueStatus;
 use App\Domain\Request\Awaiting;
 use App\Domain\Request\Command\Claim;
 use App\Domain\Request\Command\LinkCommits;
@@ -51,6 +60,7 @@ use App\Domain\Request\Command\UnlinkCommit;
 use App\Domain\Request\CommentQuestion;
 use App\Domain\Request\RequestStatus;
 use App\Domain\Request\SuggestionState;
+use App\Entity\Issue;
 use App\Entity\Review;
 use App\Repository\ReviewRepository;
 use App\Security\CurrentActor;
@@ -82,9 +92,21 @@ final class McpTools
         private readonly NormalizerInterface $normalizer,
         private readonly ValidatorInterface $validator,
         private readonly LoggerInterface $logger,
+        private readonly IssueCommands $issueCommands,
+        private readonly IssueQuery $issues,
         // The Sentry bundle runs in prod only.
         private readonly ?HubInterface $sentryHub = null,
     ) {
+    }
+
+    /**
+     * Section 4.27.
+     *
+     * @return array<string, mixed>
+     */
+    public function approvePlan(string $issue, string $planRevision, string $reviewer, string $reviewNote): array
+    {
+        return $this->issueWrite('approve_plan', fn (Actor $actor): Issue => $this->issueCommands->approvePlan(IssueKey::fromString($issue, 'issue'), IssueEntryId::fromString($planRevision, 'planRevision'), $reviewer, $reviewNote, $actor));
     }
 
     /**
@@ -95,6 +117,36 @@ final class McpTools
     public function claimRequest(string $id): array
     {
         return $this->requestCommand('claim_request', $id, 'id', fn (RequestId $requestId, Actor $actor): array => $this->commands->execute(new Claim($requestId), $actor));
+    }
+
+    /**
+     * Section 4.25.
+     *
+     * @return array<string, mixed>
+     */
+    public function commentOnIssue(string $issue, string $body): array
+    {
+        return $this->issueWrite('comment_on_issue', fn (Actor $actor): Issue => $this->issueCommands->comment(IssueKey::fromString($issue, 'issue'), $body, $actor));
+    }
+
+    /**
+     * Section 4.22.
+     *
+     * @return array<string, mixed>
+     */
+    public function createIssue(string $project, string $title, ?string $problem = null, IssueStatus $status = IssueStatus::Draft): array
+    {
+        return $this->issueWrite('create_issue', fn (Actor $actor): Issue => $this->issueCommands->create($project, $title, $problem, $status, $actor));
+    }
+
+    /**
+     * Section 4.21.
+     *
+     * @return array<string, mixed>
+     */
+    public function getIssue(string $issue): array
+    {
+        return $this->run('get_issue', fn (): IssueDetail => $this->issues->get(IssueKey::fromString($issue, 'issue'), $this->currentActor->get()));
     }
 
     /**
@@ -151,6 +203,16 @@ final class McpTools
     }
 
     /**
+     * Section 4.26.
+     *
+     * @return array<string, mixed>
+     */
+    public function linkIssues(string $issue, string $target, string $note): array
+    {
+        return $this->issueWrite('link_issues', fn (Actor $actor): Issue => $this->issueCommands->link(IssueKey::fromString($issue, 'issue'), IssueKey::fromString($target, 'target'), $note, $actor));
+    }
+
+    /**
      * Section 4.14: REST Q17.
      *
      * @param list<string> $requestIds
@@ -168,6 +230,26 @@ final class McpTools
             $note,
             $this->currentActor->get(),
         ));
+    }
+
+    /**
+     * Section 4.20.
+     *
+     * @return array<string, mixed>
+     */
+    public function listIssues(string $project, ?IssueStatus $status = null, ?string $cursor = null, int $limit = 50): array
+    {
+        return $this->run('list_issues', fn (): IssuePage => $this->issues->list($project, $status, $limit, $cursor));
+    }
+
+    /**
+     * Section 4.19.
+     *
+     * @return array<string, mixed>
+     */
+    public function listProjects(?string $cursor = null, int $limit = 100): array
+    {
+        return $this->run('list_projects', fn (): ProjectPage => $this->issues->projects($limit, $cursor));
     }
 
     /**
@@ -281,6 +363,16 @@ final class McpTools
     }
 
     /**
+     * Section 4.24.
+     *
+     * @return array<string, mixed>
+     */
+    public function setIssueStatus(string $issue, IssueStatus $status, ?string $note = null, ?string $reviewer = null): array
+    {
+        return $this->issueWrite('set_issue_status', fn (Actor $actor): Issue => $this->issueCommands->setStatus(IssueKey::fromString($issue, 'issue'), $status, $note, $reviewer, $actor));
+    }
+
+    /**
      * Section 4.18: REST Q23. The decider checks the title rules.
      *
      * @return array<string, mixed>
@@ -351,6 +443,16 @@ final class McpTools
     }
 
     /**
+     * Section 4.23.
+     *
+     * @return array<string, mixed>
+     */
+    public function updateIssue(string $issue, ?string $title = null, ?string $problem = null, ?string $plan = null, ?string $result = null, ?string $followUps = null): array
+    {
+        return $this->issueWrite('update_issue', fn (Actor $actor): Issue => $this->issueCommands->update(IssueKey::fromString($issue, 'issue'), $title, $problem, $plan, $result, $followUps, $actor));
+    }
+
+    /**
      * The anchor capture of Q20 from the flat parameters of suggest_request.
      *
      * @throws InvalidInput Parameters that do not agree with $kind
@@ -364,6 +466,22 @@ final class McpTools
         $anchorParameters = array_filter(['path' => $path, 'startLine' => $startLine, 'endLine' => $endLine, 'symbol' => $symbol], static fn (string|int|null $value): bool => null !== $value);
 
         return [] === $anchorParameters ? null : throw new InvalidInput(array_map(static fn (string $field): array => ['field' => $field, 'message' => 'Must be null without anchorKind.'], array_keys($anchorParameters)));
+    }
+
+    /**
+     * Every issue write answers the issue without its links and its thread.
+     *
+     * @param \Closure(Actor): Issue $write
+     *
+     * @return array<string, mixed>
+     */
+    private function issueWrite(string $tool, \Closure $write): array
+    {
+        return $this->run($tool, function () use ($write): IssueView {
+            $actor = $this->currentActor->get();
+
+            return $this->issues->view($write($actor), $actor);
+        });
     }
 
     /**

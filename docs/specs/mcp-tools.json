@@ -1,6 +1,53 @@
 {
     "tools": [
         {
+            "name": "approve_plan",
+            "title": "Approve plan",
+            "description": "Record that another agent or subagent reviewed the plan of an issue. Use it in a project with approvalMode agent_review, before you set in_progress. The reviewer reads the plan of planRevision; reviewer is its name and reviewNote its findings. The author of a plan does not review it. Fails with invalid_input in approvalMode user, for an issue without a plan, and for a planRevision that is not the newest: then call get_issue and review the newest plan. A plan with new text clears the approval.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "issue": {
+                        "type": "string",
+                        "description": "Issue key, for example SM-12",
+                        "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$"
+                    },
+                    "planRevision": {
+                        "type": "string",
+                        "description": "planRevision of the issue, as the reviewer read it",
+                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                    },
+                    "reviewer": {
+                        "type": "string",
+                        "description": "Name of the agent or subagent that reviewed the plan",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[^\\x00]*$"
+                    },
+                    "reviewNote": {
+                        "type": "string",
+                        "description": "Markdown: the findings of the reviewer, at least 20 characters",
+                        "minLength": 20,
+                        "maxLength": 65536,
+                        "pattern": "^[^\\x00]*$"
+                    }
+                },
+                "required": [
+                    "issue",
+                    "planRevision",
+                    "reviewer",
+                    "reviewNote"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": false
+            },
+            "outputSchema": "issue.schema.json"
+        },
+        {
             "name": "claim_request",
             "title": "Claim request",
             "description": "Claim an open or reopened request before you edit code for it. Status becomes in_progress. Claiming a request that you already hold succeeds and changes nothing. Fails with invalid_transition when the status does not allow it or another agent holds it: then take the next request.",
@@ -24,6 +71,118 @@
                 "openWorldHint": false
             },
             "outputSchema": "request-command-result.schema.json"
+        },
+        {
+            "name": "comment_on_issue",
+            "title": "Comment on issue",
+            "description": "Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. With awaiting_user_input, name in a comment what the user must decide.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "issue": {
+                        "type": "string",
+                        "description": "Issue key, for example SM-12",
+                        "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$"
+                    },
+                    "body": {
+                        "type": "string",
+                        "description": "Markdown comment",
+                        "minLength": 1,
+                        "maxLength": 65536,
+                        "pattern": "^[^\\x00]*$"
+                    }
+                },
+                "required": [
+                    "issue",
+                    "body"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": false
+            },
+            "outputSchema": "issue.schema.json"
+        },
+        {
+            "name": "create_issue",
+            "title": "Create issue",
+            "description": "Create an issue of a project. Its key is the project key, a hyphen, and the next number of the project, for example SM-12. Look through the open issues of the project first, and continue one that covers the request. status is draft while the problem is incomplete, and backlog or todo when it is ready; backlog and todo need problem.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "project": {
+                        "type": "string",
+                        "description": "Project key from list_projects, for example SM",
+                        "pattern": "^[A-Z]{2,10}$"
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "One line that names the issue",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "pattern": "^[^\\x00]*$"
+                    },
+                    "problem": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "Markdown: what the user wants, and how to tell that it is done",
+                        "default": null,
+                        "minLength": 1,
+                        "maxLength": 65536,
+                        "pattern": "^[^\\x00]*$"
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "The first status",
+                        "default": "draft",
+                        "enum": [
+                            "draft",
+                            "backlog",
+                            "todo"
+                        ]
+                    }
+                },
+                "required": [
+                    "project",
+                    "title"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": false
+            },
+            "outputSchema": "issue.schema.json"
+        },
+        {
+            "name": "get_issue",
+            "title": "Get issue",
+            "description": "Read one issue in full: the four sections, planRevision, the plan approval, allowedStatuses, its links, and its thread. A section_changed entry of the thread names its section and holds no text.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "issue": {
+                        "type": "string",
+                        "description": "Issue key, for example SM-12",
+                        "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$"
+                    }
+                },
+                "required": [
+                    "issue"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": true,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            },
+            "outputSchema": "issue.schema.json#/$defs/IssueDetail"
         },
         {
             "name": "get_request",
@@ -158,6 +317,45 @@
             "outputSchema": "link-commits-result.schema.json"
         },
         {
+            "name": "link_issues",
+            "title": "Link issues",
+            "description": "Link two issues, with the reason in note. A link has no direction: both issues show it. Link a follow-up issue to its origin. A link of an issue to itself, and a second link of the same two issues, fail with invalid_input.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "issue": {
+                        "type": "string",
+                        "description": "Issue key, for example SM-12",
+                        "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$"
+                    },
+                    "target": {
+                        "type": "string",
+                        "description": "Key of the other issue",
+                        "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$"
+                    },
+                    "note": {
+                        "type": "string",
+                        "description": "Markdown: the reason for the link",
+                        "minLength": 1,
+                        "maxLength": 65536,
+                        "pattern": "^[^\\x00]*$"
+                    }
+                },
+                "required": [
+                    "issue",
+                    "target",
+                    "note"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": false
+            },
+            "outputSchema": "issue.schema.json"
+        },
+        {
             "name": "link_pull_request",
             "title": "Link pull request",
             "description": "Record that a pull request implements one or more requests: each one in_progress and held by you, or ready_for_review. For a GitHub repository the URL is https://github.com/{owner}/{name}/pull/{number} of the reviewed repository. A local repository has no pull requests. Linking does not change the status. Open a pull request when delivery.pullRequest of get_request is true; when it is null, only when the user or the repository's instructions ask for it.",
@@ -204,6 +402,102 @@
                 "openWorldHint": false
             },
             "outputSchema": "link-pull-request-result.schema.json"
+        },
+        {
+            "name": "list_issues",
+            "title": "List issues",
+            "description": "List the issues of one project as summaries, newest updatedAt first. Call get_issue for the sections, the links, and the thread.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "project": {
+                        "type": "string",
+                        "description": "Project key from list_projects, for example SM",
+                        "pattern": "^[A-Z]{2,10}$"
+                    },
+                    "status": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Only issues with this status",
+                        "default": null,
+                        "enum": [
+                            "draft",
+                            "backlog",
+                            "todo",
+                            "in_progress",
+                            "awaiting_user_input",
+                            "in_review",
+                            "done",
+                            "wont_do",
+                            null
+                        ]
+                    },
+                    "cursor": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "nextCursor of the previous page",
+                        "default": null,
+                        "minLength": 1,
+                        "pattern": "^[^\\x00]*$"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Page size",
+                        "default": 50,
+                        "minimum": 1,
+                        "maximum": 200
+                    }
+                },
+                "required": [
+                    "project"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": true,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            },
+            "outputSchema": "lists.schema.json#/$defs/IssuePage"
+        },
+        {
+            "name": "list_projects",
+            "title": "List projects",
+            "description": "List the projects of the issue tracker that this token sees, with key, name, approvalMode, and the names of their repositories. Track the work on a repository as issues of the project that lists it. A token of one repository sees only the project of that repository.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "cursor": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "nextCursor of the previous page",
+                        "default": null,
+                        "minLength": 1,
+                        "pattern": "^[^\\x00]*$"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Page size",
+                        "default": 100,
+                        "minimum": 1,
+                        "maximum": 500
+                    }
+                },
+                "required": []
+            },
+            "annotations": {
+                "readOnlyHint": true,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            },
+            "outputSchema": "lists.schema.json#/$defs/ProjectPage"
         },
         {
             "name": "list_repositories",
@@ -622,6 +916,68 @@
             "outputSchema": "request-command-result.schema.json"
         },
         {
+            "name": "set_issue_status",
+            "title": "Set issue status",
+            "description": "Move an issue to another status. The server checks the state that the move gives: backlog, todo, in_progress, in_review, and done need problem; in_progress, in_review, and done need a plan that is approved as approvalMode says; in_review and done need result; wont_do needs note. done and wont_do from an agent: refused in approvalMode user, with reviewer and note in agent_review, free in self. todo to in_progress is the claim. A refusal is invalid_input on the field that breaks the rule. allowedStatuses of the issue lists what you can set now.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "issue": {
+                        "type": "string",
+                        "description": "Issue key, for example SM-12",
+                        "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$"
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "The new status",
+                        "enum": [
+                            "draft",
+                            "backlog",
+                            "todo",
+                            "in_progress",
+                            "awaiting_user_input",
+                            "in_review",
+                            "done",
+                            "wont_do"
+                        ]
+                    },
+                    "note": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "Markdown: why, for the thread. Required for wont_do, and for done in approvalMode agent_review",
+                        "default": null,
+                        "minLength": 1,
+                        "maxLength": 65536,
+                        "pattern": "^[^\\x00]*$"
+                    },
+                    "reviewer": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "Name of the agent or subagent that reviewed the result. Required for done and wont_do in approvalMode agent_review",
+                        "default": null,
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[^\\x00]*$"
+                    }
+                },
+                "required": [
+                    "issue",
+                    "status"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": false
+            },
+            "outputSchema": "issue.schema.json"
+        },
+        {
             "name": "set_request_title",
             "title": "Set request title",
             "description": "Set the title of a request whose title is null: one line of at most 80 characters that summarizes its body. Call it before you claim such a request. Fails with invalid_transition when the request has a title; only the user changes a title.",
@@ -861,6 +1217,86 @@
                 "openWorldHint": false
             },
             "outputSchema": "request-command-result.schema.json"
+        },
+        {
+            "name": "update_issue",
+            "title": "Update issue",
+            "description": "Change the title or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem: what the user wants, and how to tell that it is done. plan: the steps, the files, and the tests. result: what was done, with the commit SHAs, and each deviation from the plan. followUps: what came up and was left out. A plan with new text clears its approval. An agent cannot change plan in in_progress or in_review, and no field of an issue in done or wont_do.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "issue": {
+                        "type": "string",
+                        "description": "Issue key, for example SM-12",
+                        "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$"
+                    },
+                    "title": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "One line that names the issue",
+                        "default": null,
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "pattern": "^[^\\x00]*$"
+                    },
+                    "problem": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "Markdown: what the user wants, and how to tell that it is done",
+                        "default": null,
+                        "minLength": 1,
+                        "maxLength": 65536,
+                        "pattern": "^[^\\x00]*$"
+                    },
+                    "plan": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "Markdown: the steps, the files, and the tests",
+                        "default": null,
+                        "minLength": 1,
+                        "maxLength": 65536,
+                        "pattern": "^[^\\x00]*$"
+                    },
+                    "result": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "Markdown: what was done, with the commit SHAs, and each deviation from the plan",
+                        "default": null,
+                        "minLength": 1,
+                        "maxLength": 65536,
+                        "pattern": "^[^\\x00]*$"
+                    },
+                    "followUps": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "Markdown: what came up and was left out",
+                        "default": null,
+                        "minLength": 1,
+                        "maxLength": 65536,
+                        "pattern": "^[^\\x00]*$"
+                    }
+                },
+                "required": [
+                    "issue"
+                ]
+            },
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+            },
+            "outputSchema": "issue.schema.json"
         }
     ]
 }

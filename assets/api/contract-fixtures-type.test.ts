@@ -54,6 +54,8 @@ import inputsUnlinkPullRequest from '../../docs/specs/fixtures/inputs.unlink-pul
 import inputsUpdateDraft from '../../docs/specs/fixtures/inputs.update-draft.json';
 import inputsViewedFile from '../../docs/specs/fixtures/inputs.viewed-file.json';
 import inputsWontDo from '../../docs/specs/fixtures/inputs.wont-do.json';
+import issueDetail from '../../docs/specs/fixtures/issue.detail.json';
+import issuePlanApproved from '../../docs/specs/fixtures/issue.plan-approved.json';
 import linkCommitsResultAvailable from '../../docs/specs/fixtures/link-commits-result.available.json';
 import linkCommitsResultPending from '../../docs/specs/fixtures/link-commits-result.pending.json';
 import linkPullRequestResultLinked from '../../docs/specs/fixtures/link-pull-request-result.linked.json';
@@ -62,7 +64,9 @@ import listsCodeToken from '../../docs/specs/fixtures/lists.code-token.json';
 import listsCommitList from '../../docs/specs/fixtures/lists.commit-list.json';
 import listsDeclarationList from '../../docs/specs/fixtures/lists.declaration-list.json';
 import listsDraftList from '../../docs/specs/fixtures/lists.draft-list.json';
+import listsIssuePage from '../../docs/specs/fixtures/lists.issue-page.json';
 import listsMercureAuthorization from '../../docs/specs/fixtures/lists.mercure-authorization.json';
+import listsProjectPage from '../../docs/specs/fixtures/lists.project-page.json';
 import listsRepositoryPage from '../../docs/specs/fixtures/lists.repository-page.json';
 import listsRequestPage from '../../docs/specs/fixtures/lists.request-page.json';
 import listsReviewPage from '../../docs/specs/fixtures/lists.review-page.json';
@@ -142,6 +146,7 @@ import type {
     ViewedFileInput,
     WontDoInput,
 } from './types/inputs';
+import type { Issue, IssueDetail } from './types/issue';
 import type { LinkCommitsResult } from './types/link-commits-result';
 import type { LinkPullRequestResult } from './types/link-pull-request-result';
 import type {
@@ -150,7 +155,9 @@ import type {
     DeclarationList,
     DraftList,
     CodeToken,
+    IssuePage,
     MercureAuthorization,
+    ProjectPage,
     RepositoryPage,
     RequestPage,
     ReviewPage,
@@ -236,6 +243,8 @@ const checkedFixtures = {
     'inputs.update-draft.json': inputsUpdateDraft satisfies Widen<UpdateDraftInput>,
     'inputs.viewed-file.json': inputsViewedFile satisfies Widen<ViewedFileInput>,
     'inputs.wont-do.json': inputsWontDo satisfies Widen<WontDoInput>,
+    'issue.detail.json': issueDetail satisfies Widen<IssueDetail>,
+    'issue.plan-approved.json': issuePlanApproved satisfies Widen<Issue>,
     'link-commits-result.available.json': linkCommitsResultAvailable satisfies Widen<LinkCommitsResult>,
     'link-commits-result.pending.json': linkCommitsResultPending satisfies Widen<LinkCommitsResult>,
     'link-pull-request-result.linked.json': linkPullRequestResultLinked satisfies Widen<LinkPullRequestResult>,
@@ -244,7 +253,9 @@ const checkedFixtures = {
     'lists.commit-list.json': listsCommitList satisfies Widen<CommitLog>,
     'lists.declaration-list.json': listsDeclarationList satisfies Widen<DeclarationList>,
     'lists.draft-list.json': listsDraftList satisfies Widen<DraftList>,
+    'lists.issue-page.json': listsIssuePage satisfies Widen<IssuePage>,
     'lists.mercure-authorization.json': listsMercureAuthorization satisfies Widen<MercureAuthorization>,
+    'lists.project-page.json': listsProjectPage satisfies Widen<ProjectPage>,
     'lists.repository-page.json': listsRepositoryPage satisfies Widen<RepositoryPage>,
     'lists.request-page.json': listsRequestPage satisfies Widen<RequestPage>,
     'lists.review-page.json': listsReviewPage satisfies Widen<ReviewPage>,

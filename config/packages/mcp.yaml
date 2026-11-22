@@ -4,7 +4,7 @@ mcp:
         slopmower:
             name: slopmower
             version: 1.0.0
-            description: Change requests from Slopmower, for the coding agent that implements them.
+            description: Change requests and issues from Slopmower, for the coding agent that works on them.
             instructions: '%app.mcp_instructions%'
             transports: { stdio: false, http: true }
             # The protection compares the host without the port.

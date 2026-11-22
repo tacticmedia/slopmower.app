@@ -19,6 +19,10 @@ final class McpHandshakeTest extends WebTestCase
     use ResetDatabase;
     use SpecsFiles;
 
+    /** Claude Code cuts the instructions of a server after this length. */
+    private const int INSTRUCTIONS_MAX_CHARACTERS = 4096;
+    private const int ISSUE_PARAGRAPH_MAX_CHARACTERS = 450;
+
     #[TestDox('initialize with protocol 2025-11-25, the initialized notification, and ping succeed')]
     public function testHandshakeAndPing(): void
     {
@@ -34,6 +38,17 @@ final class McpHandshakeTest extends WebTestCase
         self::assertSame(['slopmower', '1.0.0'], [$initialized['serverInfo']['name'], $initialized['serverInfo']['version']]);
         self::assertSame(self::specsCodeBlock('mcp.md', '## 2. Server instructions'), $initialized['instructions']);
         self::assertSame([], McpTestClient::result($ping));
+    }
+
+    #[TestDox('The server instructions have at most 4,096 characters, which Claude Code shows, and start with the paragraph on issues of at most 450')]
+    public function testInstructionsFitTheLimitOfTheClient(): void
+    {
+        $instructions = self::specsCodeBlock('mcp.md', '## 2. Server instructions');
+        $firstParagraph = explode("\n\n", $instructions, 2)[0];
+
+        self::assertLessThanOrEqual(self::INSTRUCTIONS_MAX_CHARACTERS, mb_strlen($instructions));
+        self::assertStringStartsWith('Issues: call list_projects.', $firstParagraph);
+        self::assertLessThanOrEqual(self::ISSUE_PARAGRAPH_MAX_CHARACTERS, mb_strlen($firstParagraph));
     }
 
     #[TestDox('The session is stored under var/mcp-sessions')]
