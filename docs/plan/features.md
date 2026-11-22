@@ -141,7 +141,7 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F123 | [No gap before "Update selection"](F123-line-range-gap.md) | Done 2026-11-09, [report](reports/F123.md) | 48182a1b | src 521 PHP / 37810 lines, 521 types; tests 357 PHP / 34753 lines; assets 204 TS / 13371 lines; check 6m6s |
 | F124 | [Shannon deliverables in the pentest report](F124-pentest-deliverables.md) | Done 2026-11-10, [report](reports/F124.md) | 90f264cc | src 521 PHP / 37810 lines, 521 types; tests 357 PHP / 34753 lines; assets 204 TS / 13371 lines; check 5m44s |
 | F125 | [Platform upgrade](F125-platform-upgrade.md) | Done 2026-11-22, [report](reports/F125.md) | 0c5a03c3 | src 521 PHP / 37800 lines, 521 types; tests 357 PHP / 34753 lines; assets 204 TS / 13371 lines; check 6m2s |
-| F126 | [Issue tracker core](F126-issue-tracker-core.md) | Done 2026-11-22, [report](reports/F126.md) | | src 543 PHP / 40249 lines, 543 types; tests 359 PHP / 35486 lines; assets 206 TS / 13502 lines |
+| F126 | [Issue tracker core](F126-issue-tracker-core.md) | Done 2026-11-22, [report](reports/F126.md) | 10fe077a | src 543 PHP / 40249 lines, 543 types; tests 359 PHP / 35486 lines; assets 206 TS / 13502 lines; check 5m49s |
 
 ## Candidates
 
