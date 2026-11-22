@@ -140,6 +140,8 @@ Workflow and conventions: [README](README.md). The proof of concept (M00 to M35)
 | F122 | [Shannon pentest of a disposable HTTPS stack](F122-shannon-pentest.md) | Done 2026-11-09, [report](reports/F122.md) | 0329c2f0 | src 521 PHP / 37810 lines, 521 types; tests 357 PHP / 34753 lines; assets 204 TS / 13371 lines; check 15m23s |
 | F123 | [No gap before "Update selection"](F123-line-range-gap.md) | Done 2026-11-09, [report](reports/F123.md) | 48182a1b | src 521 PHP / 37810 lines, 521 types; tests 357 PHP / 34753 lines; assets 204 TS / 13371 lines; check 6m6s |
 | F124 | [Shannon deliverables in the pentest report](F124-pentest-deliverables.md) | Done 2026-11-10, [report](reports/F124.md) | 90f264cc | src 521 PHP / 37810 lines, 521 types; tests 357 PHP / 34753 lines; assets 204 TS / 13371 lines; check 5m44s |
+| F125 | [Platform upgrade](F125-platform-upgrade.md) | In progress | | |
+| F126 | [Issue tracker core](F126-issue-tracker-core.md) | In progress | | |
 
 ## Candidates
 
