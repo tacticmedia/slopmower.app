@@ -47,6 +47,8 @@ type Props = {
     initialGroup?: string;
     /** The box opens a request: a "Title" field and a "Description" text field. */
     titled?: boolean;
+    /** Of the text field of a box without a title field. */
+    placeholder?: string;
     onCancel?: () => void;
     initialTitle?: string;
     initialBody?: string;
@@ -75,6 +77,7 @@ export function CommentBox({
     initialType = 'change',
     initialGroup = '',
     titled = false,
+    placeholder,
     onCancel,
     initialTitle = '',
     initialBody = '',
@@ -181,7 +184,7 @@ export function CommentBox({
             preview={preview}
             onPreviewChange={setPreview}
             aria-label={titled ? undefined : label}
-            placeholder={titled ? 'Description' : undefined}
+            placeholder={titled ? 'Description' : placeholder}
             readOnly={busy}
         />
     );

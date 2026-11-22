@@ -1,17 +1,125 @@
-import type { ApprovePlanInput, IssueCommentInput } from '../../../assets/api/types/inputs';
+import { ISSUE_SECTIONS, type IssueStatus } from '../../../assets/api/types/common';
+import type { ApprovePlanInput, CreateIssueInput, CreateProjectInput, IssueCommentInput, IssueStatusInput, UpdateIssueInput, UpdateProjectInput } from '../../../assets/api/types/inputs';
 import type { Issue, IssueDetail, IssueEntry } from '../../../assets/api/types/issue';
 import type { Project } from '../../../assets/api/types/project';
-import { newId, now, project, USER } from './builders';
+import type { Repository } from '../../../assets/api/types/repository';
+import { issueDetail, newId, now, project, USER } from './builders';
 import { apiError, json, type MockApi, type MockResponse } from './mockApi';
 
-/** The issue tracker in memory: P1 and I1 to I5, with the rules of docs/specs/rest-api-issues.md. */
+/** The sections that a status needs, in the order of the checks. */
+const NEEDED: readonly { section: 'problem' | 'plan' | 'result'; statuses: readonly IssueStatus[] }[] = [
+    { section: 'problem', statuses: ['backlog', 'todo', 'in_progress', 'in_review', 'done'] },
+    { section: 'plan', statuses: ['in_progress', 'in_review', 'done'] },
+    { section: 'result', statuses: ['in_review', 'done'] },
+];
+
+/**
+ * The issue tracker in memory, as a signed-in user sees it: P1 to P3 and I1 to I8, with the rules of
+ * docs/specs/rest-api-issues.md. `repositories` answers the connected repositories, whose IDs P3 takes.
+ */
 export class FakeIssues {
     projects: Project[] = [project()];
     /** By issue key. */
     readonly issues = new Map<string, IssueDetail>();
 
-    constructor(api: MockApi) {
+    constructor(api: MockApi, repositories: () => Repository[] = () => []) {
         api.on('GET', '/api/v1/projects', () => json('lists.schema.json#/$defs/ProjectPage', { items: this.projects, nextCursor: null }));
+        api.on('POST', '/api/v1/projects', ({ body }) => {
+            const { key, name, approvalMode } = body as CreateProjectInput;
+            if (!/^[A-Z]{2,10}$/.test(key)) {
+                return refusal('key', 'Must have 2 to 10 upper-case letters.');
+            }
+            if (this.projects.some((known) => known.key === key)) {
+                return refusal('key', `The project ${key} exists already.`);
+            }
+            const created: Project = { key, name: name.trim(), approvalMode, repositories: [] };
+            this.projects = [...this.projects, created];
+
+            return json('project.schema.json', created, 201);
+        });
+        api.on('PATCH', '/api/v1/projects/:projectKey', ({ params, body }) => {
+            const { name, approvalMode, repositoryIds } = body as UpdateProjectInput;
+            const stored = this.projects.find(({ key }) => key === params.projectKey);
+            const members = (repositoryIds ?? []).map((id) => repositories().find((known) => known.id === id)?.name);
+            if (undefined === stored || members.includes(undefined)) {
+                return notFound();
+            }
+            for (const member of members) {
+                const owner = this.projects.find((known) => known !== stored && known.repositories.includes(member ?? ''));
+                if (undefined !== owner) {
+                    return refusal('repositoryIds', `The repository ${member} belongs to the project ${owner.name}.`);
+                }
+            }
+            const changed: Project = {
+                ...stored,
+                name: name?.trim() ?? stored.name,
+                approvalMode: approvalMode ?? stored.approvalMode,
+                repositories: null === repositoryIds || undefined === repositoryIds ? stored.repositories : [...new Set(members as string[])].toSorted(),
+            };
+            this.projects = this.projects.map((known) => (known === stored ? changed : known));
+
+            return json('project.schema.json', changed);
+        });
+        api.on('POST', '/api/v1/projects/:projectKey/issues', ({ params, body }) => {
+            const { title, problem = null, status } = body as CreateIssueInput;
+            const owner = this.projects.find(({ key }) => key === params.projectKey);
+            if (undefined === owner) {
+                return notFound();
+            }
+            const numbers = [...this.issues.keys()].filter((key) => key.startsWith(`${owner.key}-`)).map((key) => Number(key.slice(owner.key.length + 1)));
+            const created: Issue = {
+                ...issueDetail().issue,
+                key: `${owner.key}-${Math.max(0, ...numbers) + 1}`,
+                title: title.trim(),
+                status: status ?? 'draft',
+                problem,
+                plan: null,
+                project: { key: owner.key, name: owner.name, approvalMode: owner.approvalMode },
+                planRevision: null,
+                planApproval: null,
+                createdBy: USER,
+                createdAt: now(),
+                updatedAt: now(),
+            };
+            const refused = missingSection(created);
+            if (undefined !== refused) {
+                return refused;
+            }
+            this.issues.set(created.key, { issue: created, links: [], thread: null === problem ? [] : [entry('section_changed', { section: 'problem' })] });
+
+            return json('issue.schema.json', created, 201);
+        });
+        api.on('PATCH', '/api/v1/issues/:issueKey', ({ params, body }) =>
+            this.#answer(params.issueKey, (detail) => {
+                const input = body as UpdateIssueInput;
+                const changes: Partial<Issue> = null === input.title || undefined === input.title ? {} : { title: input.title.trim() };
+                const entries: IssueEntry[] = [];
+                for (const section of ISSUE_SECTIONS) {
+                    const text = input[section];
+                    if (null !== text && undefined !== text && text !== detail.issue[section]) {
+                        const changed = entry('section_changed', { section });
+                        entries.push(changed);
+                        Object.assign(changes, { [section]: text }, 'plan' === section ? { planRevision: changed.id, planApproval: null } : {});
+                    }
+                }
+
+                return missingSection({ ...detail.issue, ...changes }) ?? json('issue.schema.json', this.#write(detail, changes, ...entries));
+            }),
+        );
+        api.on('POST', '/api/v1/issues/:issueKey/status', ({ params, body }) =>
+            this.#answer(params.issueKey, (detail) => {
+                const { status, note = null } = body as IssueStatusInput;
+                const { issue } = detail;
+                if ('wont_do' === status && '' === (note ?? '').trim()) {
+                    return refusal('note', 'wont_do needs a note that says why.');
+                }
+
+                return (
+                    missingSection({ ...issue, status }) ??
+                    json('issue.schema.json', status === issue.status ? issue : this.#write(detail, { status }, entry('status_changed', { from: issue.status, to: status, note })))
+                );
+            }),
+        );
         api.on('GET', '/api/v1/projects/:projectKey/issues', ({ params, query }) => {
             if (!this.projects.some(({ key }) => key === params.projectKey)) {
                 return notFound();
@@ -41,7 +149,7 @@ export class FakeIssues {
                 const { planRevision } = body as ApprovePlanInput;
                 const { issue } = detail;
                 if (null === issue.planRevision) {
-                    return refusal('plan', 'The issue has no plan. Write it with update_issue.');
+                    return refusal('plan', 'The issue has no plan.');
                 }
                 if (planRevision !== issue.planRevision) {
                     return refusal('planRevision', 'The plan changed after this revision. Read the plan again, and approve its newest revision.');
@@ -108,6 +216,13 @@ function entry(kind: IssueEntry['kind'], fields: Partial<IssueEntry>): IssueEntr
 
 function notFound(): MockResponse {
     return apiError(404, 'not_found', 'The resource does not exist.');
+}
+
+/** The refusal of the first section that the status of the issue needs and that is empty. */
+function missingSection(issue: Issue): MockResponse | undefined {
+    const missing = NEEDED.find(({ section, statuses }) => statuses.includes(issue.status) && '' === (issue[section] ?? '').trim())?.section;
+
+    return undefined === missing ? undefined : refusal(missing, `An issue in ${issue.status} needs a ${missing}.`);
 }
 
 function refusal(field: string, message: string): MockResponse {

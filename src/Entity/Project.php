@@ -78,6 +78,16 @@ class Project implements TenantOwned
         return $this->approvalMode;
     }
 
+    public function rename(string $name): void
+    {
+        $this->name = $name;
+    }
+
+    public function setApprovalMode(ApprovalMode $approvalMode): void
+    {
+        $this->approvalMode = $approvalMode;
+    }
+
     /**
      * Call it under the row lock of the project, so two issues never get one number.
      */

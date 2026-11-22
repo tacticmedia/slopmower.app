@@ -259,9 +259,12 @@ class Repository implements TenantOwned
         return $this->project;
     }
 
-    public function assignProject(Project $project): void
+    /**
+     * Null takes the repository out of its project.
+     */
+    public function assignProject(?Project $project): void
     {
-        if (!$project->getTenantId()->equals($this->tenantId)) {
+        if (null !== $project && !$project->getTenantId()->equals($this->tenantId)) {
             throw new \LogicException('The project belongs to another tenant.');
         }
 

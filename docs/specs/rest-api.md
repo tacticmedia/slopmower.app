@@ -83,11 +83,16 @@ Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json). 
 | [T2](rest-api-requests.md#t2-create-an-api-token) | POST | `/api/v1/tokens` | S | 201 | [`api-token.schema.json#/$defs/ApiTokenWithSecret`](schemas/api-token.schema.json) |
 | [T3](rest-api-requests.md#t3-revoke-an-api-token) | DELETE | `/api/v1/tokens/{tokenId}` | S | 204 | none |
 | [P1](rest-api-issues.md#p1-list-projects) | GET | `/api/v1/projects` | S, B | 200 | [`lists.schema.json#/$defs/ProjectPage`](schemas/lists.schema.json) |
+| [P2](rest-api-issues.md#p2-create-a-project) | POST | `/api/v1/projects` | S | 201 | [`project.schema.json`](schemas/project.schema.json) |
+| [P3](rest-api-issues.md#p3-change-a-project) | PATCH | `/api/v1/projects/{projectKey}` | S | 200 | [`project.schema.json`](schemas/project.schema.json) |
 | [I1](rest-api-issues.md#i1-list-issues) | GET | `/api/v1/projects/{projectKey}/issues` | S, B | 200 | [`lists.schema.json#/$defs/IssuePage`](schemas/lists.schema.json) |
 | [I2](rest-api-issues.md#i2-get-an-issue) | GET | `/api/v1/issues/{issueKey}` | S, B | 200 | [`issue.schema.json#/$defs/IssueDetail`](schemas/issue.schema.json) |
 | [I3](rest-api-issues.md#i3-comment-on-an-issue) | POST | `/api/v1/issues/{issueKey}/comments` | S, B | 201 | [`issue.schema.json`](schemas/issue.schema.json) |
 | [I4](rest-api-issues.md#i4-approve-the-plan) | POST | `/api/v1/issues/{issueKey}/plan-approval` | S | 200 | [`issue.schema.json`](schemas/issue.schema.json) |
 | [I5](rest-api-issues.md#i5-list-the-comments-of-a-project) | GET | `/api/v1/projects/{projectKey}/comments` | S, B | 200 | [`lists.schema.json#/$defs/IssueCommentPage`](schemas/lists.schema.json) |
+| [I6](rest-api-issues.md#i6-create-an-issue) | POST | `/api/v1/projects/{projectKey}/issues` | S, B | 201 | [`issue.schema.json`](schemas/issue.schema.json) |
+| [I7](rest-api-issues.md#i7-change-an-issue) | PATCH | `/api/v1/issues/{issueKey}` | S, B | 200 | [`issue.schema.json`](schemas/issue.schema.json) |
+| [I8](rest-api-issues.md#i8-set-the-status) | POST | `/api/v1/issues/{issueKey}/status` | S, B | 200 | [`issue.schema.json`](schemas/issue.schema.json) |
 
 Common errors are not repeated per endpoint:
 

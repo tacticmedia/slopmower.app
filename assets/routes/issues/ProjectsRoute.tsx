@@ -1,17 +1,13 @@
-import { Heading, Link } from '@primer/react';
+import { Button, Heading, Link } from '@primer/react';
 import { type Column, DataTable, Table } from '@primer/react/experimental';
+import { useState } from 'react';
 import { Link as RouterLink, useLoaderData } from 'react-router';
-import type { ApprovalMode } from '../../api/types/common';
 import type { Project } from '../../api/types/project';
 import tableStyles from '../../layout/ScrollingTable.module.css';
 import { useDocumentTitle } from '../../layout/useDocumentTitle';
+import { APPROVAL_MODE_NAMES } from './ApprovalModeField';
 import styles from './Issues.module.css';
-
-export const APPROVAL_MODE_NAMES: Record<ApprovalMode, string> = {
-    user: 'User approval',
-    agent_review: 'Agent review',
-    self: 'No approval',
-};
+import { NewProjectDialog } from './NewProjectDialog';
 
 /** The key is the row ID of the table. */
 type Row = Project & { id: string };
@@ -35,6 +31,7 @@ const COLUMNS: Column<Row>[] = [
 
 export function ProjectsRoute() {
     const projects = useLoaderData<Project[]>();
+    const [creating, setCreating] = useState(false);
     useDocumentTitle('Issues');
 
     return (
@@ -47,12 +44,18 @@ export function ProjectsRoute() {
                 <Table.Subtitle as="p" id="projects-subtitle">
                     A project holds the issues of its repositories. An agent tracks its work on a repository in the project that owns it.
                 </Table.Subtitle>
+                <Table.Actions>
+                    <Button variant="primary" onClick={() => setCreating(true)}>
+                        New project
+                    </Button>
+                </Table.Actions>
                 {0 === projects.length ? (
                     <p className={styles.emptyTable}>No projects yet.</p>
                 ) : (
                     <DataTable aria-labelledby="projects" aria-describedby="projects-subtitle" data={projects.map((project) => ({ ...project, id: project.key }))} columns={COLUMNS} />
                 )}
             </Table.Container>
+            {creating && <NewProjectDialog onClose={() => setCreating(false)} />}
         </div>
     );
 }

@@ -29,7 +29,7 @@ use Symfony\Component\Clock\Test\ClockSensitiveTrait;
  * Sends each request body fixture of docs/specs/README.md section 11 to its endpoint. The fixture IDs stand for rows
  * of the test: the review repository, the review, a first request, a second request, the proposal of the agent on
  * the first request, a draft, and the plan revision of an issue. `{targetReviewId}` is a second review of the
- * repository, and `{issueKey}` is the issue BILL-1.
+ * repository, `{issueKey}` is the issue BILL-1, and `{projectKey}` is its project BILL.
  */
 final class InputFixturesTest extends WebTestCase
 {
@@ -87,9 +87,12 @@ final class InputFixturesTest extends WebTestCase
         'inputs.create-draft-general-request.json' => ['schema' => 'inputs.schema.json#/$defs/CreateDraftInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/drafts', 'status' => 201, 'response' => 'draft.schema.json'],
         'inputs.create-draft-new-request.json' => ['schema' => 'inputs.schema.json#/$defs/CreateDraftInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/drafts', 'status' => 201, 'response' => 'draft.schema.json'],
         'inputs.create-draft-reply.json' => ['schema' => 'inputs.schema.json#/$defs/CreateDraftInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/drafts', 'status' => 201, 'response' => 'draft.schema.json'],
+        'inputs.create-issue.json' => ['schema' => 'inputs.schema.json#/$defs/CreateIssueInput', 'method' => 'POST', 'path' => '/api/v1/projects/{projectKey}/issues', 'status' => 201, 'response' => 'issue.schema.json', 'issue' => true],
+        'inputs.create-project.json' => ['schema' => 'inputs.schema.json#/$defs/CreateProjectInput', 'method' => 'POST', 'path' => '/api/v1/projects', 'status' => 201, 'response' => 'project.schema.json'],
         'inputs.create-token.json' => ['schema' => 'inputs.schema.json#/$defs/CreateTokenInput', 'method' => 'POST', 'path' => '/api/v1/tokens', 'status' => 201, 'response' => 'api-token.schema.json#/$defs/ApiTokenWithSecret'],
         'inputs.dismiss-suggestion.json' => ['schema' => 'inputs.schema.json#/$defs/DismissSuggestionInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/dismiss-suggestion', 'status' => 200, 'response' => self::RESULT, 'suggested' => true],
         'inputs.issue-comment.json' => ['schema' => 'inputs.schema.json#/$defs/IssueCommentInput', 'method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/comments', 'status' => 201, 'response' => 'issue.schema.json', 'issue' => true],
+        'inputs.issue-status.json' => ['schema' => 'inputs.schema.json#/$defs/IssueStatusInput', 'method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/status', 'status' => 200, 'response' => 'issue.schema.json', 'issue' => true],
         'inputs.link-commits.json' => ['schema' => 'inputs.schema.json#/$defs/LinkCommitsInput', 'method' => 'POST', 'path' => '/api/v1/commit-links', 'status' => 200, 'response' => 'link-commits-result.schema.json', 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID, self::FIXTURE_SECOND_REQUEST_ID]],
         'inputs.link-pull-request.json' => ['schema' => 'inputs.schema.json#/$defs/LinkPullRequestInput', 'method' => 'POST', 'path' => '/api/v1/pull-request-links', 'status' => 200, 'response' => 'link-pull-request-result.schema.json', 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID, self::FIXTURE_SECOND_REQUEST_ID], 'github' => true],
         'inputs.open-general-request.json' => ['schema' => 'inputs.schema.json#/$defs/OpenRequestInput', 'method' => 'POST', 'path' => '/api/v1/reviews/{reviewId}/requests', 'status' => 201, 'response' => 'request.schema.json'],
@@ -107,6 +110,8 @@ final class InputFixturesTest extends WebTestCase
         'inputs.title.json' => ['schema' => 'inputs.schema.json#/$defs/TitleInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/title', 'status' => 200, 'response' => self::RESULT, 'bearer' => true],
         'inputs.unlink-pull-request.json' => ['schema' => 'inputs.schema.json#/$defs/UnlinkPullRequestInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/unlink-pull-request', 'status' => 200, 'response' => self::RESULT, 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID], 'linked' => true, 'github' => true],
         'inputs.update-draft.json' => ['schema' => 'inputs.schema.json#/$defs/UpdateDraftInput', 'method' => 'PATCH', 'path' => '/api/v1/drafts/{draftId}', 'status' => 200, 'response' => 'draft.schema.json', 'draft' => true],
+        'inputs.update-issue.json' => ['schema' => 'inputs.schema.json#/$defs/UpdateIssueInput', 'method' => 'PATCH', 'path' => '/api/v1/issues/{issueKey}', 'status' => 200, 'response' => 'issue.schema.json', 'issue' => true],
+        'inputs.update-project.json' => ['schema' => 'inputs.schema.json#/$defs/UpdateProjectInput', 'method' => 'PATCH', 'path' => '/api/v1/projects/{projectKey}', 'status' => 200, 'response' => 'project.schema.json', 'issue' => true],
         'inputs.viewed-file.json' => ['schema' => 'inputs.schema.json#/$defs/ViewedFileInput', 'method' => 'PUT', 'path' => '/api/v1/reviews/{reviewId}/viewed-files', 'status' => 200, 'response' => 'lists.schema.json#/$defs/ViewedFiles'],
         'inputs.wont-do.json' => ['schema' => 'inputs.schema.json#/$defs/WontDoInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/wont-do', 'status' => 200, 'response' => self::RESULT],
     ];
@@ -185,6 +190,7 @@ final class InputFixturesTest extends WebTestCase
             '{requestId}' => $ids[self::FIXTURE_REQUEST_ID],
             '{draftId}' => $ids[self::FIXTURE_DRAFT_ID] ?? '',
             '{issueKey}' => 'BILL-1',
+            '{projectKey}' => 'BILL',
             '{targetReviewId}' => str_contains($case['path'], '{targetReviewId}') ? (string) self::startReviewThroughApi($client, $repositoryId)['id'] : '',
         ]);
 

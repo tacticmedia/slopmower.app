@@ -34,9 +34,12 @@ import inputsConnectLocal from '../../docs/specs/fixtures/inputs.connect-local.j
 import inputsCreateDraftGeneralRequest from '../../docs/specs/fixtures/inputs.create-draft-general-request.json';
 import inputsCreateDraftNewRequest from '../../docs/specs/fixtures/inputs.create-draft-new-request.json';
 import inputsCreateDraftReply from '../../docs/specs/fixtures/inputs.create-draft-reply.json';
+import inputsCreateIssue from '../../docs/specs/fixtures/inputs.create-issue.json';
+import inputsCreateProject from '../../docs/specs/fixtures/inputs.create-project.json';
 import inputsCreateToken from '../../docs/specs/fixtures/inputs.create-token.json';
 import inputsDismissSuggestion from '../../docs/specs/fixtures/inputs.dismiss-suggestion.json';
 import inputsIssueComment from '../../docs/specs/fixtures/inputs.issue-comment.json';
+import inputsIssueStatus from '../../docs/specs/fixtures/inputs.issue-status.json';
 import inputsLinkCommits from '../../docs/specs/fixtures/inputs.link-commits.json';
 import inputsLinkPullRequest from '../../docs/specs/fixtures/inputs.link-pull-request.json';
 import inputsOpenGeneralRequest from '../../docs/specs/fixtures/inputs.open-general-request.json';
@@ -54,6 +57,8 @@ import inputsSuggestRequest from '../../docs/specs/fixtures/inputs.suggest-reque
 import inputsTitle from '../../docs/specs/fixtures/inputs.title.json';
 import inputsUnlinkPullRequest from '../../docs/specs/fixtures/inputs.unlink-pull-request.json';
 import inputsUpdateDraft from '../../docs/specs/fixtures/inputs.update-draft.json';
+import inputsUpdateIssue from '../../docs/specs/fixtures/inputs.update-issue.json';
+import inputsUpdateProject from '../../docs/specs/fixtures/inputs.update-project.json';
 import inputsViewedFile from '../../docs/specs/fixtures/inputs.viewed-file.json';
 import inputsWontDo from '../../docs/specs/fixtures/inputs.wont-do.json';
 import issueDetail from '../../docs/specs/fixtures/issue.detail.json';
@@ -131,9 +136,12 @@ import type {
     CommentInput,
     ConnectRepositoryInput,
     CreateDraftInput,
+    CreateIssueInput,
+    CreateProjectInput,
     CreateTokenInput,
     DismissSuggestionInput,
     IssueCommentInput,
+    IssueStatusInput,
     LinkCommitsInput,
     LinkPullRequestInput,
     OpenRequestInput,
@@ -148,6 +156,8 @@ import type {
     TitleInput,
     UnlinkPullRequestInput,
     UpdateDraftInput,
+    UpdateIssueInput,
+    UpdateProjectInput,
     ViewedFileInput,
     WontDoInput,
 } from './types/inputs';
@@ -229,9 +239,12 @@ const checkedFixtures = {
     'inputs.create-draft-general-request.json': inputsCreateDraftGeneralRequest satisfies Widen<CreateDraftInput>,
     'inputs.create-draft-new-request.json': inputsCreateDraftNewRequest satisfies Widen<CreateDraftInput>,
     'inputs.create-draft-reply.json': inputsCreateDraftReply satisfies Widen<CreateDraftInput>,
+    'inputs.create-issue.json': inputsCreateIssue satisfies Widen<CreateIssueInput>,
+    'inputs.create-project.json': inputsCreateProject satisfies Widen<CreateProjectInput>,
     'inputs.create-token.json': inputsCreateToken satisfies Widen<CreateTokenInput>,
     'inputs.dismiss-suggestion.json': inputsDismissSuggestion satisfies Widen<DismissSuggestionInput>,
     'inputs.issue-comment.json': inputsIssueComment satisfies Widen<IssueCommentInput>,
+    'inputs.issue-status.json': inputsIssueStatus satisfies Widen<IssueStatusInput>,
     'inputs.link-commits.json': inputsLinkCommits satisfies Widen<LinkCommitsInput>,
     'inputs.link-pull-request.json': inputsLinkPullRequest satisfies Widen<LinkPullRequestInput>,
     'inputs.open-general-request.json': inputsOpenGeneralRequest satisfies Widen<OpenRequestInput>,
@@ -249,6 +262,8 @@ const checkedFixtures = {
     'inputs.title.json': inputsTitle satisfies Widen<TitleInput>,
     'inputs.unlink-pull-request.json': inputsUnlinkPullRequest satisfies Widen<UnlinkPullRequestInput>,
     'inputs.update-draft.json': inputsUpdateDraft satisfies Widen<UpdateDraftInput>,
+    'inputs.update-issue.json': inputsUpdateIssue satisfies Widen<UpdateIssueInput>,
+    'inputs.update-project.json': inputsUpdateProject satisfies Widen<UpdateProjectInput>,
     'inputs.viewed-file.json': inputsViewedFile satisfies Widen<ViewedFileInput>,
     'inputs.wont-do.json': inputsWontDo satisfies Widen<WontDoInput>,
     'issue.detail.json': issueDetail satisfies Widen<IssueDetail>,

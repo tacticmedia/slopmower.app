@@ -90,11 +90,16 @@ final class CrossTenantCases
             'api_token_create' => ['method' => 'POST', 'path' => '/api/v1/tokens', 'body' => ['name' => 'codex desktop'], 'status' => 201, 'schema' => 'api-token.schema.json#/$defs/ApiTokenWithSecret'],
             'api_token_revoke' => ['method' => 'DELETE', 'path' => '/api/v1/tokens/{tokenId}', 'body' => null, 'status' => 204, 'schema' => null],
             'api_project_list' => ['method' => 'GET', 'path' => '/api/v1/projects', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/ProjectPage'],
+            'api_project_create' => ['method' => 'POST', 'path' => '/api/v1/projects', 'body' => ['key' => 'DOC', 'name' => 'Documentation', 'approvalMode' => 'user'], 'status' => 201, 'schema' => 'project.schema.json'],
+            'api_project_update' => ['method' => 'PATCH', 'path' => '/api/v1/projects/{projectKey}', 'body' => ['name' => 'Billing'], 'status' => 200, 'schema' => 'project.schema.json'],
             'api_issue_list' => ['method' => 'GET', 'path' => '/api/v1/projects/{projectKey}/issues', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/IssuePage'],
             'api_issue_get' => ['method' => 'GET', 'path' => '/api/v1/issues/{issueKey}', 'body' => null, 'status' => 200, 'schema' => 'issue.schema.json#/$defs/IssueDetail'],
             'api_issue_comment' => ['method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/comments', 'body' => ['body' => 'Keep the old method.'], 'status' => 201, 'schema' => 'issue.schema.json'],
             'api_issue_approve_plan' => ['method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/plan-approval', 'body' => ['planRevision' => self::PLAN_REVISION], 'status' => 200, 'schema' => 'issue.schema.json'],
             'api_issue_comments' => ['method' => 'GET', 'path' => '/api/v1/projects/{projectKey}/comments', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/IssueCommentPage'],
+            'api_issue_create' => ['method' => 'POST', 'path' => '/api/v1/projects/{projectKey}/issues', 'body' => ['title' => 'Use Money'], 'status' => 201, 'schema' => 'issue.schema.json'],
+            'api_issue_update' => ['method' => 'PATCH', 'path' => '/api/v1/issues/{issueKey}', 'body' => ['title' => 'Use Money'], 'status' => 200, 'schema' => 'issue.schema.json'],
+            'api_issue_set_status' => ['method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/status', 'body' => ['status' => 'backlog'], 'status' => 200, 'schema' => 'issue.schema.json'],
         ];
     }
 }

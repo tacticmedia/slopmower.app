@@ -1,31 +1,25 @@
 import { ArrowSwitchIcon, CheckIcon, CommentIcon, DotFillIcon, type Icon, PencilIcon } from '@primer/octicons-react';
-import { Button, Heading, Link, RelativeTime, Select, Timeline } from '@primer/react';
+import { Link, RelativeTime, Select, Timeline } from '@primer/react';
 import { type ReactNode, useId, useState, useTransition } from 'react';
 import { Link as RouterLink, useFetcher, useLoaderData, useSearchParams } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
-import { COMMENT_LABELS, type CommentLabel, type IssueSection } from '../../api/types/common';
+import { COMMENT_LABELS, type CommentLabel, type IssueSection as Section } from '../../api/types/common';
 import type { Issue, IssueDetail, IssueEntry, IssueLink } from '../../api/types/issue';
 import { CommentBox, type CommentText } from '../../comments/CommentBox';
 import boxStyles from '../../comments/CommentBox.module.css';
 import { MarkdownBody } from '../../comments/MarkdownBody';
-import { ActionErrorMessage } from '../../layout/ActionErrorMessage';
 import { useDocumentTitle } from '../../layout/useDocumentTitle';
-import { useSubmitOnce } from '../../layout/useSubmitOnce';
 import sidebarStyles from '../../requests/RequestSidebar.module.css';
 import { ActorName, COMMENT_LABEL_TEXT, CommentLabelBadge, CommentLabelFilter, NoCommentWithLabel } from './CommentParts';
+import { IssueSection, SECTIONS } from './IssueSection';
 import { IssueStatusLabel } from './IssueStatusLabel';
+import { IssueStatusMenu } from './IssueStatusMenu';
+import { IssueTitle } from './IssueTitle';
 import styles from './Issues.module.css';
 import { type IssueIntent, labelFilter } from './issueData';
-import { APPROVAL_MODE_NAMES } from './ProjectsRoute';
+import { APPROVAL_MODE_NAMES } from './ApprovalModeField';
 
-const SECTIONS: readonly { section: IssueSection; title: string }[] = [
-    { section: 'problem', title: 'Problem' },
-    { section: 'plan', title: 'Plan' },
-    { section: 'result', title: 'Result' },
-    { section: 'followUps', title: 'Follow-ups' },
-];
-
-const SECTION_NAMES: Record<IssueSection, string> = { problem: 'problem', plan: 'plan', result: 'result', followUps: 'follow-ups' };
+const SECTION_NAMES: Record<Section, string> = { problem: 'problem', plan: 'plan', result: 'result', followUps: 'follow-ups' };
 
 /**
  * The layout of the request page: the sections and the thread in the main column, the details in the sidebar. The
@@ -43,15 +37,14 @@ export function IssueRoute() {
                 <Link as={RouterLink} to={`/projects/${issue.project.key}`} className={styles.back}>
                     Issues of {issue.project.name}
                 </Link>
-                <Heading as="h1" className={styles.title}>
-                    {issue.title} <span className={styles.key}>{issue.key}</span>
-                </Heading>
-                <p className={styles.state}>
+                <IssueTitle key={issue.key} issue={issue} />
+                <div className={styles.state}>
                     <IssueStatusLabel status={issue.status} />
+                    <IssueStatusMenu key={issue.key} issue={issue} />
                     <span className={styles.muted}>
                         {issue.createdBy.name} opened this <RelativeTime datetime={issue.createdAt} /> · updated <RelativeTime datetime={issue.updatedAt} />
                     </span>
-                </p>
+                </div>
             </header>
             <div className={styles.layout}>
                 <aside className={`${sidebarStyles.sidebar} ${styles.sidebar}`} aria-label="Issue details" data-testid="issue-sidebar">
@@ -70,9 +63,7 @@ export function IssueRoute() {
                 </aside>
                 <div className={styles.main}>
                     {SECTIONS.map(({ section, title }) => (
-                        <SectionBox key={section} section={section} title={title} text={issue[section]}>
-                            {'plan' === section && canApprove(issue) && <ApprovePlan key={issue.key} planRevision={issue.planRevision} />}
-                        </SectionBox>
+                        <IssueSection key={`${issue.key}:${section}`} issue={issue} section={section} title={title} />
                     ))}
                     <section className={styles.thread} aria-labelledby="issue-thread">
                         <div className={styles.threadHeader}>
@@ -98,17 +89,6 @@ export function IssueRoute() {
                 </div>
             </div>
         </article>
-    );
-}
-
-/** A user approves the plan of the page while the issue is open. An approval of an agent does not count in the mode `user`. */
-function canApprove(issue: Issue): issue is Issue & { planRevision: string } {
-    return (
-        null !== issue.planRevision &&
-        '' !== (issue.plan ?? '').trim() &&
-        'done' !== issue.status &&
-        'wont_do' !== issue.status &&
-        'user' !== issue.planApproval?.approvedBy.kind
     );
 }
 
@@ -158,44 +138,6 @@ function LinkList({ links }: { links: IssueLink[] }) {
                 </li>
             ))}
         </ul>
-    );
-}
-
-type SectionBoxProps = {
-    section: IssueSection;
-    title: string;
-    text: string | null;
-    /** The footer of the box. */
-    children?: ReactNode;
-};
-
-function SectionBox({ section, title, text, children }: SectionBoxProps) {
-    const headingId = useId();
-
-    return (
-        <section className={styles.section} aria-labelledby={headingId} data-testid="issue-section" data-section={section}>
-            <h2 id={headingId} className={styles.sectionTitle}>
-                {title}
-            </h2>
-            <div className={styles.sectionBody}>{null === text || '' === text.trim() ? <span className={styles.muted}>Not written yet.</span> : <MarkdownBody markdown={text} />}</div>
-            {children}
-        </section>
-    );
-}
-
-/** I4 for the plan revision that the page shows. A refusal stays visible while the loader shows the newest plan, so only another issue remounts the form. */
-function ApprovePlan({ planRevision }: { planRevision: string }) {
-    const fetcher = useFetcher<ActionResult>();
-    const intent: IssueIntent = { intent: 'approve_plan', input: { planRevision } };
-    const submitOnce = useSubmitOnce(() => fetcher.submit(intent, { method: 'post', encType: 'application/json' }));
-
-    return (
-        <fetcher.Form method="post" onSubmit={submitOnce} className={styles.sectionFooter} data-testid="approve-plan">
-            <ActionErrorMessage result={fetcher.data} />
-            <Button type="submit" variant="primary" loading={'idle' !== fetcher.state}>
-                Approve plan
-            </Button>
-        </fetcher.Form>
     );
 }
 

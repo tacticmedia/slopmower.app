@@ -93,7 +93,7 @@ final class IssueRules
         return match (true) {
             !$isNew => null,
             $isAgent && ApprovalMode::User === $mode => ['issue', 'Only the user approves a plan of this project, because its approval mode is user. Set awaiting_user_input, and name in a comment what the user must decide.'],
-            self::isEmpty($after->plan) => ['plan', 'The issue has no plan. Write it with update_issue.'],
+            self::isEmpty($after->plan) => ['plan', 'The issue has no plan.'],
             $after->approvedRevision !== $after->planRevision => ['planRevision', 'The plan changed after this revision. Read the plan again, and approve its newest revision.'],
             default => null,
         };
@@ -127,12 +127,12 @@ final class IssueRules
         $needsPlan = in_array($status, self::NEED_PLAN, true);
 
         return match (true) {
-            in_array($status, self::NEED_PROBLEM, true) && self::isEmpty($issue->problem) => ['problem', "An issue in {$status->value} needs a problem. Write it with update_issue."],
-            $needsPlan && self::isEmpty($issue->plan) => ['plan', "An issue in {$status->value} needs a plan. Write it with update_issue."],
+            in_array($status, self::NEED_PROBLEM, true) && self::isEmpty($issue->problem) => ['problem', "An issue in {$status->value} needs a problem."],
+            $needsPlan && self::isEmpty($issue->plan) => ['plan', "An issue in {$status->value} needs a plan."],
             $needsPlan && $isAgent && !self::isPlanApproved($issue, $mode) => ['plan', ApprovalMode::User === $mode
                 ? "The plan needs the approval of the user before {$status->value}, because the approval mode is user. Set awaiting_user_input, and name in a comment what the user must decide."
                 : "The plan needs an approval before {$status->value}. Let another agent review it, then call approve_plan."],
-            in_array($status, self::NEED_RESULT, true) && self::isEmpty($issue->result) => ['result', "An issue in {$status->value} needs a result. Write it with update_issue."],
+            in_array($status, self::NEED_RESULT, true) && self::isEmpty($issue->result) => ['result', "An issue in {$status->value} needs a result."],
             default => null,
         };
     }

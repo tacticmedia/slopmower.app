@@ -1,9 +1,8 @@
 import { type ActionFunctionArgs, type LoaderFunctionArgs, redirectDocument } from 'react-router';
-import { actionError, type ActionResult, writeResult } from '../../api/actionResult';
-import { ApiError, apiGet, apiWrite } from '../../api/client';
+import { actionError, type ActionResult, type InputFailure, inputFailure, writeResult } from '../../api/actionResult';
+import { apiGet, apiWrite } from '../../api/client';
 import type { ApiToken, ApiTokenWithSecret } from '../../api/types/api-token';
 import type { Ulid } from '../../api/types/common';
-import type { InvalidInputDetails } from '../../api/types/error';
 import type { CreateTokenInput } from '../../api/types/inputs';
 import type { TokenList } from '../../api/types/lists';
 import type { Repository } from '../../api/types/repository';
@@ -20,12 +19,7 @@ export type SettingsIntent =
     | { intent: 'delete-repository'; repositoryId: Ulid; confirm: string }
     | { intent: 'delete-account'; confirm: string };
 
-export type CreateTokenFailure = {
-    message: string;
-    violations: InvalidInputDetails['violations'];
-};
-
-export type CreateTokenResult = { token: ApiTokenWithSecret; failure: null } | { token: null; failure: CreateTokenFailure };
+export type CreateTokenResult = { token: ApiTokenWithSecret; failure: null } | { token: null; failure: InputFailure };
 
 export async function settingsLoader({ request }: LoaderFunctionArgs): Promise<SettingsData> {
     const [tokens, repositories] = await Promise.all([apiGet<TokenList>('/api/v1/tokens', request.signal), allRepositories(request.signal)]);
@@ -64,12 +58,6 @@ async function createToken(input: Required<CreateTokenInput>, signal: AbortSigna
     try {
         return { token: await apiWrite<ApiTokenWithSecret>('POST', '/api/v1/tokens', input, signal), failure: null };
     } catch (error) {
-        if (error instanceof ApiError && ('invalid_input' === error.code || 'not_found' === error.code)) {
-            const violations = null !== error.details && 'violations' in error.details ? error.details.violations : [];
-
-            return { token: null, failure: { message: error.message, violations } };
-        }
-
-        throw error;
+        return { token: null, failure: inputFailure(error) };
     }
 }

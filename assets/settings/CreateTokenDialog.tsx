@@ -1,8 +1,9 @@
 import { Banner, Dialog, FormControl, Select, TextInput } from '@primer/react';
 import { type FormEvent, useId, useRef } from 'react';
 import { useFetcher } from 'react-router';
+import { formMessages } from '../api/actionResult';
 import type { Repository } from '../api/types/repository';
-import type { CreateTokenFailure, CreateTokenResult, SettingsIntent } from '../routes/settings/settingsData';
+import type { CreateTokenResult, SettingsIntent } from '../routes/settings/settingsData';
 import { expiresAtEndOf, expiryDateBounds } from './expiry';
 import { IssuedToken } from './IssuedToken';
 import styles from './Settings.module.css';
@@ -47,7 +48,7 @@ export function CreateTokenDialog({ repositories, mcpUrl, onClose }: Props) {
     const nameMessage = fieldMessage('name');
     const repositoryMessage = fieldMessage('repositoryId');
     const expiryMessage = fieldMessage('expiresAt');
-    const formMessages = null === result ? [] : formViolationMessages(result.failure);
+    const failureMessages = null === result ? [] : formMessages(result.failure, FIELDS);
     const { min, max } = expiryDateBounds(new Date());
 
     const submit = (event: FormEvent<HTMLFormElement>): void => {
@@ -83,7 +84,7 @@ export function CreateTokenDialog({ repositories, mcpUrl, onClose }: Props) {
             ]}
         >
             <form id={formId} onSubmit={submit} className={styles.form}>
-                {formMessages.map((message) => (
+                {failureMessages.map((message) => (
                     <Banner key={message} variant="critical" title="The token was not created" description={message} />
                 ))}
                 <FormControl required>
@@ -117,16 +118,4 @@ export function CreateTokenDialog({ repositories, mcpUrl, onClose }: Props) {
             </form>
         </Dialog>
     );
-}
-
-/**
- * A failure without a form field, such as the token limit or an unknown repository, shows above the form.
- */
-function formViolationMessages({ message, violations }: CreateTokenFailure): string[] {
-    if (0 === violations.length) {
-        return [message];
-    }
-    const fields: readonly string[] = FIELDS;
-
-    return violations.filter(({ field }) => !fields.includes(field)).map((violation) => violation.message);
 }

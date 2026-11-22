@@ -15,8 +15,27 @@
     font-size: var(--text-body-size-small);
 }
 
-.title {
-    overflow-wrap: anywhere;
+.titleRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--base-size-8) var(--base-size-16);
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-8);
+}
+
+/* The forms of a project and of a new issue. */
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-24);
+    max-width: 640px;
 }
 
 .key {
@@ -109,15 +128,33 @@ li.row {
     background-color: var(--bgColor-default);
 }
 
-.sectionTitle {
-    margin: 0;
-    padding: var(--base-size-8) var(--base-size-16);
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--base-size-8);
+    min-height: var(--base-size-40);
+    padding: var(--base-size-4) var(--base-size-8) var(--base-size-4) var(--base-size-16);
     border-bottom: var(--borderWidth-thin) solid var(--borderColor-muted);
     border-top-left-radius: var(--borderRadius-medium);
     border-top-right-radius: var(--borderRadius-medium);
     background-color: var(--bgColor-muted);
+}
+
+.sectionTitle {
+    margin: 0;
     font-size: var(--text-body-size-medium);
     font-weight: var(--base-text-weight-semibold);
+}
+
+.sectionEditor {
+    padding: var(--base-size-8);
+}
+
+/* On its own line, below the status line of the header. */
+.statusError {
+    flex: 1 1 100%;
+    order: 1;
 }
 
 .sectionBody {

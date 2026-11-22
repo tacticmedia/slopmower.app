@@ -92,7 +92,7 @@ final class DevStory extends Story
         $project = $this->entityManager->getRepository(Project::class)->findOneBy(['key' => self::PROJECT_KEY]);
 
         if (null === $project) {
-            $project = new Project($user->getTenantId(), self::PROJECT_KEY, 'Slopmower', ApprovalMode::AgentReview, $this->clock->now());
+            $project = new Project($user->getTenantId(), self::PROJECT_KEY, 'Slopmower', ApprovalMode::User, $this->clock->now());
             $this->entityManager->persist($project);
         }
 

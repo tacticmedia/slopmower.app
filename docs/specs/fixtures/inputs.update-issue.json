@@ -1,0 +1,4 @@
+{
+  "title": "Round invoice totals once per invoice",
+  "plan": "1. Add `TaxRounding::perInvoice()` in `src/Billing/TaxRounding.php`.\n2. Use it in `InvoiceTotals::total()`.\n3. Test: a case with three lines of 0.335 in `tests/Billing/InvoiceTotalsTest.php`."
+}

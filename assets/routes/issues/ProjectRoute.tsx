@@ -1,4 +1,4 @@
-import { ActionList, ActionMenu, Heading, Link, RelativeTime } from '@primer/react';
+import { ActionList, ActionMenu, Button, Heading, Link, RelativeTime } from '@primer/react';
 import { Link as RouterLink, useLoaderData, useSearchParams } from 'react-router';
 import { ISSUE_STATUSES, type IssueStatus } from '../../api/types/common';
 import { useDocumentTitle } from '../../layout/useDocumentTitle';
@@ -8,7 +8,7 @@ import listStyles from '../requests/RequestList.module.css';
 import { ISSUE_STATUS_TEXT, IssueStatusLabel } from './IssueStatusLabel';
 import styles from './Issues.module.css';
 import { type ProjectData, statusFilter } from './issueData';
-import { APPROVAL_MODE_NAMES } from './ProjectsRoute';
+import { APPROVAL_MODE_NAMES } from './ApprovalModeField';
 
 const STATUS_OPTIONS: readonly (IssueStatus | null)[] = [null, ...ISSUE_STATUSES];
 
@@ -25,7 +25,17 @@ export function ProjectRoute() {
                 <Link as={RouterLink} to="/projects" className={styles.back}>
                     Projects
                 </Link>
-                <Heading as="h1">{project.name}</Heading>
+                <div className={styles.titleRow}>
+                    <Heading as="h1">{project.name}</Heading>
+                    <div className={styles.actions}>
+                        <Button as={RouterLink} to={`/projects/${project.key}/settings`}>
+                            Project settings
+                        </Button>
+                        <Button as={RouterLink} to={`/projects/${project.key}/issues/new`} variant="primary">
+                            New issue
+                        </Button>
+                    </div>
+                </div>
                 <p className={styles.state}>
                     <span className={styles.key}>{project.key}</span>
                     <span className={styles.muted}>

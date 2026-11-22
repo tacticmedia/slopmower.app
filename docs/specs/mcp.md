@@ -63,7 +63,7 @@ Never verify, reopen, accept or dismiss suggestions, or decide on proposals. Ope
 ## 3. Conventions
 
 - **One definition.** [mcp-tools.json](mcp-tools.json) holds each tool in the order of `tools/list`: `name`, `title`, `description`, `inputSchema`, `annotations`, and `outputSchema` as a reference into [schemas/](schemas/). The members other than `outputSchema` are what `tools/list` answers. `ToolsListContractTest` compares them (D99).
-- **Adapter.** `App\Mcp\ToolLoader` registers each tool with the method of `App\Mcp\McpTools` whose name is the camel case of the tool name, for example `claimRequest`. Its parameters are the input properties in order, with a default exactly for each property that is not required, and a test checks that. The SDK casts each argument to its parameter type, so parameters are scalars, backed enums, lists of strings, and the `questions` list of `reply_to_request`, whose objects the input schema checks. Each method calls the same application service as REST and returns the normalized array. So `structuredContent` equals the REST JSON, and `content[0].text` holds the same data as JSON text. The issue tools of sections 4.19 to 4.28 call `App\Application\IssueCommands` and `App\Application\Query\IssueQuery`, as the REST endpoints of [rest-api-issues.md](rest-api-issues.md) do. Five of them have a REST endpoint: `list_projects`, `list_issues`, `get_issue`, `comment_on_issue`, and `list_comments`.
+- **Adapter.** `App\Mcp\ToolLoader` registers each tool with the method of `App\Mcp\McpTools` whose name is the camel case of the tool name, for example `claimRequest`. Its parameters are the input properties in order, with a default exactly for each property that is not required, and a test checks that. The SDK casts each argument to its parameter type, so parameters are scalars, backed enums, lists of strings, and the `questions` list of `reply_to_request`, whose objects the input schema checks. Each method calls the same application service as REST and returns the normalized array. So `structuredContent` equals the REST JSON, and `content[0].text` holds the same data as JSON text. The issue tools of sections 4.19 to 4.28 call `App\Application\IssueCommands` and `App\Application\Query\IssueQuery`, as the REST endpoints of [rest-api-issues.md](rest-api-issues.md) do. Eight of them have a REST endpoint: `list_projects`, `list_issues`, `get_issue`, `create_issue`, `update_issue`, `set_issue_status`, `comment_on_issue`, and `list_comments`.
 - **Output schemas.** Each output schema is a bundled copy of a file in [schemas/](schemas/): the root with `type: "object"`, `properties`, and `required` at the top level, plus a `$defs` section with every referenced definition, with each `$ref` rewritten to `#/$defs/<Name>`. The command `bin/console app:schema:bundle` generates `src/Mcp/BundledSchemas.php` with one `public const array` per root and `TOOLS`, the tools of `mcp-tools.json` with each output schema as its root constant. A test fails when the generated file differs from the output of the command.
 - **Annotations.** All tools set `destructiveHint: false` and `openWorldHint: false`. The read tools set `readOnlyHint: true` and `idempotentHint: true`. The table in section 4 lists them per tool.
 - **Domain errors.** The adapter catches `DomainError` and throws `ToolCallException(json_encode(['error' => ['code' => ..., 'message' => ..., 'details' => ...]]))`. The SDK turns that into `{"isError": true, "content": [{"type": "text", "text": "<Error JSON>"}]}`, with **no `structuredContent`**. So clients that validate `structuredContent` against the `outputSchema` do not reject the error.
@@ -99,9 +99,9 @@ The title, the description, the input schema, and the annotations of each tool a
 | [`list_projects`](#419-list_projects) | List projects | true | true | [`lists.schema.json#/$defs/ProjectPage`](schemas/lists.schema.json) | [P1](rest-api-issues.md#p1-list-projects) |
 | [`list_issues`](#420-list_issues) | List issues | true | true | [`lists.schema.json#/$defs/IssuePage`](schemas/lists.schema.json) | [I1](rest-api-issues.md#i1-list-issues) |
 | [`get_issue`](#421-get_issue) | Get issue | true | true | [`issue.schema.json#/$defs/IssueDetail`](schemas/issue.schema.json) | [I2](rest-api-issues.md#i2-get-an-issue) |
-| [`create_issue`](#422-create_issue) | Create issue | false | false | [`issue.schema.json`](schemas/issue.schema.json) | none yet |
-| [`update_issue`](#423-update_issue) | Update issue | false | true | [`issue.schema.json`](schemas/issue.schema.json) | none yet |
-| [`set_issue_status`](#424-set_issue_status) | Set issue status | false | false | [`issue.schema.json`](schemas/issue.schema.json) | none yet |
+| [`create_issue`](#422-create_issue) | Create issue | false | false | [`issue.schema.json`](schemas/issue.schema.json) | [I6](rest-api-issues.md#i6-create-an-issue) |
+| [`update_issue`](#423-update_issue) | Update issue | false | true | [`issue.schema.json`](schemas/issue.schema.json) | [I7](rest-api-issues.md#i7-change-an-issue) |
+| [`set_issue_status`](#424-set_issue_status) | Set issue status | false | false | [`issue.schema.json`](schemas/issue.schema.json) | [I8](rest-api-issues.md#i8-set-the-status) |
 | [`comment_on_issue`](#425-comment_on_issue) | Comment on issue | false | false | [`issue.schema.json`](schemas/issue.schema.json) | [I3](rest-api-issues.md#i3-comment-on-an-issue) |
 | [`link_issues`](#426-link_issues) | Link issues | false | false | [`issue.schema.json`](schemas/issue.schema.json) | none yet |
 | [`approve_plan`](#427-approve_plan) | Approve plan | false | false | [`issue.schema.json`](schemas/issue.schema.json) | none. [I4](rest-api-issues.md#i4-approve-the-plan) is the approval of a user. |
@@ -238,7 +238,7 @@ Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 
 ### Issue tools
 
-Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs. The REST endpoints of [rest-api-issues.md](rest-api-issues.md) share the model and the rules of this section.
+Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121, D122). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs. The REST endpoints of [rest-api-issues.md](rest-api-issues.md) share the model and the rules of this section.
 
 - **Visibility.** A token of one repository sees only the project of that repository, with its issues. A project without a repository is invisible to it. Any other key gets `not_found`.
 - **Sections.** An issue has the Markdown sections `problem`, `plan`, `result`, and `followUps`, each null or at most 65,536 characters.
@@ -260,6 +260,8 @@ Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121). A project has 
   - An agent changes no field and no status of an issue in `done` or `wont_do`: `issue`. It can comment on it and link it.
   - An agent cannot change `plan` in `in_progress` or `in_review`: `plan`. A deviation goes into `result`.
   - An approval by a user of an issue in `awaiting_user_input` sets `todo`, with a `status_changed` entry, when the issue has a `problem`. Without one the status stays.
+  - A user, the session of REST [I6](rest-api-issues.md#i6-create-an-issue) to [I8](rest-api-issues.md#i8-set-the-status), is bound by the content rules only: `problem`, a `plan` with text, `result`, and the `note` of `wont_do`. A user sets every status, also from `done` and `wont_do`, and changes every field in every status. The status that the issue has is no error for a user and writes no entry.
+  - After a user changes `plan` of an issue in `in_progress` or `in_review`, the approval is gone. In `user` and `agent_review`, each write of an agent on the issue is then refused, until the plan is approved again. The field is `plan`, unless another rule refuses the write first: in `user`, `status` for `done` and `wont_do`, and `issue` for `approve_plan`. Only a comment, a link, and a move to a status that needs no plan pass: `draft`, `backlog`, `todo`, `awaiting_user_input`, and `wont_do` as the table says.
 - **Refusals.** A refusal of a rule is `isError` with `invalid_input`, and `details.violations[0]` has the field of the table or the bullet and the reason as its message. The issue tools never return `invalid_transition` or `review_closed`.
 
 ### 4.19 `list_projects`
@@ -286,21 +288,21 @@ Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121). A project has 
 ### 4.22 `create_issue`
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json).
-- **Behaviour:** a new issue with the next number of the project, which the server takes under a lock on the project row. `status` is `draft`, `backlog`, or `todo`, by default `draft`. A `problem` writes a `section_changed` entry. The server stores the title trimmed.
+- **Behaviour:** REST I6: a new issue with the next number of the project, which the server takes under a lock on the project row. `status` is `draft`, `backlog`, or `todo`, by default `draft`. A `problem` writes a `section_changed` entry. The server stores the title trimmed.
 - **Errors:** `not_found` for the project, `invalid_input` for a title of whitespace only or with a line break, or on `problem` for `backlog` or `todo` without a problem.
 - **Example:** arguments `{"project":"BILL","title":"Round invoice totals once per invoice"}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with status `draft` and the sections null.
 
 ### 4.23 `update_issue`
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json).
-- **Behaviour:** changes the given fields. Null leaves a field as it is. Each section with new text writes a `section_changed` entry, and a `plan` with new text clears `planApproval`. A call whose values equal the stored ones changes nothing.
+- **Behaviour:** REST I7: changes the given fields. Null leaves a field as it is. Each section with new text writes a `section_changed` entry, and a `plan` with new text clears `planApproval`. A call whose values equal the stored ones changes nothing.
 - **Errors:** `not_found`, `invalid_input` for a call with no field, a title of whitespace only or with a line break, or a broken rule of the issue tools.
 - **Example:** arguments `{"issue":"BILL-12","plan":"1. Add `TaxRounding::perInvoice()` ..."}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with a new `planRevision` and `planApproval` null.
 
 ### 4.24 `set_issue_status`
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json).
-- **Behaviour:** moves the issue to `status` under the rules of the issue tools, and writes a `status_changed` entry with `from`, `to`, `note`, and `reviewer`. Any status can follow any other status when the rules hold.
+- **Behaviour:** REST I8: moves the issue to `status` under the rules of the issue tools, and writes a `status_changed` entry with `from`, `to`, `note`, and `reviewer`. Any status can follow any other status when the rules hold.
 - **Errors:** `not_found`, `invalid_input` for a broken rule.
 - **Example:** arguments `{"issue":"BILL-12","status":"in_progress"}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with status `in_progress`.
 
@@ -376,10 +378,13 @@ Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121). A project has 
 | `get_issue` | `GET /api/v1/issues/{issueKey}` |
 | `comment_on_issue` | `POST /api/v1/issues/{issueKey}/comments` |
 | `list_comments` | `GET /api/v1/projects/{projectKey}/comments?label=` |
-| `create_issue`, `update_issue`, `set_issue_status`, `link_issues` | none yet |
+| `create_issue` | `POST /api/v1/projects/{projectKey}/issues` |
+| `update_issue` | `PATCH /api/v1/issues/{issueKey}` |
+| `set_issue_status` | `POST /api/v1/issues/{issueKey}/status` |
+| `link_issues` | none yet |
 | `approve_plan` | none. `POST /api/v1/issues/{issueKey}/plan-approval` is the approval of a user, for a session only. |
 
-`McpRestParityTest` compares the MCP and REST payloads of every tool with a REST endpoint: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, every write tool of the requests and reviews, `list_projects`, `list_issues`, `get_issue`, `comment_on_issue`, and `list_comments`.
+`McpRestParityTest` compares the MCP and REST payloads of every tool with a REST endpoint: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, every write tool of the requests and reviews, `list_projects`, `list_issues`, `get_issue`, `create_issue`, `update_issue`, `set_issue_status`, `comment_on_issue`, and `list_comments`.
 
 ## 7. Wire examples
 

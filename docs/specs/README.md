@@ -9,7 +9,7 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 | [README.md](README.md) | Conventions, authentication, errors, pagination, caching, repository sources, versioning, schema and fixture index |
 | [rest-api.md](rest-api.md) | REST endpoint index, account, repositories, reviews and code |
 | [rest-api-requests.md](rest-api-requests.md) | REST requests, updates, drafts, API tokens, and the routes outside `/api/v1` |
-| [rest-api-issues.md](rest-api-issues.md) | REST projects and issues: the lists, an issue with its thread, a comment, the plan approval of a user, and the comments of a project |
+| [rest-api-issues.md](rest-api-issues.md) | REST projects and issues: the lists, a new and a changed project, an issue with its thread, a new and a changed issue, its status, a comment, the plan approval of a user, and the comments of a project |
 | [mcp.md](mcp.md) | MCP endpoint, server instructions, the 28 tools, the issue rules, error mapping, parity with REST |
 | [mcp-tools.json](mcp-tools.json) | The name, title, description, input schema, annotations, and output schema of each MCP tool, in the order of `tools/list` |
 | [webhooks-and-live-updates.md](webhooks-and-live-updates.md) | GitHub webhooks, fetch triggers and post-fetch steps, Mercure live updates |
@@ -53,6 +53,7 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 | issue `title` | 1 to 200 characters after trimming, one line without CR or LF, at least one non-whitespace character. The server stores it trimmed. |
 | issue `problem`, `plan`, `result`, `followUps`, comment `body`, link `note`, status `note` | 1 to 65,536 characters. A section or a status `note` of whitespace only counts as empty for the [issue rules](mcp.md#issue-tools). A comment `body` and a link `note` need one non-whitespace character. |
 | issue `reviewer` | 1 to 64 characters |
+| project `name` | 1 to 255 characters after trimming, at least one non-whitespace character. The server stores it trimmed. |
 | issue `reviewNote` | at least 20 characters after trimming, at most 65,536 characters |
 
 ## 3. Authentication, actors, and scope
@@ -265,13 +266,14 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Issue tracker, decisions D116 to D118: the nine issue tools of [mcp.md](mcp.md#issue-tools), the schemas `Project` and `Issue` with their pages, the definitions `ProjectKey`, `IssueKey`, `IssueStatus`, `ApprovalMode`, `IssueSection`, and `IssueEntryKind`, and the second skill. All are additive. Issues are not event data.
     - Issue endpoints, decision D120: the endpoints P1 and I1 to I4 of [rest-api-issues.md](rest-api-issues.md), and the inputs `IssueCommentInput` and `ApprovePlanInput`. All are additive. An approval by a user has `reviewer` and `reviewNote` null, and it returns an issue in `awaiting_user_input` with a `problem` to `todo`.
     - Comment labels, decision D121: the closed set `CommentLabel`, the property `label` of `IssueEntry`, the optional input `label` of I3 and `comment_on_issue`, the endpoint I5 and the tool `list_comments`, and the schemas `IssueComment` and `IssueCommentPage`. All are additive. Without `label`, a comment gets `comment`, and a comment stored without a label reads as `comment`.
+    - Projects and issue writes in REST, decision D122: the endpoints P2, P3, and I6 to I8 of [rest-api-issues.md](rest-api-issues.md), and the inputs `CreateProjectInput`, `UpdateProjectInput`, `CreateIssueInput`, `UpdateIssueInput`, and `IssueStatusInput`. All are additive. No rule of the issue tools changes: a user was bound by the content rules only. The refusal of an empty section names no tool, because a user reads it too.
 
 ## 9. Contract tests
 
 - Functional tests validate REST responses with `JsonApiAssertions::assertApiResponse()`, which uses `opis/json-schema` 2.6.0.
 - Every MCP `structuredContent` is validated against the `outputSchema` of its tool.
 - Every fixture in [section 11](#11-fixtures) is validated against the schema that the table names. The TypeScript types of the web UI are checked against the same fixture files.
-- `McpRestParityTest` compares the MCP and REST payloads of every tool with a REST endpoint: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, every write tool of the requests and reviews, `list_projects`, `list_issues`, `get_issue`, `comment_on_issue`, and `list_comments`. See [mcp.md](mcp.md#6-mcp-and-rest).
+- `McpRestParityTest` compares the MCP and REST payloads of every tool with a REST endpoint: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, every write tool of the requests and reviews, `list_projects`, `list_issues`, `get_issue`, `create_issue`, `update_issue`, `set_issue_status`, `comment_on_issue`, and `list_comments`. See [mcp.md](mcp.md#6-mcp-and-rest).
 
 ## 10. Schemas
 
@@ -352,7 +354,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [file-content.browser.json](fixtures/file-content.browser.json) | `file-content.schema.json` | V7 of a `browser` repository |
 | [file-content.php.json](fixtures/file-content.php.json) | `file-content.schema.json` | V7 |
 | [issue.detail.json](fixtures/issue.detail.json) | `issue.schema.json#/$defs/IssueDetail` | I2, `get_issue` |
-| [issue.plan-approved.json](fixtures/issue.plan-approved.json) | `issue.schema.json` | `approve_plan`, and the shape of every issue write: I3, I4, and the write tools |
+| [issue.plan-approved.json](fixtures/issue.plan-approved.json) | `issue.schema.json` | `approve_plan`, and the shape of every issue write: I3, I4, I6 to I8, and the write tools |
 | [inputs.accept-suggestion.json](fixtures/inputs.accept-suggestion.json) | `inputs.schema.json#/$defs/AcceptSuggestionInput` | Q21 |
 | [inputs.approve-plan.json](fixtures/inputs.approve-plan.json) | `inputs.schema.json#/$defs/ApprovePlanInput` | I4 |
 | [inputs.approve-proposal.json](fixtures/inputs.approve-proposal.json) | `inputs.schema.json#/$defs/ApproveProposalInput` | Q15 |
@@ -365,9 +367,12 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.create-draft-general-request.json](fixtures/inputs.create-draft-general-request.json) | `inputs.schema.json#/$defs/CreateDraftInput` | D2 with a title |
 | [inputs.create-draft-new-request.json](fixtures/inputs.create-draft-new-request.json) | `inputs.schema.json#/$defs/CreateDraftInput` | D2 |
 | [inputs.create-draft-reply.json](fixtures/inputs.create-draft-reply.json) | `inputs.schema.json#/$defs/CreateDraftInput` | D2 |
+| [inputs.create-issue.json](fixtures/inputs.create-issue.json) | `inputs.schema.json#/$defs/CreateIssueInput` | I6, `create_issue` |
+| [inputs.create-project.json](fixtures/inputs.create-project.json) | `inputs.schema.json#/$defs/CreateProjectInput` | P2 |
 | [inputs.create-token.json](fixtures/inputs.create-token.json) | `inputs.schema.json#/$defs/CreateTokenInput` | T2 |
 | [inputs.dismiss-suggestion.json](fixtures/inputs.dismiss-suggestion.json) | `inputs.schema.json#/$defs/DismissSuggestionInput` | Q22 |
 | [inputs.issue-comment.json](fixtures/inputs.issue-comment.json) | `inputs.schema.json#/$defs/IssueCommentInput` | I3 with a label, `comment_on_issue` |
+| [inputs.issue-status.json](fixtures/inputs.issue-status.json) | `inputs.schema.json#/$defs/IssueStatusInput` | I8 with the note of `wont_do`, `set_issue_status` |
 | [inputs.link-commits.json](fixtures/inputs.link-commits.json) | `inputs.schema.json#/$defs/LinkCommitsInput` | Q7 |
 | [inputs.link-pull-request.json](fixtures/inputs.link-pull-request.json) | `inputs.schema.json#/$defs/LinkPullRequestInput` | Q17 |
 | [inputs.open-general-request.json](fixtures/inputs.open-general-request.json) | `inputs.schema.json#/$defs/OpenRequestInput` | Q2 with a title |
@@ -385,6 +390,8 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.title.json](fixtures/inputs.title.json) | `inputs.schema.json#/$defs/TitleInput` | Q23, `set_request_title` |
 | [inputs.unlink-pull-request.json](fixtures/inputs.unlink-pull-request.json) | `inputs.schema.json#/$defs/UnlinkPullRequestInput` | Q19 |
 | [inputs.update-draft.json](fixtures/inputs.update-draft.json) | `inputs.schema.json#/$defs/UpdateDraftInput` | D3 |
+| [inputs.update-issue.json](fixtures/inputs.update-issue.json) | `inputs.schema.json#/$defs/UpdateIssueInput` | I7, `update_issue` |
+| [inputs.update-project.json](fixtures/inputs.update-project.json) | `inputs.schema.json#/$defs/UpdateProjectInput` | P3 |
 | [inputs.viewed-file.json](fixtures/inputs.viewed-file.json) | `inputs.schema.json#/$defs/ViewedFileInput` | V12 |
 | [inputs.wont-do.json](fixtures/inputs.wont-do.json) | `inputs.schema.json#/$defs/WontDoInput` | Q11 |
 | [link-commits-result.available.json](fixtures/link-commits-result.available.json) | `link-commits-result.schema.json` | Q7, `link_commits` |

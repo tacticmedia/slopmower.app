@@ -1,6 +1,6 @@
 import type { AnchorInput } from './anchor';
 import type { TokenName } from './api-token';
-import type { CodeAccess, CommentLabel, CommitSha, DateTime, Delivery, Markdown, PullRequestUrl, RepoPath, RequestType, Tour, Ulid, UnifiedDiff } from './common';
+import type { ApprovalMode, CodeAccess, CommentLabel, CommitSha, DateTime, Delivery, IssueStatus, Markdown, ProjectKey, PullRequestUrl, RepoPath, RequestType, Tour, Ulid, UnifiedDiff } from './common';
 import type { LocalDirectory } from './repository';
 
 export type ConnectRepositoryInput =
@@ -175,4 +175,40 @@ export type IssueCommentInput = {
 export type ApprovePlanInput = {
     /** Issue.planRevision of the plan that the user read. */
     planRevision: Ulid;
+};
+
+export type CreateProjectInput = {
+    key: ProjectKey;
+    name: string;
+    approvalMode: ApprovalMode;
+};
+
+export type UpdateProjectInput = {
+    name?: string | null;
+    approvalMode?: ApprovalMode | null;
+    /** The whole list of the repositories of the project. Absent or null keeps it. */
+    repositoryIds?: Ulid[] | null;
+};
+
+export type CreateIssueInput = {
+    title: string;
+    problem?: Markdown | null;
+    /** Absent or null: draft. */
+    status?: Extract<IssueStatus, 'draft' | 'backlog' | 'todo'> | null;
+};
+
+/** Absent or null keeps a field. At least one field is given. */
+export type UpdateIssueInput = {
+    title?: string | null;
+    problem?: Markdown | null;
+    plan?: Markdown | null;
+    result?: Markdown | null;
+    followUps?: Markdown | null;
+};
+
+export type IssueStatusInput = {
+    status: IssueStatus;
+    /** wont_do needs one. */
+    note?: Markdown | null;
+    reviewer?: string | null;
 };

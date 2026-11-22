@@ -146,6 +146,12 @@ parameter that you leave out stays as it is.
 a call is refused, the error names the field that breaks a rule. Fix the
 issue, then call again.
 
+After the user changes `plan` of an issue in `in_progress` or `in_review`,
+its approval is gone. In `user` and `agent_review`, the server then refuses
+each `update_issue` and each move to `in_review` or `done`, until the plan is
+approved again as step 4 says. A comment, a link, and a move to `draft`,
+`backlog`, `todo`, or `awaiting_user_input` still work.
+
 ## 5. Agent review
 
 In `agent_review`, another agent or subagent reviews the plan before the work

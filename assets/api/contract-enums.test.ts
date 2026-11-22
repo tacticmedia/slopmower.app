@@ -95,6 +95,8 @@ const ENUM_ARRAYS: [schemaFileName: string, jsonPointer: string, tsArray: readon
     ['inputs.schema.json', '/$defs/CreateDraftInput/properties/kind/enum', DRAFT_KINDS],
     // The local branch of ConnectRepositoryInput, typed `'clone' | null`.
     ['inputs.schema.json', '/$defs/ConnectRepositoryInput/allOf/1/then/properties/codeAccess/enum', ['clone', null]],
+    // The first status of CreateIssueInput, typed as these members of IssueStatus.
+    ['inputs.schema.json', '/$defs/CreateIssueInput/properties/status/anyOf/0/enum', ['draft', 'backlog', 'todo']],
 ];
 
 /** Keys of these keywords are names, not keywords. */

@@ -30,6 +30,8 @@ final class ShellController extends AbstractController
     #[Route('/projects', name: 'shell_projects', methods: ['GET'])]
     #[Route('/projects/{key}', name: 'shell_project', methods: ['GET'])]
     #[Route('/projects/{key}/comments', name: 'shell_project_comments', methods: ['GET'])]
+    #[Route('/projects/{key}/settings', name: 'shell_project_settings', methods: ['GET'])]
+    #[Route('/projects/{key}/issues/new', name: 'shell_issue_new', methods: ['GET'])]
     #[Route('/issues/{key}', name: 'shell_issue', methods: ['GET'])]
     #[Route('/settings', name: 'shell_settings', methods: ['GET'])]
     public function __invoke(): Response

@@ -19,7 +19,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * docs/specs/rest-api-issues.md. An agent writes the issues of the project SM through MCP. The signed-in user reads
- * them, comments, and approves through REST.
+ * them, comments, approves, and sets the status through REST.
  */
 final class IssueApiTest extends WebTestCase
 {
@@ -162,6 +162,26 @@ final class IssueApiTest extends WebTestCase
 
         self::assertSame('plan', $before['details']['violations'][0]['field'] ?? null);
         self::assertSame('in_progress', $after['status']);
+    }
+
+    #[TestDox('I8 by a user sets in_progress without an approval and done, sets done again without an entry, and leaves done')]
+    public function testUserSetsEveryStatus(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM', ApprovalMode::User);
+        $this->plannedIssue('todo');
+        $status = fn (string $to): Response => self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/status', ['status' => $to]);
+
+        $started = self::assertApiResponse($status('in_progress'), 200, self::ISSUE);
+        $withoutResult = self::assertApiError($status('done'), 422, 'invalid_input');
+        self::assertApiResponse(self::apiRequest($this->client, 'PATCH', '/api/v1/issues/SM-1', ['result' => 'Added `TaxRounding::perInvoice()` in a1b2c3d.']), 200, self::ISSUE);
+        $done = self::assertApiResponse($status('done'), 200, self::ISSUE);
+        $again = self::assertApiResponse($status('done'), 200, self::ISSUE);
+        $reopened = self::assertApiResponse($status('todo'), 200, self::ISSUE);
+
+        $moves = array_values(array_filter($this->agent('get_issue', ['issue' => 'SM-1'])['thread'], static fn (array $entry): bool => 'status_changed' === $entry['kind']));
+        self::assertSame(['in_progress', null, 'done', 'done', 'todo'], [$started['status'], $started['planApproval'], $done['status'], $again['status'], $reopened['status']]);
+        self::assertSame([['field' => 'result', 'message' => 'An issue in done needs a result.']], $withoutResult['details']['violations'] ?? null);
+        self::assertSame([['user', 'todo', 'in_progress'], ['user', 'in_progress', 'done'], ['user', 'done', 'todo']], array_map(static fn (array $entry): array => [$entry['actor']['kind'], $entry['from'], $entry['to']], $moves));
     }
 
     #[TestDox('A key that the caller cannot see answers 404 before the 403 and the body error, and a malformed key answers 404')]

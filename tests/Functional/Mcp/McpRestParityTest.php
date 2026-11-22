@@ -270,17 +270,15 @@ final class McpRestParityTest extends WebTestCase
     }
 
     /**
-     * SM-1 and SM-2 are twins at a frozen time, so the bodies of the two comments differ only in the key.
+     * Each write tool works on SM-1, and its REST endpoint on the twin SM-2, at a frozen time. The bodies differ only in
+     * the key.
      */
-    #[TestDox('list_projects, list_issues, get_issue, comment_on_issue, and list_comments return the same bodies as P1, I1, I2, I3, and I5')]
+    #[TestDox('The issue tools with a REST endpoint return the same bodies as P1, I1 to I3, and I5 to I8')]
     public function testIssueToolsEqualRestEndpoints(): void
     {
         self::mockTime('2026-09-29 07:40:00');
         self::storeProject($this->user->getTenantId(), 'SM');
-
-        foreach (['SM-1', 'SM-2'] as $key) {
-            self::assertSame($key, self::assertToolResult($this->mcp, $this->mcp->callTool('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'problem' => 'Invoice totals round each line.']), 'create_issue')['key']);
-        }
+        $this->assertIssueWriteParity('create_issue', ['project' => 'SM'], 'POST', '/api/v1/projects/SM/issues', ['title' => 'Round invoice totals once', 'problem' => 'Invoice totals round each line.'], 201);
 
         $reads = [
             ['list_projects', [], '/api/v1/projects'],
@@ -296,12 +294,11 @@ final class McpRestParityTest extends WebTestCase
             self::assertSame($rest, $mcp, $tool);
         }
 
-        $comment = ['body' => '`TaxRounding::perInvoice()` is in.', 'label' => 'finding'];
-        $mcp = self::assertToolResult($this->mcp, $this->mcp->callTool('comment_on_issue', ['issue' => 'SM-1', ...$comment]), 'comment_on_issue');
-        $rest = self::assertApiResponse(self::bearerRequest($this->client, $this->secret, 'POST', '/api/v1/issues/SM-2/comments', $comment), 201, self::TOOL_SCHEMAS['comment_on_issue']);
+        $this->assertIssueWriteParity('update_issue', ['issue' => 'SM-1'], 'PATCH', '/api/v1/issues/SM-2', ['title' => 'Round invoice totals per invoice', 'result' => '`TaxRounding::perInvoice()` is in.'], 200);
+        $moved = $this->assertIssueWriteParity('set_issue_status', ['issue' => 'SM-1'], 'POST', '/api/v1/issues/SM-2/status', ['status' => 'wont_do', 'note' => 'BILL-9 covers it.'], 200);
+        $commented = $this->assertIssueWriteParity('comment_on_issue', ['issue' => 'SM-1'], 'POST', '/api/v1/issues/SM-2/comments', ['body' => '`TaxRounding::perInvoice()` is in.', 'label' => 'finding'], 201);
 
-        self::assertSame($mcp, self::canonical($rest, 'SM-2', 'SM-1'));
-        self::assertSame('agent', $mcp['createdBy']['kind']);
+        self::assertSame(['wont_do', 'Round invoice totals per invoice', 'agent'], [$moved['status'], $commented['title'], $commented['createdBy']['kind']]);
 
         $restComments = self::assertApiResponse(self::bearerRequest($this->client, $this->secret, 'GET', '/api/v1/projects/SM/comments?label=finding'), 200, self::TOOL_SCHEMAS['list_comments']);
         $mcpComments = self::assertToolResult($this->mcp, $this->mcp->callTool('list_comments', ['project' => 'SM', 'label' => 'finding']), 'list_comments');
@@ -321,6 +318,22 @@ final class McpRestParityTest extends WebTestCase
     private function openFileRequest(): string
     {
         return (string) self::openRequest($this->client, $this->reviewId)['id'];
+    }
+
+    /**
+     * @param array<string, string> $target The tool argument that the REST path holds
+     * @param array<string, string> $input  The other tool arguments, which are the REST body
+     *
+     * @return array<string, mixed> The body of the tool, which the body of the endpoint equals with SM-2 as SM-1
+     */
+    private function assertIssueWriteParity(string $tool, array $target, string $method, string $uri, array $input, int $status): array
+    {
+        $mcp = self::assertToolResult($this->mcp, $this->mcp->callTool($tool, [...$target, ...$input]), $tool);
+        $rest = self::assertApiResponse(self::bearerRequest($this->client, $this->secret, $method, $uri, $input), $status, self::TOOL_SCHEMAS[$tool]);
+
+        self::assertSame($mcp, self::canonical($rest, 'SM-2', 'SM-1'), $tool);
+
+        return $mcp;
     }
 
     /**

@@ -726,6 +726,207 @@
           "description": "Issue.planRevision of the plan that the user read, so a newer plan is never approved by mistake."
         }
       }
+    },
+    "CreateProjectInput": {
+      "type": "object",
+      "required": ["key", "name", "approvalMode"],
+      "properties": {
+        "key": {
+          "$ref": "common.schema.json#/$defs/ProjectKey",
+          "description": "A key that the tenant has already answers 422."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "At least one non-whitespace character. The server stores it trimmed."
+        },
+        "approvalMode": {
+          "$ref": "common.schema.json#/$defs/ApprovalMode"
+        }
+      }
+    },
+    "UpdateProjectInput": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Absent or null keeps the name. At least one non-whitespace character. The server stores it trimmed."
+        },
+        "approvalMode": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ApprovalMode"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Absent or null keeps the mode."
+        },
+        "repositoryIds": {
+          "anyOf": [
+            {
+              "type": "array",
+              "maxItems": 500,
+              "items": {
+                "$ref": "common.schema.json#/$defs/Ulid"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The whole list of the repositories of the project. Absent or null keeps the list, and an empty list removes every repository. An ID twice counts once."
+        }
+      }
+    },
+    "CreateIssueInput": {
+      "type": "object",
+      "required": ["title"],
+      "properties": {
+        "title": {
+          "$ref": "common.schema.json#/$defs/Title"
+        },
+        "problem": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 65536
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Markdown. Absent or null: no problem. backlog and todo need one."
+        },
+        "status": {
+          "anyOf": [
+            {
+              "enum": ["draft", "backlog", "todo"]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "draft",
+          "description": "Absent or null: draft."
+        }
+      }
+    },
+    "UpdateIssueInput": {
+      "type": "object",
+      "description": "Absent or null keeps a field. At least one field is given.",
+      "properties": {
+        "title": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Title"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Absent or null keeps the title."
+        },
+        "problem": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 65536
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Markdown: what the user wants, and how to tell that it is done."
+        },
+        "plan": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 65536
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Markdown: the steps, the files, and the tests. New text clears the plan approval."
+        },
+        "result": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 65536
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Markdown: what was done, with the commit SHAs, and each deviation from the plan."
+        },
+        "followUps": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 65536
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Markdown: what came up and was left out."
+        }
+      }
+    },
+    "IssueStatusInput": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "$ref": "common.schema.json#/$defs/IssueStatus"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 65536
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Markdown: why, for the thread. wont_do needs one, and so do done and wont_do of an agent in the approval mode agent_review."
+        },
+        "reviewer": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The name of the agent that reviewed the result. done and wont_do of an agent need one in the approval mode agent_review."
+        }
+      }
     }
   }
 }

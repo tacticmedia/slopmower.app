@@ -32,7 +32,7 @@ use Symfony\Bridge\Doctrine\Types\UlidType;
 
 /**
  * The reads of the issue tracker (D116, D121): docs/specs/mcp.md sections 4.19 to 4.21 and 4.28, and P1, I1, I2, and I5
- * of docs/specs/rest-api-issues.md.
+ * of docs/specs/rest-api-issues.md. The writes answer with {@see projectView()} and {@see view()}.
  */
 final class IssueQuery
 {
@@ -66,6 +66,14 @@ final class IssueQuery
             array_map(static fn (Project $project): ProjectView => new ProjectView($project->getKey(), $project->getName(), $project->getApprovalMode(), $repositoryNames[$project->getId()->toString()] ?? []), $projects),
             Cursor::next($rows, $limit, [], static fn (Project $project): array => [$project->getKey()]),
         );
+    }
+
+    /**
+     * The project of the answers of P2 and P3, as an item of {@see projects()}.
+     */
+    public function projectView(Project $project): ProjectView
+    {
+        return new ProjectView($project->getKey(), $project->getName(), $project->getApprovalMode(), $this->repositoryNames([$project])[$project->getId()->toString()] ?? []);
     }
 
     /**

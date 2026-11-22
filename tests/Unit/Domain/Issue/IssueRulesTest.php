@@ -134,6 +134,7 @@ final class IssueRulesTest extends KernelTestCase
         $issue = self::complete(IssueStatus::InProgress);
 
         self::assertSame('status', self::refusal($issue, $issue, ApprovalMode::Self, setsStatus: true));
+        self::assertNull(self::refusal($issue, $issue, ApprovalMode::User, ActorKind::User, setsStatus: true), 'A user sets it again.');
         self::assertNull(self::refusal(self::complete(IssueStatus::Todo), $issue, ApprovalMode::Self, setsStatus: true), 'todo to in_progress is the claim.');
     }
 
@@ -144,6 +145,7 @@ final class IssueRulesTest extends KernelTestCase
             $issue = self::complete($ended);
 
             self::assertSame('issue', self::refusal($issue, self::complete($ended, result: 'Another result.'), ApprovalMode::Self), "A field of {$ended->value}.");
+            self::assertNull(self::refusal($issue, self::complete($ended, result: 'Another result.'), ApprovalMode::User, ActorKind::User), 'A user changes it.');
             self::assertSame('issue', self::refusal($issue, $issue->withStatus(IssueStatus::Todo), ApprovalMode::Self, setsStatus: true), "The status of {$ended->value}.");
             self::assertNull(self::refusal($issue, $issue->withStatus(IssueStatus::Todo), ApprovalMode::Self, ActorKind::User, setsStatus: true), 'A user reopens it.');
         }
@@ -156,6 +158,7 @@ final class IssueRulesTest extends KernelTestCase
             $issue = self::complete($status);
 
             self::assertSame('plan', self::refusal($issue, self::complete($status, plan: 'Another plan.', approvedBy: null), ApprovalMode::Self), $status->value);
+            self::assertNull(self::refusal($issue, self::complete($status, plan: 'Another plan.', approvedBy: null), ApprovalMode::User, ActorKind::User), "A user changes it in {$status->value}.");
             self::assertNull(self::refusal($issue, self::complete($status, result: 'A deviation: no new class.'), ApprovalMode::Self), "The result in {$status->value}.");
         }
 

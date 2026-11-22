@@ -72,7 +72,7 @@ final class DevStoryTest extends WebTestCase
         self::assertCount(1, self::column('SELECT id FROM repository'));
     }
 
-    #[TestDox('The project SM "Slopmower" with agent_review owns the dev repository, and a second load adds no project and keeps a changed mode')]
+    #[TestDox('The project SM "Slopmower" in the mode user owns the dev repository, and a second load adds no project and keeps a changed mode')]
     public function testSecondLoadKeepsTheProject(): void
     {
         $this->newSource(self::environmentValue('APP_DEV_REPOSITORY'));
@@ -85,7 +85,7 @@ final class DevStoryTest extends WebTestCase
         self::loadAgain();
 
         $repository = self::environmentValue('APP_DEV_REPOSITORY');
-        self::assertSame([['key' => DevStory::PROJECT_KEY, 'name' => 'Slopmower', 'approval_mode' => 'agent_review', 'repository' => $repository]], $first);
+        self::assertSame([['key' => DevStory::PROJECT_KEY, 'name' => 'Slopmower', 'approval_mode' => 'user', 'repository' => $repository]], $first);
         self::assertSame([['key' => DevStory::PROJECT_KEY, 'name' => 'Slopmower', 'approval_mode' => 'self', 'repository' => $repository]], $connection->fetchAllAssociative($projects));
     }
 

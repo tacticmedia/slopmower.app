@@ -2,6 +2,7 @@ import type { CommentLabel } from '../../assets/api/types/common';
 import type { Issue, IssueDetail, IssueEntry } from '../../assets/api/types/issue';
 import { issueDetail, project } from '../ui/support/builders';
 import { FakeIssues } from '../ui/support/fakeIssues';
+import { FakeRepositories } from '../ui/support/fakeRepositories';
 import { test } from './support/test';
 
 /** A comment of the agent of `issue.detail.json`. I5 sorts by `id`, so the IDs rise with the times. */
@@ -52,5 +53,51 @@ test.describe('Issues', () => {
 
         await page.goto('/projects/BILL/comments');
         await captureScreen('Comments of a project', page.getByTestId('comment-list'));
+    });
+
+    test('A new project, the settings of a project, a new issue, and the edits and the status of an issue', async ({ page, api, captureScreen }) => {
+        const repositories = new FakeRepositories(api);
+        for (const name of ['billing', 'ledger', 'handbook']) {
+            repositories.addLocal(name);
+        }
+        const issues = new FakeIssues(api, () => repositories.repositories);
+        issues.projects = [project({ repositories: ['billing'] }), project({ key: 'DOC', name: 'Documentation', approvalMode: 'user', repositories: ['handbook'] })];
+        issues.add(issueDetail());
+        const dialog = page.getByRole('dialog');
+
+        await page.goto('/projects');
+        await page.getByRole('button', { name: 'New project' }).click();
+        await dialog.getByRole('textbox', { name: 'Key' }).fill('BILL');
+        await dialog.getByRole('textbox', { name: 'Name' }).fill('Billing of the shop');
+        await dialog.getByRole('button', { name: 'Create project' }).click();
+        await captureScreen('New project', dialog.getByText('The project BILL exists already.'));
+
+        await page.goto('/projects/BILL');
+        await page.getByRole('link', { name: 'Project settings' }).click();
+        await captureScreen('Project settings', page.getByRole('button', { name: 'Save' }));
+
+        await page.goto('/projects/BILL/issues/new');
+        await page.getByRole('textbox', { name: 'Title' }).fill('Show the rounding mode on the invoice PDF');
+        await page.getByRole('textbox', { name: 'Problem' }).fill('The PDF does not say how the total rounds.\n\nDone when the footer of the PDF names the mode.');
+        await captureScreen('New issue', page.getByRole('button', { name: 'Create issue' }));
+        await page.getByRole('button', { name: 'Create issue' }).click();
+        await page.waitForURL('/issues/BILL-13');
+
+        await page.goto('/issues/BILL-12');
+        await page.getByRole('button', { name: 'Edit Result' }).click();
+        await page.getByRole('textbox', { name: 'Result' }).fill('Added `TaxRounding::perInvoice()` in a1b2c3d. No deviation.');
+        await captureScreen('Issue section editor', page.getByRole('textbox', { name: 'Result' }));
+        await page.getByRole('button', { name: 'Cancel' }).click();
+
+        await page.getByRole('button', { name: 'Set status' }).click();
+        await captureScreen('Issue status menu', page.getByRole('menuitem', { name: "Won't do" }));
+        await page.getByRole('menuitem', { name: "Won't do" }).click();
+        await dialog.getByRole('textbox', { name: 'Note' }).fill('BILL-9 rounds the shipping totals, and the invoice totals follow them.');
+        await captureScreen("Issue won't do", dialog.getByRole('button', { name: "Set won't do" }));
+        await dialog.getByRole('button', { name: 'Cancel' }).click();
+
+        await page.getByRole('button', { name: 'Set status' }).click();
+        await page.getByRole('menuitem', { name: 'Done' }).click();
+        await captureScreen('Issue status refused', page.getByTestId('status-error'));
     });
 });

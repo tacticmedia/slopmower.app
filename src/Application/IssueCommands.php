@@ -25,7 +25,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 
 /**
- * The writes of the issue tracker (D116, D117): docs/specs/mcp.md sections 4.22 to 4.27, and I3 and I4 of
+ * The writes of the issue tracker (D116, D117): docs/specs/mcp.md sections 4.22 to 4.27, and I3, I4, and I6 to I8 of
  * docs/specs/rest-api-issues.md. Each write runs in one transaction under the row lock of its issue, appends its entry,
  * and passes {@see IssueRules} before it commits.
  */

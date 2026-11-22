@@ -7,12 +7,16 @@ namespace App\Controller\Api;
 use App\Application\IssueCommands;
 use App\Application\Query\IssueQuery;
 use App\Controller\Api\Input\ApprovePlanInput;
+use App\Controller\Api\Input\CreateIssueInput;
 use App\Controller\Api\Input\IssueCommentInput;
 use App\Controller\Api\Input\IssueCommentListQuery;
 use App\Controller\Api\Input\IssueListQuery;
+use App\Controller\Api\Input\IssueStatusInput;
+use App\Controller\Api\Input\UpdateIssueInput;
 use App\Domain\Identity\IssueEntryId;
 use App\Domain\Issue\CommentLabel;
 use App\Domain\Issue\IssueKey;
+use App\Domain\Issue\IssueStatus;
 use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\User;
@@ -28,7 +32,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * I1 to I5 of docs/specs/rest-api-issues.md. A path key that the SQL filters hide resolves to 404.
+ * I1 to I8 of docs/specs/rest-api-issues.md. A path key that the SQL filters hide resolves to 404.
  */
 #[Route('/api/v1', name: 'api_issue_', requirements: ['projectKey' => IssueKey::PROJECT_KEY_REQUIREMENT, 'issueKey' => IssueKey::REQUIREMENT])]
 final class IssueController extends AbstractController
@@ -89,5 +93,40 @@ final class IssueController extends AbstractController
         $approved = $this->commands->approvePlan($issue->getKey(), IssueEntryId::fromString($input->planRevision, 'planRevision'), null, null, $actor);
 
         return $this->json($this->issues->view($approved, $actor));
+    }
+
+    #[Route('/projects/{projectKey}/issues', name: 'create', methods: ['POST'])]
+    public function create(
+        #[MapEntity(mapping: ['projectKey' => 'key'])] Project $project,
+        #[MapRequestPayload(acceptFormat: 'json')] CreateIssueInput $input,
+    ): JsonResponse {
+        \assert(null !== $input->title);
+        $actor = $this->currentActor->get();
+        $issue = $this->commands->create($project->getKey(), $input->title, $input->problem, $input->status ?? IssueStatus::Draft, $actor);
+
+        return $this->json($this->issues->view($issue, $actor), Response::HTTP_CREATED, ['Location' => $this->generateUrl('api_issue_get', ['issueKey' => $issue->getKey()->toString()])]);
+    }
+
+    #[Route('/issues/{issueKey}', name: 'update', methods: ['PATCH'])]
+    public function update(
+        #[ValueResolver(IssueKeyResolver::class)] Issue $issue,
+        #[MapRequestPayload(acceptFormat: 'json')] UpdateIssueInput $input,
+    ): JsonResponse {
+        $actor = $this->currentActor->get();
+        $updated = $this->commands->update($issue->getKey(), $input->title, $input->problem, $input->plan, $input->result, $input->followUps, $actor);
+
+        return $this->json($this->issues->view($updated, $actor));
+    }
+
+    #[Route('/issues/{issueKey}/status', name: 'set_status', methods: ['POST'])]
+    public function setStatus(
+        #[ValueResolver(IssueKeyResolver::class)] Issue $issue,
+        #[MapRequestPayload(acceptFormat: 'json')] IssueStatusInput $input,
+    ): JsonResponse {
+        \assert(null !== $input->status);
+        $actor = $this->currentActor->get();
+        $moved = $this->commands->setStatus($issue->getKey(), $input->status, $input->note, $input->reviewer, $actor);
+
+        return $this->json($this->issues->view($moved, $actor));
     }
 }
