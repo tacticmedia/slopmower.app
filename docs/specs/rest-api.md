@@ -121,6 +121,7 @@ The response holds:
 - `usage`: the use of the tenant and the limit of its plan for each [usage limit](README.md#usage-limits). A token scoped to one repository also gets the use of the whole tenant.
 - the links `mcpUrl`, `docsUrl`, and `skillUrl`.
 - `preferences`: the [preferences](#a4-update-the-preferences) of the user. A bearer call gets those of the token owner.
+- `projectKeys`: the keys of the [projects](rest-api-issues.md) that the caller sees, in key order. A token scoped to one repository gets the key of the project of its repository, or none. The web UI shows an issue key of one of these projects as a link to its issue (D125).
 
 Agents use this endpoint to check the scope of their token.
 
@@ -136,7 +137,8 @@ Example response for a bearer call, [fixtures/me.agent.json](fixtures/me.agent.j
   "plan": {"name":"Pro","trialEndsAt":"2026-10-13T00:00:00Z","pendingChange":{"name":"Team","effectiveAt":"2026-11-13T00:00:00Z"},"listingUrl":"https://github.com/marketplace/slopmower"},
   "usage": [{"limit":"repositories","max":100,"current":3},{"limit":"open_reviews","max":100,"current":2},{"limit":"requests_per_review","max":5000,"current":14},{"limit":"repository_size","max":4294967296,"current":48234496},{"limit":"tenant_storage","max":53687091200,"current":61865984}],
   "links": {"mcpUrl":"https://slopmower.example/_mcp","docsUrl":"https://slopmower.example/docs","skillUrl":"https://slopmower.example/docs/skill/SKILL.md"},
-  "preferences": {"completedTours":["code_browser"]}
+  "preferences": {"completedTours":["code_browser"]},
+  "projectKeys": ["BILL"]
 }
 ```
 

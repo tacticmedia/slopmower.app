@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Security;
 
+use App\Tests\Support\Api\ApiFixtures;
 use App\Tests\Support\Contract\JsonApiAssertions;
 use App\Tests\Support\Database\ResetDatabase;
 use App\Tests\Support\Fixtures\TenantFixtures;
@@ -12,6 +13,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class MeEndpointTest extends WebTestCase
 {
+    use ApiFixtures;
     use JsonApiAssertions;
     use ResetDatabase;
 
@@ -30,7 +32,7 @@ final class MeEndpointTest extends WebTestCase
         self::assertFalse($client->getResponse()->headers->has('Set-Cookie'), 'An anonymous API call starts no session.');
     }
 
-    #[TestDox('A signed-in user gets the user, the tenant, a user caller, a null token, the features, the links, and no completed tour')]
+    #[TestDox('A signed-in user gets the user, the tenant, a user caller, a null token, the features, the links, no completed tour, and no project key')]
     public function testSignedInUserGetsTheCaller(): void
     {
         $client = static::createClient();
@@ -55,6 +57,7 @@ final class MeEndpointTest extends WebTestCase
                     'skillUrl' => 'http://slopmower.example:8443/docs/skill/SKILL.md',
                 ],
                 'preferences' => ['completedTours' => []],
+                'projectKeys' => [],
             ],
             // TenantPlanTest covers plan, and UsageTest covers usage.
             array_diff_key($me, ['plan' => true, 'usage' => true]),
@@ -73,5 +76,34 @@ final class MeEndpointTest extends WebTestCase
             ['localRepositories' => true, 'githubApp' => ['slug' => 'slopmower-test', 'installUrl' => 'https://github.com/apps/slopmower-test/installations/new']],
             self::assertApiResponse($client->getResponse(), 200, 'me.schema.json')['features'],
         );
+    }
+
+    #[TestDox('A session gets the project keys of its tenant in key order')]
+    public function testSessionGetsTheProjectKeysOfItsTenant(): void
+    {
+        $client = static::createClient();
+        $user = self::signIn($client);
+        self::storeProject($user->getTenantId(), 'WEB');
+        self::storeProject($user->getTenantId(), 'BILL');
+        self::storeProject(TenantFixtures::of(self::getContainer())->withLogin('other')->create()->getTenantId(), 'OTHER');
+
+        $me = self::assertApiResponse(self::apiRequest($client, 'GET', '/api/v1/me'), 200, 'me.schema.json');
+
+        self::assertSame(['BILL', 'WEB'], $me['projectKeys']);
+    }
+
+    #[TestDox('A token of one repository gets only the key of the project of its repository')]
+    public function testRepositoryTokenGetsTheKeyOfItsProject(): void
+    {
+        $client = static::createClient();
+        $user = TenantFixtures::of(self::getContainer())->create();
+        $alpha = self::storeRepository($user->getTenantId(), 'alpha');
+        self::storeProject($user->getTenantId(), 'BILL', repository: $alpha);
+        self::storeProject($user->getTenantId(), 'WEB');
+        [, $secret] = self::storeToken($user, $alpha);
+
+        $me = self::assertApiResponse(self::bearerRequest($client, $secret, 'GET', '/api/v1/me'), 200, 'me.schema.json');
+
+        self::assertSame(['BILL'], $me['projectKeys']);
     }
 }

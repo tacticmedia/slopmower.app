@@ -1,5 +1,6 @@
 import { Button, Heading } from '@primer/react';
 import type { Request as ReviewRequest } from '../api/types/request';
+import { IssueKeyText } from '../comments/IssueKeyText';
 import styles from './RequestTitle.module.css';
 import { TitleEditor, useEditButton } from './TitleEditor';
 import { useRequestCommand } from './useRequestCommand';
@@ -19,7 +20,7 @@ export function RequestTitle({ title, summary, allowedActions }: Props) {
     return (
         <div className={styles.heading}>
             <Heading as="h1" className={null === title ? `${styles.text} ${styles.untitled}` : styles.text}>
-                {summary}
+                <IssueKeyText text={summary} />
             </Heading>
             {allowedActions.includes('set_title') && (
                 <Button ref={editButton} size="small" className={styles.edit} onClick={(event) => openDialog('title', event)}>

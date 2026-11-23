@@ -79,5 +79,8 @@
     "completedTours": [
       "code_browser"
     ]
-  }
+  },
+  "projectKeys": [
+    "BILL"
+  ]
 }

@@ -269,6 +269,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Projects and issue writes in REST, decision D122: the endpoints P2, P3, and I6 to I8 of [rest-api-issues.md](rest-api-issues.md), and the inputs `CreateProjectInput`, `UpdateProjectInput`, `CreateIssueInput`, `UpdateIssueInput`, and `IssueStatusInput`. All are additive. No rule of the issue tools changes: a user was bound by the content rules only. The refusal of an empty section names no tool, because a user reads it too.
     - Timeline of an issue, decision D123: the properties `replaces` and `replacedBy` of `IssueEntry`, the optional input `replaces` of I3 and `comment_on_issue`, and the optional `history` of I2 and `get_issue`. Not additive: without `history`, I2 and `get_issue` leave out each replaced entry, and I5 and `list_comments` leave out each replaced comment. With `history`, a `section_changed` entry has its text in `body`. The stored entries need no change.
     - Questions on an issue, decision D124: the optional input `questions` of I3 and `comment_on_issue`, and the property `questions` of `IssueEntry` and `IssueComment`. Not additive: `CommentLabel` gets the value `answer`, the server sets `question` and `answer` on a comment with questions and refuses both on a comment without, and `body` of `IssueComment` can be empty. A stored comment has `questions` empty, and one with the label `question` keeps it.
+    - Issue key links, decision D125: the property `projectKeys` of `Me`. It is additive.
 
 ## 9. Contract tests
 
@@ -317,7 +318,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [request-command-result.schema.json](schemas/request-command-result.schema.json) | `https://slopmower.invalid/schemas/v1/request-command-result.schema.json` | Result of a request command |
 | [link-commits-result.schema.json](schemas/link-commits-result.schema.json) | `https://slopmower.invalid/schemas/v1/link-commits-result.schema.json` | Result of `link_commits` |
 | [link-pull-request-result.schema.json](schemas/link-pull-request-result.schema.json) | `https://slopmower.invalid/schemas/v1/link-pull-request-result.schema.json` | Result of `link_pull_request` |
-| [me.schema.json](schemas/me.schema.json) | `https://slopmower.invalid/schemas/v1/me.schema.json` | The caller, the tenant, the features, the plan, the usage, the links, and the preferences, plus `TenantPlan`, `LimitUsage`, and `Preferences` |
+| [me.schema.json](schemas/me.schema.json) | `https://slopmower.invalid/schemas/v1/me.schema.json` | The caller, the tenant, the features, the plan, the usage, the links, the preferences, and the project keys, plus `TenantPlan`, `LimitUsage`, and `Preferences` |
 | [lists.schema.json](schemas/lists.schema.json) | `https://slopmower.invalid/schemas/v1/lists.schema.json` | `$defs` only: every page and list, `MercureAuthorization`, and `CodeToken` |
 | [inputs.schema.json](schemas/inputs.schema.json) | `https://slopmower.invalid/schemas/v1/inputs.schema.json` | `$defs` only: every REST request body |
 | [live-update.schema.json](schemas/live-update.schema.json) | `https://slopmower.invalid/schemas/v1/live-update.schema.json` | Data of one Mercure update, IDs only |

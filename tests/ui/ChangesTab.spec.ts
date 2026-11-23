@@ -99,6 +99,18 @@ test.describe('ChangesTab', () => {
         }
     });
 
+    test('An issue key in the subject of a commit is a link to its issue', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        const request = review.seedLines(SMALL_FILE, 9, 12, 'Extract the tax calculation.');
+        const extract = commitLink(sha1('Extract tax()'), 'BILL-9 extract tax()');
+        linkCommits(api, review, request.id, [[extract, [modifiedFile(SMALL_FILE, SMALL_FILE_TEXT, EXTRACTED, true)]]], [SMALL_FILE_TEXT, EXTRACTED]);
+        await openRequest(page, request.id);
+
+        await page.locator('nav[aria-label="Request"] a').filter({ hasText: 'Changes' }).click();
+
+        await expect(page.locator('[data-testid="commit-changes"] h2').getByRole('link', { name: 'BILL-9' })).toHaveAttribute('href', '/issues/BILL-9');
+    });
+
     test('A linked commit opens the Changes tab at its section', async ({ page, api }) => {
         const review = new FakeReview(api);
         const request = review.seedLines(SMALL_FILE, 9, 12, 'Extract the tax calculation.');

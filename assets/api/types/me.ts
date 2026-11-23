@@ -1,6 +1,6 @@
 import type { Actor } from './actor';
 import type { ApiToken } from './api-token';
-import type { DateTime, Tour, Ulid, UsageLimit } from './common';
+import type { DateTime, ProjectKey, Tour, Ulid, UsageLimit } from './common';
 
 export const SIGN_IN_METHODS = ['github', 'local'] as const;
 export type SignInMethod = (typeof SIGN_IN_METHODS)[number];
@@ -52,4 +52,6 @@ export type Me = {
         skillUrl: string;
     };
     preferences: Preferences;
+    /** Of the projects that the caller sees, in key order. */
+    projectKeys: ProjectKey[];
 };

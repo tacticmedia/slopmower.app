@@ -4,6 +4,7 @@ import { useLocation } from 'react-router';
 import type { CommitLink } from '../../api/types/commit-link';
 import type { Request as ReviewRequest } from '../../api/types/request';
 import { USER_INPUT_EVENTS } from '../../code/scrollTarget';
+import { IssueKeyText } from '../../comments/IssueKeyText';
 import { usePreference } from '../../layout/usePreference';
 import { LocationInfo } from '../../requests/LocationInfo';
 import shared from '../../requests/Requests.module.css';
@@ -47,7 +48,13 @@ function CommitChanges({ requestId, repositoryId, commit, located }: { requestId
         <section ref={section} className={shared.section} aria-labelledby={titleId} data-testid="commit-changes" data-commit-sha={commit.commitSha}>
             <h2 id={titleId} className={styles.commitTitle}>
                 <code title={commit.commitSha}>{shortSha(commit.commitSha)}</code>
-                {'available' === commit.state ? <span className={shared.subject}>{commit.subject}</span> : <Label variant="attention">Pending</Label>}
+                {'available' === commit.state ? (
+                    <span className={shared.subject}>
+                        <IssueKeyText text={commit.subject} />
+                    </span>
+                ) : (
+                    <Label variant="attention">Pending</Label>
+                )}
             </h2>
             {'available' === commit.state ? (
                 <AvailableCommit requestId={requestId} repositoryId={repositoryId} commitSha={commit.commitSha} located={located} />

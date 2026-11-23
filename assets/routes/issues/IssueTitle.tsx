@@ -1,5 +1,6 @@
 import { Button, Heading } from '@primer/react';
 import type { Issue } from '../../api/types/issue';
+import { IssueKeyText } from '../../comments/IssueKeyText';
 import titleStyles from '../../requests/RequestTitle.module.css';
 import { TitleEditor, useEditButton } from '../../requests/TitleEditor';
 import styles from './Issues.module.css';
@@ -17,7 +18,7 @@ export function IssueTitle({ issue }: { issue: Issue }) {
     return (
         <div className={titleStyles.heading}>
             <Heading as="h1" className={titleStyles.text}>
-                {issue.title} <span className={styles.key}>{issue.key}</span>
+                <IssueKeyText text={issue.title} /> <span className={styles.key}>{issue.key}</span>
             </Heading>
             <Button ref={editButton} size="small" className={titleStyles.edit} onClick={() => setOpen(true)}>
                 Edit

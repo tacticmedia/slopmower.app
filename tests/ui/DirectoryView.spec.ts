@@ -87,6 +87,13 @@ test.describe('DirectoryView', () => {
         await expect(page.locator('[data-testid="file-header"]')).toContainText('docs/guide.md');
     });
 
+    test('An issue key in a README links to its issue, not to a file of the review', async ({ page, api }) => {
+        const review = new FakeReview(api, { files: { ...codeViewFiles(), 'docs/README.md': '# Docs\n\nBILL-9 has the rounding rules.\n' } });
+        await page.goto(`/reviews/${review.id}/tree/docs`);
+
+        await expect(page.getByRole('region', { name: 'README.md' }).getByRole('link', { name: 'BILL-9' })).toHaveAttribute('href', '/issues/BILL-9');
+    });
+
     test('A directory with more entries than one page shows the first page and says so in the table and the tree', async ({ page, api }) => {
         const review = new FakeReview(api);
         review.treePageEntries = 2;

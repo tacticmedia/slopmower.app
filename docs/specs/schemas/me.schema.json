@@ -3,7 +3,7 @@
   "$id": "https://slopmower.invalid/schemas/v1/me.schema.json",
   "title": "Me",
   "type": "object",
-  "required": ["user", "tenantId", "caller", "token", "features", "plan", "usage", "links", "preferences"],
+  "required": ["user", "tenantId", "caller", "token", "features", "plan", "usage", "links", "preferences", "projectKeys"],
   "properties": {
     "user": {
       "type": "object",
@@ -103,6 +103,14 @@
     },
     "preferences": {
       "$ref": "#/$defs/Preferences"
+    },
+    "projectKeys": {
+      "type": "array",
+      "uniqueItems": true,
+      "description": "The keys of the projects that the caller sees, in key order. A token scoped to one repository gets the key of the project of that repository, or none. The web UI shows an issue key of one of these projects as a link to its issue.",
+      "items": {
+        "$ref": "common.schema.json#/$defs/ProjectKey"
+      }
     }
   },
   "$defs": {

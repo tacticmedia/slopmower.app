@@ -8,6 +8,7 @@ use App\Application\Plans;
 use App\Application\Query\Preferences;
 use App\Application\UsageLimits;
 use App\Controller\Api\Input\PreferencesInput;
+use App\Entity\Project;
 use App\Entity\User;
 use App\GitHub\GitHubApp;
 use App\Repository\ApiTokenRepository;
@@ -41,6 +42,7 @@ final class MeController extends AbstractController
         GitHubApp $gitHubApp,
         Plans $plans,
         UsageLimits $usageLimits,
+        EntityManagerInterface $entityManager,
         Request $request,
         #[Autowire(env: 'APP_LOCAL_REPOSITORIES_DIR')] string $localRepositoriesDir,
         #[Autowire(env: 'GITHUB_MARKETPLACE_URL')] string $marketplaceUrl,
@@ -86,6 +88,8 @@ final class MeController extends AbstractController
                 'skillUrl' => $request->getUriForPath('/docs/skill/SKILL.md'),
             ],
             'preferences' => new Preferences($user->getCompletedTours()),
+            // DQL, so the tenant filter and the repository scope of a token apply.
+            'projectKeys' => $entityManager->createQuery('SELECT project.key FROM '.Project::class.' project ORDER BY project.key')->getSingleColumnResult(),
         ]);
     }
 

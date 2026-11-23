@@ -223,6 +223,46 @@ test.describe('Issues', () => {
         await expect(page.getByTestId('open-questions')).toHaveCount(0);
     });
 
+    test('An issue key in a comment opens its issue without a page load, and a code block and a Markdown link get no key link', async ({ page, api }) => {
+        const issues = await openIssue(page, api);
+        issues.add(issueDetail({ key: 'BILL-9', title: 'Round shipping totals per line' }));
+
+        await page.getByRole('textbox', { name: 'Comment' }).fill('BILL-9 is first, as `BILL-9` says and [BILL-9](https://tracker.example/9) said.\n\n```\ngit log --grep BILL-9\n```');
+        await page.getByRole('button', { name: 'Comment', exact: true }).click();
+        const comment = page.getByTestId('issue-entry').last();
+        const links = comment.getByRole('link', { name: 'BILL-9', exact: true });
+
+        await expect(links).toHaveCount(3);
+        expect(await links.evaluateAll((all) => all.map((link) => link.getAttribute('href')))).toEqual(['/issues/BILL-9', '/issues/BILL-9', 'https://tracker.example/9']);
+        await expect(comment.locator('code > a')).toHaveCount(1);
+        await expect(comment.locator('pre')).toHaveText(/git log --grep BILL-9/);
+        const pageLoads = api.callsTo('GET', '/api/v1/me').length;
+        await links.first().click();
+
+        await expect(page.getByRole('heading', { level: 1 })).toHaveText('Round shipping totals per line BILL-9');
+        expect(api.callsTo('GET', '/api/v1/me'), 'A page load reads A1 again.').toHaveLength(pageLoads);
+    });
+
+    test('An issue key in a question line is a link, in the timeline and in the form', async ({ page, api }) => {
+        const issues = new FakeIssues(api);
+        issues.add(issueDetail());
+        issues.agentAsks(ISSUE_KEY, 'One choice.', [{ question: 'Round as BILL-9 does?', detail: null, answer: null }]);
+        await page.goto(`/issues/${ISSUE_KEY}`);
+
+        for (const place of [page.getByTestId('issue-entry').last(), page.getByRole('form', { name: /^Questions of / })]) {
+            await expect(place.getByRole('link', { name: 'BILL-9' })).toHaveAttribute('href', '/issues/BILL-9');
+        }
+    });
+
+    test('An issue key in the title of an issue is a link, and a key of an unknown project is text', async ({ page, api }) => {
+        const issues = new FakeIssues(api);
+        issues.add(issueDetail({ title: 'Round as BILL-9 does, in UTF-8' }));
+        await page.goto(`/issues/${ISSUE_KEY}`);
+
+        await expect(page.getByRole('heading', { level: 1 }).getByRole('link')).toHaveText(['BILL-9']);
+        await expect(page.getByRole('heading', { level: 1 }).getByRole('link')).toHaveAttribute('href', '/issues/BILL-9');
+    });
+
     test('The comments page of a project filters by label and links each comment to its issue', async ({ page, api }) => {
         const issues = new FakeIssues(api);
         issues.add(issueDetail());

@@ -5,6 +5,7 @@ import { type SubmitTarget, useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
 import type { Question } from '../api/types/common';
 import type { QuestionInput } from '../api/types/inputs';
+import { IssueKeyText } from './IssueKeyText';
 import styles from './Questions.module.css';
 import { useUnsavedComment } from './UnsavedCommentGuard';
 
@@ -57,7 +58,7 @@ export function QuestionForm({ questions, label, intent }: QuestionFormProps) {
                 return (
                     <div key={index} role="group" aria-labelledby={`${id}-${index}`} className={styles.question}>
                         <p id={`${id}-${index}`} className={styles.title}>
-                            {question}
+                            <IssueKeyText text={question} />
                         </p>
                         {null !== detail && '' !== detail && (
                             <Suspense fallback={<p className={styles.plain} data-markdown-pending="">{detail}</p>}>
@@ -103,7 +104,9 @@ export function QuestionList({ questions }: { questions: Question[] }) {
         <ol className={styles.list} data-testid="comment-questions">
             {questions.map(({ question, detail, answer }, index) => (
                 <li key={index} className={styles.item}>
-                    <strong>{question}</strong>
+                    <strong>
+                        <IssueKeyText text={question} />
+                    </strong>
                     {null !== answer ? (
                         <p className={styles.plain} data-testid="answer">
                             {answer}
