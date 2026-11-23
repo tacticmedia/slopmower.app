@@ -350,6 +350,10 @@
     "CommentLabel": {
       "enum": ["comment", "decision", "question", "answer", "finding", "deviation", "scope_creep", "papercut", "review"],
       "description": "What a comment of an issue is (D121). comment: progress or a remark. decision: a choice, with its reason and what it rules out. question: asks the user with its questions. answer: the answers of a user to a question comment, which it replaces. The server sets question and answer (D124). finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent."
+    },
+    "IssueLinkKind": {
+      "enum": ["relates", "blocked_by", "blocks"],
+      "description": "What a link is for the issue that is read (D126). relates: no dependency. blocked_by: this issue waits for the other issue. blocks: the other issue waits for this issue. A link is stored as relates or blocked_by, and blocks is the same blocked_by link read from its other issue."
     }
   }
 }

@@ -1,6 +1,6 @@
 import { ISSUE_SECTIONS, type IssueStatus, type Question } from '../../../assets/api/types/common';
 import type { ApprovePlanInput, CreateIssueInput, CreateProjectInput, IssueCommentInput, IssueStatusInput, UpdateIssueInput, UpdateProjectInput } from '../../../assets/api/types/inputs';
-import type { Issue, IssueDetail, IssueEntry } from '../../../assets/api/types/issue';
+import type { Issue, IssueDetail, IssueEntry, IssueSummary } from '../../../assets/api/types/issue';
 import type { Project } from '../../../assets/api/types/project';
 import type { Repository } from '../../../assets/api/types/repository';
 import { issueDetail, newId, now, project, USER } from './builders';
@@ -13,8 +13,11 @@ const NEEDED: readonly { section: 'problem' | 'plan' | 'result'; statuses: reado
     { section: 'result', statuses: ['in_review', 'done'] },
 ];
 
+/** The statuses of an open issue that waits for the user: I9 holds such an issue without a dependency. */
+const WAITS_FOR_USER: readonly IssueStatus[] = ['awaiting_user_input', 'in_review'];
+
 /**
- * The issue tracker in memory, as a signed-in user sees it: P1 to P3 and I1 to I8, with the rules of
+ * The issue tracker in memory, as a signed-in user sees it: P1 to P3 and I1 to I9, with the rules of
  * docs/specs/rest-api-issues.md. `repositories` answers the connected repositories, whose IDs P3 takes.
  */
 export class FakeIssues {
@@ -188,12 +191,35 @@ export class FakeIssues {
 
             return json('lists.schema.json#/$defs/IssueCommentPage', { items, nextCursor: null });
         });
+        api.on('GET', '/api/v1/projects/:projectKey/graph', ({ params }) => {
+            if (!this.projects.some(({ key }) => key === params.projectKey)) {
+                return notFound();
+            }
+            const open = new Map([...this.issues.values()].filter(({ issue }) => !['done', 'wont_do'].includes(issue.status)).map(({ issue }) => [issue.key, issue]));
+            const ofProject = [...open.values()].filter(({ project }) => project.key === params.projectKey);
+            const links = [...this.issues.values()]
+                .flatMap(({ issue, links: ofIssue }) => ofIssue.filter(({ kind }) => 'blocked_by' === kind).map((link) => ({ issue: issue.key, blockedBy: link.issue.key })))
+                .filter(({ issue, blockedBy }) => open.has(issue) && open.has(blockedBy) && ofProject.some(({ key }) => key === issue || key === blockedBy))
+                .toSorted((first, second) => compareKeys(first.issue, second.issue) || compareKeys(first.blockedBy, second.blockedBy));
+            const keys = new Set([...ofProject.filter(({ status }) => WAITS_FOR_USER.includes(status)).map(({ key }) => key), ...links.flatMap(({ issue, blockedBy }) => [issue, blockedBy])]);
+            const issues = [...keys].toSorted(compareKeys).map((key) => summary(open.get(key) as Issue));
+
+            return json('issue.schema.json#/$defs/IssueGraph', { issues, links, otherOpenIssues: ofProject.filter(({ key }) => !keys.has(key)).length });
+        });
     }
 
     add(detail: IssueDetail): IssueDetail {
         this.issues.set(detail.issue.key, detail);
 
         return detail;
+    }
+
+    /** As an agent with `link_issues` and `kind: blocked_by`: `issueKey` waits for `blockerKey`. Both issues show the link. */
+    block(issueKey: string, blockerKey: string): void {
+        const [waiting, blocker] = [this.#stored(issueKey), this.#stored(blockerKey)];
+        const link = { note: `${blockerKey} comes first.`, createdBy: waiting.issue.createdBy, createdAt: now() };
+        this.issues.set(issueKey, { ...waiting, links: [...waiting.links, { ...link, issue: summary(blocker.issue), kind: 'blocked_by' }] });
+        this.issues.set(blockerKey, { ...blocker, links: [...blocker.links, { ...link, issue: summary(waiting.issue), kind: 'blocks' }] });
     }
 
     /** As an agent with `update_issue`: a new plan revision without an approval. */
@@ -233,6 +259,18 @@ export class FakeIssues {
 
         return issue;
     }
+}
+
+function summary({ key, title, status, updatedAt }: Issue): IssueSummary {
+    return { key, title, status, updatedAt };
+}
+
+/** By project key, then by number. */
+function compareKeys(first: string, second: string): number {
+    const [firstProject = '', firstNumber] = first.split('-');
+    const [secondProject = '', secondNumber] = second.split('-');
+
+    return firstProject.localeCompare(secondProject) || Number(firstNumber) - Number(secondNumber);
 }
 
 /** An entry of the signed-in user. */

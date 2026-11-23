@@ -7,7 +7,7 @@ import { LoadingPage } from './layout/LoadingPage';
 import { RootLayout } from './layout/RootLayout';
 import { RouteError } from './layout/RouteError';
 import { removeSessionDrafts } from './layout/useSessionDraft';
-import { issueAction, issueLoader, newIssueAction, newIssueLoader, projectCommentsLoader, projectLoader, projectSettingsAction, projectSettingsLoader, projectsAction, projectsLoader } from './routes/issues/issueData';
+import { issueAction, issueLoader, newIssueAction, newIssueLoader, projectCommentsLoader, projectGraphLoader, projectLoader, projectSettingsAction, projectSettingsLoader, projectsAction, projectsLoader } from './routes/issues/issueData';
 import { ProjectRoute } from './routes/issues/ProjectRoute';
 import { ProjectsRoute } from './routes/issues/ProjectsRoute';
 import { RepositoriesRoute, repositoriesAction, repositoriesLoader } from './routes/repositories/RepositoriesRoute';
@@ -105,6 +105,12 @@ export const router = wrapCreateBrowserRouter(createBrowserRouter)([
                         path: 'projects/:projectKey/comments',
                         loader: projectCommentsLoader,
                         lazy: { Component: () => import('./routes/issues/ProjectCommentsRoute').then(({ ProjectCommentsRoute }) => ProjectCommentsRoute) },
+                    },
+                    {
+                        path: 'projects/:projectKey/graph',
+                        loader: projectGraphLoader,
+                        // The chunk holds the layout library, so the shell bundle does not.
+                        lazy: { Component: () => import('./routes/issues/ProjectGraphRoute').then(({ ProjectGraphRoute }) => ProjectGraphRoute) },
                     },
                     {
                         path: 'projects/:projectKey/settings',

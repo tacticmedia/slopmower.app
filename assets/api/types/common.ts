@@ -241,6 +241,10 @@ export type IssueEntryKind = OpenSet<KnownIssueEntryKind>;
 export const COMMENT_LABELS = ['comment', 'decision', 'question', 'answer', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'] as const;
 export type CommentLabel = (typeof COMMENT_LABELS)[number];
 
+/** What a link is for the issue that is read (D126). `blocks` is a `blocked_by` link, read from its target. */
+export const ISSUE_LINK_KINDS = ['relates', 'blocked_by', 'blocks'] as const;
+export type IssueLinkKind = (typeof ISSUE_LINK_KINDS)[number];
+
 /** How the agent delivers its work (D85). Null lets the agent decide. */
 export type Delivery = {
     workspace: Workspace | null;

@@ -15,7 +15,7 @@ function issue(overrides: Partial<Issue>, ...thread: IssueEntry[]): IssueDetail 
 }
 
 test.describe('Issues', () => {
-    test('The projects, the issues of a project, an issue with its timeline, its questions with their answers, and the comments of a project', async ({ page, api, captureScreen }) => {
+    test('The projects, the issues of a project, an issue with its timeline, its questions with their answers, the comments of a project, and its dependency graph', async ({ page, api, captureScreen }) => {
         const issues = new FakeIssues(api);
         issues.projects = [project(), project({ key: 'DOC', name: 'Documentation', approvalMode: 'user', repositories: [] })];
         issues.add(
@@ -44,6 +44,9 @@ test.describe('Issues', () => {
                 comment('01K7F3A2B3C4D5E6F7G8H9J0K1', 'papercut', '`tests/Billing` needs the `billing_test` database, and `README.md` does not name it.', '2026-10-02T09:02:10Z'),
             ),
         );
+        issues.add(issue({ key: 'BILL-15', title: 'Name the rounding mode in the README', status: 'in_review', updatedAt: '2026-10-02T09:18:22Z' }));
+        issues.block('BILL-13', 'BILL-12');
+        issues.block('BILL-14', 'BILL-12');
 
         await page.goto('/projects');
         await captureScreen('Projects', page.getByTestId('projects').locator('table'));
@@ -67,6 +70,9 @@ test.describe('Issues', () => {
 
         await page.goto('/projects/BILL/comments');
         await captureScreen('Comments of a project', page.getByTestId('comment-list'));
+
+        await page.goto('/projects/BILL/graph');
+        await captureScreen('Dependency graph of a project', page.getByTestId('issue-graph'));
     });
 
     test('A new project, the settings of a project, a new issue, and the edits and the status of an issue', async ({ page, api, captureScreen }) => {

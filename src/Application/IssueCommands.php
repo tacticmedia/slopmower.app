@@ -14,6 +14,7 @@ use App\Domain\Identity\IssueId;
 use App\Domain\Issue\CommentLabel;
 use App\Domain\Issue\IssueEntryKind;
 use App\Domain\Issue\IssueKey;
+use App\Domain\Issue\IssueLinkKind;
 use App\Domain\Issue\IssueRules;
 use App\Domain\Issue\IssueSection;
 use App\Domain\Issue\IssueStatus;
@@ -176,13 +177,15 @@ final class IssueCommands
     }
 
     /**
-     * One link per pair, in either order. Writes no entry.
+     * One link per pair: it replaces the link of the pair in either order (D126). Writes no entry.
+     *
+     * @param IssueLinkKind $kind BlockedBy: $key waits for $targetKey
      *
      * @throws NotFound|InvalidInput
      */
-    public function link(IssueKey $key, IssueKey $targetKey, string $note, Actor $actor): Issue
+    public function link(IssueKey $key, IssueKey $targetKey, IssueLinkKind $kind, string $note, Actor $actor): Issue
     {
-        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $targetKey, $note, $actor): Issue {
+        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $targetKey, $kind, $note, $actor): Issue {
             $keys = [$key->toString() => $key, $targetKey->toString() => $targetKey];
             // In key order, so two links of one pair lock the rows in the same order.
             ksort($keys);
@@ -194,20 +197,22 @@ final class IssueCommands
                 throw InvalidInput::field('target', 'An issue has no link to itself.');
             }
 
-            $linked = (int) $this->entityManager->createQueryBuilder()
-                ->select('COUNT(link.tenantId)')
+            $stored = $this->entityManager->createQueryBuilder()
+                ->select('link')
                 ->from(IssueLink::class, 'link')
                 ->where('(link.issue = :issue AND link.target = :target) OR (link.issue = :target AND link.target = :issue)')
                 ->setParameter('issue', $issue->getId(), IssueId::class)
                 ->setParameter('target', $target->getId(), IssueId::class)
                 ->getQuery()
-                ->getSingleScalarResult();
+                ->getOneOrNullResult();
 
-            if ($linked > 0) {
-                throw InvalidInput::field('target', "{$key} and {$targetKey} have a link already.");
+            if (null !== $stored) {
+                $this->entityManager->remove($stored);
+                // The new row can have the key of the removed one, and a flush inserts before it deletes.
+                $this->entityManager->flush();
             }
 
-            $this->entityManager->persist(new IssueLink($issue, $target, $note, $actor, $now));
+            $this->entityManager->persist(new IssueLink($issue, $target, $kind, $note, $actor, $now));
             $issue->touch($now);
             $target->touch($now);
 

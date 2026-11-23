@@ -1,0 +1,121 @@
+.area {
+    overflow: auto;
+    border: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-radius: var(--borderRadius-medium);
+    background-color: var(--bgColor-default);
+}
+
+.canvas {
+    position: relative;
+}
+
+.edges {
+    position: absolute;
+    inset: 0;
+    fill: none;
+    stroke: var(--fgColor-muted);
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+}
+
+.arrow {
+    fill: var(--fgColor-muted);
+    stroke: none;
+}
+
+.nodes {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.nodes > li {
+    position: absolute;
+}
+
+/* The status stands right of the key, and comes after the title in the DOM and in the name of the link. */
+.node {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas:
+        'key status'
+        'title title'
+        'state state';
+    gap: var(--base-size-4) var(--base-size-8);
+    align-items: center;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    padding: var(--base-size-8) var(--base-size-12);
+    overflow: hidden;
+    border: var(--borderWidth-thin) solid var(--borderColor-emphasis);
+    border-radius: var(--borderRadius-medium);
+    background-color: var(--bgColor-default);
+    color: var(--fgColor-default);
+    font-size: var(--text-body-size-small);
+    text-decoration: none;
+
+    &:hover {
+        background-color: var(--bgColor-neutral-muted);
+        text-decoration: none;
+    }
+
+    &:focus-visible {
+        outline: var(--focus-outline);
+        outline-offset: var(--base-size-2);
+    }
+
+    /* Has an open blocker. The dashed border and the line "Blocked by" say so without colour. */
+    &[data-blocked] {
+        border-style: dashed;
+        background-color: var(--bgColor-muted);
+        color: var(--fgColor-muted);
+    }
+
+    /* To look at first: waits for the user and has no open blocker. */
+    &[data-waits]:not([data-blocked]) {
+        border: var(--borderWidth-thick) solid var(--borderColor-attention-emphasis);
+        background-color: var(--bgColor-attention-muted);
+    }
+}
+
+.key {
+    grid-area: key;
+}
+
+.status {
+    grid-area: status;
+}
+
+.title {
+    display: -webkit-box;
+    grid-area: title;
+    overflow: hidden;
+    font-size: var(--text-body-size-medium);
+    font-weight: var(--base-text-weight-semibold);
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.state {
+    grid-area: state;
+    align-self: end;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.state > strong {
+    margin-right: var(--base-size-4);
+}
+
+.empty {
+    margin: 0;
+    padding: var(--base-size-24) var(--base-size-16);
+    border: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-radius: var(--borderRadius-medium);
+    color: var(--fgColor-muted);
+    text-align: center;
+}

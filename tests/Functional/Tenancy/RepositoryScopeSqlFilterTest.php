@@ -15,6 +15,7 @@ use App\Domain\Identity\EventId;
 use App\Domain\Identity\RepositoryId;
 use App\Domain\Issue\ApprovalMode;
 use App\Domain\Issue\CommentLabel;
+use App\Domain\Issue\IssueLinkKind;
 use App\Domain\Issue\IssueStatus;
 use App\Domain\Location\Location;
 use App\Domain\Repository\RepositoryName;
@@ -114,8 +115,8 @@ final class RepositoryScopeSqlFilterTest extends KernelTestCase
 
         $sibling = new Issue($issues['SM']->getProject(), 2, 'Round twice', IssueStatus::Draft, RequestScenario::user(), $time);
         self::entityManager()->persist($sibling);
-        self::entityManager()->persist(new IssueLink($issues['SM'], $sibling, 'The same rounding.', RequestScenario::user(), $time));
-        self::entityManager()->persist(new IssueLink($sibling, $issues['DOC'], 'The documentation of it.', RequestScenario::user(), $time));
+        self::entityManager()->persist(new IssueLink($issues['SM'], $sibling, IssueLinkKind::Relates, 'The same rounding.', RequestScenario::user(), $time));
+        self::entityManager()->persist(new IssueLink($sibling, $issues['DOC'], IssueLinkKind::Relates, 'The documentation of it.', RequestScenario::user(), $time));
     }
 
     /**

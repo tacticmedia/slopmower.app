@@ -50,6 +50,7 @@
         "status": "done",
         "updatedAt": "2026-10-02T09:03:30Z"
       },
+      "kind": "relates",
       "note": "BILL-9 owns the shipping totals, which this issue leaves alone.",
       "createdBy": {
         "kind": "agent",

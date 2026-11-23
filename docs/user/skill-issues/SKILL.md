@@ -24,7 +24,7 @@ the `slopmower` MCP server.
 | `set_issue_status` | `issue`, `status`, `note?`, `reviewer?` | Move the issue to another status |
 | `comment_on_issue` | `issue`, `body`, `label?`, `replaces?`, `questions?` | Record a step or a decision in the thread, with its label, ask the user with `questions`, or replace a comment that no longer holds |
 | `list_comments` | `project`, `label?`, `cursor?`, `limit?` | Read the comments of the project across its issues, all or those of one label |
-| `link_issues` | `issue`, `target`, `note` | Link two issues, with the reason |
+| `link_issues` | `issue`, `target`, `note`, `kind?` | Link two issues, with the reason, or say that `issue` waits for `target` |
 | `approve_plan` | `issue`, `planRevision`, `reviewer`, `reviewNote` | Record the review of the plan by another agent |
 
 A `?` marks an optional parameter. An issue is named by its key: the project
@@ -102,6 +102,23 @@ comment.
   comment without `questions`.
 - A question does not change the status. Set `awaiting_user_input` when the
   work waits for the answers.
+
+## Dependencies
+
+A link has a `kind`. Without `kind` it is `relates`: the issues have a
+relation, and neither waits.
+
+- When an issue needs another issue first, call `link_issues` with the
+  waiting issue as `issue`, the issue that comes first as `target`,
+  `kind: blocked_by`, and the reason as `note`.
+- The user sees the dependencies of a project as a graph. It shows which
+  issues wait for the user and have no open blocker.
+- Set the dependency when you find it. A dependency that is only in a note
+  or a comment is not in the graph.
+- `get_issue` shows the link on both issues: `blocked_by` on the issue that
+  waits, and `blocks` on the issue that comes first.
+- A second `link_issues` call for the same two issues, in either order,
+  replaces their link. Use it to change the kind or the note.
 
 ## 1. Find the project
 
@@ -252,7 +269,7 @@ A tool error is a result with `isError: true`. Its text is JSON:
 |---|---|---|
 | `unauthorized` | The token is missing, wrong, revoked, or expired. It arrives as HTTP 401 from the server, not as a tool result. | Tell the user to check `SLOPMOWER_TOKEN`. Go on as section 7 says. |
 | `not_found` | No such project, issue, or entry of `replaces` for this token. A token for one repository sees only the project of that repository. | Check the key or the `id`, then list again |
-| `invalid_input` | The input failed a check, or the write breaks a rule. `details.violations[0].field` names what is wrong: `problem`, `plan`, or `result` is missing, or the plan has no approval; `status` is the status that the issue has, or one that only the user sets; `note` or `reviewer` is missing; `planRevision` is not the newest; `issue` is in `done` or `wont_do`, or only the user approves its plan; `target` is the issue itself or has the link already; `replaces` is no comment of the issue, is replaced already, or is a comment of the user; `label` is `question` or `answer` on a comment without `questions`; `questions.<index>` breaks a rule of a question. | Read the message, fix the issue or the input, and call again |
+| `invalid_input` | The input failed a check, or the write breaks a rule. `details.violations[0].field` names what is wrong: `problem`, `plan`, or `result` is missing, or the plan has no approval; `status` is the status that the issue has, or one that only the user sets; `note` or `reviewer` is missing; `planRevision` is not the newest; `issue` is in `done` or `wont_do`, or only the user approves its plan; `target` is the issue itself; `replaces` is no comment of the issue, is replaced already, or is a comment of the user; `label` is `question` or `answer` on a comment without `questions`; `questions.<index>` breaks a rule of a question. | Read the message, fix the issue or the input, and call again |
 | `rate_limited` | Too many calls in a short time | Wait `details.retryAfterSeconds` seconds, then retry |
 | `internal_error` | An unexpected server failure | Try once more, then go on as section 7 says |
 

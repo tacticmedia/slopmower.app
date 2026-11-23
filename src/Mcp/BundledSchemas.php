@@ -4648,14 +4648,19 @@ final class BundledSchemas
             'IssueKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
             'IssueLink' => [
                 'type' => 'object',
-                'required' => ['issue', 'note', 'createdBy', 'createdAt'],
-                'description' => 'A link of two issues. It has no direction, so both issues show it.',
+                'required' => ['issue', 'kind', 'note', 'createdBy', 'createdAt'],
+                'description' => 'A link of two issues, as one of them reads it. Both issues show it.',
                 'properties' => [
                     'issue' => ['$ref' => '#/$defs/IssueSummary', 'description' => 'The other issue of the link.'],
+                    'kind' => ['$ref' => '#/$defs/IssueLinkKind'],
                     'note' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'Markdown: the reason for the link.'],
                     'createdBy' => ['$ref' => '#/$defs/Actor'],
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                 ],
+            ],
+            'IssueLinkKind' => [
+                'enum' => ['relates', 'blocked_by', 'blocks'],
+                'description' => 'What a link is for the issue that is read (D126). relates: no dependency. blocked_by: this issue waits for the other issue. blocks: the other issue waits for this issue. A link is stored as relates or blocked_by, and blocks is the same blocked_by link read from its other issue.',
             ],
             'IssueSection' => [
                 'enum' => ['problem', 'plan', 'result', 'followUps'],
@@ -5100,13 +5105,19 @@ final class BundledSchemas
         [
             'name' => 'link_issues',
             'title' => 'Link issues',
-            'description' => 'Link two issues, with the reason in note. A link has no direction: both issues show it. Link a follow-up issue to its origin. A link of an issue to itself, and a second link of the same two issues, fail with invalid_input.',
+            'description' => 'Link two issues, with the reason in note. Both issues show the link. When issue needs target first, set kind to blocked_by: get_issue then shows blocked_by on issue and blocks on target, and the dependency graph of the project shows the order to the user. Without kind the link is relates: link a follow-up issue to its origin in this way. A second call for the same two issues, in either order, replaces their link, so it changes the kind or the note. A link of an issue to itself fails with invalid_input.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
                     'issue' => ['type' => 'string', 'description' => 'Issue key, for example SM-12', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$'],
                     'target' => ['type' => 'string', 'description' => 'Key of the other issue', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$'],
                     'note' => ['type' => 'string', 'description' => 'Markdown: the reason for the link', 'minLength' => 1, 'maxLength' => 65536, 'pattern' => '^[^\\x00]*$'],
+                    'kind' => [
+                        'type' => 'string',
+                        'description' => 'relates: no dependency. blocked_by: issue waits for target.',
+                        'default' => 'relates',
+                        'enum' => ['relates', 'blocked_by'],
+                    ],
                 ],
                 'required' => ['issue', 'target', 'note'],
             ],

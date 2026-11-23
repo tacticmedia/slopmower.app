@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Application\IssueCommands;
+use App\Application\Query\IssueGraph;
 use App\Application\Query\IssueQuery;
+use App\Application\Query\IssueSummaryView;
 use App\Controller\Api\Input\ApprovePlanInput;
 use App\Controller\Api\Input\CreateIssueInput;
 use App\Controller\Api\Input\IssueCommentInput;
@@ -15,13 +17,18 @@ use App\Controller\Api\Input\IssueListQuery;
 use App\Controller\Api\Input\IssueStatusInput;
 use App\Controller\Api\Input\UpdateIssueInput;
 use App\Domain\Identity\IssueEntryId;
+use App\Domain\Identity\ProjectId;
 use App\Domain\Issue\CommentLabel;
 use App\Domain\Issue\IssueKey;
+use App\Domain\Issue\IssueLinkKind;
 use App\Domain\Issue\IssueStatus;
 use App\Entity\Issue;
+use App\Entity\IssueLink;
 use App\Entity\Project;
 use App\Entity\User;
 use App\Security\CurrentActor;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Query;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -33,7 +40,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * I1 to I8 of docs/specs/rest-api-issues.md. A path key that the SQL filters hide resolves to 404.
+ * I1 to I9 of docs/specs/rest-api-issues.md. A path key that the SQL filters hide resolves to 404.
  */
 #[Route('/api/v1', name: 'api_issue_', requirements: ['projectKey' => IssueKey::PROJECT_KEY_REQUIREMENT, 'issueKey' => IssueKey::REQUIREMENT])]
 final class IssueController extends AbstractController
@@ -83,6 +90,59 @@ final class IssueController extends AbstractController
         IssueCommentListQuery $query = new IssueCommentListQuery(),
     ): JsonResponse {
         return $this->json($this->issues->comments($project->getKey(), $query->label, $query->limit, $query->cursor));
+    }
+
+    /**
+     * The SQL filters leave out a link with an issue that the caller cannot see.
+     */
+    #[Route('/projects/{projectKey}/graph', name: 'graph', methods: ['GET'])]
+    public function graph(#[MapEntity(mapping: ['projectKey' => 'key'])] Project $project, EntityManagerInterface $entityManager): JsonResponse
+    {
+        $ended = array_values(array_filter(IssueStatus::cases(), static fn (IssueStatus $status): bool => $status->isEnded()));
+        /** @var list<IssueLink> $dependencies */
+        $dependencies = $entityManager->createQueryBuilder()
+            ->select('link', 'waiting', 'blocker')
+            ->from(IssueLink::class, 'link')
+            ->join('link.issue', 'waiting')
+            ->join('link.target', 'blocker')
+            ->where('link.kind = :blockedBy')
+            ->andWhere('waiting.project = :project OR blocker.project = :project')
+            ->andWhere('waiting.status NOT IN (:ended)')
+            ->andWhere('blocker.status NOT IN (:ended)')
+            ->setParameter('blockedBy', IssueLinkKind::BlockedBy)
+            ->setParameter('project', $project->getId(), ProjectId::class)
+            ->setParameter('ended', $ended)
+            ->getQuery()
+            ->getResult();
+        $ofProject = static fn (string $select, string $operator, array $statuses): Query => $entityManager->createQueryBuilder()
+            ->select($select)
+            ->from(Issue::class, 'issue')
+            ->where('issue.project = :project')
+            ->andWhere("issue.status {$operator} (:statuses)")
+            ->setParameter('project', $project->getId(), ProjectId::class)
+            ->setParameter('statuses', $statuses)
+            ->getQuery();
+        /** @var list<Issue> $nodes */
+        $nodes = $ofProject('issue', 'IN', [IssueStatus::AwaitingUserInput, IssueStatus::InReview])->getResult();
+        $issues = [];
+
+        foreach ($dependencies as $link) {
+            array_push($nodes, $link->getIssue(), $link->getTarget());
+        }
+
+        foreach ($nodes as $issue) {
+            $issues[$issue->getKey()->toString()] = $issue;
+        }
+
+        $order = static fn (Issue $issue): array => [$issue->getKey()->projectKey, $issue->getKey()->number];
+        usort($issues, static fn (Issue $first, Issue $second): int => $order($first) <=> $order($second));
+        usort($dependencies, static fn (IssueLink $first, IssueLink $second): int => [$order($first->getIssue()), $order($first->getTarget())] <=> [$order($second->getIssue()), $order($second->getTarget())]);
+
+        return $this->json(new IssueGraph(
+            array_map(IssueSummaryView::of(...), $issues),
+            array_map(static fn (IssueLink $link): array => ['issue' => $link->getIssue()->getKey(), 'blockedBy' => $link->getTarget()->getKey()], $dependencies),
+            max(0, (int) $ofProject('COUNT(issue.id)', 'NOT IN', $ended)->getSingleScalarResult() - \count(array_filter($issues, static fn (Issue $issue): bool => $issue->getProject() === $project))),
+        ));
     }
 
     /**

@@ -47,6 +47,7 @@ use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Issue\CommentLabel;
 use App\Domain\Issue\IssueKey;
+use App\Domain\Issue\IssueLinkKind;
 use App\Domain\Issue\IssueStatus;
 use App\Domain\Request\Awaiting;
 use App\Domain\Request\Command\Claim;
@@ -213,9 +214,9 @@ final class McpTools
      *
      * @return array<string, mixed>
      */
-    public function linkIssues(string $issue, string $target, string $note): array
+    public function linkIssues(string $issue, string $target, string $note, IssueLinkKind $kind = IssueLinkKind::Relates): array
     {
-        return $this->issueWrite('link_issues', fn (Actor $actor): Issue => $this->issueCommands->link(IssueKey::fromString($issue, 'issue'), IssueKey::fromString($target, 'target'), $note, $actor));
+        return $this->issueWrite('link_issues', fn (Actor $actor): Issue => $this->issueCommands->link(IssueKey::fromString($issue, 'issue'), IssueKey::fromString($target, 'target'), $kind, $note, $actor));
     }
 
     /**

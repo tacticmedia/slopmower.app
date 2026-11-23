@@ -250,6 +250,40 @@ final class IssueApiTest extends WebTestCase
         self::assertSame([['user', 'todo', 'in_progress'], ['user', 'in_progress', 'done'], ['user', 'done', 'todo']], array_map(static fn (array $entry): array => [$entry['actor']['kind'], $entry['from'], $entry['to']], $moves));
     }
 
+    #[TestDox('I9 holds a blocked issue, its blockers of both projects, an issue of another project that waits, and each issue that waits for the user; it leaves out an issue without a blocked_by link, and a link after one of its issues ends')]
+    public function testDependencyGraph(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        self::storeProject($this->user->getTenantId(), 'DOC');
+        $this->plannedIssue('todo');
+        $this->agent('update_issue', ['issue' => 'SM-1', 'result' => 'Added `TaxRounding::perInvoice()` in a1b2c3d.']);
+        $this->agent('set_issue_status', ['issue' => 'SM-1', 'status' => 'in_review']);
+
+        foreach (['SM' => ['Add the rounding mode', 'Show the rounding mode', 'Round the shipping totals', 'Round the quotes'], 'DOC' => ['Name the rounding modes', 'Name the tax terms']] as $project => $titles) {
+            foreach ($titles as $title) {
+                $this->agent('create_issue', ['project' => $project, 'title' => $title]);
+            }
+        }
+
+        $this->agent('link_issues', ['issue' => 'SM-3', 'target' => 'SM-2', 'note' => 'SM-2 adds the mode.', 'kind' => 'blocked_by']);
+        $this->agent('link_issues', ['issue' => 'SM-3', 'target' => 'DOC-1', 'note' => 'DOC-1 names the modes.', 'kind' => 'blocked_by']);
+        $this->agent('link_issues', ['issue' => 'SM-4', 'target' => 'SM-2', 'note' => 'The same rounding.']);
+        $this->agent('set_issue_status', ['issue' => 'SM-5', 'status' => 'awaiting_user_input']);
+        $this->agent('link_issues', ['issue' => 'DOC-2', 'target' => 'SM-5', 'note' => 'SM-5 names the terms.', 'kind' => 'blocked_by']);
+        $graph = fn (): array => self::assertApiResponse(self::apiRequest($this->client, 'GET', '/api/v1/projects/SM/graph'), 200, 'issue.schema.json#/$defs/IssueGraph');
+
+        $open = $graph();
+        $this->agent('set_issue_status', ['issue' => 'SM-2', 'status' => 'wont_do', 'note' => 'The mode exists.']);
+        $this->agent('set_issue_status', ['issue' => 'DOC-1', 'status' => 'wont_do', 'note' => 'The handbook has them.']);
+        $this->agent('set_issue_status', ['issue' => 'DOC-2', 'status' => 'wont_do', 'note' => 'The glossary has them.']);
+        $ended = $graph();
+
+        self::assertSame([['DOC-1', 'draft'], ['DOC-2', 'draft'], ['SM-1', 'in_review'], ['SM-2', 'draft'], ['SM-3', 'draft'], ['SM-5', 'awaiting_user_input']], array_map(static fn (array $issue): array => [$issue['key'], $issue['status']], $open['issues']));
+        self::assertSame([['issue' => 'DOC-2', 'blockedBy' => 'SM-5'], ['issue' => 'SM-3', 'blockedBy' => 'DOC-1'], ['issue' => 'SM-3', 'blockedBy' => 'SM-2']], $open['links']);
+        self::assertSame(1, $open['otherOpenIssues'], 'SM-4, which has a relates link only.');
+        self::assertSame([['SM-1', 'SM-5'], [], 2], [array_column($ended['issues'], 'key'), $ended['links'], $ended['otherOpenIssues']]);
+    }
+
     #[TestDox('A key that the caller cannot see answers 404 before the 403 and the body error, and a malformed key answers 404')]
     public function testHiddenKeyIsNotFoundFirst(): void
     {

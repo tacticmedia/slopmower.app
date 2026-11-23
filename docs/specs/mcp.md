@@ -238,7 +238,7 @@ Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 
 ### Issue tools
 
-Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121 to D124). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs. The REST endpoints of [rest-api-issues.md](rest-api-issues.md) share the model and the rules of this section.
+Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121 to D124, D126). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs. The REST endpoints of [rest-api-issues.md](rest-api-issues.md) share the model and the rules of this section.
 
 - **Visibility.** A token of one repository sees only the project of that repository, with its issues. A project without a repository is invisible to it. Any other key gets `not_found`.
 - **Sections.** An issue has the Markdown sections `problem`, `plan`, `result`, and `followUps`, each null or at most 65,536 characters.
@@ -249,6 +249,7 @@ Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121 to D124). A proj
   - A `plan_approved` entry whose `planRevision` is not the plan revision of the issue is replaced by the plan version after the one that it approved. Its `replaces` is null.
   - A `status_changed` entry is never replaced.
   - `get_issue` returns the current content: no replaced entry, and a `section_changed` entry with `body` null, because the issue has the text. With `history: true` it returns every entry, and a `section_changed` entry has the text of its version in `body`. `list_comments` returns no replaced comment.
+- **Links.** A pair of issues has at most one link, with a note and a kind of `IssueLinkKind` of [common.schema.json](schemas/common.schema.json) (D126). `relates` is a link without a dependency. `blocked_by` says that the issue of the call waits for its target: the target comes first. `get_issue` shows a link on both issues, and the `blocked_by` link reads as `blocks` on the target. A cycle of `blocked_by` links is not refused. REST [I9](rest-api-issues.md#i9-get-the-dependency-graph-of-a-project) returns the dependencies of a project for the web UI, and has no tool.
 - **Labels.** A `comment` entry has a `label` of the closed set `CommentLabel` of [common.schema.json](schemas/common.schema.json), which says what the comment is: `comment`, `decision`, `question`, `answer`, `finding`, `deviation`, `scope_creep`, `papercut`, or `review`. A comment stored without a label reads as `comment`. An entry of another kind has `label` null (D121). The server sets `question` and `answer`, as "Questions" says.
 - **Questions.** A comment has `questions`, 0 to 10 items of `Question` of [common.schema.json](schemas/common.schema.json): a `question` in one line of 1 to 200 characters after trimming, a `detail`, null or Markdown, and an `answer` (D124). An entry of another kind has `questions` empty.
   - An agent asks: no item has an `answer`. The comment gets the label `question`, whatever `label` says.
@@ -294,7 +295,7 @@ Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121 to D124). A proj
 ### 4.21 `get_issue`
 
 - **Output:** [`issue.schema.json#/$defs/IssueDetail`](schemas/issue.schema.json).
-- **Behaviour:** REST I2: the issue, its links, and its thread, each oldest first. A link shows the other issue. `allowedStatuses` holds the statuses that `set_issue_status` takes from the caller, with a note and a reviewer where the rules need them. `history` is false by default: the thread is the current content, as "Replaced entries" says. `history: true` returns every entry with the text of each section version.
+- **Behaviour:** REST I2: the issue, its links, and its thread, each oldest first. A link shows the other issue and its `kind` for the issue that is read: `relates`, `blocked_by` when this issue waits for the other issue, or `blocks` when the other issue waits for this issue. `allowedStatuses` holds the statuses that `set_issue_status` takes from the caller, with a note and a reviewer where the rules need them. `history` is false by default: the thread is the current content, as "Replaced entries" says. `history: true` returns every entry with the text of each section version.
 - **Errors:** `not_found`.
 - **Example:** arguments `{"issue":"BILL-12","history":true}`. `structuredContent`: [fixtures/issue.detail.json](fixtures/issue.detail.json).
 
@@ -330,9 +331,9 @@ Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121 to D124). A proj
 ### 4.26 `link_issues`
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json): the issue of `issue`.
-- **Behaviour:** one link per pair of issues, without a direction: `get_issue` of each issue shows it. The link sets `updatedAt` of both issues and writes no entry. The issues can belong to two projects.
-- **Errors:** `not_found` for either issue, `invalid_input` on `target` for a link of an issue to itself or a second link of the pair, and on `note` for a note of whitespace only.
-- **Example:** arguments `{"issue":"BILL-12","target":"BILL-9","note":"BILL-9 owns the shipping totals, which this issue leaves alone."}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json).
+- **Behaviour:** one link per pair of issues: `get_issue` of each issue shows it. `kind` is `relates` by default. `blocked_by` says that `issue` waits for `target`. A call for a pair that has a link, in either order, replaces that link: the new link has the order, the kind, the note, the creator, and the time of the call. The link sets `updatedAt` of both issues and writes no entry. The issues can belong to two projects.
+- **Errors:** `not_found` for either issue, `invalid_input` on `target` for a link of an issue to itself, and on `note` for a note of whitespace only. A `kind` other than `relates` and `blocked_by` is JSON-RPC -32602.
+- **Example:** arguments `{"issue":"BILL-13","target":"BILL-12","kind":"blocked_by","note":"The PDF names the rounding mode that BILL-12 adds."}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json).
 
 ### 4.27 `approve_plan`
 

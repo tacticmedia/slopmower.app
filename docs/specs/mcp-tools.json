@@ -381,7 +381,7 @@
         {
             "name": "link_issues",
             "title": "Link issues",
-            "description": "Link two issues, with the reason in note. A link has no direction: both issues show it. Link a follow-up issue to its origin. A link of an issue to itself, and a second link of the same two issues, fail with invalid_input.",
+            "description": "Link two issues, with the reason in note. Both issues show the link. When issue needs target first, set kind to blocked_by: get_issue then shows blocked_by on issue and blocks on target, and the dependency graph of the project shows the order to the user. Without kind the link is relates: link a follow-up issue to its origin in this way. A second call for the same two issues, in either order, replaces their link, so it changes the kind or the note. A link of an issue to itself fails with invalid_input.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -401,6 +401,15 @@
                         "minLength": 1,
                         "maxLength": 65536,
                         "pattern": "^[^\\x00]*$"
+                    },
+                    "kind": {
+                        "type": "string",
+                        "description": "relates: no dependency. blocked_by: issue waits for target.",
+                        "default": "relates",
+                        "enum": [
+                            "relates",
+                            "blocked_by"
+                        ]
                     }
                 },
                 "required": [

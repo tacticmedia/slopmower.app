@@ -3,7 +3,7 @@ import { actionError, type ActionResult, type InputFailure, inputFailure, refusa
 import { apiGet, apiGetAllPages, apiWrite } from '../../api/client';
 import { type ApprovalMode, COMMENT_LABELS, type CommentLabel, ISSUE_STATUSES, type IssueStatus } from '../../api/types/common';
 import type { ApprovePlanInput, CreateIssueInput, CreateProjectInput, IssueCommentInput, IssueStatusInput, UpdateIssueInput, UpdateProjectInput } from '../../api/types/inputs';
-import type { Issue, IssueComment, IssueDetail, IssueSummary } from '../../api/types/issue';
+import type { Issue, IssueComment, IssueDetail, IssueGraph, IssueSummary } from '../../api/types/issue';
 import type { NextCursor, ProjectPage } from '../../api/types/lists';
 import type { Project } from '../../api/types/project';
 import type { Repository } from '../../api/types/repository';
@@ -29,6 +29,11 @@ export type ProjectData = {
 export type ProjectCommentsData = {
     project: Project;
     comments: IssueComment[];
+};
+
+export type ProjectGraphData = {
+    project: Project;
+    graph: IssueGraph;
 };
 
 /** P1 has the repository names of each project, and R1 has the IDs: a repository name is unique in a tenant. */
@@ -136,6 +141,13 @@ export async function projectCommentsLoader(args: LoaderFunctionArgs): Promise<P
     const { project, items } = await projectList<IssueComment>(args, 'comments', 'label', labelFilter(new URL(args.request.url).searchParams));
 
     return { project, comments: items };
+}
+
+/** I9 has no project either, so its name comes from P1. */
+export async function projectGraphLoader({ request, params }: LoaderFunctionArgs): Promise<ProjectGraphData> {
+    const [graph, projects] = await Promise.all([apiGet<IssueGraph>(`/api/v1/projects/${encodedRouteParam(params, 'projectKey')}/graph`, request.signal), allProjects(request.signal)]);
+
+    return { project: projectOf(projects, params), graph };
 }
 
 /** I2 with the replaced entries and the text of each section version, for the timeline. */

@@ -1,0 +1,43 @@
+{
+  "issues": [
+    {
+      "key": "BILL-12",
+      "title": "Round invoice totals once per invoice",
+      "status": "in_progress",
+      "updatedAt": "2026-10-02T09:20:05Z"
+    },
+    {
+      "key": "BILL-13",
+      "title": "Show the rounding mode on the invoice PDF",
+      "status": "draft",
+      "updatedAt": "2026-10-02T09:04:18Z"
+    },
+    {
+      "key": "BILL-14",
+      "title": "Round the totals of credit notes",
+      "status": "awaiting_user_input",
+      "updatedAt": "2026-10-02T09:16:40Z"
+    },
+    {
+      "key": "DOC-3",
+      "title": "Name the rounding modes in the handbook",
+      "status": "in_review",
+      "updatedAt": "2026-10-02T09:18:22Z"
+    }
+  ],
+  "links": [
+    {
+      "issue": "BILL-13",
+      "blockedBy": "BILL-12"
+    },
+    {
+      "issue": "BILL-13",
+      "blockedBy": "DOC-3"
+    },
+    {
+      "issue": "BILL-14",
+      "blockedBy": "BILL-12"
+    }
+  ],
+  "otherOpenIssues": 4
+}

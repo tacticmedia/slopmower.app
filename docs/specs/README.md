@@ -9,7 +9,7 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 | [README.md](README.md) | Conventions, authentication, errors, pagination, caching, repository sources, versioning, schema and fixture index |
 | [rest-api.md](rest-api.md) | REST endpoint index, account, repositories, reviews and code |
 | [rest-api-requests.md](rest-api-requests.md) | REST requests, updates, drafts, API tokens, and the routes outside `/api/v1` |
-| [rest-api-issues.md](rest-api-issues.md) | REST projects and issues: the lists, a new and a changed project, an issue with its thread, a new and a changed issue, its status, a comment, the plan approval of a user, and the comments of a project |
+| [rest-api-issues.md](rest-api-issues.md) | REST projects and issues: the lists, a new and a changed project, an issue with its thread, a new and a changed issue, its status, a comment, the plan approval of a user, the comments of a project, and its dependency graph |
 | [mcp.md](mcp.md) | MCP endpoint, server instructions, the 28 tools, the issue rules, error mapping, parity with REST |
 | [mcp-tools.json](mcp-tools.json) | The name, title, description, input schema, annotations, and output schema of each MCP tool, in the order of `tools/list` |
 | [webhooks-and-live-updates.md](webhooks-and-live-updates.md) | GitHub webhooks, fetch triggers and post-fetch steps, Mercure live updates |
@@ -270,6 +270,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Timeline of an issue, decision D123: the properties `replaces` and `replacedBy` of `IssueEntry`, the optional input `replaces` of I3 and `comment_on_issue`, and the optional `history` of I2 and `get_issue`. Not additive: without `history`, I2 and `get_issue` leave out each replaced entry, and I5 and `list_comments` leave out each replaced comment. With `history`, a `section_changed` entry has its text in `body`. The stored entries need no change.
     - Questions on an issue, decision D124: the optional input `questions` of I3 and `comment_on_issue`, and the property `questions` of `IssueEntry` and `IssueComment`. Not additive: `CommentLabel` gets the value `answer`, the server sets `question` and `answer` on a comment with questions and refuses both on a comment without, and `body` of `IssueComment` can be empty. A stored comment has `questions` empty, and one with the label `question` keeps it.
     - Issue key links, decision D125: the property `projectKeys` of `Me`. It is additive.
+    - Dependencies of issues, decision D126: the set `IssueLinkKind`, the property `kind` of `IssueLink`, the optional input `kind` of `link_issues`, the endpoint I9, and the schema `IssueGraph`. Not additive: a second `link_issues` call for a pair replaces its link, where it gave `invalid_input`. A stored link has the kind `relates`.
 
 ## 9. Contract tests
 
@@ -323,7 +324,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.schema.json](schemas/inputs.schema.json) | `https://slopmower.invalid/schemas/v1/inputs.schema.json` | `$defs` only: every REST request body |
 | [live-update.schema.json](schemas/live-update.schema.json) | `https://slopmower.invalid/schemas/v1/live-update.schema.json` | Data of one Mercure update, IDs only |
 | [project.schema.json](schemas/project.schema.json) | `https://slopmower.invalid/schemas/v1/project.schema.json` | A project of the issue tracker, with the names of its repositories |
-| [issue.schema.json](schemas/issue.schema.json) | `https://slopmower.invalid/schemas/v1/issue.schema.json` | An issue without its links and its thread, plus `PlanApproval`, `IssueSummary`, `IssueLink`, `IssueEntry`, `IssueComment`, and `IssueDetail`, the result of I2 and `get_issue` |
+| [issue.schema.json](schemas/issue.schema.json) | `https://slopmower.invalid/schemas/v1/issue.schema.json` | An issue without its links and its thread, plus `PlanApproval`, `IssueSummary`, `IssueLink`, `IssueEntry`, `IssueComment`, `IssueDetail`, the result of I2 and `get_issue`, and `IssueGraph`, the result of I9 |
 
 ## 11. Fixtures
 
@@ -357,6 +358,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [file-content.browser.json](fixtures/file-content.browser.json) | `file-content.schema.json` | V7 of a `browser` repository |
 | [file-content.php.json](fixtures/file-content.php.json) | `file-content.schema.json` | V7 |
 | [issue.detail.json](fixtures/issue.detail.json) | `issue.schema.json#/$defs/IssueDetail` | I2 and `get_issue` with `history` |
+| [issue.graph.json](fixtures/issue.graph.json) | `issue.schema.json#/$defs/IssueGraph` | I9 |
 | [issue.plan-approved.json](fixtures/issue.plan-approved.json) | `issue.schema.json` | `approve_plan`, and the shape of every issue write: I3, I4, I6 to I8, and the write tools |
 | [inputs.accept-suggestion.json](fixtures/inputs.accept-suggestion.json) | `inputs.schema.json#/$defs/AcceptSuggestionInput` | Q21 |
 | [inputs.approve-plan.json](fixtures/inputs.approve-plan.json) | `inputs.schema.json#/$defs/ApprovePlanInput` | I4 |

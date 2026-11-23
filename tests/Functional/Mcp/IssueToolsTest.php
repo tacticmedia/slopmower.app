@@ -391,7 +391,7 @@ final class IssueToolsTest extends WebTestCase
         self::assertSame([], $this->call('list_comments', ['project' => 'SM', 'label' => 'question'])['items']);
     }
 
-    #[TestDox('A link needs a note and is on both issues, and a second link of the pair or a link to the issue itself is refused')]
+    #[TestDox('A link needs a note, has the kind relates by default, and is on both issues, and a link to the issue itself is refused')]
     public function testLinks(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
@@ -404,14 +404,33 @@ final class IssueToolsTest extends WebTestCase
         $linked = $this->call('link_issues', ['issue' => 'SM-2', 'target' => 'SM-1', 'note' => $note]);
         $origin = $this->call('get_issue', ['issue' => 'SM-1']);
         $followUp = $this->call('get_issue', ['issue' => 'SM-2']);
-        $secondLink = $this->refusal('link_issues', ['issue' => 'SM-1', 'target' => 'SM-2', 'note' => $note]);
         $selfLink = $this->refusal('link_issues', ['issue' => 'SM-1', 'target' => 'SM-1', 'note' => $note]);
 
-        self::assertSame(['note', 'target', 'target'], [$blankNote['field'], $secondLink['field'], $selfLink['field']]);
+        self::assertSame(['note', 'target'], [$blankNote['field'], $selfLink['field']]);
         self::assertSame('SM-2', $linked['key']);
-        self::assertSame([['SM-2', $note, self::AGENT_NAME]], array_map(static fn (array $link): array => [$link['issue']['key'], $link['note'], $link['createdBy']['agentName']], $origin['links']));
+        self::assertSame([['SM-2', 'relates', $note, self::AGENT_NAME]], array_map(static fn (array $link): array => [$link['issue']['key'], $link['kind'], $link['note'], $link['createdBy']['agentName']], $origin['links']));
         self::assertSame(['SM-1'], array_map(static fn (array $link): string => $link['issue']['key'], $followUp['links']));
         self::assertSame([], $origin['thread'], 'A link writes no entry.');
+    }
+
+    #[TestDox('A blocked_by link reads as blocked_by on the issue and as blocks on the target, and a second call for the pair, in either order, replaces the link')]
+    public function testBlockedByLinkAndItsReplacement(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once']);
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode']);
+        $links = fn (string $issue): array => array_map(static fn (array $link): array => [$link['issue']['key'], $link['kind'], $link['note']], $this->call('get_issue', ['issue' => $issue])['links']);
+
+        $this->call('link_issues', ['issue' => 'SM-2', 'target' => 'SM-1', 'note' => 'SM-1 adds the mode.', 'kind' => 'blocked_by']);
+        $blocked = [$links('SM-2'), $links('SM-1')];
+        $this->call('link_issues', ['issue' => 'SM-1', 'target' => 'SM-2', 'note' => 'The same rounding.']);
+        $otherOrder = [$links('SM-2'), $links('SM-1')];
+        $this->call('link_issues', ['issue' => 'SM-1', 'target' => 'SM-2', 'note' => 'SM-2 names the mode.', 'kind' => 'blocked_by']);
+
+        self::assertSame([[['SM-1', 'blocked_by', 'SM-1 adds the mode.']], [['SM-2', 'blocks', 'SM-1 adds the mode.']]], $blocked);
+        self::assertSame([[['SM-1', 'relates', 'The same rounding.']], [['SM-2', 'relates', 'The same rounding.']]], $otherOrder);
+        self::assertSame([[['SM-1', 'blocks', 'SM-2 names the mode.']], [['SM-2', 'blocked_by', 'SM-2 names the mode.']]], [$links('SM-2'), $links('SM-1')], 'The same order again.');
+        self::assertJsonRpcError($this->mcp->callToolResponse('link_issues', ['issue' => 'SM-1', 'target' => 'SM-2', 'note' => 'SM-2 names the mode.', 'kind' => 'blocks']), -32602);
     }
 
     #[TestDox('A token of one repository sees only the issues and the comments of its project, and no project without a repository')]

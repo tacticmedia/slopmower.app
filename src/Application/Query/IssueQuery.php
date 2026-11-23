@@ -160,7 +160,7 @@ final class IssueQuery
 
         return new IssueDetail(
             $this->view($issue, $actor),
-            array_map(static fn (IssueLink $link): array => ['issue' => IssueSummaryView::of($link->other($issue)), 'note' => $link->getNote(), 'createdBy' => $link->getCreatedBy(), 'createdAt' => $link->getCreatedAt()], $links),
+            array_map(static fn (IssueLink $link): array => ['issue' => IssueSummaryView::of($link->other($issue)), 'kind' => $link->kindFor($issue), 'note' => $link->getNote(), 'createdBy' => $link->getCreatedBy(), 'createdAt' => $link->getCreatedAt()], $links),
             $entries,
         );
     }

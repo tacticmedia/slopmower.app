@@ -140,12 +140,15 @@
     },
     "IssueLink": {
       "type": "object",
-      "required": ["issue", "note", "createdBy", "createdAt"],
-      "description": "A link of two issues. It has no direction, so both issues show it.",
+      "required": ["issue", "kind", "note", "createdBy", "createdAt"],
+      "description": "A link of two issues, as one of them reads it. Both issues show it.",
       "properties": {
         "issue": {
           "$ref": "#/$defs/IssueSummary",
           "description": "The other issue of the link."
+        },
+        "kind": {
+          "$ref": "common.schema.json#/$defs/IssueLinkKind"
         },
         "note": {
           "type": "string",
@@ -341,6 +344,43 @@
             "$ref": "#/$defs/IssueEntry"
           },
           "description": "Oldest first. Without history: no entry with replacedBy."
+        }
+      }
+    },
+    "IssueGraph": {
+      "type": "object",
+      "required": ["issues", "links", "otherOpenIssues"],
+      "description": "The result of I9: the dependencies between the open issues of a project (D126). An open issue has a status other than done and wont_do.",
+      "properties": {
+        "issues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/IssueSummary"
+          },
+          "description": "In key order. The open issues of the project that have a blocked_by link with an open issue, or the status awaiting_user_input or in_review, and the open issues of other projects at the other end of such a link."
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["issue", "blockedBy"],
+            "properties": {
+              "issue": {
+                "$ref": "common.schema.json#/$defs/IssueKey",
+                "description": "The issue that waits."
+              },
+              "blockedBy": {
+                "$ref": "common.schema.json#/$defs/IssueKey",
+                "description": "The issue that it waits for."
+              }
+            }
+          },
+          "description": "The blocked_by links with at least one issue of the project, in the key order of issue, then of blockedBy. Both keys are in issues."
+        },
+        "otherOpenIssues": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "The count of the open issues of the project that are not in issues."
         }
       }
     }

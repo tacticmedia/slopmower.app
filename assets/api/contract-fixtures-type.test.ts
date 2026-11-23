@@ -62,6 +62,7 @@ import inputsUpdateProject from '../../docs/specs/fixtures/inputs.update-project
 import inputsViewedFile from '../../docs/specs/fixtures/inputs.viewed-file.json';
 import inputsWontDo from '../../docs/specs/fixtures/inputs.wont-do.json';
 import issueDetail from '../../docs/specs/fixtures/issue.detail.json';
+import issueGraph from '../../docs/specs/fixtures/issue.graph.json';
 import issuePlanApproved from '../../docs/specs/fixtures/issue.plan-approved.json';
 import linkCommitsResultAvailable from '../../docs/specs/fixtures/link-commits-result.available.json';
 import linkCommitsResultPending from '../../docs/specs/fixtures/link-commits-result.pending.json';
@@ -161,7 +162,7 @@ import type {
     ViewedFileInput,
     WontDoInput,
 } from './types/inputs';
-import type { Issue, IssueDetail } from './types/issue';
+import type { Issue, IssueDetail, IssueGraph } from './types/issue';
 import type { LinkCommitsResult } from './types/link-commits-result';
 import type { LinkPullRequestResult } from './types/link-pull-request-result';
 import type {
@@ -267,6 +268,7 @@ const checkedFixtures = {
     'inputs.viewed-file.json': inputsViewedFile satisfies Widen<ViewedFileInput>,
     'inputs.wont-do.json': inputsWontDo satisfies Widen<WontDoInput>,
     'issue.detail.json': issueDetail satisfies Widen<IssueDetail>,
+    'issue.graph.json': issueGraph satisfies Widen<IssueGraph>,
     'issue.plan-approved.json': issuePlanApproved satisfies Widen<Issue>,
     'link-commits-result.available.json': linkCommitsResultAvailable satisfies Widen<LinkCommitsResult>,
     'link-commits-result.pending.json': linkCommitsResultPending satisfies Widen<LinkCommitsResult>,

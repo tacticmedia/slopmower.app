@@ -2,7 +2,7 @@
 
 This file continues [rest-api.md](rest-api.md). That file has the conventions, the [endpoint index](rest-api.md#2-endpoint-index), and the common errors, which this file does not repeat. Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json).
 
-The endpoints are the issue tracker for the web UI and for agents without MCP (D120, D122). The issue endpoints call the same application services as the [issue tools](mcp.md#issue-tools) and return the same JSON. The model, the visibility, and the rules of the issue tools hold here too. P2 and P3 have no tool: only a signed-in user creates and changes a project.
+The endpoints are the issue tracker for the web UI and for agents without MCP (D120, D122). The issue endpoints call the same application services as the [issue tools](mcp.md#issue-tools) and return the same JSON. The model, the visibility, and the rules of the issue tools hold here too. P2 and P3 have no tool: only a signed-in user creates and changes a project. I9 has no tool: the graph is for the web UI.
 
 ## 1. Keys, actors, and rules
 
@@ -74,7 +74,7 @@ The list is sorted by `updatedAt` descending, then by `id` descending. The MCP t
 
 - **Request:** `GET /api/v1/issues/{issueKey}`
 - **Authentication:** S, B
-- **Success:** 200 [`IssueDetail`](schemas/issue.schema.json): the issue, its links, and its thread, each oldest first. A link shows the other issue. `allowedStatuses` holds the statuses that the rules allow the caller to set. Example: [fixtures/issue.detail.json](fixtures/issue.detail.json), with `history=true`.
+- **Success:** 200 [`IssueDetail`](schemas/issue.schema.json): the issue, its links, and its thread, each oldest first. A link shows the other issue and its `kind` for the issue that is read: `relates`, `blocked_by` when this issue waits for the other issue, or `blocks` when the other issue waits for this issue (D126). `allowedStatuses` holds the statuses that the rules allow the caller to set. Example: [fixtures/issue.detail.json](fixtures/issue.detail.json), with `history=true`.
 - **Errors:** common errors only.
 
 | Query | Type | Default | Notes |
@@ -166,3 +166,21 @@ The call has no precondition: the last write wins. A token call gives the same r
 - **Errors:** 422 `invalid_input` on the field of a broken rule of the [issue tools](mcp.md#issue-tools): `problem`, `plan`, `result`, `note`, `reviewer`, `status`, or `issue`. The message says what is missing.
 
 A user needs no approval of the plan and no reviewer. The status that the issue has answers 200 for a user and writes no entry, when the content rules hold: `wont_do` still needs its `note`. A token call gives the same result as the MCP tool `set_issue_status`.
+
+### I9 Get the dependency graph of a project
+
+- **Request:** `GET /api/v1/projects/{projectKey}/graph`
+- **Authentication:** S, B
+- **Success:** 200 [`IssueGraph`](schemas/issue.schema.json), `{issues, links, otherOpenIssues}` (D126). Example: [fixtures/issue.graph.json](fixtures/issue.graph.json).
+- **Errors:** common errors only.
+
+An issue is open while its status is not `done` and not `wont_do`. A dependency is a `blocked_by` link of two open issues: the tool `link_issues` with `kind: blocked_by` sets it.
+
+- `issues` has the summaries of:
+  - each open issue of the project that waits for an open issue, or that an open issue waits for;
+  - each open issue of the project with the status `awaiting_user_input` or `in_review`, also without a link;
+  - each open issue of another project at the other end of a dependency of an issue of the project.
+- `links` has each dependency with at least one issue of the project as `{issue, blockedBy}`, two issue keys: `issue` waits for `blockedBy`. Both keys are in `issues`.
+- `otherOpenIssues` is the count of the open issues of the project that are not in `issues`.
+
+`issues` is sorted by project key, then by number. `links` is sorted in that order by `issue`, then by `blockedBy`. The body has no page: it holds every such issue. A link with an issue that the caller cannot see is left out, so a token of one repository gets no issue of another project. A cycle is no error, and each of its links is in `links`. No MCP tool returns the graph: an agent reads `kind` of the links of `get_issue`.

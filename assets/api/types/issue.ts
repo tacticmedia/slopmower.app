@@ -5,6 +5,7 @@ import type {
     DateTime,
     IssueEntryKind,
     IssueKey,
+    IssueLinkKind,
     IssueSection,
     IssueStatus,
     Markdown,
@@ -49,9 +50,10 @@ export type IssueSummary = {
     updatedAt: DateTime;
 };
 
-/** A link has no direction. `issue` is the other issue. */
+/** `issue` is the other issue. With `blocked_by`, the issue that is read waits for it. */
 export type IssueLink = {
     issue: IssueSummary;
+    kind: IssueLinkKind;
     note: Markdown;
     createdBy: Actor;
     createdAt: DateTime;
@@ -99,4 +101,12 @@ export type IssueDetail = {
     issue: Issue;
     links: IssueLink[];
     thread: IssueEntry[];
+};
+
+/** The result of I9 (D126): the open issues of a project that have a dependency or wait for the user. `issue` waits for `blockedBy`. */
+export type IssueGraph = {
+    issues: IssueSummary[];
+    links: { issue: IssueKey; blockedBy: IssueKey }[];
+    /** The open issues of the project that are not in `issues`. */
+    otherOpenIssues: number;
 };
