@@ -101,6 +101,50 @@ final class IssueApiTest extends WebTestCase
         self::assertApiResponse(self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/comments', ['body' => 'Remove `round()` in 3.0.', 'replaces' => $current[2]['id']]), 201, self::ISSUE);
     }
 
+    #[TestDox('I3 with answers replaces the open question comment with the label answer and each detail, get_issue has the trimmed pairs, I5 lists only the answer, and the answer takes no answers')]
+    public function testUserAnswersQuestions(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once']);
+        $asked = $this->ask();
+        $answers = [['question' => ' Remove `round()` in 3.0? ', 'answer' => ' Yes '], ['question' => 'Which type holds the amounts?', 'answer' => 'Money']];
+
+        self::assertApiResponse(self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/comments', ['body' => '', 'label' => 'decision', 'replaces' => $asked, 'questions' => $answers]), 201, self::ISSUE);
+
+        $thread = $this->agent('get_issue', ['issue' => 'SM-1'])['thread'];
+        $comments = self::assertApiResponse(self::apiRequest($this->client, 'GET', '/api/v1/projects/SM/comments'), 200, 'lists.schema.json#/$defs/IssueCommentPage')['items'];
+        $pairs = [['question' => 'Remove `round()` in 3.0?', 'detail' => 'BILL-9 still calls it.', 'answer' => 'Yes'], ['question' => 'Which type holds the amounts?', 'detail' => null, 'answer' => 'Money']];
+        self::assertSame([['answer', 'user', '', $asked, $pairs]], array_map(static fn (array $entry): array => [$entry['label'], $entry['actor']['kind'], $entry['body'], $entry['replaces'], $entry['questions']], $thread));
+        self::assertSame([[$thread[0]['id'], 'answer', $pairs]], array_map(static fn (array $comment): array => [$comment['id'], $comment['label'], $comment['questions']], $comments));
+        $again = self::assertApiError(self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/comments', ['body' => '', 'replaces' => $thread[0]['id'], 'questions' => $answers]), 422, 'invalid_input');
+        self::assertSame(['replaces'], array_column($again['details']['violations'] ?? [], 'field'));
+    }
+
+    #[TestDox('I3 refuses answers from a token, without replaces, that do not repeat the questions, to a comment that is no open question comment, and without an answer')]
+    public function testAnswerRefusals(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once']);
+        $this->agent('comment_on_issue', ['issue' => 'SM-1', 'body' => 'The test is next.']);
+        $plain = $this->agent('get_issue', ['issue' => 'SM-1'])['thread'][0]['id'];
+        $asked = $this->ask();
+        $answers = [['question' => 'Remove `round()` in 3.0?', 'answer' => 'Yes'], ['question' => 'Which type holds the amounts?', 'answer' => 'Money']];
+        $field = fn (Response $response): ?string => self::assertApiError($response, 422, 'invalid_input')['details']['violations'][0]['field'] ?? null;
+        $post = fn (array $body): Response => self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/comments', ['body' => ''] + $body);
+
+        self::assertSame(
+            ['questions.0.answer', 'replaces', 'questions', 'replaces', 'questions.1.answer'],
+            [
+                $field(self::bearerRequest($this->client, $this->secret, 'POST', '/api/v1/issues/SM-1/comments', ['body' => '', 'replaces' => $asked, 'questions' => $answers])),
+                $field($post(['questions' => $answers])),
+                $field($post(['replaces' => $asked, 'questions' => array_reverse($answers)])),
+                $field($post(['replaces' => $plain, 'questions' => $answers])),
+                $field($post(['replaces' => $asked, 'questions' => [$answers[0], ['question' => 'Which type holds the amounts?']]])),
+            ],
+        );
+        self::assertSame([$plain, $asked], array_column($this->agent('get_issue', ['issue' => 'SM-1', 'history' => true])['thread'], 'id'), 'A refused answer is not stored.');
+    }
+
     #[TestDox('I3 refuses an unknown label with 422 on label, and writes no comment')]
     public function testUnknownLabelIsRefused(): void
     {
@@ -238,6 +282,16 @@ final class IssueApiTest extends WebTestCase
         }
 
         return $planRevision;
+    }
+
+    /**
+     * @return string The ID of the comment of the agent on SM-1 that asks two questions
+     */
+    private function ask(): string
+    {
+        $this->agent('comment_on_issue', ['issue' => 'SM-1', 'body' => 'Two choices before the plan.', 'questions' => [['question' => 'Remove `round()` in 3.0?', 'detail' => 'BILL-9 still calls it.'], ['question' => 'Which type holds the amounts?']]]);
+
+        return array_last($this->agent('get_issue', ['issue' => 'SM-1'])['thread'])['id'];
     }
 
     private function approve(string $issueKey, string $planRevision): Response

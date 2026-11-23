@@ -262,6 +262,24 @@ li.row {
     overflow-wrap: anywhere;
 }
 
+/* The questions below the text of a comment. Two classes, to win over the margin of the list. */
+.entry .entryText > * + * {
+    margin-top: var(--base-size-12);
+}
+
+/* The form of an open question comment, above the comment box. */
+.questions {
+    border: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-radius: var(--borderRadius-medium);
+    background-color: var(--bgColor-default);
+    font-size: var(--text-body-size-medium);
+}
+
+.questionsLine {
+    margin: 0;
+    padding: var(--base-size-8) var(--base-size-12);
+}
+
 .link {
     display: flex;
     flex-direction: column;

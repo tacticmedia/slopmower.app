@@ -1,6 +1,7 @@
 import { Heading, Link, RelativeTime } from '@primer/react';
 import { Link as RouterLink, useLoaderData, useSearchParams } from 'react-router';
 import { MarkdownBody } from '../../comments/MarkdownBody';
+import { QuestionList } from '../../comments/Questions';
 import { useDocumentTitle } from '../../layout/useDocumentTitle';
 import headerStyles from '../../requests/RequestListHeader.module.css';
 import rowStyles from '../../requests/RequestRow.module.css';
@@ -55,7 +56,8 @@ export function ProjectCommentsRoute() {
                                             <ActorName actor={comment.actor} />
                                         </span>
                                     </div>
-                                    <MarkdownBody markdown={comment.body} />
+                                    {'' !== comment.body && <MarkdownBody markdown={comment.body} />}
+                                    {comment.questions.length > 0 && <QuestionList questions={comment.questions} />}
                                 </div>
                                 <div className={`${rowStyles.aside} ${styles.commentTime}`}>
                                     <RelativeTime datetime={comment.createdAt} />

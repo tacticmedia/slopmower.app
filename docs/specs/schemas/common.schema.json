@@ -313,7 +313,7 @@
           "description": "Null on an agent comment. On a user comment the answer: Yes, No, or text."
         }
       },
-      "description": "A question of an agent comment, or a question with its answer on a user comment (D107)."
+      "description": "A question of an agent comment, or a question with its answer on a user comment (D107, D124)."
     },
     "ProjectKey": {
       "type": "string",
@@ -348,8 +348,8 @@
       "description": "Open set."
     },
     "CommentLabel": {
-      "enum": ["comment", "decision", "question", "finding", "deviation", "scope_creep", "papercut", "review"],
-      "description": "What a comment of an issue is (D121). comment: progress or a remark. decision: a choice, with its reason and what it rules out. question: needs an answer from the user. finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent."
+      "enum": ["comment", "decision", "question", "answer", "finding", "deviation", "scope_creep", "papercut", "review"],
+      "description": "What a comment of an issue is (D121). comment: progress or a remark. decision: a choice, with its reason and what it rules out. question: asks the user with its questions. answer: the answers of a user to a question comment, which it replaces. The server sets question and answer (D124). finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent."
     }
   }
 }

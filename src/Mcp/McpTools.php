@@ -124,11 +124,15 @@ final class McpTools
     /**
      * Section 4.25: REST I3.
      *
+     * @param list<array{question: string, detail?: ?string}> $questions
+     *
      * @return array<string, mixed>
      */
-    public function commentOnIssue(string $issue, string $body, CommentLabel $label = CommentLabel::Comment, ?string $replaces = null): array
+    public function commentOnIssue(string $issue, string $body, CommentLabel $label = CommentLabel::Comment, ?string $replaces = null, array $questions = []): array
     {
-        return $this->issueWrite('comment_on_issue', fn (Actor $actor): Issue => $this->issueCommands->comment(IssueKey::fromString($issue, 'issue'), $body, $label, $actor, null === $replaces ? null : IssueEntryId::fromString($replaces, 'replaces')));
+        $asked = array_map(static fn (array $item): CommentQuestion => new CommentQuestion($item['question'], $item['detail'] ?? null), $questions);
+
+        return $this->issueWrite('comment_on_issue', fn (Actor $actor): Issue => $this->issueCommands->comment(IssueKey::fromString($issue, 'issue'), $body, $label, $actor, null === $replaces ? null : IssueEntryId::fromString($replaces, 'replaces'), $asked));
     }
 
     /**

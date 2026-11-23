@@ -1,4 +1,4 @@
-import type { CommentLabel } from '../../assets/api/types/common';
+import type { CommentLabel, Question } from '../../assets/api/types/common';
 import type { Issue, IssueDetail, IssueEntry } from '../../assets/api/types/issue';
 import { issueDetail, project } from '../ui/support/builders';
 import { FakeIssues } from '../ui/support/fakeIssues';
@@ -6,8 +6,8 @@ import { FakeRepositories } from '../ui/support/fakeRepositories';
 import { test } from './support/test';
 
 /** A comment of the agent of `issue.detail.json`. I5 sorts by `id`, so the IDs rise with the times. */
-function comment(id: string, label: CommentLabel, body: string, createdAt: string): IssueEntry {
-    return { ...(issueDetail().thread.at(-1) as IssueEntry), id, label, body, createdAt };
+function comment(id: string, label: CommentLabel, body: string, createdAt: string, questions: Question[] = []): IssueEntry {
+    return { ...(issueDetail().thread.at(-1) as IssueEntry), id, label, body, createdAt, questions };
 }
 
 function issue(overrides: Partial<Issue>, ...thread: IssueEntry[]): IssueDetail {
@@ -15,7 +15,7 @@ function issue(overrides: Partial<Issue>, ...thread: IssueEntry[]): IssueDetail 
 }
 
 test.describe('Issues', () => {
-    test('The projects, the issues of a project, an issue with its timeline, and the comments of a project', async ({ page, api, captureScreen }) => {
+    test('The projects, the issues of a project, an issue with its timeline, its questions with their answers, and the comments of a project', async ({ page, api, captureScreen }) => {
         const issues = new FakeIssues(api);
         issues.projects = [project(), project({ key: 'DOC', name: 'Documentation', approvalMode: 'user', repositories: [] })];
         issues.add(
@@ -31,7 +31,10 @@ test.describe('Issues', () => {
         issues.add(
             issue(
                 { key: 'BILL-14', title: 'Round the totals of credit notes', status: 'awaiting_user_input', updatedAt: '2026-10-02T09:16:40Z' },
-                comment('01K7F3F0G9H0J1K2M3N4P5Q6R7', 'question', 'Does a credit note round as its invoice did, or with the rule of today?', '2026-10-02T09:16:40Z'),
+                comment('01K7F3F0G9H0J1K2M3N4P5Q6R7', 'question', 'Two choices before the plan.', '2026-10-02T09:16:40Z', [
+                    { question: 'Does a credit note round with the rule of today?', detail: 'Its invoice rounded each line. `TaxRounding::perInvoice()` rounds once.', answer: null },
+                    { question: 'Which invoices get a corrected credit note?', detail: null, answer: null },
+                ]),
             ),
         );
         issues.add(issue({ key: 'BILL-13', title: 'Show the rounding mode on the invoice PDF', status: 'draft', updatedAt: '2026-10-02T09:04:18Z' }));
@@ -53,6 +56,14 @@ test.describe('Issues', () => {
 
         await page.locator('[data-testid="issue-entry"][data-replaced="true"] summary').first().click({ position: { x: 8, y: 8 } });
         await captureScreen('Issue replaced version', page.getByText('Round the total in'));
+
+        await page.goto('/issues/BILL-14');
+        const questions = page.getByTestId('open-questions');
+        await captureScreen('Issue open questions', questions);
+        await questions.getByRole('button', { name: 'Yes', exact: true }).first().click();
+        await questions.getByRole('textbox', { name: 'Other answer' }).last().fill('Those of this year.');
+        await questions.getByRole('button', { name: 'Send answers', exact: true }).click();
+        await captureScreen('Issue answered questions', page.getByTestId('answer').last());
 
         await page.goto('/projects/BILL/comments');
         await captureScreen('Comments of a project', page.getByTestId('comment-list'));

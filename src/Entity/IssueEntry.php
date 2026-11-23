@@ -12,6 +12,7 @@ use App\Domain\Issue\CommentLabel;
 use App\Domain\Issue\IssueEntryKind;
 use App\Domain\Issue\IssueSection;
 use App\Domain\Issue\IssueStatus;
+use App\Domain\Request\CommentQuestion;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -45,6 +46,10 @@ class IssueEntry implements TenantOwned
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $body;
 
+    /** @var list<array{question: string, detail: ?string, answer: ?string}>|null Of a comment with questions (D124) */
+    #[ORM\Column(type: Types::JSONB, nullable: true)]
+    private ?array $questions;
+
     /** @var array<string, string|null> */
     #[ORM\Column(type: Types::JSONB)]
     private array $data;
@@ -58,8 +63,9 @@ class IssueEntry implements TenantOwned
 
     /**
      * @param array<string, string|null> $data
+     * @param list<CommentQuestion>      $questions
      */
-    private function __construct(Issue $issue, Actor $actor, IssueEntryKind $kind, ?string $body, array $data, \DateTimeImmutable $createdAt, ?CommentLabel $label = null, ?self $replaces = null)
+    private function __construct(Issue $issue, Actor $actor, IssueEntryKind $kind, ?string $body, array $data, \DateTimeImmutable $createdAt, ?CommentLabel $label = null, ?self $replaces = null, array $questions = [])
     {
         $this->id = IssueEntryId::generate();
         $this->tenantId = $issue->getTenantId();
@@ -68,14 +74,18 @@ class IssueEntry implements TenantOwned
         $this->kind = $kind;
         $this->label = $label;
         $this->body = $body;
+        $this->questions = [] === $questions ? null : array_map(static fn (CommentQuestion $question): array => $question->toPayload(), $questions);
         $this->data = $data;
         $this->replaces = $replaces;
         $this->createdAt = $createdAt;
     }
 
-    public static function comment(Issue $issue, Actor $actor, string $body, CommentLabel $label, \DateTimeImmutable $createdAt, ?self $replaces = null): self
+    /**
+     * @param list<CommentQuestion> $questions
+     */
+    public static function comment(Issue $issue, Actor $actor, string $body, CommentLabel $label, \DateTimeImmutable $createdAt, ?self $replaces = null, array $questions = []): self
     {
-        return new self($issue, $actor, IssueEntryKind::Comment, $body, [], $createdAt, $label, $replaces);
+        return new self($issue, $actor, IssueEntryKind::Comment, $body, [], $createdAt, $label, $replaces, $questions);
     }
 
     public static function statusChanged(Issue $issue, Actor $actor, IssueStatus $from, IssueStatus $to, ?string $note, ?string $reviewer, \DateTimeImmutable $createdAt): self
@@ -136,6 +146,16 @@ class IssueEntry implements TenantOwned
     public function getBody(): ?string
     {
         return $this->body;
+    }
+
+    /**
+     * In the key order of the schema, which jsonb does not keep.
+     *
+     * @return list<array{question: string, detail: ?string, answer: ?string}> Each a Question of common.schema.json
+     */
+    public function getQuestions(): array
+    {
+        return array_map(static fn (array $question): array => ['question' => $question['question'], 'detail' => $question['detail'], 'answer' => $question['answer']], $this->questions ?? []);
     }
 
     /**

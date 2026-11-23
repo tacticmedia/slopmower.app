@@ -167,11 +167,14 @@ export type PreferencesInput = {
 };
 
 export type IssueCommentInput = {
+    /** May be empty when `questions` is not. */
     body: Markdown;
-    /** Absent or null: comment. */
+    /** Absent or null: comment. With `questions`, the server sets `question` or `answer`. */
     label?: CommentLabel | null;
-    /** The comment of the issue that this comment replaces. */
+    /** The comment of the issue that this comment replaces. With answers: the open question comment. */
     replaces?: Ulid | null;
+    /** At most 10. An agent asks without answers; a user answers every question of the comment of `replaces`. */
+    questions?: QuestionInput[];
 };
 
 export type ApprovePlanInput = {

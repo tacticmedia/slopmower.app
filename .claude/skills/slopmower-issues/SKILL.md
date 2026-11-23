@@ -22,7 +22,7 @@ the `slopmower` MCP server.
 | `create_issue` | `project`, `title`, `problem?`, `status?` | Start an issue, `draft` by default |
 | `update_issue` | `issue`, `title?`, `problem?`, `plan?`, `result?`, `followUps?` | Write the title or a section |
 | `set_issue_status` | `issue`, `status`, `note?`, `reviewer?` | Move the issue to another status |
-| `comment_on_issue` | `issue`, `body`, `label?`, `replaces?` | Record a step, a question, or a decision in the thread, with its label, or replace a comment that no longer holds |
+| `comment_on_issue` | `issue`, `body`, `label?`, `replaces?`, `questions?` | Record a step or a decision in the thread, with its label, ask the user with `questions`, or replace a comment that no longer holds |
 | `list_comments` | `project`, `label?`, `cursor?`, `limit?` | Read the comments of the project across its issues, all or those of one label |
 | `link_issues` | `issue`, `target`, `note` | Link two issues, with the reason |
 | `approve_plan` | `issue`, `planRevision`, `reviewer`, `reviewNote` | Record the review of the plan by another agent |
@@ -50,7 +50,8 @@ The user and later sessions read every text of an issue. Write for them.
 |---|---|
 | `comment` | Progress or a remark. The default. |
 | `decision` | A choice, with its reason and what it rules out |
-| `question` | Something that needs an answer from the user |
+| `question` | Your questions to the user. The server sets it on a comment with `questions`. |
+| `answer` | The answers of the user. The server sets it. |
 | `finding` | A verified fact, with its source |
 | `deviation` | Work that differs from the plan |
 | `scope_creep` | Work that came up and was left out, or was added |
@@ -76,6 +77,31 @@ thread, and the replaced entry stays in the history.
   of a section with its text in `body`, and each replaced comment.
   `replacedBy` of an entry is the `id` of the entry that replaced it. Read
   the history only when you need to know what changed.
+
+## Questions
+
+Ask the user through `questions` of `comment_on_issue`, not in the text of a
+comment.
+
+- One decision per question, in one line. Make it answerable with Yes or No
+  where possible.
+- Put your recommendation and its reason into `detail`.
+- Ask only when the user has a real choice. Decide the rest, and record it
+  as a `decision`.
+- Do not ask for the approval of the plan. The button "Approve plan" is the
+  approval, and an answer approves nothing.
+- The user answers each question with Yes, No, or text. The answers are one
+  comment with the label `answer`, which replaces your comment. `get_issue`
+  returns it with each question and its `answer`.
+- `list_comments` with the label `question` returns the questions of the
+  project that wait for an answer.
+- When the user answers in the session, call `comment_on_issue` with the
+  label `decision`, a text that quotes the answer, and `replaces`, the `id`
+  of your question comment.
+- The server sets the labels `question` and `answer`. It refuses both on a
+  comment without `questions`.
+- A question does not change the status. Set `awaiting_user_input` when the
+  work waits for the answers.
 
 ## 1. Find the project
 
@@ -136,9 +162,10 @@ parameter that you leave out stays as it is.
 4. Get the plan approved as `approvalMode` says:
    - `self`: the plan needs no approval.
    - `agent_review`: another agent reviews it, as section 5 describes.
-   - `user`: only the user approves it. Call `set_issue_status` with
-     `awaiting_user_input`, name in a comment with the label `question` what
-     the user must decide, tell the user, and stop the work on this issue.
+   - `user`: only the user approves it, with the button "Approve plan". When
+     the plan leaves a choice to the user, ask it as `questions`, as the
+     section "Questions" says. Then call `set_issue_status` with
+     `awaiting_user_input`, tell the user, and stop the work on this issue.
 5. Call `set_issue_status` with `in_progress` before you edit. `todo` to
    `in_progress` is the claim.
 6. Do the work. Record each important step or decision with
@@ -225,7 +252,7 @@ A tool error is a result with `isError: true`. Its text is JSON:
 |---|---|---|
 | `unauthorized` | The token is missing, wrong, revoked, or expired. It arrives as HTTP 401 from the server, not as a tool result. | Tell the user to check `SLOPMOWER_TOKEN`. Go on as section 7 says. |
 | `not_found` | No such project, issue, or entry of `replaces` for this token. A token for one repository sees only the project of that repository. | Check the key or the `id`, then list again |
-| `invalid_input` | The input failed a check, or the write breaks a rule. `details.violations[0].field` names what is wrong: `problem`, `plan`, or `result` is missing, or the plan has no approval; `status` is the status that the issue has, or one that only the user sets; `note` or `reviewer` is missing; `planRevision` is not the newest; `issue` is in `done` or `wont_do`, or only the user approves its plan; `target` is the issue itself or has the link already; `replaces` is no comment of the issue, is replaced already, or is a comment of the user. | Read the message, fix the issue or the input, and call again |
+| `invalid_input` | The input failed a check, or the write breaks a rule. `details.violations[0].field` names what is wrong: `problem`, `plan`, or `result` is missing, or the plan has no approval; `status` is the status that the issue has, or one that only the user sets; `note` or `reviewer` is missing; `planRevision` is not the newest; `issue` is in `done` or `wont_do`, or only the user approves its plan; `target` is the issue itself or has the link already; `replaces` is no comment of the issue, is replaced already, or is a comment of the user; `label` is `question` or `answer` on a comment without `questions`; `questions.<index>` breaks a rule of a question. | Read the message, fix the issue or the input, and call again |
 | `rate_limited` | Too many calls in a short time | Wait `details.retryAfterSeconds` seconds, then retry |
 | `internal_error` | An unexpected server failure | Try once more, then go on as section 7 says |
 

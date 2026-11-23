@@ -130,7 +130,12 @@ export function ThreadBox({ thread, caller, showHeader = true, detail = false, b
             )}
             {beforeReply}
             {thread.replyable && null !== requestId && null !== thread.openQuestions && (
-                <QuestionForm key={thread.openQuestions.key} requestId={requestId} questions={thread.openQuestions.questions} />
+                <QuestionForm
+                    key={thread.openQuestions.key}
+                    label="Questions of the agent"
+                    questions={thread.openQuestions.questions}
+                    intent={(questions): CommentIntent => ({ intent: 'reply', requestId, input: { body: '', questions } })}
+                />
             )}
             {thread.replyable && (
                 <div className={styles.reply}>

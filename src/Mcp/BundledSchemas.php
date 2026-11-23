@@ -1305,7 +1305,7 @@ final class BundledSchemas
                         'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
                     ],
                 ],
-                'description' => 'A question of an agent comment, or a question with its answer on a user comment (D107).',
+                'description' => 'A question of an agent comment, or a question with its answer on a user comment (D107, D124).',
             ],
             'QuestionText' => [
                 'type' => 'string',
@@ -2160,7 +2160,7 @@ final class BundledSchemas
                         'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
                     ],
                 ],
-                'description' => 'A question of an agent comment, or a question with its answer on a user comment (D107).',
+                'description' => 'A question of an agent comment, or a question with its answer on a user comment (D107, D124).',
             ],
             'QuestionText' => [
                 'type' => 'string',
@@ -2657,7 +2657,7 @@ final class BundledSchemas
                         'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
                     ],
                 ],
-                'description' => 'A question of an agent comment, or a question with its answer on a user comment (D107).',
+                'description' => 'A question of an agent comment, or a question with its answer on a user comment (D107, D124).',
             ],
             'QuestionText' => [
                 'type' => 'string',
@@ -3190,7 +3190,7 @@ final class BundledSchemas
                         'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
                     ],
                 ],
-                'description' => 'A question of an agent comment, or a question with its answer on a user comment (D107).',
+                'description' => 'A question of an agent comment, or a question with its answer on a user comment (D107, D124).',
             ],
             'QuestionText' => [
                 'type' => 'string',
@@ -3719,7 +3719,7 @@ final class BundledSchemas
                         'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
                     ],
                 ],
-                'description' => 'A question of an agent comment, or a question with its answer on a user comment (D107).',
+                'description' => 'A question of an agent comment, or a question with its answer on a user comment (D107, D124).',
             ],
             'QuestionText' => [
                 'type' => 'string',
@@ -4312,14 +4312,14 @@ final class BundledSchemas
                 'enum' => ['user', 'agent', 'system'],
             ],
             'CommentLabel' => [
-                'enum' => ['comment', 'decision', 'question', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'],
-                'description' => 'What a comment of an issue is (D121). comment: progress or a remark. decision: a choice, with its reason and what it rules out. question: needs an answer from the user. finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent.',
+                'enum' => ['comment', 'decision', 'question', 'answer', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'],
+                'description' => 'What a comment of an issue is (D121). comment: progress or a remark. decision: a choice, with its reason and what it rules out. question: asks the user with its questions. answer: the answers of a user to a question comment, which it replaces. The server sets question and answer (D124). finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent.',
             ],
             'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
             'IssueComment' => [
                 'type' => 'object',
-                'required' => ['id', 'issue', 'label', 'actor', 'createdAt', 'body'],
+                'required' => ['id', 'issue', 'label', 'actor', 'createdAt', 'body', 'questions'],
                 'description' => 'A comment entry with its issue: an item of I5 and list_comments.',
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid', 'description' => 'The ID of the entry in the thread of its issue.'],
@@ -4327,7 +4327,12 @@ final class BundledSchemas
                     'label' => ['$ref' => '#/$defs/CommentLabel'],
                     'actor' => ['$ref' => '#/$defs/Actor'],
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
-                    'body' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'The Markdown comment.'],
+                    'body' => ['type' => 'string', 'maxLength' => 65536, 'description' => 'The Markdown comment. Empty for the answers of a user.'],
+                    'questions' => [
+                        'type' => 'array',
+                        'items' => ['$ref' => '#/$defs/Question'],
+                        'description' => 'The questions of a comment with the label question, or each question with its answer of a comment with the label answer. Else empty (D124).',
+                    ],
                 ],
             ],
             'IssueKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
@@ -4350,6 +4355,32 @@ final class BundledSchemas
                     ['$ref' => '#/$defs/Cursor'],
                     ['type' => 'null'],
                 ],
+            ],
+            'Question' => [
+                'type' => 'object',
+                'required' => ['question', 'detail', 'answer'],
+                'properties' => [
+                    'question' => ['$ref' => '#/$defs/QuestionText'],
+                    'detail' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 4000,
+                        'description' => 'Markdown that gives the context of the question.',
+                    ],
+                    'answer' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 4000,
+                        'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
+                    ],
+                ],
+                'description' => 'A question of an agent comment, or a question with its answer on a user comment (D107, D124).',
+            ],
+            'QuestionText' => [
+                'type' => 'string',
+                'minLength' => 1,
+                'maxLength' => 200,
+                'pattern' => '\\S',
+                'not' => ['pattern' => '[\\r\\n]'],
+                'description' => 'A question of an agent: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
         ],
@@ -4452,8 +4483,8 @@ final class BundledSchemas
                 'description' => 'Who approves a plan and ends an issue of the project. user: only a signed-in user. agent_review: also an agent, with the name of a reviewing agent and its review on record. self: no approval (D117).',
             ],
             'CommentLabel' => [
-                'enum' => ['comment', 'decision', 'question', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'],
-                'description' => 'What a comment of an issue is (D121). comment: progress or a remark. decision: a choice, with its reason and what it rules out. question: needs an answer from the user. finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent.',
+                'enum' => ['comment', 'decision', 'question', 'answer', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'],
+                'description' => 'What a comment of an issue is (D121). comment: progress or a remark. decision: a choice, with its reason and what it rules out. question: asks the user with its questions. answer: the answers of a user to a question comment, which it replaces. The server sets question and answer (D124). finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent.',
             ],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
             'Issue' => [
@@ -4521,7 +4552,7 @@ final class BundledSchemas
             ],
             'IssueEntry' => [
                 'type' => 'object',
-                'required' => ['id', 'kind', 'label', 'actor', 'createdAt', 'body', 'section', 'from', 'to', 'note', 'reviewer', 'reviewNote', 'planRevision', 'replaces', 'replacedBy'],
+                'required' => ['id', 'kind', 'label', 'actor', 'createdAt', 'body', 'questions', 'section', 'from', 'to', 'note', 'reviewer', 'reviewNote', 'planRevision', 'replaces', 'replacedBy'],
                 'description' => 'One entry of the thread of an issue. The thread only grows: a new version replaces an entry, and the replaced entry stays.',
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -4538,7 +4569,12 @@ final class BundledSchemas
                     'body' => [
                         'type' => ['string', 'null'],
                         'maxLength' => 65536,
-                        'description' => 'comment: the Markdown comment. section_changed: the Markdown text of this version of the section with history, and null without it, because the issue has the current text. Else null.',
+                        'description' => 'comment: the Markdown comment, empty for the answers of a user. section_changed: the Markdown text of this version of the section with history, and null without it, because the issue has the current text. Else null.',
+                    ],
+                    'questions' => [
+                        'type' => 'array',
+                        'items' => ['$ref' => '#/$defs/Question'],
+                        'description' => 'comment only, else empty. A comment with the label question asks them, and a comment with the label answer repeats each one with its answer (D124).',
                     ],
                     'section' => [
                         'anyOf' => [
@@ -4589,7 +4625,7 @@ final class BundledSchemas
                             ['$ref' => '#/$defs/Ulid'],
                             ['type' => 'null'],
                         ],
-                        'description' => 'The ID of the entry that this entry replaced. section_changed: the entry of the version before it. comment: the comment that its writer named. Else null.',
+                        'description' => 'The ID of the entry that this entry replaced. section_changed: the entry of the version before it. comment: the comment that its writer named, for the label answer the question comment. Else null.',
                     ],
                     'replacedBy' => [
                         'anyOf' => [
@@ -4658,6 +4694,32 @@ final class BundledSchemas
                 ],
             ],
             'ProjectKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}$', 'description' => 'The key of a project: 2 to 10 upper-case letters, unique per tenant. It never changes.'],
+            'Question' => [
+                'type' => 'object',
+                'required' => ['question', 'detail', 'answer'],
+                'properties' => [
+                    'question' => ['$ref' => '#/$defs/QuestionText'],
+                    'detail' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 4000,
+                        'description' => 'Markdown that gives the context of the question.',
+                    ],
+                    'answer' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 4000,
+                        'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
+                    ],
+                ],
+                'description' => 'A question of an agent comment, or a question with its answer on a user comment (D107, D124).',
+            ],
+            'QuestionText' => [
+                'type' => 'string',
+                'minLength' => 1,
+                'maxLength' => 200,
+                'pattern' => '\\S',
+                'not' => ['pattern' => '[\\r\\n]'],
+                'description' => 'A question of an agent: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
+            ],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
         ],
     ];
@@ -4869,7 +4931,7 @@ final class BundledSchemas
         [
             'name' => 'comment_on_issue',
             'title' => 'Comment on issue',
-            'description' => 'Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. label says what the comment is, and list_comments finds the comments of a project by it. With awaiting_user_input, name in a comment with the label question what the user must decide. When a comment of an agent no longer holds, write the new one with replaces, the id of the old one, and do not write a second comment about it: the old one stays in the history, and get_issue and list_comments leave it out. You cannot replace a comment of a user. Write technical English, as short as possible, and only what a later reader needs.',
+            'description' => 'Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. label says what the comment is, and list_comments finds the comments of a project by it. When the user must decide something, put each decision in questions, then set awaiting_user_input: the user answers each question with Yes, No, or text, and the answers replace your comment, so get_issue has each question with its answer. Do not ask for the approval of a plan: the user approves it with a button. When a comment of an agent no longer holds, write the new one with replaces, the id of the old one, and do not write a second comment about it: the old one stays in the history, and get_issue and list_comments leave it out. Replace a question comment in this way to withdraw its questions. You cannot replace a comment of a user. Write technical English, as short as possible, and only what a later reader needs.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
@@ -4877,15 +4939,36 @@ final class BundledSchemas
                     'body' => ['type' => 'string', 'description' => 'Markdown comment', 'minLength' => 1, 'maxLength' => 65536, 'pattern' => '^[^\\x00]*$'],
                     'label' => [
                         'type' => 'string',
-                        'description' => 'comment: progress or a remark. decision: a choice, with its reason and what it rules out. question: needs an answer from the user. finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent.',
+                        'description' => 'comment: progress or a remark. decision: a choice, with its reason and what it rules out. question and answer: the server sets them on a comment with questions, and refuses them on a comment without. finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent.',
                         'default' => 'comment',
-                        'enum' => ['comment', 'decision', 'question', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'],
+                        'enum' => ['comment', 'decision', 'question', 'answer', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'],
                     ],
                     'replaces' => [
                         'type' => ['null', 'string'],
                         'description' => 'id of the comment of this issue that the new comment replaces',
                         'default' => null,
                         'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$',
+                    ],
+                    'questions' => [
+                        'type' => 'array',
+                        'description' => 'Questions for the user, each answered with Yes, No, or text: one decision per question, your recommendation in detail. The comment gets the label question.',
+                        'items' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'question' => ['type' => 'string', 'description' => 'The question, in one line', 'minLength' => 1, 'maxLength' => 200, 'pattern' => '^[^\\x00]*$'],
+                                'detail' => [
+                                    'type' => ['null', 'string'],
+                                    'description' => 'Optional Markdown context of the question',
+                                    'default' => null,
+                                    'maxLength' => 4000,
+                                    'pattern' => '^[^\\x00]*$',
+                                ],
+                            ],
+                            'required' => ['question'],
+                            'additionalProperties' => false,
+                        ],
+                        'default' => [],
+                        'maxItems' => 10,
                     ],
                 ],
                 'required' => ['issue', 'body'],
@@ -5062,7 +5145,7 @@ final class BundledSchemas
         [
             'name' => 'list_comments',
             'title' => 'List comments',
-            'description' => 'List the comments of every issue of one project, newest first, each with its issue, its label, and its body. A replaced comment is left out. label returns only the comments with that label: every decision, or every papercut, of the project is one call.',
+            'description' => 'List the comments of every issue of one project, newest first, each with its issue, its label, its body, and its questions. A replaced comment is left out. label returns only the comments with that label: every decision, or every papercut, of the project is one call. question returns the questions that wait for the user, because the answers replace their question comment.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
@@ -5071,7 +5154,7 @@ final class BundledSchemas
                         'type' => ['string', 'null'],
                         'description' => 'Only comments with this label',
                         'default' => null,
-                        'enum' => ['comment', 'decision', 'question', 'finding', 'deviation', 'scope_creep', 'papercut', 'review', null],
+                        'enum' => ['comment', 'decision', 'question', 'answer', 'finding', 'deviation', 'scope_creep', 'papercut', 'review', null],
                     ],
                     'cursor' => [
                         'type' => ['null', 'string'],

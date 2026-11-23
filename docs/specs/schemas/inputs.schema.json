@@ -700,8 +700,9 @@
       "required": ["body"],
       "properties": {
         "body": {
-          "$ref": "common.schema.json#/$defs/Markdown",
-          "description": "The comment on the issue."
+          "type": "string",
+          "maxLength": 65536,
+          "description": "The comment on the issue: GitHub-flavoured Markdown with at least one non-whitespace character. May be empty when questions is not empty."
         },
         "label": {
           "anyOf": [
@@ -713,7 +714,7 @@
             }
           ],
           "default": "comment",
-          "description": "Absent or null: comment. An unknown value answers 422."
+          "description": "Absent or null: comment. With questions, the server sets question or answer, whatever the value is. Without questions, the values question and answer are refused with 422. An unknown value answers 422."
         },
         "replaces": {
           "anyOf": [
@@ -724,7 +725,16 @@
               "type": "null"
             }
           ],
-          "description": "The ID of a comment of this issue that the new comment replaces. Absent or null: the comment replaces none."
+          "description": "The ID of a comment of this issue that the new comment replaces. Absent or null: the comment replaces none. Required with answers: the open question comment that they answer."
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/QuestionInput"
+          },
+          "maxItems": 10,
+          "default": [],
+          "description": "D124. An agent asks without answers. A user answers every question of the open question comment of replaces, and repeats each question in its order."
         }
       }
     },

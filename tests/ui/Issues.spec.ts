@@ -1,4 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
+import type { Question } from '../../assets/api/types/common';
 import { issueDetail, project } from './support/builders';
 import { FakeIssues } from './support/fakeIssues';
 import { FakeRepositories } from './support/fakeRepositories';
@@ -11,6 +12,10 @@ const COMMENTS = '/api/v1/issues/:issueKey/comments';
 const PLAN_APPROVAL = '/api/v1/issues/:issueKey/plan-approval';
 const ISSUE = '/api/v1/issues/:issueKey';
 const STATUS = '/api/v1/issues/:issueKey/status';
+const QUESTIONS: Question[] = [
+    { question: 'Cover the shipping totals too?', detail: 'Shipping uses its own **rounding** today.', answer: null },
+    { question: 'Which type holds the amounts?', detail: null, answer: null },
+];
 
 /** `BILL-12` of `issue.detail.json`: in progress, with a second plan version that an agent approved, and a replaced comment. */
 async function openIssue(page: Page, api: MockApi): Promise<FakeIssues> {
@@ -151,6 +156,7 @@ test.describe('Issues', () => {
         await openIssue(page, api);
         const label = page.getByRole('combobox', { name: 'Label' });
 
+        await expect(label.getByRole('option'), 'The server sets Question and Answer.').toHaveText(['Comment', 'Decision', 'Finding', 'Deviation', 'Scope creep', 'Papercut', 'Review']);
         await label.selectOption('Decision');
         await page.getByRole('textbox', { name: 'Comment' }).fill('Keep `round()` as deprecated.');
         await page.getByRole('button', { name: 'Comment', exact: true }).click();
@@ -174,6 +180,47 @@ test.describe('Issues', () => {
         await expect(page.getByTestId('comment-error')).toContainText(message);
         await expect(label).toHaveValue('decision');
         await expect(field).toHaveValue('Keep `round()` as deprecated.');
+    });
+
+    test('The form of an open question comment sends I3 with replaces and each answer, and the timeline then shows the pairs and "Answered"', async ({ page, api }) => {
+        const issues = new FakeIssues(api);
+        issues.add(issueDetail());
+        const asked = issues.agentAsks(ISSUE_KEY, 'Two choices before the test.', QUESTIONS);
+        await page.goto(`/issues/${ISSUE_KEY}`);
+        const form = page.getByRole('form', { name: /^Questions of claude-code laptop, / });
+        await expect(form.locator('strong')).toHaveText('rounding');
+
+        await form.getByRole('group', { name: QUESTIONS[0]?.question }).getByRole('button', { name: 'Yes', exact: true }).click();
+        await form.getByRole('group', { name: QUESTIONS[1]?.question }).getByRole('textbox', { name: 'Other answer' }).fill('Money');
+        await form.getByRole('button', { name: 'Send answers', exact: true }).click();
+
+        await expect(form).toHaveCount(0);
+        expect(api.bodies('POST', COMMENTS)).toEqual([
+            {
+                body: '',
+                replaces: asked.id,
+                questions: [
+                    { question: QUESTIONS[0]?.question, answer: 'Yes' },
+                    { question: QUESTIONS[1]?.question, answer: 'Money' },
+                ],
+            },
+        ]);
+        await expect(page.locator(`#entry-${asked.id}`)).toHaveText(/claude-code laptop.*Question commented.*Answered/);
+        const answer = page.getByTestId('issue-entry').last();
+        await expect(answer).toHaveText(/jan Answer commented/);
+        await expect(answer.locator('[data-testid="comment-questions"] > li')).toHaveText([/Cover the shipping totals too\?\s*Yes/, /Which type holds the amounts\?\s*Money/]);
+        await expect(answer, 'The form is gone, so the focus is on the answers.').toBeFocused();
+        await expect(page.getByTestId('open-questions'), 'An answer comment has no form.').toHaveCount(0);
+    });
+
+    test('A stored question comment without questions shows no form', async ({ page, api }) => {
+        const issues = new FakeIssues(api);
+        issues.add(issueDetail());
+        issues.agentAsks(ISSUE_KEY, 'Does a credit note round as its invoice did?', []);
+        await page.goto(`/issues/${ISSUE_KEY}`);
+
+        await expect(page.getByTestId('issue-entry').last()).toHaveText(/claude-code laptop.*Question commented.*Does a credit note round as its invoice did\?/);
+        await expect(page.getByTestId('open-questions')).toHaveCount(0);
     });
 
     test('The comments page of a project filters by label and links each comment to its issue', async ({ page, api }) => {

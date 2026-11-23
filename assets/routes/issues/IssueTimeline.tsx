@@ -5,6 +5,7 @@ import { Link as RouterLink, useLocation } from 'react-router';
 import { ISSUE_SECTIONS, type IssueSection as Section } from '../../api/types/common';
 import type { Issue, IssueEntry } from '../../api/types/issue';
 import { MarkdownBody } from '../../comments/MarkdownBody';
+import { QuestionList } from '../../comments/Questions';
 import { ActorName, CommentLabelBadge, CommentLabelFilter, NoCommentWithLabel } from './CommentParts';
 import { hasText, SECTION_TITLES, SectionEditor, useSectionWrite } from './IssueSection';
 import { IssueStatusLabel } from './IssueStatusLabel';
@@ -34,6 +35,7 @@ export function IssueTimeline({ issue, thread }: { issue: Issue; thread: IssueEn
     const { search, hash, key } = useLocation();
     const filter = labelFilter(new URLSearchParams(search));
     const entries = null === filter ? thread : thread.filter((entry) => filter === entry.label);
+    const answered = new Set(thread.filter(({ label }) => 'answer' === label).map(({ replaces }) => replaces));
 
     // The browser does not move to the hash of a navigation of the router. `key` moves again for the same link.
     useEffect(() => {
@@ -67,7 +69,13 @@ export function IssueTimeline({ issue, thread }: { issue: Issue; thread: IssueEn
             {entries.length > 0 && (
                 <Timeline clipSidebar data-testid="issue-thread">
                     {entries.map((entry) => (
-                        <TimelineEntry key={isCurrentVersion(issue, entry) ? `section:${entry.section}` : entry.id} issue={issue} entry={entry} linked={hash === `#${entryId(entry.id)}`} />
+                        <TimelineEntry
+                            key={isCurrentVersion(issue, entry) ? `section:${entry.section}` : entry.id}
+                            issue={issue}
+                            entry={entry}
+                            linked={hash === `#${entryId(entry.id)}`}
+                            answered={answered.has(entry.id)}
+                        />
                     ))}
                 </Timeline>
             )}
@@ -80,12 +88,12 @@ export function IssueTimeline({ issue, thread }: { issue: Issue; thread: IssueEn
     );
 }
 
-function entryId(id: string): string {
+export function entryId(id: string): string {
     return `entry-${id}`;
 }
 
 /** To an entry of this page, without the label filter, which can hide the entry. */
-function EntryLink({ id, children }: { id: string; children: ReactNode }) {
+export function EntryLink({ id, children }: { id: string; children: ReactNode }) {
     return (
         <Link as={RouterLink} to={{ hash: entryId(id) }}>
             {children}
@@ -119,12 +127,19 @@ function WriteSection({ issue, section }: { issue: Issue; section: Section }) {
 /**
  * An entry of an unknown kind shows its kind as text, with its actor and time.
  *
- * @param linked The hash of the URL names the entry
+ * @param linked   The hash of the URL names the entry
+ * @param answered The entry is a question comment, and the answers of a user replaced it (D124)
  */
-function TimelineEntry({ issue, entry, linked }: { issue: Issue; entry: IssueEntry; linked: boolean }) {
+function TimelineEntry({ issue, entry, linked, answered }: { issue: Issue; entry: IssueEntry; linked: boolean; answered: boolean }) {
     const EntryIcon = ENTRY_ICONS[entry.kind] ?? DotFillIcon;
     const replaced = null !== entry.replacedBy;
     const text = (entry.body ?? entry.note ?? entry.reviewNote ?? '').trim();
+    const content = ('' !== text || entry.questions.length > 0) && (
+        <div className={styles.entryText}>
+            {'' !== text && <MarkdownBody markdown={text} />}
+            {entry.questions.length > 0 && <QuestionList questions={entry.questions} />}
+        </div>
+    );
     const line = (
         <>
             <ActorName actor={entry.actor} />
@@ -140,7 +155,7 @@ function TimelineEntry({ issue, entry, linked }: { issue: Issue; entry: IssueEnt
             {replaced && (
                 <>
                     {' '}
-                    <Label variant="secondary">Replaced</Label>
+                    <Label variant="secondary">{answered ? 'Answered' : 'Replaced'}</Label>
                 </>
             )}
         </>
@@ -156,28 +171,22 @@ function TimelineEntry({ issue, entry, linked }: { issue: Issue; entry: IssueEnt
                     <SectionEntry issue={issue} section={entry.section} line={line} />
                 ) : null !== entry.replacedBy ? (
                     <div className={styles.entryHeader}>
-                        {'' === text ? (
+                        {false === content ? (
                             <p className={styles.entryLine}>{line}</p>
                         ) : (
                             <Details className={styles.replaced}>
                                 <Details.Summary className={styles.replacedLine}>
                                     <ChevronRightIcon className={styles.chevron} aria-hidden /> {line}
                                 </Details.Summary>
-                                <div className={styles.entryText}>
-                                    <MarkdownBody markdown={text} />
-                                </div>
+                                {content}
                             </Details>
                         )}
-                        <EntryLink id={entry.replacedBy}>Newer version</EntryLink>
+                        <EntryLink id={entry.replacedBy}>{answered ? 'Answers' : 'Newer version'}</EntryLink>
                     </div>
                 ) : (
                     <>
                         <p className={styles.entryLine}>{line}</p>
-                        {'' !== text && (
-                            <div className={styles.entryText}>
-                                <MarkdownBody markdown={text} />
-                            </div>
-                        )}
+                        {content}
                     </>
                 )}
             </Timeline.Body>

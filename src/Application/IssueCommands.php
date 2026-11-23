@@ -17,6 +17,7 @@ use App\Domain\Issue\IssueKey;
 use App\Domain\Issue\IssueRules;
 use App\Domain\Issue\IssueSection;
 use App\Domain\Issue\IssueStatus;
+use App\Domain\Request\CommentQuestion;
 use App\Domain\Request\RequestDecider;
 use App\Entity\Issue;
 use App\Entity\IssueEntry;
@@ -134,18 +135,40 @@ final class IssueCommands
     }
 
     /**
-     * In any status: no rule of {@see IssueRules} binds a comment.
+     * In any status: no rule of {@see IssueRules} binds a comment. With questions (D124), an agent asks, a user answers
+     * the open question comment of $replaces, and the label is `question` or `answer`, whatever $label is.
      *
-     * @param IssueEntryId|null $replaces A comment of the issue that the new comment replaces (D123)
+     * @param IssueEntryId|null     $replaces  A comment of the issue that the new comment replaces (D123)
+     * @param list<CommentQuestion> $questions
      *
      * @throws NotFound|InvalidInput
      */
-    public function comment(IssueKey $key, string $body, CommentLabel $label, Actor $actor, ?IssueEntryId $replaces = null): Issue
+    public function comment(IssueKey $key, string $body, CommentLabel $label, Actor $actor, ?IssueEntryId $replaces = null, array $questions = []): Issue
     {
-        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $body, $label, $actor, $replaces): Issue {
+        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $body, $label, $actor, $replaces, $questions): Issue {
             $issue = $this->issues->issue($key, LockMode::PESSIMISTIC_WRITE);
-            self::requireText('body', $body);
-            $this->entityManager->persist(IssueEntry::comment($issue, $actor, $body, $label, $now, null === $replaces ? null : $this->replaceable($issue, $replaces, $actor)));
+
+            if ([] === $questions) {
+                self::requireText('body', $body);
+
+                if (CommentLabel::Question === $label || CommentLabel::Answer === $label) {
+                    throw InvalidInput::field('label', 'The server sets this label on a comment with questions. Give questions, or another label.');
+                }
+            }
+
+            $violations = RequestDecider::questionViolations($questions, $actor->kind);
+
+            if ([] !== $violations) {
+                throw new InvalidInput($violations);
+            }
+
+            $replaced = null === $replaces ? null : $this->replaceable($issue, $replaces, $actor);
+            [$label, $questions] = match (true) {
+                [] === $questions => [$label, []],
+                ActorKind::User === $actor->kind => [CommentLabel::Answer, self::answers($questions, $replaced)],
+                default => [CommentLabel::Question, array_map(static fn (CommentQuestion $question): CommentQuestion => new CommentQuestion(trim($question->question), $question->detail), $questions)],
+            };
+            $this->entityManager->persist(IssueEntry::comment($issue, $actor, $body, $label, $now, $replaced, $questions));
             $issue->touch($now);
 
             return $issue;
@@ -207,6 +230,27 @@ final class IssueCommands
             null !== $this->entry('entry.replaces = :id', $id) => throw InvalidInput::field('replaces', 'This comment is replaced already. Replace the comment that replaced it.'),
             ActorKind::Agent === $actor->kind && ActorKind::User === $entry->getActor()->kind => throw InvalidInput::field('replaces', 'An agent cannot replace a comment of a user.'),
             default => $entry,
+        };
+    }
+
+    /**
+     * The answers of a user as the questions of the open question comment $asked, each with its detail (D124).
+     *
+     * @param list<CommentQuestion> $answers Each with an answer
+     *
+     * @return list<CommentQuestion>
+     *
+     * @throws InvalidInput
+     */
+    private static function answers(array $answers, ?IssueEntry $asked): array
+    {
+        $questions = $asked?->getQuestions() ?? [];
+
+        return match (true) {
+            null === $asked => throw InvalidInput::field('replaces', 'Answers need the ID of the question comment that they answer.'),
+            CommentLabel::Question !== $asked->getLabel() || [] === $questions => throw InvalidInput::field('replaces', 'Is no open question comment.'),
+            array_column($questions, 'question') !== array_map(static fn (CommentQuestion $answer): string => trim($answer->question), $answers) => throw InvalidInput::field('questions', 'Must repeat each question of the question comment, in its order, with its answer.'),
+            default => array_map(static fn (array $question, CommentQuestion $answer): CommentQuestion => new CommentQuestion($question['question'], $question['detail'], trim($answer->answer ?? '')), $questions, $answers),
         };
     }
 

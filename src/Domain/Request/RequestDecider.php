@@ -276,7 +276,7 @@ final class RequestDecider
      *
      * @return list<array{field: string, message: string}>
      */
-    private static function questionViolations(array $questions, ActorKind $actorKind): array
+    public static function questionViolations(array $questions, ActorKind $actorKind): array
     {
         if (count($questions) > self::MAX_QUESTIONS) {
             return [['field' => 'questions', 'message' => 'Must hold at most 10 questions.']];

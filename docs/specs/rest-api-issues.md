@@ -87,12 +87,18 @@ An entry is replaced when its `replacedBy` is not null, as the [issue tools](mcp
 
 - **Request:** `POST /api/v1/issues/{issueKey}/comments`
 - **Authentication:** S, B
-- **Body:** [`IssueCommentInput`](schemas/inputs.schema.json), `{body, label, replaces}`. `label` is a `CommentLabel` of [common.schema.json](schemas/common.schema.json), by default `comment`. `replaces` is the ID of a comment of this issue that no longer holds. Example: [fixtures/inputs.issue-comment.json](fixtures/inputs.issue-comment.json).
+- **Body:** [`IssueCommentInput`](schemas/inputs.schema.json), `{body, label, replaces, questions}`. `label` is a `CommentLabel` of [common.schema.json](schemas/common.schema.json), by default `comment`. `replaces` is the ID of a comment of this issue that no longer holds. `questions` is 0 to 10 items of `{question, detail, answer}`, and `body` can be empty with them. Example: [fixtures/inputs.issue-comment.json](fixtures/inputs.issue-comment.json).
 - **Success:** 201 [`Issue`](schemas/issue.schema.json), without its links and its thread. The comment is a `comment` entry of the thread with the label and with the caller as its actor. It is allowed in any status. With `replaces`, the named comment is replaced: it stays stored, and I2 without `history` and I5 leave it out.
+- **Questions:** "Questions" of the [issue tools](mcp.md#issue-tools) has the rules (D124). A token asks: no item has an `answer`, and the comment gets the label `question`. A session answers: `replaces` names an open question comment, `questions` repeats its questions in order, each with an `answer`, and the comment gets the label `answer` and the `detail` of each question. The server sets both labels, whatever `label` says, and changes no status. Example of an answer: `{"body":"","replaces":"01K7F3G0H1J2K3M4N5P6Q7R8S9","questions":[{"question":"Remove `InvoiceTotals::round()` in 3.0?","answer":"Yes"}]}`.
 - **Errors**, in this order:
-  - 422 `invalid_input` on `body`, "Must contain a non-whitespace character.", on `label`, for a value outside `CommentLabel`, and on `replaces`, for a value that is no ULID;
+  - 422 `invalid_input`:
+    - on `body`, "Must contain a non-whitespace character.", for a comment without questions;
+    - on `label`, for a value outside `CommentLabel`, and for `question` or `answer` on a comment without questions;
+    - on `replaces`, for a value that is no ULID, and for answers without it;
+    - on `questions`, for more than 10 items, and on `questions.<index>.question`, `.detail`, or `.answer`, for an item that breaks a rule of D107: a question that is not one line of 1 to 200 characters, a `detail` of more than 4,000 characters, an `answer` from a token, and an item without an `answer` from a session;
   - 404 `not_found`, for a `replaces` that names no entry that the caller can see;
-  - 422 `invalid_input` on `replaces`, for an entry that is no comment of this issue, for a comment that is replaced already, and for a comment of a user when the caller is a token.
+  - 422 `invalid_input` on `replaces`, for an entry that is no comment of this issue, for a comment that is replaced already, for a comment of a user when the caller is a token, and, with answers, for a comment that is no open question comment;
+  - 422 `invalid_input` on `questions`, for answers that do not repeat the questions of that comment in order.
 
 A token call gives the same result as the MCP tool `comment_on_issue`.
 
@@ -114,7 +120,7 @@ An agent does not call I4. Its approval is the MCP tool `approve_plan`, which re
 
 - **Request:** `GET /api/v1/projects/{projectKey}/comments`
 - **Authentication:** S, B
-- **Success:** 200 [`IssueCommentPage`](schemas/lists.schema.json): the `comment` entries of every issue of the project, each with the summary of its issue, its label, its actor, and its body. Entries of another kind and replaced comments are left out. Example: [fixtures/lists.issue-comment-page.json](fixtures/lists.issue-comment-page.json).
+- **Success:** 200 [`IssueCommentPage`](schemas/lists.schema.json): the `comment` entries of every issue of the project, each with the summary of its issue, its label, its actor, its body, and its questions. Entries of another kind and replaced comments are left out. With the label `question`, the list has the question comments that wait for an answer, because the answers replace their question comment. Example: [fixtures/lists.issue-comment-page.json](fixtures/lists.issue-comment-page.json).
 - **Errors:** 422 `invalid_input` for a cursor sent with another `label` than that of the page that returned it.
 
 | Query | Type | Default | Notes |

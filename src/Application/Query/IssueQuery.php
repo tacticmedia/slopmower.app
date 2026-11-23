@@ -199,7 +199,7 @@ final class IssueQuery
         $rows = $builder->getQuery()->getResult();
 
         return new IssueCommentPage(
-            array_map(static fn (IssueEntry $entry): array => ['id' => $entry->getId(), 'issue' => IssueSummaryView::of($entry->getIssue()), 'label' => $entry->getLabel(), 'actor' => $entry->getActor(), 'createdAt' => $entry->getCreatedAt(), 'body' => $entry->getBody()], array_slice($rows, 0, $limit)),
+            array_map(static fn (IssueEntry $entry): array => ['id' => $entry->getId(), 'issue' => IssueSummaryView::of($entry->getIssue()), 'label' => $entry->getLabel(), 'actor' => $entry->getActor(), 'createdAt' => $entry->getCreatedAt(), 'body' => $entry->getBody(), 'questions' => $entry->getQuestions()], array_slice($rows, 0, $limit)),
             Cursor::next($rows, $limit, $filters, static fn (IssueEntry $entry): array => [$entry->getId()->toString()]),
         );
     }
@@ -386,6 +386,7 @@ final class IssueQuery
             'actor' => $entry->getActor(),
             'createdAt' => $entry->getCreatedAt(),
             'body' => $history || IssueEntryKind::Comment === $entry->getKind() ? $entry->getBody() : null,
+            'questions' => $entry->getQuestions(),
             'section' => $entry->get('section'),
             'from' => $entry->get('from'),
             'to' => $entry->get('to'),

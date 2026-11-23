@@ -238,7 +238,7 @@ Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 
 ### Issue tools
 
-Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121 to D123). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs. The REST endpoints of [rest-api-issues.md](rest-api-issues.md) share the model and the rules of this section.
+Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121 to D124). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs. The REST endpoints of [rest-api-issues.md](rest-api-issues.md) share the model and the rules of this section.
 
 - **Visibility.** A token of one repository sees only the project of that repository, with its issues. A project without a repository is invisible to it. Any other key gets `not_found`.
 - **Sections.** An issue has the Markdown sections `problem`, `plan`, `result`, and `followUps`, each null or at most 65,536 characters.
@@ -249,7 +249,14 @@ Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121 to D123). A proj
   - A `plan_approved` entry whose `planRevision` is not the plan revision of the issue is replaced by the plan version after the one that it approved. Its `replaces` is null.
   - A `status_changed` entry is never replaced.
   - `get_issue` returns the current content: no replaced entry, and a `section_changed` entry with `body` null, because the issue has the text. With `history: true` it returns every entry, and a `section_changed` entry has the text of its version in `body`. `list_comments` returns no replaced comment.
-- **Labels.** A `comment` entry has a `label` of the closed set `CommentLabel` of [common.schema.json](schemas/common.schema.json), which says what the comment is: `comment`, `decision`, `question`, `finding`, `deviation`, `scope_creep`, `papercut`, or `review`. A comment stored without a label reads as `comment`. An entry of another kind has `label` null (D121).
+- **Labels.** A `comment` entry has a `label` of the closed set `CommentLabel` of [common.schema.json](schemas/common.schema.json), which says what the comment is: `comment`, `decision`, `question`, `answer`, `finding`, `deviation`, `scope_creep`, `papercut`, or `review`. A comment stored without a label reads as `comment`. An entry of another kind has `label` null (D121). The server sets `question` and `answer`, as "Questions" says.
+- **Questions.** A comment has `questions`, 0 to 10 items of `Question` of [common.schema.json](schemas/common.schema.json): a `question` in one line of 1 to 200 characters after trimming, a `detail`, null or Markdown, and an `answer` (D124). An entry of another kind has `questions` empty.
+  - An agent asks: no item has an `answer`. The comment gets the label `question`, whatever `label` says.
+  - A user answers through REST [I3](rest-api-issues.md#i3-comment-on-an-issue): `replaces` names an open question comment, and `questions` repeats its questions in order, each with an `answer`. The comment gets the label `answer`, whatever `label` says, and the `detail` of each question. It replaces the question comment.
+  - A question comment is open while it has at least one question and no comment replaced it. An agent withdraws its questions when it replaces the comment. A comment with the label `question` that is stored without questions is a comment and not a question comment.
+  - `get_issue` returns the answer with each question and its `answer`, and not the answered question comment. `list_comments` with the label `question` returns the question comments that wait for an answer.
+  - The labels `question` and `answer` are refused on a comment without questions: `label`.
+  - No question and no answer changes the status. The agent sets `awaiting_user_input`.
 - **Approval.** `planApproval` holds the approval of the plan of `planRevision`. A `plan` with new text clears it. The same text changes nothing and writes no entry. An approval of an agent has a `reviewer` and a `reviewNote`. An approval of a user, REST [I4](rest-api-issues.md#i4-approve-the-plan), has both null.
 - **Rules.** The server checks the state that a write gives (D117). The content rules hold for every actor. The approval rules bind agents only, and the MCP actor is always an agent.
 
@@ -315,8 +322,9 @@ Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121 to D123). A proj
 ### 4.25 `comment_on_issue`
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json).
-- **Behaviour:** REST I3 with the body `{body, label, replaces}`: appends a `comment` entry with the label, in any status. `label` is `comment` by default. `replaces` is the ID of a comment of the issue that no longer holds: the new comment replaces it, and `get_issue` without `history` and `list_comments` leave the replaced one out.
-- **Errors:** `not_found` for the issue and for a `replaces` that names no entry that the token sees, `invalid_input` for a body of whitespace only, and on `replaces` for an entry that is no comment of this issue, for a comment that is replaced already, and for a comment of a user. A `label` outside `CommentLabel` and a `replaces` that is no ULID are JSON-RPC -32602.
+- **Behaviour:** REST I3 with the body `{body, label, replaces, questions}`: appends a `comment` entry with the label, in any status. `label` is `comment` by default. `replaces` is the ID of a comment of the issue that no longer holds: the new comment replaces it, and `get_issue` without `history` and `list_comments` leave the replaced one out.
+- **Questions:** D124, as "Questions" of the issue tools says. Each item of `questions` is a question in one line and an optional Markdown `detail`. The tool needs a `body` of at least 1 character also with questions, as `reply_to_request` does; only I3 takes an empty `body` with questions. The comment gets the label `question`. The web UI shows each open question comment above the comment box with "Yes", "No", and a text field for each question. The answers of the user are a comment with the label `answer` that replaces the question comment, so `get_issue` has each question with its `answer`.
+- **Errors:** `not_found` for the issue and for a `replaces` that names no entry that the token sees, `invalid_input` for a body of whitespace only without questions, on `label` for `question` or `answer` without questions, on `questions` for a question that breaks a rule of D107, and on `replaces` for an entry that is no comment of this issue, for a comment that is replaced already, and for a comment of a user. A `label` outside `CommentLabel`, a `replaces` that is no ULID, an empty `body`, and an item of `questions` with an `answer` are JSON-RPC -32602.
 - **Example:** arguments `{"issue":"BILL-12"}` plus the `body`, the `label`, and the `replaces` of [fixtures/inputs.issue-comment.json](fixtures/inputs.issue-comment.json). The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json).
 
 ### 4.26 `link_issues`
@@ -336,7 +344,7 @@ Sections 4.19 to 4.28 are the issue tracker (D116 to D118, D121 to D123). A proj
 ### 4.28 `list_comments`
 
 - **Output:** [`lists.schema.json#/$defs/IssueCommentPage`](schemas/lists.schema.json).
-- **Behaviour:** REST I5: the `comment` entries of every issue of the project, newest first by entry ID, each with the summary of its issue, its label, its actor, and its body. A replaced comment is left out. `label` returns only the comments with that label. `limit` is 1 to 200, by default 50.
+- **Behaviour:** REST I5: the `comment` entries of every issue of the project, newest first by entry ID, each with the summary of its issue, its label, its actor, its body, and its questions. A replaced comment is left out. `label` returns only the comments with that label. `question` returns the question comments that wait for an answer, because the answers replace their question comment. `limit` is 1 to 200, by default 50.
 - **Errors:** `not_found` for the project, `invalid_input` for the cursor or a cursor sent with another filter.
 - **Example:** arguments `{"project":"BILL"}`. `structuredContent`: [fixtures/lists.issue-comment-page.json](fixtures/lists.issue-comment-page.json).
 

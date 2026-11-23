@@ -13,7 +13,7 @@ import { allRepositories } from '../repositories/RepositoriesRoute';
 
 /** The JSON body of the writes of the issue page. The action removes the session draft `draftKey` after the write (D109). */
 export type IssueIntent =
-    | { intent: 'comment'; input: IssueCommentInput; draftKey: string }
+    | { intent: 'comment'; input: IssueCommentInput; draftKey?: string }
     | { intent: 'approve_plan'; input: ApprovePlanInput }
     | { intent: 'update'; input: UpdateIssueInput; draftKey?: string }
     | { intent: 'set_status'; input: IssueStatusInput; draftKey?: string };

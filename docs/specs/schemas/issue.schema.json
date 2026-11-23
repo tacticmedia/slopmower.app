@@ -163,7 +163,7 @@
     },
     "IssueEntry": {
       "type": "object",
-      "required": ["id", "kind", "label", "actor", "createdAt", "body", "section", "from", "to", "note", "reviewer", "reviewNote", "planRevision", "replaces", "replacedBy"],
+      "required": ["id", "kind", "label", "actor", "createdAt", "body", "questions", "section", "from", "to", "note", "reviewer", "reviewNote", "planRevision", "replaces", "replacedBy"],
       "description": "One entry of the thread of an issue. The thread only grows: a new version replaces an entry, and the replaced entry stays.",
       "properties": {
         "id": {
@@ -192,7 +192,14 @@
         "body": {
           "type": ["string", "null"],
           "maxLength": 65536,
-          "description": "comment: the Markdown comment. section_changed: the Markdown text of this version of the section with history, and null without it, because the issue has the current text. Else null."
+          "description": "comment: the Markdown comment, empty for the answers of a user. section_changed: the Markdown text of this version of the section with history, and null without it, because the issue has the current text. Else null."
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/Question"
+          },
+          "description": "comment only, else empty. A comment with the label question asks them, and a comment with the label answer repeats each one with its answer (D124)."
         },
         "section": {
           "anyOf": [
@@ -263,7 +270,7 @@
               "type": "null"
             }
           ],
-          "description": "The ID of the entry that this entry replaced. section_changed: the entry of the version before it. comment: the comment that its writer named. Else null."
+          "description": "The ID of the entry that this entry replaced. section_changed: the entry of the version before it. comment: the comment that its writer named, for the label answer the question comment. Else null."
         },
         "replacedBy": {
           "anyOf": [
@@ -280,7 +287,7 @@
     },
     "IssueComment": {
       "type": "object",
-      "required": ["id", "issue", "label", "actor", "createdAt", "body"],
+      "required": ["id", "issue", "label", "actor", "createdAt", "body", "questions"],
       "description": "A comment entry with its issue: an item of I5 and list_comments.",
       "properties": {
         "id": {
@@ -301,9 +308,15 @@
         },
         "body": {
           "type": "string",
-          "minLength": 1,
           "maxLength": 65536,
-          "description": "The Markdown comment."
+          "description": "The Markdown comment. Empty for the answers of a user."
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/Question"
+          },
+          "description": "The questions of a comment with the label question, or each question with its answer of a comment with the label answer. Else empty (D124)."
         }
       }
     },

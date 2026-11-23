@@ -1,10 +1,10 @@
 import { Button, TextInput } from '@primer/react';
 import { InlineMessage } from '@primer/react/experimental';
 import { type FormEvent, lazy, Suspense, useId, useState } from 'react';
-import { useFetcher } from 'react-router';
+import { type SubmitTarget, useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
-import type { Question, Ulid } from '../api/types/common';
-import type { CommentIntent } from './commentIntent';
+import type { Question } from '../api/types/common';
+import type { QuestionInput } from '../api/types/inputs';
 import styles from './Questions.module.css';
 import { useUnsavedComment } from './UnsavedCommentGuard';
 
@@ -18,11 +18,19 @@ type Answer = { choice: Choice | null; text: string };
 
 const NO_ANSWER: Answer = { choice: null, text: '' };
 
+type QuestionFormProps = {
+    questions: Question[];
+    /** The accessible name of the form. It says which comment the form answers. */
+    label: string;
+    /** The JSON body for the action of the route, from every question with its answer. */
+    intent(answers: QuestionInput[]): SubmitTarget;
+};
+
 /**
- * The open questions of an agent comment (D107). "Send answers" sends Q4 with an empty body and every question with
- * its answer, so the answer comment reads on its own.
+ * The open questions of an agent comment (D107, D124). "Send answers" submits every question with its answer, so the
+ * answer comment reads on its own.
  */
-export function QuestionForm({ requestId, questions }: { requestId: Ulid; questions: Question[] }) {
+export function QuestionForm({ questions, label, intent }: QuestionFormProps) {
     const fetcher = useFetcher<ActionResult>();
     const [answers, setAnswers] = useState<Answer[]>(() => questions.map(() => NO_ANSWER));
     const id = useId();
@@ -38,12 +46,11 @@ export function QuestionForm({ requestId, questions }: { requestId: Ulid; questi
         if (busy || given.includes('')) {
             return;
         }
-        const intent: CommentIntent = { intent: 'reply', requestId, input: { body: '', questions: questions.map(({ question }, index) => ({ question, answer: given[index] ?? '' })) } };
-        void fetcher.submit(intent, { method: 'post', encType: 'application/json' });
+        void fetcher.submit(intent(questions.map(({ question }, index) => ({ question, answer: given[index] ?? '' }))), { method: 'post', encType: 'application/json' });
     };
 
     return (
-        <form className={styles.form} onSubmit={send} aria-label="Questions of the agent" data-testid="open-questions">
+        <form className={styles.form} onSubmit={send} aria-label={label} data-testid="open-questions">
             {questions.map(({ question, detail }, index) => {
                 const { choice, text } = answers[index] ?? NO_ANSWER;
 
@@ -53,7 +60,7 @@ export function QuestionForm({ requestId, questions }: { requestId: Ulid; questi
                             {question}
                         </p>
                         {null !== detail && '' !== detail && (
-                            <Suspense fallback={<p className={styles.plain}>{detail}</p>}>
+                            <Suspense fallback={<p className={styles.plain} data-markdown-pending="">{detail}</p>}>
                                 <MarkdownBody markdown={detail} />
                             </Suspense>
                         )}
@@ -104,7 +111,7 @@ export function QuestionList({ questions }: { questions: Question[] }) {
                     ) : (
                         null !== detail &&
                         '' !== detail && (
-                            <Suspense fallback={<p className={styles.plain}>{detail}</p>}>
+                            <Suspense fallback={<p className={styles.plain} data-markdown-pending="">{detail}</p>}>
                                 <MarkdownBody markdown={detail} />
                             </Suspense>
                         )

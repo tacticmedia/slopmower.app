@@ -1,4 +1,4 @@
-import { ISSUE_SECTIONS, type IssueStatus } from '../../../assets/api/types/common';
+import { ISSUE_SECTIONS, type IssueStatus, type Question } from '../../../assets/api/types/common';
 import type { ApprovePlanInput, CreateIssueInput, CreateProjectInput, IssueCommentInput, IssueStatusInput, UpdateIssueInput, UpdateProjectInput } from '../../../assets/api/types/inputs';
 import type { Issue, IssueDetail, IssueEntry } from '../../../assets/api/types/issue';
 import type { Project } from '../../../assets/api/types/project';
@@ -138,12 +138,19 @@ export class FakeIssues {
         );
         api.on('POST', '/api/v1/issues/:issueKey/comments', ({ params, body }) =>
             this.#answer(params.issueKey, (detail) => {
-                const { body: text, label } = body as IssueCommentInput;
-                if ('' === text.trim()) {
-                    return refusal('body', 'Must contain a non-whitespace character.');
+                const { body: text, label, replaces = null, questions = [] } = body as IssueCommentInput;
+                if (0 === questions.length) {
+                    return '' === text.trim()
+                        ? refusal('body', 'Must contain a non-whitespace character.')
+                        : json('issue.schema.json', this.#write(detail, {}, entry('comment', { body: text, label: label ?? 'comment', replaces })), 201);
                 }
+                const asked = detail.thread.find(({ id, label: known, replacedBy }) => id === replaces && 'question' === known && null === replacedBy)?.questions ?? [];
+                if (0 === asked.length) {
+                    return refusal('replaces', 'Is no open question comment.');
+                }
+                const answers = asked.map((question, index) => ({ ...question, answer: questions[index]?.answer ?? null }));
 
-                return json('issue.schema.json', this.#write(detail, {}, entry('comment', { body: text, label: label ?? 'comment' })), 201);
+                return json('issue.schema.json', this.#write(detail, {}, entry('comment', { body: text, label: 'answer', replaces, questions: answers })), 201);
             }),
         );
         api.on('POST', '/api/v1/issues/:issueKey/plan-approval', ({ params, body }) =>
@@ -171,10 +178,10 @@ export class FakeIssues {
             const items = [...this.issues.values()]
                 .filter(({ issue }) => issue.project.key === params.projectKey)
                 .flatMap(({ issue: { key, title, status, updatedAt }, thread }) =>
-                    thread.flatMap(({ id, label: entryLabel, actor, createdAt, body, replacedBy }) =>
+                    thread.flatMap(({ id, label: entryLabel, actor, createdAt, body, questions, replacedBy }) =>
                         null === entryLabel || null === body || null !== replacedBy || (null !== label && entryLabel !== label)
                             ? []
-                            : [{ id, issue: { key, title, status, updatedAt }, label: entryLabel, actor, createdAt, body }],
+                            : [{ id, issue: { key, title, status, updatedAt }, label: entryLabel, actor, createdAt, body, questions }],
                     ),
                 )
                 .toSorted((first, second) => second.id.localeCompare(first.id));
@@ -191,12 +198,27 @@ export class FakeIssues {
 
     /** As an agent with `update_issue`: a new plan revision without an approval. */
     changePlan(issueKey: string, plan: string): void {
+        const detail = this.#stored(issueKey);
+        const changed = { ...entry('section_changed', { section: 'plan', body: plan }), actor: detail.issue.createdBy };
+        this.#write(detail, { plan, planRevision: changed.id, planApproval: null }, changed);
+    }
+
+    /** As an agent with `comment_on_issue` and `questions`: an open question comment. */
+    agentAsks(issueKey: string, body: string, questions: Question[]): IssueEntry {
+        const detail = this.#stored(issueKey);
+        const asked = { ...entry('comment', { body, label: 'question', questions }), actor: detail.issue.createdBy };
+        this.#write(detail, {}, asked);
+
+        return asked;
+    }
+
+    #stored(issueKey: string): IssueDetail {
         const detail = this.issues.get(issueKey);
         if (undefined === detail) {
             throw new Error(`No issue ${issueKey}.`);
         }
-        const changed = { ...entry('section_changed', { section: 'plan', body: plan }), actor: detail.issue.createdBy };
-        this.#write(detail, { plan, planRevision: changed.id, planApproval: null }, changed);
+
+        return detail;
     }
 
     #answer(issueKey: string | undefined, respond: (detail: IssueDetail) => MockResponse): MockResponse {
@@ -222,6 +244,7 @@ function entry(kind: IssueEntry['kind'], fields: Partial<IssueEntry>): IssueEntr
         actor: USER,
         createdAt: now(),
         body: null,
+        questions: [],
         section: null,
         from: null,
         to: null,
@@ -235,10 +258,16 @@ function entry(kind: IssueEntry['kind'], fields: Partial<IssueEntry>): IssueEntr
     };
 }
 
-/** `replaces` and `replacedBy` of the section versions and the plan approvals, from the entry order, as the server derives them. */
+/** `replacedBy` of the comments, and `replaces` and `replacedBy` of the section versions and the plan approvals, as the server derives them. */
 function versioned(thread: IssueEntry[]): IssueEntry[] {
     const entries = thread.map((known) => ({ ...known }));
     const newest = new Map<string, IssueEntry>();
+    for (const comment of entries.filter(({ kind, replaces }) => 'comment' === kind && null !== replaces)) {
+        const replaced = entries.find(({ id }) => id === comment.replaces);
+        if (undefined !== replaced) {
+            replaced.replacedBy = comment.id;
+        }
+    }
     for (const version of entries.filter(({ section }) => null !== section)) {
         const before = newest.get(version.section ?? '');
         if (undefined !== before) {

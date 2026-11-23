@@ -359,6 +359,38 @@ final class IssueToolsTest extends WebTestCase
         self::assertCount(4, $this->call('get_issue', ['issue' => 'SM-1', 'history' => true])['thread'], 'A refused comment is not stored.');
     }
 
+    #[TestDox('comment_on_issue with questions stores them trimmed with the label question and changes no status, and refuses the labels question and answer without questions')]
+    public function testAgentAsksQuestions(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once'])['key']];
+        $questions = [['question' => '  Remove `round()` in 3.0?  ', 'detail' => 'BILL-9 still calls it.'], ['question' => 'Which type holds the amounts?']];
+
+        $asked = $this->call('comment_on_issue', $issue + ['body' => 'Two choices before the plan.', 'label' => 'decision', 'questions' => $questions]);
+        $withoutQuestions = array_map(fn (string $label): array => $this->refusal('comment_on_issue', $issue + ['body' => 'Remove `round()` in 3.0?', 'label' => $label]), ['question', 'answer']);
+
+        self::assertSame('draft', $asked['status']);
+        self::assertSame(
+            [['question', [['question' => 'Remove `round()` in 3.0?', 'detail' => 'BILL-9 still calls it.', 'answer' => null], ['question' => 'Which type holds the amounts?', 'detail' => null, 'answer' => null]]]],
+            array_map(static fn (array $entry): array => [$entry['label'], $entry['questions']], $this->call('get_issue', $issue)['thread']),
+        );
+        self::assertSame(['label', 'label'], array_column($withoutQuestions, 'field'));
+    }
+
+    #[TestDox('An agent replaces its open question comment, and list_comments with the label question then leaves it out')]
+    public function testAgentWithdrawsItsQuestions(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once'])['key']];
+        $this->call('comment_on_issue', $issue + ['body' => 'One choice before the plan.', 'questions' => [['question' => 'Remove `round()` in 3.0?']]]);
+
+        $open = $this->call('list_comments', ['project' => 'SM', 'label' => 'question'])['items'];
+        $this->call('comment_on_issue', $issue + ['body' => 'The user said in the session: remove `round()` in 3.0.', 'label' => 'decision', 'replaces' => $open[0]['id']]);
+
+        self::assertSame([['Remove `round()` in 3.0?']], array_map(static fn (array $comment): array => array_column($comment['questions'], 'question'), $open));
+        self::assertSame([], $this->call('list_comments', ['project' => 'SM', 'label' => 'question'])['items']);
+    }
+
     #[TestDox('A link needs a note and is on both issues, and a second link of the pair or a link to the issue itself is refused')]
     public function testLinks(): void
     {

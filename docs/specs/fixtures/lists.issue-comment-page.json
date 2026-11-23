@@ -17,7 +17,8 @@
         "avatarUrl": null
       },
       "createdAt": "2026-10-02T09:20:05Z",
-      "body": "`TaxRounding::perInvoice()` is in. The test is next."
+      "body": "`TaxRounding::perInvoice()` is in. The test is next.",
+      "questions": []
     },
     {
       "id": "01K7F3EZG9H0J1K2M3N4P5Q6R7",
@@ -36,7 +37,8 @@
         "avatarUrl": null
       },
       "createdAt": "2026-10-02T09:16:30Z",
-      "body": "`InvoiceTotals::round()` stays as a deprecated wrapper, because BILL-9 still calls it. This rules out its removal in this issue."
+      "body": "`InvoiceTotals::round()` stays as a deprecated wrapper, because BILL-9 still calls it. This rules out its removal in this issue.",
+      "questions": []
     },
     {
       "id": "01K7F3A2B3C4D5E6F7G8H9J0K1",
@@ -55,7 +57,8 @@
         "avatarUrl": null
       },
       "createdAt": "2026-10-02T09:02:10Z",
-      "body": "`tests/Billing` needs the `billing_test` database, and `README.md` does not name it."
+      "body": "`tests/Billing` needs the `billing_test` database, and `README.md` does not name it.",
+      "questions": []
     }
   ],
   "nextCursor": null

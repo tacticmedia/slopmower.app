@@ -75,7 +75,7 @@
         {
             "name": "comment_on_issue",
             "title": "Comment on issue",
-            "description": "Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. label says what the comment is, and list_comments finds the comments of a project by it. With awaiting_user_input, name in a comment with the label question what the user must decide. When a comment of an agent no longer holds, write the new one with replaces, the id of the old one, and do not write a second comment about it: the old one stays in the history, and get_issue and list_comments leave it out. You cannot replace a comment of a user. Write technical English, as short as possible, and only what a later reader needs.",
+            "description": "Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. label says what the comment is, and list_comments finds the comments of a project by it. When the user must decide something, put each decision in questions, then set awaiting_user_input: the user answers each question with Yes, No, or text, and the answers replace your comment, so get_issue has each question with its answer. Do not ask for the approval of a plan: the user approves it with a button. When a comment of an agent no longer holds, write the new one with replaces, the id of the old one, and do not write a second comment about it: the old one stays in the history, and get_issue and list_comments leave it out. Replace a question comment in this way to withdraw its questions. You cannot replace a comment of a user. Write technical English, as short as possible, and only what a later reader needs.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -93,12 +93,13 @@
                     },
                     "label": {
                         "type": "string",
-                        "description": "comment: progress or a remark. decision: a choice, with its reason and what it rules out. question: needs an answer from the user. finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent.",
+                        "description": "comment: progress or a remark. decision: a choice, with its reason and what it rules out. question and answer: the server sets them on a comment with questions, and refuses them on a comment without. finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent.",
                         "default": "comment",
                         "enum": [
                             "comment",
                             "decision",
                             "question",
+                            "answer",
                             "finding",
                             "deviation",
                             "scope_creep",
@@ -114,6 +115,38 @@
                         "description": "id of the comment of this issue that the new comment replaces",
                         "default": null,
                         "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                    },
+                    "questions": {
+                        "type": "array",
+                        "description": "Questions for the user, each answered with Yes, No, or text: one decision per question, your recommendation in detail. The comment gets the label question.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "question": {
+                                    "type": "string",
+                                    "description": "The question, in one line",
+                                    "minLength": 1,
+                                    "maxLength": 200,
+                                    "pattern": "^[^\\x00]*$"
+                                },
+                                "detail": {
+                                    "type": [
+                                        "null",
+                                        "string"
+                                    ],
+                                    "description": "Optional Markdown context of the question",
+                                    "default": null,
+                                    "maxLength": 4000,
+                                    "pattern": "^[^\\x00]*$"
+                                }
+                            },
+                            "required": [
+                                "question"
+                            ],
+                            "additionalProperties": false
+                        },
+                        "default": [],
+                        "maxItems": 10
                     }
                 },
                 "required": [
@@ -435,7 +468,7 @@
         {
             "name": "list_comments",
             "title": "List comments",
-            "description": "List the comments of every issue of one project, newest first, each with its issue, its label, and its body. A replaced comment is left out. label returns only the comments with that label: every decision, or every papercut, of the project is one call.",
+            "description": "List the comments of every issue of one project, newest first, each with its issue, its label, its body, and its questions. A replaced comment is left out. label returns only the comments with that label: every decision, or every papercut, of the project is one call. question returns the questions that wait for the user, because the answers replace their question comment.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -455,6 +488,7 @@
                             "comment",
                             "decision",
                             "question",
+                            "answer",
                             "finding",
                             "deviation",
                             "scope_creep",

@@ -9,6 +9,7 @@ import type {
     IssueStatus,
     Markdown,
     ProjectKey,
+    Question,
     Ulid,
 } from './common';
 
@@ -64,8 +65,10 @@ export type IssueEntry = {
     label: CommentLabel | null;
     actor: Actor;
     createdAt: DateTime;
-    /** A comment, or with `history` the text of this version of a section. */
+    /** A comment, empty for the answers of a user, or with `history` the text of this version of a section. */
     body: Markdown | null;
+    /** Of a comment with the label `question`, or with their answers of one with the label `answer` (D124). Else empty. */
+    questions: Question[];
     section: IssueSection | null;
     from: IssueStatus | null;
     to: IssueStatus | null;
@@ -86,7 +89,9 @@ export type IssueComment = {
     label: CommentLabel;
     actor: Actor;
     createdAt: DateTime;
+    /** Empty for the answers of a user. */
     body: Markdown;
+    questions: Question[];
 };
 
 /** The result of `get_issue`: links and thread oldest first. Without `history`, the thread has no replaced entry. */
