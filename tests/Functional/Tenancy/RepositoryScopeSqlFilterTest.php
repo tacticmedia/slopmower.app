@@ -17,6 +17,7 @@ use App\Domain\Issue\ApprovalMode;
 use App\Domain\Issue\CommentLabel;
 use App\Domain\Issue\IssueCategory;
 use App\Domain\Issue\IssueLinkKind;
+use App\Domain\Issue\IssueParty;
 use App\Domain\Issue\IssueStatus;
 use App\Domain\Location\Location;
 use App\Domain\Repository\RepositoryName;
@@ -108,13 +109,13 @@ final class RepositoryScopeSqlFilterTest extends KernelTestCase
         foreach (['SM' => $first, 'DOC' => $second, 'OPS' => null] as $key => $repository) {
             $project = new Project($first->getTenantId(), $key, $key, ApprovalMode::Self, $time);
             $repository?->assignProject($project);
-            $issues[$key] = new Issue($project, $project->takeIssueNumber(), 'Round once', IssueCategory::Change, IssueStatus::Draft, RequestScenario::user(), $time);
+            $issues[$key] = new Issue($project, $project->takeIssueNumber(), 'Round once', IssueCategory::Change, IssueStatus::Draft, IssueParty::agent(), IssueParty::agent(), RequestScenario::user(), $time);
             self::entityManager()->persist($project);
             self::entityManager()->persist($issues[$key]);
             self::entityManager()->persist(IssueEntry::comment($issues[$key], RequestScenario::user(), 'Started.', CommentLabel::Comment, $time));
         }
 
-        $sibling = new Issue($issues['SM']->getProject(), 2, 'Round twice', IssueCategory::Change, IssueStatus::Draft, RequestScenario::user(), $time);
+        $sibling = new Issue($issues['SM']->getProject(), 2, 'Round twice', IssueCategory::Change, IssueStatus::Draft, IssueParty::agent(), IssueParty::agent(), RequestScenario::user(), $time);
         self::entityManager()->persist($sibling);
         self::entityManager()->persist(new IssueLink($issues['SM'], $sibling, IssueLinkKind::Relates, 'The same rounding.', RequestScenario::user(), $time));
         self::entityManager()->persist(new IssueLink($sibling, $issues['DOC'], IssueLinkKind::Relates, 'The documentation of it.', RequestScenario::user(), $time));

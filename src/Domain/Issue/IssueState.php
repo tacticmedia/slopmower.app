@@ -25,11 +25,16 @@ final readonly class IssueState
         public ?ActorKind $approvedBy = null,
         public ?string $reviewer = null,
         public ?string $approvedRevision = null,
+        public ?WaitingFor $waitingFor = null,
+        public IssuePartyKind $requester = IssuePartyKind::User,
     ) {
     }
 
-    public function withStatus(IssueStatus $status): self
+    /**
+     * Without $waitingFor, the issue keeps its party in the status that it has, and a new status takes its default.
+     */
+    public function withStatus(IssueStatus $status, ?WaitingFor $waitingFor = null): self
     {
-        return clone ($this, ['status' => $status]);
+        return clone ($this, ['status' => $status, 'waitingFor' => $waitingFor ?? ($status === $this->status ? $this->waitingFor : WaitingFor::defaultFor($status))]);
     }
 }

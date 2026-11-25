@@ -16,6 +16,17 @@
     "since": "2026-10-02T09:05:20Z",
     "until": "2026-10-02T11:12:40Z"
   },
+  "requester": {
+    "kind": "user",
+    "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+    "name": "janklan"
+  },
+  "assignee": {
+    "kind": "agent",
+    "userId": null,
+    "name": null
+  },
+  "waitingFor": "assignee",
   "problem": "Invoice totals round each line, so an invoice of three lines can be 1 cent off.\n\nDone when `InvoiceTotalsTest` has a case with three lines of 0.335 and the total is 1.01.",
   "plan": "1. Add `TaxRounding::perInvoice()` in `src/Billing/TaxRounding.php`.\n2. Use it in `InvoiceTotals::total()`.\n3. Test: a case with three lines of 0.335 in `tests/Billing/InvoiceTotalsTest.php`.",
   "result": null,
@@ -42,7 +53,6 @@
     "draft",
     "backlog",
     "in_progress",
-    "awaiting_user_input",
     "wont_do"
   ],
   "createdBy": {

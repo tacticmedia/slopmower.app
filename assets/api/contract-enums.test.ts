@@ -18,6 +18,7 @@ import {
     ISSUE_CATEGORIES,
     ISSUE_ENTRY_KINDS,
     ISSUE_LINK_KINDS,
+    ISSUE_PARTY_KINDS,
     ISSUE_SECTIONS,
     ISSUE_STATUSES,
     LOCATION_STATUSES,
@@ -35,6 +36,7 @@ import {
     THREAD_ENTRY_TYPES,
     TOURS,
     USAGE_LIMITS,
+    WAITING_FOR,
     WORKSPACES,
 } from './types/common';
 import { DRAFT_KINDS } from './types/draft';
@@ -82,6 +84,8 @@ const ENUM_ARRAYS: [schemaFileName: string, jsonPointer: string, tsArray: readon
     ['common.schema.json', '/$defs/RequestType/anyOf/0/enum', REQUEST_TYPES],
     ['common.schema.json', '/$defs/IssueStatus/enum', ISSUE_STATUSES],
     ['common.schema.json', '/$defs/IssueCategory/enum', ISSUE_CATEGORIES],
+    ['common.schema.json', '/$defs/WaitingFor/enum', WAITING_FOR],
+    ['common.schema.json', '/$defs/IssuePartyKind/enum', ISSUE_PARTY_KINDS],
     ['common.schema.json', '/$defs/IssueApproval/enum', ISSUE_APPROVALS],
     ['common.schema.json', '/$defs/ApprovalMode/enum', APPROVAL_MODES],
     ['common.schema.json', '/$defs/IssueSection/enum', ISSUE_SECTIONS],

@@ -12,6 +12,7 @@ import { IssueStatusLabel } from './IssueStatusLabel';
 import styles from './Issues.module.css';
 import { labelFilter } from './issueData';
 import { SectionEntry } from './SectionEntry';
+import { partyName } from './WaitingLabel';
 
 const ENTRY_ICONS: Record<string, Icon> = {
     comment: CommentIcon,
@@ -159,7 +160,7 @@ function TimelineEntry({ issue, entry, linked, closed }: { issue: Issue; entry: 
                     </Label>
                 </>
             )}
-            <CommentLabelBadge label={entry.label} /> <EntryAction entry={entry} /> <RelativeTime datetime={entry.createdAt} />
+            <CommentLabelBadge label={entry.label} /> <EntryAction issue={issue} entry={entry} /> <RelativeTime datetime={entry.createdAt} />
             {replaced && (
                 <>
                     {' '}
@@ -202,13 +203,19 @@ function TimelineEntry({ issue, entry, linked, closed }: { issue: Issue; entry: 
     );
 }
 
-function EntryAction({ entry }: { entry: IssueEntry }) {
+/** A status change names its party by its role, as the issue names the party now (D134). */
+function EntryAction({ issue, entry }: { issue: Issue; entry: IssueEntry }) {
     const reviewedBy = null === entry.reviewer ? '' : `, reviewed by ${entry.reviewer},`;
+    const party = null === entry.waitingFor ? null : partyName(issue[entry.waitingFor]);
 
+    if ('status_changed' === entry.kind && null !== entry.from && entry.from === entry.to && null !== party) {
+        return `handed the issue to ${party}`;
+    }
     if ('status_changed' === entry.kind && null !== entry.from && null !== entry.to) {
         return (
             <>
                 changed the status from <IssueStatusLabel status={entry.from} /> to <IssueStatusLabel status={entry.to} />
+                {null !== party && `, waiting for ${party}`}
                 {reviewedBy}
             </>
         );

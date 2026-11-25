@@ -20,6 +20,17 @@
           "since": "2026-10-02T09:05:20Z",
           "until": "2026-10-02T11:20:05Z"
         },
+        "requester": {
+          "kind": "user",
+          "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+          "name": "janklan"
+        },
+        "assignee": {
+          "kind": "agent",
+          "userId": null,
+          "name": null
+        },
+        "waitingFor": "assignee",
         "updatedAt": "2026-10-02T09:20:05Z"
       },
       "label": "comment",
@@ -54,6 +65,17 @@
           "since": "2026-10-02T09:05:20Z",
           "until": "2026-10-02T11:20:05Z"
         },
+        "requester": {
+          "kind": "user",
+          "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+          "name": "janklan"
+        },
+        "assignee": {
+          "kind": "agent",
+          "userId": null,
+          "name": null
+        },
+        "waitingFor": "assignee",
         "updatedAt": "2026-10-02T09:20:05Z"
       },
       "label": "decision",
@@ -77,6 +99,17 @@
         "status": "done",
         "approval": "agent_review",
         "claim": null,
+        "requester": {
+          "kind": "user",
+          "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+          "name": "janklan"
+        },
+        "assignee": {
+          "kind": "agent",
+          "userId": null,
+          "name": null
+        },
+        "waitingFor": null,
         "updatedAt": "2026-10-02T09:03:30Z"
       },
       "label": "papercut",

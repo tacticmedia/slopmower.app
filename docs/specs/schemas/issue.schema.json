@@ -4,7 +4,7 @@
   "title": "Issue",
   "description": "An issue without its links and its thread: the result of every issue write.",
   "type": "object",
-  "required": ["key", "title", "category", "status", "approval", "claim", "problem", "plan", "result", "followUps", "project", "planRevision", "planApproval", "allowedStatuses", "createdBy", "createdAt", "updatedAt"],
+  "required": ["key", "title", "category", "status", "approval", "claim", "requester", "assignee", "waitingFor", "problem", "plan", "result", "followUps", "project", "planRevision", "planApproval", "allowedStatuses", "createdBy", "createdAt", "updatedAt"],
   "properties": {
     "key": {
       "$ref": "common.schema.json#/$defs/IssueKey"
@@ -33,6 +33,25 @@
         }
       ],
       "description": "The agent session that holds the issue. Null without a claim, and after its end."
+    },
+    "requester": {
+      "$ref": "#/$defs/IssueParty",
+      "description": "Who asked for the work, reviews it, and accepts it."
+    },
+    "assignee": {
+      "$ref": "#/$defs/IssueParty",
+      "description": "Who does the work."
+    },
+    "waitingFor": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/WaitingFor"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The party that has the next step. Null in backlog, done, and wont_do (D134)."
     },
     "problem": {
       "type": ["string", "null"],
@@ -112,6 +131,31 @@
     }
   },
   "$defs": {
+    "IssueParty": {
+      "type": "object",
+      "required": ["kind", "userId", "name"],
+      "description": "The requester or the assignee of an issue (D134).",
+      "properties": {
+        "kind": {
+          "$ref": "common.schema.json#/$defs/IssuePartyKind"
+        },
+        "userId": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Ulid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "user: the ID of the user. agent: null."
+        },
+        "name": {
+          "type": ["string", "null"],
+          "description": "user: the login of the user. agent: null."
+        }
+      }
+    },
     "PlanApproval": {
       "type": "object",
       "required": ["approvedBy", "approvedAt", "reviewer", "reviewNote"],
@@ -159,7 +203,7 @@
     },
     "IssueSummary": {
       "type": "object",
-      "required": ["key", "title", "category", "status", "approval", "claim", "updatedAt"],
+      "required": ["key", "title", "category", "status", "approval", "claim", "requester", "assignee", "waitingFor", "updatedAt"],
       "properties": {
         "key": {
           "$ref": "common.schema.json#/$defs/IssueKey"
@@ -188,6 +232,25 @@
             }
           ],
           "description": "As claim of Issue: skip an issue that another session holds."
+        },
+        "requester": {
+          "$ref": "#/$defs/IssueParty",
+          "description": "As requester of Issue."
+        },
+        "assignee": {
+          "$ref": "#/$defs/IssueParty",
+          "description": "As assignee of Issue."
+        },
+        "waitingFor": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/WaitingFor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "As waitingFor of Issue: skip an issue that waits for a user."
         },
         "updatedAt": {
           "$ref": "common.schema.json#/$defs/DateTime"
@@ -222,7 +285,7 @@
     },
     "IssueEntry": {
       "type": "object",
-      "required": ["id", "kind", "label", "actor", "createdAt", "body", "questions", "section", "from", "to", "note", "reviewer", "reviewNote", "planRevision", "replaces", "replacedBy"],
+      "required": ["id", "kind", "label", "actor", "createdAt", "body", "questions", "section", "from", "to", "waitingFor", "note", "reviewer", "reviewNote", "planRevision", "replaces", "replacedBy"],
       "description": "One entry of the thread of an issue. The thread only grows: a new version replaces an entry, and the replaced entry stays.",
       "properties": {
         "id": {
@@ -291,7 +354,18 @@
               "type": "null"
             }
           ],
-          "description": "status_changed only."
+          "description": "status_changed only. Equal to from for a hand-over."
+        },
+        "waitingFor": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/WaitingFor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "status_changed: the party that the issue waits for after the change, null for backlog, done, and wont_do. Null on an entry of another kind, and on a status_changed entry stored before D134 that the migration did not translate."
         },
         "note": {
           "type": ["string", "null"],
@@ -413,7 +487,7 @@
           "items": {
             "$ref": "#/$defs/IssueSummary"
           },
-          "description": "In key order. The open issues of the project that have a blocked_by link with an open issue, or the status awaiting_user_input or in_review, and the open issues of other projects at the other end of such a link."
+          "description": "In key order. The open issues of the project that have a blocked_by link with an open issue, or wait for a user and are not in draft, and the open issues of other projects at the other end of such a link."
         },
         "links": {
           "type": "array",
@@ -459,7 +533,7 @@
           "items": {
             "$ref": "#/$defs/IssueSummary"
           },
-          "description": "Without a cursor: the issues in todo, in_progress, awaiting_user_input, and in_review, newest updatedAt first. With a cursor: empty."
+          "description": "Without a cursor: the issues in todo, in_progress, in_review, and approved, newest updatedAt first. With a cursor: empty."
         },
         "entries": {
           "type": "array",

@@ -6,17 +6,17 @@ import type { MockApi } from './support/mockApi';
 import { expect, test } from './support/test';
 
 /**
- * `BILL-14`, which waits for the user, blocks `BILL-12` in progress, a bug, which blocks `BILL-13`, a draft: the blocker
- * has the higher key, so the key order is not the reading order. `DOC-2` of another project is in review and blocks
- * `BILL-13` too. `BILL-15` is in review and `BILL-16` is a draft, both without a dependency. Each issue but `BILL-12` is a
- * change.
+ * `BILL-14`, which waits for the user in todo, blocks `BILL-12` in progress, a bug, which blocks `BILL-13`, a draft: the
+ * blocker has the higher key, so the key order is not the reading order. `DOC-2` of another project is in review and
+ * blocks `BILL-13` too. `BILL-15` is in review and `BILL-16` is a draft, both without a dependency. Each issue but
+ * `BILL-12` is a change. A draft and an issue in review wait for the requester, the user.
  */
 async function openGraph(page: Page, api: MockApi): Promise<void> {
     const issues = new FakeIssues(api);
-    const change = (overrides: Partial<Issue>): IssueDetail => issueDetail({ category: 'change', ...overrides });
+    const change = (overrides: Partial<Issue>): IssueDetail => issueDetail({ category: 'change', waitingFor: ['draft', 'in_review'].includes(overrides.status ?? '') ? 'requester' : 'assignee', ...overrides });
     issues.add(issueDetail());
     issues.add(change({ key: 'BILL-13', title: 'Show the rounding mode on the invoice PDF', status: 'draft' }));
-    issues.add(change({ key: 'BILL-14', title: 'Round the totals of credit notes', status: 'awaiting_user_input' }));
+    issues.add(change({ key: 'BILL-14', title: 'Round the totals of credit notes', status: 'todo', waitingFor: 'requester' }));
     issues.add(change({ key: 'BILL-15', title: 'Name the rounding mode in the README', status: 'in_review' }));
     issues.add(change({ key: 'BILL-16', title: 'Round the totals of quotes', status: 'draft' }));
     issues.add(change({ key: 'DOC-2', title: 'Name the rounding modes', status: 'in_review', project: { key: 'DOC', name: 'Docs', approvalMode: 'user' } }));
@@ -47,17 +47,17 @@ test.describe('Dependency graph of a project', () => {
         await expect(page.locator('[data-testid="issue-graph"] svg[aria-hidden="true"] polyline')).toHaveCount(3);
     });
 
-    test('A node says its status, "Bug report" for a bug, that it waits for the user, and the keys that block it, in its name and in its text', async ({ page, api }) => {
+    test('A node says its status, "Bug report" for a bug, the party that it waits for, and the keys that block it, in its name and in its text', async ({ page, api }) => {
         await openGraph(page, api);
 
-        await expect(node(page, 'BILL-12')).toHaveAccessibleName('BILL-12: Round invoice totals once per invoice. In progress. Bug report. Blocked by BILL-14.');
+        await expect(node(page, 'BILL-12')).toHaveAccessibleName('BILL-12: Round invoice totals once per invoice. In progress. Bug report. Waiting for the agent. Blocked by BILL-14.');
         await expect(node(page, 'BILL-12').getByTestId('bug-label')).toHaveText('Bug report');
         await expect(node(page, 'BILL-13').getByTestId('bug-label')).toHaveCount(0);
-        await expect(node(page, 'BILL-15')).toHaveAccessibleName('BILL-15: Name the rounding mode in the README. In review. Waits for you.');
-        await expect(node(page, 'BILL-14'), 'The status says it already.').toHaveAccessibleName('BILL-14: Round the totals of credit notes. Waiting for you.');
-        await expect(node(page, 'BILL-15')).toContainText('Waits for you');
+        await expect(node(page, 'BILL-15')).toHaveAccessibleName('BILL-15: Name the rounding mode in the README. In review. Waiting for jan.');
+        await expect(node(page, 'BILL-14')).toHaveAccessibleName('BILL-14: Round the totals of credit notes. To do. Waiting for jan.');
+        await expect(node(page, 'BILL-15').getByTestId('waiting-label')).toHaveText('Waiting for jan');
         await expect(node(page, 'BILL-13')).toContainText('Blocked by BILL-12, DOC-2');
-        await expect(node(page, 'BILL-12')).not.toContainText('Waits for you');
+        await expect(node(page, 'BILL-12').getByTestId('waiting-label')).toHaveText('Waiting for the agent');
     });
 
     test('The marks are on an issue of the project that waits for the user, and on a node with an open blocker', async ({ page, api }) => {
@@ -70,9 +70,16 @@ test.describe('Dependency graph of a project', () => {
             await expect(node(page, key)).toHaveAttribute('data-blocked', 'true');
         }
         // I9 has no blocker of an issue of another project, so the page does not say that it is next.
-        await expect(node(page, 'DOC-2')).toHaveAccessibleName('DOC-2: Name the rounding modes. In review.');
+        await expect(node(page, 'DOC-2')).toHaveAccessibleName('DOC-2: Name the rounding modes. In review. Waiting for jan.');
         await expect(node(page, 'DOC-2')).not.toHaveAttribute('data-waits');
         await expect(node(page, 'BILL-14')).not.toHaveAttribute('data-blocked');
+    });
+
+    test('A draft is a node only with a dependency, although it waits for the user', async ({ page, api }) => {
+        await openGraph(page, api);
+
+        await expect(node(page, 'BILL-13').getByTestId('waiting-label')).toHaveText('Waiting for jan');
+        await expect(node(page, 'BILL-16')).toHaveCount(0);
     });
 
     test('A node opens its issue', async ({ page, api }) => {

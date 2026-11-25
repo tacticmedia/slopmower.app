@@ -16,10 +16,12 @@ use App\Domain\Issue\IssueCategory;
 use App\Domain\Issue\IssueClaim;
 use App\Domain\Issue\IssueEntryKind;
 use App\Domain\Issue\IssueKey;
+use App\Domain\Issue\IssuePartyKind;
 use App\Domain\Issue\IssueRules;
 use App\Domain\Issue\IssueSection;
 use App\Domain\Issue\IssueState;
 use App\Domain\Issue\IssueStatus;
+use App\Domain\Issue\WaitingFor;
 use App\Entity\Issue;
 use App\Entity\IssueEntry;
 use App\Entity\IssueLink;
@@ -31,6 +33,7 @@ use Doctrine\DBAL\LockMode;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
+use Doctrine\ORM\QueryBuilder;
 use Psr\Clock\ClockInterface;
 use Symfony\Bridge\Doctrine\Types\UlidType;
 
@@ -88,9 +91,9 @@ final class IssueQuery
      * @throws NotFound
      * @throws InvalidInput A malformed cursor, or a cursor of other filters
      */
-    public function list(string $projectKey, ?IssueStatus $status, ?IssueCategory $category, int $limit, ?string $cursor): IssuePage
+    public function list(string $projectKey, ?IssueStatus $status, ?IssueCategory $category, int $limit, ?string $cursor, ?IssuePartyKind $waitingForKind = null): IssuePage
     {
-        $filters = ['project' => $projectKey, 'status' => $status?->value, 'category' => $category?->value];
+        $filters = ['project' => $projectKey, 'status' => $status?->value, 'category' => $category?->value, 'waitingForKind' => $waitingForKind?->value];
         $builder = $this->entityManager->createQueryBuilder()
             ->select('issue')
             ->from(Issue::class, 'issue')
@@ -106,6 +109,10 @@ final class IssueQuery
 
         if (null !== $category) {
             $builder->andWhere('issue.category = :category')->setParameter('category', $category);
+        }
+
+        if (null !== $waitingForKind) {
+            self::whereWaitsFor($builder, $waitingForKind);
         }
 
         if (null !== $cursor) {
@@ -241,7 +248,7 @@ final class IssueQuery
                 ->where('issue.project = :project')
                 ->andWhere('issue.status IN (:inWork)')
                 ->setParameter('project', $project->getId(), ProjectId::class)
-                ->setParameter('inWork', [IssueStatus::Todo, IssueStatus::InProgress, IssueStatus::AwaitingUserInput, IssueStatus::InReview])
+                ->setParameter('inWork', [IssueStatus::Todo, IssueStatus::InProgress, IssueStatus::InReview, IssueStatus::Approved])
                 ->orderBy('issue.updatedAt', \SortDirection::Descending)
                 ->addOrderBy('issue.id', \SortDirection::Descending)
                 ->setMaxResults($limit)
@@ -316,6 +323,9 @@ final class IssueQuery
             $issue->getStatus(),
             $issue->getApprovalMode(),
             IssueClaim::held($issue->getClaim(), $this->clock->now()),
+            $issue->getRequester(),
+            $issue->getAssignee(),
+            $issue->getWaitingFor(),
             $issue->getSection(IssueSection::Problem),
             $issue->getSection(IssueSection::Plan),
             $issue->getSection(IssueSection::Result),
@@ -346,7 +356,21 @@ final class IssueQuery
             $approval?->getActor()->kind,
             $approval?->get('reviewer'),
             $approval?->get('planRevision'),
+            $issue->getWaitingFor(),
+            $issue->getRequester()->kind,
         );
+    }
+
+    /**
+     * Narrows $builder, whose root alias is `issue`, to the issues whose waitingFor names a party of $kind (D134).
+     */
+    public static function whereWaitsFor(QueryBuilder $builder, IssuePartyKind $kind): QueryBuilder
+    {
+        return $builder
+            ->andWhere('(issue.waitingFor = :requesterRole AND issue.requester.kind = :waitingKind) OR (issue.waitingFor = :assigneeRole AND issue.assignee.kind = :waitingKind)')
+            ->setParameter('requesterRole', WaitingFor::Requester)
+            ->setParameter('assigneeRole', WaitingFor::Assignee)
+            ->setParameter('waitingKind', $kind);
     }
 
     /**
@@ -527,6 +551,7 @@ final class IssueQuery
             'section' => $entry->get('section'),
             'from' => $entry->get('from'),
             'to' => $entry->get('to'),
+            'waitingFor' => $entry->get('waitingFor'),
             'note' => $entry->get('note'),
             'reviewer' => $entry->get('reviewer'),
             'reviewNote' => $entry->get('reviewNote'),

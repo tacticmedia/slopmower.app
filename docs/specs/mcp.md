@@ -239,13 +239,21 @@ Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 
 ### Issue tools
 
-Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D128 to D130, D133). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs. The REST endpoints of [rest-api-issues.md](rest-api-issues.md) share the model and the rules of this section.
+Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D128 to D130, D133, D134). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs. The REST endpoints of [rest-api-issues.md](rest-api-issues.md) share the model and the rules of this section.
 
 - **Visibility.** A token of one repository sees only the project of that repository, with its issues. A project without a repository is invisible to it. Any other key gets `not_found`.
 - **Sections.** An issue has the Markdown sections `problem`, `plan`, `result`, and `followUps`, each null or at most 65,536 characters.
 - **Category.** `category` of `Issue` and `IssueSummary` is an `IssueCategory` of [common.schema.json](schemas/common.schema.json) (D133). `bug`: something that exists is wrong against its specification, its documentation, or its evident intent. `change`: all else, so a feature, an alteration, a refactoring, or an upgrade. The `problem` of a bug says what is wrong, how to see it, and what is expected; of a change, what is wanted, and how to tell that it is done.
   - `create_issue` needs `category`, with no default. `update_issue` changes it. The change writes no entry and does not set `updatedAt`.
   - An issue stored without a category reads as `change`.
+- **Statuses.** `draft`: the problem is incomplete. `backlog`: the problem is complete, and the work waits. `todo`: ready for work. `in_progress`: in work. `in_review`: the work is ready and not merged, and waits for the review of the requester. `approved`: the requester accepted the work, and the assignee merges it. `done`: the work is on the default branch. `wont_do`: not done. `done` and `wont_do` end an issue.
+- **Who has the next step.** An issue has a `requester` and an `assignee`, each an `IssueParty` of [issue.schema.json](schemas/issue.schema.json) (D134): `user` with the ID and the login of a user, or `agent`, any agent of the tenant. The requester asks for the work, reviews it, and accepts it. The assignee does it.
+  - `create_issue` takes `requester` and `assignee`, each `user` or `agent`. `user` is the user of the caller: the signed-in user, or the user of the token. By default the requester is `user` and the assignee is `agent`. `update_issue` changes them without an entry, and sets `updatedAt`.
+  - `waitingFor` of `Issue` and `IssueSummary` is `requester` or `assignee`: the role of the party with the next step. It is null in `backlog`, `done`, and `wont_do`, and set in each other status. A change of the requester or the assignee changes the party that the issue waits for, not its `waitingFor`.
+  - `set_issue_status` takes `waitingFor`. Without it, a new status takes its default: the requester in `draft` and `in_review`; the assignee in `todo`, `in_progress`, and `approved`; nobody in `backlog`, `done`, and `wont_do`. In the status that the issue has, the issue keeps its `waitingFor`.
+  - A hand-over is the status that the issue has with the other `waitingFor`. Every actor hands over, an agent also from a waiting user to an agent. It writes a `status_changed` entry with `from` equal to `to`. `allowedStatuses` does not list the status that the issue has, and the hand-over is allowed in addition.
+  - Each `status_changed` entry has the `waitingFor` after the change.
+  - `list_issues` with `waitingForKind` returns the issues whose `waitingFor` names a party of that kind. An agent works on an issue that waits for an agent, and leaves an issue that waits for a user.
 - **Thread.** Each write that changes the issue appends its entry in the same transaction and sets `updatedAt`. The entry gets the next number of the sequence of its project, which is the cursor of `get_issue_updates` (D128). The entry kinds are `comment`, `status_changed`, `section_changed`, and `plan_approved`. No write changes or removes a stored entry. A `section_changed` entry stores the new text, so it is one version of its section. The plan revision of an issue is the ID of the newest `section_changed` entry of `plan`.
 - **Replaced entries.** A new version replaces an entry, and the replaced entry stays in the thread (D123). `replacedBy` of an entry is the ID of the entry that replaced it, and null for a current entry. `replaces` is the ID of the entry that it replaced, or null.
   - A `section_changed` entry is replaced by the next entry of its section. The server reads this from the order of the entries and stores nothing for it.
@@ -263,16 +271,16 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
   - A question comment is open while it has at least one question and no comment replaced it. An agent withdraws its questions when it replaces the comment. A comment with the label `question` that is stored without questions is a comment and not a question comment.
   - `get_issue` returns the answer with each question and its `answer`, and not the answered question comment. `list_comments` with the label `question` returns the question comments that wait for an answer.
   - The labels `question`, `answer`, and `dismissal` are refused on a comment without questions: `label`.
-  - No question, no answer, and no dismissal changes the status. The agent sets `awaiting_user_input`.
+  - No question, no answer, and no dismissal changes the status or `waitingFor`. The agent hands the issue to the requester.
 - **Approval.** `planApproval` holds the approval of the plan of `planRevision`. A `plan` with new text clears it. The same text changes nothing and writes no entry. An approval of an agent has a `reviewer` and a `reviewNote`. An approval of a user, REST [I4](rest-api-issues.md#i4-approve-the-plan), has both null.
 - **Approval mode.** The `approvalMode` of the project binds each issue. In `by_issue`, the `approval` of each issue binds it, and an issue without one reads as `user` (D129). `approval` of `Issue` and `IssueSummary` is the mode that binds the issue, in every project mode.
   - `create_issue` and `update_issue` take `approval` only in a `by_issue` project, else `invalid_input` on `approval`. `by_issue` is no `approval`.
-  - An agent sets any `approval` when it creates the issue, and later changes it only to `user`. A user sets any value. A change writes no entry.
+  - An agent sets any `approval` when it creates the issue, and later changes it only to `user`. A user sets any value. A change writes no entry. With the agent as the requester, a change to `user` needs `requester: user` in the same call, else it is refused on `requester` (D134).
   - `approvalGuidelines` of the project is Markdown of the user: which issue needs the user, and which one an agent works on its own. An agent chooses the `approval` of a new issue by it, and `user` where the guidelines do not cover the issue.
 - **Claims.** An agent session holds an issue until 2 hours after its newest write (D130). `update_issue`, `set_issue_status`, `approve_plan`, and `comment_on_issue` need `session`, the name of the agent session, 1 to 64 characters. The holder is the agent of the token and the session together, so two sessions of one token are two holders.
   - A write of `update_issue`, `set_issue_status`, or `approve_plan` on an issue of another holder is refused with `invalid_input` on `session`: "Session X of Y holds SM-n until T. Take another issue." This check comes before the rules. Otherwise the write holds the issue for its session until 2 hours from now, also a write that changes nothing.
   - A claim of another holder never refuses a comment, and a comment takes no claim. A comment of the holder renews the claim.
-  - A status change ends the claim when it goes to `backlog`, `awaiting_user_input`, `in_review`, `done`, or `wont_do`, or when it leaves `in_progress`. This holds for a user too.
+  - A status change ends the claim when it goes to `backlog`, `in_review`, `done`, or `wont_do`, or when it leaves `in_progress`. A status change or a hand-over after which the issue waits for a user ends it too. A hand-over to an agent keeps it. This holds for a user too.
   - A user is never refused and takes no claim. A user removes a claim with REST [I11](rest-api-issues.md#i11-release-the-claim). No tool releases a claim: an agent gives up an issue in work with `todo` and a note.
   - `create_issue` and `link_issues` neither check nor take a claim. A refused write changes no claim.
   - `claim` of `Issue` and `IssueSummary` is `{holder, session, since, until}`. It is null without a claim and after `until`. A claim writes no thread entry and does not set `updatedAt`.
@@ -280,19 +288,21 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 
   | Status | What must hold | Field of the refusal |
   |---|---|---|
-  | `backlog`, `todo`, `in_progress`, `in_review`, `done` | `problem` is not empty | `problem` |
-  | `in_progress`, `in_review`, `done` | `plan` is not empty and approved as `approval` says: `user`, by a user; `agent_review`, by a user or by an agent with a reviewer; `self`, no approval | `plan` |
-  | `in_review`, `done` | `result` is not empty | `result` |
-  | `done`, `wont_do`, set by an agent | `user`: refused. `agent_review`: `reviewer` and `note` given. `self`: allowed. | `status`, `reviewer`, `note` |
+  | `backlog`, `todo`, `in_progress`, `in_review`, `approved`, `done` | `problem` is not empty | `problem` |
+  | `in_progress`, `in_review`, `approved`, `done` | `plan` is not empty and approved as `approval` says: `user`, by a user; `agent_review`, by a user or by an agent with a reviewer; `self`, no approval | `plan` |
+  | `in_review`, `approved`, `done` | `result` is not empty | `result` |
+  | `approved`, `done`, `wont_do`, set by an agent from another status | `user`: refused. `agent_review`: `reviewer` and `note` given. `self`: allowed. `done` from `approved`: allowed in every mode. | `status`, `reviewer`, `note` |
   | `wont_do` | `note` given | `note` |
+  | `backlog`, `done`, `wont_do` | `waitingFor` is null. In each other status it is set. | `waitingFor` |
+  | every status, with the `approval` `user` | `requester` is a user | `requester` |
 
   - A section of whitespace only is empty, and so are a `note` and a `reviewer`.
-  - An agent cannot set the status that the issue has: `status`.
+  - An agent cannot set the status and the `waitingFor` that the issue has: `status`.
   - An agent changes no field and no status of an issue in `done` or `wont_do`: `issue`. It can comment on it and link it.
-  - An agent cannot change `plan` in `in_progress` or `in_review`: `plan`. A deviation goes into `result`.
-  - An approval by a user of an issue in `awaiting_user_input` sets `todo`, with a `status_changed` entry, when the issue has a `problem`. Without one the status stays.
-  - A user, the session of REST [I6](rest-api-issues.md#i6-create-an-issue) to [I8](rest-api-issues.md#i8-set-the-status), is bound by the content rules only: `problem`, a `plan` with text, `result`, and the `note` of `wont_do`. A user sets every status, also from `done` and `wont_do`, and changes every field in every status. The status that the issue has is no error for a user and writes no entry.
-  - After a user changes `plan` of an issue in `in_progress` or `in_review`, the approval is gone. In `user` and `agent_review`, each write of an agent on the issue is then refused, until the plan is approved again. The field is `plan`, unless another rule refuses the write first: in `user`, `status` for `done` and `wont_do`, and `issue` for `approve_plan`. Only a comment, a link, and a move to a status that needs no plan pass: `draft`, `backlog`, `todo`, `awaiting_user_input`, and `wont_do` as the table says.
+  - An agent cannot change `plan` in `in_progress`, `in_review`, or `approved`: `plan`. A deviation goes into `result`.
+  - An approval by a user of an issue that waits for its requester hands it to the assignee, with a `status_changed` entry. An issue in `draft` with a `problem` moves to `todo` with it. Another issue keeps its status.
+  - A user, the session of REST [I6](rest-api-issues.md#i6-create-an-issue) to [I8](rest-api-issues.md#i8-set-the-status), is bound by the content rules only: `problem`, a `plan` with text, `result`, the `note` of `wont_do`, `waitingFor`, and the requester of an issue with the approval `user`. A user sets every status, also from `done` and `wont_do`, and changes every field in every status. The status and the `waitingFor` that the issue has are no error for a user and write no entry.
+  - After a user changes `plan` of an issue in `in_progress`, `in_review`, or `approved`, the approval is gone. In `user` and `agent_review`, each write of an agent on the issue is then refused, until the plan is approved again. The field is `plan`, unless another rule refuses the write first: in `user`, `status` for `approved`, `done`, and `wont_do`, and `issue` for `approve_plan`. Only a comment, a link, and a move to a status that needs no plan pass: `draft`, `backlog`, `todo`, and `wont_do` as the table says. The agent asks for the approval with `todo` and `waitingFor` `requester`.
 - **Refusals.** A refusal of a rule is `isError` with `invalid_input`, and `details.violations[0]` has the field of the table or the bullet and the reason as its message. The issue tools never return `invalid_transition` or `review_closed`.
 
 ### 4.19 `list_projects`
@@ -305,7 +315,7 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 ### 4.20 `list_issues`
 
 - **Output:** [`lists.schema.json#/$defs/IssuePage`](schemas/lists.schema.json).
-- **Behaviour:** REST I1: the summaries of the issues of the project, newest `updatedAt` first, then by ID. `status` returns only the issues with that status, and `category` only the issues of that category. `limit` is 1 to 200, by default 50. `claim` of a summary names the session that holds the issue, so an agent skips an issue of another session without `get_issue`.
+- **Behaviour:** REST I1: the summaries of the issues of the project, newest `updatedAt` first, then by ID. `status` returns only the issues with that status, `category` only the issues of that category, and `waitingForKind` only the issues that wait for a party of that kind, as "Who has the next step" says. `limit` is 1 to 200, by default 50. `claim` of a summary names the session that holds the issue, so an agent skips an issue of another session without `get_issue`.
 - **Errors:** `not_found` for the project, `invalid_input` for the cursor or a cursor sent with another filter.
 - **Example:** arguments `{"project":"BILL"}`. `structuredContent`: [fixtures/lists.issue-page.json](fixtures/lists.issue-page.json).
 
@@ -319,23 +329,23 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 ### 4.22 `create_issue`
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json).
-- **Behaviour:** REST I6: a new issue with the next number of the project, which the server takes under a lock on the project row. `category` is required, as "Category" says. `status` is `draft`, `backlog`, or `todo`, by default `draft`. `approval` is for a `by_issue` project only, as "Approval mode" says. A `problem` writes a `section_changed` entry. The server stores the title trimmed.
-- **Errors:** `not_found` for the project, `invalid_input` for a title of whitespace only or with a line break, on `approval` for a project of another approval mode, or on `problem` for `backlog` or `todo` without a problem. A call without `category` is JSON-RPC -32602.
+- **Behaviour:** REST I6: a new issue with the next number of the project, which the server takes under a lock on the project row. `category` is required, as "Category" says. `status` is `draft`, `backlog`, or `todo`, by default `draft`. `approval` is for a `by_issue` project only, as "Approval mode" says. `requester` and `assignee` are `user` and `agent` by default, as "Who has the next step" says, and `waitingFor` is the default of `status`. A `problem` writes a `section_changed` entry. The server stores the title trimmed.
+- **Errors:** `not_found` for the project, `invalid_input` for a title of whitespace only or with a line break, on `approval` for a project of another approval mode, on `requester` for the agent with the `approval` `user`, or on `problem` for `backlog` or `todo` without a problem. A call without `category` is JSON-RPC -32602.
 - **Example:** arguments `{"project":"BILL","title":"Round invoice totals once per invoice","category":"bug"}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with status `draft` and the sections null.
 
 ### 4.23 `update_issue`
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json).
-- **Behaviour:** REST I7: changes the given fields. Null leaves a field as it is. Each section with new text writes a `section_changed` entry with that text, which replaces the entry of the version before it, and a `plan` with new text clears `planApproval`. `category` changes without an entry, as "Category" says. `approval` changes only to `user`, as "Approval mode" says. A call whose values equal the stored ones changes nothing.
+- **Behaviour:** REST I7: changes the given fields. Null leaves a field as it is. Each section with new text writes a `section_changed` entry with that text, which replaces the entry of the version before it, and a `plan` with new text clears `planApproval`. `category` changes without an entry, as "Category" says. `approval` changes only to `user`, as "Approval mode" says. `requester` and `assignee` change without an entry. A call whose values equal the stored ones changes nothing.
 - **Errors:** `not_found`, `invalid_input` on `session` for an issue of another holder, and for a call with no field, a title of whitespace only or with a line break, on `approval` for a project of another approval mode or a change to another value than `user`, or a broken rule of the issue tools.
 - **Example:** arguments `{"issue":"BILL-12","session":"billing-3f9a","plan":"1. Add `TaxRounding::perInvoice()` ..."}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with a new `planRevision` and `planApproval` null.
 
 ### 4.24 `set_issue_status`
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json).
-- **Behaviour:** REST I8: moves the issue to `status` under the rules of the issue tools, and writes a `status_changed` entry with `from`, `to`, `note`, and `reviewer`. Any status can follow any other status when the rules hold. A move that passes the issue on ends the claim, as "Claims" says. A move to `wont_do` dismisses each open question comment, as "Questions" says.
+- **Behaviour:** REST I8: moves the issue to `status` under the rules of the issue tools, and writes a `status_changed` entry with `from`, `to`, `waitingFor`, `note`, and `reviewer`. Any status can follow any other status when the rules hold. `waitingFor` and the hand-over in the same status work as "Who has the next step" says. A move that passes the issue on ends the claim, as "Claims" says. A move to `wont_do` dismisses each open question comment, as "Questions" says.
 - **Errors:** `not_found`, `invalid_input` on `session` for an issue of another holder, and for a broken rule.
-- **Example:** arguments `{"issue":"BILL-12","session":"billing-3f9a","status":"in_progress"}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with status `in_progress`.
+- **Example:** arguments `{"issue":"BILL-12","session":"billing-3f9a","status":"in_progress"}`. A hand-over: `{"issue":"BILL-12","session":"billing-3f9a","status":"todo","waitingFor":"requester"}` on an issue in `todo` that waits for its assignee. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with status `in_progress`.
 
 ### 4.25 `comment_on_issue`
 
@@ -369,7 +379,7 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 ### 4.29 `get_issue_updates`
 
 - **Output:** [`issue.schema.json#/$defs/IssueUpdatesPage`](schemas/issue.schema.json).
-- **Behaviour:** REST [I10](rest-api-issues.md#i10-get-the-updates-of-a-project) (D128). Without a cursor: the issues of the project in `todo`, `in_progress`, `awaiting_user_input`, and `in_review`, and the newest cursor. With a cursor: the entries of every issue of the project after it, oldest first, each with the summary of its issue, without the entries of the caller and without a replaced entry. The caller is the agent of the token name: a second session with the same token name is the same caller, and its entries are left out too. A title change, a change of `category` or `approval`, a link, and a new issue without a `problem` write no entry. `limit` is 1 to 200, by default 50. The agent that waits for the user calls it with the returned cursor; the answers of the user, a dismissal, a plan approval, and a status change arrive as entries. A dismissal is a comment with the label `dismissal`.
+- **Behaviour:** REST [I10](rest-api-issues.md#i10-get-the-updates-of-a-project) (D128). Without a cursor: the issues of the project in `todo`, `in_progress`, `in_review`, and `approved`, and the newest cursor. With a cursor: the entries of every issue of the project after it, oldest first, each with the summary of its issue, without the entries of the caller and without a replaced entry. The caller is the agent of the token name: a second session with the same token name is the same caller, and its entries are left out too. A title change, a change of `category`, `approval`, `requester`, or `assignee`, a link, and a new issue without a `problem` write no entry. `limit` is 1 to 200, by default 50. The agent that waits for the user calls it with the returned cursor; the answers of the user, a dismissal, a plan approval, and a status change arrive as entries. A dismissal is a comment with the label `dismissal`.
 - **Errors:** `not_found` for the project, `invalid_input` on `cursor` for a cursor ahead of the server. A `cursor` below 0 and a `limit` outside its range are JSON-RPC -32602.
 - **Example:** arguments `{"project":"BILL"}` give [fixtures/issue.updates-first-call.json](fixtures/issue.updates-first-call.json). Arguments `{"project":"BILL","cursor":41}` give [fixtures/issue.updates-cursor.json](fixtures/issue.updates-cursor.json).
 

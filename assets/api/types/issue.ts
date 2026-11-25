@@ -9,13 +9,22 @@ import type {
     IssueEntryKind,
     IssueKey,
     IssueLinkKind,
+    IssuePartyKind,
     IssueSection,
     IssueStatus,
     Markdown,
     ProjectKey,
     Question,
     Ulid,
+    WaitingFor,
 } from './common';
+
+/** The requester or the assignee of an issue (D134). `userId` and `name`, the login, are null for the agent. */
+export type IssueParty = {
+    kind: IssuePartyKind;
+    userId: Ulid | null;
+    name: string | null;
+};
 
 /** The approval of the plan of `Issue.planRevision`. `reviewer` and `reviewNote` are null for an approval of a user. */
 export type PlanApproval = {
@@ -42,6 +51,10 @@ export type Issue = {
     approval: IssueApproval;
     /** Null without a claim and after its end. */
     claim: IssueClaim | null;
+    requester: IssueParty;
+    assignee: IssueParty;
+    /** The party with the next step. Null in `backlog`, `done`, and `wont_do`. */
+    waitingFor: WaitingFor | null;
     problem: Markdown | null;
     plan: Markdown | null;
     result: Markdown | null;
@@ -65,6 +78,9 @@ export type IssueSummary = {
     status: IssueStatus;
     approval: IssueApproval;
     claim: IssueClaim | null;
+    requester: IssueParty;
+    assignee: IssueParty;
+    waitingFor: WaitingFor | null;
     updatedAt: DateTime;
 };
 
@@ -90,8 +106,11 @@ export type IssueEntry = {
     /** Of a comment with the label `question` or `dismissal`, or with their answers of one with the label `answer` (D124). Else empty. */
     questions: Question[];
     section: IssueSection | null;
+    /** Equal to `to` for a hand-over. */
     from: IssueStatus | null;
     to: IssueStatus | null;
+    /** `status_changed`: the party after the change. Null on an older entry. */
+    waitingFor: WaitingFor | null;
     note: Markdown | null;
     reviewer: string | null;
     reviewNote: Markdown | null;

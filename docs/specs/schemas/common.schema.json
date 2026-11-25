@@ -333,8 +333,16 @@
       "description": "The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12."
     },
     "IssueStatus": {
-      "enum": ["draft", "backlog", "todo", "in_progress", "awaiting_user_input", "in_review", "done", "wont_do"],
-      "description": "done means delivered. done and wont_do end an issue (D117)."
+      "enum": ["draft", "backlog", "todo", "in_progress", "in_review", "approved", "done", "wont_do"],
+      "description": "in_review: the work is ready and not merged, and waits for the review of the requester. approved: the requester accepted the work, and the assignee merges it. done: the work is on the default branch. done and wont_do end an issue (D117, D134)."
+    },
+    "WaitingFor": {
+      "enum": ["requester", "assignee"],
+      "description": "The role of the party that has the next step on an issue (D134)."
+    },
+    "IssuePartyKind": {
+      "enum": ["user", "agent"],
+      "description": "user: a user of the tenant. agent: any agent of the tenant (D134)."
     },
     "IssueCategory": {
       "enum": ["bug", "change"],

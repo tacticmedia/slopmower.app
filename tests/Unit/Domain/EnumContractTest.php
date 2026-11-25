@@ -15,8 +15,10 @@ use App\Domain\Issue\ApprovalMode;
 use App\Domain\Issue\CommentLabel;
 use App\Domain\Issue\IssueCategory;
 use App\Domain\Issue\IssueEntryKind;
+use App\Domain\Issue\IssuePartyKind;
 use App\Domain\Issue\IssueSection;
 use App\Domain\Issue\IssueStatus;
+use App\Domain\Issue\WaitingFor;
 use App\Domain\Location\LocationStatus;
 use App\Domain\Location\OrphanReason;
 use App\Domain\Repository\RepositoryAccess;
@@ -71,7 +73,7 @@ final class EnumContractTest extends KernelTestCase
             RepositorySource::class, RepositoryAccess::class, ReviewState::class, IndexState::class, RequestStatus::class,
             Awaiting::class, Resolution::class, AnchorKind::class, ActorKind::class, CommitLinkState::class,
             LocationStatus::class, OrphanReason::class, SuggestionState::class, IssueStatus::class, ApprovalMode::class, IssueSection::class,
-            CommentLabel::class, IssueCategory::class,
+            CommentLabel::class, IssueCategory::class, WaitingFor::class, IssuePartyKind::class,
         ];
 
         foreach ($closedSets as $enum) {

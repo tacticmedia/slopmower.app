@@ -213,18 +213,26 @@ export const REQUEST_TYPES = ['change', 'question', 'rule'] as const;
 export type KnownRequestType = (typeof REQUEST_TYPES)[number];
 export type RequestType = OpenSet<KnownRequestType>;
 
-/** `done` and `wont_do` end an issue (D117). */
+/** `in_review`: ready, not merged. `approved`: accepted, the assignee merges it. `done` and `wont_do` end an issue (D117, D134). */
 export const ISSUE_STATUSES = [
     'draft',
     'backlog',
     'todo',
     'in_progress',
-    'awaiting_user_input',
     'in_review',
+    'approved',
     'done',
     'wont_do',
 ] as const;
 export type IssueStatus = (typeof ISSUE_STATUSES)[number];
+
+/** The role of the party with the next step on an issue (D134). */
+export const WAITING_FOR = ['requester', 'assignee'] as const;
+export type WaitingFor = (typeof WAITING_FOR)[number];
+
+/** `agent`: any agent of the tenant (D134). */
+export const ISSUE_PARTY_KINDS = ['user', 'agent'] as const;
+export type IssuePartyKind = (typeof ISSUE_PARTY_KINDS)[number];
 
 /** What an issue is (D133). */
 export const ISSUE_CATEGORIES = ['bug', 'change'] as const;

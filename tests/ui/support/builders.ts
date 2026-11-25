@@ -16,7 +16,7 @@ import type { CommitDiff, CommitDiffFile } from '../../../assets/api/types/commi
 import type { Declaration } from '../../../assets/api/types/declaration';
 import type { ErrorBody, ErrorDetails } from '../../../assets/api/types/error';
 import type { Event } from '../../../assets/api/types/event';
-import type { Issue, IssueCommits, IssueDetail } from '../../../assets/api/types/issue';
+import type { Issue, IssueCommits, IssueDetail, IssueParty } from '../../../assets/api/types/issue';
 import type { CandidateList, CodeToken, CommitLog, DeclarationList, MercureAuthorization, ProjectPage, ReviewPage, SearchHitList } from '../../../assets/api/types/lists';
 import type { Me } from '../../../assets/api/types/me';
 import type { Project } from '../../../assets/api/types/project';
@@ -71,6 +71,10 @@ export function blameContributor(name: string): BlameContributor {
 export const USER = fixture<Me>('me.local-user.json').caller as UserActor;
 
 export const AGENT: AgentActor = { kind: 'agent', userId: USER.userId, agentName: 'claude-code laptop', name: 'claude-code laptop', avatarUrl: null };
+
+/** The signed-in user and the agent as the requester or the assignee of an issue (D134). */
+export const USER_PARTY: IssueParty = { kind: 'user', userId: USER.userId, name: USER.name };
+export const AGENT_PARTY: IssueParty = { kind: 'agent', userId: null, name: null };
 
 export function me(features: Partial<Me['features']> = {}): Me {
     const caller = fixture<Me>('me.local-user.json');
@@ -355,9 +359,12 @@ export function issueCommits(): IssueCommits {
     return fixture<IssueCommits>('issue.commits.json');
 }
 
-/** `issue.detail.json`: `BILL-12` in progress, with a plan that an agent approved, one link, and its thread. */
+/**
+ * `issue.detail.json`: `BILL-12` in progress, with a plan that an agent approved, one link, and its thread. The signed-in
+ * user is its requester.
+ */
 export function issueDetail(overrides: Partial<Issue> = {}): IssueDetail {
     const detail = fixture<IssueDetail>('issue.detail.json');
 
-    return { ...detail, issue: { ...detail.issue, ...overrides } };
+    return { ...detail, issue: { ...detail.issue, requester: USER_PARTY, ...overrides } };
 }

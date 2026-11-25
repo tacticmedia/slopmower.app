@@ -52,7 +52,7 @@ final class IssueUpdatesTest extends WebTestCase
         $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change', 'problem' => self::PROBLEM, 'status' => 'todo']);
         $planRevision = $this->call('update_issue', ['issue' => 'SM-1', 'plan' => self::PLAN])['planRevision'];
         $this->call('comment_on_issue', ['issue' => 'SM-1', 'body' => 'One choice before the work.', 'questions' => [['question' => 'Remove `round()` in 3.0?']]]);
-        $this->call('set_issue_status', ['issue' => 'SM-1', 'status' => 'awaiting_user_input']);
+        $this->call('set_issue_status', ['issue' => 'SM-1', 'status' => 'todo', 'waitingFor' => 'requester']);
         $start = $this->call('get_issue_updates', ['project' => 'SM']);
         $question = $this->call('list_comments', ['project' => 'SM', 'label' => 'question'])['items'][0]['id'];
 
@@ -66,7 +66,9 @@ final class IssueUpdatesTest extends WebTestCase
         $ofUser = self::assertApiResponse(self::apiRequest($this->client, 'GET', "/api/v1/projects/SM/updates?cursor={$start['cursor']}"), 200, 'issue.schema.json#/$defs/IssueUpdatesPage');
         $row = static fn (array $item): array => [$item['entry']['kind'], $item['entry']['label'], $item['entry']['actor']['kind'], $item['entry']['body'], $item['entry']['to']];
 
-        self::assertSame(['cursor' => 4, 'hasMore' => false, 'issues' => [['key' => 'SM-1', 'title' => 'Round invoice totals once', 'category' => 'change', 'status' => 'awaiting_user_input', 'approval' => 'user', 'claim' => null, 'updatedAt' => $start['issues'][0]['updatedAt']]], 'entries' => []], $start);
+        $requester = ['kind' => 'user', 'userId' => $this->user->getId()->toString(), 'name' => $this->user->getLogin()];
+        $assignee = ['kind' => 'agent', 'userId' => null, 'name' => null];
+        self::assertSame(['cursor' => 4, 'hasMore' => false, 'issues' => [['key' => 'SM-1', 'title' => 'Round invoice totals once', 'category' => 'change', 'status' => 'todo', 'approval' => 'user', 'claim' => null, 'requester' => $requester, 'assignee' => $assignee, 'waitingFor' => 'requester', 'updatedAt' => $start['issues'][0]['updatedAt']]], 'entries' => []], $start);
         self::assertSame([
             ['comment', 'comment', 'user', 'Use Money for the amounts.', null],
             ['comment', 'answer', 'user', '', null],
@@ -75,7 +77,8 @@ final class IssueUpdatesTest extends WebTestCase
             ['status_changed', null, 'user', null, 'todo'],
         ], array_map($row, $updates['entries']));
         self::assertSame([[['question' => 'Remove `round()` in 3.0?', 'detail' => null, 'answer' => 'Yes']], $question], [$updates['entries'][1]['entry']['questions'], $updates['entries'][1]['entry']['replaces']]);
-        self::assertSame(['SM-1', 'todo', $approved['updatedAt']], [$updates['entries'][0]['issue']['key'], $updates['entries'][0]['issue']['status'], $updates['entries'][0]['issue']['updatedAt']], 'The issue as it is now.');
+        self::assertSame(['SM-1', 'todo', 'assignee', $approved['updatedAt']], [$updates['entries'][0]['issue']['key'], $updates['entries'][0]['issue']['status'], $updates['entries'][0]['issue']['waitingFor'], $updates['entries'][0]['issue']['updatedAt']], 'The issue as it is now.');
+        self::assertSame(['todo', 'assignee'], [$updates['entries'][4]['entry']['from'], $updates['entries'][4]['entry']['waitingFor']], 'The approval hands the issue to the assignee.');
         self::assertSame([11, false, []], [$updates['cursor'], $updates['hasMore'], $updates['issues']]);
         self::assertSame([['comment', 'comment', 'agent', 'I wait for the approval.', null]], array_map($row, $ofUser['entries']));
     }
@@ -110,15 +113,16 @@ final class IssueUpdatesTest extends WebTestCase
         $this->call('create_issue', ['project' => 'SM', 'title' => 'A duplicate', 'category' => 'change']);
         $this->call('set_issue_status', ['issue' => 'SM-3', 'status' => 'wont_do', 'note' => 'SM-2 covers it.']);
         $this->call('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode', 'category' => 'change', 'problem' => self::PROBLEM, 'status' => 'todo']);
-        $this->call('set_issue_status', ['issue' => 'SM-4', 'status' => 'awaiting_user_input']);
+        $this->call('update_issue', ['issue' => 'SM-4', 'plan' => 'Show it in the footer.', 'result' => 'Shown in the footer.']);
+        $this->call('set_issue_status', ['issue' => 'SM-4', 'status' => 'approved']);
 
         $first = $this->call('get_issue_updates', ['project' => 'SM']);
         $empty = $this->call('get_issue_updates', ['project' => 'DOC']);
-        $ahead = self::assertToolError($this->mcp->callTool('get_issue_updates', ['project' => 'SM', 'cursor' => 5]), 'invalid_input');
+        $ahead = self::assertToolError($this->mcp->callTool('get_issue_updates', ['project' => 'SM', 'cursor' => 7]), 'invalid_input');
 
-        self::assertSame([4, false, ['SM-4', 'SM-2'], []], [$first['cursor'], $first['hasMore'], array_column($first['issues'], 'key'), $first['entries']]);
+        self::assertSame([6, false, [['SM-4', 'approved'], ['SM-2', 'todo']], []], [$first['cursor'], $first['hasMore'], array_map(static fn (array $issue): array => [$issue['key'], $issue['status']], $first['issues']), $first['entries']]);
         self::assertSame(['cursor' => 0, 'hasMore' => false, 'issues' => [], 'entries' => []], $empty);
-        self::assertSame([['field' => 'cursor', 'message' => 'Is ahead of the server, whose newest entry of the project is 4.']], $ahead['details']['violations'] ?? null);
+        self::assertSame([['field' => 'cursor', 'message' => 'Is ahead of the server, whose newest entry of the project is 6.']], $ahead['details']['violations'] ?? null);
     }
 
     /**

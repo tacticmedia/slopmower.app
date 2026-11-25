@@ -12,6 +12,7 @@ use App\Domain\Issue\CommentLabel;
 use App\Domain\Issue\IssueEntryKind;
 use App\Domain\Issue\IssueSection;
 use App\Domain\Issue\IssueStatus;
+use App\Domain\Issue\WaitingFor;
 use App\Domain\Request\CommentQuestion;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -94,9 +95,12 @@ class IssueEntry implements TenantOwned
         return new self($issue, $actor, IssueEntryKind::Comment, $body, [], $createdAt, $label, $replaces, $questions);
     }
 
-    public static function statusChanged(Issue $issue, Actor $actor, IssueStatus $from, IssueStatus $to, ?string $note, ?string $reviewer, \DateTimeImmutable $createdAt): self
+    /**
+     * $from equal to $to is a hand-over (D134).
+     */
+    public static function statusChanged(Issue $issue, Actor $actor, IssueStatus $from, IssueStatus $to, ?WaitingFor $waitingFor, ?string $note, ?string $reviewer, \DateTimeImmutable $createdAt): self
     {
-        return new self($issue, $actor, IssueEntryKind::StatusChanged, null, ['from' => $from->value, 'to' => $to->value, 'note' => $note, 'reviewer' => $reviewer], $createdAt);
+        return new self($issue, $actor, IssueEntryKind::StatusChanged, null, ['from' => $from->value, 'to' => $to->value, 'waitingFor' => $waitingFor?->value, 'note' => $note, 'reviewer' => $reviewer], $createdAt);
     }
 
     /**
@@ -165,7 +169,7 @@ class IssueEntry implements TenantOwned
     }
 
     /**
-     * `from`, `to`, `note`, `reviewer`, `section`, `reviewNote`, or `planRevision`. Null for a key of another kind.
+     * `from`, `to`, `waitingFor`, `note`, `reviewer`, `section`, `reviewNote`, or `planRevision`. Null for a key of another kind.
      */
     public function get(string $key): ?string
     {

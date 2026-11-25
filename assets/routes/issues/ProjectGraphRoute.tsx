@@ -2,7 +2,6 @@ import { type EdgeLabel, Graph, type GraphLabel, layout, type NodeLabel, type Po
 import { Heading, Link } from '@primer/react';
 import { useId, useMemo } from 'react';
 import { Link as RouterLink, useLoaderData } from 'react-router';
-import type { IssueStatus } from '../../api/types/common';
 import type { IssueGraph, IssueSummary } from '../../api/types/issue';
 import { useDocumentTitle } from '../../layout/useDocumentTitle';
 import graphStyles from './IssueGraph.module.css';
@@ -10,14 +9,13 @@ import { APPROVAL_MODE_NAMES } from './ApprovalModeField';
 import { BugLabel, ISSUE_CATEGORY_TEXT, ISSUE_STATUS_TEXT, IssueStatusLabel, NoApprovalLabel } from './IssueStatusLabel';
 import styles from './Issues.module.css';
 import type { ProjectGraphData } from './issueData';
+import { partyName, WaitingLabel, waitingParty } from './WaitingLabel';
 
 /** In rem, so a node holds its text at each font size of the browser. */
 const NODE_WIDTH_REM = 16;
 const NODE_HEIGHT_REM = 6.75;
 const NODE_GAP_REM = 1;
 const COLUMN_GAP_REM = 3.5;
-
-const WAITS_FOR_USER: readonly IssueStatus[] = ['awaiting_user_input', 'in_review'];
 
 type GraphNode = { issue: IssueSummary; blockedBy: string[]; left: number; top: number };
 
@@ -75,16 +73,15 @@ function layoutGraph({ issues, links }: IssueGraph, remPixels: number): GraphLay
  *     that waits for the user.
  */
 function NodeLink({ issue, blockedBy, projectKey }: Pick<GraphNode, 'issue' | 'blockedBy'> & { projectKey: string }) {
-    const waits = WAITS_FOR_USER.includes(issue.status) && projectKey === projectKeyOf(issue.key);
-    // The status label of `awaiting_user_input` says it already.
-    const waitsText = waits && 'in_review' === issue.status;
+    const party = waitingParty(issue);
+    const waits = 'user' === party?.kind && projectKey === projectKeyOf(issue.key);
     const blocked = blockedBy.length > 0 ? `Blocked by ${blockedBy.join(', ')}` : null;
 
     return (
         <RouterLink
             to={`/issues/${issue.key}`}
             className={graphStyles.node}
-            aria-label={`${issue.key}: ${issue.title}. ${ISSUE_STATUS_TEXT[issue.status]}.${'bug' === issue.category ? ` ${ISSUE_CATEGORY_TEXT.bug}.` : ''}${waitsText ? ' Waits for you.' : ''}${'self' === issue.approval ? ` ${APPROVAL_MODE_NAMES.self}.` : ''}${null === blocked ? '' : ` ${blocked}.`}`}
+            aria-label={`${issue.key}: ${issue.title}. ${ISSUE_STATUS_TEXT[issue.status]}.${'bug' === issue.category ? ` ${ISSUE_CATEGORY_TEXT.bug}.` : ''}${null === party ? '' : ` Waiting for ${partyName(party)}.`}${'self' === issue.approval ? ` ${APPROVAL_MODE_NAMES.self}.` : ''}${null === blocked ? '' : ` ${blocked}.`}`}
             data-testid="graph-node"
             data-waits={waits || undefined}
             data-blocked={null !== blocked || undefined}
@@ -97,7 +94,7 @@ function NodeLink({ issue, blockedBy, projectKey }: Pick<GraphNode, 'issue' | 'b
                 <IssueStatusLabel status={issue.status} /> <BugLabel category={issue.category} />
             </span>{' '}
             <span className={graphStyles.state}>
-                {waitsText && <strong>Waits for you</strong>} <NoApprovalLabel approval={issue.approval} /> {blocked}
+                <WaitingLabel issue={issue} /> <NoApprovalLabel approval={issue.approval} /> {blocked}
             </span>
         </RouterLink>
     );

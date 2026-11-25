@@ -4299,13 +4299,36 @@ final class BundledSchemas
                 ],
             ],
             'IssueKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
+            'IssueParty' => [
+                'type' => 'object',
+                'required' => ['kind', 'userId', 'name'],
+                'description' => 'The requester or the assignee of an issue (D134).',
+                'properties' => [
+                    'kind' => ['$ref' => '#/$defs/IssuePartyKind'],
+                    'userId' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'user: the ID of the user. agent: null.',
+                    ],
+                    'name' => [
+                        'type' => ['string', 'null'],
+                        'description' => 'user: the login of the user. agent: null.',
+                    ],
+                ],
+            ],
+            'IssuePartyKind' => [
+                'enum' => ['user', 'agent'],
+                'description' => 'user: a user of the tenant. agent: any agent of the tenant (D134).',
+            ],
             'IssueStatus' => [
-                'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'awaiting_user_input', 'in_review', 'done', 'wont_do'],
-                'description' => 'done means delivered. done and wont_do end an issue (D117).',
+                'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'in_review', 'approved', 'done', 'wont_do'],
+                'description' => 'in_review: the work is ready and not merged, and waits for the review of the requester. approved: the requester accepted the work, and the assignee merges it. done: the work is on the default branch. done and wont_do end an issue (D117, D134).',
             ],
             'IssueSummary' => [
                 'type' => 'object',
-                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'updatedAt'],
+                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'updatedAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
@@ -4319,6 +4342,15 @@ final class BundledSchemas
                         ],
                         'description' => 'As claim of Issue: skip an issue that another session holds.',
                     ],
+                    'requester' => ['$ref' => '#/$defs/IssueParty', 'description' => 'As requester of Issue.'],
+                    'assignee' => ['$ref' => '#/$defs/IssueParty', 'description' => 'As assignee of Issue.'],
+                    'waitingFor' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/WaitingFor'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'As waitingFor of Issue: skip an issue that waits for a user.',
+                    ],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
                 ],
             ],
@@ -4330,6 +4362,10 @@ final class BundledSchemas
             ],
             'SessionName' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'WaitingFor' => [
+                'enum' => ['requester', 'assignee'],
+                'description' => 'The role of the party that has the next step on an issue (D134).',
+            ],
         ],
     ];
 
@@ -4463,13 +4499,36 @@ final class BundledSchemas
                 ],
             ],
             'IssueKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
+            'IssueParty' => [
+                'type' => 'object',
+                'required' => ['kind', 'userId', 'name'],
+                'description' => 'The requester or the assignee of an issue (D134).',
+                'properties' => [
+                    'kind' => ['$ref' => '#/$defs/IssuePartyKind'],
+                    'userId' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'user: the ID of the user. agent: null.',
+                    ],
+                    'name' => [
+                        'type' => ['string', 'null'],
+                        'description' => 'user: the login of the user. agent: null.',
+                    ],
+                ],
+            ],
+            'IssuePartyKind' => [
+                'enum' => ['user', 'agent'],
+                'description' => 'user: a user of the tenant. agent: any agent of the tenant (D134).',
+            ],
             'IssueStatus' => [
-                'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'awaiting_user_input', 'in_review', 'done', 'wont_do'],
-                'description' => 'done means delivered. done and wont_do end an issue (D117).',
+                'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'in_review', 'approved', 'done', 'wont_do'],
+                'description' => 'in_review: the work is ready and not merged, and waits for the review of the requester. approved: the requester accepted the work, and the assignee merges it. done: the work is on the default branch. done and wont_do end an issue (D117, D134).',
             ],
             'IssueSummary' => [
                 'type' => 'object',
-                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'updatedAt'],
+                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'updatedAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
@@ -4482,6 +4541,15 @@ final class BundledSchemas
                             ['type' => 'null'],
                         ],
                         'description' => 'As claim of Issue: skip an issue that another session holds.',
+                    ],
+                    'requester' => ['$ref' => '#/$defs/IssueParty', 'description' => 'As requester of Issue.'],
+                    'assignee' => ['$ref' => '#/$defs/IssueParty', 'description' => 'As assignee of Issue.'],
+                    'waitingFor' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/WaitingFor'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'As waitingFor of Issue: skip an issue that waits for a user.',
                     ],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
                 ],
@@ -4520,6 +4588,10 @@ final class BundledSchemas
             ],
             'SessionName' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'WaitingFor' => [
+                'enum' => ['requester', 'assignee'],
+                'description' => 'The role of the party that has the next step on an issue (D134).',
+            ],
         ],
     ];
 
@@ -4628,7 +4700,7 @@ final class BundledSchemas
                 'title' => 'Issue',
                 'description' => 'An issue without its links and its thread: the result of every issue write.',
                 'type' => 'object',
-                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt'],
+                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
@@ -4641,6 +4713,15 @@ final class BundledSchemas
                             ['type' => 'null'],
                         ],
                         'description' => 'The agent session that holds the issue. Null without a claim, and after its end.',
+                    ],
+                    'requester' => ['$ref' => '#/$defs/IssueParty', 'description' => 'Who asked for the work, reviews it, and accepts it.'],
+                    'assignee' => ['$ref' => '#/$defs/IssueParty', 'description' => 'Who does the work.'],
+                    'waitingFor' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/WaitingFor'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The party that has the next step. Null in backlog, done, and wont_do (D134).',
                     ],
                     'problem' => [
                         'type' => ['string', 'null'],
@@ -4717,7 +4798,7 @@ final class BundledSchemas
             ],
             'IssueEntry' => [
                 'type' => 'object',
-                'required' => ['id', 'kind', 'label', 'actor', 'createdAt', 'body', 'questions', 'section', 'from', 'to', 'note', 'reviewer', 'reviewNote', 'planRevision', 'replaces', 'replacedBy'],
+                'required' => ['id', 'kind', 'label', 'actor', 'createdAt', 'body', 'questions', 'section', 'from', 'to', 'waitingFor', 'note', 'reviewer', 'reviewNote', 'planRevision', 'replaces', 'replacedBy'],
                 'description' => 'One entry of the thread of an issue. The thread only grows: a new version replaces an entry, and the replaced entry stays.',
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -4760,7 +4841,14 @@ final class BundledSchemas
                             ['$ref' => '#/$defs/IssueStatus'],
                             ['type' => 'null'],
                         ],
-                        'description' => 'status_changed only.',
+                        'description' => 'status_changed only. Equal to from for a hand-over.',
+                    ],
+                    'waitingFor' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/WaitingFor'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'status_changed: the party that the issue waits for after the change, null for backlog, done, and wont_do. Null on an entry of another kind, and on a status_changed entry stored before D134 that the migration did not translate.',
                     ],
                     'note' => [
                         'type' => ['string', 'null'],
@@ -4827,16 +4915,39 @@ final class BundledSchemas
                 'enum' => ['relates', 'blocked_by', 'blocks'],
                 'description' => 'What a link is for the issue that is read (D126). relates: no dependency. blocked_by: this issue waits for the other issue. blocks: the other issue waits for this issue. A link is stored as relates or blocked_by, and blocks is the same blocked_by link read from its other issue.',
             ],
+            'IssueParty' => [
+                'type' => 'object',
+                'required' => ['kind', 'userId', 'name'],
+                'description' => 'The requester or the assignee of an issue (D134).',
+                'properties' => [
+                    'kind' => ['$ref' => '#/$defs/IssuePartyKind'],
+                    'userId' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'user: the ID of the user. agent: null.',
+                    ],
+                    'name' => [
+                        'type' => ['string', 'null'],
+                        'description' => 'user: the login of the user. agent: null.',
+                    ],
+                ],
+            ],
+            'IssuePartyKind' => [
+                'enum' => ['user', 'agent'],
+                'description' => 'user: a user of the tenant. agent: any agent of the tenant (D134).',
+            ],
             'IssueSection' => [
                 'enum' => ['problem', 'plan', 'result', 'followUps'],
             ],
             'IssueStatus' => [
-                'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'awaiting_user_input', 'in_review', 'done', 'wont_do'],
-                'description' => 'done means delivered. done and wont_do end an issue (D117).',
+                'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'in_review', 'approved', 'done', 'wont_do'],
+                'description' => 'in_review: the work is ready and not merged, and waits for the review of the requester. approved: the requester accepted the work, and the assignee merges it. done: the work is on the default branch. done and wont_do end an issue (D117, D134).',
             ],
             'IssueSummary' => [
                 'type' => 'object',
-                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'updatedAt'],
+                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'updatedAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
@@ -4849,6 +4960,15 @@ final class BundledSchemas
                             ['type' => 'null'],
                         ],
                         'description' => 'As claim of Issue: skip an issue that another session holds.',
+                    ],
+                    'requester' => ['$ref' => '#/$defs/IssueParty', 'description' => 'As requester of Issue.'],
+                    'assignee' => ['$ref' => '#/$defs/IssueParty', 'description' => 'As assignee of Issue.'],
+                    'waitingFor' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/WaitingFor'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'As waitingFor of Issue: skip an issue that waits for a user.',
                     ],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
                 ],
@@ -4901,6 +5021,10 @@ final class BundledSchemas
             ],
             'SessionName' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'WaitingFor' => [
+                'enum' => ['requester', 'assignee'],
+                'description' => 'The role of the party that has the next step on an issue (D134).',
+            ],
         ],
     ];
 
@@ -4915,7 +5039,7 @@ final class BundledSchemas
             'issues' => [
                 'type' => 'array',
                 'items' => ['$ref' => '#/$defs/IssueSummary'],
-                'description' => 'Without a cursor: the issues in todo, in_progress, awaiting_user_input, and in_review, newest updatedAt first. With a cursor: empty.',
+                'description' => 'Without a cursor: the issues in todo, in_progress, in_review, and approved, newest updatedAt first. With a cursor: empty.',
             ],
             'entries' => [
                 'type' => 'array',
@@ -5030,7 +5154,7 @@ final class BundledSchemas
             ],
             'IssueEntry' => [
                 'type' => 'object',
-                'required' => ['id', 'kind', 'label', 'actor', 'createdAt', 'body', 'questions', 'section', 'from', 'to', 'note', 'reviewer', 'reviewNote', 'planRevision', 'replaces', 'replacedBy'],
+                'required' => ['id', 'kind', 'label', 'actor', 'createdAt', 'body', 'questions', 'section', 'from', 'to', 'waitingFor', 'note', 'reviewer', 'reviewNote', 'planRevision', 'replaces', 'replacedBy'],
                 'description' => 'One entry of the thread of an issue. The thread only grows: a new version replaces an entry, and the replaced entry stays.',
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
@@ -5073,7 +5197,14 @@ final class BundledSchemas
                             ['$ref' => '#/$defs/IssueStatus'],
                             ['type' => 'null'],
                         ],
-                        'description' => 'status_changed only.',
+                        'description' => 'status_changed only. Equal to from for a hand-over.',
+                    ],
+                    'waitingFor' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/WaitingFor'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'status_changed: the party that the issue waits for after the change, null for backlog, done, and wont_do. Null on an entry of another kind, and on a status_changed entry stored before D134 that the migration did not translate.',
                     ],
                     'note' => [
                         'type' => ['string', 'null'],
@@ -5124,16 +5255,39 @@ final class BundledSchemas
                 'description' => 'Open set.',
             ],
             'IssueKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
+            'IssueParty' => [
+                'type' => 'object',
+                'required' => ['kind', 'userId', 'name'],
+                'description' => 'The requester or the assignee of an issue (D134).',
+                'properties' => [
+                    'kind' => ['$ref' => '#/$defs/IssuePartyKind'],
+                    'userId' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'user: the ID of the user. agent: null.',
+                    ],
+                    'name' => [
+                        'type' => ['string', 'null'],
+                        'description' => 'user: the login of the user. agent: null.',
+                    ],
+                ],
+            ],
+            'IssuePartyKind' => [
+                'enum' => ['user', 'agent'],
+                'description' => 'user: a user of the tenant. agent: any agent of the tenant (D134).',
+            ],
             'IssueSection' => [
                 'enum' => ['problem', 'plan', 'result', 'followUps'],
             ],
             'IssueStatus' => [
-                'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'awaiting_user_input', 'in_review', 'done', 'wont_do'],
-                'description' => 'done means delivered. done and wont_do end an issue (D117).',
+                'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'in_review', 'approved', 'done', 'wont_do'],
+                'description' => 'in_review: the work is ready and not merged, and waits for the review of the requester. approved: the requester accepted the work, and the assignee merges it. done: the work is on the default branch. done and wont_do end an issue (D117, D134).',
             ],
             'IssueSummary' => [
                 'type' => 'object',
-                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'updatedAt'],
+                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'updatedAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
@@ -5146,6 +5300,15 @@ final class BundledSchemas
                             ['type' => 'null'],
                         ],
                         'description' => 'As claim of Issue: skip an issue that another session holds.',
+                    ],
+                    'requester' => ['$ref' => '#/$defs/IssueParty', 'description' => 'As requester of Issue.'],
+                    'assignee' => ['$ref' => '#/$defs/IssueParty', 'description' => 'As assignee of Issue.'],
+                    'waitingFor' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/WaitingFor'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'As waitingFor of Issue: skip an issue that waits for a user.',
                     ],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
                 ],
@@ -5178,6 +5341,10 @@ final class BundledSchemas
             ],
             'SessionName' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'WaitingFor' => [
+                'enum' => ['requester', 'assignee'],
+                'description' => 'The role of the party that has the next step on an issue (D134).',
+            ],
         ],
     ];
 
@@ -5186,7 +5353,7 @@ final class BundledSchemas
         'title' => 'Issue',
         'description' => 'An issue without its links and its thread: the result of every issue write.',
         'type' => 'object',
-        'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt'],
+        'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt'],
         'properties' => [
             'key' => ['$ref' => '#/$defs/IssueKey'],
             'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
@@ -5199,6 +5366,15 @@ final class BundledSchemas
                     ['type' => 'null'],
                 ],
                 'description' => 'The agent session that holds the issue. Null without a claim, and after its end.',
+            ],
+            'requester' => ['$ref' => '#/$defs/IssueParty', 'description' => 'Who asked for the work, reviews it, and accepts it.'],
+            'assignee' => ['$ref' => '#/$defs/IssueParty', 'description' => 'Who does the work.'],
+            'waitingFor' => [
+                'anyOf' => [
+                    ['$ref' => '#/$defs/WaitingFor'],
+                    ['type' => 'null'],
+                ],
+                'description' => 'The party that has the next step. Null in backlog, done, and wont_do (D134).',
             ],
             'problem' => [
                 'type' => ['string', 'null'],
@@ -5352,9 +5528,32 @@ final class BundledSchemas
                 ],
             ],
             'IssueKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
+            'IssueParty' => [
+                'type' => 'object',
+                'required' => ['kind', 'userId', 'name'],
+                'description' => 'The requester or the assignee of an issue (D134).',
+                'properties' => [
+                    'kind' => ['$ref' => '#/$defs/IssuePartyKind'],
+                    'userId' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'user: the ID of the user. agent: null.',
+                    ],
+                    'name' => [
+                        'type' => ['string', 'null'],
+                        'description' => 'user: the login of the user. agent: null.',
+                    ],
+                ],
+            ],
+            'IssuePartyKind' => [
+                'enum' => ['user', 'agent'],
+                'description' => 'user: a user of the tenant. agent: any agent of the tenant (D134).',
+            ],
             'IssueStatus' => [
-                'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'awaiting_user_input', 'in_review', 'done', 'wont_do'],
-                'description' => 'done means delivered. done and wont_do end an issue (D117).',
+                'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'in_review', 'approved', 'done', 'wont_do'],
+                'description' => 'in_review: the work is ready and not merged, and waits for the review of the requester. approved: the requester accepted the work, and the assignee merges it. done: the work is on the default branch. done and wont_do end an issue (D117, D134).',
             ],
             'PlanApproval' => [
                 'type' => 'object',
@@ -5378,6 +5577,10 @@ final class BundledSchemas
             'ProjectKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}$', 'description' => 'The key of a project: 2 to 10 upper-case letters, unique per tenant. It never changes.'],
             'SessionName' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'WaitingFor' => [
+                'enum' => ['requester', 'assignee'],
+                'description' => 'The role of the party that has the next step on an issue (D134).',
+            ],
         ],
     ];
 
@@ -5418,7 +5621,7 @@ final class BundledSchemas
         [
             'name' => 'comment_on_issue',
             'title' => 'Comment on issue',
-            'description' => 'Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. label says what the comment is, and list_comments finds the comments of a project by it. When the user must decide something, put each decision in questions, then set awaiting_user_input: the user answers each question with Yes, No, or text, and the answers replace your comment, so get_issue has each question with its answer. When the user does not answer, a comment with the label dismissal replaces your comment: do not ask again; decide, or leave the issue as the user left it. Do not ask for the approval of a plan: the user approves it with a button. When a comment of an agent no longer holds, write the new one with replaces, the id of the old one, and do not write a second comment about it: the old one stays in the history, and get_issue and list_comments leave it out. Replace a question comment in this way to withdraw its questions. You cannot replace a comment of a user. A claim of another session never refuses a comment, and a comment renews the claim of your session. Write technical English, as short as possible, and only what a later reader needs.',
+            'description' => 'Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. label says what the comment is, and list_comments finds the comments of a project by it. When the user must decide something, put each decision in questions, then hand the issue to the requester with set_issue_status, the status that it has, and waitingFor requester: the user answers each question with Yes, No, or text, and the answers replace your comment, so get_issue has each question with its answer. When the user does not answer, a comment with the label dismissal replaces your comment: do not ask again; decide, or leave the issue as the user left it. Do not ask for the approval of a plan: the user approves it with a button. When a comment of an agent no longer holds, write the new one with replaces, the id of the old one, and do not write a second comment about it: the old one stays in the history, and get_issue and list_comments leave it out. Replace a question comment in this way to withdraw its questions. You cannot replace a comment of a user. A claim of another session never refuses a comment, and a comment renews the claim of your session. Write technical English, as short as possible, and only what a later reader needs.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
@@ -5467,7 +5670,7 @@ final class BundledSchemas
         [
             'name' => 'create_issue',
             'title' => 'Create issue',
-            'description' => 'Create an issue of a project. Its key is the project key, a hyphen, and the next number of the project, for example SM-12. Look through the open issues of the project first, and continue one that covers the request. category is bug when something that exists is wrong against its specification, its documentation, or its evident intent, and change for all else: a feature, an alteration, a refactoring, or an upgrade. status is draft while the problem is incomplete, and backlog or todo when it is ready; backlog and todo need problem. In approvalMode by_issue, choose approval by approvalGuidelines: self or agent_review only where a guideline says so, else user. Write technical English, as short as possible, and only what a later reader needs.',
+            'description' => 'Create an issue of a project. Its key is the project key, a hyphen, and the next number of the project, for example SM-12. Look through the open issues of the project first, and continue one that covers the request. category is bug when something that exists is wrong against its specification, its documentation, or its evident intent, and change for all else: a feature, an alteration, a refactoring, or an upgrade. status is draft while the problem is incomplete, and backlog or todo when it is ready; backlog and todo need problem. In approvalMode by_issue, choose approval by approvalGuidelines: self or agent_review only where a guideline says so, else user. requester asks for the work and accepts it, and assignee does it: user is the user of your token, agent is any agent. By default the user requests and an agent works. Set requester agent only for work that no user asked for, on an issue whose approval is not user. Write technical English, as short as possible, and only what a later reader needs.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
@@ -5498,6 +5701,18 @@ final class BundledSchemas
                         'default' => null,
                         'enum' => ['user', 'agent_review', 'self', null],
                     ],
+                    'requester' => [
+                        'type' => ['string', 'null'],
+                        'default' => null,
+                        'enum' => ['user', 'agent', null],
+                        'description' => 'user or agent. Null: user',
+                    ],
+                    'assignee' => [
+                        'type' => ['string', 'null'],
+                        'default' => null,
+                        'enum' => ['user', 'agent', null],
+                        'description' => 'user or agent. Null: agent',
+                    ],
                 ],
                 'required' => ['project', 'title', 'category'],
             ],
@@ -5522,7 +5737,7 @@ final class BundledSchemas
         [
             'name' => 'get_issue_updates',
             'title' => 'Get issue updates',
-            'description' => 'Return what changed in one project since cursor: the new entries of the threads of its issues, oldest first, each with the summary of its issue, as get_issue reads them without history. Your own entries and replaced entries are left out; another session with your token name counts as you. Without a cursor, return the issues in todo, in_progress, awaiting_user_input, and in_review, and the newest cursor. Always keep the returned cursor for the next call; if hasMore is true, call again at once. Poll it while an issue waits for the user: answers are a comment with the label answer, a dismissal is a comment with the label dismissal, an approval is a plan_approved entry. A title change, a link, and a new issue without a problem write no entry.',
+            'description' => 'Return what changed in one project since cursor: the new entries of the threads of its issues, oldest first, each with the summary of its issue, as get_issue reads them without history. Your own entries and replaced entries are left out; another session with your token name counts as you. Without a cursor, return the issues in todo, in_progress, in_review, and approved, and the newest cursor. Always keep the returned cursor for the next call; if hasMore is true, call again at once. Poll it while an issue waits for the user: answers are a comment with the label answer, a dismissal is a comment with the label dismissal, an approval is a plan_approved entry. A title change, a link, and a new issue without a problem write no entry.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
@@ -5699,7 +5914,7 @@ final class BundledSchemas
         [
             'name' => 'list_issues',
             'title' => 'List issues',
-            'description' => 'List the issues of one project as summaries, newest updatedAt first. claim names the agent session that holds an issue: skip an issue of another session. Call get_issue for the sections, the links, and the thread.',
+            'description' => 'List the issues of one project as summaries, newest updatedAt first. claim names the agent session that holds an issue: skip an issue of another session. waitingFor names the party with the next step: work on an issue that waits for an agent, and leave an issue that waits for a user. Call get_issue for the sections, the links, and the thread.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
@@ -5708,13 +5923,19 @@ final class BundledSchemas
                         'type' => ['string', 'null'],
                         'description' => 'Only issues with this status',
                         'default' => null,
-                        'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'awaiting_user_input', 'in_review', 'done', 'wont_do', null],
+                        'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'in_review', 'approved', 'done', 'wont_do', null],
                     ],
                     'category' => [
                         'type' => ['string', 'null'],
                         'description' => 'Only issues of this category',
                         'default' => null,
                         'enum' => ['bug', 'change', null],
+                    ],
+                    'waitingForKind' => [
+                        'type' => ['string', 'null'],
+                        'description' => 'Only issues that wait for a party of this kind: agent for the issues that you can work on',
+                        'default' => null,
+                        'enum' => ['user', 'agent', null],
                     ],
                     'cursor' => [
                         'type' => ['null', 'string'],
@@ -5970,7 +6191,7 @@ final class BundledSchemas
         [
             'name' => 'set_issue_status',
             'title' => 'Set issue status',
-            'description' => 'Move an issue to another status. The server checks the state that the move gives: backlog, todo, in_progress, in_review, and done need problem; in_progress, in_review, and done need a plan that is approved as approvalMode says; in_review and done need result; wont_do needs note. done and wont_do from an agent: refused in approvalMode user, with reviewer and note in agent_review, free in self. The move holds the issue for your session for 2 hours. A move to backlog, awaiting_user_input, in_review, done, or wont_do, or out of in_progress, ends the claim. To give up an issue in work, set todo with a note. A refusal is invalid_input on the field that breaks the rule: on session while another session holds the issue, so take another issue. allowedStatuses of the issue lists what you can set now.',
+            'description' => 'Move an issue to another status, or hand it to the other party in the status that it has. The server checks the state that the move gives: backlog, todo, in_progress, in_review, approved, and done need problem; in_progress, in_review, approved, and done need a plan that is approved as approvalMode says; in_review, approved, and done need result; wont_do needs note. approved, done, and wont_do from an agent: refused in approvalMode user, with reviewer and note in agent_review, free in self. done from approved is free in every mode. in_review: the work is ready and not merged, and waits for the review of the requester. approved: the requester accepted it; merge it, write the commit on the default branch into result, and set done. waitingFor is the party with the next step: by default the requester in draft and in_review, the assignee in todo, in_progress, and approved, nobody in backlog, done, and wont_do. When the user must decide, hand the issue to the requester: send the status that it has with waitingFor requester. allowedStatuses does not list that status, and the hand-over is allowed. Take an issue back from a user only after the user answered in the session, and record the answer as a decision first. The move holds the issue for your session for 2 hours. A move to backlog, in_review, done, or wont_do, out of in_progress, or to a user ends the claim. To give up an issue in work, set todo with a note. A refusal is invalid_input on the field that breaks the rule: on session while another session holds the issue, so take another issue. allowedStatuses of the issue lists the other statuses that you can set now.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
@@ -5979,11 +6200,17 @@ final class BundledSchemas
                     'status' => [
                         'type' => 'string',
                         'description' => 'The new status',
-                        'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'awaiting_user_input', 'in_review', 'done', 'wont_do'],
+                        'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'in_review', 'approved', 'done', 'wont_do'],
+                    ],
+                    'waitingFor' => [
+                        'type' => ['string', 'null'],
+                        'description' => 'requester or assignee: who has the next step after the move. Null: the default of the status, or in the status that the issue has, the party that it waits for',
+                        'default' => null,
+                        'enum' => ['requester', 'assignee', null],
                     ],
                     'note' => [
                         'type' => ['null', 'string'],
-                        'description' => 'Markdown: why, for the thread. Required for wont_do, and for done in approvalMode agent_review',
+                        'description' => 'Markdown: why, for the thread. Required for wont_do, and in approvalMode agent_review for approved, wont_do, and done from another status than approved',
                         'default' => null,
                         'minLength' => 1,
                         'maxLength' => 65536,
@@ -5991,7 +6218,7 @@ final class BundledSchemas
                     ],
                     'reviewer' => [
                         'type' => ['null', 'string'],
-                        'description' => 'Name of the agent or subagent that reviewed the result. Required for done and wont_do in approvalMode agent_review',
+                        'description' => 'Name of the agent or subagent that reviewed the result. Required in approvalMode agent_review for approved, wont_do, and done from another status than approved',
                         'default' => null,
                         'minLength' => 1,
                         'maxLength' => 64,
@@ -6131,7 +6358,7 @@ final class BundledSchemas
         [
             'name' => 'update_issue',
             'title' => 'Update issue',
-            'description' => 'Change the title, the category, or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem: for a bug, what is wrong, how to see it, and what is expected; for a change, what is wanted, and how to tell that it is done. plan: the steps, the files, and the tests. result: what was done, with the commit SHAs, and each deviation from the plan. followUps: what came up and was left out. A plan with new text clears its approval. An agent cannot change plan in in_progress or in_review, and no field of an issue in done or wont_do. approval exists only in approvalMode by_issue, and an agent changes it only to user. The write holds the issue for your session for 2 hours. While another session holds it, the write is refused on session: take another issue. Write technical English, as short as possible, and only what a later reader needs.',
+            'description' => 'Change the title, the category, or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem: for a bug, what is wrong, how to see it, and what is expected; for a change, what is wanted, and how to tell that it is done. plan: the steps, the files, and the tests. result: what was done, with the commit SHAs, and each deviation from the plan. followUps: what came up and was left out. A plan with new text clears its approval. An agent cannot change plan in in_progress, in_review, or approved, and no field of an issue in done or wont_do. approval exists only in approvalMode by_issue, and an agent changes it only to user, and with the agent as the requester also sends requester user. requester and assignee change without an entry, and the issue then waits for the new party of its waitingFor. The write holds the issue for your session for 2 hours. While another session holds it, the write is refused on session: take another issue. Write technical English, as short as possible, and only what a later reader needs.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
@@ -6188,6 +6415,18 @@ final class BundledSchemas
                         'description' => 'Only in approvalMode by_issue: who approves the plan and ends this issue. An agent changes it only to user',
                         'default' => null,
                         'enum' => ['user', 'agent_review', 'self', null],
+                    ],
+                    'requester' => [
+                        'type' => ['string', 'null'],
+                        'default' => null,
+                        'enum' => ['user', 'agent', null],
+                        'description' => 'user or agent. Null keeps it',
+                    ],
+                    'assignee' => [
+                        'type' => ['string', 'null'],
+                        'default' => null,
+                        'enum' => ['user', 'agent', null],
+                        'description' => 'user or agent. Null keeps it',
                     ],
                 ],
                 'required' => ['issue', 'session'],

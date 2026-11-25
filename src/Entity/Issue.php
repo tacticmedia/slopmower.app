@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Doctrine\Embeddable\ActorEmbeddable;
+use App\Doctrine\Embeddable\IssuePartyEmbeddable;
 use App\Domain\Actor\Actor;
 use App\Domain\Identity\IssueId;
 use App\Domain\Identity\TenantId;
@@ -12,8 +13,10 @@ use App\Domain\Issue\ApprovalMode;
 use App\Domain\Issue\IssueCategory;
 use App\Domain\Issue\IssueClaim;
 use App\Domain\Issue\IssueKey;
+use App\Domain\Issue\IssueParty;
 use App\Domain\Issue\IssueSection;
 use App\Domain\Issue\IssueStatus;
+use App\Domain\Issue\WaitingFor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -82,6 +85,17 @@ class Issue implements TenantOwned
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $claimUntil = null;
 
+    /** No foreign key, as of an actor (D134). */
+    #[ORM\Embedded(columnPrefix: 'requester_')]
+    private IssuePartyEmbeddable $requester;
+
+    #[ORM\Embedded(columnPrefix: 'assignee_')]
+    private IssuePartyEmbeddable $assignee;
+
+    /** Null in a status where nobody has the next step. */
+    #[ORM\Column(nullable: true, enumType: WaitingFor::class)]
+    private ?WaitingFor $waitingFor;
+
     #[ORM\Embedded]
     private ActorEmbeddable $createdBy;
 
@@ -91,7 +105,7 @@ class Issue implements TenantOwned
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
-    public function __construct(Project $project, int $number, string $title, IssueCategory $category, IssueStatus $status, Actor $createdBy, \DateTimeImmutable $createdAt)
+    public function __construct(Project $project, int $number, string $title, IssueCategory $category, IssueStatus $status, IssueParty $requester, IssueParty $assignee, Actor $createdBy, \DateTimeImmutable $createdAt)
     {
         $this->id = IssueId::generate();
         $this->tenantId = $project->getTenantId();
@@ -100,6 +114,9 @@ class Issue implements TenantOwned
         $this->title = $title;
         $this->category = $category;
         $this->status = $status;
+        $this->requester = IssuePartyEmbeddable::of($requester);
+        $this->assignee = IssuePartyEmbeddable::of($assignee);
+        $this->waitingFor = WaitingFor::defaultFor($status);
         $this->claimHolder = ActorEmbeddable::of(null);
         $this->createdBy = ActorEmbeddable::of($createdBy);
         $this->createdAt = $createdAt;
@@ -139,6 +156,33 @@ class Issue implements TenantOwned
     public function getStatus(): IssueStatus
     {
         return $this->status;
+    }
+
+    public function getRequester(): IssueParty
+    {
+        return $this->requester->toParty();
+    }
+
+    public function getAssignee(): IssueParty
+    {
+        return $this->assignee->toParty();
+    }
+
+    public function getWaitingFor(): ?WaitingFor
+    {
+        return $this->waitingFor;
+    }
+
+    /**
+     * The party that $waitingFor names.
+     */
+    public function waitsFor(): ?IssueParty
+    {
+        return match ($this->waitingFor) {
+            WaitingFor::Requester => $this->getRequester(),
+            WaitingFor::Assignee => $this->getAssignee(),
+            null => null,
+        };
     }
 
     /**
@@ -244,9 +288,22 @@ class Issue implements TenantOwned
         $this->updatedAt = $now;
     }
 
-    public function setStatus(IssueStatus $status, \DateTimeImmutable $now): void
+    public function setStatus(IssueStatus $status, ?WaitingFor $waitingFor, \DateTimeImmutable $now): void
     {
         $this->status = $status;
+        $this->waitingFor = $waitingFor;
+        $this->updatedAt = $now;
+    }
+
+    public function setRequester(IssueParty $requester, \DateTimeImmutable $now): void
+    {
+        $this->requester = IssuePartyEmbeddable::of($requester);
+        $this->updatedAt = $now;
+    }
+
+    public function setAssignee(IssueParty $assignee, \DateTimeImmutable $now): void
+    {
+        $this->assignee = IssuePartyEmbeddable::of($assignee);
         $this->updatedAt = $now;
     }
 

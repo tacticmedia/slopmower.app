@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 import type { Question } from '../../assets/api/types/common';
-import { issueDetail, project } from './support/builders';
+import { issueDetail, project, USER_PARTY } from './support/builders';
 import { FakeIssues } from './support/fakeIssues';
 import { FakeRepositories } from './support/fakeRepositories';
 import { apiError, type MockApi } from './support/mockApi';
@@ -90,6 +90,56 @@ test.describe('Issues', () => {
         await page.goto('/projects/BILL');
 
         await expect(page.getByTestId('issue-row').filter({ has: page.getByTestId('no-approval') })).toHaveText([/Fix a typo in the README.*No approval.*BILL-13/]);
+    });
+
+    test('A row of the issue list names the party that the issue waits for', async ({ page, api }) => {
+        const issues = new FakeIssues(api);
+        issues.add(issueDetail());
+        issues.add(issueDetail({ key: 'BILL-13', title: 'Name the rounding mode in the README', status: 'in_review', waitingFor: 'requester', updatedAt: '2026-10-02T09:04:18Z' }));
+        issues.add(issueDetail({ key: 'BILL-14', title: 'Round the totals of credit notes', status: 'backlog', waitingFor: null, updatedAt: '2026-10-02T09:03:18Z' }));
+        await page.goto('/projects/BILL');
+
+        await expect(page.getByTestId('issue-row').getByTestId('waiting-label')).toHaveText(['Waiting for the agent', 'Waiting for jan']);
+    });
+
+    test('The header names the party that the issue waits for, and "Hand over to the agent" sends I8 with the status and waitingFor', async ({ page, api }) => {
+        const issues = new FakeIssues(api);
+        issues.add(issueDetail({ waitingFor: 'requester' }));
+        await page.goto(`/issues/${ISSUE_KEY}`);
+        const handOver = page.getByRole('button', { name: 'Hand over to the agent' });
+        await expect(page.getByTestId('waiting-label').first()).toHaveText('Waiting for jan');
+        await expect(handOver).toHaveAttribute('data-variant', 'primary');
+
+        await handOver.click();
+
+        await expect(page.getByTestId('waiting-label').first()).toHaveText('Waiting for the agent');
+        await expect(page.getByRole('button', { name: 'Hand over to jan' })).toBeVisible();
+        await expect(page.getByTestId('issue-entry').last()).toHaveText(/jan handed the issue to the agent/);
+        expect(api.bodies('POST', STATUS)).toEqual([{ status: 'in_progress', waitingFor: 'assignee' }]);
+    });
+
+    test('An issue whose requester and assignee are one party has no hand-over', async ({ page, api }) => {
+        const issues = new FakeIssues(api);
+        issues.add(issueDetail({ assignee: USER_PARTY }));
+        await page.goto(`/issues/${ISSUE_KEY}`);
+
+        await expect(page.getByTestId('waiting-label').first()).toHaveText('Waiting for jan');
+        await expect(page.getByTestId('hand-over')).toHaveCount(0);
+    });
+
+    test('The requester and the assignee in the sidebar send I7, and the waiting party follows the assignee', async ({ page, api }) => {
+        await openIssue(page, api);
+        const assignee = page.getByRole('combobox', { name: 'Assignee of the issue' });
+        const requester = page.getByRole('combobox', { name: 'Requester of the issue' });
+        await expect(assignee).toHaveValue('agent');
+        await expect(requester).toHaveValue('user');
+
+        await assignee.selectOption({ label: 'jan' });
+        await expect(page.getByTestId('waiting-label').first()).toHaveText('Waiting for jan');
+        await requester.selectOption({ label: 'Agent' });
+
+        await expect(requester).toHaveValue('agent');
+        expect(api.bodies('PATCH', ISSUE)).toEqual([{ assignee: 'user' }, { requester: 'agent' }]);
     });
 
     test('The approval in the sidebar sends I7 in a project of the mode "Per issue", and is text in a project of another mode', async ({ page, api }) => {
@@ -614,7 +664,7 @@ test.describe('Issues', () => {
         await openIssue(page, api);
 
         await page.getByRole('button', { name: 'Set status' }).click();
-        await expect(page.getByRole('menuitem')).toHaveText([/^Draft/, /^Backlog/, /^To do/, /^Waiting for you/, /^In review/, /^Done/, /^Won't do/]);
+        await expect(page.getByRole('menuitem')).toHaveText([/^Draft/, /^Backlog/, /^To do/, /^In review/, /^Approved/, /^Done/, /^Won't do/]);
         await page.getByRole('menuitem', { name: 'To do' }).click();
 
         await expect(page.getByTestId('issue-status').first()).toHaveText('To do');

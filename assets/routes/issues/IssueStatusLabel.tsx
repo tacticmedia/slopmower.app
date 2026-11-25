@@ -7,8 +7,8 @@ export const ISSUE_STATUS_TEXT: Record<IssueStatus, string> = {
     backlog: 'Backlog',
     todo: 'To do',
     in_progress: 'In progress',
-    awaiting_user_input: 'Waiting for you',
     in_review: 'In review',
+    approved: 'Approved',
     done: 'Done',
     wont_do: "Won't do",
 };
@@ -18,8 +18,8 @@ const VARIANTS: Record<IssueStatus, NonNullable<LabelProps['variant']>> = {
     backlog: 'secondary',
     todo: 'accent',
     in_progress: 'attention',
-    awaiting_user_input: 'severe',
-    in_review: 'success',
+    in_review: 'severe',
+    approved: 'success',
     done: 'done',
     wont_do: 'secondary',
 };

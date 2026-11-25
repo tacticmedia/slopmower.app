@@ -1,11 +1,12 @@
-import { Banner, Link, RelativeTime, Select } from '@primer/react';
+import { Banner, Button, Link, RelativeTime, Select } from '@primer/react';
 import { InlineMessage } from '@primer/react/experimental';
 import { type ReactNode, useEffect, useId, useRef, useState, useTransition } from 'react';
-import { Link as RouterLink, useFetcher, useLoaderData, useNavigate } from 'react-router';
+import { Link as RouterLink, useFetcher, useLoaderData, useNavigate, useRouteLoaderData } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
-import { COMMENT_LABELS, type CommentLabel, ISSUE_APPROVALS, ISSUE_CATEGORIES } from '../../api/types/common';
+import { COMMENT_LABELS, type CommentLabel, ISSUE_APPROVALS, ISSUE_CATEGORIES, ISSUE_PARTY_KINDS, type WaitingFor } from '../../api/types/common';
 import type { IssueCommentInput } from '../../api/types/inputs';
-import type { Issue, IssueEntry, IssueLink } from '../../api/types/issue';
+import type { Issue, IssueEntry, IssueLink, IssueParty } from '../../api/types/issue';
+import type { Me } from '../../api/types/me';
 import { CommentBox, type CommentText } from '../../comments/CommentBox';
 import boxStyles from '../../comments/CommentBox.module.css';
 import { MarkdownBody } from '../../comments/MarkdownBody';
@@ -25,6 +26,7 @@ import styles from './Issues.module.css';
 import type { IssueData, IssueIntent } from './issueData';
 import { APPROVAL_MODE_NAMES } from './ApprovalModeField';
 import { useIssueWrite } from './useIssueWrite';
+import { partyName, useIsYou, WaitingLabel, waitingParty } from './WaitingLabel';
 
 /** The server sets `question`, `answer`, and `dismissal` (D124). */
 const WRITABLE_LABELS = COMMENT_LABELS.filter((label) => 'question' !== label && 'answer' !== label && 'dismissal' !== label);
@@ -47,7 +49,9 @@ export function IssueRoute() {
                 <IssueTitle key={issue.key} issue={issue} />
                 <div className={styles.state}>
                     <IssueStatusLabel status={issue.status} />
+                    <WaitingLabel issue={issue} />
                     <BugLabel category={issue.category} />
+                    <HandOver key={issue.key} issue={issue} />
                     <IssueStatusMenu key={issue.key} issue={issue} />
                     <span className={styles.muted}>
                         {issue.createdBy.name} opened this <RelativeTime datetime={issue.createdAt} /> · updated <RelativeTime datetime={issue.updatedAt} />
@@ -68,6 +72,12 @@ export function IssueRoute() {
                     </SidebarSection>
                     <SidebarSection title="Approval">
                         <ApprovalOfIssue key={issue.key} issue={issue} />
+                    </SidebarSection>
+                    <SidebarSection title="Requester">
+                        <PartyOfIssue key={issue.key} issue={issue} role="requester" />
+                    </SidebarSection>
+                    <SidebarSection title="Assignee">
+                        <PartyOfIssue key={issue.key} issue={issue} role="assignee" />
                     </SidebarSection>
                     <SidebarSection title="Plan approval">
                         <ApprovalState issue={issue} />
@@ -129,6 +139,80 @@ function CategoryOfIssue({ issue }: { issue: Issue }) {
                 {ISSUE_CATEGORIES.map((category) => (
                     <Select.Option key={category} value={category}>
                         {ISSUE_CATEGORY_TEXT[category]}
+                    </Select.Option>
+                ))}
+            </Select>
+            {null !== error && (
+                <InlineMessage variant="critical" role="alert">
+                    {error}
+                </InlineMessage>
+            )}
+        </>
+    );
+}
+
+function isSameParty(first: IssueParty, second: IssueParty): boolean {
+    return first.kind === second.kind && first.userId === second.userId;
+}
+
+/**
+ * I8 with the status of the issue and the other `waitingFor` (D134), while the requester and the assignee are different
+ * parties. The primary button while the issue waits for the signed-in user.
+ */
+function HandOver({ issue }: { issue: Issue }) {
+    const { busy, error, send } = useIssueWrite();
+    const isYou = useIsYou();
+
+    if (null === issue.waitingFor || isSameParty(issue.requester, issue.assignee)) {
+        return null;
+    }
+
+    const next: WaitingFor = 'requester' === issue.waitingFor ? 'assignee' : 'requester';
+
+    return (
+        <>
+            <Button
+                size="small"
+                variant={isYou(waitingParty(issue)) ? 'primary' : 'default'}
+                loading={busy}
+                onClick={() => send({ intent: 'set_status', input: { status: issue.status, waitingFor: next } })}
+                data-testid="hand-over"
+            >
+                Hand over to {partyName('requester' === next ? issue.requester : issue.assignee)}
+            </Button>
+            {null !== error && (
+                <InlineMessage variant="critical" role="alert">
+                    {error}
+                </InlineMessage>
+            )}
+        </>
+    );
+}
+
+/** I7 with `requester` or `assignee`: the signed-in user or "Agent" (D134). */
+function PartyOfIssue({ issue, role }: { issue: Issue; role: WaitingFor }) {
+    const { busy, error, send } = useIssueWrite();
+    const login = useRouteLoaderData<Me>('root')?.user.login ?? 'You';
+    const party = issue[role];
+    const [chosen, setChosen] = useState(party.kind);
+    const title = 'requester' === role ? 'Requester' : 'Assignee';
+
+    return (
+        <>
+            <Select
+                aria-label={`${title} of the issue`}
+                value={busy ? chosen : party.kind}
+                disabled={busy}
+                onChange={(event) => {
+                    const kind = ISSUE_PARTY_KINDS.find((known) => known === event.target.value) ?? party.kind;
+                    setChosen(kind);
+                    send({ intent: 'update', input: { [role]: kind } });
+                }}
+                data-testid={`issue-${role}`}
+            >
+                {ISSUE_PARTY_KINDS.map((kind) => (
+                    <Select.Option key={kind} value={kind}>
+                        {'agent' === kind ? 'Agent' : login}
                     </Select.Option>
                 ))}
             </Select>
@@ -206,6 +290,7 @@ function LinkList({ links }: { links: IssueLink[] }) {
                             {issue.key} {issue.title}
                         </Link>
                         <IssueStatusLabel status={issue.status} />
+                        <WaitingLabel issue={issue} />
                     </span>
                     <MarkdownBody markdown={note} />
                 </li>

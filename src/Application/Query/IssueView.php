@@ -9,7 +9,9 @@ use App\Domain\Issue\ApprovalMode;
 use App\Domain\Issue\IssueCategory;
 use App\Domain\Issue\IssueClaim;
 use App\Domain\Issue\IssueKey;
+use App\Domain\Issue\IssueParty;
 use App\Domain\Issue\IssueStatus;
+use App\Domain\Issue\WaitingFor;
 
 /**
  * issue.schema.json.
@@ -29,6 +31,9 @@ final readonly class IssueView
         public IssueStatus $status,
         public ApprovalMode $approval,
         public ?IssueClaim $claim,
+        public IssueParty $requester,
+        public IssueParty $assignee,
+        public ?WaitingFor $waitingFor,
         public ?string $problem,
         public ?string $plan,
         public ?string $result,

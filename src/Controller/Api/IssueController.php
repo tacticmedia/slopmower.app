@@ -26,6 +26,7 @@ use App\Domain\Identity\ProjectId;
 use App\Domain\Issue\CommentLabel;
 use App\Domain\Issue\IssueKey;
 use App\Domain\Issue\IssueLinkKind;
+use App\Domain\Issue\IssuePartyKind;
 use App\Domain\Issue\IssueStatus;
 use App\Domain\Repository\CodeAccess;
 use App\Domain\Repository\RepositorySource;
@@ -73,7 +74,7 @@ final class IssueController extends AbstractController
         #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)]
         IssueListQuery $query = new IssueListQuery(),
     ): JsonResponse {
-        return $this->json($this->issues->list($project->getKey(), $query->status, $query->category, $query->limit, $query->cursor));
+        return $this->json($this->issues->list($project->getKey(), $query->status, $query->category, $query->limit, $query->cursor, $query->waitingForKind));
     }
 
     #[Route('/issues/{issueKey}', name: 'get', methods: ['GET'])]
@@ -137,8 +138,14 @@ final class IssueController extends AbstractController
             ->setParameter('project', $project->getId(), ProjectId::class)
             ->setParameter('statuses', $statuses)
             ->getQuery();
-        /** @var list<Issue> $nodes */
-        $nodes = $ofProject('issue', 'IN', [IssueStatus::AwaitingUserInput, IssueStatus::InReview])->getResult();
+        /** @var list<Issue> $nodes A draft is a node only with a dependency, because it is an idea that waits (D134). */
+        $nodes = IssueQuery::whereWaitsFor($entityManager->createQueryBuilder()->select('issue')->from(Issue::class, 'issue'), IssuePartyKind::User)
+            ->andWhere('issue.project = :project')
+            ->andWhere('issue.status <> :draft')
+            ->setParameter('project', $project->getId(), ProjectId::class)
+            ->setParameter('draft', IssueStatus::Draft)
+            ->getQuery()
+            ->getResult();
         $issues = [];
 
         foreach ($dependencies as $link) {
@@ -193,7 +200,7 @@ final class IssueController extends AbstractController
     ): JsonResponse {
         \assert(null !== $input->title && null !== $input->category);
         $actor = $this->currentActor->get();
-        $issue = $this->commands->create($project->getKey(), $input->title, $input->category, $input->problem, $input->status ?? IssueStatus::Draft, $actor, $input->approval);
+        $issue = $this->commands->create($project->getKey(), $input->title, $input->category, $input->problem, $input->status ?? IssueStatus::Draft, $actor, $input->approval, $input->requester, $input->assignee);
 
         return $this->json($this->issues->view($issue, $actor), Response::HTTP_CREATED, ['Location' => $this->generateUrl('api_issue_get', ['issueKey' => $issue->getKey()->toString()])]);
     }
@@ -204,7 +211,7 @@ final class IssueController extends AbstractController
         #[MapRequestPayload(acceptFormat: 'json')] UpdateIssueInput $input,
     ): JsonResponse {
         $actor = $this->currentActor->get();
-        $updated = $this->commands->update($issue->getKey(), $input->title, $input->problem, $input->plan, $input->result, $input->followUps, $actor, $input->session, $input->approval, $input->category);
+        $updated = $this->commands->update($issue->getKey(), $input->title, $input->problem, $input->plan, $input->result, $input->followUps, $actor, $input->session, $input->approval, $input->category, $input->requester, $input->assignee);
 
         return $this->json($this->issues->view($updated, $actor));
     }
@@ -216,7 +223,7 @@ final class IssueController extends AbstractController
     ): JsonResponse {
         \assert(null !== $input->status);
         $actor = $this->currentActor->get();
-        $moved = $this->commands->setStatus($issue->getKey(), $input->status, $input->note, $input->reviewer, $actor, $input->session);
+        $moved = $this->commands->setStatus($issue->getKey(), $input->status, $input->note, $input->reviewer, $actor, $input->session, $input->waitingFor);
 
         return $this->json($this->issues->view($moved, $actor));
     }

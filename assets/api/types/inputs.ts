@@ -1,6 +1,6 @@
 import type { AnchorInput } from './anchor';
 import type { TokenName } from './api-token';
-import type { ApprovalMode, CodeAccess, CommentLabel, CommitSha, DateTime, Delivery, IssueApproval, IssueCategory, IssueStatus, Markdown, ProjectKey, PullRequestUrl, RepoPath, RequestType, Tour, Ulid, UnifiedDiff } from './common';
+import type { ApprovalMode, CodeAccess, CommentLabel, CommitSha, DateTime, Delivery, IssueApproval, IssueCategory, IssuePartyKind, IssueStatus, Markdown, ProjectKey, PullRequestUrl, RepoPath, RequestType, Tour, Ulid, UnifiedDiff, WaitingFor } from './common';
 import type { LocalDirectory } from './repository';
 
 export type ConnectRepositoryInput =
@@ -210,6 +210,10 @@ export type CreateIssueInput = {
     status?: Extract<IssueStatus, 'draft' | 'backlog' | 'todo'> | null;
     /** Only in a `by_issue` project. */
     approval?: IssueApproval | null;
+    /** `user` is the user of the caller. Absent or null: `user`. */
+    requester?: IssuePartyKind | null;
+    /** Absent or null: `agent`. */
+    assignee?: IssuePartyKind | null;
 };
 
 /** Absent or null keeps a field. At least one field is given. */
@@ -222,12 +226,16 @@ export type UpdateIssueInput = {
     followUps?: Markdown | null;
     /** Only in a `by_issue` project. */
     approval?: IssueApproval | null;
+    requester?: IssuePartyKind | null;
+    assignee?: IssuePartyKind | null;
     /** The agent session that writes (D130). A token needs it, and the server ignores it for a user. */
     session?: string | null;
 };
 
 export type IssueStatusInput = {
     status: IssueStatus;
+    /** Absent or null: the default of `status`. The status that the issue has with the other value is a hand-over (D134). */
+    waitingFor?: WaitingFor | null;
     /** wont_do needs one. */
     note?: Markdown | null;
     reviewer?: string | null;

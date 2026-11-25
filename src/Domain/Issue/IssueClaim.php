@@ -17,7 +17,7 @@ final readonly class IssueClaim
     private const string LEASE = 'PT2H';
 
     /** A status change to one of these passes the issue on. */
-    private const array PASSING_STATUSES = [IssueStatus::Backlog, IssueStatus::AwaitingUserInput, IssueStatus::InReview, IssueStatus::Done, IssueStatus::WontDo];
+    private const array PASSING_STATUSES = [IssueStatus::Backlog, IssueStatus::InReview, IssueStatus::Done, IssueStatus::WontDo];
 
     public function __construct(
         public Actor $holder,
@@ -61,9 +61,14 @@ final readonly class IssueClaim
         return null !== $claim && $now < $claim->until ? $claim : null;
     }
 
-    public static function endsWith(IssueStatus $from, IssueStatus $to): bool
+    /**
+     * Of a status change or a hand-over (D134).
+     *
+     * @param IssuePartyKind|null $waitingParty The kind of the party that the issue waits for after it
+     */
+    public static function endsWith(IssueStatus $from, IssueStatus $to, ?IssuePartyKind $waitingParty): bool
     {
-        return $from !== $to && (IssueStatus::InProgress === $from || \in_array($to, self::PASSING_STATUSES, true));
+        return IssuePartyKind::User === $waitingParty || ($from !== $to && (IssueStatus::InProgress === $from || \in_array($to, self::PASSING_STATUSES, true)));
     }
 
     private function isHeldBy(Actor $agent, string $session): bool

@@ -31,21 +31,21 @@ test.describe('Issues', () => {
         );
         issues.add(
             issue(
-                { key: 'BILL-14', title: 'Round the totals of credit notes', status: 'awaiting_user_input', updatedAt: '2026-10-02T09:16:40Z' },
+                { key: 'BILL-14', title: 'Round the totals of credit notes', status: 'todo', waitingFor: 'requester', updatedAt: '2026-10-02T09:16:40Z' },
                 comment('01K7F3F0G9H0J1K2M3N4P5Q6R7', 'question', 'Two choices before the plan.', '2026-10-02T09:16:40Z', [
                     { question: 'Does a credit note round with the rule of today?', detail: 'Its invoice rounded each line. `TaxRounding::perInvoice()` rounds once.', answer: null },
                     { question: 'Which invoices get a corrected credit note?', detail: null, answer: null },
                 ]),
             ),
         );
-        issues.add(issue({ key: 'BILL-13', title: 'Show the rounding mode on the invoice PDF', status: 'draft', updatedAt: '2026-10-02T09:04:18Z' }));
+        issues.add(issue({ key: 'BILL-13', title: 'Show the rounding mode on the invoice PDF', status: 'draft', waitingFor: 'requester', updatedAt: '2026-10-02T09:04:18Z' }));
         issues.add(
             issue(
-                { key: 'BILL-9', title: 'Round shipping totals per line', status: 'done', updatedAt: '2026-10-02T09:03:30Z' },
+                { key: 'BILL-9', title: 'Round shipping totals per line', status: 'done', waitingFor: null, updatedAt: '2026-10-02T09:03:30Z' },
                 comment('01K7F3A2B3C4D5E6F7G8H9J0K1', 'papercut', '`tests/Billing` needs the `billing_test` database, and `README.md` does not name it.', '2026-10-02T09:02:10Z'),
             ),
         );
-        issues.add(issue({ key: 'BILL-15', title: 'Name the rounding mode in the README', status: 'in_review', updatedAt: '2026-10-02T09:18:22Z' }));
+        issues.add(issue({ key: 'BILL-15', title: 'Name the rounding mode in the README', status: 'in_review', waitingFor: 'requester', updatedAt: '2026-10-02T09:18:22Z' }));
         issues.commits.set('BILL-12', issueCommits());
         issues.block('BILL-13', 'BILL-12');
         issues.block('BILL-14', 'BILL-12');

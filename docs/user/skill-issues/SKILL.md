@@ -17,11 +17,11 @@ the `slopmower` MCP server.
 | Tool | Parameters | Use it to |
 |---|---|---|
 | `list_projects` | `cursor?`, `limit?` | Find the project that owns this repository, with its `approvalMode` and `approvalGuidelines` |
-| `list_issues` | `project`, `status?`, `category?`, `cursor?`, `limit?` | Look through the issues of the project, newest change first |
+| `list_issues` | `project`, `status?`, `category?`, `waitingForKind?`, `cursor?`, `limit?` | Look through the issues of the project, newest change first, or those that wait for an agent |
 | `get_issue` | `issue`, `history?` | Read one issue with its sections, its links, and its thread: the current content, or the full log with `history` |
-| `create_issue` | `project`, `title`, `category`, `problem?`, `status?`, `approval?` | Start an issue, `draft` by default |
-| `update_issue` | `issue`, `session`, `title?`, `category?`, `problem?`, `plan?`, `result?`, `followUps?`, `approval?` | Write the title, the category, or a section, or raise the approval to `user` |
-| `set_issue_status` | `issue`, `session`, `status`, `note?`, `reviewer?` | Move the issue to another status |
+| `create_issue` | `project`, `title`, `category`, `problem?`, `status?`, `approval?`, `requester?`, `assignee?` | Start an issue, `draft` by default |
+| `update_issue` | `issue`, `session`, `title?`, `category?`, `problem?`, `plan?`, `result?`, `followUps?`, `approval?`, `requester?`, `assignee?` | Write the title, the category, or a section, raise the approval to `user`, or change a party |
+| `set_issue_status` | `issue`, `session`, `status`, `waitingFor?`, `note?`, `reviewer?` | Move the issue to another status, or hand it to the other party |
 | `comment_on_issue` | `issue`, `session`, `body`, `label?`, `replaces?`, `questions?` | Record a step or a decision in the thread, with its label, ask the user with `questions`, or replace a comment that no longer holds |
 | `list_comments` | `project`, `label?`, `cursor?`, `limit?` | Read the comments of the project across its issues, all or those of one label |
 | `link_issues` | `issue`, `target`, `note`, `kind?` | Link two issues, with the reason, or say that `issue` waits for `target` |
@@ -56,9 +56,9 @@ write names its session, and one session at a time holds an issue.
   agent that started it: put the name into its prompt.
 - Your first write on an issue takes its claim. Each later write and each
   comment renews it. The claim ends 2 hours after your newest write.
-- A move to `backlog`, `awaiting_user_input`, `in_review`, `done`, or
-  `wont_do`, or out of `in_progress`, ends the claim. To give up an issue in
-  work, set `todo` with a note that says why.
+- A move to `backlog`, `in_review`, `done`, or `wont_do`, a move out of
+  `in_progress`, and a hand-over to a user end the claim. To give up an issue
+  in work, set `todo` with a note that says why.
 - `claim` of an issue in `list_issues` and `get_issue` names the session that
   holds it. Skip an issue whose `claim` names another session.
 - A write on an issue that another session holds is refused with
@@ -141,8 +141,9 @@ comment.
   of your question comment.
 - The server sets the labels `question`, `answer`, and `dismissal`. It
   refuses them on a comment without `questions`.
-- A question does not change the status. Set `awaiting_user_input` when the
-  work waits for the answers. Take the cursor of section 8 before you ask.
+- A question does not change the status. Hand the issue to the requester
+  when the work waits for the answers, as the section "Who has the next step"
+  says. Take the cursor of section 8 before you ask.
 
 ## Dependencies
 
@@ -178,9 +179,39 @@ In a `by_issue` project, choose the `approval` of each issue when you call
 - Say in one `decision` comment which guideline gives `self`.
 - An issue with `self` still has `problem`, `plan`, and `result`.
 - Later you can change `approval` only to `user`. Do it when the work turns
-  out to need the user. In `in_progress`, set `awaiting_user_input` first.
+  out to need the user. In `in_progress`, set `todo` with `waitingFor:
+  requester` first. When the agent is the requester, send `requester: user`
+  in the same `update_issue`, because the approval `user` needs a user as the
+  requester.
 
 Outside `by_issue`, do not give `approval`.
+
+## Who has the next step
+
+Each issue has a `requester`, who asks for the work, reviews it, and accepts
+it, and an `assignee`, who does it. Each is `user`, a user with a `name`, or
+`agent`, any agent. `waitingFor` of an issue names the role whose party has
+the next step: `requester` or `assignee`.
+
+- By default the user of your token is the requester and an agent is the
+  assignee. Set `requester: agent` only for work that no user asked for, on
+  an issue whose `approval` is not `user`. The server refuses it with the
+  approval `user`.
+- A status takes its default party: the requester in `draft` and
+  `in_review`, the assignee in `todo`, `in_progress`, and `approved`. In
+  `backlog`, `done`, and `wont_do` nobody waits, and `waitingFor` is null.
+- Work on an issue that waits for an agent: call `list_issues` with
+  `waitingForKind: agent`. Leave an issue that waits for a user.
+- When the user must decide, for example on your questions or on a plan in
+  the approval `user`, hand the issue to the requester: call
+  `set_issue_status` with the status that the issue has and `waitingFor:
+  requester`. `allowedStatuses` does not list that status, and the hand-over
+  is allowed. It ends your claim. In `in_progress`, set `todo` with
+  `waitingFor: requester`, because the work stops.
+- Take an issue back from a user only when the user answered in the session.
+  Record the answer as a `decision` first, then call `set_issue_status` with
+  the status that the issue has and `waitingFor: assignee`.
+- The approval of a plan by the user hands the issue to the assignee.
 
 ## 1. Find the project
 
@@ -238,9 +269,9 @@ parameter that you leave out stays as it is.
 | `backlog` | The problem is complete, and the work waits |
 | `todo` | The issue is ready for work |
 | `in_progress` | You work on it |
-| `awaiting_user_input` | The user must decide something |
-| `in_review` | The work is done, and the result is written |
-| `done` | Delivered |
+| `in_review` | The work is ready and not merged, and the result is written. The requester reviews it |
+| `approved` | The requester accepted the work. You merge it |
+| `done` | The work is on the default branch |
 | `wont_do` | Not done, with a note that says why |
 
 1. Call `create_issue` with a title, the category, and `problem` when you
@@ -253,9 +284,9 @@ parameter that you leave out stays as it is.
    - `agent_review`: another agent reviews it, as section 5 describes.
    - `user`: only the user approves it, with the button "Approve plan". When
      the plan leaves a choice to the user, ask it as `questions`, as the
-     section "Questions" says. Then call `set_issue_status` with
-     `awaiting_user_input`, tell the user, and stop the work on this issue.
-     Take the cursor of section 8 before these writes, and wait as it says.
+     section "Questions" says. Then hand the issue to the requester, tell
+     the user, and stop the work on this issue. Take the cursor of section 8
+     before these writes, and wait as it says.
 5. Call `set_issue_status` with `in_progress` before you edit. The issue is
    then yours, as the section "Session and claims" says.
 6. Do the work. Record each important step or decision with
@@ -263,28 +294,33 @@ parameter that you leave out stays as it is.
    it. Write each deviation from the plan into `result`.
 7. Commit with the issue key in the commit subject, for example
    `fix: SM-12 round invoice totals once`.
-8. Write `result` with `update_issue`: what you did, the commit SHAs, and each
-   deviation from the plan. Then call `set_issue_status` with `in_review`.
-9. End the issue as `approval` allows:
-   - `self`: call `set_issue_status` with `done`.
+8. Write `result` with `update_issue`: what you did, the branch and its
+   commits, and each deviation from the plan. Then call `set_issue_status`
+   with `in_review`. The issue then waits for the requester.
+9. The work is accepted as `approval` allows:
+   - `self`: call `set_issue_status` with `approved`.
    - `agent_review`: another agent or subagent reviews the result. Then call
-     `set_issue_status` with `done`, its name as `reviewer`, and its findings
-     as `note`.
-   - `user`: leave the issue in `in_review` and tell the user. The server
-     refuses `done` and `wont_do` from an agent.
+     `set_issue_status` with `approved`, its name as `reviewer`, and its
+     findings as `note`.
+   - `user`: leave the issue in `in_review` and tell the user. Only the user
+     sets `approved`, and the server refuses `wont_do` from an agent.
+10. After `approved`, merge the work into the default branch, write the
+    commit on it into `result`, and call `set_issue_status` with `done`. The
+    server allows `done` from `approved` in every approval mode.
 
 `wont_do` needs a `note` that says why. In `agent_review` it also needs a
 `reviewer`.
 
-`allowedStatuses` of each answer lists the statuses that you can set now. When
-a call is refused, the error names the field that breaks a rule. Fix the
-issue, then call again.
+`allowedStatuses` of each answer lists the other statuses that you can set
+now. When a call is refused, the error names the field that breaks a rule.
+Fix the issue, then call again.
 
-After the user changes `plan` of an issue in `in_progress` or `in_review`,
-its approval is gone. In `user` and `agent_review`, the server then refuses
-each `update_issue` and each move to `in_review` or `done`, until the plan is
-approved again as step 4 says. A comment, a link, and a move to `draft`,
-`backlog`, `todo`, or `awaiting_user_input` still work.
+After the user changes `plan` of an issue in `in_progress`, `in_review`, or
+`approved`, its approval is gone. In `user` and `agent_review`, the server
+then refuses each `update_issue` and each move to `in_review`, `approved`, or
+`done`, until the plan is approved again as step 4 says. A comment, a link,
+and a move to `draft`, `backlog`, or `todo` still work: set `todo` with
+`waitingFor: requester` to ask for the approval.
 
 ## 5. Agent review
 
@@ -328,7 +364,7 @@ issue again.
 
 1. Take the cursor before the write that starts the wait: call
    `get_issue_updates` with `project` and no cursor, and keep its `cursor`.
-   Then ask or set `awaiting_user_input`. Your own write does not wake you,
+   Then ask or hand the issue to the requester. Your own write does not wake you,
    because your entries are left out.
 2. Call `get_issue_updates` again with your last `cursor`. Each item of `entries` is a new
    entry of an issue of the project, with the summary of that issue. The
@@ -396,7 +432,7 @@ A tool error is a result with `isError: true`. Its text is JSON:
 |---|---|---|
 | `unauthorized` | The token is missing, wrong, revoked, or expired. It arrives as HTTP 401 from the server, not as a tool result. | Tell the user to check `SLOPMOWER_TOKEN`. Go on as section 7 says. |
 | `not_found` | No such project, issue, or entry of `replaces` for this token. A token for one repository sees only the project of that repository. | Check the key or the `id`, then list again |
-| `invalid_input` | The input failed a check, or the write breaks a rule. `details.violations[0].field` names what is wrong: `problem`, `plan`, or `result` is missing, or the plan has no approval; `status` is the status that the issue has, or one that only the user sets; `note` or `reviewer` is missing; `planRevision` is not the newest; `issue` is in `done` or `wont_do`, or only the user approves its plan; `approval` is given outside `by_issue`, or lowered by an agent; `target` is the issue itself; `replaces` is no comment of the issue, is replaced already, or is a comment of the user; `label` is `question`, `answer`, or `dismissal` on a comment without `questions`; `questions.<index>` breaks a rule of a question; `session` names another session than the one that holds the issue. | On `session`, stop the work on that issue. Otherwise read the message, fix the issue or the input, and call again |
+| `invalid_input` | The input failed a check, or the write breaks a rule. `details.violations[0].field` names what is wrong: `problem`, `plan`, or `result` is missing, or the plan has no approval; `status` is the status and the `waitingFor` that the issue has, or a status that only the user sets; `waitingFor` is given in `backlog`, `done`, or `wont_do`; `requester` is `agent` with the approval `user`; `note` or `reviewer` is missing; `planRevision` is not the newest; `issue` is in `done` or `wont_do`, or only the user approves its plan; `approval` is given outside `by_issue`, or lowered by an agent; `target` is the issue itself; `replaces` is no comment of the issue, is replaced already, or is a comment of the user; `label` is `question`, `answer`, or `dismissal` on a comment without `questions`; `questions.<index>` breaks a rule of a question; `session` names another session than the one that holds the issue. | On `session`, stop the work on that issue. Otherwise read the message, fix the issue or the input, and call again |
 | `rate_limited` | Too many calls in a short time | Wait `details.retryAfterSeconds` seconds, then retry |
 | `internal_error` | An unexpected server failure | Try once more, then go on as section 7 says |
 

@@ -897,6 +897,28 @@
             }
           ],
           "description": "Only in a project with the approval mode by_issue. Absent or null: user."
+        },
+        "requester": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/IssuePartyKind"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "user: the user of the caller, the signed-in user or the user of the token. Absent or null: user. With the approval user it is a user (D134)."
+        },
+        "assignee": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/IssuePartyKind"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "user: the user of the caller. Absent or null: agent."
         }
       }
     },
@@ -989,6 +1011,28 @@
           ],
           "description": "Only in a project with the approval mode by_issue. Absent or null keeps it. An agent changes it only to user."
         },
+        "requester": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/IssuePartyKind"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "user: the user of the caller. Absent or null keeps it. The change writes no entry (D134)."
+        },
+        "assignee": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/IssuePartyKind"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "user: the user of the caller. Absent or null keeps it. The change writes no entry."
+        },
         "session": {
           "anyOf": [
             {
@@ -1009,6 +1053,17 @@
         "status": {
           "$ref": "common.schema.json#/$defs/IssueStatus"
         },
+        "waitingFor": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/WaitingFor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The party that has the next step after the change (D134). Absent or null: the default of status, draft and in_review requester, todo, in_progress, and approved assignee; in the status that the issue has, the waitingFor that it has. The status that the issue has with the other waitingFor is a hand-over. backlog, done, and wont_do take none."
+        },
         "note": {
           "anyOf": [
             {
@@ -1020,7 +1075,7 @@
               "type": "null"
             }
           ],
-          "description": "Markdown: why, for the thread. wont_do needs one, and so do done and wont_do of an agent in the approval mode agent_review."
+          "description": "Markdown: why, for the thread. wont_do needs one, and so do approved, wont_do, and done from another status than approved, set by an agent in the approval mode agent_review."
         },
         "reviewer": {
           "anyOf": [
@@ -1033,7 +1088,7 @@
               "type": "null"
             }
           ],
-          "description": "The name of the agent that reviewed the result. done and wont_do of an agent need one in the approval mode agent_review."
+          "description": "The name of the agent that reviewed the result. approved, wont_do, and done from another status than approved, set by an agent, need one in the approval mode agent_review."
         },
         "session": {
           "anyOf": [

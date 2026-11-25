@@ -18,6 +18,17 @@
         "since": "2026-10-02T09:05:20Z",
         "until": "2026-10-02T11:20:05Z"
       },
+      "requester": {
+        "kind": "user",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "name": "janklan"
+      },
+      "assignee": {
+        "kind": "agent",
+        "userId": null,
+        "name": null
+      },
+      "waitingFor": "assignee",
       "updatedAt": "2026-10-02T09:20:05Z"
     },
     {
@@ -27,15 +38,37 @@
       "status": "draft",
       "approval": "agent_review",
       "claim": null,
+      "requester": {
+        "kind": "user",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "name": "janklan"
+      },
+      "assignee": {
+        "kind": "agent",
+        "userId": null,
+        "name": null
+      },
+      "waitingFor": "requester",
       "updatedAt": "2026-10-02T09:04:18Z"
     },
     {
       "key": "BILL-14",
       "title": "Round the totals of credit notes",
       "category": "change",
-      "status": "awaiting_user_input",
+      "status": "todo",
       "approval": "agent_review",
       "claim": null,
+      "requester": {
+        "kind": "user",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "name": "janklan"
+      },
+      "assignee": {
+        "kind": "agent",
+        "userId": null,
+        "name": null
+      },
+      "waitingFor": "requester",
       "updatedAt": "2026-10-02T09:16:40Z"
     },
     {
@@ -45,6 +78,17 @@
       "status": "in_review",
       "approval": "agent_review",
       "claim": null,
+      "requester": {
+        "kind": "user",
+        "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+        "name": "janklan"
+      },
+      "assignee": {
+        "kind": "agent",
+        "userId": null,
+        "name": null
+      },
+      "waitingFor": "requester",
       "updatedAt": "2026-10-02T09:18:22Z"
     }
   ],

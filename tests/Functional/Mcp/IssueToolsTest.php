@@ -45,6 +45,7 @@ final class IssueToolsTest extends WebTestCase
     private const string AGENT_NAME = 'claude-code laptop';
     private const string GUIDELINES = "- A change of an API: `user`.\n- A fix of a typo: `self`.";
     private const string SESSION = 'billing-3f9a';
+    private const array AGENT_PARTY = ['kind' => 'agent', 'userId' => null, 'name' => null];
 
     private KernelBrowser $client;
 
@@ -76,7 +77,8 @@ final class IssueToolsTest extends WebTestCase
         self::assertSame(['Round invoice totals once', 'draft', 'self', null, null, 'agent', self::AGENT_NAME], [$first['title'], $first['status'], $first['approval'], $first['problem'], $first['planRevision'], $first['createdBy']['kind'], $first['createdBy']['agentName']]);
         self::assertSame(['key' => 'SM', 'name' => 'Project SM', 'approvalMode' => 'self'], $first['project']);
         self::assertSame(['SM-2', 'SM-1'], array_column($page['items'], 'key'), 'Newest first.');
-        self::assertSame(['key' => 'SM-2', 'title' => 'Show the rounding mode', 'category' => 'change', 'status' => 'todo', 'approval' => 'self', 'claim' => null, 'updatedAt' => $second['updatedAt']], $todo['items'][0]);
+        self::assertSame(['key' => 'SM-2', 'title' => 'Show the rounding mode', 'category' => 'change', 'status' => 'todo', 'approval' => 'self', 'claim' => null, 'requester' => $this->userParty(), 'assignee' => self::AGENT_PARTY, 'waitingFor' => 'assignee', 'updatedAt' => $second['updatedAt']], $todo['items'][0]);
+        self::assertSame([$this->userParty(), self::AGENT_PARTY, 'requester'], [$first['requester'], $first['assignee'], $first['waitingFor']], 'The user of the token requests, an agent works, and a draft waits for the requester.');
         self::assertCount(1, $todo['items']);
         self::assertSame($second, $detail['issue']);
         self::assertSame([], $detail['links']);
@@ -134,6 +136,57 @@ final class IssueToolsTest extends WebTestCase
 
         self::assertSame(['SM-3', 'SM-1'], array_column($bugs['items'], 'key'));
         self::assertSame('cursor', $otherCategory['field']);
+    }
+
+    #[TestDox('set_issue_status gives each status its default party, a hand-over is an entry from a status to itself, and backlog takes no waitingFor')]
+    public function testWaitingForOfEachStatusAndAHandOver(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change', 'problem' => self::PROBLEM]);
+        $this->call('update_issue', ['issue' => 'SM-1', 'plan' => self::PLAN, 'result' => self::RESULT]);
+        $issue = ['issue' => 'SM-1'];
+
+        $waiting = array_map(fn (string $status): array => [$status, $this->call('set_issue_status', $issue + ['status' => $status])['waitingFor']], ['backlog', 'todo', 'in_progress', 'in_review', 'approved', 'draft']);
+        $refused = $this->refusal('set_issue_status', $issue + ['status' => 'backlog', 'waitingFor' => 'requester']);
+        $handedOver = $this->call('set_issue_status', $issue + ['status' => 'draft', 'waitingFor' => 'assignee']);
+        $entry = array_last($this->call('get_issue', $issue)['thread']);
+
+        self::assertSame([['backlog', null], ['todo', 'assignee'], ['in_progress', 'assignee'], ['in_review', 'requester'], ['approved', 'assignee'], ['draft', 'requester']], $waiting);
+        self::assertSame('waitingFor', $refused['field']);
+        self::assertSame(['draft', 'assignee'], [$handedOver['status'], $handedOver['waitingFor']]);
+        self::assertSame(['status_changed', 'draft', 'draft', 'assignee'], [$entry['kind'] ?? null, $entry['from'] ?? null, $entry['to'] ?? null, $entry['waitingFor'] ?? null]);
+        self::assertSame('status', $this->refusal('set_issue_status', $issue + ['status' => 'draft', 'waitingFor' => 'assignee'])['field'], 'The party that the issue has.');
+    }
+
+    #[TestDox('update_issue changes the assignee and the waiting party follows, and list_issues filters by waitingForKind with its own cursor')]
+    public function testAssigneeAndTheWaitingFilter(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        foreach (['Round invoice totals once', 'Show the rounding mode', 'Round the shipping totals twice'] as $title) {
+            $this->call('create_issue', ['project' => 'SM', 'title' => $title, 'category' => 'change', 'problem' => self::PROBLEM, 'status' => 'todo']);
+        }
+
+        $reassigned = $this->call('update_issue', ['issue' => 'SM-2', 'assignee' => 'user']);
+        $keys = fn (string $kind): array => array_column($this->call('list_issues', ['project' => 'SM', 'waitingForKind' => $kind])['items'], 'key');
+        $firstPage = $this->call('list_issues', ['project' => 'SM', 'waitingForKind' => 'agent', 'limit' => 1]);
+        $otherKind = $this->refusal('list_issues', ['project' => 'SM', 'waitingForKind' => 'user', 'limit' => 1, 'cursor' => $firstPage['nextCursor']]);
+
+        self::assertSame([$this->userParty(), 'assignee'], [$reassigned['assignee'], $reassigned['waitingFor']]);
+        self::assertSame([['SM-2'], ['SM-3', 'SM-1']], [$keys('user'), $keys('agent')]);
+        self::assertSame('cursor', $otherKind['field']);
+    }
+
+    #[TestDox('The agent as the requester is refused with the approval user, and passes on a by_issue issue with self')]
+    public function testAgentAsTheRequester(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM', ApprovalMode::ByIssue);
+        $request = ['project' => 'SM', 'title' => 'Bump the patch versions', 'category' => 'change', 'requester' => 'agent'];
+
+        $refused = $this->refusal('create_issue', $request);
+        $created = $this->call('create_issue', $request + ['approval' => 'self']);
+
+        self::assertSame('requester', $refused['field']);
+        self::assertSame([self::AGENT_PARTY, 'requester'], [$created['requester'], $created['waitingFor']]);
     }
 
     #[TestDox('An issue stored without a category, as a data dump from before the column restores it, reads as change')]
@@ -197,7 +250,7 @@ final class IssueToolsTest extends WebTestCase
         if (ApprovalMode::User === $mode) {
             self::assertSame('status', $this->refusal('set_issue_status', $issue + ['status' => 'done'] + $review)['field']);
             self::assertSame('status', $this->refusal('set_issue_status', $duplicate + $review)['field']);
-            self::assertSame(['draft', 'backlog', 'todo', 'in_progress', 'awaiting_user_input'], $this->call('get_issue', $issue)['issue']['allowedStatuses']);
+            self::assertSame(['draft', 'backlog', 'todo', 'in_progress'], $this->call('get_issue', $issue)['issue']['allowedStatuses']);
 
             return;
         }
@@ -379,7 +432,7 @@ final class IssueToolsTest extends WebTestCase
 
         self::assertSame([['SM-2', 'decision', 'Keep `round()` as deprecated.'], ['SM-1', 'decision', 'Round once per invoice.']], array_map($row, $decisions['items']));
         self::assertNull($decisions['nextCursor']);
-        self::assertSame(['key' => 'SM-2', 'title' => $second['title'], 'category' => 'change', 'status' => 'draft', 'approval' => 'self', 'claim' => null, 'updatedAt' => $commented['updatedAt']], $decisions['items'][0]['issue']);
+        self::assertSame(['key' => 'SM-2', 'title' => $second['title'], 'category' => 'change', 'status' => 'draft', 'approval' => 'self', 'claim' => null, 'requester' => $this->userParty(), 'assignee' => self::AGENT_PARTY, 'waitingFor' => 'requester', 'updatedAt' => $commented['updatedAt']], $decisions['items'][0]['issue']);
         self::assertSame(self::AGENT_NAME, $decisions['items'][0]['actor']['agentName']);
         self::assertSame([['SM-2', 'decision'], ['SM-1', 'comment'], ['SM-1', 'decision']], array_map(static fn (array $comment): array => [$comment['issue']['key'], $comment['label']], $all['items']), 'No section_changed entry, and no comment of DOC.');
         self::assertSame(['Keep `round()` as deprecated.', 'The test is next.'], [$firstPage['items'][0]['body'], $secondPage['items'][0]['body']]);
@@ -628,6 +681,14 @@ final class IssueToolsTest extends WebTestCase
     private static function withSession(string $tool, array $arguments): array
     {
         return \in_array($tool, ['update_issue', 'set_issue_status', 'approve_plan', 'comment_on_issue'], true) ? $arguments + ['session' => self::SESSION] : $arguments;
+    }
+
+    /**
+     * @return array{kind: string, userId: string, name: string} The user of the token as an IssueParty
+     */
+    private function userParty(): array
+    {
+        return ['kind' => 'user', 'userId' => $this->user->getId()->toString(), 'name' => $this->user->getLogin()];
     }
 
     /**

@@ -109,7 +109,7 @@ final class IssueClaimsTest extends WebTestCase
         self::assertSame([self::OTHER, '2026-11-25T11:00:00Z', '2026-11-25T13:00:00Z'], [$taken['session'], $taken['since'], $taken['until']]);
     }
 
-    #[TestDox('A status change ends the claim when it goes to backlog, awaiting_user_input, in_review, done, or wont_do, or leaves in_progress')]
+    #[TestDox('A status change ends the claim when it goes to backlog, in_review, done, or wont_do, or leaves in_progress')]
     #[DataProvider('passingMoves')]
     public function testStatusChangeThatPassesTheIssueOnEndsTheClaim(string $status, bool $fromInProgress): void
     {
@@ -128,11 +128,21 @@ final class IssueClaimsTest extends WebTestCase
     public static function passingMoves(): iterable
     {
         yield 'backlog' => ['backlog', false];
-        yield 'awaiting_user_input' => ['awaiting_user_input', false];
         yield 'in_review' => ['in_review', true];
         yield 'done' => ['done', true];
         yield 'wont_do' => ['wont_do', false];
         yield 'todo from in_progress' => ['todo', true];
+    }
+
+    #[TestDox('A hand-over to the requester ends the claim, and another session then takes the issue')]
+    public function testHandOverToTheRequesterEndsTheClaim(): void
+    {
+        $this->call('update_issue', self::of(self::HOLDER) + ['plan' => self::PLAN]);
+        $handedOver = $this->call('set_issue_status', self::of(self::HOLDER) + ['status' => 'todo', 'waitingFor' => 'requester']);
+        $taken = $this->call('set_issue_status', self::of(self::OTHER) + ['status' => 'todo', 'waitingFor' => 'assignee']);
+
+        self::assertSame([null, 'requester'], [$handedOver['claim'], $handedOver['waitingFor']]);
+        self::assertSame([self::OTHER, 'assignee'], [$taken['claim']['session'] ?? null, $taken['waitingFor']], 'A hand-over to the agent keeps the claim of its write.');
     }
 
     #[TestDox('A refused write takes no claim')]
@@ -163,7 +173,7 @@ final class IssueClaimsTest extends WebTestCase
         self::assertSame(self::OTHER, $this->call('set_issue_status', self::of(self::OTHER) + ['status' => 'in_progress'])['claim']['session']);
     }
 
-    #[TestDox('I3, I7, and I8 refuse a token without session, and a status change of the user that passes the issue on ends the claim')]
+    #[TestDox('I3, I7, and I8 refuse a token without session, and a hand-over of the user to the user ends the claim')]
     public function testRestWritesOfTokenAndUser(): void
     {
         $withoutSession = array_map(fn (array $call): array => self::assertApiError(self::bearerRequest($this->client, $this->secret, ...$call), 422, 'invalid_input')['details']['violations'] ?? [], [
@@ -172,7 +182,7 @@ final class IssueClaimsTest extends WebTestCase
             ['POST', '/api/v1/issues/SM-1/status', ['status' => 'backlog']],
         ]);
         $taken = self::assertApiResponse(self::bearerRequest($this->client, $this->secret, 'PATCH', '/api/v1/issues/SM-1', ['plan' => self::PLAN, 'session' => self::HOLDER]), 200, self::ISSUE);
-        $passedOn = self::assertApiResponse(self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/status', ['status' => 'awaiting_user_input']), 200, self::ISSUE);
+        $passedOn = self::assertApiResponse(self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/status', ['status' => 'todo', 'waitingFor' => 'requester']), 200, self::ISSUE);
 
         self::assertSame(array_fill(0, 3, [['field' => 'session', 'message' => 'A token names its agent session in each write.']]), $withoutSession);
         self::assertSame(self::HOLDER, $taken['claim']['session']);

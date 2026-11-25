@@ -10,8 +10,8 @@ enum IssueStatus: string
     case Backlog = 'backlog';
     case Todo = 'todo';
     case InProgress = 'in_progress';
-    case AwaitingUserInput = 'awaiting_user_input';
     case InReview = 'in_review';
+    case Approved = 'approved';
     case Done = 'done';
     case WontDo = 'wont_do';
 

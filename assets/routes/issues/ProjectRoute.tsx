@@ -6,6 +6,7 @@ import headerStyles from '../../requests/RequestListHeader.module.css';
 import rowStyles from '../../requests/RequestRow.module.css';
 import listStyles from '../requests/RequestList.module.css';
 import { BugLabel, ISSUE_STATUS_TEXT, IssueStatusLabel, NoApprovalLabel } from './IssueStatusLabel';
+import { WaitingLabel } from './WaitingLabel';
 import styles from './Issues.module.css';
 import { categoryFilter, type ProjectData, statusFilter } from './issueData';
 import { APPROVAL_MODE_NAMES } from './ApprovalModeField';
@@ -120,6 +121,7 @@ export function ProjectRoute() {
                                         </Link>
                                         <span className={rowStyles.labels}>
                                             <IssueStatusLabel status={issue.status} />
+                                            <WaitingLabel issue={issue} />
                                             <BugLabel category={issue.category} />
                                             <NoApprovalLabel approval={issue.approval} />
                                         </span>

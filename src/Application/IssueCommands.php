@@ -19,9 +19,13 @@ use App\Domain\Issue\IssueClaim;
 use App\Domain\Issue\IssueEntryKind;
 use App\Domain\Issue\IssueKey;
 use App\Domain\Issue\IssueLinkKind;
+use App\Domain\Issue\IssueParty;
+use App\Domain\Issue\IssuePartyKind;
 use App\Domain\Issue\IssueRules;
 use App\Domain\Issue\IssueSection;
+use App\Domain\Issue\IssueState;
 use App\Domain\Issue\IssueStatus;
+use App\Domain\Issue\WaitingFor;
 use App\Domain\Request\CommentQuestion;
 use App\Domain\Request\RequestDecider;
 use App\Entity\Issue;
@@ -52,15 +56,26 @@ final class IssueCommands
     }
 
     /**
-     * The number comes from the project under its row lock.
+     * The number comes from the project under its row lock. By default the user of $actor requests, and an agent works
+     * (D134).
      *
      * @throws NotFound|InvalidInput
      */
-    public function create(string $projectKey, string $title, IssueCategory $category, ?string $problem, IssueStatus $status, Actor $actor, ?ApprovalMode $approval = null): Issue
+    public function create(string $projectKey, string $title, IssueCategory $category, ?string $problem, IssueStatus $status, Actor $actor, ?ApprovalMode $approval = null, ?IssuePartyKind $requester = null, ?IssuePartyKind $assignee = null): Issue
     {
-        return $this->transactional(function (\DateTimeImmutable $now) use ($projectKey, $title, $category, $problem, $status, $actor, $approval): array {
+        return $this->transactional(function (\DateTimeImmutable $now) use ($projectKey, $title, $category, $problem, $status, $actor, $approval, $requester, $assignee): array {
             $project = $this->issues->project($projectKey, LockMode::PESSIMISTIC_WRITE);
-            $issue = new Issue($project, $project->takeIssueNumber(), self::title($title), $category, $status, $actor, $now);
+            $issue = new Issue(
+                $project,
+                $project->takeIssueNumber(),
+                self::title($title),
+                $category,
+                $status,
+                IssueParty::forCaller($requester ?? IssuePartyKind::User, $actor),
+                IssueParty::forCaller($assignee ?? IssuePartyKind::Agent, $actor),
+                $actor,
+                $now,
+            );
             $this->entityManager->persist($issue);
             self::changeApproval($issue, $approval, $actor, $now, isNew: true);
 
@@ -76,20 +91,31 @@ final class IssueCommands
     }
 
     /**
-     * Null leaves a field as it is. A value that equals the stored one changes nothing. A category writes no entry (D133).
+     * Null leaves a field as it is. A value that equals the stored one changes nothing. A category and a party write no
+     * entry (D133, D134).
      *
      * @throws NotFound|InvalidInput
      */
-    public function update(IssueKey $key, ?string $title, ?string $problem, ?string $plan, ?string $result, ?string $followUps, Actor $actor, ?string $session, ?ApprovalMode $approval = null, ?IssueCategory $category = null): Issue
+    public function update(IssueKey $key, ?string $title, ?string $problem, ?string $plan, ?string $result, ?string $followUps, Actor $actor, ?string $session, ?ApprovalMode $approval = null, ?IssueCategory $category = null, ?IssuePartyKind $requester = null, ?IssuePartyKind $assignee = null): Issue
     {
         $texts = array_filter(['problem' => $problem, 'plan' => $plan, 'result' => $result, 'followUps' => $followUps], static fn (?string $text): bool => null !== $text);
 
-        return $this->write($key, $actor, $session, function (Issue $issue, \DateTimeImmutable $now) use ($title, $texts, $actor, $approval, $category): void {
-            if (null === $title && [] === $texts && null === $approval && null === $category) {
+        return $this->write($key, $actor, $session, function (Issue $issue, \DateTimeImmutable $now) use ($title, $texts, $actor, $approval, $category, $requester, $assignee): void {
+            if (null === $title && [] === $texts && null === $approval && null === $category && null === $requester && null === $assignee) {
                 throw InvalidInput::field('', 'Give at least one field to change.');
             }
 
             self::changeApproval($issue, $approval, $actor, $now, isNew: false);
+            $newRequester = null === $requester ? null : IssueParty::forCaller($requester, $actor);
+            $newAssignee = null === $assignee ? null : IssueParty::forCaller($assignee, $actor);
+
+            if (null !== $newRequester && !$newRequester->equals($issue->getRequester())) {
+                $issue->setRequester($newRequester, $now);
+            }
+
+            if (null !== $newAssignee && !$newAssignee->equals($issue->getAssignee())) {
+                $issue->setAssignee($newAssignee, $now);
+            }
 
             if (null !== $category) {
                 $issue->setCategory($category);
@@ -108,35 +134,30 @@ final class IssueCommands
     }
 
     /**
-     * A move that passes the issue on ends its claim, also a move of a user. A move to wont_do dismisses each open question
+     * Without $waitingFor, a new status takes its default party and the status that the issue has keeps its party. The
+     * status that the issue has with another party is a hand-over (D134). A move to wont_do dismisses each open question
      * comment (D124).
      *
      * @throws NotFound|InvalidInput
      */
-    public function setStatus(IssueKey $key, IssueStatus $status, ?string $note, ?string $reviewer, Actor $actor, ?string $session): Issue
+    public function setStatus(IssueKey $key, IssueStatus $status, ?string $note, ?string $reviewer, Actor $actor, ?string $session, ?WaitingFor $waitingFor = null): Issue
     {
-        return $this->write($key, $actor, $session, function (Issue $issue, \DateTimeImmutable $now) use ($status, $note, $reviewer, $actor): void {
-            if ($status !== $issue->getStatus()) {
-                $this->entityManager->persist(IssueEntry::statusChanged($issue, $actor, $issue->getStatus(), $status, $note, $reviewer, $now));
+        return $this->write($key, $actor, $session, function (Issue $issue, \DateTimeImmutable $now, IssueState $before) use ($status, $waitingFor, $note, $reviewer, $actor): void {
+            $after = $before->withStatus($status, $waitingFor);
+            $this->move($issue, $actor, $after->status, $after->waitingFor, $note, $reviewer, $now);
 
-                if (IssueStatus::WontDo === $status) {
-                    foreach ($this->openQuestionComments($issue) as $asked) {
-                        $this->entityManager->persist(IssueEntry::comment($issue, $actor, "Dismissed: the issue is won't do.", CommentLabel::Dismissal, $now, $asked, self::dismissed($asked)));
-                    }
+            if ($after->status !== $before->status && IssueStatus::WontDo === $after->status) {
+                foreach ($this->openQuestionComments($issue) as $asked) {
+                    $this->entityManager->persist(IssueEntry::comment($issue, $actor, "Dismissed: the issue is won't do.", CommentLabel::Dismissal, $now, $asked, self::dismissed($asked)));
                 }
-
-                if (IssueClaim::endsWith($issue->getStatus(), $status)) {
-                    $issue->claim(null);
-                }
-
-                $issue->setStatus($status, $now);
             }
         }, setsStatus: true, note: $note, reviewer: $reviewer);
     }
 
     /**
      * An agent records the review of the plan by another agent, which the server cannot prove. A user approves without
-     * a reviewer and a review note, and that returns an issue in awaiting_user_input to todo, which needs a problem.
+     * a reviewer and a review note, and hands an issue that waits for its requester to the assignee: from draft to todo,
+     * which needs a problem (D134).
      *
      * @throws NotFound|InvalidInput
      */
@@ -157,9 +178,9 @@ final class IssueCommands
             $this->entityManager->persist($approval);
             $issue->approvePlan($approval);
 
-            if ($byUser && IssueStatus::AwaitingUserInput === $issue->getStatus() && '' !== trim($issue->getSection(IssueSection::Problem) ?? '')) {
-                $this->entityManager->persist(IssueEntry::statusChanged($issue, $actor, IssueStatus::AwaitingUserInput, IssueStatus::Todo, null, null, $now));
-                $issue->setStatus(IssueStatus::Todo, $now);
+            if ($byUser && WaitingFor::Requester === $issue->getWaitingFor()) {
+                $hasProblem = '' !== trim($issue->getSection(IssueSection::Problem) ?? '');
+                $this->move($issue, $actor, IssueStatus::Draft === $issue->getStatus() && $hasProblem ? IssueStatus::Todo : $issue->getStatus(), WaitingFor::Assignee, null, null, $now);
             }
         });
     }
@@ -378,7 +399,7 @@ final class IssueCommands
     /**
      * A write that {@see IssueRules} checks: the claim of an agent, the change, then the check of the state that it gave.
      *
-     * @param \Closure(Issue, \DateTimeImmutable): void $change
+     * @param \Closure(Issue, \DateTimeImmutable, IssueState): void $change Gets the state before the change
      */
     private function write(IssueKey $key, Actor $actor, ?string $session, \Closure $change, bool $setsStatus = false, ?string $note = null, ?string $reviewer = null): Issue
     {
@@ -391,13 +412,33 @@ final class IssueCommands
             }
 
             $before = $this->issues->state($issue);
-            $change($issue, $now);
+            $change($issue, $now, $before);
             // The state reads the plan revision from the stored entries.
             $this->entityManager->flush();
             IssueRules::check($before, $this->issues->state($issue), $issue->getApprovalMode(), $actor->kind, $setsStatus, $note, $reviewer);
 
             return [$issue];
         });
+    }
+
+    /**
+     * A status change or a hand-over, with its entry. A move that passes the issue on ends its claim, also a move of a
+     * user (D130, D134). The same status and party change nothing.
+     */
+    private function move(Issue $issue, Actor $actor, IssueStatus $to, ?WaitingFor $waitingFor, ?string $note, ?string $reviewer, \DateTimeImmutable $now): void
+    {
+        $from = $issue->getStatus();
+
+        if ($to === $from && $waitingFor === $issue->getWaitingFor()) {
+            return;
+        }
+
+        $this->entityManager->persist(IssueEntry::statusChanged($issue, $actor, $from, $to, $waitingFor, $note, $reviewer, $now));
+        $issue->setStatus($to, $waitingFor, $now);
+
+        if (IssueClaim::endsWith($from, $to, $issue->waitsFor()?->kind)) {
+            $issue->claim(null);
+        }
     }
 
     /**

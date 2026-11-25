@@ -14,16 +14,19 @@ use App\Domain\Error\InvalidInput;
 final class IssueRules
 {
     private const array NEW_ISSUE_STATUSES = [IssueStatus::Draft, IssueStatus::Backlog, IssueStatus::Todo];
-    private const array NEED_PROBLEM = [IssueStatus::Backlog, IssueStatus::Todo, IssueStatus::InProgress, IssueStatus::InReview, IssueStatus::Done];
-    private const array NEED_PLAN = [IssueStatus::InProgress, IssueStatus::InReview, IssueStatus::Done];
-    private const array NEED_RESULT = [IssueStatus::InReview, IssueStatus::Done];
-    private const array PLAN_IS_FIXED = [IssueStatus::InProgress, IssueStatus::InReview];
+    private const array NEED_PROBLEM = [IssueStatus::Backlog, IssueStatus::Todo, IssueStatus::InProgress, IssueStatus::InReview, IssueStatus::Approved, IssueStatus::Done];
+    private const array NEED_PLAN = [IssueStatus::InProgress, IssueStatus::InReview, IssueStatus::Approved, IssueStatus::Done];
+    private const array NEED_RESULT = [IssueStatus::InReview, IssueStatus::Approved, IssueStatus::Done];
+    private const array PLAN_IS_FIXED = [IssueStatus::InProgress, IssueStatus::InReview, IssueStatus::Approved];
+    /** A move of an agent to one of these follows the approval mode, except done from approved. */
+    private const array NEED_APPROVAL = [IssueStatus::Approved, IssueStatus::Done, IssueStatus::WontDo];
+    private const string ASK_THE_USER = 'Hand the issue to the requester: set todo with waitingFor requester, and name in a comment what the user must decide.';
 
     /**
      * Checks the state that a write gives.
      *
      * @param IssueState|null $before     Null for a new issue
-     * @param bool            $setsStatus The write is a status change with $note and $reviewer
+     * @param bool            $setsStatus The write is a status change or a hand-over, with $note and $reviewer
      *
      * @throws InvalidInput On the field that breaks the first rule
      */
@@ -37,7 +40,8 @@ final class IssueRules
     }
 
     /**
-     * The statuses that a status change of $actor can give, with a note and a reviewer.
+     * The statuses that a status change of $actor can give, with a note and a reviewer. A hand-over in the status that
+     * the issue has is no status change.
      *
      * @return list<IssueStatus>
      */
@@ -58,7 +62,7 @@ final class IssueRules
 
         return self::writeViolation($before, $after, $isAgent, $setsStatus)
             ?? self::approvalViolation($before, $after, $mode, $isAgent)
-            ?? ($setsStatus ? self::endViolation($after->status, $mode, $isAgent, $note, $reviewer) : null)
+            ?? ($setsStatus ? self::endViolation($before?->status, $after->status, $mode, $isAgent, $note, $reviewer) : null)
             ?? self::contentViolation($after, $mode, $isAgent);
     }
 
@@ -74,7 +78,9 @@ final class IssueRules
         return match (true) {
             !$isAgent => null,
             $before->status->isEnded() => ['issue', "The issue is {$before->status->value}. An agent cannot change an ended issue. Comment on it, or link a new issue to it."],
-            $setsStatus && $after->status === $before->status => ['status', "The issue is {$after->status->value} already."],
+            $setsStatus && $after->status === $before->status && $after->waitingFor === $before->waitingFor => ['status', null === $after->waitingFor
+                ? "The issue is {$after->status->value} already."
+                : "The issue is {$after->status->value} and waits for its {$after->waitingFor->value} already."],
             $after->plan !== $before->plan && in_array($before->status, self::PLAN_IS_FIXED, true) => ['plan', "An agent cannot change the plan of an issue in {$before->status->value}. Write the deviation into result."],
             default => null,
         };
@@ -92,7 +98,7 @@ final class IssueRules
 
         return match (true) {
             !$isNew => null,
-            $isAgent && ApprovalMode::User === $mode => ['issue', 'Only the user approves a plan of this project, because its approval mode is user. Set awaiting_user_input, and name in a comment what the user must decide.'],
+            $isAgent && ApprovalMode::User === $mode => ['issue', 'Only the user approves a plan of this project, because its approval mode is user. '.self::ASK_THE_USER],
             self::isEmpty($after->plan) => ['plan', 'The issue has no plan.'],
             $after->approvedRevision !== $after->planRevision => ['planRevision', 'The plan changed after this revision. Read the plan again, and approve its newest revision.'],
             default => null,
@@ -100,17 +106,19 @@ final class IssueRules
     }
 
     /**
-     * A status change to done or wont_do.
+     * A status change to approved, done, or wont_do.
      *
      * @return array{string, string}|null
      */
-    private static function endViolation(IssueStatus $to, ApprovalMode $mode, bool $isAgent, ?string $note, ?string $reviewer): ?array
+    private static function endViolation(?IssueStatus $from, IssueStatus $to, ApprovalMode $mode, bool $isAgent, ?string $note, ?string $reviewer): ?array
     {
-        $needsReview = $isAgent && ApprovalMode::AgentReview === $mode;
+        $needsApproval = $isAgent && $to !== $from && in_array($to, self::NEED_APPROVAL, true) && !(IssueStatus::Done === $to && IssueStatus::Approved === $from);
+        $needsReview = $needsApproval && ApprovalMode::AgentReview === $mode;
 
         return match (true) {
-            !$to->isEnded() => null,
-            $isAgent && ApprovalMode::User === $mode => ['status', "Only the user sets {$to->value} in this project, because its approval mode is user."],
+            $needsApproval && ApprovalMode::User === $mode => ['status', IssueStatus::Done === $to
+                ? 'Only the user accepts the work in this project, because its approval mode is user. Set in_review. After the user sets approved, merge the work and set done.'
+                : "Only the user sets {$to->value} in this project, because its approval mode is user."],
             $needsReview && self::isEmpty($reviewer) => ['reviewer', "{$to->value} needs the name of the agent that reviewed it, because the approval mode is agent_review."],
             $needsReview && self::isEmpty($note) => ['note', "{$to->value} needs a note with the review, because the approval mode is agent_review."],
             IssueStatus::WontDo === $to && self::isEmpty($note) => ['note', 'wont_do needs a note that says why.'],
@@ -130,9 +138,12 @@ final class IssueRules
             in_array($status, self::NEED_PROBLEM, true) && self::isEmpty($issue->problem) => ['problem', "An issue in {$status->value} needs a problem."],
             $needsPlan && self::isEmpty($issue->plan) => ['plan', "An issue in {$status->value} needs a plan."],
             $needsPlan && $isAgent && !self::isPlanApproved($issue, $mode) => ['plan', ApprovalMode::User === $mode
-                ? "The plan needs the approval of the user before {$status->value}, because the approval mode is user. Set awaiting_user_input, and name in a comment what the user must decide."
+                ? "The plan needs the approval of the user before {$status->value}, because the approval mode is user. ".self::ASK_THE_USER
                 : "The plan needs an approval before {$status->value}. Let another agent review it, then call approve_plan."],
             in_array($status, self::NEED_RESULT, true) && self::isEmpty($issue->result) => ['result', "An issue in {$status->value} needs a result."],
+            null === WaitingFor::defaultFor($status) && null !== $issue->waitingFor => ['waitingFor', "An issue in {$status->value} waits for nobody. Send no waitingFor."],
+            null !== WaitingFor::defaultFor($status) && null === $issue->waitingFor => ['waitingFor', "An issue in {$status->value} waits for its requester or its assignee."],
+            ApprovalMode::User === $mode && IssuePartyKind::User !== $issue->requester => ['requester', 'The requester of an issue with the approval user is a user, because only a user approves its plan and accepts its work.'],
             default => null,
         };
     }

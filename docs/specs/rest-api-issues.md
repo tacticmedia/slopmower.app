@@ -8,7 +8,7 @@ The endpoints are the issue tracker for the web UI and for agents without MCP (D
 
 - **Keys.** A path names a project by its key and an issue by its key, not by a ULID. `{projectKey}` matches `ProjectKey` and `{issueKey}` matches `IssueKey` of [common.schema.json](schemas/common.schema.json). A key that does not match its pattern answers 404 `not_found`, as an unknown route does.
 - **Check order.** A key that the caller cannot see answers 404 `not_found` before the 403 of the actor kind or the CSRF check and before the 400 or 422 of the body, as [README.md section 4](README.md#4-errors) orders.
-- **Actors.** A session is the actor `user`, and a token is the actor `agent`. The approval rules of the [issue tools](mcp.md#issue-tools) bind an agent only. The content rules bind a user too: `problem`, a `plan` with text, `result`, and the `note` of `wont_do`. A user sets every status, also from `done` and `wont_do`, and changes every field in every status.
+- **Actors.** A session is the actor `user`, and a token is the actor `agent`. The approval rules of the [issue tools](mcp.md#issue-tools) bind an agent only. The content rules bind a user too: `problem`, a `plan` with text, `result`, the `note` of `wont_do`, `waitingFor`, and the requester of an issue with the approval `user`. A user sets every status, also from `done` and `wont_do`, and changes every field in every status.
 - **Claims.** The claims of the [issue tools](mcp.md#issue-tools) hold here too (D130). A token sends `session` in the body of I3, I7, and I8, and a body without it answers 422 `invalid_input` on `session`. The server ignores `session` of a session, because a user is never refused and takes no claim. I11 removes a claim.
 - **Refusals.** A refusal of a rule is 422 `invalid_input`, and `details.violations[0]` has the field and the reason. The endpoints never answer `invalid_transition` or `review_closed`.
 
@@ -55,7 +55,7 @@ The key never changes, because the issue keys hold it. The server stores the nam
 
 `repositoryIds` is the whole list of the repositories of the project, at most 500 IDs: a repository that the list leaves out leaves the project, an empty list removes every repository, and an ID twice counts once. A refused call changes nothing. A token of one repository sees the project only while its repository belongs to it.
 
-A new `approvalMode` holds for each later write. After a change to `user`, an issue in `in_progress` or `in_review` whose plan no user approved needs that approval ([I4](#i4-approve-the-plan)) before an agent writes its sections or sets `in_review`. In `by_issue`, the `approval` of each issue binds it, as "Approval mode" of the [issue tools](mcp.md#issue-tools) says (D129).
+A new `approvalMode` holds for each later write. After a change to `user`, an issue in `in_progress`, `in_review`, or `approved` whose plan no user approved needs that approval ([I4](#i4-approve-the-plan)) before an agent writes its sections or sets `in_review` or `done`. In `by_issue`, the `approval` of each issue binds it, as "Approval mode" of the [issue tools](mcp.md#issue-tools) says (D129).
 
 Whitespace only in `approvalGuidelines` removes the guidelines. They stay when the mode changes.
 
@@ -64,12 +64,13 @@ Whitespace only in `approvalGuidelines` removes the guidelines. They stay when t
 - **Request:** `GET /api/v1/projects/{projectKey}/issues`
 - **Authentication:** S, B
 - **Success:** 200 [`IssuePage`](schemas/lists.schema.json): the summaries of the issues of the project. Example: [fixtures/lists.issue-page.json](fixtures/lists.issue-page.json).
-- **Errors:** 422 `invalid_input` for a cursor sent with another `status` or `category` than that of the page that returned it.
+- **Errors:** 422 `invalid_input` for a cursor sent with another `status`, `category`, or `waitingForKind` than that of the page that returned it.
 
 | Query | Type | Default | Notes |
 |---|---|---|---|
 | `status` | IssueStatus | all | One value |
 | `category` | IssueCategory | all | One value |
+| `waitingForKind` | IssuePartyKind | all | The issues whose `waitingFor` names a party of this kind (D134) |
 | `limit` | integer 1-200 | 50 | |
 | `cursor` | Cursor | none | |
 
@@ -120,7 +121,7 @@ A token call gives the same result as the MCP tool `comment_on_issue`.
   - on `plan`, when the issue has no plan;
   - on `planRevision`, when it is not the newest revision of the plan. The client reads the issue again and approves its `planRevision`.
 
-The approval of a user is valid in every approval mode. An approval of an issue in `awaiting_user_input` sets the status `todo` and writes a `status_changed` entry, when the issue has a `problem`. Without a `problem` the status stays, because `todo` needs one. An issue in `done` or `wont_do` has no own error.
+The approval of a user is valid in every approval mode. An approval of an issue that waits for its requester hands it to the assignee and writes a `status_changed` entry (D134). An issue in `draft` with a `problem` moves to `todo` with it. Another issue keeps its status, and an issue in `draft` without a `problem` stays in `draft`, because `todo` needs one. An issue in `done` or `wont_do` has no own error.
 
 An agent does not call I4. Its approval is the MCP tool `approve_plan`, which records the review of another agent.
 
@@ -143,13 +144,14 @@ The list is sorted by the entry `id` descending, which is newest first. The MCP 
 
 - **Request:** `POST /api/v1/projects/{projectKey}/issues`
 - **Authentication:** S, B
-- **Body:** [`CreateIssueInput`](schemas/inputs.schema.json), `{title, category, problem, status, approval}`. `category` is `bug` or `change`, with no default (D133). `status` is `draft`, `backlog`, or `todo`, by default `draft`. `approval` is `user`, `agent_review`, or `self`, only in a project with the approval mode `by_issue`. Without it the issue reads as `user`. Example: [fixtures/inputs.create-issue.json](fixtures/inputs.create-issue.json).
-- **Success:** 201 [`Issue`](schemas/issue.schema.json) with `Location: /api/v1/issues/{issueKey}`. The issue has the next number of the project. A `problem` writes a `section_changed` entry. The server stores the title trimmed.
+- **Body:** [`CreateIssueInput`](schemas/inputs.schema.json), `{title, category, problem, status, approval, requester, assignee}`. `category` is `bug` or `change`, with no default (D133). `status` is `draft`, `backlog`, or `todo`, by default `draft`. `approval` is `user`, `agent_review`, or `self`, only in a project with the approval mode `by_issue`. Without it the issue reads as `user`. `requester` and `assignee` are `user` or `agent`, by default `user` and `agent`; `user` is the user of the caller (D134). Example: [fixtures/inputs.create-issue.json](fixtures/inputs.create-issue.json).
+- **Success:** 201 [`Issue`](schemas/issue.schema.json) with `Location: /api/v1/issues/{issueKey}`. The issue has the next number of the project, and `waitingFor` is the default of its status. A `problem` writes a `section_changed` entry. The server stores the title trimmed.
 - **Errors:** 422 `invalid_input`:
   - on `title`, for whitespace only, more than 200 characters, or a line break;
   - on `category`, for a body without it, and for a value outside `IssueCategory`;
   - on `status`, for a status other than `draft`, `backlog`, and `todo`;
   - on `approval`, for `by_issue`, and for a project of another approval mode;
+  - on `requester`, for `agent` when the approval of the issue is `user`;
   - on `problem`, for `backlog` or `todo` without a problem.
 
 A token call gives the same result as the MCP tool `create_issue`.
@@ -158,14 +160,15 @@ A token call gives the same result as the MCP tool `create_issue`.
 
 - **Request:** `PATCH /api/v1/issues/{issueKey}`
 - **Authentication:** S, B
-- **Body:** [`UpdateIssueInput`](schemas/inputs.schema.json), `{title, category, problem, plan, result, followUps, approval, session}`. Absent or null keeps a field, and `session` is no field to change. A text has at least 1 character, so no section is cleared. A session sets any `approval`, and a token changes it only to `user`. Example: [fixtures/inputs.update-issue.json](fixtures/inputs.update-issue.json).
-- **Success:** 200 [`Issue`](schemas/issue.schema.json). Each section with new text writes a `section_changed` entry with that text, which replaces the entry of the version before it, and a `plan` with new text clears `planApproval`. A change of `category` or `approval` writes no entry, and a change of `category` does not set `updatedAt`. A value that equals the stored one changes nothing.
+- **Body:** [`UpdateIssueInput`](schemas/inputs.schema.json), `{title, category, problem, plan, result, followUps, approval, requester, assignee, session}`. Absent or null keeps a field, and `session` is no field to change. A text has at least 1 character, so no section is cleared. A session sets any `approval`, and a token changes it only to `user`. Example: [fixtures/inputs.update-issue.json](fixtures/inputs.update-issue.json).
+- **Success:** 200 [`Issue`](schemas/issue.schema.json). Each section with new text writes a `section_changed` entry with that text, which replaces the entry of the version before it, and a `plan` with new text clears `planApproval`. A change of `category`, `approval`, `requester`, or `assignee` writes no entry, and a change of `category` does not set `updatedAt`. A value that equals the stored one changes nothing.
 - **Errors:** 422 `invalid_input`:
   - on `session`, for a token without it, and for an issue that another session holds;
   - for a body without a field;
   - on `title`, for whitespace only, more than 200 characters, or a line break;
   - on `category`, for a value outside `IssueCategory`;
   - on `approval`, for `by_issue`, for a project of another approval mode, and for a change of a token to another value than `user`;
+  - on `requester`, for `agent` when the approval of the issue is `user`;
   - on the field of a broken rule of the [issue tools](mcp.md#issue-tools), for example on `plan` for a plan of whitespace only in `in_progress`.
 
 The call has no precondition: the last write wins. A token call gives the same result as the MCP tool `update_issue`.
@@ -174,11 +177,11 @@ The call has no precondition: the last write wins. A token call gives the same r
 
 - **Request:** `POST /api/v1/issues/{issueKey}/status`
 - **Authentication:** S, B
-- **Body:** [`IssueStatusInput`](schemas/inputs.schema.json), `{status, note, reviewer, session}`. Example: [fixtures/inputs.issue-status.json](fixtures/inputs.issue-status.json).
-- **Success:** 200 [`Issue`](schemas/issue.schema.json). The move writes a `status_changed` entry with `from`, `to`, `note`, and `reviewer`. Any status can follow any other status when the rules hold. A move to `wont_do` also dismisses each open question comment of the issue: one `comment` entry with the label `dismissal` each, with the caller as its actor and the body "Dismissed: the issue is won't do." (D124).
-- **Errors:** 422 `invalid_input` on `session`, for a token without it and for an issue that another session holds, and on the field of a broken rule of the [issue tools](mcp.md#issue-tools): `problem`, `plan`, `result`, `note`, `reviewer`, `status`, or `issue`. The message says what is missing.
+- **Body:** [`IssueStatusInput`](schemas/inputs.schema.json), `{status, waitingFor, note, reviewer, session}`. `waitingFor` is `requester` or `assignee`, by default that of the status, as "Who has the next step" of the [issue tools](mcp.md#issue-tools) says. The status that the issue has with the other `waitingFor` is a hand-over (D134). Example: [fixtures/inputs.issue-status.json](fixtures/inputs.issue-status.json).
+- **Success:** 200 [`Issue`](schemas/issue.schema.json). The move writes a `status_changed` entry with `from`, `to`, `waitingFor`, `note`, and `reviewer`, and a hand-over one with `from` equal to `to`. Any status can follow any other status when the rules hold. A move to `wont_do` also dismisses each open question comment of the issue: one `comment` entry with the label `dismissal` each, with the caller as its actor and the body "Dismissed: the issue is won't do." (D124).
+- **Errors:** 422 `invalid_input` on `session`, for a token without it and for an issue that another session holds, and on the field of a broken rule of the [issue tools](mcp.md#issue-tools): `problem`, `plan`, `result`, `note`, `reviewer`, `status`, `waitingFor`, `requester`, or `issue`. The message says what is missing.
 
-A user needs no approval of the plan and no reviewer. The status that the issue has answers 200 for a user and writes no entry, when the content rules hold: `wont_do` still needs its `note`. A token call gives the same result as the MCP tool `set_issue_status`.
+A user needs no approval of the plan and no reviewer. The status and the `waitingFor` that the issue has answer 200 for a user and write no entry, when the content rules hold: `wont_do` still needs its `note`. A token call gives the same result as the MCP tool `set_issue_status`.
 
 ### I9 Get the dependency graph of a project
 
@@ -191,7 +194,7 @@ An issue is open while its status is not `done` and not `wont_do`. A dependency 
 
 - `issues` has the summaries of:
   - each open issue of the project that waits for an open issue, or that an open issue waits for;
-  - each open issue of the project with the status `awaiting_user_input` or `in_review`, also without a link;
+  - each open issue of the project that waits for a user and is not in `draft`, also without a link;
   - each open issue of another project at the other end of a dependency of an issue of the project.
 - `links` has each dependency with at least one issue of the project as `{issue, blockedBy}`, two issue keys: `issue` waits for `blockedBy`. Both keys are in `issues`.
 - `otherOpenIssues` is the count of the open issues of the project that are not in `issues`.
@@ -212,13 +215,13 @@ An issue is open while its status is not `done` and not `wont_do`. A dependency 
 
 Each write that appends an entry to the thread of an issue gives the entry the next number of a sequence of its project, under the row lock of the project. `cursor` is such a number.
 
-- **Without a cursor:** `issues` holds the summaries of the issues of the project in `todo`, `in_progress`, `awaiting_user_input`, and `in_review`, newest `updatedAt` first, then by ID, at most `limit`. `entries` is empty, `hasMore` is false, and `cursor` is the newest number of the project, 0 for a project without a numbered entry.
+- **Without a cursor:** `issues` holds the summaries of the issues of the project in `todo`, `in_progress`, `in_review`, and `approved`, newest `updatedAt` first, then by ID, at most `limit`. `entries` is empty, `hasMore` is false, and `cursor` is the newest number of the project, 0 for a project without a numbered entry.
 - **With a cursor:** `entries` holds the entries after `cursor`, oldest first, each as `{issue, entry}`: the summary of its issue and the entry. `issues` is empty. The read takes the newest number of the project first, then the entries up to it, so it misses no entry that commits later. It reads at most `limit` entries. With more, `hasMore` is true and `cursor` is the number of the last entry that it read; else `cursor` is the newest number. A page can hold fewer than `limit` entries, also none, while `hasMore` is true, because it leaves out entries.
 - **Left out:** the entries of the caller, and each entry that is replaced at the time of the read. An entry reads as in I2 without `history`: `replacedBy` is null, and a `section_changed` entry has `body` null, because the issue has the text. An entry from before the sequence has no number and comes before every cursor.
 - **The caller** is the actor of the call: a session is its user, and a token is the agent of its name and its user. Two tokens of one user with the same name are one caller, so an agent does not see the entries of another session with its token name, for example the review comment that it recorded.
-- **No entry:** a title change, a change of `category` or `approval`, a link, a new issue without a `problem`, and the release of a claim (I11) write no entry, so no update tells of them.
+- **No entry:** a title change, a change of `category`, `approval`, `requester`, or `assignee`, a link, a new issue without a `problem`, and the release of a claim (I11) write no entry, so no update tells of them.
 
-The answers of a user are one `comment` entry with the label `answer`, each question with its `answer`, which replaces the question comment (D124). A dismissal is a `comment` entry with the label `dismissal`, which replaces the question comment. A plan approval of a user is a `plan_approved` entry, followed by a `status_changed` entry to `todo` when the issue was in `awaiting_user_input`. The MCP tool `get_issue_updates` returns the same body.
+The answers of a user are one `comment` entry with the label `answer`, each question with its `answer`, which replaces the question comment (D124). A dismissal is a `comment` entry with the label `dismissal`, which replaces the question comment. A plan approval of a user is a `plan_approved` entry, followed by a `status_changed` entry when it hands the issue to the assignee. The MCP tool `get_issue_updates` returns the same body.
 
 ### I11 Release the claim
 

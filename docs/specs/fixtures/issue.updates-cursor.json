@@ -11,6 +11,17 @@
         "status": "todo",
         "approval": "agent_review",
         "claim": null,
+        "requester": {
+          "kind": "user",
+          "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+          "name": "janklan"
+        },
+        "assignee": {
+          "kind": "agent",
+          "userId": null,
+          "name": null
+        },
+        "waitingFor": "assignee",
         "updatedAt": "2026-10-02T09:31:07Z"
       },
       "entry": {
@@ -36,6 +47,7 @@
         "section": null,
         "from": null,
         "to": null,
+        "waitingFor": null,
         "note": null,
         "reviewer": null,
         "reviewNote": null,
@@ -52,6 +64,17 @@
         "status": "todo",
         "approval": "agent_review",
         "claim": null,
+        "requester": {
+          "kind": "user",
+          "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+          "name": "janklan"
+        },
+        "assignee": {
+          "kind": "agent",
+          "userId": null,
+          "name": null
+        },
+        "waitingFor": "assignee",
         "updatedAt": "2026-10-02T09:31:07Z"
       },
       "entry": {
@@ -71,6 +94,7 @@
         "section": null,
         "from": null,
         "to": null,
+        "waitingFor": null,
         "note": null,
         "reviewer": null,
         "reviewNote": null,
@@ -87,6 +111,17 @@
         "status": "todo",
         "approval": "agent_review",
         "claim": null,
+        "requester": {
+          "kind": "user",
+          "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+          "name": "janklan"
+        },
+        "assignee": {
+          "kind": "agent",
+          "userId": null,
+          "name": null
+        },
+        "waitingFor": "assignee",
         "updatedAt": "2026-10-02T09:31:07Z"
       },
       "entry": {
@@ -104,8 +139,9 @@
         "body": null,
         "questions": [],
         "section": null,
-        "from": "awaiting_user_input",
+        "from": "todo",
         "to": "todo",
+        "waitingFor": "assignee",
         "note": null,
         "reviewer": null,
         "reviewNote": null,

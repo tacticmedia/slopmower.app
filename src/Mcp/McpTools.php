@@ -51,7 +51,9 @@ use App\Domain\Issue\CommentLabel;
 use App\Domain\Issue\IssueCategory;
 use App\Domain\Issue\IssueKey;
 use App\Domain\Issue\IssueLinkKind;
+use App\Domain\Issue\IssuePartyKind;
 use App\Domain\Issue\IssueStatus;
+use App\Domain\Issue\WaitingFor;
 use App\Domain\Request\Awaiting;
 use App\Domain\Request\Command\Claim;
 use App\Domain\Request\Command\LinkCommits;
@@ -144,9 +146,9 @@ final class McpTools
      *
      * @return array<string, mixed>
      */
-    public function createIssue(string $project, string $title, IssueCategory $category, ?string $problem = null, IssueStatus $status = IssueStatus::Draft, ?ApprovalMode $approval = null): array
+    public function createIssue(string $project, string $title, IssueCategory $category, ?string $problem = null, IssueStatus $status = IssueStatus::Draft, ?ApprovalMode $approval = null, ?IssuePartyKind $requester = null, ?IssuePartyKind $assignee = null): array
     {
-        return $this->issueWrite('create_issue', fn (Actor $actor): Issue => $this->issueCommands->create($project, $title, $category, $problem, $status, $actor, $approval));
+        return $this->issueWrite('create_issue', fn (Actor $actor): Issue => $this->issueCommands->create($project, $title, $category, $problem, $status, $actor, $approval, $requester, $assignee));
     }
 
     /**
@@ -267,9 +269,9 @@ final class McpTools
      *
      * @return array<string, mixed>
      */
-    public function listIssues(string $project, ?IssueStatus $status = null, ?IssueCategory $category = null, ?string $cursor = null, int $limit = 50): array
+    public function listIssues(string $project, ?IssueStatus $status = null, ?IssueCategory $category = null, ?IssuePartyKind $waitingForKind = null, ?string $cursor = null, int $limit = 50): array
     {
-        return $this->run('list_issues', fn (): IssuePage => $this->issues->list($project, $status, $category, $limit, $cursor));
+        return $this->run('list_issues', fn (): IssuePage => $this->issues->list($project, $status, $category, $limit, $cursor, $waitingForKind));
     }
 
     /**
@@ -397,9 +399,9 @@ final class McpTools
      *
      * @return array<string, mixed>
      */
-    public function setIssueStatus(string $issue, string $session, IssueStatus $status, ?string $note = null, ?string $reviewer = null): array
+    public function setIssueStatus(string $issue, string $session, IssueStatus $status, ?WaitingFor $waitingFor = null, ?string $note = null, ?string $reviewer = null): array
     {
-        return $this->issueWrite('set_issue_status', fn (Actor $actor): Issue => $this->issueCommands->setStatus(IssueKey::fromString($issue, 'issue'), $status, $note, $reviewer, $actor, $session));
+        return $this->issueWrite('set_issue_status', fn (Actor $actor): Issue => $this->issueCommands->setStatus(IssueKey::fromString($issue, 'issue'), $status, $note, $reviewer, $actor, $session, $waitingFor));
     }
 
     /**
@@ -477,9 +479,9 @@ final class McpTools
      *
      * @return array<string, mixed>
      */
-    public function updateIssue(string $issue, string $session, ?string $title = null, ?IssueCategory $category = null, ?string $problem = null, ?string $plan = null, ?string $result = null, ?string $followUps = null, ?ApprovalMode $approval = null): array
+    public function updateIssue(string $issue, string $session, ?string $title = null, ?IssueCategory $category = null, ?string $problem = null, ?string $plan = null, ?string $result = null, ?string $followUps = null, ?ApprovalMode $approval = null, ?IssuePartyKind $requester = null, ?IssuePartyKind $assignee = null): array
     {
-        return $this->issueWrite('update_issue', fn (Actor $actor): Issue => $this->issueCommands->update(IssueKey::fromString($issue, 'issue'), $title, $problem, $plan, $result, $followUps, $actor, $session, $approval, $category));
+        return $this->issueWrite('update_issue', fn (Actor $actor): Issue => $this->issueCommands->update(IssueKey::fromString($issue, 'issue'), $title, $problem, $plan, $result, $followUps, $actor, $session, $approval, $category, $requester, $assignee));
     }
 
     /**

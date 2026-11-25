@@ -14,9 +14,9 @@ const MEANINGS: Record<IssueStatus, string> = {
     backlog: 'The problem is complete. The work waits.',
     todo: 'Ready for work.',
     in_progress: 'The work runs. Needs a plan.',
-    awaiting_user_input: 'The agent waits for your decision.',
-    in_review: 'The work is done. Needs a result.',
-    done: 'Delivered. The issue ends.',
+    in_review: 'The work is ready, not merged. Needs a result.',
+    approved: 'The requester accepted the work. The assignee merges it.',
+    done: 'Merged. The issue ends.',
     wont_do: 'Not done. The issue ends, with your note.',
 };
 

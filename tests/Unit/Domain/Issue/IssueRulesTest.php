@@ -7,9 +7,11 @@ namespace App\Tests\Unit\Domain\Issue;
 use App\Domain\Actor\ActorKind;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Issue\ApprovalMode;
+use App\Domain\Issue\IssuePartyKind;
 use App\Domain\Issue\IssueRules;
 use App\Domain\Issue\IssueState;
 use App\Domain\Issue\IssueStatus;
+use App\Domain\Issue\WaitingFor;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -22,7 +24,7 @@ final class IssueRulesTest extends KernelTestCase
 {
     private const string REVISION = '01K7F3C5D6E7F8G9H0J1K2M3N4';
 
-    #[TestDox('backlog, todo, in_progress, in_review, and done need a problem')]
+    #[TestDox('backlog, todo, in_progress, in_review, approved, and done need a problem')]
     #[DataProvider('statusesWithProblem')]
     public function testProblemIsNeededFromBacklogOn(IssueStatus $status): void
     {
@@ -30,7 +32,7 @@ final class IssueRulesTest extends KernelTestCase
 
         self::assertSame('problem', self::refusal($before, self::complete($status, problem: ' '), ApprovalMode::Self, setsStatus: true));
         self::assertNull(self::refusal($before, self::complete($status), ApprovalMode::Self, setsStatus: true));
-        self::assertNull(self::refusal(self::complete(IssueStatus::Todo), new IssueState(IssueStatus::Draft), ApprovalMode::Self, setsStatus: true), 'draft needs none.');
+        self::assertNull(self::refusal(self::complete(IssueStatus::Todo), new IssueState(IssueStatus::Draft, waitingFor: WaitingFor::Requester), ApprovalMode::Self, setsStatus: true), 'draft needs none.');
     }
 
     /**
@@ -38,20 +40,20 @@ final class IssueRulesTest extends KernelTestCase
      */
     public static function statusesWithProblem(): iterable
     {
-        foreach ([IssueStatus::Backlog, IssueStatus::Todo, IssueStatus::InProgress, IssueStatus::InReview, IssueStatus::Done] as $status) {
+        foreach ([IssueStatus::Backlog, IssueStatus::Todo, IssueStatus::InProgress, IssueStatus::InReview, IssueStatus::Approved, IssueStatus::Done] as $status) {
             yield $status->value => [$status];
         }
     }
 
-    #[TestDox('in_progress, in_review, and done need a plan that is approved as the approval mode says')]
+    #[TestDox('in_progress, in_review, approved, and done need a plan that is approved as the approval mode says')]
     #[DataProvider('planApprovals')]
     public function testPlanIsNeededAndApprovedFromInProgressOn(ApprovalMode $mode, ?ActorKind $approvedBy, ?string $expectedField): void
     {
         $before = self::complete(IssueStatus::Todo, approvedBy: $approvedBy);
 
-        foreach ([IssueStatus::InProgress, IssueStatus::InReview, IssueStatus::Done] as $status) {
-            // The user mode refuses done from an agent before it reads the plan.
-            $expected = IssueStatus::Done === $status && ApprovalMode::User === $mode ? 'status' : $expectedField;
+        foreach ([IssueStatus::InProgress, IssueStatus::InReview, IssueStatus::Approved, IssueStatus::Done] as $status) {
+            // The user mode refuses approved and done from an agent before it reads the plan.
+            $expected = in_array($status, [IssueStatus::Approved, IssueStatus::Done], true) && ApprovalMode::User === $mode ? 'status' : $expectedField;
 
             self::assertSame($expected, self::refusal($before, $before->withStatus($status), $mode, setsStatus: true, note: 'Reviewed.', reviewer: 'result-reviewer'), $status->value);
             self::assertSame('plan', self::refusal($before, self::complete($status, plan: null), $mode, ActorKind::User, setsStatus: true), "{$status->value} without a plan.");
@@ -72,12 +74,12 @@ final class IssueRulesTest extends KernelTestCase
         yield 'self: no approval' => [ApprovalMode::Self, null, null];
     }
 
-    #[TestDox('in_review and done need a result')]
+    #[TestDox('in_review, approved, and done need a result')]
     public function testResultIsNeededFromInReviewOn(): void
     {
         $before = self::complete(IssueStatus::InProgress);
 
-        foreach ([IssueStatus::InReview, IssueStatus::Done] as $status) {
+        foreach ([IssueStatus::InReview, IssueStatus::Approved, IssueStatus::Done] as $status) {
             self::assertSame('result', self::refusal($before, self::complete($status, result: null), ApprovalMode::Self, setsStatus: true), $status->value);
             self::assertNull(self::refusal($before, self::complete($status), ApprovalMode::Self, setsStatus: true), $status->value);
         }
@@ -138,6 +140,55 @@ final class IssueRulesTest extends KernelTestCase
         self::assertNull(self::refusal(self::complete(IssueStatus::Todo), $issue, ApprovalMode::Self, setsStatus: true), 'An agent sets in_progress from todo.');
     }
 
+    #[TestDox('waitingFor is null exactly in backlog, done, and wont_do')]
+    public function testWaitingForIsSetExceptInBacklogDoneAndWontDo(): void
+    {
+        foreach (IssueStatus::cases() as $status) {
+            $wrong = new IssueState($status, 'Problem.', 'Plan.', 'Result.', waitingFor: null === WaitingFor::defaultFor($status) ? WaitingFor::Requester : null);
+
+            self::assertNull(self::refusal(self::complete(IssueStatus::Draft), self::complete($status), ApprovalMode::Self, ActorKind::User), $status->value);
+            self::assertSame('waitingFor', self::refusal(self::complete(IssueStatus::Draft), $wrong, ApprovalMode::Self, ActorKind::User), $status->value);
+        }
+    }
+
+    #[TestDox('An agent hands an issue over in its status, also from a user to the agent, and is refused for the party that it has')]
+    public function testAnAgentHandsAnIssueOver(): void
+    {
+        $toAgent = self::complete(IssueStatus::Todo);
+        $toUser = $toAgent->withStatus(IssueStatus::Todo, WaitingFor::Requester);
+
+        self::assertNull(self::refusal($toAgent, $toUser, ApprovalMode::User, setsStatus: true), 'To the requester.');
+        self::assertNull(self::refusal($toUser, $toAgent, ApprovalMode::User, setsStatus: true), 'From the requester to the assignee.');
+        self::assertSame('status', self::refusal($toUser, $toUser->withStatus(IssueStatus::Todo, WaitingFor::Requester), ApprovalMode::User, setsStatus: true));
+        self::assertNotContains(IssueStatus::Todo, IssueRules::allowedStatuses($toAgent, ApprovalMode::User, ActorKind::Agent), 'allowedStatuses lists no hand-over.');
+    }
+
+    #[TestDox('The requester of an issue with the approval user is a user')]
+    public function testTheRequesterIsAUserWithTheApprovalUser(): void
+    {
+        $byAgent = new IssueState(IssueStatus::Draft, waitingFor: WaitingFor::Requester, requester: IssuePartyKind::Agent);
+
+        self::assertSame('requester', self::refusal(null, $byAgent, ApprovalMode::User, ActorKind::User));
+        self::assertNull(self::refusal(null, $byAgent, ApprovalMode::Self));
+    }
+
+    #[TestDox('approved from an agent follows the approval mode, and done from approved is free in every mode')]
+    public function testAnAgentSetsApprovedAndThenDone(): void
+    {
+        $inReview = self::complete(IssueStatus::InReview, approvedBy: ActorKind::User);
+        $approved = self::complete(IssueStatus::Approved, approvedBy: ActorKind::User);
+
+        self::assertSame('status', self::refusal($inReview, $approved, ApprovalMode::User, setsStatus: true, note: 'Reviewed.', reviewer: 'result-reviewer'));
+        self::assertSame('status', self::refusal($inReview, $inReview->withStatus(IssueStatus::Done), ApprovalMode::User, setsStatus: true));
+        self::assertSame('reviewer', self::refusal($inReview, $approved, ApprovalMode::AgentReview, setsStatus: true, note: 'Reviewed.'));
+        self::assertSame('note', self::refusal($inReview, $approved, ApprovalMode::AgentReview, setsStatus: true, reviewer: 'result-reviewer'));
+        self::assertNull(self::refusal($inReview, $approved, ApprovalMode::AgentReview, setsStatus: true, note: 'Reviewed.', reviewer: 'result-reviewer'));
+
+        foreach ([ApprovalMode::User, ApprovalMode::AgentReview, ApprovalMode::Self] as $mode) {
+            self::assertNull(self::refusal($approved, $approved->withStatus(IssueStatus::Done), $mode, setsStatus: true), $mode->value);
+        }
+    }
+
     #[TestDox('An agent changes no field and no status of an issue in done or wont_do')]
     public function testAnAgentCannotChangeAnEndedIssue(): void
     {
@@ -151,10 +202,10 @@ final class IssueRulesTest extends KernelTestCase
         }
     }
 
-    #[TestDox('An agent cannot change the plan in in_progress or in_review')]
+    #[TestDox('An agent cannot change the plan in in_progress, in_review, or approved')]
     public function testAnAgentCannotChangeThePlanOfWorkInProgress(): void
     {
-        foreach ([IssueStatus::InProgress, IssueStatus::InReview] as $status) {
+        foreach ([IssueStatus::InProgress, IssueStatus::InReview, IssueStatus::Approved] as $status) {
             $issue = self::complete($status);
 
             self::assertSame('plan', self::refusal($issue, self::complete($status, plan: 'Another plan.', approvedBy: null), ApprovalMode::Self), $status->value);
@@ -196,18 +247,18 @@ final class IssueRulesTest extends KernelTestCase
         $planned = self::complete(IssueStatus::Todo, result: null);
 
         self::assertSame(
-            [IssueStatus::Draft, IssueStatus::Backlog, IssueStatus::InProgress, IssueStatus::AwaitingUserInput, IssueStatus::WontDo],
+            [IssueStatus::Draft, IssueStatus::Backlog, IssueStatus::InProgress, IssueStatus::WontDo],
             IssueRules::allowedStatuses($planned, ApprovalMode::AgentReview, ActorKind::Agent),
         );
         self::assertSame([], IssueRules::allowedStatuses(self::complete(IssueStatus::Done), ApprovalMode::Self, ActorKind::Agent));
     }
 
     /**
-     * An issue with every section, and a plan that an agent approved with a reviewer.
+     * An issue with every section, a plan that an agent approved with a reviewer, and the default party of its status.
      */
     private static function complete(IssueStatus $status, ?string $problem = 'Problem.', ?string $plan = 'Plan.', ?string $result = 'Result.', ?ActorKind $approvedBy = ActorKind::Agent): IssueState
     {
-        return new IssueState($status, $problem, $plan, $result, self::REVISION, $approvedBy, null === $approvedBy ? null : 'plan-reviewer', null === $approvedBy ? null : self::REVISION);
+        return new IssueState($status, $problem, $plan, $result, self::REVISION, $approvedBy, null === $approvedBy ? null : 'plan-reviewer', null === $approvedBy ? null : self::REVISION, WaitingFor::defaultFor($status));
     }
 
     /**

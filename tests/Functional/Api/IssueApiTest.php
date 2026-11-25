@@ -236,23 +236,69 @@ final class IssueApiTest extends WebTestCase
         self::assertSame($approved['planApproval'], $detail['issue']['planApproval']);
     }
 
-    #[TestDox('I4 returns an issue from awaiting_user_input to todo, and keeps the status of an issue without a problem')]
-    public function testApprovalReturnsAWaitingIssueToTodo(): void
+    #[TestDox('I4 hands an issue that waits for its requester to the assignee: in todo it keeps the status, a draft with a problem moves to todo, and a draft without one stays')]
+    public function testApprovalHandsAWaitingIssueToTheAssignee(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM', ApprovalMode::User);
-        $withProblem = $this->plannedIssue('awaiting_user_input');
-        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode', 'category' => 'change']);
-        $withoutProblem = (string) $this->agent('update_issue', ['issue' => 'SM-2', 'plan' => self::PLAN])['planRevision'];
-        $this->agent('set_issue_status', ['issue' => 'SM-2', 'status' => 'awaiting_user_input']);
+        $inTodo = $this->plannedIssue('todo');
+        $this->agent('set_issue_status', ['issue' => 'SM-1', 'status' => 'todo', 'waitingFor' => 'requester']);
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode', 'category' => 'change', 'problem' => self::PROBLEM]);
+        $inDraft = (string) $this->agent('update_issue', ['issue' => 'SM-2', 'plan' => self::PLAN])['planRevision'];
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round the quotes', 'category' => 'change']);
+        $withoutProblem = (string) $this->agent('update_issue', ['issue' => 'SM-3', 'plan' => self::PLAN])['planRevision'];
 
-        $returned = self::assertApiResponse($this->approve('SM-1', $withProblem), 200, self::ISSUE);
-        $kept = self::assertApiResponse($this->approve('SM-2', $withoutProblem), 200, self::ISSUE);
+        $approved = array_map(fn (array $approval): array => self::assertApiResponse($this->approve(...$approval), 200, self::ISSUE), [['SM-1', $inTodo], ['SM-2', $inDraft], ['SM-3', $withoutProblem]]);
 
-        $thread = $this->agent('get_issue', ['issue' => 'SM-1'])['thread'];
-        $entry = $thread[array_key_last($thread)];
-        self::assertSame(['todo', 'awaiting_user_input'], [$returned['status'], $kept['status']]);
-        self::assertSame(['status_changed', 'user', 'awaiting_user_input', 'todo'], [$entry['kind'], $entry['actor']['kind'], $entry['from'], $entry['to']]);
-        self::assertSame('user', $kept['planApproval']['approvedBy']['kind'], 'The approval counts without the status change.');
+        $entry = array_last($this->agent('get_issue', ['issue' => 'SM-1'])['thread']);
+        self::assertSame([['todo', 'assignee'], ['todo', 'assignee'], ['draft', 'assignee']], array_map(static fn (array $issue): array => [$issue['status'], $issue['waitingFor']], $approved));
+        self::assertSame(['status_changed', 'user', 'todo', 'todo', 'assignee'], [$entry['kind'] ?? null, $entry['actor']['kind'] ?? null, $entry['from'] ?? null, $entry['to'] ?? null, $entry['waitingFor'] ?? null]);
+        self::assertSame('user', $approved[2]['planApproval']['approvedBy']['kind'] ?? null);
+    }
+
+    #[TestDox('I8 of a user sets approved, the issue waits for the assignee, and the agent then sets done in the mode user')]
+    public function testUserApprovesTheWorkAndTheAgentEndsIt(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM', ApprovalMode::User);
+        self::assertApiResponse($this->approve('SM-1', $this->plannedIssue('todo')), 200, self::ISSUE);
+        $this->agent('set_issue_status', ['issue' => 'SM-1', 'status' => 'in_progress']);
+        $this->agent('update_issue', ['issue' => 'SM-1', 'result' => 'Branch sm-1 with a1b2c3d.']);
+        $inReview = $this->agent('set_issue_status', ['issue' => 'SM-1', 'status' => 'in_review']);
+
+        $approved = self::assertApiResponse(self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/status', ['status' => 'approved']), 200, self::ISSUE);
+        $done = $this->agent('set_issue_status', ['issue' => 'SM-1', 'status' => 'done']);
+
+        self::assertSame(['requester', ['draft', 'backlog', 'todo', 'in_progress']], [$inReview['waitingFor'], $inReview['allowedStatuses']], 'Neither approved nor done for the agent.');
+        self::assertSame(['approved', 'assignee'], [$approved['status'], $approved['waitingFor']]);
+        self::assertSame(['done', null], [$done['status'], $done['waitingFor']]);
+    }
+
+    #[TestDox('I8 of a user hands the issue over in its status with an entry, and the party that it has writes none')]
+    public function testUserHandsTheIssueOver(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $this->plannedIssue('todo');
+        $handOver = fn (): Response => self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/status', ['status' => 'todo', 'waitingFor' => 'requester']);
+
+        $handed = self::assertApiResponse($handOver(), 200, self::ISSUE);
+        self::assertApiResponse($handOver(), 200, self::ISSUE);
+
+        $moves = array_values(array_filter($this->agent('get_issue', ['issue' => 'SM-1'])['thread'], static fn (array $entry): bool => 'status_changed' === $entry['kind']));
+        self::assertSame(['todo', 'requester'], [$handed['status'], $handed['waitingFor']]);
+        self::assertSame([['user', 'todo', 'todo', 'requester']], array_map(static fn (array $entry): array => [$entry['actor']['kind'], $entry['from'], $entry['to'], $entry['waitingFor']], $moves));
+    }
+
+    #[TestDox('I6 and I7 take the requester and the assignee, with the signed-in user as user, and write no entry for them')]
+    public function testUserSetsTheParties(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $user = ['kind' => 'user', 'userId' => $this->user->getId()->toString(), 'name' => 'jan'];
+
+        $created = self::assertApiResponse(self::apiRequest($this->client, 'POST', '/api/v1/projects/SM/issues', ['title' => 'Round invoice totals once', 'category' => 'change', 'assignee' => 'user']), 201, self::ISSUE);
+        $updated = self::assertApiResponse(self::apiRequest($this->client, 'PATCH', '/api/v1/issues/SM-1', ['requester' => 'agent', 'assignee' => 'agent']), 200, self::ISSUE);
+
+        self::assertSame([$user, $user, 'requester'], [$created['requester'], $created['assignee'], $created['waitingFor']]);
+        self::assertSame(['agent', 'agent', 'requester'], [$updated['requester']['kind'], $updated['assignee']['kind'], $updated['waitingFor']]);
+        self::assertSame([], $this->agent('get_issue', ['issue' => 'SM-1'])['thread']);
     }
 
     #[TestDox('I4 refuses an old planRevision with 422 on planRevision, and stores no approval')]
@@ -345,7 +391,7 @@ final class IssueApiTest extends WebTestCase
         self::assertSame([['user', 'todo', 'in_progress'], ['user', 'in_progress', 'done'], ['user', 'done', 'todo']], array_map(static fn (array $entry): array => [$entry['actor']['kind'], $entry['from'], $entry['to']], $moves));
     }
 
-    #[TestDox('I9 holds a blocked issue, its blockers of both projects, an issue of another project that waits, and each issue that waits for the user; it leaves out an issue without a blocked_by link, and a link after one of its issues ends')]
+    #[TestDox('I9 holds a blocked issue, its blockers of both projects, an issue of another project that waits, and each issue that waits for a user; it leaves out a draft and an issue that waits for an agent without a blocked_by link, and a link after one of its issues ends')]
     public function testDependencyGraph(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
@@ -360,10 +406,13 @@ final class IssueApiTest extends WebTestCase
             }
         }
 
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round the credit notes', 'category' => 'change', 'problem' => self::PROBLEM, 'status' => 'todo']);
+
         $this->agent('link_issues', ['issue' => 'SM-3', 'target' => 'SM-2', 'note' => 'SM-2 adds the mode.', 'kind' => 'blocked_by']);
         $this->agent('link_issues', ['issue' => 'SM-3', 'target' => 'DOC-1', 'note' => 'DOC-1 names the modes.', 'kind' => 'blocked_by']);
         $this->agent('link_issues', ['issue' => 'SM-4', 'target' => 'SM-2', 'note' => 'The same rounding.']);
-        $this->agent('set_issue_status', ['issue' => 'SM-5', 'status' => 'awaiting_user_input']);
+        $this->agent('update_issue', ['issue' => 'SM-5', 'problem' => self::PROBLEM]);
+        $this->agent('set_issue_status', ['issue' => 'SM-5', 'status' => 'todo', 'waitingFor' => 'requester']);
         $this->agent('link_issues', ['issue' => 'DOC-2', 'target' => 'SM-5', 'note' => 'SM-5 names the terms.', 'kind' => 'blocked_by']);
         $graph = fn (): array => self::assertApiResponse(self::apiRequest($this->client, 'GET', '/api/v1/projects/SM/graph'), 200, 'issue.schema.json#/$defs/IssueGraph');
 
@@ -373,10 +422,10 @@ final class IssueApiTest extends WebTestCase
         $this->agent('set_issue_status', ['issue' => 'DOC-2', 'status' => 'wont_do', 'note' => 'The glossary has them.']);
         $ended = $graph();
 
-        self::assertSame([['DOC-1', 'draft'], ['DOC-2', 'draft'], ['SM-1', 'in_review'], ['SM-2', 'draft'], ['SM-3', 'draft'], ['SM-5', 'awaiting_user_input']], array_map(static fn (array $issue): array => [$issue['key'], $issue['status']], $open['issues']));
+        self::assertSame([['DOC-1', 'draft'], ['DOC-2', 'draft'], ['SM-1', 'in_review'], ['SM-2', 'draft'], ['SM-3', 'draft'], ['SM-5', 'todo']], array_map(static fn (array $issue): array => [$issue['key'], $issue['status']], $open['issues']));
         self::assertSame([['issue' => 'DOC-2', 'blockedBy' => 'SM-5'], ['issue' => 'SM-3', 'blockedBy' => 'DOC-1'], ['issue' => 'SM-3', 'blockedBy' => 'SM-2']], $open['links']);
-        self::assertSame(1, $open['otherOpenIssues'], 'SM-4, which has a relates link only.');
-        self::assertSame([['SM-1', 'SM-5'], [], 2], [array_column($ended['issues'], 'key'), $ended['links'], $ended['otherOpenIssues']]);
+        self::assertSame(2, $open['otherOpenIssues'], 'SM-4, a draft that waits for the user with a relates link only, and SM-6, which waits for the agent.');
+        self::assertSame([['SM-1', 'SM-5'], [], 3], [array_column($ended['issues'], 'key'), $ended['links'], $ended['otherOpenIssues']]);
     }
 
     #[TestDox('A key that the caller cannot see answers 404 before the 403 and the body error, and a malformed key answers 404')]

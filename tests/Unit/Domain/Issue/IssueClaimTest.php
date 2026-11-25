@@ -9,6 +9,8 @@ use App\Domain\Error\InvalidInput;
 use App\Domain\Identity\UserId;
 use App\Domain\Issue\IssueClaim;
 use App\Domain\Issue\IssueKey;
+use App\Domain\Issue\IssuePartyKind;
+use App\Domain\Issue\IssueStatus;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -60,6 +62,14 @@ final class IssueClaimTest extends KernelTestCase
         self::assertSame(['09:00', '12:30'], [$written->since->format('H:i'), $written->until->format('H:i')]);
         self::assertSame(['09:00', '14:00'], [$commented?->since->format('H:i'), $commented?->until->format('H:i')]);
         self::assertSame($commented, IssueClaim::renew($commented, self::agent(), 'billing-77c0', self::at('12:10')));
+    }
+
+    #[TestDox('A hand-over to a user ends the claim, a hand-over to an agent keeps it')]
+    public function testAHandOverToAUserEndsTheClaim(): void
+    {
+        self::assertTrue(IssueClaim::endsWith(IssueStatus::Todo, IssueStatus::Todo, IssuePartyKind::User));
+        self::assertFalse(IssueClaim::endsWith(IssueStatus::Todo, IssueStatus::Todo, IssuePartyKind::Agent));
+        self::assertTrue(IssueClaim::endsWith(IssueStatus::InProgress, IssueStatus::InProgress, IssuePartyKind::User), 'In in_progress too.');
     }
 
     private static function take(?IssueClaim $claim, string $session, string $time): IssueClaim

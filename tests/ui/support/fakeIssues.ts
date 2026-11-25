@@ -1,23 +1,32 @@
-import { type ApprovalMode, ISSUE_SECTIONS, type IssueStatus, type Question } from '../../../assets/api/types/common';
+import { type ApprovalMode, ISSUE_SECTIONS, type IssuePartyKind, type IssueStatus, type Question, type WaitingFor } from '../../../assets/api/types/common';
 import type { ApprovePlanInput, CreateIssueInput, CreateProjectInput, IssueCommentInput, IssueStatusInput, UpdateIssueInput, UpdateProjectInput } from '../../../assets/api/types/inputs';
-import type { Issue, IssueCommits, IssueDetail, IssueEntry, IssueSummary } from '../../../assets/api/types/issue';
+import type { Issue, IssueCommits, IssueDetail, IssueEntry, IssueParty, IssueSummary } from '../../../assets/api/types/issue';
 import type { Project } from '../../../assets/api/types/project';
 import type { Repository } from '../../../assets/api/types/repository';
-import { issueDetail, newId, now, project, USER } from './builders';
+import { AGENT_PARTY, issueDetail, newId, now, project, USER, USER_PARTY } from './builders';
 import { apiError, json, type MockApi, type MockResponse } from './mockApi';
 
 /** The sections that a status needs, in the order of the checks. */
 const NEEDED: readonly { section: 'problem' | 'plan' | 'result'; statuses: readonly IssueStatus[] }[] = [
-    { section: 'problem', statuses: ['backlog', 'todo', 'in_progress', 'in_review', 'done'] },
-    { section: 'plan', statuses: ['in_progress', 'in_review', 'done'] },
-    { section: 'result', statuses: ['in_review', 'done'] },
+    { section: 'problem', statuses: ['backlog', 'todo', 'in_progress', 'in_review', 'approved', 'done'] },
+    { section: 'plan', statuses: ['in_progress', 'in_review', 'approved', 'done'] },
+    { section: 'result', statuses: ['in_review', 'approved', 'done'] },
 ];
 
-/** A move to one of these, or out of `in_progress`, ends the claim (D130). */
-const PASSING_STATUSES: readonly IssueStatus[] = ['backlog', 'awaiting_user_input', 'in_review', 'done', 'wont_do'];
+/** A move to one of these, or out of `in_progress`, or to a user ends the claim (D130, D134). */
+const PASSING_STATUSES: readonly IssueStatus[] = ['backlog', 'in_review', 'done', 'wont_do'];
 
-/** The statuses of an open issue that waits for the user: I9 holds such an issue without a dependency. */
-const WAITS_FOR_USER: readonly IssueStatus[] = ['awaiting_user_input', 'in_review'];
+/** The party of a new status without `waitingFor` (D134). */
+const DEFAULT_WAITING_FOR: Record<IssueStatus, WaitingFor | null> = {
+    draft: 'requester',
+    backlog: null,
+    todo: 'assignee',
+    in_progress: 'assignee',
+    in_review: 'requester',
+    approved: 'assignee',
+    done: null,
+    wont_do: null,
+};
 
 /**
  * The issue tracker in memory, as a signed-in user sees it: P1 to P3, I1 to I9, I11, and I12, with the rules of
@@ -70,7 +79,7 @@ export class FakeIssues {
             return json('project.schema.json', changed);
         });
         api.on('POST', '/api/v1/projects/:projectKey/issues', ({ params, body }) => {
-            const { title, category, problem = null, status, approval = null } = body as CreateIssueInput;
+            const { title, category, problem = null, status, approval = null, requester = null, assignee = null } = body as CreateIssueInput;
             const owner = this.projects.find(({ key }) => key === params.projectKey);
             if (undefined === owner) {
                 return notFound();
@@ -89,6 +98,9 @@ export class FakeIssues {
                 category,
                 status: status ?? 'draft',
                 approval: 'by_issue' === owner.approvalMode ? (approval ?? 'user') : owner.approvalMode,
+                requester: party(requester ?? 'user'),
+                assignee: party(assignee ?? 'agent'),
+                waitingFor: DEFAULT_WAITING_FOR[status ?? 'draft'],
                 problem,
                 plan: null,
                 project: { key: owner.key, name: owner.name, approvalMode: owner.approvalMode },
@@ -111,6 +123,12 @@ export class FakeIssues {
             this.#answer(params.issueKey, (detail) => {
                 const input = body as UpdateIssueInput;
                 const changes: Partial<Issue> = { ...(null === input.title || undefined === input.title ? {} : { title: input.title.trim() }), ...(null === input.category || undefined === input.category ? {} : { category: input.category }) };
+                for (const role of ['requester', 'assignee'] as const) {
+                    const kind = input[role];
+                    if (null !== kind && undefined !== kind) {
+                        changes[role] = party(kind);
+                    }
+                }
                 if (null !== input.approval && undefined !== input.approval) {
                     if ('by_issue' !== detail.issue.project.approvalMode) {
                         return approvalRefusal(detail.issue.project.approvalMode);
@@ -135,21 +153,27 @@ export class FakeIssues {
         );
         api.on('POST', '/api/v1/issues/:issueKey/status', ({ params, body }) =>
             this.#answer(params.issueKey, (detail) => {
-                const { status, note = null } = body as IssueStatusInput;
+                const { status, waitingFor: given = null, note = null } = body as IssueStatusInput;
                 const { issue } = detail;
+                const waitingFor = given ?? (status === issue.status ? issue.waitingFor : DEFAULT_WAITING_FOR[status]);
                 if ('wont_do' === status && '' === (note ?? '').trim()) {
                     return refusal('note', 'wont_do needs a note that says why.');
                 }
+                if ((null === DEFAULT_WAITING_FOR[status]) !== (null === waitingFor)) {
+                    return refusal('waitingFor', `An issue in ${status} waits for ${null === waitingFor ? 'its requester or its assignee' : 'nobody'}.`);
+                }
 
-                const dismissals = 'wont_do' === status ? detail.thread.filter(isOpenQuestion).map((asked) => dismissal(asked, "Dismissed: the issue is won't do.")) : [];
+                const dismissals = 'wont_do' === status && status !== issue.status ? detail.thread.filter(isOpenQuestion).map((asked) => dismissal(asked, "Dismissed: the issue is won't do.")) : [];
+                const moved = { ...issue, status, waitingFor };
+                const endsClaim = 'user' === waitingParty(moved)?.kind || (status !== issue.status && ('in_progress' === issue.status || PASSING_STATUSES.includes(status)));
 
                 return (
-                    missingSection({ ...issue, status }) ??
+                    missingSection(moved) ??
                     json(
                         'issue.schema.json',
-                        status === issue.status
+                        status === issue.status && waitingFor === issue.waitingFor
                             ? issue
-                            : this.#write(detail, { status, claim: 'in_progress' === issue.status || PASSING_STATUSES.includes(status) ? null : issue.claim }, entry('status_changed', { from: issue.status, to: status, note }), ...dismissals),
+                            : this.#write(detail, { status, waitingFor, claim: endsClaim ? null : issue.claim }, entry('status_changed', { from: issue.status, to: status, waitingFor, note }), ...dismissals),
                     )
                 );
             }),
@@ -204,10 +228,11 @@ export class FakeIssues {
                     return refusal('planRevision', 'The plan changed after this revision. Read the plan again, and approve its newest revision.');
                 }
                 const approved = entry('plan_approved', { planRevision });
-                const toTodo = 'awaiting_user_input' === issue.status && '' !== (issue.problem ?? '').trim();
-                const changes: Partial<Issue> = { planApproval: { approvedBy: USER, approvedAt: approved.createdAt, reviewer: null, reviewNote: null }, ...(toTodo ? { status: 'todo' } : {}) };
+                const handOver = 'requester' === issue.waitingFor;
+                const status: IssueStatus = handOver && 'draft' === issue.status && '' !== (issue.problem ?? '').trim() ? 'todo' : issue.status;
+                const changes: Partial<Issue> = { planApproval: { approvedBy: USER, approvedAt: approved.createdAt, reviewer: null, reviewNote: null }, ...(handOver ? { status, waitingFor: 'assignee' } : {}) };
 
-                return json('issue.schema.json', this.#write(detail, changes, approved, ...(toTodo ? [entry('status_changed', { from: issue.status, to: 'todo' })] : [])));
+                return json('issue.schema.json', this.#write(detail, changes, approved, ...(handOver ? [entry('status_changed', { from: issue.status, to: status, waitingFor: 'assignee' })] : [])));
             }),
         );
         api.on('POST', '/api/v1/issues/:issueKey/release', ({ params }) =>
@@ -246,7 +271,8 @@ export class FakeIssues {
                 .flatMap(({ issue, links: ofIssue }) => ofIssue.filter(({ kind }) => 'blocked_by' === kind).map((link) => ({ issue: issue.key, blockedBy: link.issue.key })))
                 .filter(({ issue, blockedBy }) => open.has(issue) && open.has(blockedBy) && ofProject.some(({ key }) => key === issue || key === blockedBy))
                 .toSorted((first, second) => compareKeys(first.issue, second.issue) || compareKeys(first.blockedBy, second.blockedBy));
-            const keys = new Set([...ofProject.filter(({ status }) => WAITS_FOR_USER.includes(status)).map(({ key }) => key), ...links.flatMap(({ issue, blockedBy }) => [issue, blockedBy])]);
+            const waitsForUser = ofProject.filter((issue) => 'draft' !== issue.status && 'user' === waitingParty(issue)?.kind);
+            const keys = new Set([...waitsForUser.map(({ key }) => key), ...links.flatMap(({ issue, blockedBy }) => [issue, blockedBy])]);
             const issues = [...keys].toSorted(compareKeys).map((key) => summary(open.get(key) as Issue));
 
             return json('issue.schema.json#/$defs/IssueGraph', { issues, links, otherOpenIssues: ofProject.filter(({ key }) => !keys.has(key)).length });
@@ -312,8 +338,17 @@ export class FakeIssues {
     }
 }
 
-function summary({ key, title, category, status, approval, claim, updatedAt }: Issue): IssueSummary {
-    return { key, title, category, status, approval, claim, updatedAt };
+function summary({ key, title, category, status, approval, claim, requester, assignee, waitingFor, updatedAt }: Issue): IssueSummary {
+    return { key, title, category, status, approval, claim, requester, assignee, waitingFor, updatedAt };
+}
+
+/** `user` is the signed-in user. */
+function party(kind: IssuePartyKind): IssueParty {
+    return 'user' === kind ? USER_PARTY : AGENT_PARTY;
+}
+
+function waitingParty({ requester, assignee, waitingFor }: Issue): IssueParty | null {
+    return null === waitingFor ? null : 'requester' === waitingFor ? requester : assignee;
 }
 
 /** P2 and P3 store whitespace only as null. */
@@ -346,6 +381,7 @@ function entry(kind: IssueEntry['kind'], fields: Partial<IssueEntry>): IssueEntr
         section: null,
         from: null,
         to: null,
+        waitingFor: null,
         note: null,
         reviewer: null,
         reviewNote: null,
