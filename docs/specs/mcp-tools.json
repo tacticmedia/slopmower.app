@@ -14,7 +14,7 @@
                     },
                     "session": {
                         "type": "string",
-                        "description": "Your session name, the same in each write: the directory name of your working tree and 4 random hex digits, kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.",
+                        "description": "Your session name, the same in each write: the directory name of your working tree, a hyphen, and 4 hex digits, in Claude Code the first 4 characters of CLAUDE_CODE_SESSION_ID, else random digits kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.",
                         "minLength": 1,
                         "maxLength": 64,
                         "pattern": "^[^\\x00]*$"
@@ -94,7 +94,7 @@
                     },
                     "session": {
                         "type": "string",
-                        "description": "Your session name, the same in each write: the directory name of your working tree and 4 random hex digits, kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.",
+                        "description": "Your session name, the same in each write: the directory name of your working tree, a hyphen, and 4 hex digits, in Claude Code the first 4 characters of CLAUDE_CODE_SESSION_ID, else random digits kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.",
                         "minLength": 1,
                         "maxLength": 64,
                         "pattern": "^[^\\x00]*$"
@@ -1157,7 +1157,7 @@
                     },
                     "session": {
                         "type": "string",
-                        "description": "Your session name, the same in each write: the directory name of your working tree and 4 random hex digits, kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.",
+                        "description": "Your session name, the same in each write: the directory name of your working tree, a hyphen, and 4 hex digits, in Claude Code the first 4 characters of CLAUDE_CODE_SESSION_ID, else random digits kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.",
                         "minLength": 1,
                         "maxLength": 64,
                         "pattern": "^[^\\x00]*$"
@@ -1468,7 +1468,7 @@
                     },
                     "session": {
                         "type": "string",
-                        "description": "Your session name, the same in each write: the directory name of your working tree and 4 random hex digits, kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.",
+                        "description": "Your session name, the same in each write: the directory name of your working tree, a hyphen, and 4 hex digits, in Claude Code the first 4 characters of CLAUDE_CODE_SESSION_ID, else random digits kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.",
                         "minLength": 1,
                         "maxLength": 64,
                         "pattern": "^[^\\x00]*$"

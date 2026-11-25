@@ -5391,7 +5391,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'properties' => [
                     'issue' => ['type' => 'string', 'description' => 'Issue key, for example SM-12', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$'],
-                    'session' => ['type' => 'string', 'description' => 'Your session name, the same in each write: the directory name of your working tree and 4 random hex digits, kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$'],
+                    'session' => ['type' => 'string', 'description' => 'Your session name, the same in each write: the directory name of your working tree, a hyphen, and 4 hex digits, in Claude Code the first 4 characters of CLAUDE_CODE_SESSION_ID, else random digits kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$'],
                     'planRevision' => ['type' => 'string', 'description' => 'planRevision of the issue, as the reviewer read it', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'],
                     'reviewer' => ['type' => 'string', 'description' => 'Name of the agent or subagent that reviewed the plan', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$'],
                     'reviewNote' => ['type' => 'string', 'description' => 'Markdown: the findings of the reviewer, at least 20 characters', 'minLength' => 20, 'maxLength' => 65536, 'pattern' => '^[^\\x00]*$'],
@@ -5423,7 +5423,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'properties' => [
                     'issue' => ['type' => 'string', 'description' => 'Issue key, for example SM-12', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$'],
-                    'session' => ['type' => 'string', 'description' => 'Your session name, the same in each write: the directory name of your working tree and 4 random hex digits, kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$'],
+                    'session' => ['type' => 'string', 'description' => 'Your session name, the same in each write: the directory name of your working tree, a hyphen, and 4 hex digits, in Claude Code the first 4 characters of CLAUDE_CODE_SESSION_ID, else random digits kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$'],
                     'body' => ['type' => 'string', 'description' => 'Markdown comment', 'minLength' => 1, 'maxLength' => 65536, 'pattern' => '^[^\\x00]*$'],
                     'label' => [
                         'type' => 'string',
@@ -5975,7 +5975,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'properties' => [
                     'issue' => ['type' => 'string', 'description' => 'Issue key, for example SM-12', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$'],
-                    'session' => ['type' => 'string', 'description' => 'Your session name, the same in each write: the directory name of your working tree and 4 random hex digits, kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$'],
+                    'session' => ['type' => 'string', 'description' => 'Your session name, the same in each write: the directory name of your working tree, a hyphen, and 4 hex digits, in Claude Code the first 4 characters of CLAUDE_CODE_SESSION_ID, else random digits kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$'],
                     'status' => [
                         'type' => 'string',
                         'description' => 'The new status',
@@ -6136,7 +6136,7 @@ final class BundledSchemas
                 'type' => 'object',
                 'properties' => [
                     'issue' => ['type' => 'string', 'description' => 'Issue key, for example SM-12', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$'],
-                    'session' => ['type' => 'string', 'description' => 'Your session name, the same in each write: the directory name of your working tree and 4 random hex digits, kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$'],
+                    'session' => ['type' => 'string', 'description' => 'Your session name, the same in each write: the directory name of your working tree, a hyphen, and 4 hex digits, in Claude Code the first 4 characters of CLAUDE_CODE_SESSION_ID, else random digits kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$'],
                     'title' => [
                         'type' => ['null', 'string'],
                         'description' => 'One line that names the issue',

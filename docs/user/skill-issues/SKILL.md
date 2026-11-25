@@ -36,13 +36,21 @@ key, a hyphen, and a number, for example `SM-12`.
 Several sessions can work on the issues of one project at the same time. Each
 write names its session, and one session at a time holds an issue.
 
-- Make your session name once, before your first write: the directory name of
-  your working tree, a hyphen, and 4 random hex digits, for example
-  `billing-3f9a`. Write it to the file `slopmower-session` of your git
+- In Claude Code, your session name is the directory name of your working
+  tree, a hyphen, and the first 4 characters of `CLAUDE_CODE_SESSION_ID`, for
+  example `billing-3f9a`:
+  `echo "$(basename "$(git rev-parse --show-toplevel)")-${CLAUDE_CODE_SESSION_ID:0:4}"`.
+  When the name is no longer in your context, run the command again. Keep no
+  file.
+- Without `CLAUDE_CODE_SESSION_ID`, make your session name once, before your
+  first write: the directory name of your working tree, a hyphen, and 4
+  random hex digits. Write it to the file `slopmower-session` of your git
   directory, also when the file exists:
   `echo "$(basename "$(git rev-parse --show-toplevel)")-$(openssl rand -hex 2)" > "$(git rev-parse --git-dir)/slopmower-session"`.
-- When the name is no longer in your context, read it again:
-  `cat "$(git rev-parse --git-dir)/slopmower-session"`.
+  When the name is no longer in your context, read it again:
+  `cat "$(git rev-parse --git-dir)/slopmower-session"`. Two sessions in one
+  working tree share this file, so a second session works in a git worktree
+  of its own.
 - Send the name as `session` in each `update_issue`, `set_issue_status`,
   `approve_plan`, and `comment_on_issue`. A subagent sends the name of the
   agent that started it: put the name into its prompt.
