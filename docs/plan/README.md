@@ -378,7 +378,7 @@ The session writes it into `reports/MNN.md`:
 
 ## Verified versions
 
-Checked on 2026-09-29. The `@playwright/test` and `playwright-php/playwright` rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08; the `symfony/scheduler` row on 2026-10-13; the `sentry/*` row on 2026-10-15; the `tacticmedia/qa-bundle` and `@tacticmedia/qa-capture` rows on 2026-10-16; the `react-joyride` row on 2026-10-19; the `@sentry/react` row on 2026-10-28; the `@sentry/vite-plugin` row and the F100 versions on 2026-11-03; the Composer rows and the `@symfony/reprise` version on 2026-11-22 (F125); the PHP and FrankenPHP rows on 2026-11-22 (SM-8); the `dicebear/*` row on 2026-11-25 (SM-44); the Node.js rows on 2026-11-25 (SM-93); the PostgreSQL row on 2026-11-25 (SM-176). `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
+Checked on 2026-09-29. The `@playwright/test` and `playwright-php/playwright` rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08; the `symfony/scheduler` row on 2026-10-13; the `sentry/*` row on 2026-10-15; the `tacticmedia/qa-bundle` and `@tacticmedia/qa-capture` rows on 2026-10-16; the `react-joyride` row on 2026-10-19; the `@sentry/react` row on 2026-10-28; the `@sentry/vite-plugin` row and the F100 versions on 2026-11-03; the Composer rows and the `@symfony/reprise` version on 2026-11-22 (F125); the PHP and FrankenPHP rows on 2026-11-22 (SM-8); the `dicebear/*` row on 2026-11-25 (SM-44); the Node.js rows on 2026-11-25 (SM-93); the PostgreSQL row on 2026-11-25 (SM-176); the Node.js rows of CI and the host on 2026-11-25 (SM-175). `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
 
 | Package | Version | Source |
 |---|---|---|
@@ -389,6 +389,8 @@ Checked on 2026-09-29. The `@playwright/test` and `playwright-php/playwright` ro
 | dunglas/symfony-docker | Template, guide "Using Symfony Docker with an existing project" | https://github.com/dunglas/symfony-docker |
 | Node.js | 24 LTS, 24.22.3 | https://nodejs.org/dist/index.json |
 | Node.js in the `php` image | 24.22.3 from `node:24.22.3-trixie-slim`, npm 11.19.1 | `node --version` in the `php` container |
+| Node.js in CI | 24.22.3, `node-version` of `actions/setup-node` in `.github/workflows/qa.yml` | https://nodejs.org/dist/index.json |
+| Node.js on the host | The Node.js 24 of each developer runs `npm`, `make front`, and `make ui`. Checked with 24.12.0. | `node --version` on the host |
 | `doctrine/orm`, `doctrine/doctrine-bundle`, `doctrine/doctrine-migrations-bundle`, `symfony/messenger` with the Doctrine transport | 3.8.0, 3.4.2, 4.0.1, 8.1, installed, with `doctrine/dbal` 4.6.0 | `composer show` |
 | `symfony/process`, `symfony/uid` | 8.1.10, 8.1.9 | https://repo.packagist.org/p2/symfony/process.json |
 | `mcp/sdk`, `symfony/mcp-bundle` | 0.9.0, 0.15.0, exact pins. `mcp/sdk` 0.10.0 exists, and no bundle release accepts it. | https://repo.packagist.org/p2/mcp/sdk.json |
