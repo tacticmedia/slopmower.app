@@ -10,6 +10,7 @@ use App\Application\Query\IssueCommentPage;
 use App\Application\Query\IssueDetail;
 use App\Application\Query\IssuePage;
 use App\Application\Query\IssueQuery;
+use App\Application\Query\IssueSort;
 use App\Application\Query\IssueUpdatesPage;
 use App\Application\Query\IssueView;
 use App\Application\Query\LinkCommitsResult;
@@ -52,6 +53,7 @@ use App\Domain\Issue\IssueCategory;
 use App\Domain\Issue\IssueKey;
 use App\Domain\Issue\IssueLinkKind;
 use App\Domain\Issue\IssuePartyKind;
+use App\Domain\Issue\IssuePriority;
 use App\Domain\Issue\IssueStatus;
 use App\Domain\Issue\WaitingFor;
 use App\Domain\Request\Awaiting;
@@ -146,9 +148,9 @@ final class McpTools
      *
      * @return array<string, mixed>
      */
-    public function createIssue(string $project, string $title, IssueCategory $category, ?string $problem = null, IssueStatus $status = IssueStatus::Draft, ?ApprovalMode $approval = null, ?IssuePartyKind $requester = null, ?IssuePartyKind $assignee = null): array
+    public function createIssue(string $project, string $title, IssueCategory $category, ?string $problem = null, IssueStatus $status = IssueStatus::Draft, ?ApprovalMode $approval = null, ?IssuePartyKind $requester = null, ?IssuePartyKind $assignee = null, ?IssuePriority $priority = null): array
     {
-        return $this->issueWrite('create_issue', fn (Actor $actor): Issue => $this->issueCommands->create($project, $title, $category, $problem, $status, $actor, $approval, $requester, $assignee));
+        return $this->issueWrite('create_issue', fn (Actor $actor): Issue => $this->issueCommands->create($project, $title, $category, $problem, $status, $actor, $approval, $requester, $assignee, $priority));
     }
 
     /**
@@ -269,9 +271,9 @@ final class McpTools
      *
      * @return array<string, mixed>
      */
-    public function listIssues(string $project, ?IssueStatus $status = null, ?IssueCategory $category = null, ?IssuePartyKind $waitingForKind = null, ?string $cursor = null, int $limit = 50): array
+    public function listIssues(string $project, IssueSort $sort = IssueSort::Rank, ?IssueStatus $status = null, ?IssueCategory $category = null, ?IssuePartyKind $waitingForKind = null, ?int $activeWithinHours = null, ?int $idleForHours = null, bool $noActivity = false, ?string $cursor = null, int $limit = 50): array
     {
-        return $this->run('list_issues', fn (): IssuePage => $this->issues->list($project, $status, $category, $limit, $cursor, $waitingForKind));
+        return $this->run('list_issues', fn (): IssuePage => $this->issues->list($project, $status, $category, $limit, $cursor, $waitingForKind, $sort, $activeWithinHours, $idleForHours, $noActivity));
     }
 
     /**

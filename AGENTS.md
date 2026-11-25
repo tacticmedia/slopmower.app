@@ -31,6 +31,7 @@ Fix the bugs and known issues first, and add features after that.
 - **Known issues** are open bugs, deferred review findings, and follow-ups. Each is an issue of `SM`.
 - **Order:** a bug or a known issue goes to `todo` and is worked ahead of any feature that is not started.
 - **Bugs found mid-feature:** a bug found while a feature is in progress gets its own issue and goes ahead of the next feature.
+- **Order of work:** `list_issues` returns the order of Jan: the bugs first, then by rank. The next issue is `list_issues` with `status: todo`, `waitingForKind: agent`, and `limit: 1`, as the section "Order of work" of the skill `slopmower-issues` says. Only Jan moves an issue.
 
 ## Ask before generating
 

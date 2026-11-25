@@ -69,6 +69,8 @@ export type Issue = {
     createdBy: Actor;
     createdAt: DateTime;
     updatedAt: DateTime;
+    /** The newest thread entry after the creation. Null without one (D137). */
+    lastActivityAt: DateTime | null;
 };
 
 export type IssueSummary = {
@@ -82,6 +84,7 @@ export type IssueSummary = {
     assignee: IssueParty;
     waitingFor: WaitingFor | null;
     updatedAt: DateTime;
+    lastActivityAt: DateTime | null;
 };
 
 /** `issue` is the other issue. With `blocked_by`, the issue that is read waits for it. */

@@ -19,4 +19,12 @@ enum IssueStatus: string
     {
         return self::Done === $this || self::WontDo === $this;
     }
+
+    /**
+     * @return list<self> The statuses that end an issue. Every other status is open.
+     */
+    public static function ended(): array
+    {
+        return array_values(array_filter(self::cases(), static fn (self $status): bool => $status->isEnded()));
+    }
 }

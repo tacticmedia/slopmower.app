@@ -29,7 +29,8 @@ use Symfony\Component\Clock\Test\ClockSensitiveTrait;
  * Sends each request body fixture of docs/specs/README.md section 11 to its endpoint. The fixture IDs stand for rows
  * of the test: the review repository, the review, a first request, a second request, the proposal of the agent on
  * the first request, a draft, the plan revision of an issue, and a comment of the agent on it. `{targetReviewId}` is a
- * second review of the repository, `{issueKey}` is the issue BILL-1, and `{projectKey}` is its project BILL.
+ * second review of the repository, `{issueKey}` is the issue BILL-1, `BILL-13` is the change BILL-2 of a move, and
+ * `{projectKey}` is the project BILL.
  */
 final class InputFixturesTest extends WebTestCase
 {
@@ -74,7 +75,8 @@ final class InputFixturesTest extends WebTestCase
      * requests that the agent claims first, whether a draft must exist, whether the agent proposes on the first
      * request, whether the agent links the fixture URL to the first request, whether the agent suggested the first
      * request, whether the review is of the GitHub repository acme/billing, with general requests and no clone,
-     * whether the issue BILL-1 exists with a plan and a comment of the agent, and whether that comment asks a question.
+     * whether the issue BILL-1 exists with a plan and a comment of the agent, whether that comment asks a question, and
+     * whether the change BILL-2 exists.
      */
     private const array CASES = [
         'inputs.accept-suggestion.json' => ['schema' => 'inputs.schema.json#/$defs/AcceptSuggestionInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/accept-suggestion', 'status' => 200, 'response' => self::RESULT, 'suggested' => true],
@@ -105,6 +107,7 @@ final class InputFixturesTest extends WebTestCase
         'inputs.plan-requirement.json' => ['schema' => 'inputs.schema.json#/$defs/PlanRequirementInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/plan-requirement', 'status' => 200, 'response' => self::RESULT],
         'inputs.preferences.json' => ['schema' => 'inputs.schema.json#/$defs/PreferencesInput', 'method' => 'PATCH', 'path' => '/api/v1/me/preferences', 'status' => 200, 'response' => 'me.schema.json#/$defs/Preferences'],
         'inputs.propose-solution.json' => ['schema' => 'inputs.schema.json#/$defs/ProposeSolutionInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/propose', 'status' => 200, 'response' => self::RESULT, 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID]],
+        'inputs.rank-issue.json' => ['schema' => 'inputs.schema.json#/$defs/RankIssueInput', 'method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/rank', 'status' => 200, 'response' => 'issue.schema.json', 'issue' => true, 'ranked' => true],
         'inputs.ready.json' => ['schema' => 'inputs.schema.json#/$defs/RequiredNoteInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/ready', 'status' => 200, 'response' => self::RESULT, 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID]],
         'inputs.release.json' => ['schema' => 'inputs.schema.json#/$defs/OptionalNoteInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/release', 'status' => 200, 'response' => self::RESULT, 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID]],
         'inputs.start-review.json' => ['schema' => 'inputs.schema.json#/$defs/StartReviewInput', 'method' => 'POST', 'path' => '/api/v1/repositories/{repositoryId}/reviews', 'status' => 201, 'response' => 'review.schema.json'],
@@ -121,7 +124,7 @@ final class InputFixturesTest extends WebTestCase
     ];
 
     /**
-     * @param array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true, linked?: true, suggested?: true, github?: true, issue?: true, asked?: true} $case
+     * @param array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true, linked?: true, suggested?: true, github?: true, issue?: true, asked?: true, ranked?: true} $case
      */
     #[TestDox('Every request body fixture of docs/specs is accepted by its endpoint')]
     #[DataProvider('fixtures')]
@@ -180,6 +183,11 @@ final class InputFixturesTest extends WebTestCase
             self::assertToolResult($mcp, $mcp->callTool('comment_on_issue', ['issue' => 'BILL-1', 'session' => 'billing-3f9a', 'body' => '`round()` goes.'] + (isset($case['asked']) ? ['questions' => [['question' => 'Remove `round()` in 3.0?']]] : [])), 'comment_on_issue');
             $thread = self::assertToolResult($mcp, $mcp->callTool('get_issue', ['issue' => 'BILL-1']), 'get_issue')['thread'];
             $ids[self::FIXTURE_COMMENT_ID] = (string) array_last($thread)['id'];
+
+            if (isset($case['ranked'])) {
+                self::assertToolResult($mcp, $mcp->callTool('create_issue', ['project' => 'BILL', 'title' => 'Show the rounding mode on the invoice PDF', 'category' => 'change']), 'create_issue');
+                $ids['BILL-13'] = 'BILL-2';
+            }
         }
 
         $body = json_decode($json, true, flags: \JSON_THROW_ON_ERROR);
@@ -207,7 +215,7 @@ final class InputFixturesTest extends WebTestCase
     }
 
     /**
-     * @return iterable<string, array{string, array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true, linked?: true, suggested?: true, github?: true, issue?: true, asked?: true}}>
+     * @return iterable<string, array{string, array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true, linked?: true, suggested?: true, github?: true, issue?: true, asked?: true, ranked?: true}}>
      */
     public static function fixtures(): iterable
     {

@@ -18,7 +18,9 @@ use App\Controller\Api\Input\IssueDetailQuery;
 use App\Controller\Api\Input\IssueListQuery;
 use App\Controller\Api\Input\IssueStatusInput;
 use App\Controller\Api\Input\IssueUpdatesQuery;
+use App\Controller\Api\Input\RankIssueInput;
 use App\Controller\Api\Input\UpdateIssueInput;
+use App\Domain\Error\InvalidInput;
 use App\Domain\Error\NotFound;
 use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Git\CommitSha;
@@ -58,7 +60,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * I1 to I12 of docs/specs/rest-api-issues.md. A path key that the SQL filters hide resolves to 404.
+ * I1 to I13 of docs/specs/rest-api-issues.md. A path key that the SQL filters hide resolves to 404.
  */
 #[Route('/api/v1', name: 'api_issue_', requirements: ['projectKey' => IssueKey::PROJECT_KEY_REQUIREMENT, 'issueKey' => IssueKey::REQUIREMENT])]
 final class IssueController extends AbstractController
@@ -78,7 +80,7 @@ final class IssueController extends AbstractController
         #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)]
         IssueListQuery $query = new IssueListQuery(),
     ): JsonResponse {
-        return $this->json($this->issues->list($project->getKey(), $query->status, $query->category, $query->limit, $query->cursor, $query->waitingForKind));
+        return $this->json($this->issues->list($project->getKey(), $query->status, $query->category, $query->limit, $query->cursor, $query->waitingForKind, $query->sort, $query->activeWithinHours, $query->idleForHours, $query->noActivity));
     }
 
     #[Route('/issues/{issueKey}', name: 'get', methods: ['GET'])]
@@ -118,7 +120,7 @@ final class IssueController extends AbstractController
     #[Route('/projects/{projectKey}/graph', name: 'graph', methods: ['GET'])]
     public function graph(#[MapEntity(mapping: ['projectKey' => 'key'])] Project $project, EntityManagerInterface $entityManager, ClockInterface $clock): JsonResponse
     {
-        $ended = array_values(array_filter(IssueStatus::cases(), static fn (IssueStatus $status): bool => $status->isEnded()));
+        $ended = IssueStatus::ended();
         /** @var list<IssueLink> $dependencies */
         $dependencies = $entityManager->createQueryBuilder()
             ->select('link', 'waiting', 'blocker')
@@ -204,7 +206,7 @@ final class IssueController extends AbstractController
     ): JsonResponse {
         \assert(null !== $input->title && null !== $input->category);
         $actor = $this->currentActor->get();
-        $issue = $this->commands->create($project->getKey(), $input->title, $input->category, $input->problem, $input->status ?? IssueStatus::Draft, $actor, $input->approval, $input->requester, $input->assignee);
+        $issue = $this->commands->create($project->getKey(), $input->title, $input->category, $input->problem, $input->status ?? IssueStatus::Draft, $actor, $input->approval, $input->requester, $input->assignee, $input->priority);
 
         return $this->json($this->issues->view($issue, $actor), Response::HTTP_CREATED, ['Location' => $this->generateUrl('api_issue_get', ['issueKey' => $issue->getKey()->toString()])]);
     }
@@ -293,6 +295,21 @@ final class IssueController extends AbstractController
         usort($items, static fn (array $first, array $second): int => $second['committedAt'] <=> $first['committedAt']);
 
         return $this->json(new IssueCommits($items, $unavailable));
+    }
+
+    #[Route('/issues/{issueKey}/rank', name: 'rank', methods: ['POST'])]
+    #[IsGranted(User::ROLE, message: CurrentActor::SESSION_ONLY)]
+    public function rank(
+        #[ValueResolver(IssueKeyResolver::class)] Issue $issue,
+        #[MapRequestPayload(acceptFormat: 'json')] RankIssueInput $input,
+    ): JsonResponse {
+        if ((null === $input->before) === (null === $input->after)) {
+            throw InvalidInput::field('before', 'Give exactly one of before and after.');
+        }
+
+        $target = null === $input->before ? IssueKey::fromString((string) $input->after, 'after') : IssueKey::fromString($input->before, 'before');
+
+        return $this->json($this->issues->view($this->commands->rank($issue->getKey(), $target, null === $input->before), $this->currentActor->get()));
     }
 
     #[Route('/issues/{issueKey}/release', name: 'release', methods: ['POST'])]

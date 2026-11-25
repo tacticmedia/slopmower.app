@@ -348,6 +348,10 @@
       "enum": ["bug", "change"],
       "description": "What an issue is (D133). bug: something that exists is wrong against its specification, its documentation, or its evident intent. change: all else, so a feature, an alteration, a refactoring, or an upgrade."
     },
+    "IssuePriority": {
+      "enum": ["top", "urgent", "high", "normal", "low", "none"],
+      "description": "The place of a new issue among the n open issues of its category, in rank order (D137). top: first. urgent, high, normal, low: directly after the first ceil(n x p) issues, with p 10, 25, 50, or 75 percent. none: last. Not stored."
+    },
     "ApprovalMode": {
       "enum": ["user", "agent_review", "self", "by_issue"],
       "description": "Who approves a plan and ends an issue of the project. user: only a signed-in user. agent_review: also an agent, with the name of a reviewing agent and its review on record. self: no approval (D117). by_issue: the approval of each issue says it (D129)."

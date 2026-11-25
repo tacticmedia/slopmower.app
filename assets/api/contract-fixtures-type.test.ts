@@ -50,6 +50,7 @@ import inputsOpenRequest from '../../docs/specs/fixtures/inputs.open-request.jso
 import inputsPlanRequirement from '../../docs/specs/fixtures/inputs.plan-requirement.json';
 import inputsPreferences from '../../docs/specs/fixtures/inputs.preferences.json';
 import inputsProposeSolution from '../../docs/specs/fixtures/inputs.propose-solution.json';
+import inputsRankIssue from '../../docs/specs/fixtures/inputs.rank-issue.json';
 import inputsReady from '../../docs/specs/fixtures/inputs.ready.json';
 import inputsRelease from '../../docs/specs/fixtures/inputs.release.json';
 import inputsStartReview from '../../docs/specs/fixtures/inputs.start-review.json';
@@ -156,6 +157,7 @@ import type {
     PlanRequirementInput,
     PreferencesInput,
     ProposeSolutionInput,
+    RankIssueInput,
     RequiredNoteInput,
     StartReviewInput,
     SubmitDraftsInput,
@@ -262,6 +264,7 @@ const checkedFixtures = {
     'inputs.plan-requirement.json': inputsPlanRequirement satisfies Widen<PlanRequirementInput>,
     'inputs.preferences.json': inputsPreferences satisfies Widen<PreferencesInput>,
     'inputs.propose-solution.json': inputsProposeSolution satisfies Widen<ProposeSolutionInput>,
+    'inputs.rank-issue.json': inputsRankIssue satisfies Widen<RankIssueInput>,
     'inputs.ready.json': inputsReady satisfies Widen<RequiredNoteInput>,
     'inputs.release.json': inputsRelease satisfies Widen<OptionalNoteInput>,
     'inputs.start-review.json': inputsStartReview satisfies Widen<StartReviewInput>,

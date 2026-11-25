@@ -1,6 +1,6 @@
 import type { AnchorInput } from './anchor';
 import type { TokenName } from './api-token';
-import type { ApprovalMode, CodeAccess, CommentLabel, CommitSha, DateTime, Delivery, IssueApproval, IssueCategory, IssuePartyKind, IssueStatus, Markdown, ProjectKey, PullRequestUrl, RepoPath, RequestType, Tour, Ulid, UnifiedDiff, WaitingFor } from './common';
+import type { ApprovalMode, CodeAccess, CommentLabel, CommitSha, DateTime, Delivery, IssueApproval, IssueCategory, IssueKey, IssuePartyKind, IssuePriority, IssueStatus, Markdown, ProjectKey, PullRequestUrl, RepoPath, RequestType, Tour, Ulid, UnifiedDiff, WaitingFor } from './common';
 import type { LocalDirectory } from './repository';
 
 export type ConnectRepositoryInput =
@@ -216,6 +216,14 @@ export type CreateIssueInput = {
     requester?: IssuePartyKind | null;
     /** Absent or null: `agent`. */
     assignee?: IssuePartyKind | null;
+    /** Absent or null: `none`, the last place. */
+    priority?: IssuePriority | null;
+};
+
+/** Exactly one key: an issue of the same project and category. */
+export type RankIssueInput = {
+    before?: IssueKey | null;
+    after?: IssueKey | null;
 };
 
 /** Absent or null keeps a field. At least one field is given. */

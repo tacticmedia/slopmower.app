@@ -17,9 +17,9 @@ the `slopmower` MCP server.
 | Tool | Parameters | Use it to |
 |---|---|---|
 | `list_projects` | `cursor?`, `limit?` | Find the project that owns this repository, with its `approvalMode` and `approvalGuidelines` |
-| `list_issues` | `project`, `status?`, `category?`, `waitingForKind?`, `cursor?`, `limit?` | Look through the issues of the project, newest change first, or those that wait for an agent |
+| `list_issues` | `project`, `sort?`, `status?`, `category?`, `waitingForKind?`, `activeWithinHours?`, `idleForHours?`, `noActivity?`, `cursor?`, `limit?` | Look through the issues of the project in the order of the user, find the next issue, or filter by activity |
 | `get_issue` | `issue`, `history?` | Read one issue with its sections, its links, and its thread: the current content, or the full log with `history` |
-| `create_issue` | `project`, `title`, `category`, `problem?`, `status?`, `approval?`, `requester?`, `assignee?` | Start an issue, `draft` by default |
+| `create_issue` | `project`, `title`, `category`, `problem?`, `status?`, `approval?`, `requester?`, `assignee?`, `priority?` | Start an issue, `draft` by default, last in its category by default |
 | `update_issue` | `issue`, `session`, `title?`, `category?`, `problem?`, `plan?`, `result?`, `followUps?`, `approval?`, `requester?`, `assignee?` | Write the title, the category, or a section, raise the approval to `user`, or change a party |
 | `set_issue_status` | `issue`, `session`, `status`, `waitingFor?`, `note?`, `reviewer?` | Move the issue to another status, or hand it to the other party |
 | `comment_on_issue` | `issue`, `session`, `body`, `label?`, `replaces?`, `questions?` | Record a step or a decision in the thread, with its label, ask the user with `questions`, or replace a comment that no longer holds |
@@ -216,6 +216,33 @@ the next step: `requester` or `assignee`.
   request for changes, or with "Hand over". `list_issues` with
   `waitingForKind: agent` then lists it.
 
+## Order of work
+
+`list_issues` returns the order of the user by default: the bugs first, then
+the changes, each by rank, and without `status` only the open issues.
+`sort: updated` returns every issue, newest change first. Only the user moves
+an issue.
+
+- The next issue: `list_issues` with `status: todo`, `waitingForKind: agent`,
+  and `limit: 1`. Take it, unless another session holds it (`claim`) or it has
+  a `blocked_by` link to an open issue: then take that blocker if it is
+  `todo`, else the next issue, with `nextCursor` or a small `limit`. Do not go
+  down the list for an easier issue.
+- `create_issue` takes `priority`, the place among the open issues of the
+  category: `top`, `urgent`, `high`, `normal`, `low`, or `none`, the default.
+  Give `none` for a follow-up or an idea, a higher value only when the user
+  said how urgent the work is, or the guidelines of the project say so.
+
+Activity is a comment, a status change, a section version, or a plan
+approval. `lastActivityAt` is the time of the newest one. `list_issues` takes
+one activity filter at most, counted back from now:
+
+| Filter | Returns | Example |
+|---|---|---|
+| `activeWithinHours` | The issues with activity in the last N hours | `activeWithinHours: 24`: what moved today |
+| `idleForHours` | The issues without activity for N hours. A new issue counts from its creation | `idleForHours: 72`: the work that stalled for 3 days |
+| `noActivity: true` | The issues without activity | `noActivity: true` with `status: todo`: the work that nobody started |
+
 ## 1. Find the project
 
 Call `list_projects`. The project of this repository is the one whose
@@ -380,7 +407,8 @@ and let the reviewer read the plan again.
 Write into `followUps` what came up and was left out. Each follow-up also
 becomes an issue:
 
-1. Call `create_issue` with its category and status `draft`.
+1. Call `create_issue` with its category and status `draft`, without
+   `priority`.
 2. Call `link_issues` with the new issue as `issue`, its origin as `target`,
    and a `note` that says how they relate.
 

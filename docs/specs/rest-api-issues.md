@@ -2,7 +2,7 @@
 
 This file continues [rest-api.md](rest-api.md). That file has the conventions, the [endpoint index](rest-api.md#2-endpoint-index), and the common errors, which this file does not repeat. Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json).
 
-The endpoints are the issue tracker for the web UI and for agents without MCP (D120, D122). The issue endpoints call the same application services as the [issue tools](mcp.md#issue-tools) and return the same JSON. The model, the visibility, and the rules of the issue tools hold here too. P2 and P3 have no tool: only a signed-in user creates and changes a project. I9 has no tool: the graph is for the web UI. I10 is the twin of the tool `get_issue_updates`, for the watch loop of the `slopmower-issues` skill (D128). I11 has no tool: only a user releases a claim. I12 has no tool.
+The endpoints are the issue tracker for the web UI and for agents without MCP (D120, D122). The issue endpoints call the same application services as the [issue tools](mcp.md#issue-tools) and return the same JSON. The model, the visibility, and the rules of the issue tools hold here too. P2 and P3 have no tool: only a signed-in user creates and changes a project. I9 has no tool: the graph is for the web UI. I10 is the twin of the tool `get_issue_updates`, for the watch loop of the `slopmower-issues` skill (D128). I11 has no tool: only a user releases a claim. I12 has no tool. I13 has no tool: only a user moves an issue (D137).
 
 ## 1. Keys, actors, and rules
 
@@ -11,6 +11,8 @@ The endpoints are the issue tracker for the web UI and for agents without MCP (D
 - **Actors.** A session is the actor `user`, and a token is the actor `agent`. The approval rules of the [issue tools](mcp.md#issue-tools) bind an agent only. The content rules bind a user too: `problem`, a `plan` with text, `result`, the `note` of `wont_do`, `waitingFor`, and the requester of an issue with the approval `user`. A user sets every status, also from `done` and `wont_do`, and changes every field in every status.
 - **Claims.** The claims of the [issue tools](mcp.md#issue-tools) hold here too (D130). A token sends `session` in the body of I3, I7, and I8, and a body without it answers 422 `invalid_input` on `session`. The server ignores `session` of a session, because a user is never refused and takes no claim. I11 removes a claim.
 - **Refusals.** A refusal of a rule is 422 `invalid_input`, and `details.violations[0]` has the field and the reason. The endpoints never answer `invalid_transition` or `review_closed`.
+- **Rank.** The issues of a project have one rank sequence, the lowest first (D137). The list of the user is the rank order with the bugs first, so bugs and changes are ranked apart. A new issue takes the place of its `priority` (I6), and only a user moves an issue (I13). Each place change runs under the row lock of the project, and the ranks from the place on rise by 1, so the order of every other issue stays.
+- **Activity.** Activity is a thread entry after the creation: a comment, a status change, a section version, or a plan approval. `lastActivityAt` of `Issue` and `IssueSummary` is the time of the newest one, and null without one. A creation, a title change, a change of `category`, `approval`, `requester`, or `assignee`, a link, a move, and a release are no activity.
 
 ## 2. Endpoints
 
@@ -63,18 +65,24 @@ Whitespace only in `approvalGuidelines` removes the guidelines. They stay when t
 
 - **Request:** `GET /api/v1/projects/{projectKey}/issues`
 - **Authentication:** S, B
-- **Success:** 200 [`IssuePage`](schemas/lists.schema.json): the summaries of the issues of the project. Example: [fixtures/lists.issue-page.json](fixtures/lists.issue-page.json).
-- **Errors:** 422 `invalid_input` for a cursor sent with another `status`, `category`, or `waitingForKind` than that of the page that returned it.
+- **Success:** 200 [`IssuePage`](schemas/lists.schema.json): the summaries of the issues of the project. Example: [fixtures/lists.issue-page.json](fixtures/lists.issue-page.json), with `sort=updated`.
+- **Errors:** 422 `invalid_input`:
+  - on `idleForHours` or `noActivity`, for a second activity filter in one call: at most one of `activeWithinHours`, `idleForHours`, and `noActivity=true`;
+  - for a cursor sent with another `sort`, `status`, `category`, `waitingForKind`, or activity filter than that of the page that returned it.
 
 | Query | Type | Default | Notes |
 |---|---|---|---|
-| `status` | IssueStatus | all | One value |
+| `sort` | `rank` or `updated` | `rank` | `rank`: the bugs first, then by rank. Without `status`, only the open issues. `updated`: `updatedAt` descending, then `id` descending. |
+| `status` | IssueStatus | all, open for `rank` | One value |
 | `category` | IssueCategory | all | One value |
 | `waitingForKind` | IssuePartyKind | all | The issues whose `waitingFor` names a party of this kind (D134) |
+| `activeWithinHours` | integer 1-8760 | none | The issues with activity at or after the cutoff |
+| `idleForHours` | integer 1-8760 | none | The issues without activity since the cutoff. An issue without activity counts from its creation, so a newer one is left out. |
+| `noActivity` | boolean | false | true: the issues without activity |
 | `limit` | integer 1-200 | 50 | |
 | `cursor` | Cursor | none | |
 
-The list is sorted by `updatedAt` descending, then by `id` descending. The MCP tool `list_issues` returns the same body.
+An issue is open while its status is not `done` and not `wont_do`. The cutoff of an activity filter is the time of the first page minus the hours. The cursor holds that time, so the pages of one listing use one cutoff. The MCP tool `list_issues` returns the same body.
 
 ### I2 Get an issue
 
@@ -147,11 +155,13 @@ The list is sorted by the entry `id` descending, which is newest first. The MCP 
 
 - **Request:** `POST /api/v1/projects/{projectKey}/issues`
 - **Authentication:** S, B
-- **Body:** [`CreateIssueInput`](schemas/inputs.schema.json), `{title, category, problem, status, approval, requester, assignee}`. `category` is `bug` or `change`, with no default (D133). `status` is `draft`, `backlog`, or `todo`, by default `draft`. `approval` is `user`, `agent_review`, or `self`, only in a project with the approval mode `by_issue`. Without it the issue reads as `user`. `requester` and `assignee` are `user` or `agent`, by default `user` and `agent`; `user` is the user of the caller (D134). Example: [fixtures/inputs.create-issue.json](fixtures/inputs.create-issue.json).
-- **Success:** 201 [`Issue`](schemas/issue.schema.json) with `Location: /api/v1/issues/{issueKey}`. The issue has the next number of the project, and `waitingFor` is the default of its status. A `problem` writes a `section_changed` entry. The server stores the title trimmed.
+- **Body:** [`CreateIssueInput`](schemas/inputs.schema.json), `{title, category, problem, status, approval, requester, assignee, priority}`. `category` is `bug` or `change`, with no default (D133). `status` is `draft`, `backlog`, or `todo`, by default `draft`. `approval` is `user`, `agent_review`, or `self`, only in a project with the approval mode `by_issue`. Without it the issue reads as `user`. `requester` and `assignee` are `user` or `agent`, by default `user` and `agent`; `user` is the user of the caller (D134). `priority` is an `IssuePriority` of [common.schema.json](schemas/common.schema.json), by default `none`. Example: [fixtures/inputs.create-issue.json](fixtures/inputs.create-issue.json).
+- **Success:** 201 [`Issue`](schemas/issue.schema.json) with `Location: /api/v1/issues/{issueKey}`. The issue has the next number of the project, and `waitingFor` is the default of its status. A `problem` writes a `section_changed` entry, which is no activity. The server stores the title trimmed.
+- **Priority:** `priority` places the issue among the n open issues of its category, in rank order (D137). `top`: first. `urgent`, `high`, `normal`, and `low`: directly after the first ceil(n x p) issues, with p 10, 25, 50, and 75 percent, so it is the last issue of that share. `none`: last. The server stores no priority.
 - **Errors:** 422 `invalid_input`:
   - on `title`, for whitespace only, more than 200 characters, or a line break;
   - on `category`, for a body without it, and for a value outside `IssueCategory`;
+  - on `priority`, for a value outside `IssuePriority`;
   - on `status`, for a status other than `draft`, `backlog`, and `todo`;
   - on `approval`, for `by_issue`, and for a project of another approval mode;
   - on `requester`, for `agent` when the approval of the issue is `user`;
@@ -252,3 +262,16 @@ The server reads the server clone of each repository of the project that the cal
 - At most 100 commits per repository, the newest `committedAt` first. `items` is sorted by `committedAt` descending.
 - `subject` and `authorName` are as in [R9](rest-api.md#r9-list-the-latest-commits). `htmlUrl` is `https://github.com/{owner}/{name}/commit/{sha}` for a GitHub repository and null for a local one, as in V17 (D127).
 - `unavailable` names each repository of the project whose clone the server cannot read, in name order, with its `reason`: `no_server_copy` for the code access `pass_through` and `browser`, `read_failed` when git fails on the clone, else the reason of `repository_unavailable` of R9: `cloning`, `clone_failed`, or `removed`.
+
+### I13 Move an issue
+
+- **Request:** `POST /api/v1/issues/{issueKey}/rank`
+- **Authentication:** S
+- **Body:** [`RankIssueInput`](schemas/inputs.schema.json), `{before, after}`: exactly one, the key of another issue of the same project and category. Example: [fixtures/inputs.rank-issue.json](fixtures/inputs.rank-issue.json).
+- **Success:** 200 [`Issue`](schemas/issue.schema.json). With `before`, the issue takes the place of that issue. With `after`, it takes the place directly after that issue. Under the row lock of the project, the ranks from that place on rise by 1, so the order of every other issue stays (D137). The move writes no entry, sets neither `updatedAt` nor `lastActivityAt`, and publishes the `issue` live update.
+- **Errors**, in this order:
+  - 422 `invalid_input` on `before`, for a body with both keys or with none, and on `before` or `after`, for a value that is no `IssueKey`;
+  - 404 `not_found`, for a key of the body that the caller cannot see;
+  - 422 `invalid_input` on the key of the body, for the issue itself, an issue of another project, and an issue of another category.
+
+The place is relative, so a move in a filtered list keeps the order of the issues that the filter hides. No tool moves an issue: an agent gives the place of a new issue with `priority` of I6 and `create_issue`.

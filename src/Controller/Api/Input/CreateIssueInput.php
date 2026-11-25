@@ -7,6 +7,7 @@ namespace App\Controller\Api\Input;
 use App\Domain\Issue\ApprovalMode;
 use App\Domain\Issue\IssueCategory;
 use App\Domain\Issue\IssuePartyKind;
+use App\Domain\Issue\IssuePriority;
 use App\Domain\Issue\IssueStatus;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -27,6 +28,7 @@ final readonly class CreateIssueInput
         public ?ApprovalMode $approval = null,
         public ?IssuePartyKind $requester = null,
         public ?IssuePartyKind $assignee = null,
+        public ?IssuePriority $priority = null,
     ) {
     }
 }

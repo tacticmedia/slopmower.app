@@ -38,7 +38,7 @@ test.describe('Issues', () => {
                 ]),
             ),
         );
-        issues.add(issue({ key: 'BILL-13', title: 'Show the rounding mode on the invoice PDF', status: 'draft', waitingFor: 'requester', updatedAt: '2026-10-02T09:04:18Z' }));
+        issues.add(issue({ key: 'BILL-13', title: 'Show the rounding mode on the invoice PDF', status: 'draft', waitingFor: 'requester', updatedAt: '2026-10-02T09:04:18Z', lastActivityAt: null }));
         issues.add(
             issue(
                 { key: 'BILL-9', title: 'Round shipping totals per line', status: 'done', waitingFor: null, updatedAt: '2026-10-02T09:03:30Z' },
@@ -55,6 +55,9 @@ test.describe('Issues', () => {
 
         await page.getByRole('link', { name: 'BILL', exact: true }).click();
         await captureScreen('Issues of a project', page.getByTestId('issue-list'));
+        await page.getByRole('button', { name: 'Move BILL-13' }).click();
+        await captureScreen('Issues move menu', page.getByRole('menuitem', { name: 'Move to bottom' }));
+        await page.keyboard.press('Escape');
 
         await page.getByRole('link', { name: 'Round invoice totals once per invoice' }).click();
         await captureScreen('Issue', page.getByTestId('issue-thread'));

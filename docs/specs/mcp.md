@@ -239,7 +239,7 @@ Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 
 ### Issue tools
 
-Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D128 to D130, D133, D134). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs. The REST endpoints of [rest-api-issues.md](rest-api-issues.md) share the model and the rules of this section.
+Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D128 to D130, D133, D134, D137). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs. The REST endpoints of [rest-api-issues.md](rest-api-issues.md) share the model and the rules of this section.
 
 - **Visibility.** A token of one repository sees only the project of that repository, with its issues. A project without a repository is invisible to it. Any other key gets `not_found`.
 - **Sections.** An issue has the Markdown sections `problem`, `plan`, `result`, and `followUps`, each null or at most 65,536 characters.
@@ -261,6 +261,8 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
   - A `plan_approved` entry whose `planRevision` is not the plan revision of the issue is replaced by the plan version after the one that it approved. Its `replaces` is null.
   - A `status_changed` entry is never replaced.
   - `get_issue` returns the current content: no replaced entry, and a `section_changed` entry with `body` null, because the issue has the text. With `history: true` it returns every entry, and a `section_changed` entry has the text of its version in `body`. `list_comments` returns no replaced comment.
+- **Rank.** The issues of a project have one rank sequence, the lowest first, which is the order of the user (D137). `list_issues` returns it by default, with the bugs first, so bugs and changes are ranked apart. `create_issue` takes `priority`, the place of the new issue among the open issues of its category, as REST [I6](rest-api-issues.md#i6-create-an-issue) says. Only a user moves an issue, with REST [I13](rest-api-issues.md#i13-move-an-issue), and no tool does.
+- **Activity.** Activity is a thread entry after the creation: a comment, a status change, a section version, or a plan approval. `lastActivityAt` of `Issue` and `IssueSummary` is the time of the newest one, and null without one (D137). A creation, a title change, a change of `category`, `approval`, `requester`, or `assignee`, a link, a move, and a release are no activity.
 - **Links.** A pair of issues has at most one link, with a note and a kind of `IssueLinkKind` of [common.schema.json](schemas/common.schema.json) (D126). `relates` is a link without a dependency. `blocked_by` says that the issue of the call waits for its target: the target comes first. `get_issue` shows a link on both issues, and the `blocked_by` link reads as `blocks` on the target. A cycle of `blocked_by` links is not refused. REST [I9](rest-api-issues.md#i9-get-the-dependency-graph-of-a-project) returns the dependencies of a project for the web UI, and has no tool.
 - **Labels.** A `comment` entry has a `label` of the closed set `CommentLabel` of [common.schema.json](schemas/common.schema.json), which says what the comment is: `comment`, `decision`, `question`, `answer`, `dismissal`, `finding`, `deviation`, `scope_creep`, `papercut`, or `review`. A comment stored without a label reads as `comment`. An entry of another kind has `label` null (D121). The server sets `question`, `answer`, and `dismissal`, as "Questions" says.
 - **Questions.** A comment has `questions`, 0 to 10 items of `Question` of [common.schema.json](schemas/common.schema.json): a `question` in one line of 1 to 200 characters after trimming, a `detail`, null or Markdown, and an `answer` (D124). An entry of another kind has `questions` empty.
@@ -315,9 +317,9 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 ### 4.20 `list_issues`
 
 - **Output:** [`lists.schema.json#/$defs/IssuePage`](schemas/lists.schema.json).
-- **Behaviour:** REST I1: the summaries of the issues of the project, newest `updatedAt` first, then by ID. `status` returns only the issues with that status, `category` only the issues of that category, and `waitingForKind` only the issues that wait for a party of that kind, as "Who has the next step" says. `limit` is 1 to 200, by default 50. `claim` of a summary names the session that holds the issue, so an agent skips an issue of another session without `get_issue`.
-- **Errors:** `not_found` for the project, `invalid_input` for the cursor or a cursor sent with another filter.
-- **Example:** arguments `{"project":"BILL"}`. `structuredContent`: [fixtures/lists.issue-page.json](fixtures/lists.issue-page.json).
+- **Behaviour:** REST I1: the summaries of the issues of the project. `sort` is `rank` by default: the bugs first, then by rank, as "Rank" says, and without `status` only the open issues. `sort: updated` is newest `updatedAt` first, then by ID. `status` returns only the issues with that status, `category` only the issues of that category, and `waitingForKind` only the issues that wait for a party of that kind, as "Who has the next step" says. At most one activity filter, each counted back from the time of the first page: `activeWithinHours`, 1 to 8760, the issues with activity at or after the cutoff; `idleForHours`, 1 to 8760, the issues without activity since the cutoff, an issue without activity counted from its creation; `noActivity: true`, the issues without activity. `limit` is 1 to 200, by default 50. `claim` of a summary names the session that holds the issue, so an agent skips an issue of another session without `get_issue`. The next issue to work on is one call: `status: todo`, `waitingForKind: agent`, `limit: 1`.
+- **Errors:** `not_found` for the project, `invalid_input` on `idleForHours` or `noActivity` for a second activity filter, and for the cursor or a cursor sent with another sort or filter.
+- **Example:** arguments `{"project":"BILL","sort":"updated"}`. `structuredContent`: [fixtures/lists.issue-page.json](fixtures/lists.issue-page.json).
 
 ### 4.21 `get_issue`
 
@@ -329,7 +331,7 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 ### 4.22 `create_issue`
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json).
-- **Behaviour:** REST I6: a new issue with the next number of the project, which the server takes under a lock on the project row. `category` is required, as "Category" says. `status` is `draft`, `backlog`, or `todo`, by default `draft`. `approval` is for a `by_issue` project only, as "Approval mode" says. `requester` and `assignee` are `user` and `agent` by default, as "Who has the next step" says, and `waitingFor` is the default of `status`. A `problem` writes a `section_changed` entry. The server stores the title trimmed.
+- **Behaviour:** REST I6: a new issue with the next number of the project, which the server takes under a lock on the project row. `category` is required, as "Category" says. `status` is `draft`, `backlog`, or `todo`, by default `draft`. `approval` is for a `by_issue` project only, as "Approval mode" says. `requester` and `assignee` are `user` and `agent` by default, as "Who has the next step" says, and `waitingFor` is the default of `status`. `priority` places the issue among the open issues of its category: `top`, `urgent`, `high`, `normal`, `low`, or `none`, by default `none`, the last place, as "Rank" says. A `problem` writes a `section_changed` entry. The server stores the title trimmed.
 - **Errors:** `not_found` for the project, `invalid_input` for a title of whitespace only or with a line break, on `approval` for a project of another approval mode, on `requester` for the agent with the `approval` `user`, or on `problem` for `backlog` or `todo` without a problem. A call without `category` is JSON-RPC -32602.
 - **Example:** arguments `{"project":"BILL","title":"Round invoice totals once per invoice","category":"bug"}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with status `draft` and the sections null.
 
@@ -423,7 +425,7 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 | `suggest_request` | `POST /api/v1/reviews/{id}/suggestions` |
 | `set_request_title` | `POST /api/v1/requests/{id}/title` |
 | `list_projects` | `GET /api/v1/projects` |
-| `list_issues` | `GET /api/v1/projects/{projectKey}/issues?status=&category=` |
+| `list_issues` | `GET /api/v1/projects/{projectKey}/issues?sort=&status=&category=&waitingForKind=&activeWithinHours=&idleForHours=&noActivity=` |
 | `get_issue` | `GET /api/v1/issues/{issueKey}?history=` |
 | `comment_on_issue` | `POST /api/v1/issues/{issueKey}/comments` |
 | `list_comments` | `GET /api/v1/projects/{projectKey}/comments?label=` |

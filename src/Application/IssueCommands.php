@@ -12,6 +12,7 @@ use App\Domain\Error\InvalidInput;
 use App\Domain\Error\NotFound;
 use App\Domain\Identity\IssueEntryId;
 use App\Domain\Identity\IssueId;
+use App\Domain\Identity\ProjectId;
 use App\Domain\Issue\ApprovalMode;
 use App\Domain\Issue\CommentLabel;
 use App\Domain\Issue\IssueCategory;
@@ -21,6 +22,7 @@ use App\Domain\Issue\IssueKey;
 use App\Domain\Issue\IssueLinkKind;
 use App\Domain\Issue\IssueParty;
 use App\Domain\Issue\IssuePartyKind;
+use App\Domain\Issue\IssuePriority;
 use App\Domain\Issue\IssueRules;
 use App\Domain\Issue\IssueSection;
 use App\Domain\Issue\IssueState;
@@ -31,6 +33,7 @@ use App\Domain\Request\RequestDecider;
 use App\Entity\Issue;
 use App\Entity\IssueEntry;
 use App\Entity\IssueLink;
+use App\Entity\Project;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -41,7 +44,8 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
  * docs/specs/rest-api-issues.md. Each write runs in one transaction under the row lock of its issue, appends its entry,
  * and passes {@see IssueRules} before it commits. A write that appends an entry locks the project row first, because the
  * entry takes the next number of the project (D128). A write of an agent checks and takes the claim of
- * {@see IssueClaim} before the rules (D130).
+ * {@see IssueClaim} before the rules (D130). A creation and a move lock the project row, so the ranks of a project change
+ * in one write at a time (D137).
  */
 final class IssueCommands
 {
@@ -56,18 +60,19 @@ final class IssueCommands
     }
 
     /**
-     * The number comes from the project under its row lock. By default the user of $actor requests, and an agent works
-     * (D134).
+     * The number and the place come from the project under its row lock. By default the user of $actor requests, and an
+     * agent works (D134).
      *
      * @throws NotFound|InvalidInput
      */
-    public function create(string $projectKey, string $title, IssueCategory $category, ?string $problem, IssueStatus $status, Actor $actor, ?ApprovalMode $approval = null, ?IssuePartyKind $requester = null, ?IssuePartyKind $assignee = null): Issue
+    public function create(string $projectKey, string $title, IssueCategory $category, ?string $problem, IssueStatus $status, Actor $actor, ?ApprovalMode $approval = null, ?IssuePartyKind $requester = null, ?IssuePartyKind $assignee = null, ?IssuePriority $priority = null): Issue
     {
-        return $this->transactional(function (\DateTimeImmutable $now) use ($projectKey, $title, $category, $problem, $status, $actor, $approval, $requester, $assignee): array {
+        return $this->transactional(function (\DateTimeImmutable $now) use ($projectKey, $title, $category, $problem, $status, $actor, $approval, $requester, $assignee, $priority): array {
             $project = $this->issues->project($projectKey, LockMode::PESSIMISTIC_WRITE);
             $issue = new Issue(
                 $project,
                 $project->takeIssueNumber(),
+                $this->newRank($project, $category, $priority ?? IssuePriority::None),
                 self::title($title),
                 $category,
                 $status,
@@ -242,6 +247,7 @@ final class IssueCommands
             };
             $this->entityManager->persist(IssueEntry::comment($issue, $actor, $dismiss && '' === trim($body) ? 'Dismissed.' : $body, $label, $now, $replaced, $questions));
             $issue->touch($now);
+            $issue->recordActivity($now);
 
             if (null !== $waitingFor) {
                 $before = $this->issues->state($issue);
@@ -249,6 +255,37 @@ final class IssueCommands
                 $this->entityManager->flush();
                 IssueRules::check($before, $this->issues->state($issue), $issue->getApprovalMode(), $actor->kind);
             }
+
+            return [$issue];
+        });
+    }
+
+    /**
+     * I13 (D137): $key takes the place of $targetKey, or with $after the place after it. Writes no entry and sets no
+     * updatedAt.
+     *
+     * @throws NotFound|InvalidInput
+     */
+    public function rank(IssueKey $key, IssueKey $targetKey, bool $after): Issue
+    {
+        return $this->transactional(function () use ($key, $targetKey, $after): array {
+            $project = $this->issues->project($key->projectKey, LockMode::PESSIMISTIC_WRITE);
+            $issue = $this->issues->issue($key);
+            $target = $this->issues->issue($targetKey);
+            $refusal = match (true) {
+                $target === $issue => 'Is the issue itself.',
+                $target->getProject() !== $project => 'Is an issue of another project.',
+                $target->getCategory() !== $issue->getCategory() => "Is a {$target->getCategory()->value}. A move stays in the category of the issue.",
+                default => null,
+            };
+
+            if (null !== $refusal) {
+                throw InvalidInput::field($after ? 'after' : 'before', $refusal);
+            }
+
+            $rank = $target->getRank() + ($after ? 1 : 0);
+            $this->makeRoom($project, $rank, $issue);
+            $issue->moveTo($rank);
 
             return [$issue];
         });
@@ -417,7 +454,7 @@ final class IssueCommands
     private function write(IssueKey $key, Actor $actor, ?string $session, \Closure $change, bool $setsStatus = false, ?string $note = null, ?string $reviewer = null): Issue
     {
         return $this->transactional(function (\DateTimeImmutable $now) use ($key, $actor, $session, $change, $setsStatus, $note, $reviewer): array {
-            $this->issues->project($key->projectKey, LockMode::PESSIMISTIC_WRITE);
+            $project = $this->issues->project($key->projectKey, LockMode::PESSIMISTIC_WRITE);
             $issue = $this->issues->issue($key, LockMode::PESSIMISTIC_WRITE);
 
             if (ActorKind::Agent === $actor->kind) {
@@ -425,7 +462,14 @@ final class IssueCommands
             }
 
             $before = $this->issues->state($issue);
+            $entrySeq = $project->getEntrySeq();
             $change($issue, $now, $before);
+
+            // Each entry takes the next number of the project, so a new number means a new entry: activity (D137).
+            if ($project->getEntrySeq() !== $entrySeq) {
+                $issue->recordActivity($now);
+            }
+
             // The state reads the plan revision from the stored entries.
             $this->entityManager->flush();
             IssueRules::check($before, $this->issues->state($issue), $issue->getApprovalMode(), $actor->kind, $setsStatus, $note, $reviewer);
@@ -478,6 +522,58 @@ final class IssueCommands
         if (null !== $approval && $approval !== $issue->getApprovalMode()) {
             $issue->setApproval($approval, $now);
         }
+    }
+
+    /**
+     * The rank of a new issue of $priority among the open issues of $category, with room made for it (D137).
+     */
+    private function newRank(Project $project, IssueCategory $category, IssuePriority $priority): int
+    {
+        /** @var list<int> $openRanks */
+        $openRanks = $this->entityManager->createQueryBuilder()
+            ->select('issue.rank')
+            ->from(Issue::class, 'issue')
+            ->where('issue.project = :project')
+            ->andWhere('issue.category = :category')
+            ->andWhere('issue.status NOT IN (:ended)')
+            ->setParameter('project', $project->getId(), ProjectId::class)
+            ->setParameter('category', $category)
+            ->setParameter('ended', IssueStatus::ended())
+            ->orderBy('issue.rank')
+            ->getQuery()
+            ->getSingleColumnResult();
+        $rank = $openRanks[$priority->issuesBefore(\count($openRanks))] ?? null;
+
+        if (null === $rank) {
+            return 1 + (int) $this->entityManager->createQueryBuilder()
+                ->select('MAX(issue.rank)')
+                ->from(Issue::class, 'issue')
+                ->where('issue.project = :project')
+                ->setParameter('project', $project->getId(), ProjectId::class)
+                ->getQuery()
+                ->getSingleScalarResult();
+        }
+
+        $this->makeRoom($project, $rank);
+
+        return $rank;
+    }
+
+    /**
+     * Raises by 1 each rank of the project from $rank on, except that of $moved, so the order of the others stays.
+     */
+    private function makeRoom(Project $project, int $rank, ?Issue $moved = null): void
+    {
+        $query = $this->entityManager
+            ->createQuery('UPDATE '.Issue::class.' issue SET issue.rank = issue.rank + 1 WHERE issue.project = :project AND issue.rank >= :rank'.(null === $moved ? '' : ' AND issue.id <> :moved'))
+            ->setParameter('project', $project->getId(), ProjectId::class)
+            ->setParameter('rank', $rank);
+
+        if (null !== $moved) {
+            $query->setParameter('moved', $moved->getId(), IssueId::class);
+        }
+
+        $query->execute();
     }
 
     /**

@@ -7,7 +7,7 @@ import { LoadingPage } from './layout/LoadingPage';
 import { RootLayout } from './layout/RootLayout';
 import { RouteError } from './layout/RouteError';
 import { removeSessionDrafts } from './layout/useSessionDraft';
-import { issueAction, issueLoader, newIssueAction, newIssueLoader, projectBoardLoader, projectCommentsLoader, projectGraphLoader, projectLoader, projectSettingsAction, projectSettingsLoader, projectsAction, projectsLoader } from './routes/issues/issueData';
+import { issueAction, issueLoader, newIssueAction, newIssueLoader, projectAction, projectBoardLoader, projectCommentsLoader, projectGraphLoader, projectLoader, projectSettingsAction, projectSettingsLoader, projectsAction, projectsLoader } from './routes/issues/issueData';
 import { ProjectRoute } from './routes/issues/ProjectRoute';
 import { ProjectsRoute } from './routes/issues/ProjectsRoute';
 import { RepositoriesRoute, repositoriesAction, repositoriesLoader } from './routes/repositories/RepositoriesRoute';
@@ -100,7 +100,7 @@ export const router = wrapCreateBrowserRouter(createBrowserRouter)([
                     { path: 'repositories/:repositoryId/diff-sides', loader: diffSidesLoader, shouldRevalidate: shouldRevalidateChanges },
                     { path: 'repositories/:repositoryId/carry-over-sources', loader: carryOverSourcesLoader },
                     { path: 'projects', loader: projectsLoader, action: projectsAction, element: <ProjectsRoute /> },
-                    { id: 'project', path: 'projects/:projectKey', loader: projectLoader, element: <ProjectRoute /> },
+                    { id: 'project', path: 'projects/:projectKey', loader: projectLoader, action: projectAction, element: <ProjectRoute /> },
                     {
                         id: 'project-comments',
                         path: 'projects/:projectKey/comments',

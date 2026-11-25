@@ -45,6 +45,7 @@ final readonly class IssueView
         public Actor $createdBy,
         public \DateTimeImmutable $createdAt,
         public \DateTimeImmutable $updatedAt,
+        public ?\DateTimeImmutable $lastActivityAt,
     ) {
     }
 }

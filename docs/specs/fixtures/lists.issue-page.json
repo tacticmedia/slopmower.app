@@ -29,7 +29,8 @@
         "name": null
       },
       "waitingFor": "assignee",
-      "updatedAt": "2026-10-02T09:20:05Z"
+      "updatedAt": "2026-10-02T09:20:05Z",
+      "lastActivityAt": "2026-10-02T09:20:05Z"
     },
     {
       "key": "BILL-13",
@@ -49,7 +50,8 @@
         "name": null
       },
       "waitingFor": "requester",
-      "updatedAt": "2026-10-02T09:04:18Z"
+      "updatedAt": "2026-10-02T09:04:18Z",
+      "lastActivityAt": null
     },
     {
       "key": "BILL-9",
@@ -69,7 +71,8 @@
         "name": null
       },
       "waitingFor": null,
-      "updatedAt": "2026-10-02T09:03:30Z"
+      "updatedAt": "2026-10-02T09:03:30Z",
+      "lastActivityAt": "2026-10-02T09:03:30Z"
     }
   ],
   "nextCursor": null

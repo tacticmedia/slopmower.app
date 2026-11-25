@@ -15,6 +15,7 @@ use App\Tests\Support\Mcp\McpTestClient;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -24,6 +25,7 @@ use Symfony\Component\HttpFoundation\Response;
 final class IssueApiTest extends WebTestCase
 {
     use ApiFixtures;
+    use ClockSensitiveTrait;
     use JsonApiAssertions;
     use McpAssertions;
     use ResetDatabase;
@@ -63,7 +65,7 @@ final class IssueApiTest extends WebTestCase
         $detail = self::assertApiResponse(self::apiRequest($this->client, 'GET', '/api/v1/issues/SM-2'), 200, 'issue.schema.json#/$defs/IssueDetail');
 
         self::assertSame([['key' => 'SM', 'name' => 'Project SM', 'approvalMode' => 'self', 'approvalGuidelines' => null, 'repositories' => ['alpha']]], $projects['items']);
-        self::assertSame(['SM-2', 'SM-1'], array_column($issues['items'], 'key'), 'Newest change first.');
+        self::assertSame(['SM-1', 'SM-2'], array_column($issues['items'], 'key'), 'In rank order.');
         self::assertSame(['SM-2'], array_column($todo['items'], 'key'));
         self::assertSame(['SM-2', self::PROBLEM, ['section_changed']], [$detail['issue']['key'], $detail['issue']['problem'], array_column($detail['thread'], 'kind')]);
     }
@@ -465,6 +467,108 @@ final class IssueApiTest extends WebTestCase
         self::assertSame([['SM-1', 'SM-5'], [], 3], [array_column($ended['issues'], 'key'), $ended['links'], $ended['otherOpenIssues']]);
     }
 
+    #[TestDox('I6 without a priority puts the new issue last in its category, and I1 lists the bugs first')]
+    public function testNewIssueIsLastOfItsCategory(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+
+        foreach (['change', 'bug', 'change', 'bug'] as $category) {
+            $this->createIssue($category);
+        }
+
+        self::assertSame(['SM-2', 'SM-4', 'SM-1', 'SM-3'], $this->rankedKeys());
+    }
+
+    #[TestDox('I6 places a new change among 20 open changes: top first, urgent after 2, high after 5, normal after 10, low after 15, and none last')]
+    public function testPriorities(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+
+        for ($count = 0; $count < 20; ++$count) {
+            $this->createIssue('change');
+        }
+
+        $places = [];
+
+        foreach (['top', 'urgent', 'high', 'normal', 'low', 'none'] as $priority) {
+            $key = $this->createIssue('change', $priority);
+            $places[$priority] = array_search($key, $this->rankedKeys(), true);
+            // An ended issue is not open, so the next one is placed among 20 again.
+            self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/issues/{$key}/status", ['status' => 'wont_do', 'note' => 'Placed.']), 200, self::ISSUE);
+        }
+
+        self::assertSame(['top' => 0, 'urgent' => 2, 'high' => 5, 'normal' => 10, 'low' => 15, 'none' => 20], $places);
+    }
+
+    #[TestDox('I13 with before takes the place of that issue, with after the place after it, and keeps the order of every other issue')]
+    public function testMoveBeforeAndAfter(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+
+        foreach (['change', 'change', 'change', 'change', 'change', 'bug'] as $category) {
+            $this->createIssue($category);
+        }
+
+        self::assertApiResponse($this->move('SM-5', ['before' => 'SM-2']), 200, self::ISSUE);
+        self::assertSame(['SM-6', 'SM-1', 'SM-5', 'SM-2', 'SM-3', 'SM-4'], $this->rankedKeys());
+        self::assertApiResponse($this->move('SM-1', ['after' => 'SM-3']), 200, self::ISSUE);
+        self::assertSame(['SM-6', 'SM-5', 'SM-2', 'SM-3', 'SM-1', 'SM-4'], $this->rankedKeys());
+    }
+
+    #[TestDox('I13 refuses both keys, no key, a malformed key, the issue itself, another project, and another category, answers 404 for an unknown key, and I6 refuses an unknown priority')]
+    public function testRankRefusals(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        self::storeProject($this->user->getTenantId(), 'DOC');
+        $this->createIssue('change');
+        $this->createIssue('change');
+        $this->createIssue('bug');
+        $this->createIssue('change', project: 'DOC');
+        $field = static fn (Response $response): ?string => self::assertApiError($response, 422, 'invalid_input')['details']['violations'][0]['field'] ?? null;
+
+        self::assertSame(
+            ['before', 'before', 'after', 'before', 'after', 'before', 'priority'],
+            [
+                $field($this->move('SM-1', ['before' => 'SM-2', 'after' => 'SM-2'])),
+                $field($this->move('SM-1', [])),
+                $field($this->move('SM-1', ['after' => 'sm-2'])),
+                $field($this->move('SM-1', ['before' => 'SM-1'])),
+                $field($this->move('SM-1', ['after' => 'DOC-1'])),
+                $field($this->move('SM-1', ['before' => 'SM-3'])),
+                $field(self::apiRequest($this->client, 'POST', '/api/v1/projects/SM/issues', ['title' => 'Round once', 'category' => 'change', 'priority' => 'soon'])),
+            ],
+        );
+        self::assertApiError($this->move('SM-1', ['before' => 'SM-9']), 404, 'not_found');
+        self::assertSame(['SM-3', 'SM-1', 'SM-2'], $this->rankedKeys());
+    }
+
+    #[TestDox('I13 refuses a token with 403')]
+    public function testATokenCannotMove(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $this->createIssue('change');
+        $this->createIssue('change');
+
+        self::assertApiError(self::bearerRequest($this->client, $this->secret, 'POST', '/api/v1/issues/SM-2/rank', ['before' => 'SM-1']), 403, 'forbidden');
+        self::assertSame(['SM-1', 'SM-2'], $this->rankedKeys());
+    }
+
+    #[TestDox('I13 sets neither updatedAt nor lastActivityAt, and writes no entry')]
+    public function testMoveIsNoActivity(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        self::mockTime('2026-11-25 09:00:00');
+        $this->createIssue('change');
+        $this->createIssue('change');
+        $this->agent('comment_on_issue', ['issue' => 'SM-2', 'body' => 'The test is next.']);
+        self::mockTime('2026-11-25 10:00:00');
+
+        $moved = self::assertApiResponse($this->move('SM-2', ['before' => 'SM-1']), 200, self::ISSUE);
+
+        self::assertSame(['2026-11-25T09:00:00Z', '2026-11-25T09:00:00Z'], [$moved['updatedAt'], $moved['lastActivityAt']]);
+        self::assertSame(['comment'], array_column($this->agent('get_issue', ['issue' => 'SM-2', 'history' => true])['thread'], 'kind'));
+    }
+
     #[TestDox('A key that the caller cannot see answers 404 before the 403 and the body error, and a malformed key answers 404')]
     public function testHiddenKeyIsNotFoundFirst(): void
     {
@@ -480,6 +584,34 @@ final class IssueApiTest extends WebTestCase
         self::assertApiError(self::bearerRequest($this->client, $this->secret, 'POST', '/api/v1/issues/DOC-1/plan-approval', []), 404, 'not_found');
         self::assertApiError(self::apiRequest($this->client, 'GET', '/api/v1/issues/sm-1'), 404, 'not_found');
         self::assertApiError(self::apiRequest($this->client, 'GET', '/api/v1/projects/SM/issues?limit=0'), 422, 'invalid_input');
+    }
+
+    /**
+     * I6 of the signed-in user.
+     *
+     * @return string The key of the new issue
+     */
+    private function createIssue(string $category, ?string $priority = null, string $project = 'SM'): string
+    {
+        $body = ['title' => 'Round invoice totals once', 'category' => $category] + (null === $priority ? [] : ['priority' => $priority]);
+
+        return (string) self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/projects/{$project}/issues", $body), 201, self::ISSUE)['key'];
+    }
+
+    /**
+     * @param array<string, string> $body
+     */
+    private function move(string $issueKey, array $body): Response
+    {
+        return self::apiRequest($this->client, 'POST', "/api/v1/issues/{$issueKey}/rank", $body);
+    }
+
+    /**
+     * @return list<string> The keys of the open issues of SM in the default order of I1
+     */
+    private function rankedKeys(): array
+    {
+        return array_column(self::assertApiResponse(self::apiRequest($this->client, 'GET', '/api/v1/projects/SM/issues?limit=200'), 200, 'lists.schema.json#/$defs/IssuePage')['items'], 'key');
     }
 
     /**

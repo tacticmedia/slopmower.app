@@ -331,7 +331,7 @@
           "items": {
             "$ref": "issue.schema.json#/$defs/IssueSummary"
           },
-          "description": "Newest updatedAt first."
+          "description": "In the order of sort: rank, bugs first and then by rank; updated, newest updatedAt first (D137)."
         },
         "nextCursor": {
           "$ref": "#/$defs/NextCursor"

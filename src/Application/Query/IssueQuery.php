@@ -86,22 +86,56 @@ final class IssueQuery
     }
 
     /**
-     * Sorted by updatedAt descending, then by ID descending.
+     * I1 (D137). One activity filter at most, counted back from the time of the first page, which the cursor keeps.
      *
      * @throws NotFound
-     * @throws InvalidInput A malformed cursor, or a cursor of other filters
+     * @throws InvalidInput A second activity filter, a malformed cursor, or a cursor of another sort or other filters
      */
-    public function list(string $projectKey, ?IssueStatus $status, ?IssueCategory $category, int $limit, ?string $cursor, ?IssuePartyKind $waitingForKind = null): IssuePage
+    public function list(string $projectKey, ?IssueStatus $status, ?IssueCategory $category, int $limit, ?string $cursor, ?IssuePartyKind $waitingForKind = null, IssueSort $sort = IssueSort::Rank, ?int $activeWithinHours = null, ?int $idleForHours = null, bool $noActivity = false): IssuePage
     {
-        $filters = ['project' => $projectKey, 'status' => $status?->value, 'category' => $category?->value, 'waitingForKind' => $waitingForKind?->value];
+        $activityFilters = array_filter(['activeWithinHours' => $activeWithinHours, 'idleForHours' => $idleForHours, 'noActivity' => $noActivity ?: null], static fn (int|bool|null $value): bool => null !== $value);
+
+        $secondFilter = array_keys($activityFilters)[1] ?? null;
+
+        if (null !== $secondFilter) {
+            throw InvalidInput::field($secondFilter, 'Give at most one of activeWithinHours, idleForHours, and noActivity.');
+        }
+
+        $filters = ['project' => $projectKey, 'sort' => $sort->value, 'status' => $status?->value, 'category' => $category?->value, 'waitingForKind' => $waitingForKind?->value] + $activityFilters;
         $builder = $this->entityManager->createQueryBuilder()
             ->select('issue')
             ->from(Issue::class, 'issue')
             ->where('issue.project = :project')
             ->setParameter('project', $this->project($projectKey)->getId(), ProjectId::class)
-            ->orderBy('issue.updatedAt', \SortDirection::Descending)
-            ->addOrderBy('issue.id', \SortDirection::Descending)
             ->setMaxResults($limit + 1);
+        $after = null === $cursor ? null : Cursor::decode($cursor, $filters, 'time', ...(IssueSort::Rank === $sort ? ['string', 'int'] : ['time', 'ulid']));
+        $listedAt = $after[0] ?? new \DateTimeImmutable('@'.$this->clock->now()->getTimestamp());
+        \assert($listedAt instanceof \DateTimeImmutable);
+
+        if (IssueSort::Rank === $sort) {
+            // The enum values sort bug before change.
+            $builder->orderBy('issue.category')->addOrderBy('issue.rank');
+
+            if (null === $status) {
+                $builder->andWhere('issue.status NOT IN (:ended)')->setParameter('ended', IssueStatus::ended());
+            }
+
+            if (null !== $after) {
+                $builder
+                    ->andWhere('issue.category > :afterCategory OR (issue.category = :afterCategory AND issue.rank > :afterRank)')
+                    ->setParameter('afterCategory', IssueCategory::tryFrom($after[1]) ?? throw Cursor::malformed())
+                    ->setParameter('afterRank', $after[2]);
+            }
+        } else {
+            $builder->orderBy('issue.updatedAt', \SortDirection::Descending)->addOrderBy('issue.id', \SortDirection::Descending);
+
+            if (null !== $after) {
+                $builder
+                    ->andWhere('issue.updatedAt < :beforeUpdatedAt OR (issue.updatedAt = :beforeUpdatedAt AND issue.id < :beforeId)')
+                    ->setParameter('beforeUpdatedAt', $after[1], Types::DATETIME_IMMUTABLE)
+                    ->setParameter('beforeId', $after[2], UlidType::NAME);
+            }
+        }
 
         if (null !== $status) {
             $builder->andWhere('issue.status = :status')->setParameter('status', $status);
@@ -115,21 +149,29 @@ final class IssueQuery
             self::whereWaitsFor($builder, $waitingForKind);
         }
 
-        if (null !== $cursor) {
-            [$beforeUpdatedAt, $beforeId] = Cursor::decode($cursor, $filters, 'time', 'ulid');
-            $builder
-                ->andWhere('issue.updatedAt < :beforeUpdatedAt OR (issue.updatedAt = :beforeUpdatedAt AND issue.id < :beforeId)')
-                ->setParameter('beforeUpdatedAt', $beforeUpdatedAt, Types::DATETIME_IMMUTABLE)
-                ->setParameter('beforeId', $beforeId, UlidType::NAME);
+        if (null !== $activeWithinHours) {
+            $builder->andWhere('issue.lastActivityAt >= :cutoff')->setParameter('cutoff', $listedAt->modify("-{$activeWithinHours} hours"), Types::DATETIME_IMMUTABLE);
+        }
+
+        if (null !== $idleForHours) {
+            // An issue without activity counts from its creation, so a new issue is not idle.
+            $builder->andWhere('COALESCE(issue.lastActivityAt, issue.createdAt) < :cutoff')->setParameter('cutoff', $listedAt->modify("-{$idleForHours} hours"), Types::DATETIME_IMMUTABLE);
+        }
+
+        if ($noActivity) {
+            $builder->andWhere('issue.lastActivityAt IS NULL');
         }
 
         /** @var list<Issue> $rows */
         $rows = $builder->getQuery()->getResult();
         $now = $this->clock->now();
+        $sortKey = IssueSort::Rank === $sort
+            ? static fn (Issue $issue): array => [$listedAt->getTimestamp(), $issue->getCategory()->value, $issue->getRank()]
+            : static fn (Issue $issue): array => [$listedAt->getTimestamp(), $issue->getUpdatedAt()->getTimestamp(), $issue->getId()->toString()];
 
         return new IssuePage(
             array_map(static fn (Issue $issue): IssueSummaryView => IssueSummaryView::of($issue, $now), array_slice($rows, 0, $limit)),
-            Cursor::next($rows, $limit, $filters, static fn (Issue $issue): array => [$issue->getUpdatedAt()->getTimestamp(), $issue->getId()->toString()]),
+            Cursor::next($rows, $limit, $filters, $sortKey),
         );
     }
 
@@ -337,6 +379,7 @@ final class IssueQuery
             $issue->getCreatedBy(),
             $issue->getCreatedAt(),
             $issue->getUpdatedAt(),
+            $issue->getLastActivityAt(),
         );
     }
 

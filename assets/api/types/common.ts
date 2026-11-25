@@ -238,6 +238,10 @@ export type IssuePartyKind = (typeof ISSUE_PARTY_KINDS)[number];
 export const ISSUE_CATEGORIES = ['bug', 'change'] as const;
 export type IssueCategory = (typeof ISSUE_CATEGORIES)[number];
 
+/** The place of a new issue among the open issues of its category (D137). Not stored. */
+export const ISSUE_PRIORITIES = ['top', 'urgent', 'high', 'normal', 'low', 'none'] as const;
+export type IssuePriority = (typeof ISSUE_PRIORITIES)[number];
+
 /** Who approves a plan and ends an issue of a project (D117). `by_issue`: the approval of each issue (D129). */
 export const APPROVAL_MODES = ['user', 'agent_review', 'self', 'by_issue'] as const;
 export type ApprovalMode = (typeof APPROVAL_MODES)[number];

@@ -110,7 +110,7 @@ export type ProjectPage = {
     nextCursor: NextCursor;
 };
 
-/** `list_issues`: newest `updatedAt` first. */
+/** `list_issues`: in the order of `sort`, by default bugs first and then by rank (D137). */
 export type IssuePage = {
     items: IssueSummary[];
     nextCursor: NextCursor;

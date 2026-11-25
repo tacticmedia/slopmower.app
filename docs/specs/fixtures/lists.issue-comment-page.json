@@ -31,7 +31,8 @@
           "name": null
         },
         "waitingFor": "assignee",
-        "updatedAt": "2026-10-02T09:20:05Z"
+        "updatedAt": "2026-10-02T09:20:05Z",
+        "lastActivityAt": "2026-10-02T09:20:05Z"
       },
       "label": "comment",
       "actor": {
@@ -76,7 +77,8 @@
           "name": null
         },
         "waitingFor": "assignee",
-        "updatedAt": "2026-10-02T09:20:05Z"
+        "updatedAt": "2026-10-02T09:20:05Z",
+        "lastActivityAt": "2026-10-02T09:20:05Z"
       },
       "label": "decision",
       "actor": {
@@ -110,7 +112,8 @@
           "name": null
         },
         "waitingFor": null,
-        "updatedAt": "2026-10-02T09:03:30Z"
+        "updatedAt": "2026-10-02T09:03:30Z",
+        "lastActivityAt": "2026-10-02T09:03:30Z"
       },
       "label": "papercut",
       "actor": {

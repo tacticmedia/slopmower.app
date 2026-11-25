@@ -25,6 +25,7 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\UniqueConstraint(name: 'uniq_issue_number', columns: ['project_id', 'number'])]
+#[ORM\Index(name: 'idx_issue_rank', columns: ['project_id', 'category', 'rank'])]
 class Issue implements TenantOwned
 {
     #[ORM\Id]
@@ -40,6 +41,10 @@ class Issue implements TenantOwned
 
     #[ORM\Column]
     private int $number;
+
+    /** One sequence per project, the lowest first (D137). */
+    #[ORM\Column]
+    private int $rank;
 
     #[ORM\Column(length: 200)]
     private string $title;
@@ -105,12 +110,17 @@ class Issue implements TenantOwned
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
-    public function __construct(Project $project, int $number, string $title, IssueCategory $category, IssueStatus $status, IssueParty $requester, IssueParty $assignee, Actor $createdBy, \DateTimeImmutable $createdAt)
+    /** The newest thread entry after the creation (D137). */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $lastActivityAt = null;
+
+    public function __construct(Project $project, int $number, int $rank, string $title, IssueCategory $category, IssueStatus $status, IssueParty $requester, IssueParty $assignee, Actor $createdBy, \DateTimeImmutable $createdAt)
     {
         $this->id = IssueId::generate();
         $this->tenantId = $project->getTenantId();
         $this->project = $project;
         $this->number = $number;
+        $this->rank = $rank;
         $this->title = $title;
         $this->category = $category;
         $this->status = $status;
@@ -141,6 +151,19 @@ class Issue implements TenantOwned
     public function getKey(): IssueKey
     {
         return new IssueKey($this->project->getKey(), $this->number);
+    }
+
+    public function getRank(): int
+    {
+        return $this->rank;
+    }
+
+    /**
+     * Sets no updatedAt: a move is no change of the issue (D137).
+     */
+    public function moveTo(int $rank): void
+    {
+        $this->rank = $rank;
     }
 
     public function getTitle(): string
@@ -247,6 +270,16 @@ class Issue implements TenantOwned
     public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
+    }
+
+    public function getLastActivityAt(): ?\DateTimeImmutable
+    {
+        return $this->lastActivityAt;
+    }
+
+    public function recordActivity(\DateTimeImmutable $now): void
+    {
+        $this->lastActivityAt = $now;
     }
 
     public function rename(string $title, \DateTimeImmutable $now): void

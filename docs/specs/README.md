@@ -281,6 +281,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Who has the next step, decision D134: the closed sets `WaitingFor` and `IssuePartyKind`, the schema `IssueParty`, the properties `requester`, `assignee`, and `waitingFor` of `Issue` and `IssueSummary`, the property `waitingFor` of `IssueEntry`, the optional inputs `requester` and `assignee` of I6, I7, `create_issue`, and `update_issue`, the optional input `waitingFor` of I8 and `set_issue_status`, and the filter `waitingForKind` of I1 and `list_issues`. Not additive: `IssueStatus` loses `awaiting_user_input` and gets `approved`, an approval of a user hands the issue to its assignee in place of a move to `todo`, I9 shows the issues that wait for a user and are not in `draft` in place of those in `awaiting_user_input` and `in_review`, and an agent sets `done` from `approved` in every mode. A migration rewrites the stored `status_changed` entries with `awaiting_user_input` as hand-overs, which D123 otherwise forbids.
     - Open sets in the MCP output schemas, decision D135: each closed set of an `outputSchema` of `tools/list` accepts any string. It relaxes validation. The schema files and REST keep the closed sets.
     - Hand-over with a comment, decision D136: the optional input `waitingFor` of I3. It is additive.
+    - Issue ranking, decision D137: the closed set `IssuePriority`, the optional input `priority` of I6 and `create_issue`, the property `lastActivityAt` of `Issue` and `IssueSummary`, the optional inputs `sort`, `activeWithinHours`, `idleForHours`, and `noActivity` of I1 and `list_issues`, and the endpoint I13 with the input `RankIssueInput`. Not additive: I1 and `list_issues` sort by rank by default, bugs first, and without `status` return only the open issues. A stored issue has the rank of its number.
 
 ## 9. Contract tests
 
@@ -385,7 +386,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.create-draft-general-request.json](fixtures/inputs.create-draft-general-request.json) | `inputs.schema.json#/$defs/CreateDraftInput` | D2 with a title |
 | [inputs.create-draft-new-request.json](fixtures/inputs.create-draft-new-request.json) | `inputs.schema.json#/$defs/CreateDraftInput` | D2 |
 | [inputs.create-draft-reply.json](fixtures/inputs.create-draft-reply.json) | `inputs.schema.json#/$defs/CreateDraftInput` | D2 |
-| [inputs.create-issue.json](fixtures/inputs.create-issue.json) | `inputs.schema.json#/$defs/CreateIssueInput` | I6, `create_issue` |
+| [inputs.create-issue.json](fixtures/inputs.create-issue.json) | `inputs.schema.json#/$defs/CreateIssueInput` | I6 with `priority`, `create_issue` |
 | [inputs.create-project.json](fixtures/inputs.create-project.json) | `inputs.schema.json#/$defs/CreateProjectInput` | P2 |
 | [inputs.create-token.json](fixtures/inputs.create-token.json) | `inputs.schema.json#/$defs/CreateTokenInput` | T2 |
 | [inputs.dismiss-suggestion.json](fixtures/inputs.dismiss-suggestion.json) | `inputs.schema.json#/$defs/DismissSuggestionInput` | Q22 |
@@ -401,6 +402,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.plan-requirement.json](fixtures/inputs.plan-requirement.json) | `inputs.schema.json#/$defs/PlanRequirementInput` | Q18 |
 | [inputs.preferences.json](fixtures/inputs.preferences.json) | `inputs.schema.json#/$defs/PreferencesInput` | A4 |
 | [inputs.propose-solution.json](fixtures/inputs.propose-solution.json) | `inputs.schema.json#/$defs/ProposeSolutionInput` | Q14, `propose_solution` |
+| [inputs.rank-issue.json](fixtures/inputs.rank-issue.json) | `inputs.schema.json#/$defs/RankIssueInput` | I13 |
 | [inputs.ready.json](fixtures/inputs.ready.json) | `inputs.schema.json#/$defs/RequiredNoteInput` | Q10, Q13 |
 | [inputs.release.json](fixtures/inputs.release.json) | `inputs.schema.json#/$defs/OptionalNoteInput` | Q6, Q12 |
 | [inputs.start-review.json](fixtures/inputs.start-review.json) | `inputs.schema.json#/$defs/StartReviewInput` | V1 |
@@ -423,7 +425,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [lists.declaration-list.json](fixtures/lists.declaration-list.json) | `lists.schema.json#/$defs/DeclarationList` | V14 |
 | [lists.draft-list.json](fixtures/lists.draft-list.json) | `lists.schema.json#/$defs/DraftList` | D1 |
 | [lists.issue-comment-page.json](fixtures/lists.issue-comment-page.json) | `lists.schema.json#/$defs/IssueCommentPage` | I5, `list_comments` |
-| [lists.issue-page.json](fixtures/lists.issue-page.json) | `lists.schema.json#/$defs/IssuePage` | I1, `list_issues` |
+| [lists.issue-page.json](fixtures/lists.issue-page.json) | `lists.schema.json#/$defs/IssuePage` | I1 and `list_issues` with `sort=updated` |
 | [lists.mercure-authorization.json](fixtures/lists.mercure-authorization.json) | `lists.schema.json#/$defs/MercureAuthorization` | A3 |
 | [lists.project-page.json](fixtures/lists.project-page.json) | `lists.schema.json#/$defs/ProjectPage` | P1, `list_projects` |
 | [lists.repository-page.json](fixtures/lists.repository-page.json) | `lists.schema.json#/$defs/RepositoryPage` | R1, `list_repositories` |

@@ -64,7 +64,8 @@
       "avatarUrl": null
     },
     "createdAt": "2026-10-02T09:01:12Z",
-    "updatedAt": "2026-10-02T09:20:05Z"
+    "updatedAt": "2026-10-02T09:20:05Z",
+    "lastActivityAt": "2026-10-02T09:20:05Z"
   },
   "links": [
     {
@@ -86,7 +87,8 @@
           "name": null
         },
         "waitingFor": null,
-        "updatedAt": "2026-10-02T09:03:30Z"
+        "updatedAt": "2026-10-02T09:03:30Z",
+        "lastActivityAt": "2026-10-02T09:03:30Z"
       },
       "kind": "relates",
       "note": "BILL-9 owns the shipping totals, which this issue leaves alone.",

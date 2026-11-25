@@ -104,6 +104,7 @@ final class CrossTenantCases
             'api_issue_updates' => ['method' => 'GET', 'path' => '/api/v1/projects/{projectKey}/updates', 'body' => null, 'status' => 200, 'schema' => 'issue.schema.json#/$defs/IssueUpdatesPage'],
             'api_issue_commits' => ['method' => 'GET', 'path' => '/api/v1/issues/{issueKey}/commits', 'body' => null, 'status' => 200, 'schema' => 'issue.schema.json#/$defs/IssueCommits'],
             'api_issue_release' => ['method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/release', 'body' => null, 'status' => 200, 'schema' => 'issue.schema.json'],
+            'api_issue_rank' => ['method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/rank', 'body' => ['before' => 'BILL-2'], 'status' => 200, 'schema' => 'issue.schema.json'],
         ];
     }
 }

@@ -4,7 +4,7 @@
   "title": "Issue",
   "description": "An issue without its links and its thread: the result of every issue write.",
   "type": "object",
-  "required": ["key", "title", "category", "status", "approval", "claim", "requester", "assignee", "waitingFor", "problem", "plan", "result", "followUps", "project", "planRevision", "planApproval", "allowedStatuses", "createdBy", "createdAt", "updatedAt"],
+  "required": ["key", "title", "category", "status", "approval", "claim", "requester", "assignee", "waitingFor", "problem", "plan", "result", "followUps", "project", "planRevision", "planApproval", "allowedStatuses", "createdBy", "createdAt", "updatedAt", "lastActivityAt"],
   "properties": {
     "key": {
       "$ref": "common.schema.json#/$defs/IssueKey"
@@ -128,6 +128,17 @@
     },
     "updatedAt": {
       "$ref": "common.schema.json#/$defs/DateTime"
+    },
+    "lastActivityAt": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The time of the newest thread entry after the creation: a comment, a status change, a section version, or a plan approval. Null without one (D137)."
     }
   },
   "$defs": {
@@ -203,7 +214,7 @@
     },
     "IssueSummary": {
       "type": "object",
-      "required": ["key", "title", "category", "status", "approval", "claim", "requester", "assignee", "waitingFor", "updatedAt"],
+      "required": ["key", "title", "category", "status", "approval", "claim", "requester", "assignee", "waitingFor", "updatedAt", "lastActivityAt"],
       "properties": {
         "key": {
           "$ref": "common.schema.json#/$defs/IssueKey"
@@ -254,6 +265,17 @@
         },
         "updatedAt": {
           "$ref": "common.schema.json#/$defs/DateTime"
+        },
+        "lastActivityAt": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/DateTime"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "As lastActivityAt of Issue."
         }
       }
     },

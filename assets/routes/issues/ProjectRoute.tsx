@@ -1,37 +1,48 @@
-import { ActionList, ActionMenu, Button, Heading, Link, RelativeTime } from '@primer/react';
+import { ActionList, ActionMenu, Button, Heading, Link } from '@primer/react';
 import { Link as RouterLink, useLoaderData, useSearchParams } from 'react-router';
 import { ISSUE_CATEGORIES, ISSUE_STATUSES, type IssueCategory, type IssueStatus } from '../../api/types/common';
 import { useDocumentTitle } from '../../layout/useDocumentTitle';
 import headerStyles from '../../requests/RequestListHeader.module.css';
-import rowStyles from '../../requests/RequestRow.module.css';
 import listStyles from '../requests/RequestList.module.css';
-import { BugLabel, ISSUE_STATUS_TEXT, IssueStatusLabel, NoApprovalLabel } from './IssueStatusLabel';
-import { WaitingLabel } from './WaitingLabel';
-import styles from './Issues.module.css';
-import { categoryFilter, type ProjectData, statusFilter } from './issueData';
 import { APPROVAL_MODE_NAMES } from './ApprovalModeField';
+import { IssueRankList } from './IssueRankList';
+import { ISSUE_STATUS_TEXT } from './IssueStatusLabel';
+import styles from './Issues.module.css';
+import { ACTIVITY_FILTERS, activityFilter, categoryFilter, type IssueSort, type ProjectData, sortFilter, statusFilter } from './issueData';
 
 const STATUS_OPTIONS: readonly (IssueStatus | null)[] = [null, ...ISSUE_STATUSES];
 const CATEGORY_OPTIONS: readonly (IssueCategory | null)[] = [null, ...ISSUE_CATEGORIES];
 const CATEGORY_FILTER_TEXT: Record<IssueCategory, string> = { bug: 'Bug reports', change: 'Change requests' };
+const SORT_TEXT: Record<IssueSort, string> = { rank: 'Rank', updated: 'Last update' };
+const ACTIVITY_PARAMETERS = ['activeWithinHours', 'idleForHours', 'noActivity'] as const;
 
-/** The issues of one project, newest change first. The filters are the URL search parameters `status` and `category` of I1. */
+/**
+ * The issues of one project in two lists, the bug reports and the change requests, in rank order by default (D137).
+ * The filters and the sort are the URL search parameters of I1.
+ */
 export function ProjectRoute() {
     const { project, issues } = useLoaderData<ProjectData>();
     const [searchParams, setSearchParams] = useSearchParams();
     const filter = statusFilter(searchParams);
     const category = categoryFilter(searchParams);
-    const setFilter = (name: 'status' | 'category', value: string | null): void =>
+    const sort = sortFilter(searchParams);
+    const activity = activityFilter(searchParams);
+    const setFilters = (changes: Record<string, string | null>): void =>
         setSearchParams((current) => {
             const next = new URLSearchParams(current);
-            if (null === value) {
-                next.delete(name);
-            } else {
-                next.set(name, value);
+            for (const [name, value] of Object.entries(changes)) {
+                if (null === value) {
+                    next.delete(name);
+                } else {
+                    next.set(name, value);
+                }
             }
 
             return next;
         });
+    const setFilter = (name: 'status' | 'category', value: string | null): void => setFilters({ [name]: value });
+    // Without a status, the rank order holds the open issues only.
+    const anyStatus = 'rank' === sort ? 'Open' : 'All';
     useDocumentTitle(project.name);
 
     return (
@@ -75,12 +86,12 @@ export function ProjectRoute() {
                             Board
                         </Link>
                         <ActionMenu>
-                            <ActionMenu.Button size="small">Status: {null === filter ? 'All' : ISSUE_STATUS_TEXT[filter]}</ActionMenu.Button>
+                            <ActionMenu.Button size="small">Status: {null === filter ? anyStatus : ISSUE_STATUS_TEXT[filter]}</ActionMenu.Button>
                             <ActionMenu.Overlay>
                                 <ActionList selectionVariant="single">
                                     {STATUS_OPTIONS.map((status) => (
                                         <ActionList.Item key={status ?? 'all'} selected={status === filter} onSelect={() => setFilter('status', status)}>
-                                            {null === status ? 'All' : ISSUE_STATUS_TEXT[status]}
+                                            {null === status ? anyStatus : ISSUE_STATUS_TEXT[status]}
                                         </ActionList.Item>
                                     ))}
                                 </ActionList>
@@ -98,12 +109,44 @@ export function ProjectRoute() {
                                 </ActionList>
                             </ActionMenu.Overlay>
                         </ActionMenu>
+                        <ActionMenu>
+                            <ActionMenu.Button size="small">Activity: {activity.text}</ActionMenu.Button>
+                            <ActionMenu.Overlay>
+                                <ActionList selectionVariant="single">
+                                    {ACTIVITY_FILTERS.map((option) => (
+                                        <ActionList.Item
+                                            key={option.text}
+                                            selected={option === activity}
+                                            onSelect={() => setFilters({ ...Object.fromEntries(ACTIVITY_PARAMETERS.map((name) => [name, null])), ...(null === option.name ? {} : { [option.name]: option.value }) })}
+                                        >
+                                            {option.text}
+                                        </ActionList.Item>
+                                    ))}
+                                </ActionList>
+                            </ActionMenu.Overlay>
+                        </ActionMenu>
+                        <ActionMenu>
+                            <ActionMenu.Button size="small">Sort: {SORT_TEXT[sort]}</ActionMenu.Button>
+                            <ActionMenu.Overlay>
+                                <ActionList selectionVariant="single">
+                                    {(['rank', 'updated'] as const).map((option) => (
+                                        <ActionList.Item key={option} selected={option === sort} onSelect={() => setFilters({ sort: 'rank' === option ? null : option })}>
+                                            {SORT_TEXT[option]}
+                                        </ActionList.Item>
+                                    ))}
+                                </ActionList>
+                            </ActionMenu.Overlay>
+                        </ActionMenu>
                     </div>
                 </div>
                 {0 === issues.length ? (
                     <p className={listStyles.empty} data-testid="issue-list-empty">
-                        {null === filter && null === category ? (
-                            'No issues yet.'
+                        {null === filter && null === category && null === activity.name ? (
+                            'rank' === sort ? (
+                                'No open issues.'
+                            ) : (
+                                'No issues yet.'
+                            )
                         ) : (
                             <>
                                 No issue matches the filters.{' '}
@@ -114,34 +157,13 @@ export function ProjectRoute() {
                         )}
                     </p>
                 ) : (
-                    <ul className={listStyles.list} aria-label="Issues" data-testid="issue-list">
-                        {issues.map((issue) => (
-                            <li key={issue.key} className={`${rowStyles.row} ${styles.row}`} data-testid="issue-row">
-                                <div className={rowStyles.body}>
-                                    <div className={rowStyles.headline}>
-                                        <Link as={RouterLink} to={`/issues/${issue.key}`} className={rowStyles.title}>
-                                            {issue.title}
-                                        </Link>
-                                        <span className={rowStyles.labels}>
-                                            <IssueStatusLabel status={issue.status} />
-                                            <WaitingLabel issue={issue} />
-                                            <BugLabel category={issue.category} />
-                                            <NoApprovalLabel approval={issue.approval} />
-                                        </span>
-                                    </div>
-                                    <div className={rowStyles.meta}>
-                                        {issue.key}
-                                        {null !== issue.claim && ` · held by ${issue.claim.session}`}
-                                    </div>
-                                </div>
-                                <div className={rowStyles.aside}>
-                                    <span>
-                                        updated <RelativeTime datetime={issue.updatedAt} />
-                                    </span>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
+                    <div data-testid="issue-list">
+                        {ISSUE_CATEGORIES.map((known) => {
+                            const ofCategory = issues.filter((issue) => issue.category === known);
+
+                            return 0 === ofCategory.length ? null : <IssueRankList key={known} heading={CATEGORY_FILTER_TEXT[known]} issues={ofCategory} rankable={'rank' === sort} />;
+                        })}
+                    </div>
                 )}
             </div>
         </div>

@@ -57,7 +57,7 @@ test.describe('Issues', () => {
         await page.getByRole('link', { name: 'BILL', exact: true }).click();
         await expect(rows).toHaveText([/Round invoice totals once per invoice/, /Show the rounding mode on the invoice PDF/]);
 
-        await page.getByRole('button', { name: 'Status: All' }).click();
+        await page.getByRole('button', { name: 'Status: Open' }).click();
         await page.getByRole('menuitemradio', { name: 'Draft' }).click();
 
         await expect(page).toHaveURL('/projects/BILL?status=draft');
@@ -583,7 +583,7 @@ test.describe('Issues', () => {
         }
     });
 
-    test('"New issue" is off without a category, and creates a draft with the title, the category, and the problem', async ({ page, api }) => {
+    test('"New issue" is off without a category, and creates a draft with the title, the category, the priority, and the problem', async ({ page, api }) => {
         const issues = new FakeIssues(api);
         issues.add(issueDetail());
         await page.goto('/projects/BILL');
@@ -598,13 +598,15 @@ test.describe('Issues', () => {
         await page.getByRole('radio', { name: 'Change request' }).check();
         await expect(problem).toHaveAttribute('placeholder', 'What is wanted, and how to tell that it is done');
         await problem.fill('The PDF does not say how the total rounds.');
+        await expect(page.getByRole('combobox', { name: 'Priority' })).toHaveValue('none');
+        await page.getByRole('combobox', { name: 'Priority' }).selectOption('Urgent');
         await page.getByRole('button', { name: 'Create issue' }).click();
 
         await expect(page).toHaveURL('/issues/BILL-13');
         await expect(page.getByRole('heading', { level: 1 })).toHaveText('Show the rounding mode on the invoice PDF BILL-13');
         await expect(page.getByTestId('issue-status').first()).toHaveText('Draft');
         await expect(section(page, 'problem')).toContainText('The PDF does not say how the total rounds.');
-        expect(api.bodies('POST', '/api/v1/projects/:projectKey/issues')).toEqual([{ title: 'Show the rounding mode on the invoice PDF', category: 'change', problem: 'The PDF does not say how the total rounds.' }]);
+        expect(api.bodies('POST', '/api/v1/projects/:projectKey/issues')).toEqual([{ title: 'Show the rounding mode on the invoice PDF', category: 'change', priority: 'urgent', problem: 'The PDF does not say how the total rounds.' }]);
     });
 
     test('"Edit" of the title saves the new title', async ({ page, api }) => {

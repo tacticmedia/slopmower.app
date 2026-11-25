@@ -22,7 +22,8 @@
           "name": null
         },
         "waitingFor": "assignee",
-        "updatedAt": "2026-10-02T09:31:07Z"
+        "updatedAt": "2026-10-02T09:31:07Z",
+        "lastActivityAt": "2026-10-02T09:31:07Z"
       },
       "entry": {
         "id": "01K7F3G2H3J4K5M6N7P8Q9R0S1",
@@ -75,7 +76,8 @@
           "name": null
         },
         "waitingFor": "assignee",
-        "updatedAt": "2026-10-02T09:31:07Z"
+        "updatedAt": "2026-10-02T09:31:07Z",
+        "lastActivityAt": "2026-10-02T09:31:07Z"
       },
       "entry": {
         "id": "01K7F3G9H3J4K5M6N7P8Q9R0S1",
@@ -122,7 +124,8 @@
           "name": null
         },
         "waitingFor": "assignee",
-        "updatedAt": "2026-10-02T09:31:07Z"
+        "updatedAt": "2026-10-02T09:31:07Z",
+        "lastActivityAt": "2026-10-02T09:31:07Z"
       },
       "entry": {
         "id": "01K7F3G9H3J4K5M6N7P8Q9R0S2",

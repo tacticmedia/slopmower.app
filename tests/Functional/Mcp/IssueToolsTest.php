@@ -76,8 +76,8 @@ final class IssueToolsTest extends WebTestCase
         self::assertSame(['SM-1', 'SM-2', 'DOC-1'], [$first['key'], $second['key'], $other['key']]);
         self::assertSame(['Round invoice totals once', 'draft', 'self', null, null, 'agent', self::AGENT_NAME], [$first['title'], $first['status'], $first['approval'], $first['problem'], $first['planRevision'], $first['createdBy']['kind'], $first['createdBy']['agentName']]);
         self::assertSame(['key' => 'SM', 'name' => 'Project SM', 'approvalMode' => 'self'], $first['project']);
-        self::assertSame(['SM-2', 'SM-1'], array_column($page['items'], 'key'), 'Newest first.');
-        self::assertSame(['key' => 'SM-2', 'title' => 'Show the rounding mode', 'category' => 'change', 'status' => 'todo', 'approval' => 'self', 'claim' => null, 'requester' => $this->userParty(), 'assignee' => self::AGENT_PARTY, 'waitingFor' => 'assignee', 'updatedAt' => $second['updatedAt']], $todo['items'][0]);
+        self::assertSame(['SM-1', 'SM-2'], array_column($page['items'], 'key'), 'In rank order.');
+        self::assertSame(['key' => 'SM-2', 'title' => 'Show the rounding mode', 'category' => 'change', 'status' => 'todo', 'approval' => 'self', 'claim' => null, 'requester' => $this->userParty(), 'assignee' => self::AGENT_PARTY, 'waitingFor' => 'assignee', 'updatedAt' => $second['updatedAt'], 'lastActivityAt' => null], $todo['items'][0]);
         self::assertSame([$this->userParty(), self::AGENT_PARTY, 'requester'], [$first['requester'], $first['assignee'], $first['waitingFor']], 'The user of the token requests, an agent works, and a draft waits for the requester.');
         self::assertCount(1, $todo['items']);
         self::assertSame($second, $detail['issue']);
@@ -134,7 +134,7 @@ final class IssueToolsTest extends WebTestCase
         $firstPage = $this->call('list_issues', ['project' => 'SM', 'category' => 'bug', 'limit' => 1]);
         $otherCategory = $this->refusal('list_issues', ['project' => 'SM', 'category' => 'change', 'limit' => 1, 'cursor' => $firstPage['nextCursor']]);
 
-        self::assertSame(['SM-3', 'SM-1'], array_column($bugs['items'], 'key'));
+        self::assertSame(['SM-1', 'SM-3'], array_column($bugs['items'], 'key'));
         self::assertSame('cursor', $otherCategory['field']);
     }
 
@@ -172,7 +172,7 @@ final class IssueToolsTest extends WebTestCase
         $otherKind = $this->refusal('list_issues', ['project' => 'SM', 'waitingForKind' => 'user', 'limit' => 1, 'cursor' => $firstPage['nextCursor']]);
 
         self::assertSame([$this->userParty(), 'assignee'], [$reassigned['assignee'], $reassigned['waitingFor']]);
-        self::assertSame([['SM-2'], ['SM-3', 'SM-1']], [$keys('user'), $keys('agent')]);
+        self::assertSame([['SM-2'], ['SM-1', 'SM-3']], [$keys('user'), $keys('agent')]);
         self::assertSame('cursor', $otherKind['field']);
     }
 
@@ -432,7 +432,7 @@ final class IssueToolsTest extends WebTestCase
 
         self::assertSame([['SM-2', 'decision', 'Keep `round()` as deprecated.'], ['SM-1', 'decision', 'Round once per invoice.']], array_map($row, $decisions['items']));
         self::assertNull($decisions['nextCursor']);
-        self::assertSame(['key' => 'SM-2', 'title' => $second['title'], 'category' => 'change', 'status' => 'draft', 'approval' => 'self', 'claim' => null, 'requester' => $this->userParty(), 'assignee' => self::AGENT_PARTY, 'waitingFor' => 'requester', 'updatedAt' => $commented['updatedAt']], $decisions['items'][0]['issue']);
+        self::assertSame(['key' => 'SM-2', 'title' => $second['title'], 'category' => 'change', 'status' => 'draft', 'approval' => 'self', 'claim' => null, 'requester' => $this->userParty(), 'assignee' => self::AGENT_PARTY, 'waitingFor' => 'requester', 'updatedAt' => $commented['updatedAt'], 'lastActivityAt' => $commented['updatedAt']], $decisions['items'][0]['issue']);
         self::assertSame(self::AGENT_NAME, $decisions['items'][0]['actor']['agentName']);
         self::assertSame([['SM-2', 'decision'], ['SM-1', 'comment'], ['SM-1', 'decision']], array_map(static fn (array $comment): array => [$comment['issue']['key'], $comment['label']], $all['items']), 'No section_changed entry, and no comment of DOC.');
         self::assertSame(['Keep `round()` as deprecated.', 'The test is next.'], [$firstPage['items'][0]['body'], $secondPage['items'][0]['body']]);

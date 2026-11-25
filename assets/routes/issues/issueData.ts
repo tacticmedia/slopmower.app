@@ -2,7 +2,7 @@ import { type ActionFunctionArgs, type LoaderFunctionArgs, type Params, redirect
 import { actionError, type ActionResult, type InputFailure, inputFailure, refusalReasons, writeResult } from '../../api/actionResult';
 import { ApiError, apiGet, apiGetAllPages, apiWrite } from '../../api/client';
 import { type ApprovalMode, COMMENT_LABELS, type CommentLabel, ISSUE_CATEGORIES, ISSUE_STATUSES, type IssueCategory, type IssueStatus } from '../../api/types/common';
-import type { ApprovePlanInput, CreateIssueInput, CreateProjectInput, IssueCommentInput, IssueStatusInput, UpdateIssueInput, UpdateProjectInput } from '../../api/types/inputs';
+import type { ApprovePlanInput, CreateIssueInput, CreateProjectInput, IssueCommentInput, IssueStatusInput, RankIssueInput, UpdateIssueInput, UpdateProjectInput } from '../../api/types/inputs';
 import type { Issue, IssueComment, IssueCommits, IssueDetail, IssueGraph, IssueSummary } from '../../api/types/issue';
 import type { NextCursor, ProjectPage } from '../../api/types/lists';
 import type { Project } from '../../api/types/project';
@@ -21,6 +21,24 @@ export type IssueIntent =
 
 /** The JSON body of the form of a new issue. */
 export type NewIssueIntent = { input: CreateIssueInput; draftKey: string };
+
+/** The JSON body of a move in the issue list. */
+export type RankIntent = { issueKey: string; input: RankIssueInput };
+
+/** The `sort` of I1 (D137). */
+export type IssueSort = 'rank' | 'updated';
+
+/** The choices of the "Activity" menu, each the URL parameter of one activity filter of I1 (D137). */
+export const ACTIVITY_FILTERS = [
+    { text: 'Any', name: null, value: null },
+    { text: 'Last 24 hours', name: 'activeWithinHours', value: '24' },
+    { text: 'Last 7 days', name: 'activeWithinHours', value: '168' },
+    { text: 'None yet', name: 'noActivity', value: 'true' },
+    { text: 'None for 3 days', name: 'idleForHours', value: '72' },
+    { text: 'None for 7 days', name: 'idleForHours', value: '168' },
+    { text: 'None for 30 days', name: 'idleForHours', value: '720' },
+] as const;
+export type ActivityFilter = (typeof ACTIVITY_FILTERS)[number];
 
 export type ProjectData = {
     project: Project;
@@ -126,6 +144,16 @@ export function categoryFilter(search: URLSearchParams): IssueCategory | null {
     return ISSUE_CATEGORIES.find((known) => known === category) ?? null;
 }
 
+/** The I1 `sort` of the URL. An unknown value is `rank`. */
+export function sortFilter(search: URLSearchParams): IssueSort {
+    return 'updated' === search.get('sort') ? 'updated' : 'rank';
+}
+
+/** The activity filter of the URL. Another value is "Any". */
+export function activityFilter(search: URLSearchParams): ActivityFilter {
+    return ACTIVITY_FILTERS.find(({ name, value }) => null !== name && search.get(name) === value) ?? ACTIVITY_FILTERS[0];
+}
+
 /** The `label` of the URL, for I5 and the thread of an issue. An unknown value is no filter. */
 export function labelFilter(search: URLSearchParams): CommentLabel | null {
     const label = search.get('label');
@@ -149,16 +177,25 @@ async function projectList<Item>({ request, params }: LoaderFunctionArgs, list: 
 
 export async function projectLoader(args: LoaderFunctionArgs): Promise<ProjectData> {
     const search = new URL(args.request.url).searchParams;
-    const { project, items } = await projectList<IssueSummary>(args, 'issues', { status: statusFilter(search), category: categoryFilter(search) });
+    const activity = activityFilter(search);
+    const filters = { status: statusFilter(search), category: categoryFilter(search), sort: 'updated' === sortFilter(search) ? 'updated' : null };
+    const { project, items } = await projectList<IssueSummary>(args, 'issues', null === activity.name ? filters : { ...filters, [activity.name]: activity.value });
 
     return { project, issues: items };
 }
 
-/** Every issue of the project, whatever the URL says. */
+/** Every issue of the project, whatever the URL says: I1 with `sort=updated`, because the rank order holds the open issues only (D137). */
 export async function projectBoardLoader(args: LoaderFunctionArgs): Promise<ProjectData> {
-    const { project, items } = await projectList<IssueSummary>(args, 'issues', {});
+    const { project, items } = await projectList<IssueSummary>(args, 'issues', { sort: 'updated' });
 
     return { project, issues: items };
+}
+
+/** I13. The loader runs again after it, so the list shows the new order. */
+export async function projectAction({ request }: ActionFunctionArgs): Promise<ActionResult> {
+    const { issueKey, input } = (await request.json()) as RankIntent;
+
+    return writeResult(() => apiWrite('POST', `/api/v1/issues/${encodeURIComponent(issueKey)}/rank`, input, request.signal), undefined, refusalReasons);
 }
 
 /** Without a label it loads the body of every comment of the project. Page the list when a project outgrows that. */

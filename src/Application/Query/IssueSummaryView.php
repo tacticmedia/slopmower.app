@@ -29,11 +29,12 @@ final readonly class IssueSummaryView
         public IssueParty $assignee,
         public ?WaitingFor $waitingFor,
         public \DateTimeImmutable $updatedAt,
+        public ?\DateTimeImmutable $lastActivityAt,
     ) {
     }
 
     public static function of(Issue $issue, \DateTimeImmutable $now): self
     {
-        return new self($issue->getKey(), $issue->getTitle(), $issue->getCategory(), $issue->getStatus(), $issue->getApprovalMode(), IssueClaim::held($issue->getClaim(), $now), $issue->getRequester(), $issue->getAssignee(), $issue->getWaitingFor(), $issue->getUpdatedAt());
+        return new self($issue->getKey(), $issue->getTitle(), $issue->getCategory(), $issue->getStatus(), $issue->getApprovalMode(), IssueClaim::held($issue->getClaim(), $now), $issue->getRequester(), $issue->getAssignee(), $issue->getWaitingFor(), $issue->getUpdatedAt(), $issue->getLastActivityAt());
     }
 }

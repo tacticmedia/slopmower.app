@@ -23,8 +23,8 @@ final class Cursor
     private const int LATEST_UNIX_SECONDS = 253402300799;
 
     /**
-     * @param list<string|int>                $sortKey
-     * @param array<string, string|bool|null> $filters
+     * @param list<string|int>                    $sortKey
+     * @param array<string, string|int|bool|null> $filters
      */
     public static function encode(array $sortKey, array $filters): string
     {
@@ -36,9 +36,9 @@ final class Cursor
     /**
      * @template T
      *
-     * @param list<T>                         $rows    The rows of the page, then at least one more if a next page exists
-     * @param array<string, string|bool|null> $filters
-     * @param \Closure(T): list<string|int>   $sortKey
+     * @param list<T>                             $rows    The rows of the page, then at least one more if a next page exists
+     * @param array<string, string|int|bool|null> $filters
+     * @param \Closure(T): list<string|int>       $sortKey
      *
      * @return string|null Null on the last page
      */
@@ -48,9 +48,9 @@ final class Cursor
     }
 
     /**
-     * @param array<string, string|bool|null> $filters
-     * @param 'int'|'string'|'ulid'|'time'    ...$types One per sort key value. A ulid becomes a Ulid, a time in Unix
-     *                                                  seconds a \DateTimeImmutable.
+     * @param array<string, string|int|bool|null> $filters
+     * @param 'int'|'string'|'ulid'|'time'        ...$types One per sort key value. A ulid becomes a Ulid, a time in Unix
+     *                                                      seconds a \DateTimeImmutable.
      *
      * @return list<mixed> The sort key
      *
@@ -87,7 +87,7 @@ final class Cursor
     }
 
     /**
-     * @param array<string, string|bool|null> $filters
+     * @param array<string, string|int|bool|null> $filters
      */
     private static function filterHash(array $filters): string
     {

@@ -68,7 +68,7 @@ final class IssueUpdatesTest extends WebTestCase
 
         $requester = ['kind' => 'user', 'userId' => $this->user->getId()->toString(), 'name' => $this->user->getLogin()];
         $assignee = ['kind' => 'agent', 'userId' => null, 'name' => null];
-        self::assertSame(['cursor' => 4, 'hasMore' => false, 'issues' => [['key' => 'SM-1', 'title' => 'Round invoice totals once', 'category' => 'change', 'status' => 'todo', 'approval' => 'user', 'claim' => null, 'requester' => $requester, 'assignee' => $assignee, 'waitingFor' => 'requester', 'updatedAt' => $start['issues'][0]['updatedAt']]], 'entries' => []], $start);
+        self::assertSame(['cursor' => 4, 'hasMore' => false, 'issues' => [['key' => 'SM-1', 'title' => 'Round invoice totals once', 'category' => 'change', 'status' => 'todo', 'approval' => 'user', 'claim' => null, 'requester' => $requester, 'assignee' => $assignee, 'waitingFor' => 'requester', 'updatedAt' => $start['issues'][0]['updatedAt'], 'lastActivityAt' => $start['issues'][0]['updatedAt']]], 'entries' => []], $start);
         self::assertSame([
             ['comment', 'comment', 'user', 'Use Money for the amounts.', null],
             ['comment', 'answer', 'user', '', null],

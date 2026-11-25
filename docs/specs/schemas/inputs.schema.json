@@ -930,6 +930,45 @@
             }
           ],
           "description": "user: the user of the caller. Absent or null: agent."
+        },
+        "priority": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/IssuePriority"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The place among the open issues of the category. Absent or null: none, the last place."
+        }
+      }
+    },
+    "RankIssueInput": {
+      "type": "object",
+      "description": "Exactly one of before and after: an issue of the same project and category (D137).",
+      "properties": {
+        "before": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/IssueKey"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The issue takes the place of this issue, which moves down by one."
+        },
+        "after": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/IssueKey"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The issue takes the place directly after this issue."
         }
       }
     },

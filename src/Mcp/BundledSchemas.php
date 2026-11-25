@@ -4529,7 +4529,7 @@ final class BundledSchemas
             'items' => [
                 'type' => 'array',
                 'items' => ['$ref' => '#/$defs/IssueSummary'],
-                'description' => 'Newest updatedAt first.',
+                'description' => 'In the order of sort: rank, bugs first and then by rank; updated, newest updatedAt first (D137).',
             ],
             'nextCursor' => ['$ref' => '#/$defs/NextCursor'],
         ],
@@ -4683,7 +4683,7 @@ final class BundledSchemas
             ],
             'IssueSummary' => [
                 'type' => 'object',
-                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'updatedAt'],
+                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'updatedAt', 'lastActivityAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
@@ -4707,6 +4707,13 @@ final class BundledSchemas
                         'description' => 'As waitingFor of Issue: skip an issue that waits for a user.',
                     ],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
+                    'lastActivityAt' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/DateTime'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'As lastActivityAt of Issue.',
+                    ],
                 ],
             ],
             'NextCursor' => [
@@ -4918,7 +4925,7 @@ final class BundledSchemas
             ],
             'IssueSummary' => [
                 'type' => 'object',
-                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'updatedAt'],
+                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'updatedAt', 'lastActivityAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
@@ -4942,6 +4949,13 @@ final class BundledSchemas
                         'description' => 'As waitingFor of Issue: skip an issue that waits for a user.',
                     ],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
+                    'lastActivityAt' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/DateTime'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'As lastActivityAt of Issue.',
+                    ],
                 ],
             ],
             'NextCursor' => [
@@ -5110,7 +5124,10 @@ final class BundledSchemas
                 'title' => 'Issue',
                 'description' => 'An issue without its links and its thread: the result of every issue write.',
                 'type' => 'object',
-                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt'],
+                'required' => [
+                    'key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt',
+                    'lastActivityAt',
+                ],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
@@ -5185,6 +5202,13 @@ final class BundledSchemas
                     'createdBy' => ['$ref' => '#/$defs/Actor'],
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
+                    'lastActivityAt' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/DateTime'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The time of the newest thread entry after the creation: a comment, a status change, a section version, or a plan approval. Null without one (D137).',
+                    ],
                 ],
             ],
             'IssueApproval' => [
@@ -5387,7 +5411,7 @@ final class BundledSchemas
             ],
             'IssueSummary' => [
                 'type' => 'object',
-                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'updatedAt'],
+                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'updatedAt', 'lastActivityAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
@@ -5411,6 +5435,13 @@ final class BundledSchemas
                         'description' => 'As waitingFor of Issue: skip an issue that waits for a user.',
                     ],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
+                    'lastActivityAt' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/DateTime'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'As lastActivityAt of Issue.',
+                    ],
                 ],
             ],
             'PlanApproval' => [
@@ -5767,7 +5798,7 @@ final class BundledSchemas
             ],
             'IssueSummary' => [
                 'type' => 'object',
-                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'updatedAt'],
+                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'updatedAt', 'lastActivityAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
@@ -5791,6 +5822,13 @@ final class BundledSchemas
                         'description' => 'As waitingFor of Issue: skip an issue that waits for a user.',
                     ],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
+                    'lastActivityAt' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/DateTime'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'As lastActivityAt of Issue.',
+                    ],
                 ],
             ],
             'Question' => [
@@ -5838,7 +5876,10 @@ final class BundledSchemas
         'title' => 'Issue',
         'description' => 'An issue without its links and its thread: the result of every issue write.',
         'type' => 'object',
-        'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt'],
+        'required' => [
+            'key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt',
+            'lastActivityAt',
+        ],
         'properties' => [
             'key' => ['$ref' => '#/$defs/IssueKey'],
             'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
@@ -5913,6 +5954,13 @@ final class BundledSchemas
             'createdBy' => ['$ref' => '#/$defs/Actor'],
             'createdAt' => ['$ref' => '#/$defs/DateTime'],
             'updatedAt' => ['$ref' => '#/$defs/DateTime'],
+            'lastActivityAt' => [
+                'anyOf' => [
+                    ['$ref' => '#/$defs/DateTime'],
+                    ['type' => 'null'],
+                ],
+                'description' => 'The time of the newest thread entry after the creation: a comment, a status change, a section version, or a plan approval. Null without one (D137).',
+            ],
         ],
         '$defs' => [
             'Actor' => [
@@ -6190,7 +6238,7 @@ final class BundledSchemas
         [
             'name' => 'create_issue',
             'title' => 'Create issue',
-            'description' => 'Create an issue of a project. Its key is the project key, a hyphen, and the next number of the project, for example SM-12. Look through the open issues of the project first, and continue one that covers the request. category is bug when something that exists is wrong against its specification, its documentation, or its evident intent, and change for all else: a feature, an alteration, a refactoring, or an upgrade. status is draft while the problem is incomplete, and backlog or todo when it is ready; backlog and todo need problem. In approvalMode by_issue, choose approval by approvalGuidelines: self or agent_review only where a guideline says so, else user. requester asks for the work and accepts it, and assignee does it: user is the user of your token, agent is any agent. By default the user requests and an agent works. Set requester agent only for work that no user asked for, on an issue whose approval is not user. Write technical English, as short as possible, and only what a later reader needs.',
+            'description' => 'Create an issue of a project. Its key is the project key, a hyphen, and the next number of the project, for example SM-12. Look through the open issues of the project first, and continue one that covers the request. category is bug when something that exists is wrong against its specification, its documentation, or its evident intent, and change for all else: a feature, an alteration, a refactoring, or an upgrade. status is draft while the problem is incomplete, and backlog or todo when it is ready; backlog and todo need problem. In approvalMode by_issue, choose approval by approvalGuidelines: self or agent_review only where a guideline says so, else user. requester asks for the work and accepts it, and assignee does it: user is the user of your token, agent is any agent. By default the user requests and an agent works. Set requester agent only for work that no user asked for, on an issue whose approval is not user. priority places the issue among the open issues of its category: none, the default, for a follow-up or an idea; a higher value only when the user said how urgent the work is, or the approvalGuidelines say so. Write technical English, as short as possible, and only what a later reader needs.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
@@ -6232,6 +6280,12 @@ final class BundledSchemas
                         'default' => null,
                         'enum' => ['user', 'agent', null],
                         'description' => 'user or agent. Null: agent',
+                    ],
+                    'priority' => [
+                        'type' => ['string', 'null'],
+                        'description' => 'The place among the open issues of the category. top: first. urgent, high, normal, low: after the first 10, 25, 50, or 75 percent. none or null: last',
+                        'default' => null,
+                        'enum' => ['top', 'urgent', 'high', 'normal', 'low', 'none', null],
                     ],
                 ],
                 'required' => ['project', 'title', 'category'],
@@ -6434,14 +6488,20 @@ final class BundledSchemas
         [
             'name' => 'list_issues',
             'title' => 'List issues',
-            'description' => 'List the issues of one project as summaries, newest updatedAt first. claim names the agent session that holds an issue: skip an issue of another session. waitingFor names the party with the next step: work on an issue that waits for an agent, and leave an issue that waits for a user. Call get_issue for the sections, the links, and the thread.',
+            'description' => 'List the issues of one project as summaries. By default in the order of the user: the bugs first, then by rank, and without status only the open issues. Work from the top: the next issue is status todo, waitingForKind agent, limit 1. claim names the agent session that holds an issue: skip an issue of another session. waitingFor names the party with the next step: work on an issue that waits for an agent, and leave an issue that waits for a user. Call get_issue for the sections, the links, and the thread.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
                     'project' => ['type' => 'string', 'description' => 'Project key from list_projects, for example SM', 'pattern' => '^[A-Z]{2,10}$'],
+                    'sort' => [
+                        'type' => 'string',
+                        'description' => 'rank: the order of the user, bugs first. updated: newest updatedAt first',
+                        'default' => 'rank',
+                        'enum' => ['rank', 'updated'],
+                    ],
                     'status' => [
                         'type' => ['string', 'null'],
-                        'description' => 'Only issues with this status',
+                        'description' => 'Only issues with this status. Null: all with sort updated, the open ones with sort rank',
                         'default' => null,
                         'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'in_review', 'approved', 'done', 'wont_do', null],
                     ],
@@ -6457,6 +6517,21 @@ final class BundledSchemas
                         'default' => null,
                         'enum' => ['user', 'agent', null],
                     ],
+                    'activeWithinHours' => [
+                        'type' => ['null', 'integer'],
+                        'description' => 'Only issues with activity in the last N hours. At most one activity filter',
+                        'default' => null,
+                        'minimum' => 1,
+                        'maximum' => 8760,
+                    ],
+                    'idleForHours' => [
+                        'type' => ['null', 'integer'],
+                        'description' => 'Only issues without activity for N hours, an issue without activity counted from its creation',
+                        'default' => null,
+                        'minimum' => 1,
+                        'maximum' => 8760,
+                    ],
+                    'noActivity' => ['type' => 'boolean', 'description' => 'true: only issues without activity: no comment, status change, section version, or plan approval since the creation', 'default' => false],
                     'cursor' => [
                         'type' => ['null', 'string'],
                         'description' => 'nextCursor of the previous page',

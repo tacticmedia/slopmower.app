@@ -71,6 +71,12 @@ li.row {
     grid-template-areas: 'body aside';
 }
 
+/* With the handle of a move in the icon column (D137). */
+li.rankedRow {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: 'icon body aside';
+}
+
 @media (width < 544px) {
     li.row {
         grid-template-columns: minmax(0, 1fr);
@@ -78,6 +84,46 @@ li.row {
             'body'
             'aside';
     }
+
+    li.rankedRow {
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-areas:
+            'icon body'
+            'icon aside';
+    }
+}
+
+.rankList + .rankList {
+    border-top: var(--borderWidth-thin) solid var(--borderColor-default);
+}
+
+.rankListHeader {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--base-size-8);
+    padding: var(--base-size-8) var(--base-size-16);
+    border-bottom: var(--borderWidth-thin) solid var(--borderColor-muted);
+    font-size: var(--text-body-size-small);
+}
+
+.rankListHeading {
+    margin: 0;
+    font-size: var(--text-body-size-medium);
+    font-weight: var(--base-text-weight-semibold);
+}
+
+.handle {
+    cursor: grab;
+}
+
+/* The line that marks the place of a drop. */
+li.dropBefore {
+    box-shadow: inset 0 2px 0 var(--borderColor-accent-emphasis);
+}
+
+li.dropAfter {
+    box-shadow: inset 0 -2px 0 var(--borderColor-accent-emphasis);
 }
 
 /* On the line of the title, not at the middle of the body. */

@@ -1,5 +1,5 @@
-import { type ApprovalMode, ISSUE_SECTIONS, type IssuePartyKind, type IssueStatus, type Question, type WaitingFor } from '../../../assets/api/types/common';
-import type { ApprovePlanInput, CreateIssueInput, CreateProjectInput, IssueCommentInput, IssueStatusInput, UpdateIssueInput, UpdateProjectInput } from '../../../assets/api/types/inputs';
+import { type ApprovalMode, ISSUE_SECTIONS, type IssuePartyKind, type IssuePriority, type IssueStatus, type Question, type WaitingFor } from '../../../assets/api/types/common';
+import type { ApprovePlanInput, CreateIssueInput, CreateProjectInput, IssueCommentInput, IssueStatusInput, RankIssueInput, UpdateIssueInput, UpdateProjectInput } from '../../../assets/api/types/inputs';
 import type { Issue, IssueCommits, IssueDetail, IssueEntry, IssueParty, IssueSummary } from '../../../assets/api/types/issue';
 import type { Project } from '../../../assets/api/types/project';
 import type { Repository } from '../../../assets/api/types/repository';
@@ -16,6 +16,11 @@ const NEEDED: readonly { section: 'problem' | 'plan' | 'result'; statuses: reado
 /** A move to one of these, or out of `in_progress`, or to a user ends the claim (D130, D134). */
 const PASSING_STATUSES: readonly IssueStatus[] = ['backlog', 'in_review', 'done', 'wont_do'];
 
+/** The share of the open issues of its category that stays before a new issue (D137). */
+const PRIORITY_SHARE_PERCENT: Record<IssuePriority, number> = { top: 0, urgent: 10, high: 25, normal: 50, low: 75, none: 100 };
+
+const ENDED: readonly IssueStatus[] = ['done', 'wont_do'];
+
 /** The party of a new status without `waitingFor` (D134). */
 const DEFAULT_WAITING_FOR: Record<IssueStatus, WaitingFor | null> = {
     draft: 'requester',
@@ -29,7 +34,7 @@ const DEFAULT_WAITING_FOR: Record<IssueStatus, WaitingFor | null> = {
 };
 
 /**
- * The issue tracker in memory, as a signed-in user sees it: P1 to P3, I1 to I9, I11, and I12, with the rules of
+ * The issue tracker in memory, as a signed-in user sees it: P1 to P3, I1 to I9, and I11 to I13, with the rules of
  * docs/specs/rest-api-issues.md. `repositories` answers the connected repositories, whose IDs P3 takes.
  */
 export class FakeIssues {
@@ -38,6 +43,8 @@ export class FakeIssues {
     readonly issues = new Map<string, IssueDetail>();
     /** I12 by issue key. Without an entry, I12 lists no commit. */
     readonly commits = new Map<string, IssueCommits>();
+    /** The issue keys in rank order: {@link add} order, then the place of a priority or a move (D137). */
+    readonly ranked: string[] = [];
 
     constructor(api: MockApi, repositories: () => Repository[] = () => []) {
         api.on('GET', '/api/v1/projects', () => json('lists.schema.json#/$defs/ProjectPage', { items: this.projects, nextCursor: null }));
@@ -79,7 +86,7 @@ export class FakeIssues {
             return json('project.schema.json', changed);
         });
         api.on('POST', '/api/v1/projects/:projectKey/issues', ({ params, body }) => {
-            const { title, category, problem = null, status, approval = null, requester = null, assignee = null } = body as CreateIssueInput;
+            const { title, category, problem = null, status, approval = null, requester = null, assignee = null, priority = null } = body as CreateIssueInput;
             const owner = this.projects.find(({ key }) => key === params.projectKey);
             if (undefined === owner) {
                 return notFound();
@@ -110,11 +117,19 @@ export class FakeIssues {
                 createdBy: USER,
                 createdAt: now(),
                 updatedAt: now(),
+                lastActivityAt: null,
             };
             const refused = missingSection(created);
             if (undefined !== refused) {
                 return refused;
             }
+            const open = this.ranked.filter((key) => {
+                const known = this.issues.get(key)?.issue;
+
+                return known?.project.key === owner.key && known.category === category && !ENDED.includes(known.status);
+            });
+            const before = open[Math.ceil((open.length * PRIORITY_SHARE_PERCENT[priority ?? 'none']) / 100)];
+            this.ranked.splice(undefined === before ? this.ranked.length : this.ranked.indexOf(before), 0, created.key);
             this.issues.set(created.key, { issue: created, links: [], thread: null === problem ? [] : [entry('section_changed', { section: 'problem', body: problem })] });
 
             return json('issue.schema.json', created, 201);
@@ -182,11 +197,25 @@ export class FakeIssues {
             if (!this.projects.some(({ key }) => key === params.projectKey)) {
                 return notFound();
             }
-            const [status, category] = [query.get('status'), query.get('category')];
+            const [status, category, byUpdate] = [query.get('status'), query.get('category'), 'updated' === query.get('sort')];
+            const cutoff = (name: string): string => new Date(Date.now() - Number(query.get(name)) * 3_600_000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+            const active = (issue: Issue): boolean =>
+                query.has('activeWithinHours')
+                    ? null !== issue.lastActivityAt && issue.lastActivityAt >= cutoff('activeWithinHours')
+                    : query.has('idleForHours')
+                      ? (issue.lastActivityAt ?? issue.createdAt) < cutoff('idleForHours')
+                      : !query.has('noActivity') || null === issue.lastActivityAt;
+            const rankOrder = (issue: Issue): [number, number] => ['bug' === issue.category ? 0 : 1, this.ranked.indexOf(issue.key)];
             const items = [...this.issues.values()]
                 .map(({ issue }) => issue)
-                .filter((issue) => issue.project.key === params.projectKey && (null === status || issue.status === status) && (null === category || issue.category === category))
-                .toSorted((first, second) => second.updatedAt.localeCompare(first.updatedAt))
+                .filter(
+                    (issue) =>
+                        issue.project.key === params.projectKey &&
+                        (null === status ? byUpdate || !ENDED.includes(issue.status) : issue.status === status) &&
+                        (null === category || issue.category === category) &&
+                        active(issue),
+                )
+                .toSorted((first, second) => (byUpdate ? second.updatedAt.localeCompare(first.updatedAt) : rankOrder(first)[0] - rankOrder(second)[0] || rankOrder(first)[1] - rankOrder(second)[1]))
                 .map(summary);
 
             return json('lists.schema.json#/$defs/IssuePage', { items, nextCursor: null });
@@ -231,6 +260,29 @@ export class FakeIssues {
                 const changes: Partial<Issue> = { planApproval: { approvedBy: USER, approvedAt: approved.createdAt, reviewer: null, reviewNote: null }, ...(handOver ? { status, waitingFor: 'assignee' } : {}) };
 
                 return json('issue.schema.json', this.#write(detail, changes, approved, ...(handOver ? [entry('status_changed', { from: issue.status, to: status, waitingFor: 'assignee' })] : [])));
+            }),
+        );
+        api.on('POST', '/api/v1/issues/:issueKey/rank', ({ params, body }) =>
+            this.#answer(params.issueKey, ({ issue }) => {
+                const { before = null, after = null } = body as RankIssueInput;
+                const field = null === before ? 'after' : 'before';
+                if ((null === before) === (null === after)) {
+                    return refusal('before', 'Give exactly one of before and after.');
+                }
+                const target = this.issues.get(before ?? after ?? '')?.issue;
+                if (undefined === target) {
+                    return notFound();
+                }
+                if (target.key === issue.key) {
+                    return refusal(field, 'Is the issue itself.');
+                }
+                if (target.project.key !== issue.project.key || target.category !== issue.category) {
+                    return refusal(field, target.category !== issue.category ? `Is a ${target.category}. A move stays in the category of the issue.` : 'Is an issue of another project.');
+                }
+                this.ranked.splice(this.ranked.indexOf(issue.key), 1);
+                this.ranked.splice(this.ranked.indexOf(target.key) + (null === before ? 1 : 0), 0, issue.key);
+
+                return json('issue.schema.json', issue);
             }),
         );
         api.on('POST', '/api/v1/issues/:issueKey/release', ({ params }) =>
@@ -278,6 +330,9 @@ export class FakeIssues {
     }
 
     add(detail: IssueDetail): IssueDetail {
+        if (!this.issues.has(detail.issue.key)) {
+            this.ranked.push(detail.issue.key);
+        }
         this.issues.set(detail.issue.key, detail);
 
         return detail;
@@ -342,16 +397,17 @@ export class FakeIssues {
         return json('issue.schema.json', this.#write(detail, { waitingFor, claim: endsClaim ? null : issue.claim }, comment, entry('status_changed', { from: issue.status, to: issue.status, waitingFor })), 201);
     }
 
+    /** An entry is activity (D137). */
     #write(detail: IssueDetail, changes: Partial<Issue>, ...entries: IssueEntry[]): Issue {
-        const issue = { ...detail.issue, updatedAt: now(), ...changes };
+        const issue = { ...detail.issue, updatedAt: now(), ...(0 === entries.length ? {} : { lastActivityAt: now() }), ...changes };
         this.issues.set(issue.key, { ...detail, issue, thread: versioned([...detail.thread, ...entries]) });
 
         return issue;
     }
 }
 
-function summary({ key, title, category, status, approval, claim, requester, assignee, waitingFor, updatedAt }: Issue): IssueSummary {
-    return { key, title, category, status, approval, claim, requester, assignee, waitingFor, updatedAt };
+function summary({ key, title, category, status, approval, claim, requester, assignee, waitingFor, updatedAt, lastActivityAt }: Issue): IssueSummary {
+    return { key, title, category, status, approval, claim, requester, assignee, waitingFor, updatedAt, lastActivityAt };
 }
 
 /** `user` is the signed-in user. */
