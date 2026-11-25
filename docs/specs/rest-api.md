@@ -860,9 +860,12 @@ Rules:
 - When `.git-blame-ignore-revs` exists at the root of the review commit, the server ignores the commits that it names, as GitHub does, and `ignoreRevsFile` is true. Only lines that are a full commit SHA count. Comments, blank lines, other text, and commits that the repository lacks are skipped. A file without such a line gives `ignoreRevsFile: false`.
 - For `pass_through`, the server reads the GraphQL `blame` of the commit. GitHub has no ignore list, so `.git-blame-ignore-revs` is not read and `ignoreRevsFile` is false. A blame takes up to about 3 s.
 - For `browser`, as for `pass_through`. The server cannot tell a binary file, so the 422 for a file that is not renderable covers only a symlink and a file above 1 MiB.
-- Caching as for V7, with the ETag `W/"v1-<commitSha>-<blobSha>"`. See [README.md section 6](README.md#6-caching-and-etags).
+- `contributors` holds each author of `commits` once, in the order of the first commit of the author, see decision D127 in [architecture.md](../architecture.md). One author is one email, compared in lower case. A commit without an email gives an author by its name. `name` is the author name of the first commit of the author, and `contributorIndex` of a commit is the index of its author. The answer holds no email.
+- `avatarUrl` is the GitHub avatar of the author for `pass_through` and `browser` when GitHub links the email to an account. Else it is an identicon of DiceBear as a `data:image/svg+xml` URI, whose seed is an HMAC of the author with the secret of the instance, so one author gets the same image in each answer.
+- `htmlUrl` is `https://github.com/{owner}/{name}/commit/{sha}` for a GitHub repository, also for `clone`, and null for a local repository.
+- Caching as for V7, with the ETag `W/"v2-<codeAccess>-<commitSha>-<blobSha>"`: the avatars differ by the code access. See [README.md section 6](README.md#6-caching-and-etags).
 
-Example response, [fixtures/blame.php.json](fixtures/blame.php.json):
+Example response of a `pass_through` review, [fixtures/blame.php.json](fixtures/blame.php.json). Grace Hopper has no GitHub account, and the example shortens her SVG:
 
 ```json
 {
@@ -877,8 +880,12 @@ Example response, [fixtures/blame.php.json](fixtures/blame.php.json):
     {"startLine": 50, "endLine": 74, "commitSha": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d"}
   ],
   "commits": [
-    {"sha": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d", "authorName": "Ada Lovelace", "authoredAt": "2026-03-02T09:14:05Z", "summary": "Add invoice totals"},
-    {"sha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091", "authorName": "Grace Hopper", "authoredAt": "2026-09-28T16:40:12Z", "summary": "Round tax per line"}
+    {"sha": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d", "authorName": "Ada Lovelace", "authoredAt": "2026-03-02T09:14:05Z", "summary": "Add invoice totals", "contributorIndex": 0, "htmlUrl": "https://github.com/acme/billing/commit/1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d"},
+    {"sha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091", "authorName": "Grace Hopper", "authoredAt": "2026-09-28T16:40:12Z", "summary": "Round tax per line", "contributorIndex": 1, "htmlUrl": "https://github.com/acme/billing/commit/79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091"}
+  ],
+  "contributors": [
+    {"name": "Ada Lovelace", "avatarUrl": "https://avatars.githubusercontent.com/u/1815?s=40&v=4"},
+    {"name": "Grace Hopper", "avatarUrl": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%205%205%22%3E%3Cpath%20fill%3D%22%23ca62bb%22%20d%3D%22M1%200h3v1H1z%22%2F%3E%3C%2Fsvg%3E"}
   ]
 }
 ```

@@ -378,7 +378,7 @@ The session writes it into `reports/MNN.md`:
 
 ## Verified versions
 
-Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08; the `symfony/scheduler` row on 2026-10-13; the `sentry/*` row on 2026-10-15; the `tacticmedia/qa-bundle` and `@tacticmedia/qa-capture` rows on 2026-10-16; the `react-joyride` row on 2026-10-19; the `@sentry/react` row on 2026-10-28; the `@sentry/vite-plugin` row and the F100 versions on 2026-11-03; the Composer rows and the `@symfony/reprise` version on 2026-11-22 (F125); the PHP and FrankenPHP rows on 2026-11-22 (SM-8). `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
+Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08; the `symfony/scheduler` row on 2026-10-13; the `sentry/*` row on 2026-10-15; the `tacticmedia/qa-bundle` and `@tacticmedia/qa-capture` rows on 2026-10-16; the `react-joyride` row on 2026-10-19; the `@sentry/react` row on 2026-10-28; the `@sentry/vite-plugin` row and the F100 versions on 2026-11-03; the Composer rows and the `@symfony/reprise` version on 2026-11-22 (F125); the PHP and FrankenPHP rows on 2026-11-22 (SM-8); the `dicebear/*` row on 2026-11-25 (SM-44). `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
 
 | Package | Version | Source |
 |---|---|---|
@@ -404,6 +404,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 | `twig/markdown-extra` | 3.29.0 | https://repo.packagist.org/p2/twig/markdown-extra.json |
 | `league/commonmark` | 2.10.7 | https://repo.packagist.org/p2/league/commonmark.json |
 | `opis/json-schema` | 2.6.2, draft 2020-12 | https://repo.packagist.org/p2/opis/json-schema.json |
+| `dicebear/core`, `dicebear/styles` | 10.7.0 and 10.6.0, both of 2026-08-26, for the identicons of V17 (D127). Core is MIT and installs `dicebear/schema` 1.6.1, MIT. It also requires `opis/json-schema`, which `mcp/sdk` already requires. The style `identicon.json` is CC0 1.0; the other styles have their own licenses in `LICENSE.md` of `dicebear/styles`. 11.0.0 is a release candidate. | https://repo.packagist.org/p2/dicebear/core.json |
 | `phpunit/phpunit`, `phpstan/phpstan` | 13.4.8, 2.3.7 | https://repo.packagist.org/p2/phpunit/phpunit.json |
 | `symfony/ai-mate`, `symfony/ai-monolog-mate-extension`, `symfony/ai-symfony-mate-extension` | 0.15.0, dev only | https://repo.packagist.org/p2/symfony/ai-mate.json |
 | `playwright-php/playwright` | 1.6.0, exact pin. Its Node server uses npm `playwright` 1.63.0. | https://repo.packagist.org/p2/playwright-php/playwright.json |

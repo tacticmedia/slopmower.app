@@ -147,7 +147,7 @@ export function FileRoute() {
                         <FileSummary content={content} text={text} />
                     </>
                 }
-                toolbarBelow={blameMode ? <BlameLegend /> : undefined}
+                toolbarBelow={null === blame ? undefined : <BlameLegend contributorCount={blame.contributors.length} />}
                 stuckBelow={<ScopeLines scopes={scopes.path === content.path ? scopes.symbols : []} lines={lines} onChoose={goToLine} />}
             >
                 {navigable && <GoToDeclaration key={content.path} outcome={goTo.outcome} onSubmit={goTo.named} onChoose={(target) => void goTo.go(target)} onDismiss={goTo.dismiss} />}

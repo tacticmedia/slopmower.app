@@ -13,6 +13,8 @@ use App\Tests\Support\Filesystem\TemporaryDirectories;
 use App\Tests\Support\Git\GitRepositoryBuilder;
 use App\Tests\Support\Messenger\QueuedMessages;
 use App\Tests\Support\Source\LocalSources;
+use DiceBear\Avatar;
+use DiceBear\Style;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -64,11 +66,52 @@ final class BlameTest extends WebTestCase
 
         self::assertSame([[1, 3, $first], [4, 4, $second], [5, 5, $third]], array_map(static fn (array $range): array => [$range['startLine'], $range['endLine'], $range['commitSha']], $blame['ranges']));
         self::assertSame([
-            ['sha' => $first, 'authorName' => 'Ada Lovelace', 'authoredAt' => '2026-01-02T03:04:05Z', 'summary' => 'Add totals'],
-            ['sha' => $second, 'authorName' => 'Grace Hopper', 'authoredAt' => '2026-03-04T05:06:07Z', 'summary' => 'Rename and drop the tax line'],
-            ['sha' => $third, 'authorName' => 'Ada Lovelace', 'authoredAt' => '2026-05-06T07:08:09Z', 'summary' => 'Say whole cents'],
+            ['sha' => $first, 'authorName' => 'Ada Lovelace', 'authoredAt' => '2026-01-02T03:04:05Z', 'summary' => 'Add totals', 'contributorIndex' => 0, 'htmlUrl' => null],
+            ['sha' => $second, 'authorName' => 'Grace Hopper', 'authoredAt' => '2026-03-04T05:06:07Z', 'summary' => 'Rename and drop the tax line', 'contributorIndex' => 1, 'htmlUrl' => null],
+            ['sha' => $third, 'authorName' => 'Ada Lovelace', 'authoredAt' => '2026-05-06T07:08:09Z', 'summary' => 'Say whole cents', 'contributorIndex' => 0, 'htmlUrl' => null],
         ], $blame['commits']);
         self::assertSame([$review['commitSha'], $this->source->revParse('main:src/Totals.php'), false], [$blame['commitSha'], $blame['blobSha'], $blame['ignoreRevsFile']]);
+    }
+
+    #[TestDox('One email in any letter case and with any name is one contributor, and each author has one identicon in each answer, seeded by an HMAC with the secret')]
+    public function testContributors(): void
+    {
+        $this->source->commit(['src/Totals.php' => "The totals start here, in cents\nEach line adds the net amount\nRounding happens per line\nThe TOTAL is the sum of lines\nThe result is in whole cents\n"], 'Say cents first', 'Ada King <ADA@Example.INVALID>');
+        $this->source->commit(['src/Rates.php' => "The rates come from the table\n"], 'Add rates', self::GRACE);
+        $review = self::startReviewThroughApi($this->client, self::connectAndClone($this->client));
+        $blame = "/api/v1/reviews/{$review['id']}/blame?path=";
+
+        $totals = self::assertApiResponse(self::apiRequest($this->client, 'GET', "{$blame}src/Totals.php"), 200, 'blame.schema.json');
+        $totalsBody = (string) $this->client->getResponse()->getContent();
+        $rates = self::assertApiResponse(self::apiRequest($this->client, 'GET', "{$blame}src/Rates.php"), 200, 'blame.schema.json');
+        $ratesBody = (string) $this->client->getResponse()->getContent();
+
+        [$ada, $grace] = $totals['contributors'];
+        self::assertSame([[0, 0, 1, 0], ['Ada King', 'Grace Hopper']], [array_column($totals['commits'], 'contributorIndex'), array_column($totals['contributors'], 'name')]);
+        self::assertSame([$grace['avatarUrl']], array_column($rates['contributors'], 'avatarUrl'));
+        self::assertNotSame($ada['avatarUrl'], $grace['avatarUrl']);
+        $definition = json_decode((string) file_get_contents(self::getContainer()->getParameter('kernel.project_dir').'/vendor/dicebear/styles/src/identicon.json'), true, flags: \JSON_THROW_ON_ERROR);
+        \assert(\is_array($definition));
+        unset($definition['meta']);
+        $seed = hash_hmac('sha256', 'ada@example.invalid', self::getContainer()->getParameter('kernel.secret'));
+        self::assertSame(new Avatar(new Style($definition), ['seed' => $seed])->toDataUri(), $ada['avatarUrl']);
+        foreach ([$totalsBody, $ratesBody] as $body) {
+            self::assertStringNotContainsString('@', $body);
+            self::assertStringNotContainsStringIgnoringCase('example.invalid', $body);
+        }
+    }
+
+    #[TestDox('Commits without an email give one contributor per author name')]
+    public function testAuthorsWithoutEmail(): void
+    {
+        $this->source->commit(['src/Notes.txt' => "First\n"], 'Add the first note', 'Anon <>');
+        $this->source->commit(['src/Notes.txt' => "First\nSecond\n"], 'Add the second note', 'Ghost <>');
+        $this->source->commit(['src/Notes.txt' => "First\nSecond\nThird\n"], 'Add the third note', 'Anon <>');
+        $review = self::startReviewThroughApi($this->client, self::connectAndClone($this->client));
+
+        $blame = self::assertApiResponse(self::apiRequest($this->client, 'GET', "/api/v1/reviews/{$review['id']}/blame?path=src/Notes.txt"), 200, 'blame.schema.json');
+
+        self::assertSame([[0, 1, 0], ['Anon', 'Ghost']], [array_column($blame['commits'], 'contributorIndex'), array_column($blame['contributors'], 'name')]);
     }
 
     #[TestDox('The commits that .git-blame-ignore-revs names are skipped, past comments and unknown commits')]
@@ -104,7 +147,7 @@ final class BlameTest extends WebTestCase
     {
         $review = self::startReviewThroughApi($this->client, self::connectAndClone($this->client));
         $uri = "/api/v1/reviews/{$review['id']}/blame?path=src/Totals.php";
-        $etag = "W/\"v1-{$review['commitSha']}-{$this->source->revParse('main:src/Totals.php')}\"";
+        $etag = "W/\"v2-clone-{$review['commitSha']}-{$this->source->revParse('main:src/Totals.php')}\"";
 
         $first = self::apiRequest($this->client, 'GET', $uri);
         self::assertApiResponse($first, 200, 'blame.schema.json');

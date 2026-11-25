@@ -11,8 +11,21 @@ export type Blame = {
     ranges: BlameRange[];
     /** Each commit of `ranges` once, in the order of its first range. */
     commits: BlameCommit[];
+    /** Each author of `commits` once. */
+    contributors: BlameContributor[];
 };
 
 export type BlameRange = { startLine: number; endLine: number; commitSha: CommitSha };
 
-export type BlameCommit = { sha: CommitSha; authorName: string; authoredAt: DateTime; summary: string };
+export type BlameCommit = {
+    sha: CommitSha;
+    authorName: string;
+    authoredAt: DateTime;
+    summary: string;
+    contributorIndex: number;
+    /** The commit on github.com, null for a local repository. */
+    htmlUrl: string | null;
+};
+
+/** `avatarUrl` is a GitHub avatar URL or an SVG data URI. */
+export type BlameContributor = { name: string; avatarUrl: string };

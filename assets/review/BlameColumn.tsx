@@ -1,4 +1,4 @@
-import { RelativeTime, VisuallyHidden } from '@primer/react';
+import { Avatar, Link, RelativeTime, VisuallyHidden } from '@primer/react';
 import { type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import type { Blame, BlameCommit } from '../api/types/blame';
 import type { LineGeometry } from '../code/CodeFile';
@@ -30,16 +30,16 @@ export function BlameColumn({ blame, geometry }: Props) {
                     const commit = commits.get(commitSha);
 
                     return undefined === commit || topPx + heightPx < visible.topPx || topPx > visible.bottomPx ? null : (
-                        <BlameBlock key={startLine} commit={commit} startLine={startLine} endLine={endLine} topPx={topPx} heightPx={heightPx} now={now} />
+                        <BlameBlock key={startLine} commit={commit} avatarUrl={blame.contributors[commit.contributorIndex]?.avatarUrl} startLine={startLine} endLine={endLine} topPx={topPx} heightPx={heightPx} now={now} />
                     );
                 })}
         </div>
     );
 }
 
-type BlockProps = { commit: BlameCommit; startLine: number; endLine: number; topPx: number; heightPx: number; now: Date };
+type BlockProps = { commit: BlameCommit; avatarUrl: string | undefined; startLine: number; endLine: number; topPx: number; heightPx: number; now: Date };
 
-function BlameBlock({ commit, startLine, endLine, topPx, heightPx, now }: BlockProps) {
+function BlameBlock({ commit, avatarUrl, startLine, endLine, topPx, heightPx, now }: BlockProps) {
     const scale = blameAgeScale(commit.authoredAt, now);
     const lines = linesText({ start: startLine, end: endLine });
 
@@ -55,8 +55,17 @@ function BlameBlock({ commit, startLine, endLine, topPx, heightPx, now }: BlockP
             <span className={styles.age} style={{ backgroundColor: `var(--display-orange-scale-${scale})` }} aria-hidden="true" />
             <VisuallyHidden>{lines}:</VisuallyHidden>
             <RelativeTime className={styles.date} datetime={commit.authoredAt} />
+            {/* Decorative: the name follows it, and a narrow window hides both. */}
+            {undefined !== avatarUrl && <Avatar className={styles.avatar} src={avatarUrl} alt="" size={16} />}
             <span className={styles.author}>{commit.authorName}</span>
-            <span className={styles.summary}>{commit.summary}</span>
+            {null === commit.htmlUrl ? (
+                <span className={styles.summary}>{commit.summary}</span>
+            ) : (
+                <Link className={styles.summary} href={commit.htmlUrl} target="_blank" rel="noreferrer">
+                    {commit.summary}
+                    <VisuallyHidden> (opens in a new tab)</VisuallyHidden>
+                </Link>
+            )}
         </div>
     );
 }

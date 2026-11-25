@@ -18,6 +18,8 @@ final class GitBackedGitHub
 
     private const array STATUS_BY_LETTER = ['A' => 'added', 'D' => 'removed', 'M' => 'modified', 'R' => 'renamed', 'C' => 'copied', 'T' => 'changed'];
 
+    private const string AVATARS = 'https://avatars.githubusercontent.com/';
+
     private bool $truncateNextRecursiveTree = false;
 
     /**
@@ -57,6 +59,8 @@ final class GitBackedGitHub
     }
 
     /**
+     * An author has a GitHub account when the email is a noreply address `{id}+{login}@users.noreply.github.com`.
+     *
      * @param array{query?: mixed, variables?: mixed} $body
      */
     public function blame(array $body): MockResponse
@@ -69,14 +73,14 @@ final class GitBackedGitHub
         }
 
         $ranges = [];
-        /** @var array<string, array{name: string, date: string, message: string}> $commits */
+        /** @var array<string, array{name: string, email: string, date: string, message: string}> $commits */
         $commits = [];
         $current = null;
 
         foreach (explode("\n", $output) as $line) {
             if (1 === preg_match('/^([0-9a-f]{40}) \d+ (\d+)/', $line, $match)) {
                 $current = $match[1];
-                $commits[$current] ??= ['name' => '', 'date' => '', 'message' => ''];
+                $commits[$current] ??= ['name' => '', 'email' => '', 'date' => '', 'message' => ''];
                 $last = array_key_last($ranges);
                 $lineNumber = (int) $match[2];
 
@@ -87,6 +91,8 @@ final class GitBackedGitHub
                 }
             } elseif (null !== $current && str_starts_with($line, 'author ')) {
                 $commits[$current]['name'] = substr($line, 7);
+            } elseif (null !== $current && str_starts_with($line, 'author-mail ')) {
+                $commits[$current]['email'] = trim(substr($line, 12), '<>');
             } elseif (null !== $current && str_starts_with($line, 'author-time ')) {
                 $commits[$current]['date'] = gmdate('Y-m-d\TH:i:s\Z', (int) substr($line, 12));
             } elseif (null !== $current && str_starts_with($line, 'summary ')) {
@@ -95,9 +101,18 @@ final class GitBackedGitHub
         }
 
         $ranges = array_map(static function (array $range) use ($commits): array {
-            ['name' => $name, 'date' => $date, 'message' => $message] = $commits[$range['commit']];
+            ['name' => $name, 'email' => $email, 'date' => $date, 'message' => $message] = $commits[$range['commit']];
+            $account = 1 === preg_match('/^(\d+)\+([^@]+)@users\.noreply\.github\.com$/', $email, $match) ? $match : null;
+            $author = [
+                'name' => $name,
+                'email' => $email,
+                'date' => $date,
+                // GitHub gives an avatar URL also for an email without an account.
+                'avatarUrl' => null === $account ? self::AVATARS.'u/e?email='.rawurlencode($email).'&s=40' : self::AVATARS."u/{$account[1]}?s=40&v=4",
+                'user' => null === $account ? null : ['login' => $account[2]],
+            ];
 
-            return ['startingLine' => $range['startingLine'], 'endingLine' => $range['endingLine'], 'commit' => ['oid' => $range['commit'], 'message' => $message, 'author' => ['name' => $name, 'date' => $date]]];
+            return ['startingLine' => $range['startingLine'], 'endingLine' => $range['endingLine'], 'commit' => ['oid' => $range['commit'], 'message' => $message, 'author' => $author]];
         }, $ranges);
 
         return self::json(200, ['data' => ['repository' => ['object' => ['blame' => ['ranges' => $ranges]]]]]);

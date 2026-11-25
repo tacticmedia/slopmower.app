@@ -405,7 +405,7 @@ final class GitCodeReader implements CodeReader
         );
         /** @var list<array{int, int, string}> $groups Start line, line count, commit */
         $groups = [];
-        /** @var array<string, array{author: string, time: string, summary: string}> $headers */
+        /** @var array<string, array{author: string, mail: string, time: string, summary: string}> $headers */
         $headers = [];
         $current = null;
 
@@ -413,12 +413,13 @@ final class GitCodeReader implements CodeReader
             if (1 === preg_match('/^([0-9a-f]{40}|[0-9a-f]{64}) \d+ (\d+) (\d+)$/D', $line, $match)) {
                 $current = $match[1];
                 $groups[] = [(int) $match[2], (int) $match[3], $current];
-                $headers[$current] ??= ['author' => '', 'time' => '0', 'summary' => ''];
+                $headers[$current] ??= ['author' => '', 'mail' => '', 'time' => '0', 'summary' => ''];
             } elseif (null !== $current) {
                 // A commit has its headers only in its first group.
                 [$key, $value] = explode(' ', $line, 2) + [1 => ''];
                 match ($key) {
                     'author' => $headers[$current]['author'] = $value,
+                    'author-mail' => $headers[$current]['mail'] = trim($value, '<>'),
                     'author-time' => $headers[$current]['time'] = $value,
                     'summary' => $headers[$current]['summary'] = $value,
                     default => null,
@@ -443,6 +444,7 @@ final class GitCodeReader implements CodeReader
             $commits[$sha] ??= new BlameCommit(
                 CommitSha::fromString($sha),
                 mb_scrub($headers[$sha]['author'], 'UTF-8'),
+                mb_scrub($headers[$sha]['mail'], 'UTF-8'),
                 new \DateTimeImmutable('@'.$headers[$sha]['time']),
                 mb_scrub($headers[$sha]['summary'], 'UTF-8'),
             );

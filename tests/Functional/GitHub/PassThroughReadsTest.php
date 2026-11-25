@@ -49,7 +49,8 @@ use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Messenger\Envelope;
 
 /**
- * D112 and D113 on a Pass-through repository, read from the git-backed GitHub fake.
+ * D112 and D113 on a Pass-through repository, and the blame authors of D127 also with a server copy, read from the
+ * git-backed GitHub fake.
  */
 final class PassThroughReadsTest extends WebTestCase
 {
@@ -205,6 +206,62 @@ final class PassThroughReadsTest extends WebTestCase
         self::getContainer()->get(GitHubResponses::class)->answerCodeRead('graphql', 200, ['content-type' => 'application/json'], '{"data":{"repository":{"object":{"blame":null}}},"errors":[{"type":"SOMETHING_WENT_WRONG","message":"Something went wrong."}]}');
 
         self::assertApiError(self::apiRequest($client, 'GET', "/api/v1/reviews/{$reviewId}/blame?path=src%2FTax.php"), 409, 'repository_unavailable');
+    }
+
+    #[TestDox('The blame gives the GitHub avatar to an author with a GitHub account and an identicon to one without, links each commit to github.com, and asks GitHub once')]
+    public function testBlameAvatarsAndCommitLinks(): void
+    {
+        $client = static::createClient();
+        $octocat = $this->source->commit(['src/Tax.php' => "<?php\n"], 'Add the tax', 'The Octocat <583231+octocat@users.noreply.github.com>');
+        $ada = $this->source->commit(['src/Tax.php' => "<?php\n\n// Rates\n"], 'Add the rates', 'Ada Lovelace <ada@example.invalid>');
+        $this->source->git('push', '--quiet', 'origin', 'main');
+        $repository = $this->passThroughRepository([]);
+        $reviewId = self::startedReview($repository);
+        $client->loginUser(self::userOf($repository), 'web');
+        $responses = self::getContainer()->get(GitHubResponses::class);
+        $callsBefore = \count($responses->repositoryCalls());
+
+        $blame = self::assertApiResponse(self::apiRequest($client, 'GET', "/api/v1/reviews/{$reviewId}/blame?path=src%2FTax.php"), 200, 'blame.schema.json');
+
+        self::assertSame(["https://github.com/acme/billing/commit/{$octocat}", "https://github.com/acme/billing/commit/{$ada}"], array_column($blame['commits'], 'htmlUrl'));
+        self::assertSame(['https://avatars.githubusercontent.com/u/583231?s=40&v=4', 'data:image/svg+xml;'], [$blame['contributors'][0]['avatarUrl'], substr($blame['contributors'][1]['avatarUrl'], 0, 19)]);
+        self::assertCount(1, array_keys(\array_slice($responses->repositoryCalls(), $callsBefore), 'graphql', true));
+    }
+
+    #[TestDox('A GitHub avatar on another host than avatars.githubusercontent.com gives the identicon')]
+    public function testBlameAvatarOnAnotherHost(): void
+    {
+        $client = static::createClient();
+        $repository = $this->passThroughRepository(['src/Tax.php' => "<?php\n"]);
+        $reviewId = self::startedReview($repository);
+        $client->loginUser(self::userOf($repository), 'web');
+        $author = ['name' => 'The Octocat', 'email' => '583231+octocat@users.noreply.github.com', 'date' => '2026-01-02T03:04:05Z', 'avatarUrl' => 'https://avatars.example.com/u/583231?s=40', 'user' => ['login' => 'octocat']];
+        $range = ['startingLine' => 1, 'endingLine' => 1, 'commit' => ['oid' => $this->source->revParse('HEAD'), 'message' => 'Add the tax', 'author' => $author]];
+        self::getContainer()->get(GitHubResponses::class)->answerCodeRead('graphql', 200, ['content-type' => 'application/json'], json_encode(['data' => ['repository' => ['object' => ['blame' => ['ranges' => [$range]]]]]], \JSON_THROW_ON_ERROR));
+
+        $blame = self::assertApiResponse(self::apiRequest($client, 'GET', "/api/v1/reviews/{$reviewId}/blame?path=src%2FTax.php"), 200, 'blame.schema.json');
+
+        self::assertStringStartsWith('data:image/svg+xml;', $blame['contributors'][0]['avatarUrl']);
+    }
+
+    #[TestDox('A GitHub repository with a server copy links each commit to github.com and gives identicons without a GitHub request')]
+    public function testServerCopyBlameLinksToGitHub(): void
+    {
+        $client = static::createClient();
+        $octocat = $this->source->commit(['src/Tax.php' => "<?php\n"], 'Add the tax', 'The Octocat <583231+octocat@users.noreply.github.com>');
+        $this->source->git('push', '--quiet', 'origin', 'main');
+        $repository = self::clonedGitHubRepository(1, CodeAccess::Clone, 'octocat');
+        self::getContainer()->get(TenantContext::class)->set($repository->getTenantId());
+        $reviewId = self::startedReview($repository);
+        $client->loginUser(self::userOf($repository), 'web');
+        $responses = self::getContainer()->get(GitHubResponses::class);
+        $callsBefore = \count($responses->repositoryCalls());
+
+        $blame = self::assertApiResponse(self::apiRequest($client, 'GET', "/api/v1/reviews/{$reviewId}/blame?path=src%2FTax.php"), 200, 'blame.schema.json');
+
+        self::assertSame(["https://github.com/acme/billing/commit/{$octocat}"], array_column($blame['commits'], 'htmlUrl'));
+        self::assertStringStartsWith('data:image/svg+xml;', $blame['contributors'][0]['avatarUrl']);
+        self::assertSame([], array_keys(\array_slice($responses->repositoryCalls(), $callsBefore), 'graphql', true));
     }
 
     #[TestDox('After a D88 check answers none, get_request returns no snapshot text')]

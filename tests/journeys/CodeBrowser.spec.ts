@@ -1,6 +1,6 @@
 import type { BlameCommit } from '../../assets/api/types/blame';
 import type { SearchHit } from '../../assets/api/types/search-hit';
-import { now, searchHitList, sha1 } from '../ui/support/builders';
+import { blameContributor, now, searchHitList, sha1 } from '../ui/support/builders';
 import { openFile, waitForHighlighting } from '../ui/support/codeView';
 import { FakeGitHub } from '../ui/support/fakeGitHub';
 import { FakeReview } from '../ui/support/fakeReview';
@@ -35,13 +35,13 @@ const HITS: SearchHit[] = [
     { kind: 'file', path: SYMBOL_FILE },
 ];
 
-function commit(name: string, authorName: string, daysAgo: number): BlameCommit {
-    return { sha: sha1(name), authorName, authoredAt: now(-daysAgo * 86_400), summary: name };
+function commit(name: string, authorName: string, daysAgo: number, contributorIndex: number): BlameCommit {
+    return { sha: sha1(name), authorName, authoredAt: now(-daysAgo * 86_400), summary: name, contributorIndex, htmlUrl: null };
 }
 
-const ADD_TOTALS = commit('Add invoice totals', 'Ada Lovelace', 500);
+const ADD_TOTALS = commit('Add invoice totals', 'Ada Lovelace', 500, 0);
 
-const ROUND_TAX = commit('Round tax per line', 'Grace Hopper', 3);
+const ROUND_TAX = commit('Round tax per line', 'Grace Hopper', 3, 1);
 
 test.describe('CodeBrowser', () => {
     test('A reviewer reads the code and its blame, searches, and submits feedback', async ({ page, api, captureScreen }) => {
@@ -71,6 +71,7 @@ test.describe('CodeBrowser', () => {
                 { startLine: 12, endLine: 13, commitSha: ADD_TOTALS.sha },
             ],
             commits: [ADD_TOTALS, ROUND_TAX],
+            contributors: [blameContributor('Ada Lovelace'), blameContributor('Grace Hopper')],
         });
         await page.goto(`/reviews/${review.id}/blame/${SMALL_FILE}`);
         await waitForHighlighting(page, 13);

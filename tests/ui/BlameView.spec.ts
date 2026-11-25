@@ -1,5 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 import type { BlameCommit } from '../../assets/api/types/blame';
+import { blameContributor } from './support/builders';
 import { CODE_HOST, lineNumber, location, openFile } from './support/codeView';
 import { FakeReview } from './support/fakeReview';
 import { LARGE_FILE, SMALL_FILE } from './support/files';
@@ -9,13 +10,21 @@ const MAXIMUM_RENDERED_ROWS = 300;
 
 const DAY_MS = 86_400_000;
 
-function commit(sha: string, authorName: string, daysAgo: number, summary: string): BlameCommit {
-    return { sha, authorName, authoredAt: new Date(Date.now() - daysAgo * DAY_MS).toISOString().replace(/\.\d{3}Z$/, 'Z'), summary };
+function commit(sha: string, authorName: string, daysAgo: number, summary: string, contributorIndex: number): BlameCommit {
+    return { sha, authorName, authoredAt: new Date(Date.now() - daysAgo * DAY_MS).toISOString().replace(/\.\d{3}Z$/, 'Z'), summary, contributorIndex, htmlUrl: null };
 }
 
-const ADA = commit('1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d', 'Ada Lovelace', 500, 'Add invoice totals');
+const ADA = commit('1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d', 'Ada Lovelace', 500, 'Add invoice totals', 0);
 
-const GRACE = commit('2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e', 'Grace Hopper', 3, 'Round tax per line');
+const GRACE = commit('2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e', 'Grace Hopper', 3, 'Round tax per line', 1);
+
+const CONTRIBUTORS = [blameContributor('Ada Lovelace'), blameContributor('Grace Hopper')];
+
+const THREE_BLOCKS = [
+    { startLine: 1, endLine: 6, commitSha: ADA.sha },
+    { startLine: 7, endLine: 7, commitSha: GRACE.sha },
+    { startLine: 8, endLine: 13, commitSha: ADA.sha },
+];
 
 function blameUrl(review: FakeReview, path: string, hash = ''): string {
     return `/reviews/${review.id}/blame/${path}${hash}`;
@@ -60,15 +69,7 @@ test.describe('BlameView', () => {
 
     test('Each range has one block beside its lines, with the date, the author, the summary, and the age colour', async ({ page, api }) => {
         const review = new FakeReview(api);
-        review.blames.set(SMALL_FILE, {
-            ignoreRevsFile: false,
-            ranges: [
-                { startLine: 1, endLine: 6, commitSha: ADA.sha },
-                { startLine: 7, endLine: 7, commitSha: GRACE.sha },
-                { startLine: 8, endLine: 13, commitSha: ADA.sha },
-            ],
-            commits: [ADA, GRACE],
-        });
+        review.blames.set(SMALL_FILE, { ignoreRevsFile: false, ranges: THREE_BLOCKS, commits: [ADA, GRACE], contributors: CONTRIBUTORS });
 
         await page.goto(blameUrl(review, SMALL_FILE));
 
@@ -83,6 +84,38 @@ test.describe('BlameView', () => {
         }
     });
 
+    test('Each block shows the avatar of its author before the name, and the toolbar counts the contributors', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        review.blames.set(SMALL_FILE, { ignoreRevsFile: false, ranges: THREE_BLOCKS, commits: [ADA, GRACE], contributors: CONTRIBUTORS });
+
+        await page.goto(blameUrl(review, SMALL_FILE));
+
+        for (const [lines, contributor] of [['1-6', CONTRIBUTORS[0]], ['7-7', CONTRIBUTORS[1]], ['8-13', CONTRIBUTORS[0]]] as const) {
+            const avatar = block(page, lines).locator('img[data-component="Avatar"]');
+            await expect(avatar).toHaveAttribute('src', contributor?.avatarUrl ?? '');
+            await expect(avatar).toHaveAttribute('alt', '');
+            await expect.poll(() => avatar.evaluate((element) => [(element as HTMLImageElement).naturalWidth > 0, element.getBoundingClientRect().width])).toEqual([true, 16]);
+            expect(await avatar.evaluate((element) => element.nextElementSibling?.textContent)).toBe(contributor?.name);
+        }
+        const contributors = page.locator('[data-testid="file-toolbar"] [data-testid="blame-contributors"]');
+        await expect(contributors).toHaveText('2 contributors');
+        await expect(contributors).toHaveAttribute('title', 'Authors of the lines at the review commit');
+    });
+
+    test('The summary opens the commit page in a new tab, and stays text without a page', async ({ page, api }) => {
+        const review = new FakeReview(api);
+        const htmlUrl = `https://github.com/acme/billing/commit/${GRACE.sha}`;
+        review.blames.set(SMALL_FILE, { ignoreRevsFile: false, ranges: THREE_BLOCKS, commits: [ADA, { ...GRACE, htmlUrl }], contributors: CONTRIBUTORS });
+
+        await page.goto(blameUrl(review, SMALL_FILE));
+
+        const link = block(page, '7-7').getByRole('link', { name: 'Round tax per line (opens in a new tab)', exact: true });
+        await expect(link).toHaveAttribute('href', htmlUrl);
+        await expect(link).toHaveAttribute('target', '_blank');
+        await expect(block(page, '1-6')).toContainText('Add invoice totals');
+        await expect(block(page, '1-6').getByRole('link')).toHaveCount(0);
+    });
+
     test('A block far down the file aligns after #L3000, and fewer than 300 rows render', async ({ page, api }) => {
         const review = new FakeReview(api);
         review.blames.set(LARGE_FILE, {
@@ -93,6 +126,7 @@ test.describe('BlameView', () => {
                 { startLine: 3001, endLine: 3500, commitSha: ADA.sha },
             ],
             commits: [ADA, GRACE],
+            contributors: CONTRIBUTORS,
         });
 
         await page.goto(blameUrl(review, LARGE_FILE, '#L3000'));
@@ -110,7 +144,7 @@ test.describe('BlameView', () => {
         await expect(page.locator('[data-testid="blame-legend"]')).toHaveText('OlderNewer');
         await expect(page.locator('[data-testid="ignore-revs"]')).toHaveCount(0);
 
-        review.blames.set(SMALL_FILE, { ignoreRevsFile: true, ranges: [{ startLine: 1, endLine: 13, commitSha: ADA.sha }], commits: [ADA] });
+        review.blames.set(SMALL_FILE, { ignoreRevsFile: true, ranges: [{ startLine: 1, endLine: 13, commitSha: ADA.sha }], commits: [ADA], contributors: [blameContributor('Ada Lovelace')] });
         await page.reload();
         await expect(page.locator('[data-testid="ignore-revs"]')).toHaveText('Ignoring revisions in .git-blame-ignore-revs.');
     });

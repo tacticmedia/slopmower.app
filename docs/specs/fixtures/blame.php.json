@@ -10,7 +10,11 @@
     {"startLine": 50, "endLine": 74, "commitSha": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d"}
   ],
   "commits": [
-    {"sha": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d", "authorName": "Ada Lovelace", "authoredAt": "2026-03-02T09:14:05Z", "summary": "Add invoice totals"},
-    {"sha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091", "authorName": "Grace Hopper", "authoredAt": "2026-09-28T16:40:12Z", "summary": "Round tax per line"}
+    {"sha": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d", "authorName": "Ada Lovelace", "authoredAt": "2026-03-02T09:14:05Z", "summary": "Add invoice totals", "contributorIndex": 0, "htmlUrl": "https://github.com/acme/billing/commit/1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d"},
+    {"sha": "79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091", "authorName": "Grace Hopper", "authoredAt": "2026-09-28T16:40:12Z", "summary": "Round tax per line", "contributorIndex": 1, "htmlUrl": "https://github.com/acme/billing/commit/79f8595a4c1e2b3d5f6071829a3b4c5d6e7f8091"}
+  ],
+  "contributors": [
+    {"name": "Ada Lovelace", "avatarUrl": "https://avatars.githubusercontent.com/u/1815?s=40&v=4"},
+    {"name": "Grace Hopper", "avatarUrl": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%205%205%22%3E%3Cpath%20fill%3D%22%23ca62bb%22%20d%3D%22M1%200h3v1H1z%22%2F%3E%3C%2Fsvg%3E"}
   ]
 }

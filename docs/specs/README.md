@@ -161,7 +161,7 @@ The [plan of the tenant](webhooks-and-live-updates.md#marketplace-plans) sets ea
 | `GET /reviews/{id}/raw`, `GET /repositories/{id}/blobs/{sha}` | `"<blobSha>"`, strong | `private, max-age=31536000, immutable` | When `If-None-Match` matches with the weak comparison, or is `*` |
 | `GET /reviews/{id}/file` | `W/"v2-<blobSha>"`, and `W/"v2-browser-<blobSha>"` for `browser`. Increase `v2` when the representation changes, also for a new `language` value of a file name. | `private, no-cache` | Same rule |
 | `GET /reviews/{id}/symbols` | `W/"v5-<blobSha>"`. Increase `v5` when the representation changes, also for a changed grammar or query of a language. | `private, no-cache` | Same rule |
-| `GET /reviews/{id}/blame` | `W/"v1-<commitSha>-<blobSha>"`, from the review commit and the file. Increase `v1` when the representation changes. | `private, no-cache` | Same rule |
+| `GET /reviews/{id}/blame` | `W/"v2-<codeAccess>-<commitSha>-<blobSha>"`, from the code access of the repository, the review commit, and the file. Increase `v2` when the representation changes. | `private, no-cache` | Same rule |
 | Everything else | none | `no-store` | never |
 
 All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body and repeats `ETag` and `Cache-Control`.
@@ -271,6 +271,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Questions on an issue, decision D124: the optional input `questions` of I3 and `comment_on_issue`, and the property `questions` of `IssueEntry` and `IssueComment`. Not additive: `CommentLabel` gets the value `answer`, the server sets `question` and `answer` on a comment with questions and refuses both on a comment without, and `body` of `IssueComment` can be empty. A stored comment has `questions` empty, and one with the label `question` keeps it.
     - Issue key links, decision D125: the property `projectKeys` of `Me`. It is additive.
     - Dependencies of issues, decision D126: the set `IssueLinkKind`, the property `kind` of `IssueLink`, the optional input `kind` of `link_issues`, the endpoint I9, and the schema `IssueGraph`. Not additive: a second `link_issues` call for a pair replaces its link, where it gave `invalid_input`. A stored link has the kind `relates`.
+    - Blame authors, decision D127: the property `contributors` of `Blame` with the schema `BlameContributor`, and the properties `contributorIndex` and `htmlUrl` of `BlameCommit`. All are additive. The V17 ETag is `v2` and holds the code access.
 
 ## 9. Contract tests
 
@@ -307,7 +308,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [commit.schema.json](schemas/commit.schema.json) | `https://slopmower.invalid/schemas/v1/commit.schema.json` | One commit of a commit list |
 | [tree-entry.schema.json](schemas/tree-entry.schema.json) | `https://slopmower.invalid/schemas/v1/tree-entry.schema.json` | One entry of a tree listing |
 | [file-content.schema.json](schemas/file-content.schema.json) | `https://slopmower.invalid/schemas/v1/file-content.schema.json` | File metadata at the review commit |
-| [blame.schema.json](schemas/blame.schema.json) | `https://slopmower.invalid/schemas/v1/blame.schema.json` | The blame of a file at the review commit, plus `BlameRange` and `BlameCommit` |
+| [blame.schema.json](schemas/blame.schema.json) | `https://slopmower.invalid/schemas/v1/blame.schema.json` | The blame of a file at the review commit, plus `BlameRange`, `BlameCommit`, and `BlameContributor` |
 | [symbol.schema.json](schemas/symbol.schema.json) | `https://slopmower.invalid/schemas/v1/symbol.schema.json` | One symbol of a file |
 | [declaration.schema.json](schemas/declaration.schema.json) | `https://slopmower.invalid/schemas/v1/declaration.schema.json` | One declaration of a name at the review commit |
 | [search-hit.schema.json](schemas/search-hit.schema.json) | `https://slopmower.invalid/schemas/v1/search-hit.schema.json` | One hit of a search at the review commit: `FileHit` or `SymbolHit` |

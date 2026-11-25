@@ -37,7 +37,9 @@ Select **Viewed** in the file header when you are finished with a file. The file
 
 Click **Blame** in the toolbar of a file to see who last changed each line, up to the commit of the review. **Code** goes back. The line in the address stays selected.
 
-A block at the left of the code covers the lines of one commit: the age of the commit, its author, and the first line of its message. Point at a block for the full date and the commit SHA. The colour bar shows the age, from light for old commits to dark for the last days, as the legend **Older** to **Newer** in the toolbar shows.
+A block at the left of the code covers the lines of one commit: the age of the commit, the avatar and the name of its author, and the first line of its message. Point at a block for the full date and the commit SHA. The colour bar shows the age, from light for old commits to dark for the last days, as the legend **Older** to **Newer** in the toolbar shows.
+
+In a GitHub repository, the first line of the message opens the commit on GitHub in a new tab. With [Pass-through or Browser only](code-access.md) code access, an author with a GitHub account has the GitHub avatar. Every other author has a generated pattern, which stays the same for that author. The toolbar counts the contributors: the authors of the lines at the commit of the review.
 
 When the repository has a `.git-blame-ignore-revs` file, the commits that it names are skipped, as on GitHub, and a note says so. A repository with [Pass-through](code-access.md) code access ignores that file. The blame view has no comments: go back to **Code** to comment.
 

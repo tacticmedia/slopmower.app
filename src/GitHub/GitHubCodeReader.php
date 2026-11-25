@@ -54,6 +54,9 @@ final class GitHubCodeReader implements CodeReader
 
     private const int BYTES_PER_KIB = 1024;
 
+    /** The shell CSP allows images of this origin only. */
+    private const string AVATAR_ORIGIN = 'https://avatars.githubusercontent.com/';
+
     /** GraphQL gives no reset time for a blame refused for the rate limit. */
     private const int BLAME_RETRY_AFTER_SECONDS = 60;
 
@@ -76,7 +79,7 @@ final class GitHubCodeReader implements CodeReader
             object(oid: $oid) {
               ... on Commit {
                 blame(path: $path) {
-                  ranges { startingLine endingLine commit { oid message author { name date } } }
+                  ranges { startingLine endingLine commit { oid message author { name email date avatarUrl(size: 40) user { login } } } }
                 }
               }
             }
@@ -394,11 +397,15 @@ final class GitHubCodeReader implements CodeReader
             }
 
             $author = self::map($rangeCommit, 'author');
+            // GitHub gives an avatar URL also for an email without an account.
+            $avatarUrl = [] === self::map($author, 'user') ? '' : self::string($author, 'avatarUrl');
             $commits[$sha] ??= new BlameCommit(
                 CommitSha::fromString($sha),
                 mb_scrub(self::string($author, 'name'), 'UTF-8'),
+                mb_scrub(self::string($author, 'email'), 'UTF-8'),
                 self::time(self::string($author, 'date')),
                 mb_scrub(explode("\n", self::string($rangeCommit, 'message'), 2)[0], 'UTF-8'),
+                str_starts_with($avatarUrl, self::AVATAR_ORIGIN) ? $avatarUrl : null,
             );
         }
 

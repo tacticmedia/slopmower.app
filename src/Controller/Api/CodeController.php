@@ -17,13 +17,18 @@ use App\Domain\Git\BlobSha;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\RepoPath;
 use App\Domain\Repository\CodeAccess;
+use App\Domain\Repository\RepositorySource;
 use App\Entity\Review;
+use App\Git\BlameCommit;
 use App\Git\CodeReader;
 use App\Git\ObjectType;
 use App\Git\TreeEntry;
 use App\Http\Cursor;
+use DiceBear\Avatar;
+use DiceBear\Style;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -44,14 +49,20 @@ final class CodeController extends AbstractController
 
     private const array FILE_CACHE_HEADERS = ['Cache-Control' => 'private, no-cache', 'Vary' => 'Authorization, Cookie'];
 
-    /** docs/specs/README.md section 6. Increase `v1` when the Blame representation changes. */
-    private const string BLAME_ETAG_VERSION = 'v1';
+    /** docs/specs/README.md section 6. Increase `v2` when the Blame representation changes. */
+    private const string BLAME_ETAG_VERSION = 'v2';
 
     private const string IGNORE_REVS_FILE = '.git-blame-ignore-revs';
+
+    private ?Style $identiconStyle = null;
 
     public function __construct(
         private readonly FileQuery $files,
         private readonly FetchRepository $fetchRepository,
+        #[Autowire('%kernel.secret%')]
+        private readonly string $secret,
+        #[Autowire('%kernel.project_dir%/vendor/dicebear/styles/src/identicon.json')]
+        private readonly string $identiconStylePath,
     ) {
     }
 
@@ -139,7 +150,7 @@ final class CodeController extends AbstractController
         $reader = $this->fetchRepository->readyReader($repository->getId());
         $commit = $review->getCommitSha();
         $entry = $this->files->entry($reader, $review, $path);
-        $headers = ['ETag' => 'W/"'.self::BLAME_ETAG_VERSION."-{$commit}-{$entry->objectId}\""] + self::FILE_CACHE_HEADERS;
+        $headers = ['ETag' => 'W/"'.self::BLAME_ETAG_VERSION."-{$repository->getCodeAccess()->value}-{$commit}-{$entry->objectId}\""] + self::FILE_CACHE_HEADERS;
         $notModified = new Response(null, Response::HTTP_OK, $headers);
 
         if ($notModified->isNotModified($request)) {
@@ -154,8 +165,61 @@ final class CodeController extends AbstractController
         // GitHub blame has no ignore list.
         $ignoredCommits = CodeAccess::Clone === $repository->getCodeAccess() ? self::ignoredCommits($reader, $commit) : [];
         ['ranges' => $ranges, 'commits' => $commits] = $reader->blame($commit, $path, $ignoredCommits);
+        $commitUrl = RepositorySource::Github === $repository->getSource() ? "https://github.com/{$repository->getName()}/commit/" : null;
+        [$commits, $contributors] = $this->withContributors($commits, $commitUrl);
 
-        return $this->json(new Blame($review->getId(), $commit, $path, BlobSha::fromString($entry->objectId), [] !== $ignoredCommits, $ranges, $commits), Response::HTTP_OK, $headers);
+        return $this->json(new Blame($review->getId(), $commit, $path, BlobSha::fromString($entry->objectId), [] !== $ignoredCommits, $ranges, $commits, $contributors), Response::HTTP_OK, $headers);
+    }
+
+    /**
+     * D127: one contributor per email in lower case, or per name of a commit without an email.
+     *
+     * @param list<BlameCommit> $commits
+     *
+     * @return array{list<array{sha: CommitSha, authorName: string, authoredAt: \DateTimeImmutable, summary: string, contributorIndex: int, htmlUrl: string|null}>, list<array{name: string, avatarUrl: string}>}
+     */
+    private function withContributors(array $commits, ?string $commitUrl): array
+    {
+        $indexes = [];
+        $contributors = [];
+        $items = [];
+
+        foreach ($commits as $commit) {
+            // The NUL byte keeps a name apart from every email.
+            $authorKey = '' === $commit->authorEmail ? "\0{$commit->authorName}" : mb_strtolower($commit->authorEmail);
+
+            if (!isset($indexes[$authorKey])) {
+                $indexes[$authorKey] = \count($contributors);
+                $contributors[] = ['name' => $commit->authorName, 'avatarUrl' => $commit->gitHubAvatarUrl ?? $this->identicon($authorKey)];
+            }
+
+            $items[] = [
+                'sha' => $commit->sha,
+                'authorName' => $commit->authorName,
+                'authoredAt' => $commit->authoredAt,
+                'summary' => $commit->summary,
+                'contributorIndex' => $indexes[$authorKey],
+                'htmlUrl' => null === $commitUrl ? null : $commitUrl.$commit->sha,
+            ];
+        }
+
+        return [$items, $contributors];
+    }
+
+    /**
+     * The seed is an HMAC, because the SVG holds a hash of its seed, which would confirm a guessed email.
+     */
+    private function identicon(string $authorKey): string
+    {
+        if (null === $this->identiconStyle) {
+            $definition = json_decode((string) file_get_contents($this->identiconStylePath), true, flags: \JSON_THROW_ON_ERROR);
+            \assert(\is_array($definition));
+            // CC0 needs no attribution, and the licence metadata is about 1 KB of each avatar.
+            unset($definition['meta']);
+            $this->identiconStyle = new Style($definition);
+        }
+
+        return new Avatar($this->identiconStyle, ['seed' => hash_hmac('sha256', $authorKey, $this->secret)])->toDataUri();
     }
 
     /**

@@ -8,7 +8,6 @@ use App\Domain\Git\BlobSha;
 use App\Domain\Git\CommitSha;
 use App\Domain\Git\RepoPath;
 use App\Domain\Identity\ReviewId;
-use App\Git\BlameCommit;
 use App\Git\BlameRange;
 
 /**
@@ -17,8 +16,9 @@ use App\Git\BlameRange;
 final readonly class Blame
 {
     /**
-     * @param list<BlameRange>  $ranges
-     * @param list<BlameCommit> $commits
+     * @param list<BlameRange>                                                                                                                              $ranges
+     * @param list<array{sha: CommitSha, authorName: string, authoredAt: \DateTimeImmutable, summary: string, contributorIndex: int, htmlUrl: string|null}> $commits
+     * @param list<array{name: string, avatarUrl: string}>                                                                                                  $contributors
      */
     public function __construct(
         public ReviewId $reviewId,
@@ -28,6 +28,7 @@ final readonly class Blame
         public bool $ignoreRevsFile,
         public array $ranges,
         public array $commits,
+        public array $contributors,
     ) {
     }
 }

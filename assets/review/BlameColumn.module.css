@@ -35,6 +35,11 @@
     white-space: nowrap;
 }
 
+.avatar {
+    flex: none;
+    margin-top: 1px;
+}
+
 .author {
     flex: none;
     max-width: 7rem;
@@ -56,6 +61,7 @@
         width: 12rem;
     }
 
+    .avatar,
     .author {
         display: none;
     }

@@ -26,7 +26,7 @@ import type { Request } from '../../../assets/api/types/request';
 import type { Review } from '../../../assets/api/types/review';
 import type { Symbol as CodeSymbol } from '../../../assets/api/types/symbol';
 import type { TreeEntry } from '../../../assets/api/types/tree-entry';
-import { AGENT, codeToken, commandResult, newId, now, request as openedRequest, requestSummary, review as reviewBuilder, sha1, snapshot, threadEntry, USER, userActions } from './builders';
+import { AGENT, blameContributor, codeToken, commandResult, newId, now, request as openedRequest, requestSummary, review as reviewBuilder, sha1, snapshot, threadEntry, USER, userActions } from './builders';
 import { codeViewFiles, codeViewSymbols, type FileSet } from './files';
 import { type ApiCall, apiError, json, type MockApi, type MockResponse, noContent, text } from './mockApi';
 
@@ -104,7 +104,7 @@ export class FakeReview {
     /** The entries of a V6 page, so a test can show a directory with more entries than one page. */
     treePageEntries = 1000;
     /** V17 by path. A renderable file without an entry has one commit for all its lines. */
-    readonly blames = new Map<string, Pick<Blame, 'ignoreRevsFile' | 'ranges' | 'commits'>>();
+    readonly blames = new Map<string, Pick<Blame, 'ignoreRevsFile' | 'ranges' | 'commits' | 'contributors'>>();
     deleted = false;
     readonly #files = new Map<string, StoredFile>();
     readonly #symbols: Record<string, CodeSymbol[]>;
@@ -469,8 +469,13 @@ export class FakeReview {
     }
 
     #blame(content: FileContent, lineCount: number): Blame {
-        const commit = { sha: this.review.commitSha, authorName: 'Ada Lovelace', authoredAt: now(-30 * 86_400), summary: 'Add the file' };
-        const own = this.blames.get(content.path) ?? { ignoreRevsFile: false, ranges: 0 === lineCount ? [] : [{ startLine: 1, endLine: lineCount, commitSha: commit.sha }], commits: 0 === lineCount ? [] : [commit] };
+        const commit = { sha: this.review.commitSha, authorName: 'Ada Lovelace', authoredAt: now(-30 * 86_400), summary: 'Add the file', contributorIndex: 0, htmlUrl: null };
+        const own = this.blames.get(content.path) ?? {
+            ignoreRevsFile: false,
+            ranges: 0 === lineCount ? [] : [{ startLine: 1, endLine: lineCount, commitSha: commit.sha }],
+            commits: 0 === lineCount ? [] : [commit],
+            contributors: 0 === lineCount ? [] : [blameContributor(commit.authorName)],
+        };
 
         return { reviewId: this.id, commitSha: this.review.commitSha, path: content.path, blobSha: content.blobSha, ...own };
     }

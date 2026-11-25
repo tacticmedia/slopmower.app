@@ -7,6 +7,7 @@ import { unified } from 'unified';
 import type { AgentActor, UserActor } from '../../../assets/api/types/actor';
 import type { Anchor, ContentSnapshot, LineRange } from '../../../assets/api/types/anchor';
 import type { ApiToken, ApiTokenWithSecret } from '../../../assets/api/types/api-token';
+import type { BlameContributor } from '../../../assets/api/types/blame';
 import type { CarryOverResult } from '../../../assets/api/types/carry-over-result';
 import type { Commit } from '../../../assets/api/types/commit';
 import type { CommitLink } from '../../../assets/api/types/commit-link';
@@ -57,6 +58,13 @@ export function sha1(text: string | Uint8Array): string {
 /** RFC 3339 with second precision, as the server writes it. */
 export function now(offsetSeconds = 0): string {
     return new Date(Date.now() + offsetSeconds * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
+/** A V17 contributor with a square of one colour per name as a data URI, so a page loads no image from the network. */
+export function blameContributor(name: string): BlameContributor {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect width="1" height="1" fill="#${sha1(name).slice(0, 6)}"/></svg>`;
+
+    return { name, avatarUrl: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}` };
 }
 
 /** The signed-in user of `me.local-user.json`: jan. */
