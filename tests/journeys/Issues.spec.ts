@@ -73,6 +73,14 @@ test.describe('Issues', () => {
 
         await page.goto('/projects/BILL/graph');
         await captureScreen('Dependency graph of a project', page.getByTestId('issue-graph'));
+
+        const question = { question: 'Name the mode in the README of the package too?', detail: null, answer: null };
+        const asked = issues.agentAsks('BILL-15', 'One choice before the review.', [question]);
+        await page.goto('/issues/BILL-15');
+        await page.getByRole('button', { name: 'Yes', exact: true }).click();
+        issues.agentAsks('BILL-15', 'One choice before the review, with the package named.', [{ ...question, question: 'Name the mode in the README of `billing-core` too?' }], asked.id);
+        await page.reload();
+        await captureScreen('Issue replaced questions', page.getByRole('region', { name: 'The agent replaced these questions.' }));
     });
 
     test('A new project, the settings of a project, a new issue, and the edits and the status of an issue', async ({ page, api, captureScreen }) => {

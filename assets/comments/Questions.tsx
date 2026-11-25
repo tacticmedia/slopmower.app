@@ -1,10 +1,11 @@
 import { Button, TextInput } from '@primer/react';
 import { InlineMessage } from '@primer/react/experimental';
-import { type FormEvent, lazy, Suspense, useId, useState } from 'react';
+import { type FormEvent, lazy, Suspense, useId } from 'react';
 import { type SubmitTarget, useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
 import type { Question } from '../api/types/common';
 import type { QuestionInput } from '../api/types/inputs';
+import { useSessionDraft } from '../layout/useSessionDraft';
 import { IssueKeyText } from './IssueKeyText';
 import styles from './Questions.module.css';
 import { useUnsavedComment } from './UnsavedCommentGuard';
@@ -13,7 +14,9 @@ const MarkdownBody = lazy(() => import('./MarkdownBody').then(({ MarkdownBody })
 
 const ANSWER_MAX_CHARACTERS = 4000;
 
-type Choice = 'Yes' | 'No';
+const CHOICES = ['Yes', 'No'] as const;
+
+type Choice = (typeof CHOICES)[number];
 
 type Answer = { choice: Choice | null; text: string };
 
@@ -23,31 +26,39 @@ type QuestionFormProps = {
     questions: Question[];
     /** The accessible name of the form. It says which comment the form answers. */
     label: string;
-    /** The JSON body for the action of the route, from every question with its answer. */
-    intent(answers: QuestionInput[]): SubmitTarget;
+    /** The {@link useSessionDraft} key of the answers, as JSON. */
+    draftKey: string;
+    /** The JSON body for the action of the route, from every question with its answer, and with `draftKey`, so the write that succeeds removes the draft (D109). */
+    intent(answers: QuestionInput[], draftKey: string): SubmitTarget;
 };
 
 /**
  * The open questions of an agent comment (D107, D124). "Send answers" submits every question with its answer, so the
- * answer comment reads on its own.
+ * answer comment reads on its own. A reload keeps the typed answers.
  */
-export function QuestionForm({ questions, label, intent }: QuestionFormProps) {
+export function QuestionForm({ questions, label, draftKey, intent }: QuestionFormProps) {
     const fetcher = useFetcher<ActionResult>();
-    const [answers, setAnswers] = useState<Answer[]>(() => questions.map(() => NO_ANSWER));
+    const [draft, setDraft] = useSessionDraft(draftKey);
     const id = useId();
     const busy = 'idle' !== fetcher.state;
     const error = busy ? null : (fetcher.data?.error ?? null);
-    const given = answers.map(({ choice, text }) => choice ?? text.trim());
-    useUnsavedComment(!busy && given.some((answer) => '' !== answer));
+    const answers = draftAnswers(draft, questions.length);
+    const given = answers.map(givenAnswer);
+    useUnsavedComment(!busy && given.some((answer) => '' !== answer), draftKey);
 
-    const answer = (index: number, next: Answer): void => setAnswers((current) => current.map((old, at) => (at === index ? next : old)));
+    const answer = (index: number, next: Answer): void =>
+        setDraft((current) => {
+            const changed = draftAnswers(current, questions.length).map((old, at) => (at === index ? next : old));
+
+            return changed.some(({ choice, text }) => null !== choice || '' !== text) ? JSON.stringify(changed) : '';
+        });
 
     const send = (event: FormEvent<HTMLFormElement>): void => {
         event.preventDefault();
         if (busy || given.includes('')) {
             return;
         }
-        void fetcher.submit(intent(questions.map(({ question }, index) => ({ question, answer: given[index] ?? '' }))), { method: 'post', encType: 'application/json' });
+        void fetcher.submit(intent(questions.map(({ question }, index) => ({ question, answer: given[index] ?? '' })), draftKey), { method: 'post', encType: 'application/json' });
     };
 
     return (
@@ -66,7 +77,7 @@ export function QuestionForm({ questions, label, intent }: QuestionFormProps) {
                             </Suspense>
                         )}
                         <div className={styles.answer}>
-                            {(['Yes', 'No'] as const).map((option) => (
+                            {CHOICES.map((option) => (
                                 <Button key={option} aria-pressed={choice === option} variant={choice === option ? 'primary' : 'default'} onClick={() => answer(index, { choice: option, text: '' })} disabled={busy}>
                                     {option}
                                 </Button>
@@ -96,6 +107,31 @@ export function QuestionForm({ questions, label, intent }: QuestionFormProps) {
             </div>
         </form>
     );
+}
+
+/** The questions with the answers of the {@link QuestionForm} draft `draft`, or null when it has no answer. */
+export function withDraftAnswers(questions: Question[], draft: string): Question[] | null {
+    const given = draftAnswers(draft, questions.length).map(givenAnswer);
+
+    return given.some((answer) => '' !== answer) ? questions.map((question, index) => ({ ...question, answer: given[index] || null })) : null;
+}
+
+function givenAnswer({ choice, text }: Answer): string {
+    return choice ?? text.trim();
+}
+
+/** A draft that is not the JSON of `count` answers gives no answer. */
+function draftAnswers(draft: string, count: number): Answer[] {
+    let stored: unknown = null;
+    try {
+        stored = JSON.parse(draft);
+    } catch {}
+
+    return Array.isArray(stored) && count === stored.length && stored.every(isAnswer) ? stored : Array.from({ length: count }, () => NO_ANSWER);
+}
+
+function isAnswer(value: unknown): value is Answer {
+    return 'object' === typeof value && null !== value && 'choice' in value && 'text' in value && (null === value.choice || CHOICES.some((choice) => choice === value.choice)) && 'string' === typeof value.text;
 }
 
 /** The questions of a comment: an agent's with their detail, a user's with their answers. */

@@ -134,7 +134,8 @@ export function ThreadBox({ thread, caller, showHeader = true, detail = false, b
                     key={thread.openQuestions.key}
                     label="Questions of the agent"
                     questions={thread.openQuestions.questions}
-                    intent={(questions): CommentIntent => ({ intent: 'reply', requestId, input: { body: '', questions } })}
+                    draftKey={`request:${requestId}:answers:${thread.openQuestions.key}`}
+                    intent={(questions, answersKey): CommentIntent => ({ intent: 'reply', requestId, input: { body: '', questions }, draftKey: answersKey })}
                 />
             )}
             {thread.replyable && (

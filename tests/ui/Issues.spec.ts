@@ -223,6 +223,64 @@ test.describe('Issues', () => {
         await expect(page.getByTestId('open-questions')).toHaveCount(0);
     });
 
+    test('Typed answers stay after a reload until "Send answers" sends them', async ({ page, api }) => {
+        const issues = new FakeIssues(api);
+        issues.add(issueDetail());
+        issues.agentAsks(ISSUE_KEY, 'Two choices before the test.', QUESTIONS);
+        await page.goto(`/issues/${ISSUE_KEY}`);
+        const form = page.getByRole('form', { name: /^Questions of / });
+        const yes = form.getByRole('group', { name: QUESTIONS[0]?.question }).getByRole('button', { name: 'Yes', exact: true });
+        const other = form.getByRole('group', { name: QUESTIONS[1]?.question }).getByRole('textbox', { name: 'Other answer' });
+
+        await yes.click();
+        await other.fill('Money');
+        await page.reload();
+
+        await expect(yes).toHaveAttribute('aria-pressed', 'true');
+        await expect(other).toHaveValue('Money');
+        await form.getByRole('button', { name: 'Send answers', exact: true }).click();
+        await expect(form).toHaveCount(0);
+        expect(await page.evaluate(() => Object.keys(sessionStorage).filter((key) => key.includes(':answers:'))), 'A sent answer leaves no draft.').toEqual([]);
+    });
+
+    test('A question comment that the agent replaced shows the typed answers and a link to the newer version, and "Discard" removes them', async ({ page, api }) => {
+        const issues = new FakeIssues(api);
+        issues.add(issueDetail());
+        const asked = issues.agentAsks(ISSUE_KEY, 'Two choices before the test.', QUESTIONS);
+        await page.goto(`/issues/${ISSUE_KEY}`);
+        await page.getByRole('form', { name: /^Questions of / }).getByRole('button', { name: 'Yes', exact: true }).first().click();
+        const newer = issues.agentAsks(ISSUE_KEY, 'One choice is left.', QUESTIONS.slice(1), asked.id);
+        await page.reload();
+        const notice = page.getByRole('region', { name: 'The agent replaced these questions.' });
+
+        await expect(notice.locator('[data-testid="comment-questions"] > li')).toHaveText(['Cover the shipping totals too?Yes', 'Which type holds the amounts?']);
+        await expect(notice.getByRole('link', { name: 'Newer version' })).toHaveAttribute('href', `/issues/${ISSUE_KEY}#entry-${newer.id}`);
+        await notice.getByRole('button', { name: 'Discard' }).click();
+        await expect(notice).toHaveCount(0);
+        await page.reload();
+        await expect(page.getByRole('form', { name: /^Questions of / })).toBeVisible();
+        await expect(notice).toHaveCount(0);
+    });
+
+    test('A send after the agent replaced the question comment shows the typed answers', async ({ page, api }) => {
+        const issues = new FakeIssues(api);
+        issues.add(issueDetail());
+        const asked = issues.agentAsks(ISSUE_KEY, 'Two choices before the test.', QUESTIONS);
+        await page.goto(`/issues/${ISSUE_KEY}`);
+        const form = page.getByRole('form', { name: /^Questions of / });
+        await form.getByRole('group', { name: QUESTIONS[0]?.question }).getByRole('button', { name: 'Yes', exact: true }).click();
+        await form.getByRole('group', { name: QUESTIONS[1]?.question }).getByRole('textbox', { name: 'Other answer' }).fill('Money');
+        issues.agentAsks(ISSUE_KEY, 'One choice is left.', QUESTIONS.slice(1), asked.id);
+
+        await form.getByRole('button', { name: 'Send answers', exact: true }).click();
+
+        await expect(page.getByRole('region', { name: 'The agent replaced these questions.' }).locator('[data-testid="comment-questions"] > li')).toHaveText([
+            'Cover the shipping totals too?Yes',
+            'Which type holds the amounts?Money',
+        ]);
+        expect(api.bodies('POST', COMMENTS)).toHaveLength(1);
+    });
+
     test('An issue key in a comment opens its issue without a page load, and a code block and a Markdown link get no key link', async ({ page, api }) => {
         const issues = await openIssue(page, api);
         issues.add(issueDetail({ key: 'BILL-9', title: 'Round shipping totals per line' }));

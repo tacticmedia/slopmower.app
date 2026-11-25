@@ -1,4 +1,4 @@
-import { Link, RelativeTime, Select } from '@primer/react';
+import { Banner, Link, RelativeTime, Select } from '@primer/react';
 import { type ReactNode, useEffect, useId, useRef, useState, useTransition } from 'react';
 import { Link as RouterLink, useFetcher, useLoaderData, useNavigate } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
@@ -7,8 +7,9 @@ import type { Issue, IssueDetail, IssueEntry, IssueLink } from '../../api/types/
 import { CommentBox, type CommentText } from '../../comments/CommentBox';
 import boxStyles from '../../comments/CommentBox.module.css';
 import { MarkdownBody } from '../../comments/MarkdownBody';
-import { QuestionForm } from '../../comments/Questions';
+import { QuestionForm, QuestionList, withDraftAnswers } from '../../comments/Questions';
 import { useDocumentTitle } from '../../layout/useDocumentTitle';
+import { removeSessionDraft, useSessionDraft } from '../../layout/useSessionDraft';
 import sidebarStyles from '../../requests/RequestSidebar.module.css';
 import { dateTimeFormat } from '../../settings/TokenTable';
 import { ActorName, COMMENT_LABEL_TEXT } from './CommentParts';
@@ -64,9 +65,13 @@ export function IssueRoute() {
                 </aside>
                 <div key={issue.key} className={styles.main}>
                     <IssueTimeline issue={issue} thread={thread} />
-                    {thread.filter(isOpenQuestion).map((entry) => (
-                        <OpenQuestions key={entry.id} entry={entry} />
-                    ))}
+                    {thread.map((entry) =>
+                        isOpenQuestion(entry) ? (
+                            <OpenQuestions key={entry.id} entry={entry} draftKey={answersDraftKey(issue.key, entry)} />
+                        ) : (
+                            isWithdrawnQuestion(entry, thread) && <WithdrawnQuestions key={entry.id} entry={entry} draftKey={answersDraftKey(issue.key, entry)} />
+                        ),
+                    )}
                     <CommentForm issueKey={issue.key} />
                 </div>
             </div>
@@ -142,11 +147,20 @@ function isOpenQuestion({ label, questions, replacedBy }: IssueEntry): boolean {
     return 'question' === label && questions.length > 0 && null === replacedBy;
 }
 
+/** The agent replaced a question comment with a comment that is no answer, so the form of the comment is gone. */
+function isWithdrawnQuestion({ label, questions, replacedBy }: IssueEntry, thread: IssueEntry[]): boolean {
+    return 'question' === label && questions.length > 0 && thread.some(({ id, label: replacing }) => id === replacedBy && 'answer' !== replacing);
+}
+
+function answersDraftKey(issueKey: string, { id }: IssueEntry): string {
+    return `issue:${issueKey}:answers:${id}`;
+}
+
 /**
  * The form of an open question comment. "Send answers" sends I3 with `replaces`, so the answers replace the comment,
  * and the form goes with it.
  */
-function OpenQuestions({ entry }: { entry: IssueEntry }) {
+function OpenQuestions({ entry, draftKey }: { entry: IssueEntry; draftKey: string }) {
     return (
         <section className={styles.questions} data-testid="issue-questions">
             <p className={styles.questionsLine}>
@@ -155,9 +169,39 @@ function OpenQuestions({ entry }: { entry: IssueEntry }) {
             <QuestionForm
                 label={`Questions of ${entry.actor.name}, ${dateTimeFormat.format(new Date(entry.createdAt))}`}
                 questions={entry.questions}
-                intent={(questions): IssueIntent => ({ intent: 'comment', input: { body: '', replaces: entry.id, questions } })}
+                draftKey={draftKey}
+                intent={(questions, answersKey): IssueIntent => ({ intent: 'comment', input: { body: '', replaces: entry.id, questions }, draftKey: answersKey })}
             />
         </section>
+    );
+}
+
+/** The typed answers of a withdrawn question comment, in the place of its form, until "Discard". */
+function WithdrawnQuestions({ entry, draftKey }: { entry: IssueEntry; draftKey: string }) {
+    const [draft, , revert] = useSessionDraft(draftKey);
+    const questions = withDraftAnswers(entry.questions, draft);
+    const discard = (): void => {
+        removeSessionDraft(draftKey);
+        revert();
+    };
+
+    if (null === questions || null === entry.replacedBy) {
+        return null;
+    }
+
+    return (
+        <Banner
+            variant="warning"
+            title="The agent replaced these questions."
+            description={
+                <div className={styles.withdrawn}>
+                    <EntryLink id={entry.replacedBy}>Newer version</EntryLink>
+                    <QuestionList questions={questions} />
+                </div>
+            }
+            primaryAction={<Banner.PrimaryAction onClick={discard}>Discard</Banner.PrimaryAction>}
+            data-testid="withdrawn-questions"
+        />
     );
 }
 

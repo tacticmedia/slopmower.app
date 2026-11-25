@@ -229,10 +229,10 @@ export class FakeIssues {
         this.#write(detail, { plan, planRevision: changed.id, planApproval: null }, changed);
     }
 
-    /** As an agent with `comment_on_issue` and `questions`: an open question comment. */
-    agentAsks(issueKey: string, body: string, questions: Question[]): IssueEntry {
+    /** As an agent with `comment_on_issue` and `questions`: an open question comment, which replaces the comment `replaces`. */
+    agentAsks(issueKey: string, body: string, questions: Question[], replaces: string | null = null): IssueEntry {
         const detail = this.#stored(issueKey);
-        const asked = { ...entry('comment', { body, label: 'question', questions }), actor: detail.issue.createdBy };
+        const asked = { ...entry('comment', { body, label: 'question', questions, replaces }), actor: detail.issue.createdBy };
         this.#write(detail, {}, asked);
 
         return asked;
