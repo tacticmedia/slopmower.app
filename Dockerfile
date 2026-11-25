@@ -4,7 +4,7 @@
 
 FROM dunglas/frankenphp:1.14.0-php8.5-trixie AS frankenphp_upstream
 
-FROM node:24-trixie-slim AS node_upstream
+FROM node:24.22.3-trixie-slim AS node_upstream
 
 FROM node_upstream AS symbols
 

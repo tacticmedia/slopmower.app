@@ -378,7 +378,7 @@ The session writes it into `reports/MNN.md`:
 
 ## Verified versions
 
-Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and Node.js image rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08; the `symfony/scheduler` row on 2026-10-13; the `sentry/*` row on 2026-10-15; the `tacticmedia/qa-bundle` and `@tacticmedia/qa-capture` rows on 2026-10-16; the `react-joyride` row on 2026-10-19; the `@sentry/react` row on 2026-10-28; the `@sentry/vite-plugin` row and the F100 versions on 2026-11-03; the Composer rows and the `@symfony/reprise` version on 2026-11-22 (F125); the PHP and FrankenPHP rows on 2026-11-22 (SM-8); the `dicebear/*` row on 2026-11-25 (SM-44). `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
+Checked on 2026-09-29. The `@playwright/test` and `playwright-php/playwright` rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08; the `symfony/scheduler` row on 2026-10-13; the `sentry/*` row on 2026-10-15; the `tacticmedia/qa-bundle` and `@tacticmedia/qa-capture` rows on 2026-10-16; the `react-joyride` row on 2026-10-19; the `@sentry/react` row on 2026-10-28; the `@sentry/vite-plugin` row and the F100 versions on 2026-11-03; the Composer rows and the `@symfony/reprise` version on 2026-11-22 (F125); the PHP and FrankenPHP rows on 2026-11-22 (SM-8); the `dicebear/*` row on 2026-11-25 (SM-44); the Node.js rows on 2026-11-25 (SM-93). `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
 
 | Package | Version | Source |
 |---|---|---|
@@ -387,8 +387,8 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 | PostgreSQL | 18.6, Docker tag `18-alpine` | https://www.postgresql.org/versions.json |
 | FrankenPHP | 1.14.0, Docker tag `dunglas/frankenphp:1.14.0-php8.5-trixie`, with Caddy 2.11.9 and Mercure 1.1.6, worker mode through Symfony Runtime's `FrankenPhpWorkerRunner` | https://github.com/php/frankenphp/releases/tag/v1.14.0 |
 | dunglas/symfony-docker | Template, guide "Using Symfony Docker with an existing project" | https://github.com/dunglas/symfony-docker |
-| Node.js | 24 LTS, 24.21.0 | https://nodejs.org/dist/index.json |
-| Node.js in the `php` image | 24.21.0 from `node:24-trixie-slim`, npm 11.19.0 | `node --version` in the `php` container |
+| Node.js | 24 LTS, 24.22.3 | https://nodejs.org/dist/index.json |
+| Node.js in the `php` image | 24.22.3 from `node:24.22.3-trixie-slim`, npm 11.19.1 | `node --version` in the `php` container |
 | `doctrine/orm`, `doctrine/doctrine-bundle`, `doctrine/doctrine-migrations-bundle`, `symfony/messenger` with the Doctrine transport | 3.8.0, 3.4.2, 4.0.1, 8.1, installed, with `doctrine/dbal` 4.6.0 | `composer show` |
 | `symfony/process`, `symfony/uid` | 8.1.10, 8.1.9 | https://repo.packagist.org/p2/symfony/process.json |
 | `mcp/sdk`, `symfony/mcp-bundle` | 0.9.0, 0.15.0, exact pins. `mcp/sdk` 0.10.0 exists, and no bundle release accepts it. | https://repo.packagist.org/p2/mcp/sdk.json |
@@ -426,7 +426,7 @@ Checked on 2026-09-29. The `@playwright/test`, `playwright-php/playwright`, and 
 | `@tacticmedia/qa-capture` | 0.1.0, exact pin, dev only: the capture fixture of the journeys | https://www.npmjs.com/package/@tacticmedia/qa-capture |
 | `web-tree-sitter`, `tree-sitter-javascript`, `tree-sitter-typescript`, `tree-sitter-python`, `tree-sitter-go`, `tree-sitter-rust` | 0.27.0, 0.25.0, 0.23.2, 0.25.0, 0.25.0, 0.24.0, exact pins in `symbols/package.json`. web-tree-sitter 0.27.0 loads grammars of ABI 13 to 15. tree-sitter-typescript 0.23.2 and tree-sitter-rust 0.24.0 are ABI 14, the others ABI 15. tree-sitter-rust 0.24.1 and 0.24.2 are GitHub tags without an npm release. Install with `--ignore-scripts`: the install scripts of the grammars compile Node bindings, which need Python and a C compiler. | https://www.npmjs.com/package/web-tree-sitter |
 | `tree-sitter-java`, `tree-sitter-c-sharp`, `tree-sitter-ruby`, `tree-sitter-bash`, `tree-sitter-scala`, `@tree-sitter-grammars/tree-sitter-zig`, `@tree-sitter-grammars/tree-sitter-lua` | 0.23.5, 0.23.5, 0.23.1, 0.25.1, 0.24.0, 1.1.2, 0.4.1, exact pins in `symbols/package.json`. The Java, Ruby, Scala, and Zig grammars are ABI 14, the C#, Bash, and Lua grammars ABI 15. The C# file is `tree-sitter-c_sharp.wasm`. The Zig grammar requires a member in a container, also on its master branch, so `struct {}` is a parse error. The unscoped `tree-sitter-zig` 0.2.0 is another grammar and ships no `.wasm` file. The grammars declare the native `tree-sitter` as an optional peer dependency, so `npm install` needs no `--legacy-peer-deps`. | https://www.npmjs.com/package/tree-sitter-java |
-| Node.js in the `symbols` image | 24.21.0 from `node:24-trixie-slim`. It runs the TypeScript sources directly, with type stripping. | `node --version` in the `symbols` container |
+| Node.js in the `symbols` image | 24.22.3 from `node:24.22.3-trixie-slim`. It runs the TypeScript sources directly, with type stripping. | `node --version` in the `symbols` container |
 
 ## Known gotchas
 
