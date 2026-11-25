@@ -109,9 +109,9 @@ final class McpTools
      *
      * @return array<string, mixed>
      */
-    public function approvePlan(string $issue, string $planRevision, string $reviewer, string $reviewNote): array
+    public function approvePlan(string $issue, string $session, string $planRevision, string $reviewer, string $reviewNote): array
     {
-        return $this->issueWrite('approve_plan', fn (Actor $actor): Issue => $this->issueCommands->approvePlan(IssueKey::fromString($issue, 'issue'), IssueEntryId::fromString($planRevision, 'planRevision'), $reviewer, $reviewNote, $actor));
+        return $this->issueWrite('approve_plan', fn (Actor $actor): Issue => $this->issueCommands->approvePlan(IssueKey::fromString($issue, 'issue'), IssueEntryId::fromString($planRevision, 'planRevision'), $reviewer, $reviewNote, $actor, $session));
     }
 
     /**
@@ -131,11 +131,11 @@ final class McpTools
      *
      * @return array<string, mixed>
      */
-    public function commentOnIssue(string $issue, string $body, CommentLabel $label = CommentLabel::Comment, ?string $replaces = null, array $questions = []): array
+    public function commentOnIssue(string $issue, string $session, string $body, CommentLabel $label = CommentLabel::Comment, ?string $replaces = null, array $questions = []): array
     {
         $asked = array_map(static fn (array $item): CommentQuestion => new CommentQuestion($item['question'], $item['detail'] ?? null), $questions);
 
-        return $this->issueWrite('comment_on_issue', fn (Actor $actor): Issue => $this->issueCommands->comment(IssueKey::fromString($issue, 'issue'), $body, $label, $actor, null === $replaces ? null : IssueEntryId::fromString($replaces, 'replaces'), $asked));
+        return $this->issueWrite('comment_on_issue', fn (Actor $actor): Issue => $this->issueCommands->comment(IssueKey::fromString($issue, 'issue'), $body, $label, $actor, $session, null === $replaces ? null : IssueEntryId::fromString($replaces, 'replaces'), $asked));
     }
 
     /**
@@ -396,9 +396,9 @@ final class McpTools
      *
      * @return array<string, mixed>
      */
-    public function setIssueStatus(string $issue, IssueStatus $status, ?string $note = null, ?string $reviewer = null): array
+    public function setIssueStatus(string $issue, string $session, IssueStatus $status, ?string $note = null, ?string $reviewer = null): array
     {
-        return $this->issueWrite('set_issue_status', fn (Actor $actor): Issue => $this->issueCommands->setStatus(IssueKey::fromString($issue, 'issue'), $status, $note, $reviewer, $actor));
+        return $this->issueWrite('set_issue_status', fn (Actor $actor): Issue => $this->issueCommands->setStatus(IssueKey::fromString($issue, 'issue'), $status, $note, $reviewer, $actor, $session));
     }
 
     /**
@@ -476,9 +476,9 @@ final class McpTools
      *
      * @return array<string, mixed>
      */
-    public function updateIssue(string $issue, ?string $title = null, ?string $problem = null, ?string $plan = null, ?string $result = null, ?string $followUps = null, ?ApprovalMode $approval = null): array
+    public function updateIssue(string $issue, string $session, ?string $title = null, ?string $problem = null, ?string $plan = null, ?string $result = null, ?string $followUps = null, ?ApprovalMode $approval = null): array
     {
-        return $this->issueWrite('update_issue', fn (Actor $actor): Issue => $this->issueCommands->update(IssueKey::fromString($issue, 'issue'), $title, $problem, $plan, $result, $followUps, $actor, $approval));
+        return $this->issueWrite('update_issue', fn (Actor $actor): Issue => $this->issueCommands->update(IssueKey::fromString($issue, 'issue'), $title, $problem, $plan, $result, $followUps, $actor, $session, $approval));
     }
 
     /**

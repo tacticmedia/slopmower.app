@@ -13,11 +13,14 @@ const NEEDED: readonly { section: 'problem' | 'plan' | 'result'; statuses: reado
     { section: 'result', statuses: ['in_review', 'done'] },
 ];
 
+/** A move to one of these, or out of `in_progress`, ends the claim (D130). */
+const PASSING_STATUSES: readonly IssueStatus[] = ['backlog', 'awaiting_user_input', 'in_review', 'done', 'wont_do'];
+
 /** The statuses of an open issue that waits for the user: I9 holds such an issue without a dependency. */
 const WAITS_FOR_USER: readonly IssueStatus[] = ['awaiting_user_input', 'in_review'];
 
 /**
- * The issue tracker in memory, as a signed-in user sees it: P1 to P3 and I1 to I9, with the rules of
+ * The issue tracker in memory, as a signed-in user sees it: P1 to P3, I1 to I9, and I11, with the rules of
  * docs/specs/rest-api-issues.md. `repositories` answers the connected repositories, whose IDs P3 takes.
  */
 export class FakeIssues {
@@ -85,6 +88,7 @@ export class FakeIssues {
                 project: { key: owner.key, name: owner.name, approvalMode: owner.approvalMode },
                 planRevision: null,
                 planApproval: null,
+                claim: null,
                 createdBy: USER,
                 createdAt: now(),
                 updatedAt: now(),
@@ -130,7 +134,12 @@ export class FakeIssues {
 
                 return (
                     missingSection({ ...issue, status }) ??
-                    json('issue.schema.json', status === issue.status ? issue : this.#write(detail, { status }, entry('status_changed', { from: issue.status, to: status, note })))
+                    json(
+                        'issue.schema.json',
+                        status === issue.status
+                            ? issue
+                            : this.#write(detail, { status, claim: 'in_progress' === issue.status || PASSING_STATUSES.includes(status) ? null : issue.claim }, entry('status_changed', { from: issue.status, to: status, note })),
+                    )
                 );
             }),
         );
@@ -182,6 +191,14 @@ export class FakeIssues {
                 const changes: Partial<Issue> = { planApproval: { approvedBy: USER, approvedAt: approved.createdAt, reviewer: null, reviewNote: null }, ...(toTodo ? { status: 'todo' } : {}) };
 
                 return json('issue.schema.json', this.#write(detail, changes, approved, ...(toTodo ? [entry('status_changed', { from: issue.status, to: 'todo' })] : [])));
+            }),
+        );
+        api.on('POST', '/api/v1/issues/:issueKey/release', ({ params }) =>
+            this.#answer(params.issueKey, (detail) => {
+                const issue = { ...detail.issue, claim: null };
+                this.issues.set(issue.key, { ...detail, issue });
+
+                return json('issue.schema.json', issue);
             }),
         );
         api.on('GET', '/api/v1/projects/:projectKey/comments', ({ params, query }) => {
@@ -278,8 +295,8 @@ export class FakeIssues {
     }
 }
 
-function summary({ key, title, status, approval, updatedAt }: Issue): IssueSummary {
-    return { key, title, status, approval, updatedAt };
+function summary({ key, title, status, approval, claim, updatedAt }: Issue): IssueSummary {
+    return { key, title, status, approval, claim, updatedAt };
 }
 
 /** P2 and P3 store whitespace only as null. */

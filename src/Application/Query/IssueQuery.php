@@ -12,6 +12,7 @@ use App\Domain\Identity\IssueId;
 use App\Domain\Identity\ProjectId;
 use App\Domain\Identity\UserId;
 use App\Domain\Issue\CommentLabel;
+use App\Domain\Issue\IssueClaim;
 use App\Domain\Issue\IssueEntryKind;
 use App\Domain\Issue\IssueKey;
 use App\Domain\Issue\IssueRules;
@@ -29,6 +30,7 @@ use Doctrine\DBAL\LockMode;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
+use Psr\Clock\ClockInterface;
 use Symfony\Bridge\Doctrine\Types\UlidType;
 
 /**
@@ -37,8 +39,10 @@ use Symfony\Bridge\Doctrine\Types\UlidType;
  */
 final class IssueQuery
 {
-    public function __construct(private readonly EntityManagerInterface $entityManager)
-    {
+    public function __construct(
+        private readonly EntityManagerInterface $entityManager,
+        private readonly ClockInterface $clock,
+    ) {
     }
 
     /**
@@ -109,9 +113,10 @@ final class IssueQuery
 
         /** @var list<Issue> $rows */
         $rows = $builder->getQuery()->getResult();
+        $now = $this->clock->now();
 
         return new IssuePage(
-            array_map(IssueSummaryView::of(...), array_slice($rows, 0, $limit)),
+            array_map(static fn (Issue $issue): IssueSummaryView => IssueSummaryView::of($issue, $now), array_slice($rows, 0, $limit)),
             Cursor::next($rows, $limit, $filters, static fn (Issue $issue): array => [$issue->getUpdatedAt()->getTimestamp(), $issue->getId()->toString()]),
         );
     }
@@ -159,9 +164,11 @@ final class IssueQuery
             }
         }
 
+        $now = $this->clock->now();
+
         return new IssueDetail(
             $this->view($issue, $actor),
-            array_map(static fn (IssueLink $link): array => ['issue' => IssueSummaryView::of($link->other($issue)), 'kind' => $link->kindFor($issue), 'note' => $link->getNote(), 'createdBy' => $link->getCreatedBy(), 'createdAt' => $link->getCreatedAt()], $links),
+            array_map(static fn (IssueLink $link): array => ['issue' => IssueSummaryView::of($link->other($issue), $now), 'kind' => $link->kindFor($issue), 'note' => $link->getNote(), 'createdBy' => $link->getCreatedBy(), 'createdAt' => $link->getCreatedAt()], $links),
             $entries,
         );
     }
@@ -198,9 +205,10 @@ final class IssueQuery
 
         /** @var list<IssueEntry> $rows */
         $rows = $builder->getQuery()->getResult();
+        $now = $this->clock->now();
 
         return new IssueCommentPage(
-            array_map(static fn (IssueEntry $entry): array => ['id' => $entry->getId(), 'issue' => IssueSummaryView::of($entry->getIssue()), 'label' => $entry->getLabel(), 'actor' => $entry->getActor(), 'createdAt' => $entry->getCreatedAt(), 'body' => $entry->getBody(), 'questions' => $entry->getQuestions()], array_slice($rows, 0, $limit)),
+            array_map(static fn (IssueEntry $entry): array => ['id' => $entry->getId(), 'issue' => IssueSummaryView::of($entry->getIssue(), $now), 'label' => $entry->getLabel(), 'actor' => $entry->getActor(), 'createdAt' => $entry->getCreatedAt(), 'body' => $entry->getBody(), 'questions' => $entry->getQuestions()], array_slice($rows, 0, $limit)),
             Cursor::next($rows, $limit, $filters, static fn (IssueEntry $entry): array => [$entry->getId()->toString()]),
         );
     }
@@ -235,7 +243,9 @@ final class IssueQuery
                 ->getQuery()
                 ->getResult();
 
-            return new IssueUpdatesPage($newest, false, array_map(IssueSummaryView::of(...), $inWork), []);
+            $now = $this->clock->now();
+
+            return new IssueUpdatesPage($newest, false, array_map(static fn (Issue $issue): IssueSummaryView => IssueSummaryView::of($issue, $now), $inWork), []);
         }
 
         if ($cursor > $newest) {
@@ -270,12 +280,13 @@ final class IssueQuery
         $read = array_slice($rows, 0, $limit);
         $versions = $this->versions(array_map(static fn (IssueEntry $entry): Issue => $entry->getIssue(), $read));
         $entries = [];
+        $now = $this->clock->now();
 
         foreach ($read as $entry) {
             [$replaces, $replacedBy] = $versions[$entry->getId()->toString()];
 
             if (null === $replacedBy) {
-                $entries[] = ['issue' => IssueSummaryView::of($entry->getIssue()), 'entry' => self::entry($entry, false, $replaces, null)];
+                $entries[] = ['issue' => IssueSummaryView::of($entry->getIssue(), $now), 'entry' => self::entry($entry, false, $replaces, null)];
             }
         }
 
@@ -298,6 +309,7 @@ final class IssueQuery
             $issue->getTitle(),
             $issue->getStatus(),
             $issue->getApprovalMode(),
+            IssueClaim::held($issue->getClaim(), $this->clock->now()),
             $issue->getSection(IssueSection::Problem),
             $issue->getSection(IssueSection::Plan),
             $issue->getSection(IssueSection::Result),

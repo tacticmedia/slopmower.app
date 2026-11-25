@@ -24,6 +24,8 @@ final readonly class UpdateIssueInput
         #[Assert\Length(min: 1, max: 65536)]
         public ?string $followUps = null,
         public ?ApprovalMode $approval = null,
+        #[Assert\Length(min: 1, max: 64)]
+        public ?string $session = null,
     ) {
     }
 }

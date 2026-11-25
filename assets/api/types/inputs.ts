@@ -175,6 +175,8 @@ export type IssueCommentInput = {
     replaces?: Ulid | null;
     /** At most 10. An agent asks without answers; a user answers every question of the comment of `replaces`. */
     questions?: QuestionInput[];
+    /** The agent session that writes (D130). A token needs it, and the server ignores it for a user. */
+    session?: string | null;
 };
 
 export type ApprovePlanInput = {
@@ -216,6 +218,8 @@ export type UpdateIssueInput = {
     followUps?: Markdown | null;
     /** Only in a `by_issue` project. */
     approval?: IssueApproval | null;
+    /** The agent session that writes (D130). A token needs it, and the server ignores it for a user. */
+    session?: string | null;
 };
 
 export type IssueStatusInput = {
@@ -223,4 +227,6 @@ export type IssueStatusInput = {
     /** wont_do needs one. */
     note?: Markdown | null;
     reviewer?: string | null;
+    /** The agent session that writes (D130). A token needs it, and the server ignores it for a user. */
+    session?: string | null;
 };

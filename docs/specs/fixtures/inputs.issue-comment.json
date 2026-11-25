@@ -1,5 +1,6 @@
 {
   "body": "Keep `round()` as deprecated. The shipping totals stay in BILL-9.",
   "label": "decision",
-  "replaces": "01K7F3EZG9H0J1K2M3N4P5Q6R7"
+  "replaces": "01K7F3EZG9H0J1K2M3N4P5Q6R7",
+  "session": "billing-3f9a"
 }

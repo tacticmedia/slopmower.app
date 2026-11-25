@@ -25,6 +25,8 @@ final readonly class IssueCommentInput
         #[Assert\Ulid]
         public ?string $replaces = null,
         public ?array $questions = null,
+        #[Assert\Length(min: 1, max: 64)]
+        public ?string $session = null,
     ) {
     }
 }

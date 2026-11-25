@@ -9,6 +9,7 @@ use App\Domain\Actor\Actor;
 use App\Domain\Identity\IssueId;
 use App\Domain\Identity\TenantId;
 use App\Domain\Issue\ApprovalMode;
+use App\Domain\Issue\IssueClaim;
 use App\Domain\Issue\IssueKey;
 use App\Domain\Issue\IssueSection;
 use App\Domain\Issue\IssueStatus;
@@ -63,6 +64,19 @@ class Issue implements TenantOwned
     #[ORM\JoinColumn(onDelete: 'SET NULL')]
     private ?IssueEntry $planApproval = null;
 
+    /** The holder of the claim (D130). Null columns: no claim. */
+    #[ORM\Embedded]
+    private ActorEmbeddable $claimHolder;
+
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $claimSession = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $claimSince = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $claimUntil = null;
+
     #[ORM\Embedded]
     private ActorEmbeddable $createdBy;
 
@@ -80,6 +94,7 @@ class Issue implements TenantOwned
         $this->number = $number;
         $this->title = $title;
         $this->status = $status;
+        $this->claimHolder = ActorEmbeddable::of(null);
         $this->createdBy = ActorEmbeddable::of($createdBy);
         $this->createdAt = $createdAt;
         $this->updatedAt = $createdAt;
@@ -139,6 +154,29 @@ class Issue implements TenantOwned
     public function getPlanApproval(): ?IssueEntry
     {
         return $this->planApproval;
+    }
+
+    /**
+     * The stored claim, also after its end: {@see IssueClaim::held()}.
+     */
+    public function getClaim(): ?IssueClaim
+    {
+        $holder = $this->claimHolder->toActor();
+
+        return null === $holder || null === $this->claimSession || null === $this->claimSince || null === $this->claimUntil
+            ? null
+            : new IssueClaim($holder, $this->claimSession, $this->claimSince, $this->claimUntil);
+    }
+
+    /**
+     * Sets no updatedAt: a claim is no change of the issue.
+     */
+    public function claim(?IssueClaim $claim): void
+    {
+        $this->claimHolder = ActorEmbeddable::of($claim?->holder);
+        $this->claimSession = $claim?->session;
+        $this->claimSince = $claim?->since;
+        $this->claimUntil = $claim?->until;
     }
 
     public function getCreatedBy(): Actor

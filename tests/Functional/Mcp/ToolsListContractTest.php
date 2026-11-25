@@ -49,6 +49,7 @@ final class ToolsListContractTest extends WebTestCase
         'review' => 'common.schema.json#/$defs/Ulid',
         'reviewNote' => 'common.schema.json#/$defs/NoNulText',
         'reviewer' => 'common.schema.json#/$defs/NoNulText',
+        'session' => 'common.schema.json#/$defs/SessionName',
         'symbol' => 'common.schema.json#/$defs/NoNulText',
         'target' => 'common.schema.json#/$defs/IssueKey',
         'title' => 'common.schema.json#/$defs/NoNulText',

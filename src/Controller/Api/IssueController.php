@@ -30,6 +30,7 @@ use App\Entity\User;
 use App\Security\CurrentActor;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
+use Psr\Clock\ClockInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -41,7 +42,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * I1 to I10 of docs/specs/rest-api-issues.md. A path key that the SQL filters hide resolves to 404.
+ * I1 to I11 of docs/specs/rest-api-issues.md. A path key that the SQL filters hide resolves to 404.
  */
 #[Route('/api/v1', name: 'api_issue_', requirements: ['projectKey' => IssueKey::PROJECT_KEY_REQUIREMENT, 'issueKey' => IssueKey::REQUIREMENT])]
 final class IssueController extends AbstractController
@@ -81,7 +82,7 @@ final class IssueController extends AbstractController
 
         $replaces = null === $input->replaces ? null : IssueEntryId::fromString($input->replaces, 'replaces');
 
-        return $this->json($this->issues->view($this->commands->comment($issue->getKey(), $input->body, $input->label ?? CommentLabel::Comment, $actor, $replaces, $input->questions ?? []), $actor), Response::HTTP_CREATED);
+        return $this->json($this->issues->view($this->commands->comment($issue->getKey(), $input->body, $input->label ?? CommentLabel::Comment, $actor, $input->session, $replaces, $input->questions ?? []), $actor), Response::HTTP_CREATED);
     }
 
     #[Route('/projects/{projectKey}/comments', name: 'comments', methods: ['GET'])]
@@ -97,7 +98,7 @@ final class IssueController extends AbstractController
      * The SQL filters leave out a link with an issue that the caller cannot see.
      */
     #[Route('/projects/{projectKey}/graph', name: 'graph', methods: ['GET'])]
-    public function graph(#[MapEntity(mapping: ['projectKey' => 'key'])] Project $project, EntityManagerInterface $entityManager): JsonResponse
+    public function graph(#[MapEntity(mapping: ['projectKey' => 'key'])] Project $project, EntityManagerInterface $entityManager, ClockInterface $clock): JsonResponse
     {
         $ended = array_values(array_filter(IssueStatus::cases(), static fn (IssueStatus $status): bool => $status->isEnded()));
         /** @var list<IssueLink> $dependencies */
@@ -138,9 +139,10 @@ final class IssueController extends AbstractController
         $order = static fn (Issue $issue): array => [$issue->getKey()->projectKey, $issue->getKey()->number];
         usort($issues, static fn (Issue $first, Issue $second): int => $order($first) <=> $order($second));
         usort($dependencies, static fn (IssueLink $first, IssueLink $second): int => [$order($first->getIssue()), $order($first->getTarget())] <=> [$order($second->getIssue()), $order($second->getTarget())]);
+        $now = $clock->now();
 
         return $this->json(new IssueGraph(
-            array_map(IssueSummaryView::of(...), $issues),
+            array_map(static fn (Issue $issue): IssueSummaryView => IssueSummaryView::of($issue, $now), $issues),
             array_map(static fn (IssueLink $link): array => ['issue' => $link->getIssue()->getKey(), 'blockedBy' => $link->getTarget()->getKey()], $dependencies),
             max(0, (int) $ofProject('COUNT(issue.id)', 'NOT IN', $ended)->getSingleScalarResult() - \count(array_filter($issues, static fn (Issue $issue): bool => $issue->getProject() === $project))),
         ));
@@ -166,7 +168,7 @@ final class IssueController extends AbstractController
     ): JsonResponse {
         \assert(null !== $input->planRevision);
         $actor = $this->currentActor->get();
-        $approved = $this->commands->approvePlan($issue->getKey(), IssueEntryId::fromString($input->planRevision, 'planRevision'), null, null, $actor);
+        $approved = $this->commands->approvePlan($issue->getKey(), IssueEntryId::fromString($input->planRevision, 'planRevision'), null, null, $actor, null);
 
         return $this->json($this->issues->view($approved, $actor));
     }
@@ -189,7 +191,7 @@ final class IssueController extends AbstractController
         #[MapRequestPayload(acceptFormat: 'json')] UpdateIssueInput $input,
     ): JsonResponse {
         $actor = $this->currentActor->get();
-        $updated = $this->commands->update($issue->getKey(), $input->title, $input->problem, $input->plan, $input->result, $input->followUps, $actor, $input->approval);
+        $updated = $this->commands->update($issue->getKey(), $input->title, $input->problem, $input->plan, $input->result, $input->followUps, $actor, $input->session, $input->approval);
 
         return $this->json($this->issues->view($updated, $actor));
     }
@@ -201,8 +203,15 @@ final class IssueController extends AbstractController
     ): JsonResponse {
         \assert(null !== $input->status);
         $actor = $this->currentActor->get();
-        $moved = $this->commands->setStatus($issue->getKey(), $input->status, $input->note, $input->reviewer, $actor);
+        $moved = $this->commands->setStatus($issue->getKey(), $input->status, $input->note, $input->reviewer, $actor, $input->session);
 
         return $this->json($this->issues->view($moved, $actor));
+    }
+
+    #[Route('/issues/{issueKey}/release', name: 'release', methods: ['POST'])]
+    #[IsGranted(User::ROLE, message: CurrentActor::SESSION_ONLY)]
+    public function release(#[ValueResolver(IssueKeyResolver::class)] Issue $issue): JsonResponse
+    {
+        return $this->json($this->issues->view($this->commands->release($issue->getKey()), $this->currentActor->get()));
     }
 }

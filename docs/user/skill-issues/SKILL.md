@@ -20,16 +20,43 @@ the `slopmower` MCP server.
 | `list_issues` | `project`, `status?`, `cursor?`, `limit?` | Look through the issues of the project, newest change first |
 | `get_issue` | `issue`, `history?` | Read one issue with its sections, its links, and its thread: the current content, or the full log with `history` |
 | `create_issue` | `project`, `title`, `problem?`, `status?`, `approval?` | Start an issue, `draft` by default |
-| `update_issue` | `issue`, `title?`, `problem?`, `plan?`, `result?`, `followUps?`, `approval?` | Write the title or a section, or raise the approval to `user` |
-| `set_issue_status` | `issue`, `status`, `note?`, `reviewer?` | Move the issue to another status |
-| `comment_on_issue` | `issue`, `body`, `label?`, `replaces?`, `questions?` | Record a step or a decision in the thread, with its label, ask the user with `questions`, or replace a comment that no longer holds |
+| `update_issue` | `issue`, `session`, `title?`, `problem?`, `plan?`, `result?`, `followUps?`, `approval?` | Write the title or a section, or raise the approval to `user` |
+| `set_issue_status` | `issue`, `session`, `status`, `note?`, `reviewer?` | Move the issue to another status |
+| `comment_on_issue` | `issue`, `session`, `body`, `label?`, `replaces?`, `questions?` | Record a step or a decision in the thread, with its label, ask the user with `questions`, or replace a comment that no longer holds |
 | `list_comments` | `project`, `label?`, `cursor?`, `limit?` | Read the comments of the project across its issues, all or those of one label |
 | `link_issues` | `issue`, `target`, `note`, `kind?` | Link two issues, with the reason, or say that `issue` waits for `target` |
-| `approve_plan` | `issue`, `planRevision`, `reviewer`, `reviewNote` | Record the review of the plan by another agent |
+| `approve_plan` | `issue`, `session`, `planRevision`, `reviewer`, `reviewNote` | Record the review of the plan by another agent |
 | `get_issue_updates` | `project`, `cursor?`, `limit?` | Learn what others wrote in the issues of the project since your last cursor, while you wait for the user |
 
 A `?` marks an optional parameter. An issue is named by its key: the project
 key, a hyphen, and a number, for example `SM-12`.
+
+## Session and claims
+
+Several sessions can work on the issues of one project at the same time. Each
+write names its session, and one session at a time holds an issue.
+
+- Make your session name once, before your first write: the directory name of
+  your working tree, a hyphen, and 4 random hex digits, for example
+  `billing-3f9a`. Write it to the file `slopmower-session` of your git
+  directory, also when the file exists:
+  `echo "$(basename "$(git rev-parse --show-toplevel)")-$(openssl rand -hex 2)" > "$(git rev-parse --git-dir)/slopmower-session"`.
+- When the name is no longer in your context, read it again:
+  `cat "$(git rev-parse --git-dir)/slopmower-session"`.
+- Send the name as `session` in each `update_issue`, `set_issue_status`,
+  `approve_plan`, and `comment_on_issue`. A subagent sends the name of the
+  agent that started it: put the name into its prompt.
+- Your first write on an issue takes its claim. Each later write and each
+  comment renews it. The claim ends 2 hours after your newest write.
+- A move to `backlog`, `awaiting_user_input`, `in_review`, `done`, or
+  `wont_do`, or out of `in_progress`, ends the claim. To give up an issue in
+  work, set `todo` with a note that says why.
+- `claim` of an issue in `list_issues` and `get_issue` names the session that
+  holds it. Skip an issue whose `claim` names another session.
+- A write on an issue that another session holds is refused with
+  `invalid_input` on `session`. Stop the work on that issue, and take another
+  one. A comment still passes.
+- The user can release a claim with the button "Release".
 
 ## Writing
 
@@ -207,8 +234,8 @@ parameter that you leave out stays as it is.
      section "Questions" says. Then call `set_issue_status` with
      `awaiting_user_input`, tell the user, and stop the work on this issue.
      Take the cursor of section 8 before these writes, and wait as it says.
-5. Call `set_issue_status` with `in_progress` before you edit. `todo` to
-   `in_progress` is the claim.
+5. Call `set_issue_status` with `in_progress` before you edit. The issue is
+   then yours, as the section "Session and claims" says.
 6. Do the work. Record each important step or decision with
    `comment_on_issue`. Do not change `plan` now, because the server refuses
    it. Write each deviation from the plan into `result`.
@@ -327,6 +354,7 @@ done
 
 - Follow the section "Writing" in every text.
 - One issue per user request. A step is a comment.
+- Send your session name in each write.
 - Look through the open issues before you create one.
 - Put the issue key into the commit subject.
 - Never name yourself as `reviewer`.
@@ -345,7 +373,7 @@ A tool error is a result with `isError: true`. Its text is JSON:
 |---|---|---|
 | `unauthorized` | The token is missing, wrong, revoked, or expired. It arrives as HTTP 401 from the server, not as a tool result. | Tell the user to check `SLOPMOWER_TOKEN`. Go on as section 7 says. |
 | `not_found` | No such project, issue, or entry of `replaces` for this token. A token for one repository sees only the project of that repository. | Check the key or the `id`, then list again |
-| `invalid_input` | The input failed a check, or the write breaks a rule. `details.violations[0].field` names what is wrong: `problem`, `plan`, or `result` is missing, or the plan has no approval; `status` is the status that the issue has, or one that only the user sets; `note` or `reviewer` is missing; `planRevision` is not the newest; `issue` is in `done` or `wont_do`, or only the user approves its plan; `approval` is given outside `by_issue`, or lowered by an agent; `target` is the issue itself; `replaces` is no comment of the issue, is replaced already, or is a comment of the user; `label` is `question` or `answer` on a comment without `questions`; `questions.<index>` breaks a rule of a question. | Read the message, fix the issue or the input, and call again |
+| `invalid_input` | The input failed a check, or the write breaks a rule. `details.violations[0].field` names what is wrong: `problem`, `plan`, or `result` is missing, or the plan has no approval; `status` is the status that the issue has, or one that only the user sets; `note` or `reviewer` is missing; `planRevision` is not the newest; `issue` is in `done` or `wont_do`, or only the user approves its plan; `approval` is given outside `by_issue`, or lowered by an agent; `target` is the issue itself; `replaces` is no comment of the issue, is replaced already, or is a comment of the user; `label` is `question` or `answer` on a comment without `questions`; `questions.<index>` breaks a rule of a question; `session` names another session than the one that holds the issue. | On `session`, stop the work on that issue. Otherwise read the message, fix the issue or the input, and call again |
 | `rate_limited` | Too many calls in a short time | Wait `details.retryAfterSeconds` seconds, then retry |
 | `internal_error` | An unexpected server failure | Try once more, then go on as section 7 says |
 

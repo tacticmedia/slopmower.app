@@ -14,6 +14,7 @@ import { removeSessionDraft, useSessionDraft } from '../../layout/useSessionDraf
 import sidebarStyles from '../../requests/RequestSidebar.module.css';
 import { dateTimeFormat } from '../../settings/TokenTable';
 import { ActorName, COMMENT_LABEL_TEXT } from './CommentParts';
+import { IssueClaimLine } from './IssueClaimLine';
 import { IssueStatusLabel } from './IssueStatusLabel';
 import { IssueStatusMenu } from './IssueStatusMenu';
 import { EntryLink, entryId, IssueTimeline } from './IssueTimeline';
@@ -49,6 +50,7 @@ export function IssueRoute() {
                         {issue.createdBy.name} opened this <RelativeTime datetime={issue.createdAt} /> · updated <RelativeTime datetime={issue.updatedAt} />
                     </span>
                 </div>
+                {null !== issue.claim && <IssueClaimLine claim={issue.claim} />}
             </header>
             <div className={styles.layout}>
                 <aside className={`${sidebarStyles.sidebar} ${styles.sidebar}`} aria-label="Issue details" data-testid="issue-sidebar">

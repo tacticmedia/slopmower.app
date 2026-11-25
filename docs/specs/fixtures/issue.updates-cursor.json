@@ -9,6 +9,7 @@
         "title": "Round the totals of credit notes",
         "status": "todo",
         "approval": "agent_review",
+        "claim": null,
         "updatedAt": "2026-10-02T09:31:07Z"
       },
       "entry": {
@@ -48,6 +49,7 @@
         "title": "Round the totals of credit notes",
         "status": "todo",
         "approval": "agent_review",
+        "claim": null,
         "updatedAt": "2026-10-02T09:31:07Z"
       },
       "entry": {
@@ -81,6 +83,7 @@
         "title": "Round the totals of credit notes",
         "status": "todo",
         "approval": "agent_review",
+        "claim": null,
         "updatedAt": "2026-10-02T09:31:07Z"
       },
       "entry": {

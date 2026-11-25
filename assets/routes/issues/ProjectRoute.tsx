@@ -97,7 +97,10 @@ export function ProjectRoute() {
                                             <NoApprovalLabel approval={issue.approval} />
                                         </span>
                                     </div>
-                                    <div className={rowStyles.meta}>{issue.key}</div>
+                                    <div className={rowStyles.meta}>
+                                        {issue.key}
+                                        {null !== issue.claim && ` · held by ${issue.claim.session}`}
+                                    </div>
                                 </div>
                                 <div className={rowStyles.aside}>
                                     <span>

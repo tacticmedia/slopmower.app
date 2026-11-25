@@ -3,6 +3,18 @@
   "title": "Round invoice totals once per invoice",
   "status": "todo",
   "approval": "agent_review",
+  "claim": {
+    "holder": {
+      "kind": "agent",
+      "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+      "agentName": "claude-code laptop",
+      "name": "claude-code laptop",
+      "avatarUrl": null
+    },
+    "session": "billing-3f9a",
+    "since": "2026-10-02T09:05:20Z",
+    "until": "2026-10-02T11:12:40Z"
+  },
   "problem": "Invoice totals round each line, so an invoice of three lines can be 1 cent off.\n\nDone when `InvoiceTotalsTest` has a case with three lines of 0.335 and the total is 1.01.",
   "plan": "1. Add `TaxRounding::perInvoice()` in `src/Billing/TaxRounding.php`.\n2. Use it in `InvoiceTotals::total()`.\n3. Test: a case with three lines of 0.335 in `tests/Billing/InvoiceTotalsTest.php`.",
   "result": null,

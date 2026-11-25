@@ -239,7 +239,7 @@ Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 
 ### Issue tools
 
-Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D128, D129). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs. The REST endpoints of [rest-api-issues.md](rest-api-issues.md) share the model and the rules of this section.
+Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D128 to D130). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs. The REST endpoints of [rest-api-issues.md](rest-api-issues.md) share the model and the rules of this section.
 
 - **Visibility.** A token of one repository sees only the project of that repository, with its issues. A project without a repository is invisible to it. Any other key gets `not_found`.
 - **Sections.** An issue has the Markdown sections `problem`, `plan`, `result`, and `followUps`, each null or at most 65,536 characters.
@@ -264,6 +264,13 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
   - `create_issue` and `update_issue` take `approval` only in a `by_issue` project, else `invalid_input` on `approval`. `by_issue` is no `approval`.
   - An agent sets any `approval` when it creates the issue, and later changes it only to `user`. A user sets any value. A change writes no entry.
   - `approvalGuidelines` of the project is Markdown of the user: which issue needs the user, and which one an agent works on its own. An agent chooses the `approval` of a new issue by it, and `user` where the guidelines do not cover the issue.
+- **Claims.** An agent session holds an issue until 2 hours after its newest write (D130). `update_issue`, `set_issue_status`, `approve_plan`, and `comment_on_issue` need `session`, the name of the agent session, 1 to 64 characters. The holder is the agent of the token and the session together, so two sessions of one token are two holders.
+  - A write of `update_issue`, `set_issue_status`, or `approve_plan` on an issue of another holder is refused with `invalid_input` on `session`: "Session X of Y holds SM-n until T. Take another issue." This check comes before the rules. Otherwise the write holds the issue for its session until 2 hours from now, also a write that changes nothing.
+  - A claim of another holder never refuses a comment, and a comment takes no claim. A comment of the holder renews the claim.
+  - A status change ends the claim when it goes to `backlog`, `awaiting_user_input`, `in_review`, `done`, or `wont_do`, or when it leaves `in_progress`. This holds for a user too.
+  - A user is never refused and takes no claim. A user removes a claim with REST [I11](rest-api-issues.md#i11-release-the-claim). No tool releases a claim: an agent gives up an issue in work with `todo` and a note.
+  - `create_issue` and `link_issues` neither check nor take a claim. A refused write changes no claim.
+  - `claim` of `Issue` and `IssueSummary` is `{holder, session, since, until}`. It is null without a claim and after `until`. A claim writes no thread entry and does not set `updatedAt`.
 - **Rules.** The server checks the state that a write gives (D117), with the `approval` that the write gives. The content rules hold for every actor. The approval rules bind agents only, and the MCP actor is always an agent. The modes of the table are the `approval` of the issue.
 
   | Status | What must hold | Field of the refusal |
@@ -275,7 +282,7 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
   | `wont_do` | `note` given | `note` |
 
   - A section of whitespace only is empty, and so are a `note` and a `reviewer`.
-  - An agent cannot set the status that the issue has: `status`. `todo` to `in_progress` is the claim.
+  - An agent cannot set the status that the issue has: `status`.
   - An agent changes no field and no status of an issue in `done` or `wont_do`: `issue`. It can comment on it and link it.
   - An agent cannot change `plan` in `in_progress` or `in_review`: `plan`. A deviation goes into `result`.
   - An approval by a user of an issue in `awaiting_user_input` sets `todo`, with a `status_changed` entry, when the issue has a `problem`. Without one the status stays.
@@ -293,7 +300,7 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 ### 4.20 `list_issues`
 
 - **Output:** [`lists.schema.json#/$defs/IssuePage`](schemas/lists.schema.json).
-- **Behaviour:** REST I1: the summaries of the issues of the project, newest `updatedAt` first, then by ID. `status` returns only the issues with that status. `limit` is 1 to 200, by default 50.
+- **Behaviour:** REST I1: the summaries of the issues of the project, newest `updatedAt` first, then by ID. `status` returns only the issues with that status. `limit` is 1 to 200, by default 50. `claim` of a summary names the session that holds the issue, so an agent skips an issue of another session without `get_issue`.
 - **Errors:** `not_found` for the project, `invalid_input` for the cursor or a cursor sent with another filter.
 - **Example:** arguments `{"project":"BILL"}`. `structuredContent`: [fixtures/lists.issue-page.json](fixtures/lists.issue-page.json).
 
@@ -315,23 +322,23 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json).
 - **Behaviour:** REST I7: changes the given fields. Null leaves a field as it is. Each section with new text writes a `section_changed` entry with that text, which replaces the entry of the version before it, and a `plan` with new text clears `planApproval`. `approval` changes only to `user`, as "Approval mode" says. A call whose values equal the stored ones changes nothing.
-- **Errors:** `not_found`, `invalid_input` for a call with no field, a title of whitespace only or with a line break, on `approval` for a project of another approval mode or a change to another value than `user`, or a broken rule of the issue tools.
-- **Example:** arguments `{"issue":"BILL-12","plan":"1. Add `TaxRounding::perInvoice()` ..."}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with a new `planRevision` and `planApproval` null.
+- **Errors:** `not_found`, `invalid_input` on `session` for an issue of another holder, and for a call with no field, a title of whitespace only or with a line break, on `approval` for a project of another approval mode or a change to another value than `user`, or a broken rule of the issue tools.
+- **Example:** arguments `{"issue":"BILL-12","session":"billing-3f9a","plan":"1. Add `TaxRounding::perInvoice()` ..."}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with a new `planRevision` and `planApproval` null.
 
 ### 4.24 `set_issue_status`
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json).
-- **Behaviour:** REST I8: moves the issue to `status` under the rules of the issue tools, and writes a `status_changed` entry with `from`, `to`, `note`, and `reviewer`. Any status can follow any other status when the rules hold.
-- **Errors:** `not_found`, `invalid_input` for a broken rule.
-- **Example:** arguments `{"issue":"BILL-12","status":"in_progress"}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with status `in_progress`.
+- **Behaviour:** REST I8: moves the issue to `status` under the rules of the issue tools, and writes a `status_changed` entry with `from`, `to`, `note`, and `reviewer`. Any status can follow any other status when the rules hold. A move that passes the issue on ends the claim, as "Claims" says.
+- **Errors:** `not_found`, `invalid_input` on `session` for an issue of another holder, and for a broken rule.
+- **Example:** arguments `{"issue":"BILL-12","session":"billing-3f9a","status":"in_progress"}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with status `in_progress`.
 
 ### 4.25 `comment_on_issue`
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json).
-- **Behaviour:** REST I3 with the body `{body, label, replaces, questions}`: appends a `comment` entry with the label, in any status. `label` is `comment` by default. `replaces` is the ID of a comment of the issue that no longer holds: the new comment replaces it, and `get_issue` without `history` and `list_comments` leave the replaced one out.
+- **Behaviour:** REST I3 with the body `{body, label, replaces, questions, session}`: appends a `comment` entry with the label, in any status. A claim never refuses it, and a comment of the holder renews the claim. `label` is `comment` by default. `replaces` is the ID of a comment of the issue that no longer holds: the new comment replaces it, and `get_issue` without `history` and `list_comments` leave the replaced one out.
 - **Questions:** D124, as "Questions" of the issue tools says. Each item of `questions` is a question in one line and an optional Markdown `detail`. The tool needs a `body` of at least 1 character also with questions, as `reply_to_request` does; only I3 takes an empty `body` with questions. The comment gets the label `question`. The web UI shows each open question comment above the comment box with "Yes", "No", and a text field for each question. The answers of the user are a comment with the label `answer` that replaces the question comment, so `get_issue` has each question with its `answer`.
 - **Errors:** `not_found` for the issue and for a `replaces` that names no entry that the token sees, `invalid_input` for a body of whitespace only without questions, on `label` for `question` or `answer` without questions, on `questions` for a question that breaks a rule of D107, and on `replaces` for an entry that is no comment of this issue, for a comment that is replaced already, and for a comment of a user. A `label` outside `CommentLabel`, a `replaces` that is no ULID, an empty `body`, and an item of `questions` with an `answer` are JSON-RPC -32602.
-- **Example:** arguments `{"issue":"BILL-12"}` plus the `body`, the `label`, and the `replaces` of [fixtures/inputs.issue-comment.json](fixtures/inputs.issue-comment.json). The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json).
+- **Example:** arguments `{"issue":"BILL-12"}` plus the `body`, the `label`, the `replaces`, and the `session` of [fixtures/inputs.issue-comment.json](fixtures/inputs.issue-comment.json). The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json).
 
 ### 4.26 `link_issues`
 
@@ -344,8 +351,8 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json).
 - **Behaviour:** records the review of the plan by another agent: a `plan_approved` entry with `reviewer`, `reviewNote`, and `planRevision`, which becomes `planApproval`. The server cannot prove the review. A second approval becomes `planApproval`, and the entry of the first one stays in the thread. The approval of a user has no tool: REST [I4](rest-api-issues.md#i4-approve-the-plan).
-- **Errors:** `not_found`, `invalid_input` on `issue` when `approval` is `user` or the issue is in `done` or `wont_do`, on `plan` for an issue without a plan, on `planRevision` for a revision that is not the newest, on `reviewer` for whitespace only, and on `reviewNote` for fewer than 20 characters after trimming.
-- **Example:** arguments `{"issue":"BILL-12","planRevision":"01K7F3C5D6E7F8G9H0J1K2M3N4","reviewer":"plan-reviewer"}` plus the `reviewNote` of the fixture give [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json).
+- **Errors:** `not_found`, `invalid_input` on `session` for an issue of another holder, on `issue` when `approval` is `user` or the issue is in `done` or `wont_do`, on `plan` for an issue without a plan, on `planRevision` for a revision that is not the newest, on `reviewer` for whitespace only, and on `reviewNote` for fewer than 20 characters after trimming.
+- **Example:** arguments `{"issue":"BILL-12","session":"billing-3f9a","planRevision":"01K7F3C5D6E7F8G9H0J1K2M3N4","reviewer":"plan-reviewer"}` plus the `reviewNote` of the fixture give [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json).
 
 ### 4.28 `list_comments`
 
@@ -367,7 +374,7 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 |---|---|---|
 | `unauthorized` | HTTP 401 on the transport, never a tool result | Tell the user to check `SLOPMOWER_TOKEN` |
 | `not_found` | isError | Check the ID or name, then list again. Repositories outside the token scope also answer `not_found`. |
-| `invalid_input` | isError. Schema violations come as JSON-RPC -32602. | Fix the input. From an issue tool: read `details.violations[0]`, which names the field that breaks a rule of the [issue tools](#issue-tools), fix the issue, then call again. |
+| `invalid_input` | isError. Schema violations come as JSON-RPC -32602. | Fix the input. From an issue tool: read `details.violations[0]`, which names the field that breaks a rule of the [issue tools](#issue-tools), fix the issue, then call again. On `session`, another session holds the issue: take another issue. |
 | `invalid_transition` | isError, never from an issue tool | `get_request`, then read `allowedActions`, `proposal`, `suggestion`, `title`, and `details.claimedBy` |
 | `review_closed` | isError | Stop working on that review |
 | `commits_not_available` | isError | Push, or commit for local repositories, then call `mark_ready_for_review` again |

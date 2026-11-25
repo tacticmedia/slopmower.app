@@ -27,6 +27,7 @@ final class IssueUpdatesTest extends WebTestCase
     use McpAssertions;
     use ResetDatabase;
 
+    private const string SESSION = 'billing-3f9a';
     private const string PROBLEM = 'Invoice totals round each line. Done when a test with three lines of 0.335 gives 1.01.';
     private const string PLAN = '1. Add `TaxRounding::perInvoice()`. 2. Test three lines of 0.335.';
 
@@ -65,7 +66,7 @@ final class IssueUpdatesTest extends WebTestCase
         $ofUser = self::assertApiResponse(self::apiRequest($this->client, 'GET', "/api/v1/projects/SM/updates?cursor={$start['cursor']}"), 200, 'issue.schema.json#/$defs/IssueUpdatesPage');
         $row = static fn (array $item): array => [$item['entry']['kind'], $item['entry']['label'], $item['entry']['actor']['kind'], $item['entry']['body'], $item['entry']['to']];
 
-        self::assertSame(['cursor' => 4, 'hasMore' => false, 'issues' => [['key' => 'SM-1', 'title' => 'Round invoice totals once', 'status' => 'awaiting_user_input', 'approval' => 'user', 'updatedAt' => $start['issues'][0]['updatedAt']]], 'entries' => []], $start);
+        self::assertSame(['cursor' => 4, 'hasMore' => false, 'issues' => [['key' => 'SM-1', 'title' => 'Round invoice totals once', 'status' => 'awaiting_user_input', 'approval' => 'user', 'claim' => null, 'updatedAt' => $start['issues'][0]['updatedAt']]], 'entries' => []], $start);
         self::assertSame([
             ['comment', 'comment', 'user', 'Use Money for the amounts.', null],
             ['comment', 'answer', 'user', '', null],
@@ -127,7 +128,19 @@ final class IssueUpdatesTest extends WebTestCase
      */
     private function call(string $tool, array $arguments): array
     {
-        return self::assertToolResult($this->mcp, $this->mcp->callTool($tool, $arguments), $tool);
+        return self::assertToolResult($this->mcp, $this->mcp->callTool($tool, self::withSession($tool, $arguments)), $tool);
+    }
+
+    /**
+     * The four writes that need session (D130) get the one session of this test.
+     *
+     * @param array<string, mixed> $arguments
+     *
+     * @return array<string, mixed>
+     */
+    private static function withSession(string $tool, array $arguments): array
+    {
+        return \in_array($tool, ['update_issue', 'set_issue_status', 'approve_plan', 'comment_on_issue'], true) ? $arguments + ['session' => self::SESSION] : $arguments;
     }
 
     /**

@@ -23,6 +23,7 @@ use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;
+use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 
 /**
  * docs/specs/mcp.md sections 4.19 to 4.28, and the visibility of 4.29. The agent of a token for all repositories works
@@ -31,6 +32,7 @@ use Symfony\Component\Clock\Clock;
 final class IssueToolsTest extends WebTestCase
 {
     use ApiFixtures;
+    use ClockSensitiveTrait;
     use McpAssertions;
     use ResetDatabase;
 
@@ -41,6 +43,7 @@ final class IssueToolsTest extends WebTestCase
     private const string REVIEWER = 'plan-reviewer';
     private const string AGENT_NAME = 'claude-code laptop';
     private const string GUIDELINES = "- A change of an API: `user`.\n- A fix of a typo: `self`.";
+    private const string SESSION = 'billing-3f9a';
 
     private KernelBrowser $client;
 
@@ -72,7 +75,7 @@ final class IssueToolsTest extends WebTestCase
         self::assertSame(['Round invoice totals once', 'draft', 'self', null, null, 'agent', self::AGENT_NAME], [$first['title'], $first['status'], $first['approval'], $first['problem'], $first['planRevision'], $first['createdBy']['kind'], $first['createdBy']['agentName']]);
         self::assertSame(['key' => 'SM', 'name' => 'Project SM', 'approvalMode' => 'self'], $first['project']);
         self::assertSame(['SM-2', 'SM-1'], array_column($page['items'], 'key'), 'Newest first.');
-        self::assertSame(['key' => 'SM-2', 'title' => 'Show the rounding mode', 'status' => 'todo', 'approval' => 'self', 'updatedAt' => $second['updatedAt']], $todo['items'][0]);
+        self::assertSame(['key' => 'SM-2', 'title' => 'Show the rounding mode', 'status' => 'todo', 'approval' => 'self', 'claim' => null, 'updatedAt' => $second['updatedAt']], $todo['items'][0]);
         self::assertCount(1, $todo['items']);
         self::assertSame($second, $detail['issue']);
         self::assertSame([], $detail['links']);
@@ -189,6 +192,8 @@ final class IssueToolsTest extends WebTestCase
     #[TestDox('A plan with new text clears the approval, and the same text keeps it')]
     public function testNewPlanTextClearsTheApproval(): void
     {
+        // One instant, so the renewed claim of each write is the same.
+        self::mockTime('2026-11-25 09:00:00');
         self::storeProject($this->user->getTenantId(), 'SM', ApprovalMode::AgentReview);
         $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'problem' => self::PROBLEM, 'status' => 'todo'])['key']];
         $planned = $this->call('update_issue', $issue + ['plan' => self::PLAN]);
@@ -309,7 +314,7 @@ final class IssueToolsTest extends WebTestCase
 
         self::assertSame([['SM-2', 'decision', 'Keep `round()` as deprecated.'], ['SM-1', 'decision', 'Round once per invoice.']], array_map($row, $decisions['items']));
         self::assertNull($decisions['nextCursor']);
-        self::assertSame(['key' => 'SM-2', 'title' => $second['title'], 'status' => 'draft', 'approval' => 'self', 'updatedAt' => $commented['updatedAt']], $decisions['items'][0]['issue']);
+        self::assertSame(['key' => 'SM-2', 'title' => $second['title'], 'status' => 'draft', 'approval' => 'self', 'claim' => null, 'updatedAt' => $commented['updatedAt']], $decisions['items'][0]['issue']);
         self::assertSame(self::AGENT_NAME, $decisions['items'][0]['actor']['agentName']);
         self::assertSame([['SM-2', 'decision'], ['SM-1', 'comment'], ['SM-1', 'decision']], array_map(static fn (array $comment): array => [$comment['issue']['key'], $comment['label']], $all['items']), 'No section_changed entry, and no comment of DOC.');
         self::assertSame(['Keep `round()` as deprecated.', 'The test is next.'], [$firstPage['items'][0]['body'], $secondPage['items'][0]['body']]);
@@ -514,7 +519,7 @@ final class IssueToolsTest extends WebTestCase
      */
     private function call(string $tool, array $arguments): array
     {
-        return self::assertToolResult($this->mcp, $this->mcp->callTool($tool, $arguments), $tool);
+        return self::assertToolResult($this->mcp, $this->mcp->callTool($tool, self::withSession($tool, $arguments)), $tool);
     }
 
     /**
@@ -524,11 +529,23 @@ final class IssueToolsTest extends WebTestCase
      */
     private function refusal(string $tool, array $arguments): array
     {
-        $violations = self::assertToolError($this->mcp->callTool($tool, $arguments), 'invalid_input')['details']['violations'] ?? null;
+        $violations = self::assertToolError($this->mcp->callTool($tool, self::withSession($tool, $arguments)), 'invalid_input')['details']['violations'] ?? null;
         self::assertIsArray($violations);
         self::assertCount(1, $violations);
 
         return $violations[0];
+    }
+
+    /**
+     * The four writes that need session (D130) get the one session of this test.
+     *
+     * @param array<string, mixed> $arguments
+     *
+     * @return array<string, mixed>
+     */
+    private static function withSession(string $tool, array $arguments): array
+    {
+        return \in_array($tool, ['update_issue', 'set_issue_status', 'approve_plan', 'comment_on_issue'], true) ? $arguments + ['session' => self::SESSION] : $arguments;
     }
 
     /**

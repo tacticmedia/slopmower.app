@@ -2,13 +2,14 @@
 
 This file continues [rest-api.md](rest-api.md). That file has the conventions, the [endpoint index](rest-api.md#2-endpoint-index), and the common errors, which this file does not repeat. Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json).
 
-The endpoints are the issue tracker for the web UI and for agents without MCP (D120, D122). The issue endpoints call the same application services as the [issue tools](mcp.md#issue-tools) and return the same JSON. The model, the visibility, and the rules of the issue tools hold here too. P2 and P3 have no tool: only a signed-in user creates and changes a project. I9 has no tool: the graph is for the web UI. I10 is the twin of the tool `get_issue_updates`, for the watch loop of the `slopmower-issues` skill (D128).
+The endpoints are the issue tracker for the web UI and for agents without MCP (D120, D122). The issue endpoints call the same application services as the [issue tools](mcp.md#issue-tools) and return the same JSON. The model, the visibility, and the rules of the issue tools hold here too. P2 and P3 have no tool: only a signed-in user creates and changes a project. I9 has no tool: the graph is for the web UI. I10 is the twin of the tool `get_issue_updates`, for the watch loop of the `slopmower-issues` skill (D128). I11 has no tool: only a user releases a claim.
 
 ## 1. Keys, actors, and rules
 
 - **Keys.** A path names a project by its key and an issue by its key, not by a ULID. `{projectKey}` matches `ProjectKey` and `{issueKey}` matches `IssueKey` of [common.schema.json](schemas/common.schema.json). A key that does not match its pattern answers 404 `not_found`, as an unknown route does.
 - **Check order.** A key that the caller cannot see answers 404 `not_found` before the 403 of the actor kind or the CSRF check and before the 400 or 422 of the body, as [README.md section 4](README.md#4-errors) orders.
 - **Actors.** A session is the actor `user`, and a token is the actor `agent`. The approval rules of the [issue tools](mcp.md#issue-tools) bind an agent only. The content rules bind a user too: `problem`, a `plan` with text, `result`, and the `note` of `wont_do`. A user sets every status, also from `done` and `wont_do`, and changes every field in every status.
+- **Claims.** The claims of the [issue tools](mcp.md#issue-tools) hold here too (D130). A token sends `session` in the body of I3, I7, and I8, and a body without it answers 422 `invalid_input` on `session`. The server ignores `session` of a session, because a user is never refused and takes no claim. I11 removes a claim.
 - **Refusals.** A refusal of a rule is 422 `invalid_input`, and `details.violations[0]` has the field and the reason. The endpoints never answer `invalid_transition` or `review_closed`.
 
 ## 2. Endpoints
@@ -90,11 +91,12 @@ An entry is replaced when its `replacedBy` is not null, as the [issue tools](mcp
 
 - **Request:** `POST /api/v1/issues/{issueKey}/comments`
 - **Authentication:** S, B
-- **Body:** [`IssueCommentInput`](schemas/inputs.schema.json), `{body, label, replaces, questions}`. `label` is a `CommentLabel` of [common.schema.json](schemas/common.schema.json), by default `comment`. `replaces` is the ID of a comment of this issue that no longer holds. `questions` is 0 to 10 items of `{question, detail, answer}`, and `body` can be empty with them. Example: [fixtures/inputs.issue-comment.json](fixtures/inputs.issue-comment.json).
+- **Body:** [`IssueCommentInput`](schemas/inputs.schema.json), `{body, label, replaces, questions, session}`. `label` is a `CommentLabel` of [common.schema.json](schemas/common.schema.json), by default `comment`. `replaces` is the ID of a comment of this issue that no longer holds. `questions` is 0 to 10 items of `{question, detail, answer}`, and `body` can be empty with them. Example: [fixtures/inputs.issue-comment.json](fixtures/inputs.issue-comment.json).
 - **Success:** 201 [`Issue`](schemas/issue.schema.json), without its links and its thread. The comment is a `comment` entry of the thread with the label and with the caller as its actor. It is allowed in any status. With `replaces`, the named comment is replaced: it stays stored, and I2 without `history` and I5 leave it out.
 - **Questions:** "Questions" of the [issue tools](mcp.md#issue-tools) has the rules (D124). A token asks: no item has an `answer`, and the comment gets the label `question`. A session answers: `replaces` names an open question comment, `questions` repeats its questions in order, each with an `answer`, and the comment gets the label `answer` and the `detail` of each question. The server sets both labels, whatever `label` says, and changes no status. Example of an answer: `{"body":"","replaces":"01K7F3G0H1J2K3M4N5P6Q7R8S9","questions":[{"question":"Remove `InvoiceTotals::round()` in 3.0?","answer":"Yes"}]}`.
 - **Errors**, in this order:
   - 422 `invalid_input`:
+    - on `session`, for a token without it;
     - on `body`, "Must contain a non-whitespace character.", for a comment without questions;
     - on `label`, for a value outside `CommentLabel`, and for `question` or `answer` on a comment without questions;
     - on `replaces`, for a value that is no ULID, and for answers without it;
@@ -152,9 +154,10 @@ A token call gives the same result as the MCP tool `create_issue`.
 
 - **Request:** `PATCH /api/v1/issues/{issueKey}`
 - **Authentication:** S, B
-- **Body:** [`UpdateIssueInput`](schemas/inputs.schema.json), `{title, problem, plan, result, followUps, approval}`. Absent or null keeps a field. A text has at least 1 character, so no section is cleared. A session sets any `approval`, and a token changes it only to `user`. Example: [fixtures/inputs.update-issue.json](fixtures/inputs.update-issue.json).
+- **Body:** [`UpdateIssueInput`](schemas/inputs.schema.json), `{title, problem, plan, result, followUps, approval, session}`. Absent or null keeps a field, and `session` is no field to change. A text has at least 1 character, so no section is cleared. A session sets any `approval`, and a token changes it only to `user`. Example: [fixtures/inputs.update-issue.json](fixtures/inputs.update-issue.json).
 - **Success:** 200 [`Issue`](schemas/issue.schema.json). Each section with new text writes a `section_changed` entry with that text, which replaces the entry of the version before it, and a `plan` with new text clears `planApproval`. A change of `approval` writes no entry. A value that equals the stored one changes nothing.
 - **Errors:** 422 `invalid_input`:
+  - on `session`, for a token without it, and for an issue that another session holds;
   - for a body without a field;
   - on `title`, for whitespace only, more than 200 characters, or a line break;
   - on `approval`, for `by_issue`, for a project of another approval mode, and for a change of a token to another value than `user`;
@@ -166,9 +169,9 @@ The call has no precondition: the last write wins. A token call gives the same r
 
 - **Request:** `POST /api/v1/issues/{issueKey}/status`
 - **Authentication:** S, B
-- **Body:** [`IssueStatusInput`](schemas/inputs.schema.json), `{status, note, reviewer}`. Example: [fixtures/inputs.issue-status.json](fixtures/inputs.issue-status.json).
+- **Body:** [`IssueStatusInput`](schemas/inputs.schema.json), `{status, note, reviewer, session}`. Example: [fixtures/inputs.issue-status.json](fixtures/inputs.issue-status.json).
 - **Success:** 200 [`Issue`](schemas/issue.schema.json). The move writes a `status_changed` entry with `from`, `to`, `note`, and `reviewer`. Any status can follow any other status when the rules hold.
-- **Errors:** 422 `invalid_input` on the field of a broken rule of the [issue tools](mcp.md#issue-tools): `problem`, `plan`, `result`, `note`, `reviewer`, `status`, or `issue`. The message says what is missing.
+- **Errors:** 422 `invalid_input` on `session`, for a token without it and for an issue that another session holds, and on the field of a broken rule of the [issue tools](mcp.md#issue-tools): `problem`, `plan`, `result`, `note`, `reviewer`, `status`, or `issue`. The message says what is missing.
 
 A user needs no approval of the plan and no reviewer. The status that the issue has answers 200 for a user and writes no entry, when the content rules hold: `wont_do` still needs its `note`. A token call gives the same result as the MCP tool `set_issue_status`.
 
@@ -208,6 +211,16 @@ Each write that appends an entry to the thread of an issue gives the entry the n
 - **With a cursor:** `entries` holds the entries after `cursor`, oldest first, each as `{issue, entry}`: the summary of its issue and the entry. `issues` is empty. The read takes the newest number of the project first, then the entries up to it, so it misses no entry that commits later. It reads at most `limit` entries. With more, `hasMore` is true and `cursor` is the number of the last entry that it read; else `cursor` is the newest number. A page can hold fewer than `limit` entries, also none, while `hasMore` is true, because it leaves out entries.
 - **Left out:** the entries of the caller, and each entry that is replaced at the time of the read. An entry reads as in I2 without `history`: `replacedBy` is null, and a `section_changed` entry has `body` null, because the issue has the text. An entry from before the sequence has no number and comes before every cursor.
 - **The caller** is the actor of the call: a session is its user, and a token is the agent of its name and its user. Two tokens of one user with the same name are one caller, so an agent does not see the entries of another session with its token name, for example the review comment that it recorded.
-- **No entry:** a title change, a change of `approval`, a link, and a new issue without a `problem` write no entry, so no update tells of them.
+- **No entry:** a title change, a change of `approval`, a link, a new issue without a `problem`, and the release of a claim (I11) write no entry, so no update tells of them.
 
 The answers of a user are one `comment` entry with the label `answer`, each question with its `answer`, which replaces the question comment (D124). A plan approval of a user is a `plan_approved` entry, followed by a `status_changed` entry to `todo` when the issue was in `awaiting_user_input`. The MCP tool `get_issue_updates` returns the same body.
+
+### I11 Release the claim
+
+- **Request:** `POST /api/v1/issues/{issueKey}/release`
+- **Authentication:** S
+- **Body:** none.
+- **Success:** 200 [`Issue`](schemas/issue.schema.json) with `claim` null. The release writes no thread entry, does not set `updatedAt`, and publishes the `issue` live update. An issue without a claim answers the same, so a second click changes nothing.
+- **Errors:** common errors only.
+
+The user frees an issue that an agent session holds, for example after the session ended. No tool releases a claim: an agent gives up an issue in work with `todo` and a note (D130).

@@ -141,7 +141,7 @@ Update types. [live-update.schema.json](schemas/live-update.schema.json) defines
 | `repository` | `{type, repositoryId}` | After each `sync.state` change, fetch, access change, and rename, and after [V13](rest-api.md#v13-delete-a-review) deletes a review of the repository | [live-update.repository.json](fixtures/live-update.repository.json) |
 | `repository_deleted` | `{type, repositoryId}` | At [R6](rest-api.md#r6-delete-repository-data) | [live-update.repository-deleted.json](fixtures/live-update.repository-deleted.json) |
 | `candidates_changed` | `{type}` | After `installation.created`, `installation.deleted`, `installation_repositories.added`, `installation_repositories.removed`, and `repository.deleted` | [live-update.candidates-changed.json](fixtures/live-update.candidates-changed.json) |
-| `issue` | `{type, issueKey}` | After each committed write of an issue, to the topic of its project: a comment, a section, a status, a plan approval, a new issue, a title, and a link. A link publishes one update per issue, each to the topic of the project of that issue. | [live-update.issue.json](fixtures/live-update.issue.json) |
+| `issue` | `{type, issueKey}` | After each committed write of an issue, to the topic of its project: a comment, a section, a status, a plan approval, a new issue, a title, a link, and the release of a claim (I11). A link publishes one update per issue, each to the topic of the project of that issue. | [live-update.issue.json](fixtures/live-update.issue.json) |
 
 Publishing rules:
 

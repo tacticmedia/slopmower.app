@@ -274,6 +274,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Blame authors, decision D127: the property `contributors` of `Blame` with the schema `BlameContributor`, and the properties `contributorIndex` and `htmlUrl` of `BlameCommit`. All are additive. The V17 ETag is `v2` and holds the code access.
     - Updates of a project, decision D128: the tool `get_issue_updates`, the endpoint I10, the schema `IssueUpdatesPage`, the topic of a project, the live-update type `issue`, and the third selector of A3. All are additive. A stored entry has no number and comes before every cursor.
     - Approval per issue, decision D129: the property `approvalGuidelines` of `Project`, the property `approval` of `Issue` and `IssueSummary` with the closed set `IssueApproval`, and the optional inputs `approvalGuidelines` of P2 and P3 and `approval` of I6, I7, `create_issue`, and `update_issue`. Not additive: `ApprovalMode` gets the value `by_issue`. A stored issue has no approval and reads as `user`.
+    - Claims of issues, decision D130: the definition `SessionName`, the schema `IssueClaim`, the property `claim` of `Issue` and `IssueSummary`, the input `session` of `update_issue`, `set_issue_status`, `approve_plan`, `comment_on_issue`, I3, I7, and I8, and the endpoint I11. Not additive: the four tools need `session`, and so do I3, I7, and I8 from a token. A write of an agent on an issue that another session holds answers `invalid_input` on `session`. A stored issue has no claim.
 
 ## 9. Contract tests
 

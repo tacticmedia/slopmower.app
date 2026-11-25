@@ -4204,11 +4204,95 @@ final class BundledSchemas
             'nextCursor' => ['$ref' => '#/$defs/NextCursor'],
         ],
         '$defs' => [
+            'Actor' => [
+                'title' => 'Actor',
+                'type' => 'object',
+                'required' => ['kind', 'userId', 'agentName', 'name', 'avatarUrl'],
+                'properties' => [
+                    'kind' => ['$ref' => '#/$defs/ActorKind'],
+                    'userId' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The user; for an agent, the user it acts for.',
+                    ],
+                    'agentName' => [
+                        'type' => ['string', 'null'],
+                        'minLength' => 1,
+                        'maxLength' => 64,
+                        'description' => 'API token name. Agents only.',
+                    ],
+                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
+                    'avatarUrl' => [
+                        'type' => ['string', 'null'],
+                        'format' => 'uri',
+                        'description' => 'Users only.',
+                    ],
+                ],
+                'allOf' => [
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'user'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['$ref' => '#/$defs/Ulid'],
+                                'agentName' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'agent'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['$ref' => '#/$defs/Ulid'],
+                                'agentName' => ['type' => 'string'],
+                                'avatarUrl' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'system'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['type' => 'null'],
+                                'agentName' => ['type' => 'null'],
+                                'avatarUrl' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'ActorKind' => [
+                'enum' => ['user', 'agent', 'system'],
+            ],
             'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
             'IssueApproval' => [
                 'enum' => ['user', 'agent_review', 'self'],
                 'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
+            ],
+            'IssueClaim' => [
+                'type' => 'object',
+                'required' => ['holder', 'session', 'since', 'until'],
+                'description' => 'A lease of one agent session on the issue (D130). A write of the holder renews it, and a write of another session is refused. It ends at until, with a status change that passes the issue on, or with the release by a user.',
+                'properties' => [
+                    'holder' => ['$ref' => '#/$defs/Actor', 'description' => 'The agent of the token that wrote.'],
+                    'session' => ['$ref' => '#/$defs/SessionName'],
+                    'since' => ['$ref' => '#/$defs/DateTime', 'description' => 'The first write of the claim.'],
+                    'until' => ['$ref' => '#/$defs/DateTime', 'description' => '2 hours after the newest write of the holder.'],
+                ],
             ],
             'IssueKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
             'IssueStatus' => [
@@ -4217,12 +4301,19 @@ final class BundledSchemas
             ],
             'IssueSummary' => [
                 'type' => 'object',
-                'required' => ['key', 'title', 'status', 'approval', 'updatedAt'],
+                'required' => ['key', 'title', 'status', 'approval', 'claim', 'updatedAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
                     'status' => ['$ref' => '#/$defs/IssueStatus'],
                     'approval' => ['$ref' => '#/$defs/IssueApproval'],
+                    'claim' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/IssueClaim'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'As claim of Issue: skip an issue that another session holds.',
+                    ],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
                 ],
             ],
@@ -4232,6 +4323,8 @@ final class BundledSchemas
                     ['type' => 'null'],
                 ],
             ],
+            'SessionName' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
+            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
         ],
     ];
 
@@ -4331,6 +4424,17 @@ final class BundledSchemas
                 'enum' => ['user', 'agent_review', 'self'],
                 'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
             ],
+            'IssueClaim' => [
+                'type' => 'object',
+                'required' => ['holder', 'session', 'since', 'until'],
+                'description' => 'A lease of one agent session on the issue (D130). A write of the holder renews it, and a write of another session is refused. It ends at until, with a status change that passes the issue on, or with the release by a user.',
+                'properties' => [
+                    'holder' => ['$ref' => '#/$defs/Actor', 'description' => 'The agent of the token that wrote.'],
+                    'session' => ['$ref' => '#/$defs/SessionName'],
+                    'since' => ['$ref' => '#/$defs/DateTime', 'description' => 'The first write of the claim.'],
+                    'until' => ['$ref' => '#/$defs/DateTime', 'description' => '2 hours after the newest write of the holder.'],
+                ],
+            ],
             'IssueComment' => [
                 'type' => 'object',
                 'required' => ['id', 'issue', 'label', 'actor', 'createdAt', 'body', 'questions'],
@@ -4356,12 +4460,19 @@ final class BundledSchemas
             ],
             'IssueSummary' => [
                 'type' => 'object',
-                'required' => ['key', 'title', 'status', 'approval', 'updatedAt'],
+                'required' => ['key', 'title', 'status', 'approval', 'claim', 'updatedAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
                     'status' => ['$ref' => '#/$defs/IssueStatus'],
                     'approval' => ['$ref' => '#/$defs/IssueApproval'],
+                    'claim' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/IssueClaim'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'As claim of Issue: skip an issue that another session holds.',
+                    ],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
                 ],
             ],
@@ -4397,6 +4508,7 @@ final class BundledSchemas
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'A question of an agent: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
+            'SessionName' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
         ],
     ];
@@ -4506,12 +4618,19 @@ final class BundledSchemas
                 'title' => 'Issue',
                 'description' => 'An issue without its links and its thread: the result of every issue write.',
                 'type' => 'object',
-                'required' => ['key', 'title', 'status', 'approval', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt'],
+                'required' => ['key', 'title', 'status', 'approval', 'claim', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
                     'status' => ['$ref' => '#/$defs/IssueStatus'],
                     'approval' => ['$ref' => '#/$defs/IssueApproval'],
+                    'claim' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/IssueClaim'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The agent session that holds the issue. Null without a claim, and after its end.',
+                    ],
                     'problem' => [
                         'type' => ['string', 'null'],
                         'maxLength' => 65536,
@@ -4569,6 +4688,17 @@ final class BundledSchemas
             'IssueApproval' => [
                 'enum' => ['user', 'agent_review', 'self'],
                 'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
+            ],
+            'IssueClaim' => [
+                'type' => 'object',
+                'required' => ['holder', 'session', 'since', 'until'],
+                'description' => 'A lease of one agent session on the issue (D130). A write of the holder renews it, and a write of another session is refused. It ends at until, with a status change that passes the issue on, or with the release by a user.',
+                'properties' => [
+                    'holder' => ['$ref' => '#/$defs/Actor', 'description' => 'The agent of the token that wrote.'],
+                    'session' => ['$ref' => '#/$defs/SessionName'],
+                    'since' => ['$ref' => '#/$defs/DateTime', 'description' => 'The first write of the claim.'],
+                    'until' => ['$ref' => '#/$defs/DateTime', 'description' => '2 hours after the newest write of the holder.'],
+                ],
             ],
             'IssueEntry' => [
                 'type' => 'object',
@@ -4691,12 +4821,19 @@ final class BundledSchemas
             ],
             'IssueSummary' => [
                 'type' => 'object',
-                'required' => ['key', 'title', 'status', 'approval', 'updatedAt'],
+                'required' => ['key', 'title', 'status', 'approval', 'claim', 'updatedAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
                     'status' => ['$ref' => '#/$defs/IssueStatus'],
                     'approval' => ['$ref' => '#/$defs/IssueApproval'],
+                    'claim' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/IssueClaim'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'As claim of Issue: skip an issue that another session holds.',
+                    ],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
                 ],
             ],
@@ -4746,6 +4883,7 @@ final class BundledSchemas
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'A question of an agent: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
+            'SessionName' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
         ],
     ];
@@ -4859,6 +4997,17 @@ final class BundledSchemas
                 'enum' => ['user', 'agent_review', 'self'],
                 'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
             ],
+            'IssueClaim' => [
+                'type' => 'object',
+                'required' => ['holder', 'session', 'since', 'until'],
+                'description' => 'A lease of one agent session on the issue (D130). A write of the holder renews it, and a write of another session is refused. It ends at until, with a status change that passes the issue on, or with the release by a user.',
+                'properties' => [
+                    'holder' => ['$ref' => '#/$defs/Actor', 'description' => 'The agent of the token that wrote.'],
+                    'session' => ['$ref' => '#/$defs/SessionName'],
+                    'since' => ['$ref' => '#/$defs/DateTime', 'description' => 'The first write of the claim.'],
+                    'until' => ['$ref' => '#/$defs/DateTime', 'description' => '2 hours after the newest write of the holder.'],
+                ],
+            ],
             'IssueEntry' => [
                 'type' => 'object',
                 'required' => ['id', 'kind', 'label', 'actor', 'createdAt', 'body', 'questions', 'section', 'from', 'to', 'note', 'reviewer', 'reviewNote', 'planRevision', 'replaces', 'replacedBy'],
@@ -4964,12 +5113,19 @@ final class BundledSchemas
             ],
             'IssueSummary' => [
                 'type' => 'object',
-                'required' => ['key', 'title', 'status', 'approval', 'updatedAt'],
+                'required' => ['key', 'title', 'status', 'approval', 'claim', 'updatedAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
                     'status' => ['$ref' => '#/$defs/IssueStatus'],
                     'approval' => ['$ref' => '#/$defs/IssueApproval'],
+                    'claim' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/IssueClaim'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'As claim of Issue: skip an issue that another session holds.',
+                    ],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
                 ],
             ],
@@ -4999,6 +5155,7 @@ final class BundledSchemas
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'A question of an agent: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
+            'SessionName' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
         ],
     ];
@@ -5008,12 +5165,19 @@ final class BundledSchemas
         'title' => 'Issue',
         'description' => 'An issue without its links and its thread: the result of every issue write.',
         'type' => 'object',
-        'required' => ['key', 'title', 'status', 'approval', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt'],
+        'required' => ['key', 'title', 'status', 'approval', 'claim', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt'],
         'properties' => [
             'key' => ['$ref' => '#/$defs/IssueKey'],
             'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
             'status' => ['$ref' => '#/$defs/IssueStatus'],
             'approval' => ['$ref' => '#/$defs/IssueApproval'],
+            'claim' => [
+                'anyOf' => [
+                    ['$ref' => '#/$defs/IssueClaim'],
+                    ['type' => 'null'],
+                ],
+                'description' => 'The agent session that holds the issue. Null without a claim, and after its end.',
+            ],
             'problem' => [
                 'type' => ['string', 'null'],
                 'maxLength' => 65536,
@@ -5150,6 +5314,17 @@ final class BundledSchemas
                 'enum' => ['user', 'agent_review', 'self'],
                 'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
             ],
+            'IssueClaim' => [
+                'type' => 'object',
+                'required' => ['holder', 'session', 'since', 'until'],
+                'description' => 'A lease of one agent session on the issue (D130). A write of the holder renews it, and a write of another session is refused. It ends at until, with a status change that passes the issue on, or with the release by a user.',
+                'properties' => [
+                    'holder' => ['$ref' => '#/$defs/Actor', 'description' => 'The agent of the token that wrote.'],
+                    'session' => ['$ref' => '#/$defs/SessionName'],
+                    'since' => ['$ref' => '#/$defs/DateTime', 'description' => 'The first write of the claim.'],
+                    'until' => ['$ref' => '#/$defs/DateTime', 'description' => '2 hours after the newest write of the holder.'],
+                ],
+            ],
             'IssueKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
             'IssueStatus' => [
                 'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'awaiting_user_input', 'in_review', 'done', 'wont_do'],
@@ -5175,6 +5350,7 @@ final class BundledSchemas
                 ],
             ],
             'ProjectKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}$', 'description' => 'The key of a project: 2 to 10 upper-case letters, unique per tenant. It never changes.'],
+            'SessionName' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
         ],
     ];
@@ -5184,16 +5360,17 @@ final class BundledSchemas
         [
             'name' => 'approve_plan',
             'title' => 'Approve plan',
-            'description' => 'Record that another agent or subagent reviewed the plan of an issue. Use it in a project with approvalMode agent_review, before you set in_progress. The reviewer reads the plan of planRevision; reviewer is its name and reviewNote its findings. The author of a plan does not review it. Fails with invalid_input in approvalMode user, for an issue without a plan, and for a planRevision that is not the newest: then call get_issue and review the newest plan. A plan with new text clears the approval.',
+            'description' => 'Record that another agent or subagent reviewed the plan of an issue. Use it in a project with approvalMode agent_review, before you set in_progress. The reviewer reads the plan of planRevision; reviewer is its name and reviewNote its findings. The author of a plan does not review it. Fails with invalid_input in approvalMode user, for an issue without a plan, and for a planRevision that is not the newest: then call get_issue and review the newest plan. A plan with new text clears the approval. The call holds the issue for your session for 2 hours, and is refused on session while another session holds it.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
                     'issue' => ['type' => 'string', 'description' => 'Issue key, for example SM-12', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$'],
+                    'session' => ['type' => 'string', 'description' => 'Your session name, the same in each write: the directory name of your working tree and 4 random hex digits, kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$'],
                     'planRevision' => ['type' => 'string', 'description' => 'planRevision of the issue, as the reviewer read it', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'],
                     'reviewer' => ['type' => 'string', 'description' => 'Name of the agent or subagent that reviewed the plan', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$'],
                     'reviewNote' => ['type' => 'string', 'description' => 'Markdown: the findings of the reviewer, at least 20 characters', 'minLength' => 20, 'maxLength' => 65536, 'pattern' => '^[^\\x00]*$'],
                 ],
-                'required' => ['issue', 'planRevision', 'reviewer', 'reviewNote'],
+                'required' => ['issue', 'session', 'planRevision', 'reviewer', 'reviewNote'],
             ],
             'annotations' => ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => false, 'openWorldHint' => false],
             'outputSchema' => self::ISSUE,
@@ -5215,11 +5392,12 @@ final class BundledSchemas
         [
             'name' => 'comment_on_issue',
             'title' => 'Comment on issue',
-            'description' => 'Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. label says what the comment is, and list_comments finds the comments of a project by it. When the user must decide something, put each decision in questions, then set awaiting_user_input: the user answers each question with Yes, No, or text, and the answers replace your comment, so get_issue has each question with its answer. Do not ask for the approval of a plan: the user approves it with a button. When a comment of an agent no longer holds, write the new one with replaces, the id of the old one, and do not write a second comment about it: the old one stays in the history, and get_issue and list_comments leave it out. Replace a question comment in this way to withdraw its questions. You cannot replace a comment of a user. Write technical English, as short as possible, and only what a later reader needs.',
+            'description' => 'Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. label says what the comment is, and list_comments finds the comments of a project by it. When the user must decide something, put each decision in questions, then set awaiting_user_input: the user answers each question with Yes, No, or text, and the answers replace your comment, so get_issue has each question with its answer. Do not ask for the approval of a plan: the user approves it with a button. When a comment of an agent no longer holds, write the new one with replaces, the id of the old one, and do not write a second comment about it: the old one stays in the history, and get_issue and list_comments leave it out. Replace a question comment in this way to withdraw its questions. You cannot replace a comment of a user. A claim of another session never refuses a comment, and a comment renews the claim of your session. Write technical English, as short as possible, and only what a later reader needs.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
                     'issue' => ['type' => 'string', 'description' => 'Issue key, for example SM-12', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$'],
+                    'session' => ['type' => 'string', 'description' => 'Your session name, the same in each write: the directory name of your working tree and 4 random hex digits, kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$'],
                     'body' => ['type' => 'string', 'description' => 'Markdown comment', 'minLength' => 1, 'maxLength' => 65536, 'pattern' => '^[^\\x00]*$'],
                     'label' => [
                         'type' => 'string',
@@ -5255,7 +5433,7 @@ final class BundledSchemas
                         'maxItems' => 10,
                     ],
                 ],
-                'required' => ['issue', 'body'],
+                'required' => ['issue', 'session', 'body'],
             ],
             'annotations' => ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => false, 'openWorldHint' => false],
             'outputSchema' => self::ISSUE,
@@ -5490,7 +5668,7 @@ final class BundledSchemas
         [
             'name' => 'list_issues',
             'title' => 'List issues',
-            'description' => 'List the issues of one project as summaries, newest updatedAt first. Call get_issue for the sections, the links, and the thread.',
+            'description' => 'List the issues of one project as summaries, newest updatedAt first. claim names the agent session that holds an issue: skip an issue of another session. Call get_issue for the sections, the links, and the thread.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
@@ -5755,11 +5933,12 @@ final class BundledSchemas
         [
             'name' => 'set_issue_status',
             'title' => 'Set issue status',
-            'description' => 'Move an issue to another status. The server checks the state that the move gives: backlog, todo, in_progress, in_review, and done need problem; in_progress, in_review, and done need a plan that is approved as approvalMode says; in_review and done need result; wont_do needs note. done and wont_do from an agent: refused in approvalMode user, with reviewer and note in agent_review, free in self. todo to in_progress is the claim. A refusal is invalid_input on the field that breaks the rule. allowedStatuses of the issue lists what you can set now.',
+            'description' => 'Move an issue to another status. The server checks the state that the move gives: backlog, todo, in_progress, in_review, and done need problem; in_progress, in_review, and done need a plan that is approved as approvalMode says; in_review and done need result; wont_do needs note. done and wont_do from an agent: refused in approvalMode user, with reviewer and note in agent_review, free in self. The move holds the issue for your session for 2 hours. A move to backlog, awaiting_user_input, in_review, done, or wont_do, or out of in_progress, ends the claim. To give up an issue in work, set todo with a note. A refusal is invalid_input on the field that breaks the rule: on session while another session holds the issue, so take another issue. allowedStatuses of the issue lists what you can set now.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
                     'issue' => ['type' => 'string', 'description' => 'Issue key, for example SM-12', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$'],
+                    'session' => ['type' => 'string', 'description' => 'Your session name, the same in each write: the directory name of your working tree and 4 random hex digits, kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$'],
                     'status' => [
                         'type' => 'string',
                         'description' => 'The new status',
@@ -5782,7 +5961,7 @@ final class BundledSchemas
                         'pattern' => '^[^\\x00]*$',
                     ],
                 ],
-                'required' => ['issue', 'status'],
+                'required' => ['issue', 'session', 'status'],
             ],
             'annotations' => ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => false, 'openWorldHint' => false],
             'outputSchema' => self::ISSUE,
@@ -5915,11 +6094,12 @@ final class BundledSchemas
         [
             'name' => 'update_issue',
             'title' => 'Update issue',
-            'description' => 'Change the title or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem: what the user wants, and how to tell that it is done. plan: the steps, the files, and the tests. result: what was done, with the commit SHAs, and each deviation from the plan. followUps: what came up and was left out. A plan with new text clears its approval. An agent cannot change plan in in_progress or in_review, and no field of an issue in done or wont_do. approval exists only in approvalMode by_issue, and an agent changes it only to user. Write technical English, as short as possible, and only what a later reader needs.',
+            'description' => 'Change the title or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem: what the user wants, and how to tell that it is done. plan: the steps, the files, and the tests. result: what was done, with the commit SHAs, and each deviation from the plan. followUps: what came up and was left out. A plan with new text clears its approval. An agent cannot change plan in in_progress or in_review, and no field of an issue in done or wont_do. approval exists only in approvalMode by_issue, and an agent changes it only to user. The write holds the issue for your session for 2 hours. While another session holds it, the write is refused on session: take another issue. Write technical English, as short as possible, and only what a later reader needs.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
                     'issue' => ['type' => 'string', 'description' => 'Issue key, for example SM-12', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$'],
+                    'session' => ['type' => 'string', 'description' => 'Your session name, the same in each write: the directory name of your working tree and 4 random hex digits, kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$'],
                     'title' => [
                         'type' => ['null', 'string'],
                         'description' => 'One line that names the issue',
@@ -5967,7 +6147,7 @@ final class BundledSchemas
                         'enum' => ['user', 'agent_review', 'self', null],
                     ],
                 ],
-                'required' => ['issue'],
+                'required' => ['issue', 'session'],
             ],
             'annotations' => ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false],
             'outputSchema' => self::ISSUE,

@@ -41,6 +41,13 @@
       "pattern": "^[^\\x00]*$",
       "description": "Text without a NUL byte (U+0000), which PostgreSQL cannot store. Every string input holds none."
     },
+    "SessionName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[^\\x00]*$",
+      "description": "The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent."
+    },
     "DateTime": {
       "type": "string",
       "format": "date-time",

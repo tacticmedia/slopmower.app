@@ -23,12 +23,22 @@ export type PlanApproval = {
     reviewNote: Markdown | null;
 };
 
+/** A lease of one agent session on the issue (D130). It ends at `until`, with a status change that passes the issue on, or with I11. */
+export type IssueClaim = {
+    holder: Actor;
+    session: string;
+    since: DateTime;
+    until: DateTime;
+};
+
 /** An issue without its links and its thread: the result of every issue write. */
 export type Issue = {
     key: IssueKey;
     title: string;
     status: IssueStatus;
     approval: IssueApproval;
+    /** Null without a claim and after its end. */
+    claim: IssueClaim | null;
     problem: Markdown | null;
     plan: Markdown | null;
     result: Markdown | null;
@@ -50,6 +60,7 @@ export type IssueSummary = {
     title: string;
     status: IssueStatus;
     approval: IssueApproval;
+    claim: IssueClaim | null;
     updatedAt: DateTime;
 };
 

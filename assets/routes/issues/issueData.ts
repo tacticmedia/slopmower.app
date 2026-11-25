@@ -16,7 +16,8 @@ export type IssueIntent =
     | { intent: 'comment'; input: IssueCommentInput; draftKey?: string }
     | { intent: 'approve_plan'; input: ApprovePlanInput }
     | { intent: 'update'; input: UpdateIssueInput; draftKey?: string }
-    | { intent: 'set_status'; input: IssueStatusInput; draftKey?: string };
+    | { intent: 'set_status'; input: IssueStatusInput; draftKey?: string }
+    | { intent: 'release'; input: null };
 
 /** The JSON body of the form of a new issue. */
 export type NewIssueIntent = { input: CreateIssueInput; draftKey: string };
@@ -166,10 +167,11 @@ const ISSUE_WRITES: Record<IssueIntent['intent'], { method: 'POST' | 'PATCH'; pa
     approve_plan: { method: 'POST', path: '/plan-approval' },
     update: { method: 'PATCH', path: '' },
     set_status: { method: 'POST', path: '/status' },
+    release: { method: 'POST', path: '/release' },
 };
 
 /**
- * I3, I4, I7, and I8. The loader runs again after each write, also after a refusal, so the page shows the newest issue.
+ * I3, I4, I7, I8, and I11. The loader runs again after each write, also after a refusal, so the page shows the newest issue.
  * A refusal answers only its reasons, because each one shows at its form.
  */
 export async function issueAction({ request, params }: ActionFunctionArgs): Promise<ActionResult> {
@@ -177,7 +179,7 @@ export async function issueAction({ request, params }: ActionFunctionArgs): Prom
     const { method, path } = ISSUE_WRITES[submitted.intent];
 
     return writeResult(
-        () => apiWrite(method, `/api/v1/issues/${encodedRouteParam(params, 'issueKey')}${path}`, submitted.input, request.signal),
+        () => apiWrite(method, `/api/v1/issues/${encodedRouteParam(params, 'issueKey')}${path}`, submitted.input ?? undefined, request.signal),
         'draftKey' in submitted ? submitted.draftKey : undefined,
         refusalReasons,
     );

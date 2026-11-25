@@ -735,6 +735,17 @@
           "maxItems": 10,
           "default": [],
           "description": "D124. An agent asks without answers. A user answers every question of the open question comment of replaces, and repeats each question in its order."
+        },
+        "session": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/SessionName"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The agent session that writes (D130). A token needs it. The server ignores it for a user."
         }
       }
     },
@@ -957,6 +968,17 @@
             }
           ],
           "description": "Only in a project with the approval mode by_issue. Absent or null keeps it. An agent changes it only to user."
+        },
+        "session": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/SessionName"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The agent session that writes (D130). A token needs it. The server ignores it for a user. It is no field to change."
         }
       }
     },
@@ -992,6 +1014,17 @@
             }
           ],
           "description": "The name of the agent that reviewed the result. done and wont_do of an agent need one in the approval mode agent_review."
+        },
+        "session": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/SessionName"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The agent session that writes (D130). A token needs it. The server ignores it for a user."
         }
       }
     }

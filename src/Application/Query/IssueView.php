@@ -6,6 +6,7 @@ namespace App\Application\Query;
 
 use App\Domain\Actor\Actor;
 use App\Domain\Issue\ApprovalMode;
+use App\Domain\Issue\IssueClaim;
 use App\Domain\Issue\IssueKey;
 use App\Domain\Issue\IssueStatus;
 
@@ -25,6 +26,7 @@ final readonly class IssueView
         public string $title,
         public IssueStatus $status,
         public ApprovalMode $approval,
+        public ?IssueClaim $claim,
         public ?string $problem,
         public ?string $plan,
         public ?string $result,

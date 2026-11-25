@@ -294,9 +294,9 @@ final class McpRestParityTest extends WebTestCase
             self::assertSame($rest, $mcp, $tool);
         }
 
-        $this->assertIssueWriteParity('update_issue', ['issue' => 'SM-1'], 'PATCH', '/api/v1/issues/SM-2', ['title' => 'Round invoice totals per invoice', 'result' => '`TaxRounding::perInvoice()` is in.'], 200);
-        $moved = $this->assertIssueWriteParity('set_issue_status', ['issue' => 'SM-1'], 'POST', '/api/v1/issues/SM-2/status', ['status' => 'wont_do', 'note' => 'BILL-9 covers it.'], 200);
-        $commented = $this->assertIssueWriteParity('comment_on_issue', ['issue' => 'SM-1'], 'POST', '/api/v1/issues/SM-2/comments', ['body' => '`TaxRounding::perInvoice()` is in.', 'label' => 'finding'], 201);
+        $this->assertIssueWriteParity('update_issue', ['issue' => 'SM-1'], 'PATCH', '/api/v1/issues/SM-2', ['session' => 'parity', 'title' => 'Round invoice totals per invoice', 'result' => '`TaxRounding::perInvoice()` is in.'], 200);
+        $moved = $this->assertIssueWriteParity('set_issue_status', ['issue' => 'SM-1'], 'POST', '/api/v1/issues/SM-2/status', ['session' => 'parity', 'status' => 'wont_do', 'note' => 'BILL-9 covers it.'], 200);
+        $commented = $this->assertIssueWriteParity('comment_on_issue', ['issue' => 'SM-1'], 'POST', '/api/v1/issues/SM-2/comments', ['session' => 'parity', 'body' => '`TaxRounding::perInvoice()` is in.', 'label' => 'finding'], 201);
 
         self::assertSame(['wont_do', 'Round invoice totals per invoice', 'agent'], [$moved['status'], $commented['title'], $commented['createdBy']['kind']]);
 

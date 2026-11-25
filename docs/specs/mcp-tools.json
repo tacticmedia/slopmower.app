@@ -3,7 +3,7 @@
         {
             "name": "approve_plan",
             "title": "Approve plan",
-            "description": "Record that another agent or subagent reviewed the plan of an issue. Use it in a project with approvalMode agent_review, before you set in_progress. The reviewer reads the plan of planRevision; reviewer is its name and reviewNote its findings. The author of a plan does not review it. Fails with invalid_input in approvalMode user, for an issue without a plan, and for a planRevision that is not the newest: then call get_issue and review the newest plan. A plan with new text clears the approval.",
+            "description": "Record that another agent or subagent reviewed the plan of an issue. Use it in a project with approvalMode agent_review, before you set in_progress. The reviewer reads the plan of planRevision; reviewer is its name and reviewNote its findings. The author of a plan does not review it. Fails with invalid_input in approvalMode user, for an issue without a plan, and for a planRevision that is not the newest: then call get_issue and review the newest plan. A plan with new text clears the approval. The call holds the issue for your session for 2 hours, and is refused on session while another session holds it.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -11,6 +11,13 @@
                         "type": "string",
                         "description": "Issue key, for example SM-12",
                         "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$"
+                    },
+                    "session": {
+                        "type": "string",
+                        "description": "Your session name, the same in each write: the directory name of your working tree and 4 random hex digits, kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[^\\x00]*$"
                     },
                     "planRevision": {
                         "type": "string",
@@ -34,6 +41,7 @@
                 },
                 "required": [
                     "issue",
+                    "session",
                     "planRevision",
                     "reviewer",
                     "reviewNote"
@@ -75,7 +83,7 @@
         {
             "name": "comment_on_issue",
             "title": "Comment on issue",
-            "description": "Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. label says what the comment is, and list_comments finds the comments of a project by it. When the user must decide something, put each decision in questions, then set awaiting_user_input: the user answers each question with Yes, No, or text, and the answers replace your comment, so get_issue has each question with its answer. Do not ask for the approval of a plan: the user approves it with a button. When a comment of an agent no longer holds, write the new one with replaces, the id of the old one, and do not write a second comment about it: the old one stays in the history, and get_issue and list_comments leave it out. Replace a question comment in this way to withdraw its questions. You cannot replace a comment of a user. Write technical English, as short as possible, and only what a later reader needs.",
+            "description": "Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. label says what the comment is, and list_comments finds the comments of a project by it. When the user must decide something, put each decision in questions, then set awaiting_user_input: the user answers each question with Yes, No, or text, and the answers replace your comment, so get_issue has each question with its answer. Do not ask for the approval of a plan: the user approves it with a button. When a comment of an agent no longer holds, write the new one with replaces, the id of the old one, and do not write a second comment about it: the old one stays in the history, and get_issue and list_comments leave it out. Replace a question comment in this way to withdraw its questions. You cannot replace a comment of a user. A claim of another session never refuses a comment, and a comment renews the claim of your session. Write technical English, as short as possible, and only what a later reader needs.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -83,6 +91,13 @@
                         "type": "string",
                         "description": "Issue key, for example SM-12",
                         "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$"
+                    },
+                    "session": {
+                        "type": "string",
+                        "description": "Your session name, the same in each write: the directory name of your working tree and 4 random hex digits, kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[^\\x00]*$"
                     },
                     "body": {
                         "type": "string",
@@ -151,6 +166,7 @@
                 },
                 "required": [
                     "issue",
+                    "session",
                     "body"
                 ]
             },
@@ -594,7 +610,7 @@
         {
             "name": "list_issues",
             "title": "List issues",
-            "description": "List the issues of one project as summaries, newest updatedAt first. Call get_issue for the sections, the links, and the thread.",
+            "description": "List the issues of one project as summaries, newest updatedAt first. claim names the agent session that holds an issue: skip an issue of another session. Call get_issue for the sections, the links, and the thread.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -1106,7 +1122,7 @@
         {
             "name": "set_issue_status",
             "title": "Set issue status",
-            "description": "Move an issue to another status. The server checks the state that the move gives: backlog, todo, in_progress, in_review, and done need problem; in_progress, in_review, and done need a plan that is approved as approvalMode says; in_review and done need result; wont_do needs note. done and wont_do from an agent: refused in approvalMode user, with reviewer and note in agent_review, free in self. todo to in_progress is the claim. A refusal is invalid_input on the field that breaks the rule. allowedStatuses of the issue lists what you can set now.",
+            "description": "Move an issue to another status. The server checks the state that the move gives: backlog, todo, in_progress, in_review, and done need problem; in_progress, in_review, and done need a plan that is approved as approvalMode says; in_review and done need result; wont_do needs note. done and wont_do from an agent: refused in approvalMode user, with reviewer and note in agent_review, free in self. The move holds the issue for your session for 2 hours. A move to backlog, awaiting_user_input, in_review, done, or wont_do, or out of in_progress, ends the claim. To give up an issue in work, set todo with a note. A refusal is invalid_input on the field that breaks the rule: on session while another session holds the issue, so take another issue. allowedStatuses of the issue lists what you can set now.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -1114,6 +1130,13 @@
                         "type": "string",
                         "description": "Issue key, for example SM-12",
                         "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$"
+                    },
+                    "session": {
+                        "type": "string",
+                        "description": "Your session name, the same in each write: the directory name of your working tree and 4 random hex digits, kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[^\\x00]*$"
                     },
                     "status": {
                         "type": "string",
@@ -1154,6 +1177,7 @@
                 },
                 "required": [
                     "issue",
+                    "session",
                     "status"
                 ]
             },
@@ -1409,7 +1433,7 @@
         {
             "name": "update_issue",
             "title": "Update issue",
-            "description": "Change the title or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem: what the user wants, and how to tell that it is done. plan: the steps, the files, and the tests. result: what was done, with the commit SHAs, and each deviation from the plan. followUps: what came up and was left out. A plan with new text clears its approval. An agent cannot change plan in in_progress or in_review, and no field of an issue in done or wont_do. approval exists only in approvalMode by_issue, and an agent changes it only to user. Write technical English, as short as possible, and only what a later reader needs.",
+            "description": "Change the title or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem: what the user wants, and how to tell that it is done. plan: the steps, the files, and the tests. result: what was done, with the commit SHAs, and each deviation from the plan. followUps: what came up and was left out. A plan with new text clears its approval. An agent cannot change plan in in_progress or in_review, and no field of an issue in done or wont_do. approval exists only in approvalMode by_issue, and an agent changes it only to user. The write holds the issue for your session for 2 hours. While another session holds it, the write is refused on session: take another issue. Write technical English, as short as possible, and only what a later reader needs.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -1417,6 +1441,13 @@
                         "type": "string",
                         "description": "Issue key, for example SM-12",
                         "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$"
+                    },
+                    "session": {
+                        "type": "string",
+                        "description": "Your session name, the same in each write: the directory name of your working tree and 4 random hex digits, kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[^\\x00]*$"
                     },
                     "title": {
                         "type": [
@@ -1489,7 +1520,8 @@
                     }
                 },
                 "required": [
-                    "issue"
+                    "issue",
+                    "session"
                 ]
             },
             "annotations": {

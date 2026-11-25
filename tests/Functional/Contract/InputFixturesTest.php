@@ -174,8 +174,8 @@ final class InputFixturesTest extends WebTestCase
             self::storeProject($user->getTenantId(), 'BILL');
             $mcp = new McpTestClient($client, $secret);
             self::assertToolResult($mcp, $mcp->callTool('create_issue', ['project' => 'BILL', 'title' => 'Round invoice totals once per invoice']), 'create_issue');
-            $ids[self::FIXTURE_PLAN_REVISION] = (string) self::assertToolResult($mcp, $mcp->callTool('update_issue', ['issue' => 'BILL-1', 'plan' => 'Add `TaxRounding::perInvoice()`.']), 'update_issue')['planRevision'];
-            self::assertToolResult($mcp, $mcp->callTool('comment_on_issue', ['issue' => 'BILL-1', 'body' => '`round()` goes.']), 'comment_on_issue');
+            $ids[self::FIXTURE_PLAN_REVISION] = (string) self::assertToolResult($mcp, $mcp->callTool('update_issue', ['issue' => 'BILL-1', 'session' => 'billing-3f9a', 'plan' => 'Add `TaxRounding::perInvoice()`.']), 'update_issue')['planRevision'];
+            self::assertToolResult($mcp, $mcp->callTool('comment_on_issue', ['issue' => 'BILL-1', 'session' => 'billing-3f9a', 'body' => '`round()` goes.']), 'comment_on_issue');
             $thread = self::assertToolResult($mcp, $mcp->callTool('get_issue', ['issue' => 'BILL-1']), 'get_issue')['thread'];
             $ids[self::FIXTURE_COMMENT_ID] = (string) array_last($thread)['id'];
         }

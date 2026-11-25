@@ -4,7 +4,7 @@
   "title": "Issue",
   "description": "An issue without its links and its thread: the result of every issue write.",
   "type": "object",
-  "required": ["key", "title", "status", "approval", "problem", "plan", "result", "followUps", "project", "planRevision", "planApproval", "allowedStatuses", "createdBy", "createdAt", "updatedAt"],
+  "required": ["key", "title", "status", "approval", "claim", "problem", "plan", "result", "followUps", "project", "planRevision", "planApproval", "allowedStatuses", "createdBy", "createdAt", "updatedAt"],
   "properties": {
     "key": {
       "$ref": "common.schema.json#/$defs/IssueKey"
@@ -19,6 +19,17 @@
     },
     "approval": {
       "$ref": "common.schema.json#/$defs/IssueApproval"
+    },
+    "claim": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/IssueClaim"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The agent session that holds the issue. Null without a claim, and after its end."
     },
     "problem": {
       "type": ["string", "null"],
@@ -121,9 +132,31 @@
         }
       }
     },
+    "IssueClaim": {
+      "type": "object",
+      "required": ["holder", "session", "since", "until"],
+      "description": "A lease of one agent session on the issue (D130). A write of the holder renews it, and a write of another session is refused. It ends at until, with a status change that passes the issue on, or with the release by a user.",
+      "properties": {
+        "holder": {
+          "$ref": "actor.schema.json",
+          "description": "The agent of the token that wrote."
+        },
+        "session": {
+          "$ref": "common.schema.json#/$defs/SessionName"
+        },
+        "since": {
+          "$ref": "common.schema.json#/$defs/DateTime",
+          "description": "The first write of the claim."
+        },
+        "until": {
+          "$ref": "common.schema.json#/$defs/DateTime",
+          "description": "2 hours after the newest write of the holder."
+        }
+      }
+    },
     "IssueSummary": {
       "type": "object",
-      "required": ["key", "title", "status", "approval", "updatedAt"],
+      "required": ["key", "title", "status", "approval", "claim", "updatedAt"],
       "properties": {
         "key": {
           "$ref": "common.schema.json#/$defs/IssueKey"
@@ -138,6 +171,17 @@
         },
         "approval": {
           "$ref": "common.schema.json#/$defs/IssueApproval"
+        },
+        "claim": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IssueClaim"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "As claim of Issue: skip an issue that another session holds."
         },
         "updatedAt": {
           "$ref": "common.schema.json#/$defs/DateTime"

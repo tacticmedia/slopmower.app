@@ -19,6 +19,8 @@ final readonly class IssueStatusInput
         public ?string $note = null,
         #[Assert\Length(min: 1, max: 64)]
         public ?string $reviewer = null,
+        #[Assert\Length(min: 1, max: 64)]
+        public ?string $session = null,
     ) {
     }
 }

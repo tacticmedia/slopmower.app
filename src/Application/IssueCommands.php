@@ -14,6 +14,7 @@ use App\Domain\Identity\IssueEntryId;
 use App\Domain\Identity\IssueId;
 use App\Domain\Issue\ApprovalMode;
 use App\Domain\Issue\CommentLabel;
+use App\Domain\Issue\IssueClaim;
 use App\Domain\Issue\IssueEntryKind;
 use App\Domain\Issue\IssueKey;
 use App\Domain\Issue\IssueLinkKind;
@@ -34,7 +35,8 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
  * The writes of the issue tracker (D116, D117): docs/specs/mcp.md sections 4.22 to 4.27, and I3, I4, and I6 to I8 of
  * docs/specs/rest-api-issues.md. Each write runs in one transaction under the row lock of its issue, appends its entry,
  * and passes {@see IssueRules} before it commits. A write that appends an entry locks the project row first, because the
- * entry takes the next number of the project (D128).
+ * entry takes the next number of the project (D128). A write of an agent checks and takes the claim of
+ * {@see IssueClaim} before the rules (D130).
  */
 final class IssueCommands
 {
@@ -77,11 +79,11 @@ final class IssueCommands
      *
      * @throws NotFound|InvalidInput
      */
-    public function update(IssueKey $key, ?string $title, ?string $problem, ?string $plan, ?string $result, ?string $followUps, Actor $actor, ?ApprovalMode $approval = null): Issue
+    public function update(IssueKey $key, ?string $title, ?string $problem, ?string $plan, ?string $result, ?string $followUps, Actor $actor, ?string $session, ?ApprovalMode $approval = null): Issue
     {
         $texts = array_filter(['problem' => $problem, 'plan' => $plan, 'result' => $result, 'followUps' => $followUps], static fn (?string $text): bool => null !== $text);
 
-        return $this->write($key, $actor, function (Issue $issue, \DateTimeImmutable $now) use ($title, $texts, $actor, $approval): void {
+        return $this->write($key, $actor, $session, function (Issue $issue, \DateTimeImmutable $now) use ($title, $texts, $actor, $approval): void {
             if (null === $title && [] === $texts && null === $approval) {
                 throw InvalidInput::field('', 'Give at least one field to change.');
             }
@@ -101,13 +103,20 @@ final class IssueCommands
     }
 
     /**
+     * A move that passes the issue on ends its claim, also a move of a user.
+     *
      * @throws NotFound|InvalidInput
      */
-    public function setStatus(IssueKey $key, IssueStatus $status, ?string $note, ?string $reviewer, Actor $actor): Issue
+    public function setStatus(IssueKey $key, IssueStatus $status, ?string $note, ?string $reviewer, Actor $actor, ?string $session): Issue
     {
-        return $this->write($key, $actor, function (Issue $issue, \DateTimeImmutable $now) use ($status, $note, $reviewer, $actor): void {
+        return $this->write($key, $actor, $session, function (Issue $issue, \DateTimeImmutable $now) use ($status, $note, $reviewer, $actor): void {
             if ($status !== $issue->getStatus()) {
                 $this->entityManager->persist(IssueEntry::statusChanged($issue, $actor, $issue->getStatus(), $status, $note, $reviewer, $now));
+
+                if (IssueClaim::endsWith($issue->getStatus(), $status)) {
+                    $issue->claim(null);
+                }
+
                 $issue->setStatus($status, $now);
             }
         }, setsStatus: true, note: $note, reviewer: $reviewer);
@@ -119,9 +128,9 @@ final class IssueCommands
      *
      * @throws NotFound|InvalidInput
      */
-    public function approvePlan(IssueKey $key, IssueEntryId $planRevision, ?string $reviewer, ?string $reviewNote, Actor $actor): Issue
+    public function approvePlan(IssueKey $key, IssueEntryId $planRevision, ?string $reviewer, ?string $reviewNote, Actor $actor, ?string $session): Issue
     {
-        return $this->write($key, $actor, function (Issue $issue, \DateTimeImmutable $now) use ($planRevision, $reviewer, $reviewNote, $actor): void {
+        return $this->write($key, $actor, $session, function (Issue $issue, \DateTimeImmutable $now) use ($planRevision, $reviewer, $reviewNote, $actor): void {
             $byUser = ActorKind::User === $actor->kind;
 
             if (!$byUser) {
@@ -144,19 +153,23 @@ final class IssueCommands
     }
 
     /**
-     * In any status: no rule of {@see IssueRules} binds a comment. With questions (D124), an agent asks, a user answers
-     * the open question comment of $replaces, and the label is `question` or `answer`, whatever $label is.
+     * In any status: no rule of {@see IssueRules} and no claim refuses a comment. With questions (D124), an agent asks, a
+     * user answers the open question comment of $replaces, and the label is `question` or `answer`, whatever $label is.
      *
      * @param IssueEntryId|null     $replaces  A comment of the issue that the new comment replaces (D123)
      * @param list<CommentQuestion> $questions
      *
      * @throws NotFound|InvalidInput
      */
-    public function comment(IssueKey $key, string $body, CommentLabel $label, Actor $actor, ?IssueEntryId $replaces = null, array $questions = []): Issue
+    public function comment(IssueKey $key, string $body, CommentLabel $label, Actor $actor, ?string $session, ?IssueEntryId $replaces = null, array $questions = []): Issue
     {
-        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $body, $label, $actor, $replaces, $questions): array {
+        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $body, $label, $actor, $session, $replaces, $questions): array {
             $this->issues->project($key->projectKey, LockMode::PESSIMISTIC_WRITE);
             $issue = $this->issues->issue($key, LockMode::PESSIMISTIC_WRITE);
+
+            if (ActorKind::Agent === $actor->kind) {
+                $issue->claim(IssueClaim::renew($issue->getClaim(), $actor, self::session($session), $now));
+            }
 
             if ([] === $questions) {
                 self::requireText('body', $body);
@@ -180,6 +193,21 @@ final class IssueCommands
             };
             $this->entityManager->persist(IssueEntry::comment($issue, $actor, $body, $label, $now, $replaced, $questions));
             $issue->touch($now);
+
+            return [$issue];
+        });
+    }
+
+    /**
+     * The release of a user, I11: no entry, and no updatedAt.
+     *
+     * @throws NotFound
+     */
+    public function release(IssueKey $key): Issue
+    {
+        return $this->transactional(function () use ($key): array {
+            $issue = $this->issues->issue($key, LockMode::PESSIMISTIC_WRITE);
+            $issue->claim(null);
 
             return [$issue];
         });
@@ -280,15 +308,20 @@ final class IssueCommands
     }
 
     /**
-     * A write that {@see IssueRules} checks: the change, then the check of the state that it gave.
+     * A write that {@see IssueRules} checks: the claim of an agent, the change, then the check of the state that it gave.
      *
      * @param \Closure(Issue, \DateTimeImmutable): void $change
      */
-    private function write(IssueKey $key, Actor $actor, \Closure $change, bool $setsStatus = false, ?string $note = null, ?string $reviewer = null): Issue
+    private function write(IssueKey $key, Actor $actor, ?string $session, \Closure $change, bool $setsStatus = false, ?string $note = null, ?string $reviewer = null): Issue
     {
-        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $actor, $change, $setsStatus, $note, $reviewer): array {
+        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $actor, $session, $change, $setsStatus, $note, $reviewer): array {
             $this->issues->project($key->projectKey, LockMode::PESSIMISTIC_WRITE);
             $issue = $this->issues->issue($key, LockMode::PESSIMISTIC_WRITE);
+
+            if (ActorKind::Agent === $actor->kind) {
+                $issue->claim(IssueClaim::take($issue->getClaim(), $issue->getKey(), $actor, self::session($session), $now));
+            }
+
             $before = $this->issues->state($issue);
             $change($issue, $now);
             // The state reads the plan revision from the stored entries.
@@ -385,6 +418,14 @@ final class IssueCommands
         $violations = RequestDecider::titleViolations($title);
 
         return [] === $violations ? trim($title) : throw new InvalidInput($violations);
+    }
+
+    /**
+     * @throws InvalidInput For a token without its session, which only REST can omit
+     */
+    private static function session(?string $session): string
+    {
+        return $session ?? throw InvalidInput::field('session', 'A token names its agent session in each write.');
     }
 
     /**

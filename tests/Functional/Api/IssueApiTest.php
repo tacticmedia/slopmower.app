@@ -31,6 +31,7 @@ final class IssueApiTest extends WebTestCase
     private const string PROBLEM = 'Invoice totals round each line. Done when a test with three lines of 0.335 gives 1.01.';
     private const string PLAN = '1. Add `TaxRounding::perInvoice()`. 2. Test three lines of 0.335.';
     private const string ISSUE = 'issue.schema.json';
+    private const string SESSION = 'billing-3f9a';
 
     private KernelBrowser $client;
 
@@ -135,7 +136,7 @@ final class IssueApiTest extends WebTestCase
         self::assertSame(
             ['questions.0.answer', 'replaces', 'questions', 'replaces', 'questions.1.answer'],
             [
-                $field(self::bearerRequest($this->client, $this->secret, 'POST', '/api/v1/issues/SM-1/comments', ['body' => '', 'replaces' => $asked, 'questions' => $answers])),
+                $field(self::bearerRequest($this->client, $this->secret, 'POST', '/api/v1/issues/SM-1/comments', ['body' => '', 'replaces' => $asked, 'questions' => $answers, 'session' => self::SESSION])),
                 $field($post(['questions' => $answers])),
                 $field($post(['replaces' => $asked, 'questions' => array_reverse($answers)])),
                 $field($post(['replaces' => $plain, 'questions' => $answers])),
@@ -220,11 +221,11 @@ final class IssueApiTest extends WebTestCase
     {
         self::storeProject($this->user->getTenantId(), 'SM', ApprovalMode::User);
         $planRevision = $this->plannedIssue('todo');
-        $claim = ['issue' => 'SM-1', 'status' => 'in_progress'];
+        $start = ['issue' => 'SM-1', 'session' => self::SESSION, 'status' => 'in_progress'];
 
-        $before = self::assertToolError($this->mcp->callTool('set_issue_status', $claim), 'invalid_input');
+        $before = self::assertToolError($this->mcp->callTool('set_issue_status', $start), 'invalid_input');
         self::assertApiResponse($this->approve('SM-1', $planRevision), 200, self::ISSUE);
-        $after = $this->agent('set_issue_status', $claim);
+        $after = $this->agent('set_issue_status', $start);
 
         self::assertSame('plan', $before['details']['violations'][0]['field'] ?? null);
         self::assertSame('in_progress', $after['status']);
@@ -235,12 +236,12 @@ final class IssueApiTest extends WebTestCase
     {
         self::storeProject($this->user->getTenantId(), 'SM', ApprovalMode::ByIssue);
         $this->plannedIssue('todo');
-        $claim = ['issue' => 'SM-1', 'status' => 'in_progress'];
+        $start = ['issue' => 'SM-1', 'session' => self::SESSION, 'status' => 'in_progress'];
         $approval = fn (string $approval): Response => self::apiRequest($this->client, 'PATCH', '/api/v1/issues/SM-1', ['approval' => $approval]);
 
-        $before = self::assertToolError($this->mcp->callTool('set_issue_status', $claim), 'invalid_input');
+        $before = self::assertToolError($this->mcp->callTool('set_issue_status', $start), 'invalid_input');
         $lowered = self::assertApiResponse($approval('self'), 200, self::ISSUE);
-        $started = $this->agent('set_issue_status', $claim);
+        $started = $this->agent('set_issue_status', $start);
         $byIssue = self::assertApiError($approval('by_issue'), 422, 'invalid_input');
 
         self::assertSame(['plan', 'self', 'in_progress'], [$before['details']['violations'][0]['field'] ?? null, $lowered['approval'], $started['status']]);
@@ -357,6 +358,18 @@ final class IssueApiTest extends WebTestCase
      */
     private function agent(string $tool, array $arguments): array
     {
-        return self::assertToolResult($this->mcp, $this->mcp->callTool($tool, $arguments), $tool);
+        return self::assertToolResult($this->mcp, $this->mcp->callTool($tool, self::withSession($tool, $arguments)), $tool);
+    }
+
+    /**
+     * The four writes that need session (D130) get the one session of this test.
+     *
+     * @param array<string, mixed> $arguments
+     *
+     * @return array<string, mixed>
+     */
+    private static function withSession(string $tool, array $arguments): array
+    {
+        return \in_array($tool, ['update_issue', 'set_issue_status', 'approve_plan', 'comment_on_issue'], true) ? $arguments + ['session' => self::SESSION] : $arguments;
     }
 }

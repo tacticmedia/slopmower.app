@@ -135,7 +135,7 @@ final class IssueRulesTest extends KernelTestCase
 
         self::assertSame('status', self::refusal($issue, $issue, ApprovalMode::Self, setsStatus: true));
         self::assertNull(self::refusal($issue, $issue, ApprovalMode::User, ActorKind::User, setsStatus: true), 'A user sets it again.');
-        self::assertNull(self::refusal(self::complete(IssueStatus::Todo), $issue, ApprovalMode::Self, setsStatus: true), 'todo to in_progress is the claim.');
+        self::assertNull(self::refusal(self::complete(IssueStatus::Todo), $issue, ApprovalMode::Self, setsStatus: true), 'An agent sets in_progress from todo.');
     }
 
     #[TestDox('An agent changes no field and no status of an issue in done or wont_do')]
