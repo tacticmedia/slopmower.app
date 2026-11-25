@@ -147,7 +147,7 @@ final class RequestDecider
                 $command->body,
                 $command->question || (ActorKind::Agent === $actor->kind && [] !== $command->questions),
                 $command->batchId,
-                array_map(static fn (CommentQuestion $question): CommentQuestion => new CommentQuestion(trim($question->question), $question->detail, $question->answer), $command->questions),
+                array_map(static fn (CommentQuestion $question): CommentQuestion => new CommentQuestion(trim($question->question), $question->detail, null === $question->answer ? null : trim($question->answer)), $command->questions),
             ),
             $command instanceof Claim => new RequestClaimedEvent(),
             $command instanceof Release => new RequestReleasedEvent($command->note),

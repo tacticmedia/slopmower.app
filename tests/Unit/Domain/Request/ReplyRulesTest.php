@@ -39,11 +39,11 @@ final class ReplyRulesTest extends KernelTestCase
         self::assertEquals([new CommentQuestion('Shipping too?', 'Per line today.'), new CommentQuestion('Keep round()?')], $event->questions);
     }
 
-    #[TestDox('A user comment that answers every question may have an empty body and is no question')]
+    #[TestDox('A user comment that answers every question may have an empty body, is no question, and has each answer trimmed')]
     public function testUserAnswersWithEmptyBody(): void
     {
         $scenario = RequestScenario::inState('in_progress');
-        $command = new Reply($scenario->requestId(), '', questions: [new CommentQuestion('Shipping too?', answer: 'Yes'), new CommentQuestion('Keep round()?', answer: 'Only for one release.')]);
+        $command = new Reply($scenario->requestId(), '', questions: [new CommentQuestion('Shipping too?', answer: '  Yes  '), new CommentQuestion('Keep round()?', answer: 'Only for one release.')]);
 
         $event = $scenario->decide($command, RequestScenario::user())[0]->event;
 
