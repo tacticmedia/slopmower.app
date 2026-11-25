@@ -15,6 +15,7 @@ use App\Controller\Api\Input\IssueCommentListQuery;
 use App\Controller\Api\Input\IssueDetailQuery;
 use App\Controller\Api\Input\IssueListQuery;
 use App\Controller\Api\Input\IssueStatusInput;
+use App\Controller\Api\Input\IssueUpdatesQuery;
 use App\Controller\Api\Input\UpdateIssueInput;
 use App\Domain\Identity\IssueEntryId;
 use App\Domain\Identity\ProjectId;
@@ -40,7 +41,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * I1 to I9 of docs/specs/rest-api-issues.md. A path key that the SQL filters hide resolves to 404.
+ * I1 to I10 of docs/specs/rest-api-issues.md. A path key that the SQL filters hide resolves to 404.
  */
 #[Route('/api/v1', name: 'api_issue_', requirements: ['projectKey' => IssueKey::PROJECT_KEY_REQUIREMENT, 'issueKey' => IssueKey::REQUIREMENT])]
 final class IssueController extends AbstractController
@@ -143,6 +144,15 @@ final class IssueController extends AbstractController
             array_map(static fn (IssueLink $link): array => ['issue' => $link->getIssue()->getKey(), 'blockedBy' => $link->getTarget()->getKey()], $dependencies),
             max(0, (int) $ofProject('COUNT(issue.id)', 'NOT IN', $ended)->getSingleScalarResult() - \count(array_filter($issues, static fn (Issue $issue): bool => $issue->getProject() === $project))),
         ));
+    }
+
+    #[Route('/projects/{projectKey}/updates', name: 'updates', methods: ['GET'])]
+    public function updates(
+        #[MapEntity(mapping: ['projectKey' => 'key'])] Project $project,
+        #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)]
+        IssueUpdatesQuery $query = new IssueUpdatesQuery(),
+    ): JsonResponse {
+        return $this->json($this->issues->updates($project->getKey(), $this->currentActor->get(), $query->cursor, $query->limit));
     }
 
     /**

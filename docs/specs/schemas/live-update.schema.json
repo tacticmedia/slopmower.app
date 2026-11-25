@@ -24,6 +24,9 @@
     },
     {
       "$ref": "#/$defs/CandidatesChangedUpdate"
+    },
+    {
+      "$ref": "#/$defs/IssueUpdate"
     }
   ],
   "$defs": {
@@ -135,6 +138,19 @@
       "properties": {
         "type": {
           "const": "candidates_changed"
+        }
+      }
+    },
+    "IssueUpdate": {
+      "type": "object",
+      "required": ["type", "issueKey"],
+      "properties": {
+        "type": {
+          "const": "issue"
+        },
+        "issueKey": {
+          "$ref": "common.schema.json#/$defs/IssueKey",
+          "description": "The issue that a committed write changed."
         }
       }
     }

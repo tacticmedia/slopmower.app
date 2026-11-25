@@ -110,3 +110,11 @@ export type IssueGraph = {
     /** The open issues of the project that are not in `issues`. */
     otherOpenIssues: number;
 };
+
+/** The result of I10 and `get_issue_updates` (D128). Without a cursor: `issues`. With one: `entries`, without the entries of the caller. */
+export type IssueUpdatesPage = {
+    cursor: number;
+    hasMore: boolean;
+    issues: IssueSummary[];
+    entries: { issue: IssueSummary; entry: IssueEntry }[];
+};

@@ -21,6 +21,7 @@ use Doctrine\ORM\Mapping as ORM;
  * a section, and the ID of the newest one of the plan is the plan revision (D116).
  */
 #[ORM\Entity]
+#[ORM\Index(name: 'idx_issue_entry_seq', columns: ['seq'])]
 class IssueEntry implements TenantOwned
 {
     #[ORM\Id]
@@ -61,6 +62,10 @@ class IssueEntry implements TenantOwned
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
+    /** The number in the sequence of its project (D128). Null for an entry from before the sequence. */
+    #[ORM\Column(nullable: true)]
+    private ?int $seq;
+
     /**
      * @param array<string, string|null> $data
      * @param list<CommentQuestion>      $questions
@@ -78,6 +83,7 @@ class IssueEntry implements TenantOwned
         $this->data = $data;
         $this->replaces = $replaces;
         $this->createdAt = $createdAt;
+        $this->seq = $issue->getProject()->takeEntrySeq();
     }
 
     /**
@@ -174,5 +180,10 @@ class IssueEntry implements TenantOwned
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function getSeq(): ?int
+    {
+        return $this->seq;
     }
 }

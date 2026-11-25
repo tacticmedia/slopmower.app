@@ -4729,6 +4729,254 @@ final class BundledSchemas
         ],
     ];
 
+    /** issue.schema.json#/$defs/IssueUpdatesPage */
+    public const array ISSUE_UPDATES_PAGE = [
+        'type' => 'object',
+        'required' => ['cursor', 'hasMore', 'issues', 'entries'],
+        'description' => 'The result of I10 and get_issue_updates (D128): what changed in a project since a cursor, without the entries of the caller.',
+        'properties' => [
+            'cursor' => ['type' => 'integer', 'minimum' => 0, 'description' => 'Pass as cursor next time. A number of the entry sequence of the project.'],
+            'hasMore' => ['type' => 'boolean', 'description' => 'More entries wait: call again at once with cursor.'],
+            'issues' => [
+                'type' => 'array',
+                'items' => ['$ref' => '#/$defs/IssueSummary'],
+                'description' => 'Without a cursor: the issues in todo, in_progress, awaiting_user_input, and in_review, newest updatedAt first. With a cursor: empty.',
+            ],
+            'entries' => [
+                'type' => 'array',
+                'items' => [
+                    'type' => 'object',
+                    'required' => ['issue', 'entry'],
+                    'properties' => [
+                        'issue' => ['$ref' => '#/$defs/IssueSummary'],
+                        'entry' => ['$ref' => '#/$defs/IssueEntry'],
+                    ],
+                ],
+                'description' => 'With a cursor: the entries after it, oldest first, as get_issue reads them without history. Without a cursor: empty.',
+            ],
+        ],
+        '$defs' => [
+            'Actor' => [
+                'title' => 'Actor',
+                'type' => 'object',
+                'required' => ['kind', 'userId', 'agentName', 'name', 'avatarUrl'],
+                'properties' => [
+                    'kind' => ['$ref' => '#/$defs/ActorKind'],
+                    'userId' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The user; for an agent, the user it acts for.',
+                    ],
+                    'agentName' => [
+                        'type' => ['string', 'null'],
+                        'minLength' => 1,
+                        'maxLength' => 64,
+                        'description' => 'API token name. Agents only.',
+                    ],
+                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
+                    'avatarUrl' => [
+                        'type' => ['string', 'null'],
+                        'format' => 'uri',
+                        'description' => 'Users only.',
+                    ],
+                ],
+                'allOf' => [
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'user'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['$ref' => '#/$defs/Ulid'],
+                                'agentName' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'agent'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['$ref' => '#/$defs/Ulid'],
+                                'agentName' => ['type' => 'string'],
+                                'avatarUrl' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'if' => [
+                            'properties' => [
+                                'kind' => ['const' => 'system'],
+                            ],
+                        ],
+                        'then' => [
+                            'properties' => [
+                                'userId' => ['type' => 'null'],
+                                'agentName' => ['type' => 'null'],
+                                'avatarUrl' => ['type' => 'null'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'ActorKind' => [
+                'enum' => ['user', 'agent', 'system'],
+            ],
+            'CommentLabel' => [
+                'enum' => ['comment', 'decision', 'question', 'answer', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'],
+                'description' => 'What a comment of an issue is (D121). comment: progress or a remark. decision: a choice, with its reason and what it rules out. question: asks the user with its questions. answer: the answers of a user to a question comment, which it replaces. The server sets question and answer (D124). finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent.',
+            ],
+            'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
+            'IssueEntry' => [
+                'type' => 'object',
+                'required' => ['id', 'kind', 'label', 'actor', 'createdAt', 'body', 'questions', 'section', 'from', 'to', 'note', 'reviewer', 'reviewNote', 'planRevision', 'replaces', 'replacedBy'],
+                'description' => 'One entry of the thread of an issue. The thread only grows: a new version replaces an entry, and the replaced entry stays.',
+                'properties' => [
+                    'id' => ['$ref' => '#/$defs/Ulid'],
+                    'kind' => ['$ref' => '#/$defs/IssueEntryKind'],
+                    'label' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/CommentLabel'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'comment: its label; else null.',
+                    ],
+                    'actor' => ['$ref' => '#/$defs/Actor'],
+                    'createdAt' => ['$ref' => '#/$defs/DateTime'],
+                    'body' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 65536,
+                        'description' => 'comment: the Markdown comment, empty for the answers of a user. section_changed: the Markdown text of this version of the section with history, and null without it, because the issue has the current text. Else null.',
+                    ],
+                    'questions' => [
+                        'type' => 'array',
+                        'items' => ['$ref' => '#/$defs/Question'],
+                        'description' => 'comment only, else empty. A comment with the label question asks them, and a comment with the label answer repeats each one with its answer (D124).',
+                    ],
+                    'section' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/IssueSection'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'section_changed only. The ID of such an entry of plan is a plan revision.',
+                    ],
+                    'from' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/IssueStatus'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'status_changed only.',
+                    ],
+                    'to' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/IssueStatus'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'status_changed only.',
+                    ],
+                    'note' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 65536,
+                        'description' => 'status_changed only: the Markdown note of the change, when one was given.',
+                    ],
+                    'reviewer' => [
+                        'type' => ['string', 'null'],
+                        'minLength' => 1,
+                        'maxLength' => 64,
+                        'description' => 'status_changed and plan_approved: the name of the reviewing agent, when one was given.',
+                    ],
+                    'reviewNote' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 65536,
+                        'description' => 'plan_approved only: the Markdown findings of the reviewer.',
+                    ],
+                    'planRevision' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'plan_approved only: the plan revision that the approval read.',
+                    ],
+                    'replaces' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The ID of the entry that this entry replaced. section_changed: the entry of the version before it. comment: the comment that its writer named, for the label answer the question comment. Else null.',
+                    ],
+                    'replacedBy' => [
+                        'anyOf' => [
+                            ['$ref' => '#/$defs/Ulid'],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'The ID of the entry that replaced this entry. Null for a current entry. section_changed: the next entry of its section. comment: the comment that names it in replaces. plan_approved: the plan version after the one that it approved.',
+                    ],
+                ],
+            ],
+            'IssueEntryKind' => [
+                'anyOf' => [
+                    [
+                        'enum' => ['comment', 'status_changed', 'section_changed', 'plan_approved'],
+                    ],
+                    ['type' => 'string'],
+                ],
+                'description' => 'Open set.',
+            ],
+            'IssueKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
+            'IssueSection' => [
+                'enum' => ['problem', 'plan', 'result', 'followUps'],
+            ],
+            'IssueStatus' => [
+                'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'awaiting_user_input', 'in_review', 'done', 'wont_do'],
+                'description' => 'done means delivered. done and wont_do end an issue (D117).',
+            ],
+            'IssueSummary' => [
+                'type' => 'object',
+                'required' => ['key', 'title', 'status', 'updatedAt'],
+                'properties' => [
+                    'key' => ['$ref' => '#/$defs/IssueKey'],
+                    'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
+                    'status' => ['$ref' => '#/$defs/IssueStatus'],
+                    'updatedAt' => ['$ref' => '#/$defs/DateTime'],
+                ],
+            ],
+            'Question' => [
+                'type' => 'object',
+                'required' => ['question', 'detail', 'answer'],
+                'properties' => [
+                    'question' => ['$ref' => '#/$defs/QuestionText'],
+                    'detail' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 4000,
+                        'description' => 'Markdown that gives the context of the question.',
+                    ],
+                    'answer' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 4000,
+                        'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
+                    ],
+                ],
+                'description' => 'A question of an agent comment, or a question with its answer on a user comment (D107, D124).',
+            ],
+            'QuestionText' => [
+                'type' => 'string',
+                'minLength' => 1,
+                'maxLength' => 200,
+                'pattern' => '\\S',
+                'not' => ['pattern' => '[\\r\\n]'],
+                'description' => 'A question of an agent: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
+            ],
+            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+        ],
+    ];
+
     /** issue.schema.json */
     public const array ISSUE = [
         'title' => 'Issue',
@@ -5024,6 +5272,27 @@ final class BundledSchemas
             ],
             'annotations' => ['readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false],
             'outputSchema' => self::ISSUE_DETAIL,
+        ],
+        [
+            'name' => 'get_issue_updates',
+            'title' => 'Get issue updates',
+            'description' => 'Return what changed in one project since cursor: the new entries of the threads of its issues, oldest first, each with the summary of its issue, as get_issue reads them without history. Your own entries and replaced entries are left out; another session with your token name counts as you. Without a cursor, return the issues in todo, in_progress, awaiting_user_input, and in_review, and the newest cursor. Always keep the returned cursor for the next call; if hasMore is true, call again at once. Poll it while an issue waits for the user: answers are a comment with the label answer, an approval is a plan_approved entry. A title change, a link, and a new issue without a problem write no entry.',
+            'inputSchema' => [
+                'type' => 'object',
+                'properties' => [
+                    'project' => ['type' => 'string', 'description' => 'Project key from list_projects, for example SM', 'pattern' => '^[A-Z]{2,10}$'],
+                    'cursor' => [
+                        'type' => ['null', 'integer'],
+                        'description' => 'The cursor from the previous call. Null returns the issues in work and the newest cursor.',
+                        'default' => null,
+                        'minimum' => 0,
+                    ],
+                    'limit' => ['type' => 'integer', 'description' => 'Maximum entries (with a cursor) or issues (without one)', 'default' => 50, 'minimum' => 1, 'maximum' => 200],
+                ],
+                'required' => ['project'],
+            ],
+            'annotations' => ['readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false],
+            'outputSchema' => self::ISSUE_UPDATES_PAGE,
         ],
         [
             'name' => 'get_request',

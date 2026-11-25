@@ -1,0 +1,19 @@
+{
+  "cursor": 41,
+  "hasMore": false,
+  "issues": [
+    {
+      "key": "BILL-12",
+      "title": "Round invoice totals once per invoice",
+      "status": "in_progress",
+      "updatedAt": "2026-10-02T09:20:05Z"
+    },
+    {
+      "key": "BILL-14",
+      "title": "Round the totals of credit notes",
+      "status": "awaiting_user_input",
+      "updatedAt": "2026-10-02T09:16:40Z"
+    }
+  ],
+  "entries": []
+}

@@ -2,7 +2,7 @@
 
 This file continues [rest-api.md](rest-api.md). That file has the conventions, the [endpoint index](rest-api.md#2-endpoint-index), and the common errors, which this file does not repeat. Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json).
 
-The endpoints are the issue tracker for the web UI and for agents without MCP (D120, D122). The issue endpoints call the same application services as the [issue tools](mcp.md#issue-tools) and return the same JSON. The model, the visibility, and the rules of the issue tools hold here too. P2 and P3 have no tool: only a signed-in user creates and changes a project. I9 has no tool: the graph is for the web UI.
+The endpoints are the issue tracker for the web UI and for agents without MCP (D120, D122). The issue endpoints call the same application services as the [issue tools](mcp.md#issue-tools) and return the same JSON. The model, the visibility, and the rules of the issue tools hold here too. P2 and P3 have no tool: only a signed-in user creates and changes a project. I9 has no tool: the graph is for the web UI. I10 is the twin of the tool `get_issue_updates`, for the watch loop of the `slopmower-issues` skill (D128).
 
 ## 1. Keys, actors, and rules
 
@@ -184,3 +184,25 @@ An issue is open while its status is not `done` and not `wont_do`. A dependency 
 - `otherOpenIssues` is the count of the open issues of the project that are not in `issues`.
 
 `issues` is sorted by project key, then by number. `links` is sorted in that order by `issue`, then by `blockedBy`. The body has no page: it holds every such issue. A link with an issue that the caller cannot see is left out, so a token of one repository gets no issue of another project. A cycle is no error, and each of its links is in `links`. No MCP tool returns the graph: an agent reads `kind` of the links of `get_issue`.
+
+### I10 Get the updates of a project
+
+- **Request:** `GET /api/v1/projects/{projectKey}/updates`
+- **Authentication:** S, B
+- **Success:** 200 [`IssueUpdatesPage`](schemas/issue.schema.json), `{cursor, hasMore, issues, entries}` (D128). Examples: [fixtures/issue.updates-first-call.json](fixtures/issue.updates-first-call.json) without a cursor, [fixtures/issue.updates-cursor.json](fixtures/issue.updates-cursor.json) with one.
+- **Errors:** 422 `invalid_input` on `cursor` for a cursor ahead of the server, and on `cursor` or `limit` for a value outside its range.
+
+| Query | Type | Default | Notes |
+|---|---|---|---|
+| `cursor` | integer, at least 0 | none | `cursor` of the previous answer |
+| `limit` | integer 1-200 | 50 | Issues without a cursor, entries with one |
+
+Each write that appends an entry to the thread of an issue gives the entry the next number of a sequence of its project, under the row lock of the project. `cursor` is such a number.
+
+- **Without a cursor:** `issues` holds the summaries of the issues of the project in `todo`, `in_progress`, `awaiting_user_input`, and `in_review`, newest `updatedAt` first, then by ID, at most `limit`. `entries` is empty, `hasMore` is false, and `cursor` is the newest number of the project, 0 for a project without a numbered entry.
+- **With a cursor:** `entries` holds the entries after `cursor`, oldest first, each as `{issue, entry}`: the summary of its issue and the entry. `issues` is empty. The read takes the newest number of the project first, then the entries up to it, so it misses no entry that commits later. It reads at most `limit` entries. With more, `hasMore` is true and `cursor` is the number of the last entry that it read; else `cursor` is the newest number. A page can hold fewer than `limit` entries, also none, while `hasMore` is true, because it leaves out entries.
+- **Left out:** the entries of the caller, and each entry that is replaced at the time of the read. An entry reads as in I2 without `history`: `replacedBy` is null, and a `section_changed` entry has `body` null, because the issue has the text. An entry from before the sequence has no number and comes before every cursor.
+- **The caller** is the actor of the call: a session is its user, and a token is the agent of its name and its user. Two tokens of one user with the same name are one caller, so an agent does not see the entries of another session with its token name, for example the review comment that it recorded.
+- **No entry:** a title change, a link, and a new issue without a `problem` write no entry, so no update tells of them.
+
+The answers of a user are one `comment` entry with the label `answer`, each question with its `answer`, which replaces the question comment (D124). A plan approval of a user is a `plan_approved` entry, followed by a `status_changed` entry to `todo` when the issue was in `awaiting_user_input`. The MCP tool `get_issue_updates` returns the same body.

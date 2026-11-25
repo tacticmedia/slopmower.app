@@ -78,12 +78,21 @@ export class Live {
 
 function topicOf(update: LiveUpdate): string {
     const { topics } = mercureAuthorization();
-    const reviews = topics.find((topic) => topic.includes('{reviewId}'));
-    const repositories = topics.find((topic) => !topic.includes('{reviewId}'));
+    const selector = (matches: (topic: string) => boolean): string => {
+        const found = topics.find(matches);
+        if (undefined === found) {
+            throw new Error('The Mercure authorization fixture lacks a selector.');
+        }
 
-    if (undefined === reviews || undefined === repositories) {
-        throw new Error('The Mercure authorization fixture lacks a topic.');
+        return found;
+    };
+
+    if ('reviewId' in update) {
+        return selector((topic) => topic.includes('{reviewId}')).replace('{reviewId}', update.reviewId);
+    }
+    if ('issueKey' in update) {
+        return selector((topic) => topic.includes('{projectKey}')).replace('{projectKey}', update.issueKey.replace(/-\d+$/, ''));
     }
 
-    return 'reviewId' in update ? reviews.replace('{reviewId}', update.reviewId) : repositories;
+    return selector((topic) => !topic.includes('{'));
 }

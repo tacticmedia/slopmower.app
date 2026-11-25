@@ -42,6 +42,7 @@ trait McpAssertions
         'link_issues' => 'issue.schema.json',
         'approve_plan' => 'issue.schema.json',
         'list_comments' => 'lists.schema.json#/$defs/IssueCommentPage',
+        'get_issue_updates' => 'issue.schema.json#/$defs/IssueUpdatesPage',
     ];
 
     /**

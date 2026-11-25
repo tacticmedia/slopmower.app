@@ -273,7 +273,7 @@ final class McpRestParityTest extends WebTestCase
      * Each write tool works on SM-1, and its REST endpoint on the twin SM-2, at a frozen time. The bodies differ only in
      * the key.
      */
-    #[TestDox('The issue tools with a REST endpoint return the same bodies as P1, I1 to I3, and I5 to I8')]
+    #[TestDox('The issue tools with a REST endpoint return the same bodies as P1, I1 to I3, I5 to I8, and I10')]
     public function testIssueToolsEqualRestEndpoints(): void
     {
         self::mockTime('2026-09-29 07:40:00');
@@ -305,6 +305,18 @@ final class McpRestParityTest extends WebTestCase
 
         self::assertSame($restComments, $mcpComments);
         self::assertSame([['SM-2', 'finding'], ['SM-1', 'finding']], array_map(static fn (array $item): array => [$item['issue']['key'], $item['label']], $mcpComments['items']), 'The label of I3 and of the tool.');
+
+        $this->client->loginUser($this->user, 'web');
+        self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/comments', ['body' => 'Keep `round()` as deprecated.']);
+
+        foreach ([[[], ''], [['cursor' => 0], '?cursor=0']] as [$arguments, $query]) {
+            $restUpdates = self::assertApiResponse(self::bearerRequest($this->client, $this->secret, 'GET', "/api/v1/projects/SM/updates{$query}"), 200, self::TOOL_SCHEMAS['get_issue_updates']);
+            $mcpUpdates = self::assertToolResult($this->mcp, $this->mcp->callTool('get_issue_updates', ['project' => 'SM', ...$arguments]), 'get_issue_updates');
+
+            self::assertSame($restUpdates, $mcpUpdates, $query);
+        }
+
+        self::assertSame(['Keep `round()` as deprecated.'], array_map(static fn (array $item): ?string => $item['entry']['body'], $mcpUpdates['entries']), 'Only the comment of the user.');
     }
 
     #[TestDox('link_pull_request on a local repository gives invalid_input on url')]

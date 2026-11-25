@@ -42,7 +42,7 @@ final class HubIsolationTest extends WebTestCase
         $publisher = self::getContainer()->get(LivePublisher::class);
         $reviewA = ReviewId::generate();
         $reviewB = ReviewId::generate();
-        $subscribed = [$topics->repositories($tenantB), $topics->review($tenantB, $reviewB), $topics->review($tenantA, $reviewA)];
+        $subscribed = [$topics->repositories($tenantB), $topics->review($tenantB, $reviewB), $topics->project($tenantB, 'SM'), $topics->review($tenantA, $reviewA)];
         $sse = new EventSourceHttpClient(HttpClient::create());
         $source = $sse->connect($hubUrl.'?topic='.implode('&topic=', array_map(rawurlencode(...), $subscribed)), ['headers' => ['Cookie' => "{$cookie->getName()}={$cookie->getValue()}", 'Accept-Encoding' => 'gzip']]);
         // The hub sends the headers after it registered the subscriber.
@@ -51,6 +51,7 @@ final class HubIsolationTest extends WebTestCase
 
         $publisher->publish($topics->repositories($tenantB), ['type' => 'candidates_changed']);
         $publisher->publish($topics->review($tenantB, $reviewB), ['type' => 'index', 'reviewId' => $reviewB->toString()]);
+        $publisher->publish($topics->project($tenantB, 'SM'), ['type' => 'issue', 'issueKey' => 'SM-1']);
         $publisher->publish($topics->review($tenantA, $reviewA), ['type' => 'index', 'reviewId' => $reviewA->toString()]);
 
         $received = [];

@@ -38,6 +38,7 @@ final class BundleSchemasCommand
         'ISSUE_PAGE' => 'lists.schema.json#/$defs/IssuePage',
         'ISSUE_COMMENT_PAGE' => 'lists.schema.json#/$defs/IssueCommentPage',
         'ISSUE_DETAIL' => 'issue.schema.json#/$defs/IssueDetail',
+        'ISSUE_UPDATES_PAGE' => 'issue.schema.json#/$defs/IssueUpdatesPage',
         'ISSUE' => 'issue.schema.json',
     ];
 

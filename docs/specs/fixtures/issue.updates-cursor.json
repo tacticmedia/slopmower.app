@@ -1,0 +1,109 @@
+{
+  "cursor": 44,
+  "hasMore": false,
+  "issues": [],
+  "entries": [
+    {
+      "issue": {
+        "key": "BILL-14",
+        "title": "Round the totals of credit notes",
+        "status": "todo",
+        "updatedAt": "2026-10-02T09:31:07Z"
+      },
+      "entry": {
+        "id": "01K7F3G2H3J4K5M6N7P8Q9R0S1",
+        "kind": "comment",
+        "label": "answer",
+        "actor": {
+          "kind": "user",
+          "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+          "agentName": null,
+          "name": "janklan",
+          "avatarUrl": "https://avatars.githubusercontent.com/u/1?v=4"
+        },
+        "createdAt": "2026-10-02T09:30:12Z",
+        "body": "",
+        "questions": [
+          {
+            "question": "Round a credit note as one invoice?",
+            "detail": "A credit note of three lines then differs from the sum of its lines by up to 1 cent.",
+            "answer": "Yes"
+          }
+        ],
+        "section": null,
+        "from": null,
+        "to": null,
+        "note": null,
+        "reviewer": null,
+        "reviewNote": null,
+        "planRevision": null,
+        "replaces": "01K7F3FZH3J4K5M6N7P8Q9R0S1",
+        "replacedBy": null
+      }
+    },
+    {
+      "issue": {
+        "key": "BILL-14",
+        "title": "Round the totals of credit notes",
+        "status": "todo",
+        "updatedAt": "2026-10-02T09:31:07Z"
+      },
+      "entry": {
+        "id": "01K7F3G9H3J4K5M6N7P8Q9R0S1",
+        "kind": "plan_approved",
+        "label": null,
+        "actor": {
+          "kind": "user",
+          "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+          "agentName": null,
+          "name": "janklan",
+          "avatarUrl": "https://avatars.githubusercontent.com/u/1?v=4"
+        },
+        "createdAt": "2026-10-02T09:31:07Z",
+        "body": null,
+        "questions": [],
+        "section": null,
+        "from": null,
+        "to": null,
+        "note": null,
+        "reviewer": null,
+        "reviewNote": null,
+        "planRevision": "01K7F3FAH3J4K5M6N7P8Q9R0S1",
+        "replaces": null,
+        "replacedBy": null
+      }
+    },
+    {
+      "issue": {
+        "key": "BILL-14",
+        "title": "Round the totals of credit notes",
+        "status": "todo",
+        "updatedAt": "2026-10-02T09:31:07Z"
+      },
+      "entry": {
+        "id": "01K7F3G9H3J4K5M6N7P8Q9R0S2",
+        "kind": "status_changed",
+        "label": null,
+        "actor": {
+          "kind": "user",
+          "userId": "01K6AZZ9Y8X7W6V5T4S3R2Q1P0",
+          "agentName": null,
+          "name": "janklan",
+          "avatarUrl": "https://avatars.githubusercontent.com/u/1?v=4"
+        },
+        "createdAt": "2026-10-02T09:31:07Z",
+        "body": null,
+        "questions": [],
+        "section": null,
+        "from": "awaiting_user_input",
+        "to": "todo",
+        "note": null,
+        "reviewer": null,
+        "reviewNote": null,
+        "planRevision": null,
+        "replaces": null,
+        "replacedBy": null
+      }
+    }
+  ]
+}

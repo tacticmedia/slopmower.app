@@ -26,6 +26,7 @@ the `slopmower` MCP server.
 | `list_comments` | `project`, `label?`, `cursor?`, `limit?` | Read the comments of the project across its issues, all or those of one label |
 | `link_issues` | `issue`, `target`, `note`, `kind?` | Link two issues, with the reason, or say that `issue` waits for `target` |
 | `approve_plan` | `issue`, `planRevision`, `reviewer`, `reviewNote` | Record the review of the plan by another agent |
+| `get_issue_updates` | `project`, `cursor?`, `limit?` | Learn what others wrote in the issues of the project since your last cursor, while you wait for the user |
 
 A `?` marks an optional parameter. An issue is named by its key: the project
 key, a hyphen, and a number, for example `SM-12`.
@@ -101,7 +102,7 @@ comment.
 - The server sets the labels `question` and `answer`. It refuses both on a
   comment without `questions`.
 - A question does not change the status. Set `awaiting_user_input` when the
-  work waits for the answers.
+  work waits for the answers. Take the cursor of section 8 before you ask.
 
 ## Dependencies
 
@@ -183,6 +184,7 @@ parameter that you leave out stays as it is.
      the plan leaves a choice to the user, ask it as `questions`, as the
      section "Questions" says. Then call `set_issue_status` with
      `awaiting_user_input`, tell the user, and stop the work on this issue.
+     Take the cursor of section 8 before these writes, and wait as it says.
 5. Call `set_issue_status` with `in_progress` before you edit. `todo` to
    `in_progress` is the claim.
 6. Do the work. Record each important step or decision with
@@ -246,6 +248,57 @@ becomes an issue:
 Keep working. Note each change that you could not send: the status, the
 sections, and the comments. Write them when the server answers again, in the
 order in which they happened.
+
+## 8. Wait for the user
+
+While an issue waits for the user, for the approval of its plan or for the
+answers to its questions, poll the updates of the project. Do not read each
+issue again.
+
+1. Take the cursor before the write that starts the wait: call
+   `get_issue_updates` with `project` and no cursor, and keep its `cursor`.
+   Then ask or set `awaiting_user_input`. Your own write does not wake you,
+   because your entries are left out.
+2. Call `get_issue_updates` again with your last `cursor`. Each item of `entries` is a new
+   entry of an issue of the project, with the summary of that issue. The
+   answers of the user are a `comment` with the label `answer`, an approval is
+   a `plan_approved` entry, and a status change is a `status_changed` entry.
+   Keep the returned `cursor`. If `hasMore` is true, call again at once.
+3. When an entry of your issue lets you go on, call `get_issue` and continue
+   with section 4.
+
+The entries of your token name are left out: yours, and those of every other
+session with the same token name. A title change, a link, and a new issue
+without a problem write no entry, so no update tells of them.
+
+In Claude Code, watch the project with the `Monitor` tool: the description
+`Slopmower project <project key>`, `timeout_ms` 1800000, and the command
+below. Fill in the base URL, the project key, and your last cursor. The base
+URL is the URL of the `slopmower` MCP server without `/_mcp`, from `.mcp.json`
+or `claude mcp get slopmower`. The command needs `curl` and `jq`.
+
+- Each line of the command names an issue with a new entry. Call
+  `get_issue_updates` with your last cursor and go on as above.
+- The command has no end. When the watch times out, start it again with your
+  last cursor. On `watch stopped`, tell the user.
+- Without the `Monitor` tool, call `get_issue_updates` with your last cursor
+  again after a pause.
+
+```bash
+url='<base URL>/api/v1/projects/<project key>/updates'; cursor=<cursor>
+while :; do
+  out=$(curl -s -w '\n%{http_code}' -H "Authorization: Bearer $SLOPMOWER_TOKEN" "$url?cursor=$cursor") || { sleep 30; continue; }
+  code=${out##*$'\n'}; body=${out%$'\n'*}
+  case $code in
+    200) ;;
+    401|404|422) echo "watch stopped: HTTP $code"; exit 1 ;;
+    *) sleep 30; continue ;;
+  esac
+  jq -r '.entries[] | "\(.issue.key) \(.issue.status) \(.entry.kind) \(.entry.label // "")"' <<<"$body"
+  cursor=$(jq -r .cursor <<<"$body")
+  [ "$(jq -r .hasMore <<<"$body")" = true ] || sleep 30
+done
+```
 
 ## Rules
 

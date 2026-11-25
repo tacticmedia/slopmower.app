@@ -1,4 +1,4 @@
-import type { EventSeq, Ulid } from './common';
+import type { EventSeq, IssueKey, Ulid } from './common';
 
 export type EventsUpdate = {
     type: 'events';
@@ -42,6 +42,12 @@ export type CandidatesChangedUpdate = {
     type: 'candidates_changed';
 };
 
+/** On the topic of the project of the issue. */
+export type IssueUpdate = {
+    type: 'issue';
+    issueKey: IssueKey;
+};
+
 /** IDs only: reload the data through REST. `type` is an open set, so ignore an unknown one. */
 export type LiveUpdate =
     | EventsUpdate
@@ -50,4 +56,5 @@ export type LiveUpdate =
     | PullRequestUpdate
     | RepositoryUpdate
     | RepositoryDeletedUpdate
-    | CandidatesChangedUpdate;
+    | CandidatesChangedUpdate
+    | IssueUpdate;

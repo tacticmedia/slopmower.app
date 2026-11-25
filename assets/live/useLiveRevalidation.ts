@@ -1,6 +1,7 @@
 import { useContext, useEffect, useRef, useState } from 'react';
-import { type DataRouter, UNSAFE_DataRouterContext, useRouteLoaderData } from 'react-router';
+import { type DataRouter, type UIMatch, UNSAFE_DataRouterContext, useMatches, useRouteLoaderData } from 'react-router';
 import { ApiError, apiGet, apiWrite } from '../api/client';
+import type { Issue } from '../api/types/issue';
 import type { MercureAuthorization } from '../api/types/lists';
 import type { LiveUpdate } from '../api/types/live-update';
 import type { Request as ReviewRequest } from '../api/types/request';
@@ -10,6 +11,12 @@ import { type EventPositions, eventPositions } from './eventPositions';
 
 /** The only variable of the review selector in the subscriber JWT. */
 const REVIEW_VARIABLE = '{reviewId}';
+
+/** The only variable of the project selector in the subscriber JWT. */
+const PROJECT_VARIABLE = '{projectKey}';
+
+/** The routes of the screens of a project. Their loader data holds the project, or the issue with its project. */
+const PROJECT_ROUTES = ['project', 'project-comments', 'project-graph', 'issue'];
 
 const REAUTHORIZE_BEFORE_EXPIRY_MS = 60_000;
 
@@ -42,13 +49,19 @@ export type LiveConnection = {
 };
 
 /**
- * `hubUrl` with the repositories topic, and the topic of the open review.
+ * `hubUrl` with the selectors without a variable, and the topics of the open review and the open project. A selector with
+ * a variable matches every review or project of the tenant.
  */
-export function subscriptionUrl(authorization: MercureAuthorization, reviewId: string | null): string {
-    const topics = authorization.topics.filter((topic) => !topic.includes(REVIEW_VARIABLE));
-    const reviewSelector = authorization.topics.find((topic) => topic.includes(REVIEW_VARIABLE));
-    if (null !== reviewId && undefined !== reviewSelector) {
-        topics.push(reviewSelector.replace(REVIEW_VARIABLE, reviewId));
+export function subscriptionUrl(authorization: MercureAuthorization, reviewId: string | null, projectKey: string | null): string {
+    const topics = authorization.topics.filter((topic) => !topic.includes('{'));
+    for (const [variable, value] of [
+        [REVIEW_VARIABLE, reviewId],
+        [PROJECT_VARIABLE, projectKey],
+    ] as const) {
+        const selector = authorization.topics.find((topic) => topic.includes(variable));
+        if (null !== value && undefined !== selector) {
+            topics.push(selector.replace(variable, value));
+        }
     }
 
     return `${authorization.hubUrl}?${topics.map((topic) => `topic=${encodeURIComponent(topic)}`).join('&')}`;
@@ -63,6 +76,7 @@ export class LiveSubscription {
     #authorization: MercureAuthorization | null = null;
     #source: LiveEventSource | null = null;
     #reviewId: string | null = null;
+    #projectKey: string | null = null;
     #started = false;
     #stopped = false;
     #reconnecting = false;
@@ -80,13 +94,14 @@ export class LiveSubscription {
     }
 
     /**
-     * Subscribes to the topic of the review, or of no review. The first call authorizes.
+     * Subscribes to the topics of the review and of the project, or of none. The first call authorizes.
      */
-    watch(reviewId: string | null): void {
-        if (this.#started && reviewId === this.#reviewId) {
+    watch(reviewId: string | null, projectKey: string | null = null): void {
+        if (this.#started && reviewId === this.#reviewId && projectKey === this.#projectKey) {
             return;
         }
         this.#reviewId = reviewId;
+        this.#projectKey = projectKey;
 
         if (!this.#started) {
             this.#started = true;
@@ -179,7 +194,7 @@ export class LiveSubscription {
         }
         this.#source?.close();
         this.#connection.connectionChanged?.(false);
-        const source = this.#connection.open(subscriptionUrl(this.#authorization, this.#reviewId));
+        const source = this.#connection.open(subscriptionUrl(this.#authorization, this.#reviewId, this.#projectKey));
         source.onmessage = (event) => this.#receive(event);
         source.onopen = () => this.#opened(source);
         source.onerror = () => this.#failed(source);
@@ -202,7 +217,8 @@ export class LiveSubscription {
 
     /**
      * The hub does not replay an event between the loader read and the first open, so the first open reads the events
-     * after `lastSeq` too. It revalidates only when it found any.
+     * after `lastSeq` too. It revalidates only when it found any. A project has no such read, because its loaders read
+     * the whole state, so it always revalidates.
      */
     async #catchUpFirstOpen(): Promise<void> {
         const reviewId = this.#reviewId;
@@ -213,7 +229,7 @@ export class LiveSubscription {
             return;
         }
 
-        if (null !== reviewId && before !== this.#positions.last(reviewId)) {
+        if (null !== this.#projectKey || (null !== reviewId && before !== this.#positions.last(reviewId))) {
             this.#requestRevalidation(null);
         }
     }
@@ -255,6 +271,12 @@ export class LiveSubscription {
             case 'repository_deleted':
             case 'candidates_changed':
                 this.#requestRevalidation(null);
+
+                return;
+            case 'issue':
+                if (null !== this.#projectKey && update.issueKey.startsWith(`${this.#projectKey}-`)) {
+                    this.#requestRevalidation(null);
+                }
 
                 return;
         }
@@ -334,8 +356,16 @@ function routerIdle(router: DataRouter): Promise<void> {
     });
 }
 
+/** The project of the route data of a project screen, or null. */
+function openProjectKey(matches: UIMatch[]): string | null {
+    const data = matches.find(({ id }) => PROJECT_ROUTES.includes(id))?.loaderData as { project: { key: string } } | { issue: Issue } | undefined;
+
+    return undefined === data ? null : ('issue' in data ? data.issue : data).project.key;
+}
+
 /**
- * Mounted once, by RootLayout. The open review comes from the route data of the review layout or the request detail.
+ * Mounted once, by RootLayout. The open review comes from the route data of the review layout or the request detail,
+ * and the open project from the route data of a project screen.
  *
  * @returns Whether the EventSource of the current topics is open
  */
@@ -347,6 +377,7 @@ export function useLiveRevalidation(): boolean {
     const review = useRouteLoaderData<ReviewData>('review')?.review;
     const request = useRouteLoaderData<ReviewRequest>('request');
     const reviewId = review?.id ?? request?.reviewId ?? null;
+    const projectKey = openProjectKey(useMatches());
     const [connected, setConnected] = useState(false);
     const subscriptionRef = useRef<LiveSubscription | null>(null);
 
@@ -374,8 +405,8 @@ export function useLiveRevalidation(): boolean {
     }, [router]);
 
     useEffect(() => {
-        subscriptionRef.current?.watch(reviewId);
-    }, [reviewId]);
+        subscriptionRef.current?.watch(reviewId, projectKey);
+    }, [reviewId, projectKey]);
 
     useEffect(() => {
         if (undefined !== review) {

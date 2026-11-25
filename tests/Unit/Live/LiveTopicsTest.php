@@ -25,13 +25,15 @@ final class LiveTopicsTest extends KernelTestCase
             $topics->repositories($tenantId),
             $topics->review($tenantId, ReviewId::generate()),
             $topics->review($tenantId, ReviewId::generate()),
+            $topics->project($tenantId, 'SM'),
+            $topics->project($tenantId, 'BILL'),
         ];
 
         $selectors = $topics->subscriberSelectors($tenantA);
 
-        self::assertSame(["https://slopmower.example/tenants/{$tenantA}/repositories", "https://slopmower.example/tenants/{$tenantA}/reviews/{reviewId}"], $selectors);
-        self::assertSame([true, true, true], array_map(static fn (string $topic): bool => self::anyMatches($selectors, $topic), $topicsOf($tenantA)));
-        self::assertSame([false, false, false], array_map(static fn (string $topic): bool => self::anyMatches($selectors, $topic), $topicsOf($tenantB)));
+        self::assertSame(["https://slopmower.example/tenants/{$tenantA}/repositories", "https://slopmower.example/tenants/{$tenantA}/reviews/{reviewId}", "https://slopmower.example/tenants/{$tenantA}/projects/{projectKey}"], $selectors);
+        self::assertSame([true, true, true, true, true], array_map(static fn (string $topic): bool => self::anyMatches($selectors, $topic), $topicsOf($tenantA)));
+        self::assertSame([false, false, false, false, false], array_map(static fn (string $topic): bool => self::anyMatches($selectors, $topic), $topicsOf($tenantB)));
     }
 
     /**

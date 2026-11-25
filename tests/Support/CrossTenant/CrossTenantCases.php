@@ -101,6 +101,7 @@ final class CrossTenantCases
             'api_issue_update' => ['method' => 'PATCH', 'path' => '/api/v1/issues/{issueKey}', 'body' => ['title' => 'Use Money'], 'status' => 200, 'schema' => 'issue.schema.json'],
             'api_issue_set_status' => ['method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/status', 'body' => ['status' => 'backlog'], 'status' => 200, 'schema' => 'issue.schema.json'],
             'api_issue_graph' => ['method' => 'GET', 'path' => '/api/v1/projects/{projectKey}/graph', 'body' => null, 'status' => 200, 'schema' => 'issue.schema.json#/$defs/IssueGraph'],
+            'api_issue_updates' => ['method' => 'GET', 'path' => '/api/v1/projects/{projectKey}/updates', 'body' => null, 'status' => 200, 'schema' => 'issue.schema.json#/$defs/IssueUpdatesPage'],
         ];
     }
 }

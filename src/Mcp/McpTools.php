@@ -10,6 +10,7 @@ use App\Application\Query\IssueCommentPage;
 use App\Application\Query\IssueDetail;
 use App\Application\Query\IssuePage;
 use App\Application\Query\IssueQuery;
+use App\Application\Query\IssueUpdatesPage;
 use App\Application\Query\IssueView;
 use App\Application\Query\LinkCommitsResult;
 use App\Application\Query\LinkPullRequestResult;
@@ -154,6 +155,16 @@ final class McpTools
     public function getIssue(string $issue, bool $history = false): array
     {
         return $this->run('get_issue', fn (): IssueDetail => $this->issues->get(IssueKey::fromString($issue, 'issue'), $this->currentActor->get(), $history));
+    }
+
+    /**
+     * Section 4.29: REST I10.
+     *
+     * @return array<string, mixed>
+     */
+    public function getIssueUpdates(string $project, ?int $cursor = null, int $limit = 50): array
+    {
+        return $this->run('get_issue_updates', fn (): IssueUpdatesPage => $this->issues->updates($project, $this->currentActor->get(), $cursor, $limit));
     }
 
     /**

@@ -47,6 +47,16 @@ trait PublishedUpdates
     }
 
     /**
+     * The data of the updates on the topic of the project, each private and valid against live-update.schema.json.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private static function projectTopicUpdates(TenantId $tenantId, string $projectKey): array
+    {
+        return self::topicUpdates(self::getContainer()->get(LiveTopics::class)->project($tenantId, $projectKey));
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     private static function topicUpdates(string $topic): array

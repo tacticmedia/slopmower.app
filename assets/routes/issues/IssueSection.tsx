@@ -1,4 +1,5 @@
 import { Button } from '@primer/react';
+import type { Ref } from 'react';
 import { useFetcher } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
 import type { IssueSection as Section } from '../../api/types/common';
@@ -65,8 +66,13 @@ export function canApprove(issue: Issue): issue is Issue & { planRevision: strin
     return null !== issue.planRevision && hasText(issue, 'plan') && 'done' !== issue.status && 'wont_do' !== issue.status && 'user' !== issue.planApproval?.approvedBy.kind;
 }
 
-/** I4 for the plan revision that the page shows. A refusal stays visible while the loader shows the newest plan, so only another issue remounts the form. */
-export function ApprovePlan({ planRevision }: { planRevision: string }) {
+/**
+ * I4 for the plan revision that the page shows. A refusal stays visible while the loader shows the newest plan, so only
+ * another issue remounts the form.
+ *
+ * @param disabled The plan changed while the page was open, and the user has not read it yet
+ */
+export function ApprovePlan({ planRevision, disabled, ref }: { planRevision: string; disabled: boolean; ref: Ref<HTMLButtonElement> }) {
     const fetcher = useFetcher<ActionResult>();
     const intent: IssueIntent = { intent: 'approve_plan', input: { planRevision } };
     const submitOnce = useSubmitOnce(() => fetcher.submit(intent, { method: 'post', encType: 'application/json' }));
@@ -74,7 +80,7 @@ export function ApprovePlan({ planRevision }: { planRevision: string }) {
     return (
         <fetcher.Form method="post" onSubmit={submitOnce} className={styles.sectionFooter} data-testid="approve-plan">
             <ActionErrorMessage result={fetcher.data} />
-            <Button type="submit" variant="primary" loading={'idle' !== fetcher.state}>
+            <Button ref={ref} type="submit" variant="primary" loading={'idle' !== fetcher.state} disabled={disabled}>
                 Approve plan
             </Button>
         </fetcher.Form>

@@ -25,8 +25,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;
 
 /**
- * docs/specs/mcp.md sections 4.19 to 4.28. The agent of a token for all repositories works on the issues of the
- * project SM.
+ * docs/specs/mcp.md sections 4.19 to 4.28, and the visibility of 4.29. The agent of a token for all repositories works
+ * on the issues of the project SM.
  */
 final class IssueToolsTest extends WebTestCase
 {
@@ -433,7 +433,7 @@ final class IssueToolsTest extends WebTestCase
         self::assertJsonRpcError($this->mcp->callToolResponse('link_issues', ['issue' => 'SM-1', 'target' => 'SM-2', 'note' => 'SM-2 names the mode.', 'kind' => 'blocks']), -32602);
     }
 
-    #[TestDox('A token of one repository sees only the issues and the comments of its project, and no project without a repository')]
+    #[TestDox('A token of one repository sees only the issues, the comments, and the updates of its project, and no project without a repository')]
     public function testRepositoryTokenSeesItsProject(): void
     {
         $tenantId = $this->user->getTenantId();
@@ -452,16 +452,19 @@ final class IssueToolsTest extends WebTestCase
         $projects = self::assertToolResult($scoped, $scoped->callTool('list_projects'), 'list_projects');
         $issues = self::assertToolResult($scoped, $scoped->callTool('list_issues', ['project' => 'SM']), 'list_issues');
         $comments = self::assertToolResult($scoped, $scoped->callTool('list_comments', ['project' => 'SM']), 'list_comments');
+        $updates = self::assertToolResult($scoped, $scoped->callTool('get_issue_updates', ['project' => 'SM', 'cursor' => 0]), 'get_issue_updates');
 
         self::assertSame([['DOC', ['beta']], ['OPS', []], ['SM', ['alpha']]], array_map(static fn (array $project): array => [$project['key'], $project['repositories']], $allProjects['items']));
         self::assertSame([['key' => 'SM', 'name' => 'Project SM', 'approvalMode' => 'self', 'repositories' => ['alpha']]], $projects['items']);
         self::assertSame(['SM-1'], array_column($issues['items'], 'key'));
         self::assertSame(['A comment of SM.'], array_column($comments['items'], 'body'));
+        self::assertSame([['SM-1', 'A comment of SM.']], array_map(static fn (array $item): array => [$item['issue']['key'], $item['entry']['body']], $updates['entries']), 'The entries of another token name.');
         self::assertSame('SM-2', self::assertToolResult($scoped, $scoped->callTool('create_issue', ['project' => 'SM', 'title' => 'From the scoped agent']), 'create_issue')['key']);
 
         foreach (['DOC', 'OPS'] as $hidden) {
             self::assertToolError($scoped->callTool('list_issues', ['project' => $hidden]), 'not_found');
             self::assertToolError($scoped->callTool('list_comments', ['project' => $hidden]), 'not_found');
+            self::assertToolError($scoped->callTool('get_issue_updates', ['project' => $hidden]), 'not_found');
             self::assertToolError($scoped->callTool('create_issue', ['project' => $hidden, 'title' => 'Hidden']), 'not_found');
             self::assertToolError($scoped->callTool('get_issue', ['issue' => "{$hidden}-1"]), 'not_found');
             self::assertToolError($scoped->callTool('link_issues', ['issue' => 'SM-1', 'target' => "{$hidden}-1", 'note' => 'The same change.']), 'not_found');

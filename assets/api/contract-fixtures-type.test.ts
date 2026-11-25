@@ -64,6 +64,8 @@ import inputsWontDo from '../../docs/specs/fixtures/inputs.wont-do.json';
 import issueDetail from '../../docs/specs/fixtures/issue.detail.json';
 import issueGraph from '../../docs/specs/fixtures/issue.graph.json';
 import issuePlanApproved from '../../docs/specs/fixtures/issue.plan-approved.json';
+import issueUpdatesCursor from '../../docs/specs/fixtures/issue.updates-cursor.json';
+import issueUpdatesFirstCall from '../../docs/specs/fixtures/issue.updates-first-call.json';
 import linkCommitsResultAvailable from '../../docs/specs/fixtures/link-commits-result.available.json';
 import linkCommitsResultPending from '../../docs/specs/fixtures/link-commits-result.pending.json';
 import linkPullRequestResultLinked from '../../docs/specs/fixtures/link-pull-request-result.linked.json';
@@ -88,6 +90,7 @@ import liveUpdateCandidatesChanged from '../../docs/specs/fixtures/live-update.c
 import liveUpdateEventsBatch from '../../docs/specs/fixtures/live-update.events-batch.json';
 import liveUpdateEvents from '../../docs/specs/fixtures/live-update.events.json';
 import liveUpdateIndex from '../../docs/specs/fixtures/live-update.index.json';
+import liveUpdateIssue from '../../docs/specs/fixtures/live-update.issue.json';
 import liveUpdateOutdated from '../../docs/specs/fixtures/live-update.outdated.json';
 import liveUpdatePullRequest from '../../docs/specs/fixtures/live-update.pull-request.json';
 import liveUpdateRepositoryDeleted from '../../docs/specs/fixtures/live-update.repository-deleted.json';
@@ -162,7 +165,7 @@ import type {
     ViewedFileInput,
     WontDoInput,
 } from './types/inputs';
-import type { Issue, IssueDetail, IssueGraph } from './types/issue';
+import type { Issue, IssueDetail, IssueGraph, IssueUpdatesPage } from './types/issue';
 import type { LinkCommitsResult } from './types/link-commits-result';
 import type { LinkPullRequestResult } from './types/link-pull-request-result';
 import type {
@@ -270,6 +273,8 @@ const checkedFixtures = {
     'issue.detail.json': issueDetail satisfies Widen<IssueDetail>,
     'issue.graph.json': issueGraph satisfies Widen<IssueGraph>,
     'issue.plan-approved.json': issuePlanApproved satisfies Widen<Issue>,
+    'issue.updates-cursor.json': issueUpdatesCursor satisfies Widen<IssueUpdatesPage>,
+    'issue.updates-first-call.json': issueUpdatesFirstCall satisfies Widen<IssueUpdatesPage>,
     'link-commits-result.available.json': linkCommitsResultAvailable satisfies Widen<LinkCommitsResult>,
     'link-commits-result.pending.json': linkCommitsResultPending satisfies Widen<LinkCommitsResult>,
     'link-pull-request-result.linked.json': linkPullRequestResultLinked satisfies Widen<LinkPullRequestResult>,
@@ -294,6 +299,7 @@ const checkedFixtures = {
     'live-update.events-batch.json': liveUpdateEventsBatch satisfies WidenedLiveUpdate<'events'>,
     'live-update.events.json': liveUpdateEvents satisfies WidenedLiveUpdate<'events'>,
     'live-update.index.json': liveUpdateIndex satisfies WidenedLiveUpdate<'index'>,
+    'live-update.issue.json': liveUpdateIssue satisfies WidenedLiveUpdate<'issue'>,
     'live-update.outdated.json': liveUpdateOutdated satisfies WidenedLiveUpdate<'outdated'>,
     'live-update.pull-request.json': liveUpdatePullRequest satisfies WidenedLiveUpdate<'pull_request'>,
     'live-update.repository-deleted.json': liveUpdateRepositoryDeleted satisfies WidenedLiveUpdate<'repository_deleted'>,

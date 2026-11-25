@@ -10,6 +10,7 @@ use App\Domain\Error\NotFound;
 use App\Domain\Identity\IssueEntryId;
 use App\Domain\Identity\IssueId;
 use App\Domain\Identity\ProjectId;
+use App\Domain\Identity\UserId;
 use App\Domain\Issue\CommentLabel;
 use App\Domain\Issue\IssueEntryKind;
 use App\Domain\Issue\IssueKey;
@@ -31,8 +32,8 @@ use Doctrine\ORM\Query;
 use Symfony\Bridge\Doctrine\Types\UlidType;
 
 /**
- * The reads of the issue tracker (D116, D121): docs/specs/mcp.md sections 4.19 to 4.21 and 4.28, and P1, I1, I2, and I5
- * of docs/specs/rest-api-issues.md. The writes answer with {@see projectView()} and {@see view()}.
+ * The reads of the issue tracker (D116, D121): docs/specs/mcp.md sections 4.19 to 4.21, 4.28, and 4.29, and P1, I1, I2,
+ * I5, and I10 of docs/specs/rest-api-issues.md. The writes answer with {@see projectView()} and {@see view()}.
  */
 final class IssueQuery
 {
@@ -205,6 +206,85 @@ final class IssueQuery
     }
 
     /**
+     * I10 (D128). The newest number comes first, and every entry up to it has committed, because a write numbers its
+     * entries under the row lock of the project. `limit` counts the entries that it reads, also the replaced ones that
+     * it leaves out.
+     *
+     * @param int|null $cursor Null for the issues in work and the newest number
+     *
+     * @throws NotFound
+     * @throws InvalidInput A cursor ahead of the server
+     */
+    public function updates(string $projectKey, Actor $caller, ?int $cursor, int $limit): IssueUpdatesPage
+    {
+        $project = $this->project($projectKey);
+        $newest = $project->getEntrySeq();
+
+        if (null === $cursor) {
+            /** @var list<Issue> $inWork */
+            $inWork = $this->entityManager->createQueryBuilder()
+                ->select('issue')
+                ->from(Issue::class, 'issue')
+                ->where('issue.project = :project')
+                ->andWhere('issue.status IN (:inWork)')
+                ->setParameter('project', $project->getId(), ProjectId::class)
+                ->setParameter('inWork', [IssueStatus::Todo, IssueStatus::InProgress, IssueStatus::AwaitingUserInput, IssueStatus::InReview])
+                ->orderBy('issue.updatedAt', \SortDirection::Descending)
+                ->addOrderBy('issue.id', \SortDirection::Descending)
+                ->setMaxResults($limit)
+                ->getQuery()
+                ->getResult();
+
+            return new IssueUpdatesPage($newest, false, array_map(IssueSummaryView::of(...), $inWork), []);
+        }
+
+        if ($cursor > $newest) {
+            throw InvalidInput::field('cursor', "Is ahead of the server, whose newest entry of the project is {$newest}.");
+        }
+
+        $builder = $this->entityManager->createQueryBuilder()
+            ->select('entry', 'issue')
+            ->from(IssueEntry::class, 'entry')
+            ->join('entry.issue', 'issue')
+            ->where('issue.project = :project')
+            ->andWhere('entry.seq > :after')
+            ->andWhere('entry.seq <= :newest')
+            ->setParameter('project', $project->getId(), ProjectId::class)
+            ->setParameter('after', $cursor)
+            ->setParameter('newest', $newest)
+            ->setParameter('callerKind', $caller->kind->value)
+            ->setParameter('callerUserId', $caller->userId ?? throw new \LogicException('The system reads no updates.'), UserId::class)
+            ->orderBy('entry.seq')
+            ->setMaxResults($limit + 1);
+        // A user has no agent name, so the kind and the user say who it is.
+        $sameActor = 'entry.actor.kind = :callerKind AND entry.actor.userId = :callerUserId';
+
+        if (null !== $caller->agentName) {
+            $sameActor .= ' AND entry.actor.agentName = :callerAgentName';
+            $builder->setParameter('callerAgentName', $caller->agentName);
+        }
+
+        /** @var list<IssueEntry> $rows */
+        $rows = $builder->andWhere("NOT ({$sameActor})")->getQuery()->getResult();
+        $hasMore = count($rows) > $limit;
+        $read = array_slice($rows, 0, $limit);
+        $versions = $this->versions(array_map(static fn (IssueEntry $entry): Issue => $entry->getIssue(), $read));
+        $entries = [];
+
+        foreach ($read as $entry) {
+            [$replaces, $replacedBy] = $versions[$entry->getId()->toString()];
+
+            if (null === $replacedBy) {
+                $entries[] = ['issue' => IssueSummaryView::of($entry->getIssue()), 'entry' => self::entry($entry, false, $replaces, null)];
+            }
+        }
+
+        $next = $hasMore ? array_last($read)?->getSeq() : null;
+
+        return new IssueUpdatesPage($next ?? $newest, $hasMore, [], $entries);
+    }
+
+    /**
      * The issue of every answer, with the statuses that $actor can set.
      */
     public function view(Issue $issue, Actor $actor): IssueView
@@ -335,6 +415,44 @@ final class IssueQuery
         }
 
         return $names;
+    }
+
+    /**
+     * {@see replacements()} of the threads of the issues, read now.
+     *
+     * @param list<Issue> $issues
+     *
+     * @return array<string, array{?IssueEntryId, ?IssueEntryId}> By entry ID: the entry that it replaced, and the entry that replaced it
+     */
+    private function versions(array $issues): array
+    {
+        /** @var list<IssueEntry> $entries */
+        $entries = [] === $issues ? [] : $this->entityManager->createQueryBuilder()
+            ->select('entry')
+            ->from(IssueEntry::class, 'entry')
+            ->where('entry.issue IN (:issues)')
+            ->setParameter('issues', array_values(array_unique(array_map(static fn (Issue $issue): string => $issue->getId()->toRfc4122(), $issues))), ArrayParameterType::STRING)
+            ->orderBy('entry.id')
+            ->getQuery()
+            ->getResult();
+        $threads = [];
+
+        foreach ($entries as $entry) {
+            $threads[$entry->getIssue()->getId()->toString()][] = $entry;
+        }
+
+        $pairs = [];
+
+        foreach ($threads as $thread) {
+            [$replaces, $replacedBy] = self::replacements($thread);
+
+            foreach ($thread as $entry) {
+                $id = $entry->getId()->toString();
+                $pairs[$id] = [$replaces[$id] ?? null, $replacedBy[$id] ?? null];
+            }
+        }
+
+        return $pairs;
     }
 
     /**

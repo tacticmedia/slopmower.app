@@ -9,8 +9,8 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 | [README.md](README.md) | Conventions, authentication, errors, pagination, caching, repository sources, versioning, schema and fixture index |
 | [rest-api.md](rest-api.md) | REST endpoint index, account, repositories, reviews and code |
 | [rest-api-requests.md](rest-api-requests.md) | REST requests, updates, drafts, API tokens, and the routes outside `/api/v1` |
-| [rest-api-issues.md](rest-api-issues.md) | REST projects and issues: the lists, a new and a changed project, an issue with its thread, a new and a changed issue, its status, a comment, the plan approval of a user, the comments of a project, and its dependency graph |
-| [mcp.md](mcp.md) | MCP endpoint, server instructions, the 28 tools, the issue rules, error mapping, parity with REST |
+| [rest-api-issues.md](rest-api-issues.md) | REST projects and issues: the lists, a new and a changed project, an issue with its thread, a new and a changed issue, its status, a comment, the plan approval of a user, the comments of a project, its dependency graph, and its updates |
+| [mcp.md](mcp.md) | MCP endpoint, server instructions, the 29 tools, the issue rules, error mapping, parity with REST |
 | [mcp-tools.json](mcp-tools.json) | The name, title, description, input schema, annotations, and output schema of each MCP tool, in the order of `tools/list` |
 | [webhooks-and-live-updates.md](webhooks-and-live-updates.md) | GitHub webhooks, fetch triggers and post-fetch steps, Mercure live updates |
 | [schemas/](schemas/) | 35 JSON Schema files, draft 2020-12. See [section 10](#10-schemas). |
@@ -272,13 +272,14 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Issue key links, decision D125: the property `projectKeys` of `Me`. It is additive.
     - Dependencies of issues, decision D126: the set `IssueLinkKind`, the property `kind` of `IssueLink`, the optional input `kind` of `link_issues`, the endpoint I9, and the schema `IssueGraph`. Not additive: a second `link_issues` call for a pair replaces its link, where it gave `invalid_input`. A stored link has the kind `relates`.
     - Blame authors, decision D127: the property `contributors` of `Blame` with the schema `BlameContributor`, and the properties `contributorIndex` and `htmlUrl` of `BlameCommit`. All are additive. The V17 ETag is `v2` and holds the code access.
+    - Updates of a project, decision D128: the tool `get_issue_updates`, the endpoint I10, the schema `IssueUpdatesPage`, the topic of a project, the live-update type `issue`, and the third selector of A3. All are additive. A stored entry has no number and comes before every cursor.
 
 ## 9. Contract tests
 
 - Functional tests validate REST responses with `JsonApiAssertions::assertApiResponse()`, which uses `opis/json-schema` 2.6.0.
 - Every MCP `structuredContent` is validated against the `outputSchema` of its tool.
 - Every fixture in [section 11](#11-fixtures) is validated against the schema that the table names. The TypeScript types of the web UI are checked against the same fixture files.
-- `McpRestParityTest` compares the MCP and REST payloads of every tool with a REST endpoint: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, every write tool of the requests and reviews, `list_projects`, `list_issues`, `get_issue`, `create_issue`, `update_issue`, `set_issue_status`, `comment_on_issue`, and `list_comments`. See [mcp.md](mcp.md#6-mcp-and-rest).
+- `McpRestParityTest` compares the MCP and REST payloads of every tool with a REST endpoint: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, every write tool of the requests and reviews, `list_projects`, `list_issues`, `get_issue`, `create_issue`, `update_issue`, `set_issue_status`, `comment_on_issue`, `list_comments`, and `get_issue_updates`. See [mcp.md](mcp.md#6-mcp-and-rest).
 
 ## 10. Schemas
 
@@ -325,7 +326,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.schema.json](schemas/inputs.schema.json) | `https://slopmower.invalid/schemas/v1/inputs.schema.json` | `$defs` only: every REST request body |
 | [live-update.schema.json](schemas/live-update.schema.json) | `https://slopmower.invalid/schemas/v1/live-update.schema.json` | Data of one Mercure update, IDs only |
 | [project.schema.json](schemas/project.schema.json) | `https://slopmower.invalid/schemas/v1/project.schema.json` | A project of the issue tracker, with the names of its repositories |
-| [issue.schema.json](schemas/issue.schema.json) | `https://slopmower.invalid/schemas/v1/issue.schema.json` | An issue without its links and its thread, plus `PlanApproval`, `IssueSummary`, `IssueLink`, `IssueEntry`, `IssueComment`, `IssueDetail`, the result of I2 and `get_issue`, and `IssueGraph`, the result of I9 |
+| [issue.schema.json](schemas/issue.schema.json) | `https://slopmower.invalid/schemas/v1/issue.schema.json` | An issue without its links and its thread, plus `PlanApproval`, `IssueSummary`, `IssueLink`, `IssueEntry`, `IssueComment`, `IssueDetail`, the result of I2 and `get_issue`, `IssueGraph`, the result of I9, and `IssueUpdatesPage`, the result of I10 and `get_issue_updates` |
 
 ## 11. Fixtures
 
@@ -360,6 +361,8 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [file-content.php.json](fixtures/file-content.php.json) | `file-content.schema.json` | V7 |
 | [issue.detail.json](fixtures/issue.detail.json) | `issue.schema.json#/$defs/IssueDetail` | I2 and `get_issue` with `history` |
 | [issue.graph.json](fixtures/issue.graph.json) | `issue.schema.json#/$defs/IssueGraph` | I9 |
+| [issue.updates-cursor.json](fixtures/issue.updates-cursor.json) | `issue.schema.json#/$defs/IssueUpdatesPage` | I10 with a cursor, `get_issue_updates` |
+| [issue.updates-first-call.json](fixtures/issue.updates-first-call.json) | `issue.schema.json#/$defs/IssueUpdatesPage` | I10 without a cursor, `get_issue_updates` |
 | [issue.plan-approved.json](fixtures/issue.plan-approved.json) | `issue.schema.json` | `approve_plan`, and the shape of every issue write: I3, I4, I6 to I8, and the write tools |
 | [inputs.accept-suggestion.json](fixtures/inputs.accept-suggestion.json) | `inputs.schema.json#/$defs/AcceptSuggestionInput` | Q21 |
 | [inputs.approve-plan.json](fixtures/inputs.approve-plan.json) | `inputs.schema.json#/$defs/ApprovePlanInput` | I4 |
@@ -424,6 +427,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [live-update.events-batch.json](fixtures/live-update.events-batch.json) | `live-update.schema.json` | Review topic |
 | [live-update.events.json](fixtures/live-update.events.json) | `live-update.schema.json` | Review topic |
 | [live-update.index.json](fixtures/live-update.index.json) | `live-update.schema.json` | Review topic |
+| [live-update.issue.json](fixtures/live-update.issue.json) | `live-update.schema.json` | Project topic |
 | [live-update.outdated.json](fixtures/live-update.outdated.json) | `live-update.schema.json` | Review topic |
 | [live-update.pull-request.json](fixtures/live-update.pull-request.json) | `live-update.schema.json` | Review topic |
 | [live-update.repository-deleted.json](fixtures/live-update.repository-deleted.json) | `live-update.schema.json` | Repositories topic |

@@ -50,13 +50,13 @@ final class MercureAuthorizeTest extends WebTestCase
         self::assertTrue(self::authorize($client, ['HTTPS' => 'on'])->isSecure());
     }
 
-    #[TestDox("The JWT subscribe claim holds exactly the tenant's two selectors and expires in one hour")]
+    #[TestDox("The JWT subscribe claim holds exactly the tenant's three selectors and expires in one hour")]
     public function testJwtHoldsTheTenantSelectors(): void
     {
         self::mockTime('2026-09-29T07:31:12Z');
         $client = static::createClient();
         $tenantId = self::signIn($client)->getTenantId();
-        $selectors = ["http://localhost/tenants/{$tenantId}/repositories", "http://localhost/tenants/{$tenantId}/reviews/{reviewId}"];
+        $selectors = ["http://localhost/tenants/{$tenantId}/repositories", "http://localhost/tenants/{$tenantId}/reviews/{reviewId}", "http://localhost/tenants/{$tenantId}/projects/{projectKey}"];
 
         $token = self::parse(self::authorize($client)->getValue() ?? '');
 

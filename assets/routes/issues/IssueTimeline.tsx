@@ -168,7 +168,7 @@ function TimelineEntry({ issue, entry, linked, answered }: { issue: Issue; entry
             </Timeline.Badge>
             <Timeline.Body className={styles.entry}>
                 {isCurrentVersion(issue, entry) ? (
-                    <SectionEntry issue={issue} section={entry.section} line={line} />
+                    <SectionEntry issue={issue} section={entry.section} line={line} author={entry.actor} />
                 ) : null !== entry.replacedBy ? (
                     <div className={styles.entryHeader}>
                         {false === content ? (

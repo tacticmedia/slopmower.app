@@ -94,6 +94,7 @@ Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json). 
 | [I7](rest-api-issues.md#i7-change-an-issue) | PATCH | `/api/v1/issues/{issueKey}` | S, B | 200 | [`issue.schema.json`](schemas/issue.schema.json) |
 | [I8](rest-api-issues.md#i8-set-the-status) | POST | `/api/v1/issues/{issueKey}/status` | S, B | 200 | [`issue.schema.json`](schemas/issue.schema.json) |
 | [I9](rest-api-issues.md#i9-get-the-dependency-graph-of-a-project) | GET | `/api/v1/projects/{projectKey}/graph` | S, B | 200 | [`issue.schema.json#/$defs/IssueGraph`](schemas/issue.schema.json) |
+| [I10](rest-api-issues.md#i10-get-the-updates-of-a-project) | GET | `/api/v1/projects/{projectKey}/updates` | S, B | 200 | [`issue.schema.json#/$defs/IssueUpdatesPage`](schemas/issue.schema.json) |
 
 Common errors are not repeated per endpoint:
 
@@ -174,14 +175,14 @@ The endpoint sets the Mercure subscriber cookie:
 - `HttpOnly`, `SameSite=Strict`, path `/.well-known/mercure`;
 - `Secure` when the request uses HTTPS.
 
-The `mercure.subscribe` claim of the JWT holds the two topic selectors of the tenant. `exp` is now plus 3,600 seconds. The UI calls this endpoint before it opens an EventSource, and again before `expiresAt`. See [webhooks-and-live-updates.md](webhooks-and-live-updates.md#3-live-updates).
+The `mercure.subscribe` claim of the JWT holds the three topic selectors of the tenant. `exp` is now plus 3,600 seconds. The UI calls this endpoint before it opens an EventSource, and again before `expiresAt`. See [webhooks-and-live-updates.md](webhooks-and-live-updates.md#3-live-updates).
 
 Example response, [fixtures/lists.mercure-authorization.json](fixtures/lists.mercure-authorization.json):
 
 ```json
 {
   "hubUrl": "https://slopmower.example/.well-known/mercure",
-  "topics": ["https://slopmower.example/tenants/01K6AZZ0TENANT000000000001/repositories","https://slopmower.example/tenants/01K6AZZ0TENANT000000000001/reviews/{reviewId}"],
+  "topics": ["https://slopmower.example/tenants/01K6AZZ0TENANT000000000001/repositories","https://slopmower.example/tenants/01K6AZZ0TENANT000000000001/reviews/{reviewId}","https://slopmower.example/tenants/01K6AZZ0TENANT000000000001/projects/{projectKey}"],
   "expiresAt": "2026-09-29T08:31:12Z"
 }
 ```

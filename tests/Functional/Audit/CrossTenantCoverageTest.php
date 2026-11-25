@@ -205,7 +205,8 @@ final class CrossTenantCoverageTest extends WebTestCase
     }
 
     /**
-     * Calls every public method of the builder for the tenant. A method's other parameters are new typed IDs.
+     * Calls every public method of the builder for the tenant. A method's other parameters are new typed IDs, or a
+     * project key.
      *
      * @return list<string>
      */
@@ -223,6 +224,12 @@ final class CrossTenantCoverageTest extends WebTestCase
             foreach ($method->getParameters() as $parameter) {
                 $type = $parameter->getType();
                 $class = $type instanceof \ReflectionNamedType ? $type->getName() : '';
+
+                if ('string' === $class && 'projectKey' === $parameter->name) {
+                    $arguments[] = 'SM';
+                    continue;
+                }
+
                 self::assertTrue(is_a($class, Identifier::class, true), "Give {$method->class}::{$method->name}() a case for the parameter \${$parameter->name}.");
                 $arguments[] = TenantId::class === $class ? $tenantId : $class::generate();
             }

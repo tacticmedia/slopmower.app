@@ -60,8 +60,8 @@ describe('UseLiveRevalidationTest', () => {
     let positions: EventPositions;
     let subscription: LiveSubscription;
 
-    async function watching(reviewId: string | null): Promise<FakeEventSource> {
-        subscription.watch(reviewId);
+    async function watching(reviewId: string | null, projectKey: string | null = null): Promise<FakeEventSource> {
+        subscription.watch(reviewId, projectKey);
         await settle();
         const source = sources.at(-1);
         expect(source).toBeDefined();
@@ -247,6 +247,24 @@ describe('UseLiveRevalidationTest', () => {
             [REVIEW, 1800],
         ]);
         expect(revalidate).toHaveBeenCalledTimes(1);
+    });
+
+    it('A project subscribes to its topic, revalidates once after the first open without a read, and on an issue update of its project only', async () => {
+        const projectSelector = authorizationFixture.topics.find((topic) => topic.includes('{projectKey}')) ?? '';
+        const source = await watching(null, 'BILL');
+
+        source.open();
+        await settle();
+        source.receive({ type: 'issue', issueKey: 'DOC-1' });
+        await settle();
+        expect(revalidate).toHaveBeenCalledTimes(1);
+
+        source.receive({ type: 'issue', issueKey: 'BILL-12' });
+        await settle();
+        expect(revalidate).toHaveBeenCalledTimes(2);
+        expect(readUpdates).not.toHaveBeenCalled();
+        expect(source.url).toContain(`topic=${encodeURIComponent(projectSelector.replace('{projectKey}', 'BILL'))}`);
+        expect(source.url).not.toContain(encodeURIComponent('{'));
     });
 
     it('A failing A3 retries after 10 s, then 20 s, and a 401 stops the retries', async () => {

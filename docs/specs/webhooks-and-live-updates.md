@@ -118,7 +118,7 @@ An MCP tool name also stands for its REST endpoint.
 |---|---|
 | Hub | Built into FrankenPHP. The public URL `MERCURE_PUBLIC_URL` is `https://<host>/.well-known/mercure`, the same origin as the UI. The local development environment uses `http://localhost:8000/.well-known/mercure`. The hub URL is always set, because without it the bundle uses `FrankenPhpHub`, and a console process cannot publish with it. |
 | Publisher | `symfony/mercure-bundle` 0.7.0 with `protocol_version: '0.x'`, `HubInterface::publish()`. Every update is `private: true`. |
-| Subscriber authorization | The cookie that [A3](rest-api.md#a3-authorize-live-updates) sets. The JWT claim `mercure.subscribe` holds the two selectors of the tenant below. `exp` is now plus 3,600 s. Agents do not subscribe: they poll `get_updates`. |
+| Subscriber authorization | The cookie that [A3](rest-api.md#a3-authorize-live-updates) sets. The JWT claim `mercure.subscribe` holds the three selectors of the tenant below. `exp` is now plus 3,600 s. Agents do not subscribe: they poll `get_updates` and `get_issue_updates`. |
 | Base | `{base}` = `DEFAULT_URI` without a trailing slash, for example `https://slopmower.example` |
 | Payloads | IDs only. The browser reloads the data through REST. Mercure carries no second copy of the data model. |
 
@@ -128,6 +128,7 @@ Topics:
 |---|---|---|
 | `{base}/tenants/{tenantId}/repositories` | exact | `repository`, `repository_deleted`, `candidates_changed` |
 | `{base}/tenants/{tenantId}/reviews/{reviewId}` | URI template with the tenant ID filled in and `{reviewId}` as the only variable, for example `https://slopmower.example/tenants/01K6AZZ0TENANT000000000001/reviews/{reviewId}`. It matches any review of that tenant only. | `events`, `outdated`, `index`, `pull_request` |
+| `{base}/tenants/{tenantId}/projects/{projectKey}` | URI template with the tenant ID filled in and `{projectKey}` as the only variable. It matches any project of that tenant only. The topic names a project by its key, because no schema has a project ID (D128). | `issue` |
 
 Update types. [live-update.schema.json](schemas/live-update.schema.json) defines the payloads.
 
@@ -140,20 +141,22 @@ Update types. [live-update.schema.json](schemas/live-update.schema.json) defines
 | `repository` | `{type, repositoryId}` | After each `sync.state` change, fetch, access change, and rename, and after [V13](rest-api.md#v13-delete-a-review) deletes a review of the repository | [live-update.repository.json](fixtures/live-update.repository.json) |
 | `repository_deleted` | `{type, repositoryId}` | At [R6](rest-api.md#r6-delete-repository-data) | [live-update.repository-deleted.json](fixtures/live-update.repository-deleted.json) |
 | `candidates_changed` | `{type}` | After `installation.created`, `installation.deleted`, `installation_repositories.added`, `installation_repositories.removed`, and `repository.deleted` | [live-update.candidates-changed.json](fixtures/live-update.candidates-changed.json) |
+| `issue` | `{type, issueKey}` | After each committed write of an issue, to the topic of its project: a comment, a section, a status, a plan approval, a new issue, a title, and a link. A link publishes one update per issue, each to the topic of the project of that issue. | [live-update.issue.json](fixtures/live-update.issue.json) |
 
 Publishing rules:
 
 - **When:** only after the write transaction commits. See [architecture.md](../architecture.md) section 4.
-- **One transaction, one update:** a batch submission sends one `events` update for all its events. The update ID is `urn:slopmower:{tenantId}:{seq}`.
+- **One update per transaction, or per changed issue:** a batch submission sends one `events` update for all its events. The update ID is `urn:slopmower:{tenantId}:{seq}`. An issue write sends one `issue` update per issue that the write changes, so a link sends two.
 - **Failures:** the server logs a publish failure and does not retry it. The write has already committed, and the UI catches up.
 - **SSE event type:** the Mercure `type` is not set, so the browser receives every update through `EventSource.onmessage`. The JSON `type` field selects the handler. Clients ignore unknown types.
 
 Client behaviour in the web UI:
 
-1. **Subscribe.** Call [A3](rest-api.md#a3-authorize-live-updates), then open one `new EventSource(url, {withCredentials: true})`. `url` is `hubUrl` with one `topic` parameter for the repositories topic and one for the topic of the open review, each encoded with `encodeURIComponent`. Call A3 again before `expiresAt`. The `useLiveRevalidation` hook holds the connection.
+1. **Subscribe.** Call [A3](rest-api.md#a3-authorize-live-updates), then open one `new EventSource(url, {withCredentials: true})`. `url` is `hubUrl` with one `topic` parameter for the repositories topic, one for the topic of the open review, and one for the topic of the open project, each encoded with `encodeURIComponent`. A selector with a variable is never a `topic` parameter, because it matches every review or project of the tenant. Call A3 again before `expiresAt`. The `useLiveRevalidation` hook holds the connection.
 2. **Track the position.** Keep `lastSeq` per review. It comes from `events` updates, from `events[].seq` of command results, from `Review.lastEventSeq`, and from the `cursor` of the updates endpoint. Ignore an `events` update whose `seq` is not above `lastSeq`.
 3. **Revalidate.** On an update, call `revalidate()` of the data router that `createBrowserRouter` of React Router 8.4.0 creates. It runs the loaders of the active routes again, and they read fresh data through REST. Only one revalidation runs at a time. Updates that arrive during a revalidation cause one more revalidation after it.
    - `events`, `outdated`, `index`, and `pull_request`: when `reviewId` is the open review.
    - `repository`, `repository_deleted`, and `candidates_changed`: always.
-4. **Catch up after a reconnect.** On the first EventSource `open` for a review, call the same reads and revalidate only when the cursor moved: the hub does not replay an event between the loader read and the open. On every EventSource `open` after an error, and when the tab becomes visible again, call `GET /api/v1/reviews/{id}/updates?cursor=<lastSeq>&includeOwn=true` until `hasMore` is false. Set `lastSeq` to the last `cursor`, then revalidate once. After a failed read, do not revalidate: the loaders would fail too, and their error would replace the page. The next open, visibility change, or live update catches up. The UI does not rely on `Last-Event-ID` replay. Hub history is not part of the contract.
+   - `issue`: when the open project is the project of `issueKey`. The open project is the project of the issue list, the comments, the dependency graph, or the issue screen.
+4. **Catch up after a reconnect.** On the first EventSource `open` for a review, call the same reads and revalidate only when the cursor moved: the hub does not replay an event between the loader read and the open. On every EventSource `open` after an error, and when the tab becomes visible again, call `GET /api/v1/reviews/{id}/updates?cursor=<lastSeq>&includeOwn=true` until `hasMore` is false. Set `lastSeq` to the last `cursor`, then revalidate once. After a failed read, do not revalidate: the loaders would fail too, and their error would replace the page. The next open, visibility change, or live update catches up. The UI does not rely on `Last-Event-ID` replay. Hub history is not part of the contract. A project has no such read, because the loaders of its screens read the whole state: the UI revalidates once after the first open of the topic of a project, after every open after an error, and when the tab becomes visible again.
 5. **Request detail.** The loader of the request detail view reads `GET /api/v1/requests/{id}`, so a revalidation also refreshes the thread and `allowedActions`. `allowedActions` depends on the caller, so it is never in a live payload.

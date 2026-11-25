@@ -100,13 +100,15 @@ export const router = wrapCreateBrowserRouter(createBrowserRouter)([
                     { path: 'repositories/:repositoryId/diff-sides', loader: diffSidesLoader, shouldRevalidate: shouldRevalidateChanges },
                     { path: 'repositories/:repositoryId/carry-over-sources', loader: carryOverSourcesLoader },
                     { path: 'projects', loader: projectsLoader, action: projectsAction, element: <ProjectsRoute /> },
-                    { path: 'projects/:projectKey', loader: projectLoader, element: <ProjectRoute /> },
+                    { id: 'project', path: 'projects/:projectKey', loader: projectLoader, element: <ProjectRoute /> },
                     {
+                        id: 'project-comments',
                         path: 'projects/:projectKey/comments',
                         loader: projectCommentsLoader,
                         lazy: { Component: () => import('./routes/issues/ProjectCommentsRoute').then(({ ProjectCommentsRoute }) => ProjectCommentsRoute) },
                     },
                     {
+                        id: 'project-graph',
                         path: 'projects/:projectKey/graph',
                         loader: projectGraphLoader,
                         // The chunk holds the layout library, so the shell bundle does not.
@@ -125,6 +127,7 @@ export const router = wrapCreateBrowserRouter(createBrowserRouter)([
                         lazy: { Component: () => import('./routes/issues/NewIssueRoute').then(({ NewIssueRoute }) => NewIssueRoute) },
                     },
                     {
+                        id: 'issue',
                         path: 'issues/:issueKey',
                         loader: issueLoader,
                         action: issueAction,

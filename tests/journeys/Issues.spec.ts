@@ -3,7 +3,7 @@ import type { Issue, IssueDetail, IssueEntry } from '../../assets/api/types/issu
 import { issueDetail, project } from '../ui/support/builders';
 import { FakeIssues } from '../ui/support/fakeIssues';
 import { FakeRepositories } from '../ui/support/fakeRepositories';
-import { test } from './support/test';
+import { expect, test } from './support/test';
 
 /** A comment of the agent of `issue.detail.json`. I5 sorts by `id`, so the IDs rise with the times. */
 function comment(id: string, label: CommentLabel, body: string, createdAt: string, questions: Question[] = []): IssueEntry {
@@ -15,7 +15,7 @@ function issue(overrides: Partial<Issue>, ...thread: IssueEntry[]): IssueDetail 
 }
 
 test.describe('Issues', () => {
-    test('The projects, the issues of a project, an issue with its timeline, its questions with their answers, the comments of a project, and its dependency graph', async ({ page, api, captureScreen }) => {
+    test('The projects, the issues of a project, an issue with its timeline, its questions with their answers, the comments of a project, and its dependency graph', async ({ page, api, live, captureScreen }) => {
         const issues = new FakeIssues(api);
         issues.projects = [project(), project({ key: 'DOC', name: 'Documentation', approvalMode: 'user', repositories: [] })];
         issues.add(
@@ -81,6 +81,12 @@ test.describe('Issues', () => {
         issues.agentAsks('BILL-15', 'One choice before the review, with the package named.', [{ ...question, question: 'Name the mode in the README of `billing-core` too?' }], asked.id);
         await page.reload();
         await captureScreen('Issue replaced questions', page.getByRole('region', { name: 'The agent replaced these questions.' }));
+
+        await page.goto('/issues/BILL-12');
+        await expect(page.locator('[data-live="connected"]')).toBeAttached();
+        issues.changePlan('BILL-12', '1. Round the total once in `InvoiceTotals::total()`.\n2. Test: a case with three lines of 0.335.');
+        await live.push({ type: 'issue', issueKey: 'BILL-12' });
+        await captureScreen('Issue plan changed', page.getByTestId('plan-changed'));
     });
 
     test('A new project, the settings of a project, a new issue, and the edits and the status of an issue', async ({ page, api, captureScreen }) => {

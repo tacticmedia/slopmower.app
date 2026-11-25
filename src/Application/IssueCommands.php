@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application;
 
+use App\Application\Event\IssueChanged;
 use App\Application\Query\IssueQuery;
 use App\Domain\Actor\Actor;
 use App\Domain\Actor\ActorKind;
@@ -26,11 +27,13 @@ use App\Entity\IssueLink;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * The writes of the issue tracker (D116, D117): docs/specs/mcp.md sections 4.22 to 4.27, and I3, I4, and I6 to I8 of
  * docs/specs/rest-api-issues.md. Each write runs in one transaction under the row lock of its issue, appends its entry,
- * and passes {@see IssueRules} before it commits.
+ * and passes {@see IssueRules} before it commits. A write that appends an entry locks the project row first, because the
+ * entry takes the next number of the project (D128).
  */
 final class IssueCommands
 {
@@ -40,6 +43,7 @@ final class IssueCommands
         private readonly EntityManagerInterface $entityManager,
         private readonly IssueQuery $issues,
         private readonly ClockInterface $clock,
+        private readonly EventDispatcherInterface $dispatcher,
     ) {
     }
 
@@ -50,7 +54,7 @@ final class IssueCommands
      */
     public function create(string $projectKey, string $title, ?string $problem, IssueStatus $status, Actor $actor): Issue
     {
-        return $this->transactional(function (\DateTimeImmutable $now) use ($projectKey, $title, $problem, $status, $actor): Issue {
+        return $this->transactional(function (\DateTimeImmutable $now) use ($projectKey, $title, $problem, $status, $actor): array {
             $project = $this->issues->project($projectKey, LockMode::PESSIMISTIC_WRITE);
             $issue = new Issue($project, $project->takeIssueNumber(), self::title($title), $status, $actor, $now);
             $this->entityManager->persist($issue);
@@ -62,7 +66,7 @@ final class IssueCommands
             $this->entityManager->flush();
             IssueRules::check(null, $this->issues->state($issue), $project->getApprovalMode(), $actor->kind);
 
-            return $issue;
+            return [$issue];
         });
     }
 
@@ -146,7 +150,8 @@ final class IssueCommands
      */
     public function comment(IssueKey $key, string $body, CommentLabel $label, Actor $actor, ?IssueEntryId $replaces = null, array $questions = []): Issue
     {
-        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $body, $label, $actor, $replaces, $questions): Issue {
+        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $body, $label, $actor, $replaces, $questions): array {
+            $this->issues->project($key->projectKey, LockMode::PESSIMISTIC_WRITE);
             $issue = $this->issues->issue($key, LockMode::PESSIMISTIC_WRITE);
 
             if ([] === $questions) {
@@ -172,7 +177,7 @@ final class IssueCommands
             $this->entityManager->persist(IssueEntry::comment($issue, $actor, $body, $label, $now, $replaced, $questions));
             $issue->touch($now);
 
-            return $issue;
+            return [$issue];
         });
     }
 
@@ -185,7 +190,7 @@ final class IssueCommands
      */
     public function link(IssueKey $key, IssueKey $targetKey, IssueLinkKind $kind, string $note, Actor $actor): Issue
     {
-        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $targetKey, $kind, $note, $actor): Issue {
+        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $targetKey, $kind, $note, $actor): array {
             $keys = [$key->toString() => $key, $targetKey->toString() => $targetKey];
             // In key order, so two links of one pair lock the rows in the same order.
             ksort($keys);
@@ -216,7 +221,7 @@ final class IssueCommands
             $issue->touch($now);
             $target->touch($now);
 
-            return $issue;
+            return [$issue, $target];
         });
     }
 
@@ -277,7 +282,8 @@ final class IssueCommands
      */
     private function write(IssueKey $key, Actor $actor, \Closure $change, bool $setsStatus = false, ?string $note = null, ?string $reviewer = null): Issue
     {
-        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $actor, $change, $setsStatus, $note, $reviewer): Issue {
+        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $actor, $change, $setsStatus, $note, $reviewer): array {
+            $this->issues->project($key->projectKey, LockMode::PESSIMISTIC_WRITE);
             $issue = $this->issues->issue($key, LockMode::PESSIMISTIC_WRITE);
             $before = $this->issues->state($issue);
             $change($issue, $now);
@@ -285,7 +291,7 @@ final class IssueCommands
             $this->entityManager->flush();
             IssueRules::check($before, $this->issues->state($issue), $issue->getProject()->getApprovalMode(), $actor->kind, $setsStatus, $note, $reviewer);
 
-            return $issue;
+            return [$issue];
         });
     }
 
@@ -301,25 +307,27 @@ final class IssueCommands
     }
 
     /**
-     * On any exception it rolls back and clears the entity manager, so a refused change stays in no entity.
+     * Refuses an open transaction, so {@see IssueChanged} always follows a real commit. On any exception it rolls back and
+     * clears the entity manager, so a refused change stays in no entity.
      *
-     * @template T
-     *
-     * @param \Closure(\DateTimeImmutable): T $write Gets the time of the write, with the second precision of the columns
-     *
-     * @return T
+     * @param \Closure(\DateTimeImmutable): non-empty-list<Issue> $write Gets the time of the write, in the whole seconds of the
+     *                                                                   columns. Returns the changed issues, the issue of the
+     *                                                                   answer first.
      */
-    private function transactional(\Closure $write): mixed
+    private function transactional(\Closure $write): Issue
     {
         $connection = $this->entityManager->getConnection();
+
+        if ($connection->isTransactionActive()) {
+            throw new \LogicException('An issue write runs only outside a database transaction.');
+        }
+
         $connection->beginTransaction();
 
         try {
-            $result = $write(new \DateTimeImmutable('@'.$this->clock->now()->getTimestamp()));
+            $changed = $write(new \DateTimeImmutable('@'.$this->clock->now()->getTimestamp()));
             $this->entityManager->flush();
             $connection->commit();
-
-            return $result;
         } catch (\Throwable $error) {
             if ($connection->isTransactionActive()) {
                 $connection->rollBack();
@@ -329,6 +337,12 @@ final class IssueCommands
 
             throw $error;
         }
+
+        foreach ($changed as $issue) {
+            $this->dispatcher->dispatch(new IssueChanged($issue->getTenantId(), $issue->getKey()));
+        }
+
+        return $changed[0];
     }
 
     /**

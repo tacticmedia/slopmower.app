@@ -31,12 +31,21 @@ final readonly class LiveTopics
     }
 
     /**
-     * The `mercure.subscribe` claim: the repositories topic, and a URI template that matches every review of the tenant.
+     * By key, because no schema has a project ID.
+     */
+    public function project(TenantId $tenantId, string $projectKey): string
+    {
+        return "{$this->base}/tenants/{$tenantId}/projects/{$projectKey}";
+    }
+
+    /**
+     * The `mercure.subscribe` claim: the repositories topic, and URI templates that match every review and every project
+     * of the tenant.
      *
      * @return list<string>
      */
     public function subscriberSelectors(TenantId $tenantId): array
     {
-        return [$this->repositories($tenantId), "{$this->base}/tenants/{$tenantId}/reviews/{reviewId}"];
+        return [$this->repositories($tenantId), "{$this->base}/tenants/{$tenantId}/reviews/{reviewId}", "{$this->base}/tenants/{$tenantId}/projects/{projectKey}"];
     }
 }

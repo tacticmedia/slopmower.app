@@ -383,6 +383,45 @@
           "description": "The count of the open issues of the project that are not in issues."
         }
       }
+    },
+    "IssueUpdatesPage": {
+      "type": "object",
+      "required": ["cursor", "hasMore", "issues", "entries"],
+      "description": "The result of I10 and get_issue_updates (D128): what changed in a project since a cursor, without the entries of the caller.",
+      "properties": {
+        "cursor": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Pass as cursor next time. A number of the entry sequence of the project."
+        },
+        "hasMore": {
+          "type": "boolean",
+          "description": "More entries wait: call again at once with cursor."
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/IssueSummary"
+          },
+          "description": "Without a cursor: the issues in todo, in_progress, awaiting_user_input, and in_review, newest updatedAt first. With a cursor: empty."
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["issue", "entry"],
+            "properties": {
+              "issue": {
+                "$ref": "#/$defs/IssueSummary"
+              },
+              "entry": {
+                "$ref": "#/$defs/IssueEntry"
+              }
+            }
+          },
+          "description": "With a cursor: the entries after it, oldest first, as get_issue reads them without history. Without a cursor: empty."
+        }
+      }
     }
   }
 }

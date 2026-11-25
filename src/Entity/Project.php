@@ -36,6 +36,10 @@ class Project implements TenantOwned
     #[ORM\Column]
     private int $nextIssueNumber = 1;
 
+    /** The number of the newest entry of the threads of its issues (D128). */
+    #[ORM\Column(options: ['default' => 0])]
+    private int $entrySeq = 0;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -94,5 +98,18 @@ class Project implements TenantOwned
     public function takeIssueNumber(): int
     {
         return $this->nextIssueNumber++;
+    }
+
+    /**
+     * {@see IssueEntry} takes it. Call it under the row lock of the project, so the numbers follow the commit order.
+     */
+    public function takeEntrySeq(): int
+    {
+        return ++$this->entrySeq;
+    }
+
+    public function getEntrySeq(): int
+    {
+        return $this->entrySeq;
     }
 }

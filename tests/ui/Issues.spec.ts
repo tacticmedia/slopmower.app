@@ -27,6 +27,12 @@ async function openIssue(page: Page, api: MockApi): Promise<FakeIssues> {
     return issues;
 }
 
+/** The page reads I2 once more after the first open of its live connection. A change of the fake after it waits for a reload. */
+async function firstLiveReload(page: Page, api: MockApi): Promise<void> {
+    await expect(page.locator('[data-live="connected"]')).toBeAttached();
+    await expect.poll(() => api.callsTo('GET', ISSUE).length).toBe(2);
+}
+
 /** The text of the current version of a section, in its entry of the timeline. */
 function section(page: Page, name: string): Locator {
     return page.locator(`[data-testid="issue-section"][data-section="${name}"]`);
@@ -270,6 +276,7 @@ test.describe('Issues', () => {
         const form = page.getByRole('form', { name: /^Questions of / });
         await form.getByRole('group', { name: QUESTIONS[0]?.question }).getByRole('button', { name: 'Yes', exact: true }).click();
         await form.getByRole('group', { name: QUESTIONS[1]?.question }).getByRole('textbox', { name: 'Other answer' }).fill('Money');
+        await firstLiveReload(page, api);
         issues.agentAsks(ISSUE_KEY, 'One choice is left.', QUESTIONS.slice(1), asked.id);
 
         await form.getByRole('button', { name: 'Send answers', exact: true }).click();
@@ -361,8 +368,9 @@ test.describe('Issues', () => {
         await expect(page.getByRole('button', { name: 'Approve plan' })).toHaveCount(0);
     });
 
-    test('A refused approval shows the message of the server and the newest plan, which the next click approves', async ({ page, api }) => {
+    test('A refused approval shows the message of the server and the newest plan, which the next click approves after "Read the new plan"', async ({ page, api }) => {
         const issues = await openIssue(page, api);
+        await firstLiveReload(page, api);
         issues.changePlan(ISSUE_KEY, 'Round once per invoice line.');
         const approve = page.getByRole('button', { name: 'Approve plan' });
 
@@ -370,6 +378,7 @@ test.describe('Issues', () => {
 
         await expect(section(page, 'plan')).toContainText('Round once per invoice line.');
         await expect(page.getByTestId('action-error')).toContainText('The plan changed after this revision. Read the plan again, and approve its newest revision.');
+        await page.getByRole('button', { name: 'Read the new plan' }).click();
         await approve.click();
         await expect(page.getByTestId('approval-state')).toContainText('Approved by jan');
         expect(api.bodies('POST', PLAN_APPROVAL)).toEqual([{ planRevision: PLAN_REVISION }, { planRevision: issues.issues.get(ISSUE_KEY)?.issue.planRevision }]);
@@ -479,6 +488,8 @@ test.describe('Issues', () => {
         await page.getByRole('button', { name: 'Save' }).click();
 
         await expect(page.getByTestId('issue-entry').last()).toHaveText(/jan Plan changed the plan.*Round once per invoice line\./);
+        await expect(page.getByTestId('plan-changed'), 'The plan of the user needs no "Read the new plan".').toHaveCount(0);
+        await expect(page.getByRole('button', { name: 'Approve plan' })).toBeEnabled();
         await expect(replacedEntries(page, 'section_changed')).toHaveCount(2);
         await expect(replacedEntries(page, 'plan_approved')).toHaveCount(1);
         expect(api.bodies('PATCH', ISSUE)).toEqual([{ plan: 'Round once per invoice line.' }]);
