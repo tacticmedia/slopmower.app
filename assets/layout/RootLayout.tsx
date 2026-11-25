@@ -1,7 +1,7 @@
 import { QuestionIcon } from '@primer/octicons-react';
 import { ActionList, ActionMenu, Avatar, Button, Dialog, Header, IconButton } from '@primer/react';
 import { useState } from 'react';
-import { NavLink, Outlet, useFetcher, useLoaderData, useMatch } from 'react-router';
+import { Link, NavLink, Outlet, useFetcher, useLoaderData, useLocation, useMatch } from 'react-router';
 import type { Me } from '../api/types/me';
 import { UnsavedCommentGuard } from '../comments/UnsavedCommentGuard';
 import { useLiveRevalidation } from '../live/useLiveRevalidation';
@@ -11,8 +11,16 @@ import styles from './RootLayout.module.css';
 import { useSessionKeepalive } from './useSessionKeepalive';
 import { useSubmitOnce } from './useSubmitOnce';
 
+/** An entry is current on each page whose first path segment is one of its sections. */
+const NAVIGATION = [
+    { to: '/repositories', label: 'Repositories', sections: ['repositories', 'reviews', 'requests'] },
+    { to: '/projects', label: 'Issues', sections: ['projects', 'issues'] },
+    { to: '/settings', label: 'Settings', sections: ['settings'] },
+];
+
 export function RootLayout() {
     const me = useLoaderData<Me>();
+    const section = useLocation().pathname.split('/')[1]?.toLowerCase() ?? '';
     const signOut = useFetcher();
     const submitOnce = useSubmitOnce(signOut.submit);
     const live = useLiveRevalidation();
@@ -31,15 +39,11 @@ export function RootLayout() {
                 </Header.Item>
                 <Header.Item full className={styles.navigationItem}>
                     <nav aria-label="Main" className={styles.navigation}>
-                        <Header.Link as={NavLink} to="/repositories">
-                            Repositories
-                        </Header.Link>
-                        <Header.Link as={NavLink} to="/projects">
-                            Issues
-                        </Header.Link>
-                        <Header.Link as={NavLink} to="/settings">
-                            Settings
-                        </Header.Link>
+                        {NAVIGATION.map(({ to, label, sections }) => (
+                            <Header.Link key={to} as={Link} to={to} aria-current={sections.includes(section) ? 'page' : undefined}>
+                                {label}
+                            </Header.Link>
+                        ))}
                     </nav>
                 </Header.Item>
                 <Header.Item className={styles.helpItem}>

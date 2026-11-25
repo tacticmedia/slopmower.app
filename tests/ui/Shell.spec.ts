@@ -1,6 +1,8 @@
 import type { Page } from '@playwright/test';
-import { me } from './support/builders';
+import { issueDetail, me } from './support/builders';
+import { FakeIssues } from './support/fakeIssues';
 import { FakeRepositories } from './support/fakeRepositories';
+import { FakeReview } from './support/fakeReview';
 import { type MockApi, redirect } from './support/mockApi';
 import { expect, test } from './support/test';
 
@@ -41,6 +43,23 @@ test.describe('Shell', () => {
             expect(await header.locator('form[action="/sign-out"] button').evaluate((button) => button.getBoundingClientRect().right), `Sign out inside at ${width} px.`).toBeLessThanOrEqual(width);
         }
         await expect(page.getByRole('link', { name: 'Slopmower', exact: true })).toBeVisible();
+    });
+
+    test('The main navigation marks Issues on the project list and an issue page, and Repositories on a review and a request page', async ({ page, api }) => {
+        new FakeIssues(api).add(issueDetail());
+        const review = new FakeReview(api);
+        const request = review.seedGeneral('Use Money instead of float for totals.');
+        const current = page.locator('nav[aria-label="Main"] a[aria-current="page"]');
+
+        for (const [path, entry] of [
+            ['/projects', 'Issues'],
+            ['/issues/BILL-12', 'Issues'],
+            [`/reviews/${review.id}`, 'Repositories'],
+            [`/requests/${request.id}`, 'Repositories'],
+        ] as const) {
+            await page.goto(path);
+            await expect(current, path).toHaveText([entry]);
+        }
     });
 
     test('Client-side navigation keeps a window marker', async ({ page, api }) => {

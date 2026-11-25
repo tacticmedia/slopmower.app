@@ -20,7 +20,7 @@
     gap: var(--base-size-16);
 }
 
-.navigation :global(a.active) {
+.navigation a[aria-current] {
     text-decoration: underline;
     text-underline-offset: var(--base-size-4);
 }
