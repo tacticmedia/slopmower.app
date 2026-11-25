@@ -278,7 +278,10 @@ parameter that you leave out stays as it is.
    know it. Keep `draft` while the problem is incomplete, and ask the user
    what is missing.
 2. When the problem is complete, call `set_issue_status` with `todo`.
-3. Write the plan with `update_issue`. The answer has its `planRevision`.
+3. Record each finding and each decision that the plan rests on with
+   `comment_on_issue`, with the labels `finding` and `decision`. Then write
+   the plan with `update_issue`. The answer has its `planRevision`.
+   Questions about the choices of the plan follow the plan.
 4. Get the plan approved as `approval` says:
    - `self`: the plan needs no approval.
    - `agent_review`: another agent reviews it, as section 5 describes.
