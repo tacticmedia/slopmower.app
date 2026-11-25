@@ -45,7 +45,6 @@
     text-align: right;
 }
 
-/* ReviewLayout sets both attributes on the Code tab, and RequestDetail sets data-full-width on the Changes tab. */
 .page:has([data-full-width]) .main {
     max-width: none;
 }

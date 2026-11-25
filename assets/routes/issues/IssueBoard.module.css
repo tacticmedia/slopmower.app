@@ -1,0 +1,101 @@
+.board {
+    display: grid;
+    grid-auto-columns: minmax(16rem, 1fr);
+    grid-auto-flow: column;
+    align-items: start;
+    gap: var(--base-size-12);
+    overflow-x: auto;
+    padding-bottom: var(--base-size-4);
+}
+
+@media (width < 768px) {
+    .board {
+        grid-template-columns: minmax(0, 1fr);
+        grid-auto-flow: row;
+        overflow-x: visible;
+    }
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-8);
+    min-width: 0;
+    padding: var(--base-size-8);
+    border-radius: var(--borderRadius-medium);
+    background-color: var(--bgColor-muted);
+}
+
+.heading {
+    display: flex;
+    align-items: center;
+    gap: var(--base-size-8);
+    padding: var(--base-size-4);
+}
+
+.count {
+    color: var(--fgColor-muted);
+    font-weight: var(--base-text-weight-normal);
+}
+
+.cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-8);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--base-size-4);
+    padding: var(--base-size-8) var(--base-size-12);
+    border: var(--borderWidth-thin) solid var(--borderColor-default);
+    border-radius: var(--borderRadius-medium);
+    background-color: var(--bgColor-default);
+    color: var(--fgColor-default);
+    font-size: var(--text-body-size-small);
+    text-decoration: none;
+
+    &:hover {
+        background-color: var(--bgColor-neutral-muted);
+        text-decoration: none;
+    }
+
+    &:focus-visible {
+        outline: var(--focus-outline);
+        outline-offset: var(--base-size-2);
+    }
+}
+
+.title {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: var(--text-body-size-medium);
+    font-weight: var(--base-text-weight-semibold);
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+}
+
+.meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--base-size-4) var(--base-size-8);
+    color: var(--fgColor-muted);
+}
+
+.empty {
+    margin: 0;
+    padding: var(--base-size-4);
+    color: var(--fgColor-muted);
+    font-size: var(--text-body-size-small);
+}
+
+.more {
+    padding: 0 var(--base-size-4);
+    font-size: var(--text-body-size-small);
+}

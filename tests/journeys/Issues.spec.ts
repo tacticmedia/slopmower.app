@@ -16,7 +16,7 @@ function issue(overrides: Partial<Issue>, ...thread: IssueEntry[]): IssueDetail 
 }
 
 test.describe('Issues', () => {
-    test('The projects, the issues of a project, an issue with its timeline, its questions with their answers and a dismissal, the comments of a project, and its dependency graph', async ({ page, api, live, captureScreen }) => {
+    test('The projects, the issues of a project, an issue with its timeline, its questions with their answers and a dismissal, the comments of a project, its dependency graph, and its board', async ({ page, api, live, captureScreen }) => {
         const issues = new FakeIssues(api);
         issues.projects = [project(), project({ key: 'DOC', name: 'Documentation', approvalMode: 'user', repositories: [] })];
         issues.add(
@@ -76,6 +76,9 @@ test.describe('Issues', () => {
 
         await page.goto('/projects/BILL/graph');
         await captureScreen('Dependency graph of a project', page.getByTestId('issue-graph'));
+
+        await page.goto('/projects/BILL/board');
+        await captureScreen('Board of a project', page.getByTestId('issue-board'));
 
         const question = { question: 'Name the mode in the README of the package too?', detail: null, answer: null };
         const asked = issues.agentAsks('BILL-15', 'One choice before the review.', [question]);

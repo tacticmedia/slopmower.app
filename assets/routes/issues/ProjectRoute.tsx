@@ -71,6 +71,9 @@ export function ProjectRoute() {
                         <Link as={RouterLink} to={`/projects/${project.key}/graph`} className={styles.toolLink}>
                             Graph
                         </Link>
+                        <Link as={RouterLink} to={`/projects/${project.key}/board`} className={styles.toolLink}>
+                            Board
+                        </Link>
                         <ActionMenu>
                             <ActionMenu.Button size="small">Status: {null === filter ? 'All' : ISSUE_STATUS_TEXT[filter]}</ActionMenu.Button>
                             <ActionMenu.Overlay>

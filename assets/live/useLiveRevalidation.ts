@@ -16,7 +16,7 @@ const REVIEW_VARIABLE = '{reviewId}';
 const PROJECT_VARIABLE = '{projectKey}';
 
 /** The routes of the screens of a project. Their loader data holds the project, or the issue with its project. */
-const PROJECT_ROUTES = ['project', 'project-comments', 'project-graph', 'issue'];
+const PROJECT_ROUTES = ['project', 'project-comments', 'project-graph', 'project-board', 'issue'];
 
 const REAUTHORIZE_BEFORE_EXPIRY_MS = 60_000;
 

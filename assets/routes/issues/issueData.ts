@@ -154,6 +154,13 @@ export async function projectLoader(args: LoaderFunctionArgs): Promise<ProjectDa
     return { project, issues: items };
 }
 
+/** Every issue of the project, whatever the URL says. */
+export async function projectBoardLoader(args: LoaderFunctionArgs): Promise<ProjectData> {
+    const { project, items } = await projectList<IssueSummary>(args, 'issues', {});
+
+    return { project, issues: items };
+}
+
 /** Without a label it loads the body of every comment of the project. Page the list when a project outgrows that. */
 export async function projectCommentsLoader(args: LoaderFunctionArgs): Promise<ProjectCommentsData> {
     const { project, items } = await projectList<IssueComment>(args, 'comments', { label: labelFilter(new URL(args.request.url).searchParams) });
