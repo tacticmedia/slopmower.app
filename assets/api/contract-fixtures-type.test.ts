@@ -40,6 +40,7 @@ import inputsCreateToken from '../../docs/specs/fixtures/inputs.create-token.jso
 import inputsDismissSuggestion from '../../docs/specs/fixtures/inputs.dismiss-suggestion.json';
 import inputsIssueComment from '../../docs/specs/fixtures/inputs.issue-comment.json';
 import inputsIssueCommentDismiss from '../../docs/specs/fixtures/inputs.issue-comment-dismiss.json';
+import inputsIssueCommentReview from '../../docs/specs/fixtures/inputs.issue-comment-review.json';
 import inputsIssueStatus from '../../docs/specs/fixtures/inputs.issue-status.json';
 import inputsLinkCommits from '../../docs/specs/fixtures/inputs.link-commits.json';
 import inputsLinkPullRequest from '../../docs/specs/fixtures/inputs.link-pull-request.json';
@@ -250,6 +251,7 @@ const checkedFixtures = {
     'inputs.create-token.json': inputsCreateToken satisfies Widen<CreateTokenInput>,
     'inputs.dismiss-suggestion.json': inputsDismissSuggestion satisfies Widen<DismissSuggestionInput>,
     'inputs.issue-comment-dismiss.json': inputsIssueCommentDismiss satisfies Widen<IssueCommentInput>,
+    'inputs.issue-comment-review.json': inputsIssueCommentReview satisfies Widen<IssueCommentInput>,
     'inputs.issue-comment.json': inputsIssueComment satisfies Widen<IssueCommentInput>,
     'inputs.issue-status.json': inputsIssueStatus satisfies Widen<IssueStatusInput>,
     'inputs.link-commits.json': inputsLinkCommits satisfies Widen<LinkCommitsInput>,

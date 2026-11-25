@@ -186,6 +186,43 @@ final class IssueApiTest extends WebTestCase
         self::assertSame([$plain, $asked], array_column($this->agent('get_issue', ['issue' => 'SM-1', 'history' => true])['thread'], 'id'), 'A refused dismissal is not stored.');
     }
 
+    #[TestDox('I3 of a user with answers and waitingFor writes the answer, then a hand-over in the status of the issue')]
+    public function testUserAnswersAndHandsOver(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change', 'problem' => self::PROBLEM, 'status' => 'todo']);
+        $asked = $this->ask();
+        $this->agent('set_issue_status', ['issue' => 'SM-1', 'status' => 'todo', 'waitingFor' => 'requester']);
+        $answers = [['question' => 'Remove `round()` in 3.0?', 'answer' => 'Yes'], ['question' => 'Which type holds the amounts?', 'answer' => 'Money']];
+
+        $handed = self::assertApiResponse(self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/comments', ['body' => '', 'replaces' => $asked, 'questions' => $answers, 'waitingFor' => 'assignee']), 201, self::ISSUE);
+
+        $thread = $this->agent('get_issue', ['issue' => 'SM-1'])['thread'];
+        self::assertSame(['todo', 'assignee'], [$handed['status'], $handed['waitingFor']]);
+        self::assertSame(
+            [['comment', 'answer', 'user', null, null, null], ['status_changed', null, 'user', 'todo', 'todo', 'assignee']],
+            array_map(static fn (array $entry): array => [$entry['kind'], $entry['label'], $entry['actor']['kind'], $entry['from'], $entry['to'], $entry['waitingFor']], \array_slice($thread, -2)),
+        );
+    }
+
+    #[TestDox('I3 refuses waitingFor from a token on an issue in todo and from a user in backlog, and stores no comment')]
+    public function testHandOverRefusals(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change', 'problem' => self::PROBLEM, 'status' => 'todo']);
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode', 'category' => 'change', 'problem' => self::PROBLEM, 'status' => 'backlog']);
+        $body = ['body' => 'Drop step 3.', 'label' => 'review', 'waitingFor' => 'assignee'];
+        $violation = static fn (Response $response): array => self::assertApiError($response, 422, 'invalid_input')['details']['violations'][0] ?? [];
+        $kinds = fn (string $issueKey): array => array_column($this->agent('get_issue', ['issue' => $issueKey, 'history' => true])['thread'], 'kind');
+
+        $byToken = $violation(self::bearerRequest($this->client, $this->secret, 'POST', '/api/v1/issues/SM-1/comments', $body + ['session' => self::SESSION]));
+        $inBacklog = $violation(self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-2/comments', $body));
+
+        self::assertSame(['waitingFor', 'Only a signed-in user hands over with a comment. Call set_issue_status.'], [$byToken['field'] ?? null, $byToken['message'] ?? null]);
+        self::assertSame('waitingFor', $inBacklog['field'] ?? null);
+        self::assertSame([['section_changed'], ['section_changed']], [$kinds('SM-1'), $kinds('SM-2')], 'A refused hand-over stores no comment.');
+    }
+
     #[TestDox('I8 to wont_do dismisses each open question comment with the user as the actor and leaves an answered one, and set_issue_status of an agent in a self project dismisses with the agent')]
     public function testWontDoDismissesOpenQuestions(): void
     {

@@ -1,0 +1,5 @@
+{
+  "body": "Round the shipping totals in BILL-9, not here. Drop step 3 of the plan.",
+  "label": "review",
+  "waitingFor": "assignee"
+}

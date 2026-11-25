@@ -280,6 +280,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Issue category, decision D133: the closed set `IssueCategory`, the property `category` of `Issue` and `IssueSummary`, the optional input `category` of I7 and `update_issue`, and the filter `category` of I1 and `list_issues`. Not additive: I6 and `create_issue` need `category`. A stored issue reads as `change`.
     - Who has the next step, decision D134: the closed sets `WaitingFor` and `IssuePartyKind`, the schema `IssueParty`, the properties `requester`, `assignee`, and `waitingFor` of `Issue` and `IssueSummary`, the property `waitingFor` of `IssueEntry`, the optional inputs `requester` and `assignee` of I6, I7, `create_issue`, and `update_issue`, the optional input `waitingFor` of I8 and `set_issue_status`, and the filter `waitingForKind` of I1 and `list_issues`. Not additive: `IssueStatus` loses `awaiting_user_input` and gets `approved`, an approval of a user hands the issue to its assignee in place of a move to `todo`, I9 shows the issues that wait for a user and are not in `draft` in place of those in `awaiting_user_input` and `in_review`, and an agent sets `done` from `approved` in every mode. A migration rewrites the stored `status_changed` entries with `awaiting_user_input` as hand-overs, which D123 otherwise forbids.
     - Open sets in the MCP output schemas, decision D135: each closed set of an `outputSchema` of `tools/list` accepts any string. It relaxes validation. The schema files and REST keep the closed sets.
+    - Hand-over with a comment, decision D136: the optional input `waitingFor` of I3. It is additive.
 
 ## 9. Contract tests
 
@@ -389,6 +390,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.create-token.json](fixtures/inputs.create-token.json) | `inputs.schema.json#/$defs/CreateTokenInput` | T2 |
 | [inputs.dismiss-suggestion.json](fixtures/inputs.dismiss-suggestion.json) | `inputs.schema.json#/$defs/DismissSuggestionInput` | Q22 |
 | [inputs.issue-comment-dismiss.json](fixtures/inputs.issue-comment-dismiss.json) | `inputs.schema.json#/$defs/IssueCommentInput` | I3 with `dismiss` (D124) |
+| [inputs.issue-comment-review.json](fixtures/inputs.issue-comment-review.json) | `inputs.schema.json#/$defs/IssueCommentInput` | I3 with the label `review` and `waitingFor`, "Request changes" (D136) |
 | [inputs.issue-comment.json](fixtures/inputs.issue-comment.json) | `inputs.schema.json#/$defs/IssueCommentInput` | I3 with a label and `replaces`, `comment_on_issue` |
 | [inputs.issue-status.json](fixtures/inputs.issue-status.json) | `inputs.schema.json#/$defs/IssueStatusInput` | I8 with the note of `wont_do`, `set_issue_status` |
 | [inputs.link-commits.json](fixtures/inputs.link-commits.json) | `inputs.schema.json#/$defs/LinkCommitsInput` | Q7 |

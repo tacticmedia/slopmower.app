@@ -56,6 +56,8 @@ type Props = {
     initialTextSaved?: boolean;
     error: string | null;
     busy: boolean;
+    /** Turns off the submit button and Mod+Enter while the text stays editable. */
+    submitDisabled?: boolean;
     focusOnMount?: boolean;
     /** More controls in the action row, before the submit button. */
     actions?: ReactNode;
@@ -84,6 +86,7 @@ export function CommentBox({
     initialTextSaved = false,
     error,
     busy,
+    submitDisabled = false,
     focusOnMount = false,
     actions,
     ref,
@@ -148,7 +151,7 @@ export function CommentBox({
         const givenTitle = title.trim();
         const givenGroup = group.trim();
         const text = { ...('' === givenTitle ? {} : { title: givenTitle }), body, requireApproval: 'question' !== type && requireApproval, type, ...('' === givenGroup ? {} : { group: givenGroup }) };
-        if ('' !== body.trim() && !busy && onSubmit(text)) {
+        if ('' !== body.trim() && !busy && !submitDisabled && onSubmit(text)) {
             setSent(true);
         }
     };
@@ -263,7 +266,7 @@ export function CommentBox({
                         Cancel
                     </Button>
                 )}
-                <Button type="submit" variant="primary" disabled={'' === body.trim()} loading={busy}>
+                <Button type="submit" variant="primary" disabled={'' === body.trim() || submitDisabled} loading={busy}>
                     {submitLabel}
                 </Button>
             </div>

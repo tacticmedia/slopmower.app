@@ -186,18 +186,20 @@ final class IssueCommands
     }
 
     /**
-     * In any status: no rule of {@see IssueRules} and no claim refuses a comment. With questions (D124), an agent asks, a
-     * user answers the open question comment of $replaces, and the label is `question` or `answer`, whatever $label is.
-     * With $dismiss, a user dismisses that comment, and the label is `dismissal`.
+     * Without $waitingFor, no rule of {@see IssueRules} and no claim refuses a comment, in any status. With questions
+     * (D124), an agent asks, a user answers the open question comment of $replaces, and the label is `question` or
+     * `answer`, whatever $label is. With $dismiss, a user dismisses that comment, and the label is `dismissal`. With
+     * $waitingFor, a user hands the issue over in its status after the comment, and the content rules then check the
+     * issue (D136).
      *
      * @param IssueEntryId|null     $replaces  A comment of the issue that the new comment replaces (D123)
      * @param list<CommentQuestion> $questions
      *
      * @throws NotFound|InvalidInput
      */
-    public function comment(IssueKey $key, string $body, CommentLabel $label, Actor $actor, ?string $session, ?IssueEntryId $replaces = null, array $questions = [], bool $dismiss = false): Issue
+    public function comment(IssueKey $key, string $body, CommentLabel $label, Actor $actor, ?string $session, ?IssueEntryId $replaces = null, array $questions = [], bool $dismiss = false, ?WaitingFor $waitingFor = null): Issue
     {
-        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $body, $label, $actor, $session, $replaces, $questions, $dismiss): array {
+        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $body, $label, $actor, $session, $replaces, $questions, $dismiss, $waitingFor): array {
             $this->issues->project($key->projectKey, LockMode::PESSIMISTIC_WRITE);
             $issue = $this->issues->issue($key, LockMode::PESSIMISTIC_WRITE);
 
@@ -211,6 +213,10 @@ final class IssueCommands
 
             if ($dismiss && [] !== $questions) {
                 throw InvalidInput::field('dismiss', 'A dismissal takes no questions.');
+            }
+
+            if (null !== $waitingFor && ActorKind::User !== $actor->kind) {
+                throw InvalidInput::field('waitingFor', 'Only a signed-in user hands over with a comment. Call set_issue_status.');
             }
 
             if ([] === $questions && !$dismiss) {
@@ -236,6 +242,13 @@ final class IssueCommands
             };
             $this->entityManager->persist(IssueEntry::comment($issue, $actor, $dismiss && '' === trim($body) ? 'Dismissed.' : $body, $label, $now, $replaced, $questions));
             $issue->touch($now);
+
+            if (null !== $waitingFor) {
+                $before = $this->issues->state($issue);
+                $this->move($issue, $actor, $issue->getStatus(), $waitingFor, null, null, $now);
+                $this->entityManager->flush();
+                IssueRules::check($before, $this->issues->state($issue), $issue->getApprovalMode(), $actor->kind);
+            }
 
             return [$issue];
         });

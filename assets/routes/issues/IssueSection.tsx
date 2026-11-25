@@ -1,5 +1,5 @@
 import { Button } from '@primer/react';
-import type { Ref } from 'react';
+import type { ReactNode, Ref } from 'react';
 import { useFetcher } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
 import type { IssueCategory, IssueSection as Section } from '../../api/types/common';
@@ -11,6 +11,7 @@ import { useSubmitOnce } from '../../layout/useSubmitOnce';
 import styles from './Issues.module.css';
 import type { IssueIntent } from './issueData';
 import { type IssueWrite, useIssueWrite } from './useIssueWrite';
+import { handOverTo } from './WaitingLabel';
 
 export const SECTION_TITLES: Record<Section, string> = { problem: 'Problem', plan: 'Plan', result: 'Result', followUps: 'Follow-ups' };
 
@@ -73,12 +74,60 @@ export function canApprove(issue: Issue): issue is Issue & { planRevision: strin
 }
 
 /**
+ * While the issue waits for its requester, and the assignee is another party (D136): beside "Approve plan" before the
+ * review, and on the result in review, so a request for changes in `in_review` is about the result.
+ */
+export function canRequestChanges(issue: Issue, section: Section): boolean {
+    if ('assignee' !== handOverTo(issue)) {
+        return false;
+    }
+
+    return 'plan' === section ? canApprove(issue) && 'in_review' !== issue.status && 'approved' !== issue.status : 'result' === section && 'in_review' === issue.status;
+}
+
+function changesDraftKey(issue: Issue, section: Section): string {
+    return `issue:${issue.key}:changes:${section}`;
+}
+
+/** The write of a request for changes of one section. Its box is open at once for a text that a reload kept. */
+export function useChangesWrite(issue: Issue, section: Section): IssueWrite {
+    return useIssueWrite(() => null !== readSessionDraft(changesDraftKey(issue, section)));
+}
+
+/**
+ * "Request changes" sends I3 with the text, the label `review`, and `waitingFor: assignee`: one write that asks and hands
+ * over (D136).
+ *
+ * @param disabled The plan changed while the page was open, and the user has not read it yet
+ */
+export function ChangesEditor({ issue, section, write, disabled }: { issue: Issue; section: Section; write: IssueWrite; disabled: boolean }) {
+    const key = changesDraftKey(issue, section);
+
+    return (
+        <CommentBox
+            label={`Changes to the ${SECTION_TITLES[section].toLowerCase()}`}
+            labelVisible
+            placeholder="What to change, and why"
+            submitLabel="Request changes"
+            draftKey={key}
+            onSubmit={({ body }) => write.send({ intent: 'comment', input: { body, label: 'review', waitingFor: 'assignee' }, draftKey: key })}
+            onCancel={() => write.setOpen(false)}
+            error={write.error}
+            busy={write.busy}
+            submitDisabled={disabled}
+            focusOnMount
+        />
+    );
+}
+
+/**
  * I4 for the plan revision that the page shows. A refusal stays visible while the loader shows the newest plan, so only
  * another issue remounts the form.
  *
  * @param disabled The plan changed while the page was open, and the user has not read it yet
+ * @param children More buttons before "Approve plan"
  */
-export function ApprovePlan({ planRevision, disabled, ref }: { planRevision: string; disabled: boolean; ref: Ref<HTMLButtonElement> }) {
+export function ApprovePlan({ planRevision, disabled, ref, children }: { planRevision: string; disabled: boolean; ref: Ref<HTMLButtonElement>; children?: ReactNode }) {
     const fetcher = useFetcher<ActionResult>();
     const intent: IssueIntent = { intent: 'approve_plan', input: { planRevision } };
     const submitOnce = useSubmitOnce(() => fetcher.submit(intent, { method: 'post', encType: 'application/json' }));
@@ -86,6 +135,7 @@ export function ApprovePlan({ planRevision, disabled, ref }: { planRevision: str
     return (
         <fetcher.Form method="post" onSubmit={submitOnce} className={styles.sectionFooter} data-testid="approve-plan">
             <ActionErrorMessage result={fetcher.data} />
+            {children}
             <Button ref={ref} type="submit" variant="primary" loading={'idle' !== fetcher.state} disabled={disabled}>
                 Approve plan
             </Button>

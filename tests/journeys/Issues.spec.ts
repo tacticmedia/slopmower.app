@@ -62,6 +62,9 @@ test.describe('Issues', () => {
 
         await page.locator('[data-testid="issue-entry"][data-replaced="true"] summary').first().click({ position: { x: 8, y: 8 } });
         await captureScreen('Issue replaced version', page.getByText('Round the total in'));
+        await page.getByRole('button', { name: 'Hand over to jan' }).click();
+        await page.locator('[data-testid="issue-section"][data-section="plan"]').getByRole('button', { name: 'Request changes' }).click();
+        await captureScreen('Issue request changes', page.getByRole('textbox', { name: 'Changes to the plan' }));
 
         await page.goto('/issues/BILL-14');
         const questions = page.getByTestId('open-questions');

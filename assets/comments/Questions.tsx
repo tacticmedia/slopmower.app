@@ -1,6 +1,6 @@
 import { Button, TextInput } from '@primer/react';
 import { InlineMessage } from '@primer/react/experimental';
-import { type FormEvent, lazy, Suspense, useId } from 'react';
+import { lazy, type SubmitEvent, Suspense, useId, useRef } from 'react';
 import { type SubmitTarget, useFetcher } from 'react-router';
 import type { ActionResult } from '../api/actionResult';
 import type { Question } from '../api/types/common';
@@ -32,14 +32,17 @@ type QuestionFormProps = {
     intent(answers: QuestionInput[], draftKey: string): SubmitTarget;
     /** The JSON body of "Dismiss", with `draftKey`. Without it the form has no "Dismiss". */
     dismiss?(draftKey: string): SubmitTarget;
+    /** The JSON body of "Send answers and hand over", as `intent` gives it. Without it the form has no such button. */
+    handOver?(answers: QuestionInput[], draftKey: string): SubmitTarget;
 };
 
 /**
  * The open questions of an agent comment (D107, D124). "Send answers" submits every question with its answer, so the
  * answer comment reads on its own. A reload keeps the typed answers.
  */
-export function QuestionForm({ questions, label, draftKey, intent, dismiss }: QuestionFormProps) {
+export function QuestionForm({ questions, label, draftKey, intent, dismiss, handOver }: QuestionFormProps) {
     const fetcher = useFetcher<ActionResult>();
+    const handOverButton = useRef<HTMLButtonElement>(null);
     const [draft, setDraft] = useSessionDraft(draftKey);
     const id = useId();
     const busy = 'idle' !== fetcher.state;
@@ -55,12 +58,13 @@ export function QuestionForm({ questions, label, draftKey, intent, dismiss }: Qu
             return changed.some(({ choice, text }) => null !== choice || '' !== text) ? JSON.stringify(changed) : '';
         });
 
-    const send = (event: FormEvent<HTMLFormElement>): void => {
+    const send = (event: SubmitEvent<HTMLFormElement>): void => {
         event.preventDefault();
         if (busy || given.includes('')) {
             return;
         }
-        void fetcher.submit(intent(questions.map(({ question }, index) => ({ question, answer: given[index] ?? '' })), draftKey), { method: 'post', encType: 'application/json' });
+        const target = undefined !== handOver && handOverButton.current === event.submitter ? handOver : intent;
+        void fetcher.submit(target(questions.map(({ question }, index) => ({ question, answer: given[index] ?? '' })), draftKey), { method: 'post', encType: 'application/json' });
     };
 
     const sendDismissal = (target: SubmitTarget): void => {
@@ -114,9 +118,15 @@ export function QuestionForm({ questions, label, draftKey, intent, dismiss }: Qu
                         Dismiss
                     </Button>
                 )}
-                <Button type="submit" variant="primary" disabled={given.includes('')} loading={busy}>
+                {/* The first submit button is the default of Enter, so Enter never hands over. */}
+                <Button type="submit" variant={undefined === handOver ? 'primary' : 'default'} disabled={given.includes('')} loading={busy}>
                     Send answers
                 </Button>
+                {undefined !== handOver && (
+                    <Button ref={handOverButton} type="submit" variant="primary" disabled={given.includes('')} loading={busy}>
+                        Send answers and hand over
+                    </Button>
+                )}
             </div>
         </form>
     );

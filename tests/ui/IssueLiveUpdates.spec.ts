@@ -42,11 +42,13 @@ test.describe('IssueLiveUpdates', () => {
 
     test('A plan of the agent that arrives while the page is open shows the notice, and "Approve plan" sends it only after "Read the new plan"', async ({ page, api, live }) => {
         const issues = new FakeIssues(api);
-        issues.add(issueDetail());
+        issues.add(issueDetail({ waitingFor: 'requester' }));
         await page.goto(`/issues/${ISSUE_KEY}`);
         const approve = page.getByRole('button', { name: 'Approve plan' });
         const notice = page.getByRole('region', { name: 'The plan changed while this page was open.' });
         await expect(page.locator('[data-live="connected"]')).toBeAttached();
+        await page.getByRole('button', { name: 'Request changes' }).click();
+        await page.getByRole('textbox', { name: 'Changes to the plan' }).fill('Round the shipping totals in BILL-9.');
 
         issues.changePlan(ISSUE_KEY, 'Round once per invoice line.');
         await live.push({ type: 'issue', issueKey: ISSUE_KEY });
@@ -55,6 +57,8 @@ test.describe('IssueLiveUpdates', () => {
         await expect(page.locator('[data-testid="issue-entry"][data-kind="section_changed"][data-replaced="true"]'), 'The version that the page showed is replaced.').toHaveCount(2);
         await expect(notice).toBeVisible();
         await expect(page.getByRole('status').filter({ hasText: 'The plan changed while this page was open.' }), 'A screen reader announces it.').toBeAttached();
+        await expect(page.getByRole('button', { name: 'Request changes' }), 'The open change box is off too.').toBeDisabled();
+        await page.getByRole('button', { name: 'Cancel' }).click();
         await expect(approve).toBeDisabled();
         await notice.getByRole('button', { name: 'Read the new plan' }).click();
         await expect(notice).toHaveCount(0);

@@ -5,7 +5,7 @@ import { Link as RouterLink, useFetcher, useLoaderData, useNavigate, useRouteLoa
 import type { ActionResult } from '../../api/actionResult';
 import { COMMENT_LABELS, type CommentLabel, ISSUE_APPROVALS, ISSUE_CATEGORIES, ISSUE_PARTY_KINDS, type WaitingFor } from '../../api/types/common';
 import type { IssueCommentInput } from '../../api/types/inputs';
-import type { Issue, IssueEntry, IssueLink, IssueParty } from '../../api/types/issue';
+import type { Issue, IssueEntry, IssueLink } from '../../api/types/issue';
 import type { Me } from '../../api/types/me';
 import { CommentBox, type CommentText } from '../../comments/CommentBox';
 import boxStyles from '../../comments/CommentBox.module.css';
@@ -26,7 +26,7 @@ import styles from './Issues.module.css';
 import type { IssueData, IssueIntent } from './issueData';
 import { APPROVAL_MODE_NAMES } from './ApprovalModeField';
 import { useIssueWrite } from './useIssueWrite';
-import { partyName, useIsYou, WaitingLabel, waitingParty } from './WaitingLabel';
+import { handOverTo, partyName, useIsYou, WaitingLabel, waitingParty } from './WaitingLabel';
 
 /** The server sets `question`, `answer`, and `dismissal` (D124). */
 const WRITABLE_LABELS = COMMENT_LABELS.filter((label) => 'question' !== label && 'answer' !== label && 'dismissal' !== label);
@@ -93,7 +93,7 @@ export function IssueRoute() {
                     <IssueTimeline issue={issue} thread={thread} />
                     {thread.map((entry) =>
                         isOpenQuestion(entry) ? (
-                            <OpenQuestions key={entry.id} entry={entry} draftKey={answersDraftKey(issue.key, entry)} onSend={sentFrom} />
+                            <OpenQuestions key={entry.id} issue={issue} entry={entry} draftKey={answersDraftKey(issue.key, entry)} onSend={sentFrom} />
                         ) : (
                             isWithdrawnQuestion(entry, thread) && <WithdrawnQuestions key={entry.id} entry={entry} draftKey={answersDraftKey(issue.key, entry)} />
                         ),
@@ -151,23 +151,15 @@ function CategoryOfIssue({ issue }: { issue: Issue }) {
     );
 }
 
-function isSameParty(first: IssueParty, second: IssueParty): boolean {
-    return first.kind === second.kind && first.userId === second.userId;
-}
-
-/**
- * I8 with the status of the issue and the other `waitingFor` (D134), while the requester and the assignee are different
- * parties. The primary button while the issue waits for the signed-in user.
- */
+/** I8 with the status of the issue and {@link handOverTo}. The primary button while the issue waits for the signed-in user. */
 function HandOver({ issue }: { issue: Issue }) {
     const { busy, error, send } = useIssueWrite();
     const isYou = useIsYou();
+    const next = handOverTo(issue);
 
-    if (null === issue.waitingFor || isSameParty(issue.requester, issue.assignee)) {
+    if (null === next) {
         return null;
     }
-
-    const next: WaitingFor = 'requester' === issue.waitingFor ? 'assignee' : 'requester';
 
     return (
         <>
@@ -338,9 +330,12 @@ function answersDraftKey(issueKey: string, { id }: IssueEntry): string {
 
 /**
  * The form of an open question comment. "Send answers" and "Dismiss" send I3 with `replaces`, so the answers or the
- * dismissal replace the comment, and the form goes with it.
+ * dismissal replace the comment, and the form goes with it. While the issue waits for the signed-in user, "Send answers
+ * and hand over" also sends {@link handOverTo} (D136).
  */
-function OpenQuestions({ entry, draftKey, onSend }: { entry: IssueEntry; draftKey: string; onSend(questionId: string): void }) {
+function OpenQuestions({ issue, entry, draftKey, onSend }: { issue: Issue; entry: IssueEntry; draftKey: string; onSend(questionId: string): void }) {
+    const isYou = useIsYou();
+    const next = isYou(waitingParty(issue)) ? handOverTo(issue) : null;
     const send = (input: IssueCommentInput, answersKey: string): IssueIntent => {
         onSend(entry.id);
 
@@ -358,6 +353,7 @@ function OpenQuestions({ entry, draftKey, onSend }: { entry: IssueEntry; draftKe
                 draftKey={draftKey}
                 intent={(questions, answersKey) => send({ body: '', replaces: entry.id, questions }, answersKey)}
                 dismiss={(answersKey) => send({ body: '', replaces: entry.id, dismiss: true }, answersKey)}
+                handOver={null === next ? undefined : (questions, answersKey) => send({ body: '', replaces: entry.id, questions, waitingFor: next }, answersKey)}
             />
         </section>
     );

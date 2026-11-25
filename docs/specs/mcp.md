@@ -271,7 +271,7 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
   - A question comment is open while it has at least one question and no comment replaced it. An agent withdraws its questions when it replaces the comment. A comment with the label `question` that is stored without questions is a comment and not a question comment.
   - `get_issue` returns the answer with each question and its `answer`, and not the answered question comment. `list_comments` with the label `question` returns the question comments that wait for an answer.
   - The labels `question`, `answer`, and `dismissal` are refused on a comment without questions: `label`.
-  - No question, no answer, and no dismissal changes the status or `waitingFor`. The agent hands the issue to the requester.
+  - No question, no answer, and no dismissal changes the status. An answer or a dismissal changes `waitingFor` only through REST I3 with `waitingFor` (D136). The agent hands the issue to the requester.
 - **Approval.** `planApproval` holds the approval of the plan of `planRevision`. A `plan` with new text clears it. The same text changes nothing and writes no entry. An approval of an agent has a `reviewer` and a `reviewNote`. An approval of a user, REST [I4](rest-api-issues.md#i4-approve-the-plan), has both null.
 - **Approval mode.** The `approvalMode` of the project binds each issue. In `by_issue`, the `approval` of each issue binds it, and an issue without one reads as `user` (D129). `approval` of `Issue` and `IssueSummary` is the mode that binds the issue, in every project mode.
   - `create_issue` and `update_issue` take `approval` only in a `by_issue` project, else `invalid_input` on `approval`. `by_issue` is no `approval`.

@@ -199,22 +199,20 @@ export class FakeIssues {
         );
         api.on('POST', '/api/v1/issues/:issueKey/comments', ({ params, body }) =>
             this.#answer(params.issueKey, (detail) => {
-                const { body: text, label, replaces = null, questions = [], dismiss = false } = body as IssueCommentInput;
+                const { body: text, label, replaces = null, questions = [], dismiss = false, waitingFor = null } = body as IssueCommentInput;
                 if (0 === questions.length && !dismiss) {
-                    return '' === text.trim()
-                        ? refusal('body', 'Must contain a non-whitespace character.')
-                        : json('issue.schema.json', this.#write(detail, {}, entry('comment', { body: text, label: label ?? 'comment', replaces })), 201);
+                    return '' === text.trim() ? refusal('body', 'Must contain a non-whitespace character.') : this.#comment(detail, entry('comment', { body: text, label: label ?? 'comment', replaces }), waitingFor);
                 }
                 const open = detail.thread.find((known) => known.id === replaces && isOpenQuestion(known));
                 if (undefined === open) {
                     return refusal('replaces', 'Is no open question comment.');
                 }
                 if (dismiss) {
-                    return json('issue.schema.json', this.#write(detail, {}, dismissal(open, '' === text.trim() ? 'Dismissed.' : text)), 201);
+                    return this.#comment(detail, dismissal(open, '' === text.trim() ? 'Dismissed.' : text), waitingFor);
                 }
                 const answers = open.questions.map((question, index) => ({ ...question, answer: questions[index]?.answer ?? null }));
 
-                return json('issue.schema.json', this.#write(detail, {}, entry('comment', { body: text, label: 'answer', replaces, questions: answers })), 201);
+                return this.#comment(detail, entry('comment', { body: text, label: 'answer', replaces, questions: answers }), waitingFor);
             }),
         );
         api.on('POST', '/api/v1/issues/:issueKey/plan-approval', ({ params, body }) =>
@@ -328,6 +326,20 @@ export class FakeIssues {
         const detail = this.issues.get(issueKey ?? '');
 
         return undefined === detail ? notFound() : respond(detail);
+    }
+
+    /** I3: the comment, then with `waitingFor` a hand-over in the status of the issue, as I8 writes it (D136). */
+    #comment(detail: IssueDetail, comment: IssueEntry, waitingFor: WaitingFor | null): MockResponse {
+        const { issue } = detail;
+        if (null === waitingFor || waitingFor === issue.waitingFor) {
+            return json('issue.schema.json', this.#write(detail, {}, comment), 201);
+        }
+        if (null === DEFAULT_WAITING_FOR[issue.status]) {
+            return refusal('waitingFor', `An issue in ${issue.status} waits for nobody. Send no waitingFor.`);
+        }
+        const endsClaim = 'user' === waitingParty({ ...issue, waitingFor })?.kind;
+
+        return json('issue.schema.json', this.#write(detail, { waitingFor, claim: endsClaim ? null : issue.claim }, comment, entry('status_changed', { from: issue.status, to: issue.status, waitingFor })), 201);
     }
 
     #write(detail: IssueDetail, changes: Partial<Issue>, ...entries: IssueEntry[]): Issue {

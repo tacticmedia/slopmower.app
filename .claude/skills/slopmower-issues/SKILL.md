@@ -212,6 +212,9 @@ the next step: `requester` or `assignee`.
   Record the answer as a `decision` first, then call `set_issue_status` with
   the status that the issue has and `waitingFor: assignee`.
 - The approval of a plan by the user hands the issue to the assignee.
+- The user hands the issue back on the issue page: with the answers, with a
+  request for changes, or with "Hand over". `list_issues` with
+  `waitingForKind: agent` then lists it.
 
 ## 1. Find the project
 
@@ -290,6 +293,12 @@ parameter that you leave out stays as it is.
      section "Questions" says. Then hand the issue to the requester, tell
      the user, and stop the work on this issue. Take the cursor of section 8
      before these writes, and wait as it says.
+
+   The user asks for changes of a plan with a comment with the label
+   `review`, and the issue then waits for the assignee. Change the plan,
+   replace your comments that no longer hold, and get the plan approved
+   again. In `in_progress`, `in_review`, or `approved`, set `todo` first,
+   because an agent cannot change the plan there.
 5. Call `set_issue_status` with `in_progress` before you edit. The issue is
    then yours, as the section "Session and claims" says.
 6. Do the work. Record each important step or decision with
@@ -394,8 +403,10 @@ issue again.
 2. Call `get_issue_updates` again with your last `cursor`. Each item of `entries` is a new
    entry of an issue of the project, with the summary of that issue. The
    answers of the user are a `comment` with the label `answer`, a dismissal
-   is a `comment` with the label `dismissal`, an approval is a
-   `plan_approved` entry, and a status change is a `status_changed` entry.
+   is a `comment` with the label `dismissal`, a request for changes is a
+   `comment` with the label `review`, an approval is a `plan_approved`
+   entry, and a status change is a `status_changed` entry. A hand-over is a
+   `status_changed` entry with `from` equal to `to`.
    Keep the returned `cursor`. If `hasMore` is true, call again at once.
 3. When an entry of your issue lets you go on, call `get_issue` and continue
    with section 4.

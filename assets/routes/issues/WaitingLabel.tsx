@@ -1,5 +1,6 @@
 import { Label } from '@primer/react';
 import { useRouteLoaderData } from 'react-router';
+import type { WaitingFor } from '../../api/types/common';
 import type { IssueParty, IssueSummary } from '../../api/types/issue';
 import type { Me } from '../../api/types/me';
 
@@ -12,6 +13,19 @@ export function waitingParty({ requester, assignee, waitingFor }: Parties): Issu
     }
 
     return 'requester' === waitingFor ? requester : assignee;
+}
+
+function isSameParty(first: IssueParty, second: IssueParty): boolean {
+    return first.kind === second.kind && first.userId === second.userId;
+}
+
+/** The other role than `waitingFor` (D134). Null while the issue waits for nobody, or the requester and the assignee are one party. */
+export function handOverTo({ requester, assignee, waitingFor }: Parties): WaitingFor | null {
+    if (null === waitingFor || isSameParty(requester, assignee)) {
+        return null;
+    }
+
+    return 'requester' === waitingFor ? 'assignee' : 'requester';
 }
 
 export function partyName(party: IssueParty): string {

@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace App\Controller\Api\Input;
 
 use App\Domain\Issue\CommentLabel;
+use App\Domain\Issue\WaitingFor;
 use App\Domain\Request\CommentQuestion;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * inputs.schema.json#/$defs/IssueCommentInput. {@see \App\Application\IssueCommands::comment()} checks the body,
- * `questions`, and `dismiss` (D124).
+ * `questions`, `dismiss` (D124), and `waitingFor` (D136).
  */
 final readonly class IssueCommentInput
 {
@@ -26,6 +27,7 @@ final readonly class IssueCommentInput
         public ?string $replaces = null,
         public ?array $questions = null,
         public bool $dismiss = false,
+        public ?WaitingFor $waitingFor = null,
         #[Assert\Length(min: 1, max: 64)]
         public ?string $session = null,
     ) {
