@@ -29,19 +29,38 @@ mkdir -p "$workspace"
 # Like a fresh checkout on GitHub: nothing that git ignores, so the run installs vendor/ and node_modules/ itself.
 git ls-files --others --ignored --exclude-standard --directory | sed 's|^|/|' > "$act_dir/ignored"
 rsync -a --delete --delete-excluded --exclude=/.git --exclude-from="$act_dir/ignored" ./ "$workspace/"
-rm -rf "$act_dir/artifacts"
 
 remove_stack() {
 	docker compose --project-directory "$workspace" --project-name "$project" down --volumes --remove-orphans
 }
 remove_stack
-trap remove_stack EXIT
+
+artifacts=$act_dir/artifacts/$(date -u +%Y%m%dT%H%M%SZ)
+mkdir -p "$artifacts"
+# Keeps the newest 5 runs. The names are UTC times, so the glob order is oldest first.
+set -- "$act_dir"/artifacts/*
+while [ "$#" -gt 5 ]; do
+	rm -rf "$1"
+	shift
+done
+echo "bin/act-run: the artifacts of this run go to $artifacts." >&2
+
+# A run without artifacts, also a stopped one, removes its directory, so it does not push a failed run out of the newest 5.
+finish() {
+	if rmdir "$artifacts" 2>/dev/null; then
+		echo "bin/act-run: this run has no artifacts." >&2
+	else
+		echo "bin/act-run: the artifacts of this run are in $artifacts." >&2
+	fi
+	remove_stack
+}
+trap finish EXIT
 trap 'exit 130' INT TERM
 
 cd "$workspace"
 act_status=0
 act push --workflows .github/workflows/qa.yml \
-	--artifact-server-path "$act_dir/artifacts" \
+	--artifact-server-path "$artifacts" \
 	${ACT_HTTP_PORT:+--env HTTP_PORT=$ACT_HTTP_PORT} \
 	${ACT_DATABASE_PUBLISHED_PORT:+--env DATABASE_PUBLISHED_PORT=$ACT_DATABASE_PUBLISHED_PORT} \
 	${ACT_UI_PORT:+--env UI_PORT=$ACT_UI_PORT} || act_status=$?

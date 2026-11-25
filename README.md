@@ -126,7 +126,7 @@ The workflow [`.github/workflows/qa.yml`](.github/workflows/qa.yml) runs on ever
 
 - It copies the working tree without the git-ignored files into `var/act/workspace/`. As on GitHub, the run installs `vendor/` and `node_modules/` itself.
 - The job uses its own compose project, `slopmower-act`, on the ports 8290, 5490, and 4290. Your stack keeps running. After the run, `make act` removes that project with its volumes.
-- The failure files go to `var/act/artifacts/`. The caches stay in the default directories of act under `~/.cache/`.
+- The failure files of each run go to `var/act/artifacts/<UTC time of the start>/`, and `make act` prints that path. A run without artifacts removes its directory. It keeps the newest 5 runs. The caches stay in the default directories of act under `~/.cache/`.
 - Only one act run of the workflow can run on a Docker daemon at a time.
 
 `make check` runs `make act` last when no green `make act` has seen the current content of the files in `ACT_INPUTS` of the `Makefile`. A green `make act` records the hash of that content in `.git/act-verified/`, which every worktree of the repository shares. With `CI` or `ACT` set, `make check` never runs act. Run act only through `make act`: the workflow refuses a run outside `var/act/workspace/`.
