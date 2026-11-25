@@ -79,8 +79,8 @@ The user and later sessions read every text of an issue. Write for them.
   that a later reader needs, do not write it.
 - One comment states one thing. Give it the `label` of the table below that
   says what it is. Do not start the text with the label as a word.
-- `result` is a short list: what changed, the commit SHAs, the tests with
-  their counts, and each deviation.
+- `result` is a short list: what changed, where the work is as section 4
+  says, the tests with their counts, and each deviation.
 
 | Label | Use it for |
 |---|---|
@@ -93,7 +93,7 @@ The user and later sessions read every text of an issue. Write for them.
 | `deviation` | Work that differs from the plan |
 | `scope_creep` | Work that came up and was left out, or was added |
 | `papercut` | A small friction in the tools, the code, or the process |
-| `review` | The findings of a reviewing agent |
+| `review` | The findings of a reviewing agent, or the changes that the requester asks for |
 
 `list_comments` with a `label` returns the comments of that label across
 the issues of the project, for example every decision or every papercut.
@@ -258,7 +258,7 @@ parameter that you leave out stays as it is.
 |---|---|
 | `problem` | A bug: what is wrong, how to see it, and what is expected. A change: what is wanted, and how to tell that it is done |
 | `plan` | The steps, the files, and the tests |
-| `result` | What was done, with the commit SHAs, and each deviation from the plan |
+| `result` | What was done, where the work is as section 4 says, and each deviation from the plan |
 | `followUps` | What came up and was left out |
 
 ## 4. Flow
@@ -269,7 +269,7 @@ parameter that you leave out stays as it is.
 | `backlog` | The problem is complete, and the work waits |
 | `todo` | The issue is ready for work |
 | `in_progress` | You work on it |
-| `in_review` | The work is ready and not merged, and the result is written. The requester reviews it |
+| `in_review` | The work is ready on a branch or in a pull request, not merged, and the result is written. The requester reviews it |
 | `approved` | The requester accepted the work. You merge it |
 | `done` | The work is on the default branch |
 | `wont_do` | Not done, with a note that says why |
@@ -294,19 +294,41 @@ parameter that you leave out stays as it is.
    it. Write each deviation from the plan into `result`.
 7. Commit with the issue key in the commit subject, for example
    `fix: SM-12 round invoice totals once`.
-8. Write `result` with `update_issue`: what you did, the branch and its
-   commits, and each deviation from the plan. Then call `set_issue_status`
-   with `in_review`. The issue then waits for the requester.
-9. The work is accepted as `approval` allows:
-   - `self`: call `set_issue_status` with `approved`.
+8. Keep the work on a branch, or in a pull request when the repository or
+   the requester asks for one. Write `result` with `update_issue`: what you
+   did, the branch or the URL of the pull request, and each deviation from
+   the plan. Name no commit SHA, because a rebase changes it. Then call
+   `set_issue_status` with `in_review`. The issue then waits for the
+   requester.
+9. The requester reviews the work. `approved` accepts it, and needs no
+   comment. Who sets it depends on `approval`:
+   - `self`: review the work yourself, then call `set_issue_status` with
+     `approved`. An agent requester accepts the work in this way.
    - `agent_review`: another agent or subagent reviews the result. Then call
      `set_issue_status` with `approved`, its name as `reviewer`, and its
      findings as `note`.
    - `user`: leave the issue in `in_review` and tell the user. Only the user
      sets `approved`, and the server refuses `wont_do` from an agent.
-10. After `approved`, merge the work into the default branch, write the
-    commit on it into `result`, and call `set_issue_status` with `done`. The
+
+   To ask for changes, the requester writes a comment with the label
+   `review` and hands the issue to the assignee in `in_review`. Change the
+   branch, update `result`, and hand the issue back: `set_issue_status` with
+   `in_review` and `waitingFor: requester`.
+10. After `approved`, the session that built the branch delivers it: rebase
+    it onto the default branch, run the checks, and merge it as the
+    repository does it, or merge the pull request. Then name the commits on
+    the default branch in `result`, and call `set_issue_status` with `done`.
+    Each commit SHA in `result` at `done` is on the default branch. The
     server allows `done` from `approved` in every approval mode.
+
+Never merge the branch of another session, and write no section of an issue
+that another session builds. Comment on it instead.
+
+A subagent that works for an orchestrator in its own branch writes `result`
+and leaves the issue in `in_progress`. It sends the session name of the
+orchestrator, so the orchestrator is the session that built the branch: it
+reviews the branch, sets `in_review`, merges after `approved`, and sets
+`done`.
 
 `wont_do` needs a `note` that says why. In `agent_review` it also needs a
 `reviewer`.
