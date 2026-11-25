@@ -67,7 +67,7 @@ export async function projectsAction({ request }: ActionFunctionArgs): Promise<I
 function projectOf(projects: Project[], params: Params): Project {
     const project = projects.find((known) => known.key === params.projectKey);
     if (undefined === project) {
-        throw new Error(`P1 does not list the project ${params.projectKey}.`);
+        throw new ApiError(404, 'not_found', 'The resource does not exist.', null);
     }
 
     return project;

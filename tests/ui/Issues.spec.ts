@@ -573,6 +573,16 @@ test.describe('Issues', () => {
         expect(issues.projects[0]).toEqual(project({ approvalMode: 'by_issue', approvalGuidelines: guidelines, repositories: [] }));
     });
 
+    test('An unknown project key shows the not-found error on the project settings and on the new issue form', async ({ page, api }) => {
+        new FakeRepositories(api);
+        new FakeIssues(api);
+
+        for (const path of ['/projects/NOPE/settings', '/projects/NOPE/issues/new']) {
+            await page.goto(path);
+            await expect(page.locator('main [data-testid="route-error"]'), path).toContainText('The resource does not exist.');
+        }
+    });
+
     test('"New issue" is off without a category, and creates a draft with the title, the category, and the problem', async ({ page, api }) => {
         const issues = new FakeIssues(api);
         issues.add(issueDetail());
