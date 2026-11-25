@@ -22,8 +22,13 @@ final class BundledSchemas
         ],
         '$defs' => [
             'CodeAccess' => [
-                'enum' => ['clone', 'pass_through', 'browser'],
                 'description' => 'clone: the server keeps a bare clone (Server copy). pass_through: the server reads from GitHub per request and stores no code. browser: the server reads only trees, commits, and blame ranges from GitHub, and the browser reads file content from api.github.com (Browser only). A local repository is always clone.',
+                'anyOf' => [
+                    [
+                        'enum' => ['clone', 'pass_through', 'browser'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
@@ -122,18 +127,33 @@ final class BundledSchemas
                 ],
             ],
             'RepositoryAccess' => [
-                'enum' => ['active', 'removed'],
+                'anyOf' => [
+                    [
+                        'enum' => ['active', 'removed'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'RepositorySource' => [
-                'enum' => ['github', 'local'],
+                'anyOf' => [
+                    [
+                        'enum' => ['github', 'local'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'Sync' => [
                 'type' => 'object',
                 'required' => ['state', 'lastFetchedAt', 'lastError', 'defaultBranchHead'],
                 'properties' => [
                     'state' => [
-                        'enum' => ['cloning', 'failed', 'idle', 'fetching', 'unavailable'],
                         'description' => 'cloning: first clone queued or running, or a codeAccess change in progress; failed: first clone failed, no clone, or for pass_through and browser the last sync failed the access or suspension check; idle: clone ready, or for pass_through and browser the last sync passed; fetching: fetch queued or running; unavailable: access removed, clone deleted. For pass_through and browser a clone or fetch is a head sync: the checks and the default branch head, without code.',
+                        'anyOf' => [
+                            [
+                                'enum' => ['cloning', 'failed', 'idle', 'fetching', 'unavailable'],
+                            ],
+                            ['type' => 'string'],
+                        ],
                     ],
                     'lastFetchedAt' => [
                         'anyOf' => [
@@ -241,7 +261,12 @@ final class BundledSchemas
                 ],
             ],
             'ActorKind' => [
-                'enum' => ['user', 'agent', 'system'],
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent', 'system'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'Capabilities' => [
                 'type' => 'object',
@@ -252,8 +277,13 @@ final class BundledSchemas
                 'description' => 'What the host of the repository offers.',
             ],
             'CodeAccess' => [
-                'enum' => ['clone', 'pass_through', 'browser'],
                 'description' => 'clone: the server keeps a bare clone (Server copy). pass_through: the server reads from GitHub per request and stores no code. browser: the server reads only trees, commits, and blame ranges from GitHub, and the browser reads file content from api.github.com (Browser only). A local repository is always clone.',
+                'anyOf' => [
+                    [
+                        'enum' => ['clone', 'pass_through', 'browser'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
@@ -278,7 +308,12 @@ final class BundledSchemas
             ],
             'EventSeq' => ['type' => 'integer', 'minimum' => 0, 'description' => 'Per-tenant event number, gapless, in commit order.'],
             'IndexState' => [
-                'enum' => ['pending', 'running', 'ready', 'failed'],
+                'anyOf' => [
+                    [
+                        'enum' => ['pending', 'running', 'ready', 'failed'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IndexStatus' => [
                 'type' => 'object',
@@ -403,10 +438,20 @@ final class BundledSchemas
                 ],
             ],
             'RepositoryAccess' => [
-                'enum' => ['active', 'removed'],
+                'anyOf' => [
+                    [
+                        'enum' => ['active', 'removed'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'RepositorySource' => [
-                'enum' => ['github', 'local'],
+                'anyOf' => [
+                    [
+                        'enum' => ['github', 'local'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'RequestCounts' => [
                 'type' => 'object',
@@ -497,15 +542,25 @@ final class BundledSchemas
                 ],
             ],
             'ReviewState' => [
-                'enum' => ['open', 'closed'],
+                'anyOf' => [
+                    [
+                        'enum' => ['open', 'closed'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'Sync' => [
                 'type' => 'object',
                 'required' => ['state', 'lastFetchedAt', 'lastError', 'defaultBranchHead'],
                 'properties' => [
                     'state' => [
-                        'enum' => ['cloning', 'failed', 'idle', 'fetching', 'unavailable'],
                         'description' => 'cloning: first clone queued or running, or a codeAccess change in progress; failed: first clone failed, no clone, or for pass_through and browser the last sync failed the access or suspension check; idle: clone ready, or for pass_through and browser the last sync passed; fetching: fetch queued or running; unavailable: access removed, clone deleted. For pass_through and browser a clone or fetch is a head sync: the checks and the default branch head, without code.',
+                        'anyOf' => [
+                            [
+                                'enum' => ['cloning', 'failed', 'idle', 'fetching', 'unavailable'],
+                            ],
+                            ['type' => 'string'],
+                        ],
                     ],
                     'lastFetchedAt' => [
                         'anyOf' => [
@@ -624,10 +679,20 @@ final class BundledSchemas
                 ],
             ],
             'ActorKind' => [
-                'enum' => ['user', 'agent', 'system'],
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent', 'system'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'AnchorKind' => [
-                'enum' => ['line', 'range', 'symbol', 'file'],
+                'anyOf' => [
+                    [
+                        'enum' => ['line', 'range', 'symbol', 'file'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'AnchorSummary' => [
                 'type' => 'object',
@@ -653,7 +718,12 @@ final class BundledSchemas
                 ],
             ],
             'Awaiting' => [
-                'enum' => ['agent', 'user', 'none'],
+                'anyOf' => [
+                    [
+                        'enum' => ['agent', 'user', 'none'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'CarriedFrom' => [
                 'type' => 'object',
@@ -778,11 +848,21 @@ final class BundledSchemas
                 ],
             ],
             'ProposalState' => [
-                'enum' => ['pending', 'approved', 'rejected'],
+                'anyOf' => [
+                    [
+                        'enum' => ['pending', 'approved', 'rejected'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
-                'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
+                'anyOf' => [
+                    [
+                        'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'RequestSummary' => [
                 'title' => 'RequestSummary',
@@ -918,13 +998,28 @@ final class BundledSchemas
                 'description' => 'Open set. What the user asks for: change, a code change; question, an answer without a code change; rule, a rule that the agent adds to AGENTS.md and follows from then on. Set when the request opens; it does not change after that.',
             ],
             'Resolution' => [
-                'enum' => ['fixed', 'wont_do'],
+                'anyOf' => [
+                    [
+                        'enum' => ['fixed', 'wont_do'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'ReviewState' => [
-                'enum' => ['open', 'closed'],
+                'anyOf' => [
+                    [
+                        'enum' => ['open', 'closed'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'SuggestionState' => [
-                'enum' => ['pending', 'accepted', 'dismissed'],
+                'anyOf' => [
+                    [
+                        'enum' => ['pending', 'accepted', 'dismissed'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'SymbolKind' => [
                 'anyOf' => [
@@ -1049,10 +1144,20 @@ final class BundledSchemas
                 ],
             ],
             'ActorKind' => [
-                'enum' => ['user', 'agent', 'system'],
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent', 'system'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'AnchorKind' => [
-                'enum' => ['line', 'range', 'symbol', 'file'],
+                'anyOf' => [
+                    [
+                        'enum' => ['line', 'range', 'symbol', 'file'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'AnchorSummary' => [
                 'type' => 'object',
@@ -1078,7 +1183,12 @@ final class BundledSchemas
                 ],
             ],
             'Awaiting' => [
-                'enum' => ['agent', 'user', 'none'],
+                'anyOf' => [
+                    [
+                        'enum' => ['agent', 'user', 'none'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'CarriedFrom' => [
                 'type' => 'object',
@@ -1286,7 +1396,12 @@ final class BundledSchemas
                 ],
             ],
             'ProposalState' => [
-                'enum' => ['pending', 'approved', 'rejected'],
+                'anyOf' => [
+                    [
+                        'enum' => ['pending', 'approved', 'rejected'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://[^\\s\\x00]+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
             'Question' => [
@@ -1317,7 +1432,12 @@ final class BundledSchemas
             ],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
-                'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
+                'anyOf' => [
+                    [
+                        'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'RequestSummary' => [
                 'title' => 'RequestSummary',
@@ -1453,13 +1573,28 @@ final class BundledSchemas
                 'description' => 'Open set. What the user asks for: change, a code change; question, an answer without a code change; rule, a rule that the agent adds to AGENTS.md and follows from then on. Set when the request opens; it does not change after that.',
             ],
             'Resolution' => [
-                'enum' => ['fixed', 'wont_do'],
+                'anyOf' => [
+                    [
+                        'enum' => ['fixed', 'wont_do'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'ReviewState' => [
-                'enum' => ['open', 'closed'],
+                'anyOf' => [
+                    [
+                        'enum' => ['open', 'closed'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'SuggestionState' => [
-                'enum' => ['pending', 'accepted', 'dismissed'],
+                'anyOf' => [
+                    [
+                        'enum' => ['pending', 'accepted', 'dismissed'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'SymbolKind' => [
                 'anyOf' => [
@@ -1753,7 +1888,12 @@ final class BundledSchemas
                 ],
             ],
             'ActorKind' => [
-                'enum' => ['user', 'agent', 'system'],
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent', 'system'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'Anchor' => [
                 'title' => 'Anchor',
@@ -1789,10 +1929,20 @@ final class BundledSchemas
                 ],
             ],
             'AnchorKind' => [
-                'enum' => ['line', 'range', 'symbol', 'file'],
+                'anyOf' => [
+                    [
+                        'enum' => ['line', 'range', 'symbol', 'file'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'Awaiting' => [
-                'enum' => ['agent', 'user', 'none'],
+                'anyOf' => [
+                    [
+                        'enum' => ['agent', 'user', 'none'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'Capabilities' => [
                 'type' => 'object',
@@ -1888,7 +2038,12 @@ final class BundledSchemas
                 ],
             ],
             'CommitLinkState' => [
-                'enum' => ['pending', 'available'],
+                'anyOf' => [
+                    [
+                        'enum' => ['pending', 'available'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'ContentSnapshot' => [
@@ -2015,8 +2170,13 @@ final class BundledSchemas
                 'required' => ['target', 'targetSha', 'status', 'path', 'range', 'confidence', 'reason'],
                 'properties' => [
                     'target' => [
-                        'enum' => ['default_branch', 'requested', 'linked_commit'],
                         'description' => 'default_branch: head at the last fetch; requested: the `at` commit; linked_commit: in a commit diff.',
+                        'anyOf' => [
+                            [
+                                'enum' => ['default_branch', 'requested', 'linked_commit'],
+                            ],
+                            ['type' => 'string'],
+                        ],
                     ],
                     'targetSha' => ['$ref' => '#/$defs/CommitSha'],
                     'status' => ['$ref' => '#/$defs/LocationStatus'],
@@ -2092,13 +2252,23 @@ final class BundledSchemas
                 ],
             ],
             'LocationStatus' => [
-                'enum' => ['exact', 'shifted', 'changed', 'orphaned', 'unverified'],
                 'description' => 'unverified: browser only, the path of the anchor has another blob and the server reads no code, so the location is the path and the range of the anchor.',
+                'anyOf' => [
+                    [
+                        'enum' => ['exact', 'shifted', 'changed', 'orphaned', 'unverified'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'Markdown' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'GitHub-flavoured Markdown with at least one non-whitespace character.'],
             'ObjectSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full git object ID of a blob, tree, or commit.'],
             'OrphanReason' => [
-                'enum' => ['file_deleted', 'region_deleted', 'ambiguous', 'content_not_found'],
+                'anyOf' => [
+                    [
+                        'enum' => ['file_deleted', 'region_deleted', 'ambiguous', 'content_not_found'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'Proposal' => [
                 'type' => 'object',
@@ -2109,7 +2279,12 @@ final class BundledSchemas
                 ],
             ],
             'ProposalState' => [
-                'enum' => ['pending', 'approved', 'rejected'],
+                'anyOf' => [
+                    [
+                        'enum' => ['pending', 'approved', 'rejected'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'PullRequest' => [
                 'type' => 'object',
@@ -2140,8 +2315,13 @@ final class BundledSchemas
                 ],
             ],
             'PullRequestState' => [
-                'enum' => ['open', 'draft', 'merged', 'closed', 'unknown'],
                 'description' => 'unknown: a local repository, a state not read yet, a pull request that GitHub does not find, or an installation without the permission Pull requests: read.',
+                'anyOf' => [
+                    [
+                        'enum' => ['open', 'draft', 'merged', 'closed', 'unknown'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://[^\\s\\x00]+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
             'Question' => [
@@ -2172,7 +2352,12 @@ final class BundledSchemas
             ],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
-                'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
+                'anyOf' => [
+                    [
+                        'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'RequestType' => [
                 'anyOf' => [
@@ -2184,13 +2369,28 @@ final class BundledSchemas
                 'description' => 'Open set. What the user asks for: change, a code change; question, an answer without a code change; rule, a rule that the agent adds to AGENTS.md and follows from then on. Set when the request opens; it does not change after that.',
             ],
             'Resolution' => [
-                'enum' => ['fixed', 'wont_do'],
+                'anyOf' => [
+                    [
+                        'enum' => ['fixed', 'wont_do'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'ReviewState' => [
-                'enum' => ['open', 'closed'],
+                'anyOf' => [
+                    [
+                        'enum' => ['open', 'closed'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'SuggestionState' => [
-                'enum' => ['pending', 'accepted', 'dismissed'],
+                'anyOf' => [
+                    [
+                        'enum' => ['pending', 'accepted', 'dismissed'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'SymbolKind' => [
                 'anyOf' => [
@@ -2401,10 +2601,20 @@ final class BundledSchemas
                 ],
             ],
             'ActorKind' => [
-                'enum' => ['user', 'agent', 'system'],
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent', 'system'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'AnchorKind' => [
-                'enum' => ['line', 'range', 'symbol', 'file'],
+                'anyOf' => [
+                    [
+                        'enum' => ['line', 'range', 'symbol', 'file'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'AnchorSummary' => [
                 'type' => 'object',
@@ -2430,7 +2640,12 @@ final class BundledSchemas
                 ],
             ],
             'Awaiting' => [
-                'enum' => ['agent', 'user', 'none'],
+                'anyOf' => [
+                    [
+                        'enum' => ['agent', 'user', 'none'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'CarriedFrom' => [
                 'type' => 'object',
@@ -2638,7 +2853,12 @@ final class BundledSchemas
                 ],
             ],
             'ProposalState' => [
-                'enum' => ['pending', 'approved', 'rejected'],
+                'anyOf' => [
+                    [
+                        'enum' => ['pending', 'approved', 'rejected'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://[^\\s\\x00]+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
             'Question' => [
@@ -2669,7 +2889,12 @@ final class BundledSchemas
             ],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
-                'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
+                'anyOf' => [
+                    [
+                        'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'RequestSummary' => [
                 'title' => 'RequestSummary',
@@ -2805,10 +3030,20 @@ final class BundledSchemas
                 'description' => 'Open set. What the user asks for: change, a code change; question, an answer without a code change; rule, a rule that the agent adds to AGENTS.md and follows from then on. Set when the request opens; it does not change after that.',
             ],
             'Resolution' => [
-                'enum' => ['fixed', 'wont_do'],
+                'anyOf' => [
+                    [
+                        'enum' => ['fixed', 'wont_do'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'SuggestionState' => [
-                'enum' => ['pending', 'accepted', 'dismissed'],
+                'anyOf' => [
+                    [
+                        'enum' => ['pending', 'accepted', 'dismissed'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'SymbolKind' => [
                 'anyOf' => [
@@ -2931,10 +3166,20 @@ final class BundledSchemas
                 ],
             ],
             'ActorKind' => [
-                'enum' => ['user', 'agent', 'system'],
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent', 'system'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'AnchorKind' => [
-                'enum' => ['line', 'range', 'symbol', 'file'],
+                'anyOf' => [
+                    [
+                        'enum' => ['line', 'range', 'symbol', 'file'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'AnchorSummary' => [
                 'type' => 'object',
@@ -2960,7 +3205,12 @@ final class BundledSchemas
                 ],
             ],
             'Awaiting' => [
-                'enum' => ['agent', 'user', 'none'],
+                'anyOf' => [
+                    [
+                        'enum' => ['agent', 'user', 'none'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'CarriedFrom' => [
                 'type' => 'object',
@@ -2971,7 +3221,12 @@ final class BundledSchemas
                 ],
             ],
             'CommitLinkState' => [
-                'enum' => ['pending', 'available'],
+                'anyOf' => [
+                    [
+                        'enum' => ['pending', 'available'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'ContentSnapshot' => [
@@ -3171,7 +3426,12 @@ final class BundledSchemas
                 ],
             ],
             'ProposalState' => [
-                'enum' => ['pending', 'approved', 'rejected'],
+                'anyOf' => [
+                    [
+                        'enum' => ['pending', 'approved', 'rejected'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://[^\\s\\x00]+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
             'Question' => [
@@ -3202,7 +3462,12 @@ final class BundledSchemas
             ],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
-                'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
+                'anyOf' => [
+                    [
+                        'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'RequestSummary' => [
                 'title' => 'RequestSummary',
@@ -3338,10 +3603,20 @@ final class BundledSchemas
                 'description' => 'Open set. What the user asks for: change, a code change; question, an answer without a code change; rule, a rule that the agent adds to AGENTS.md and follows from then on. Set when the request opens; it does not change after that.',
             ],
             'Resolution' => [
-                'enum' => ['fixed', 'wont_do'],
+                'anyOf' => [
+                    [
+                        'enum' => ['fixed', 'wont_do'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'SuggestionState' => [
-                'enum' => ['pending', 'accepted', 'dismissed'],
+                'anyOf' => [
+                    [
+                        'enum' => ['pending', 'accepted', 'dismissed'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'SymbolKind' => [
                 'anyOf' => [
@@ -3463,10 +3738,20 @@ final class BundledSchemas
                 ],
             ],
             'ActorKind' => [
-                'enum' => ['user', 'agent', 'system'],
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent', 'system'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'AnchorKind' => [
-                'enum' => ['line', 'range', 'symbol', 'file'],
+                'anyOf' => [
+                    [
+                        'enum' => ['line', 'range', 'symbol', 'file'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'AnchorSummary' => [
                 'type' => 'object',
@@ -3492,7 +3777,12 @@ final class BundledSchemas
                 ],
             ],
             'Awaiting' => [
-                'enum' => ['agent', 'user', 'none'],
+                'anyOf' => [
+                    [
+                        'enum' => ['agent', 'user', 'none'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'CarriedFrom' => [
                 'type' => 'object',
@@ -3700,7 +3990,12 @@ final class BundledSchemas
                 ],
             ],
             'ProposalState' => [
-                'enum' => ['pending', 'approved', 'rejected'],
+                'anyOf' => [
+                    [
+                        'enum' => ['pending', 'approved', 'rejected'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://[^\\s\\x00]+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
             'Question' => [
@@ -3731,7 +4026,12 @@ final class BundledSchemas
             ],
             'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
-                'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
+                'anyOf' => [
+                    [
+                        'enum' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'RequestSummary' => [
                 'title' => 'RequestSummary',
@@ -3867,10 +4167,20 @@ final class BundledSchemas
                 'description' => 'Open set. What the user asks for: change, a code change; question, an answer without a code change; rule, a rule that the agent adds to AGENTS.md and follows from then on. Set when the request opens; it does not change after that.',
             ],
             'Resolution' => [
-                'enum' => ['fixed', 'wont_do'],
+                'anyOf' => [
+                    [
+                        'enum' => ['fixed', 'wont_do'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'SuggestionState' => [
-                'enum' => ['pending', 'accepted', 'dismissed'],
+                'anyOf' => [
+                    [
+                        'enum' => ['pending', 'accepted', 'dismissed'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'SymbolKind' => [
                 'anyOf' => [
@@ -4034,7 +4344,12 @@ final class BundledSchemas
                 ],
             ],
             'ActorKind' => [
-                'enum' => ['user', 'agent', 'system'],
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent', 'system'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'Capabilities' => [
                 'type' => 'object',
@@ -4066,7 +4381,12 @@ final class BundledSchemas
             ],
             'EventSeq' => ['type' => 'integer', 'minimum' => 0, 'description' => 'Per-tenant event number, gapless, in commit order.'],
             'IndexState' => [
-                'enum' => ['pending', 'running', 'ready', 'failed'],
+                'anyOf' => [
+                    [
+                        'enum' => ['pending', 'running', 'ready', 'failed'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IndexStatus' => [
                 'type' => 'object',
@@ -4127,7 +4447,12 @@ final class BundledSchemas
                 ],
             ],
             'ReviewState' => [
-                'enum' => ['open', 'closed'],
+                'anyOf' => [
+                    [
+                        'enum' => ['open', 'closed'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
             'Workspace' => [
@@ -4156,8 +4481,13 @@ final class BundledSchemas
         ],
         '$defs' => [
             'ApprovalMode' => [
-                'enum' => ['user', 'agent_review', 'self', 'by_issue'],
                 'description' => 'Who approves a plan and ends an issue of the project. user: only a signed-in user. agent_review: also an agent, with the name of a reviewing agent and its review on record. self: no approval (D117). by_issue: the approval of each issue says it (D129).',
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent_review', 'self', 'by_issue'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
             'NextCursor' => [
@@ -4275,17 +4605,32 @@ final class BundledSchemas
                 ],
             ],
             'ActorKind' => [
-                'enum' => ['user', 'agent', 'system'],
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent', 'system'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
             'IssueApproval' => [
-                'enum' => ['user', 'agent_review', 'self'],
                 'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent_review', 'self'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueCategory' => [
-                'enum' => ['bug', 'change'],
                 'description' => 'What an issue is (D133). bug: something that exists is wrong against its specification, its documentation, or its evident intent. change: all else, so a feature, an alteration, a refactoring, or an upgrade.',
+                'anyOf' => [
+                    [
+                        'enum' => ['bug', 'change'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueClaim' => [
                 'type' => 'object',
@@ -4319,12 +4664,22 @@ final class BundledSchemas
                 ],
             ],
             'IssuePartyKind' => [
-                'enum' => ['user', 'agent'],
                 'description' => 'user: a user of the tenant. agent: any agent of the tenant (D134).',
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueStatus' => [
-                'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'in_review', 'approved', 'done', 'wont_do'],
                 'description' => 'in_review: the work is ready and not merged, and waits for the review of the requester. approved: the requester accepted the work, and the assignee merges it. done: the work is on the default branch. done and wont_do end an issue (D117, D134).',
+                'anyOf' => [
+                    [
+                        'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'in_review', 'approved', 'done', 'wont_do'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueSummary' => [
                 'type' => 'object',
@@ -4363,8 +4718,13 @@ final class BundledSchemas
             'SessionName' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
             'WaitingFor' => [
-                'enum' => ['requester', 'assignee'],
                 'description' => 'The role of the party that has the next step on an issue (D134).',
+                'anyOf' => [
+                    [
+                        'enum' => ['requester', 'assignee'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
         ],
     ];
@@ -4453,21 +4813,41 @@ final class BundledSchemas
                 ],
             ],
             'ActorKind' => [
-                'enum' => ['user', 'agent', 'system'],
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent', 'system'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'CommentLabel' => [
-                'enum' => ['comment', 'decision', 'question', 'answer', 'dismissal', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'],
                 'description' => 'What a comment of an issue is (D121). comment: progress or a remark. decision: a choice, with its reason and what it rules out. question: asks the user with its questions. answer: the answers of a user to a question comment, which it replaces. dismissal: the user does not answer a question comment, which it replaces. The server sets question, answer, and dismissal (D124). finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent.',
+                'anyOf' => [
+                    [
+                        'enum' => ['comment', 'decision', 'question', 'answer', 'dismissal', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
             'IssueApproval' => [
-                'enum' => ['user', 'agent_review', 'self'],
                 'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent_review', 'self'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueCategory' => [
-                'enum' => ['bug', 'change'],
                 'description' => 'What an issue is (D133). bug: something that exists is wrong against its specification, its documentation, or its evident intent. change: all else, so a feature, an alteration, a refactoring, or an upgrade.',
+                'anyOf' => [
+                    [
+                        'enum' => ['bug', 'change'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueClaim' => [
                 'type' => 'object',
@@ -4519,12 +4899,22 @@ final class BundledSchemas
                 ],
             ],
             'IssuePartyKind' => [
-                'enum' => ['user', 'agent'],
                 'description' => 'user: a user of the tenant. agent: any agent of the tenant (D134).',
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueStatus' => [
-                'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'in_review', 'approved', 'done', 'wont_do'],
                 'description' => 'in_review: the work is ready and not merged, and waits for the review of the requester. approved: the requester accepted the work, and the assignee merges it. done: the work is on the default branch. done and wont_do end an issue (D117, D134).',
+                'anyOf' => [
+                    [
+                        'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'in_review', 'approved', 'done', 'wont_do'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueSummary' => [
                 'type' => 'object',
@@ -4589,8 +4979,13 @@ final class BundledSchemas
             'SessionName' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
             'WaitingFor' => [
-                'enum' => ['requester', 'assignee'],
                 'description' => 'The role of the party that has the next step on an issue (D134).',
+                'anyOf' => [
+                    [
+                        'enum' => ['requester', 'assignee'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
         ],
     ];
@@ -4685,15 +5080,30 @@ final class BundledSchemas
                 ],
             ],
             'ActorKind' => [
-                'enum' => ['user', 'agent', 'system'],
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent', 'system'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'ApprovalMode' => [
-                'enum' => ['user', 'agent_review', 'self', 'by_issue'],
                 'description' => 'Who approves a plan and ends an issue of the project. user: only a signed-in user. agent_review: also an agent, with the name of a reviewing agent and its review on record. self: no approval (D117). by_issue: the approval of each issue says it (D129).',
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent_review', 'self', 'by_issue'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'CommentLabel' => [
-                'enum' => ['comment', 'decision', 'question', 'answer', 'dismissal', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'],
                 'description' => 'What a comment of an issue is (D121). comment: progress or a remark. decision: a choice, with its reason and what it rules out. question: asks the user with its questions. answer: the answers of a user to a question comment, which it replaces. dismissal: the user does not answer a question comment, which it replaces. The server sets question, answer, and dismissal (D124). finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent.',
+                'anyOf' => [
+                    [
+                        'enum' => ['comment', 'decision', 'question', 'answer', 'dismissal', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
             'Issue' => [
@@ -4778,12 +5188,22 @@ final class BundledSchemas
                 ],
             ],
             'IssueApproval' => [
-                'enum' => ['user', 'agent_review', 'self'],
                 'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent_review', 'self'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueCategory' => [
-                'enum' => ['bug', 'change'],
                 'description' => 'What an issue is (D133). bug: something that exists is wrong against its specification, its documentation, or its evident intent. change: all else, so a feature, an alteration, a refactoring, or an upgrade.',
+                'anyOf' => [
+                    [
+                        'enum' => ['bug', 'change'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueClaim' => [
                 'type' => 'object',
@@ -4912,8 +5332,13 @@ final class BundledSchemas
                 ],
             ],
             'IssueLinkKind' => [
-                'enum' => ['relates', 'blocked_by', 'blocks'],
                 'description' => 'What a link is for the issue that is read (D126). relates: no dependency. blocked_by: this issue waits for the other issue. blocks: the other issue waits for this issue. A link is stored as relates or blocked_by, and blocks is the same blocked_by link read from its other issue.',
+                'anyOf' => [
+                    [
+                        'enum' => ['relates', 'blocked_by', 'blocks'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueParty' => [
                 'type' => 'object',
@@ -4935,15 +5360,30 @@ final class BundledSchemas
                 ],
             ],
             'IssuePartyKind' => [
-                'enum' => ['user', 'agent'],
                 'description' => 'user: a user of the tenant. agent: any agent of the tenant (D134).',
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueSection' => [
-                'enum' => ['problem', 'plan', 'result', 'followUps'],
+                'anyOf' => [
+                    [
+                        'enum' => ['problem', 'plan', 'result', 'followUps'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueStatus' => [
-                'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'in_review', 'approved', 'done', 'wont_do'],
                 'description' => 'in_review: the work is ready and not merged, and waits for the review of the requester. approved: the requester accepted the work, and the assignee merges it. done: the work is on the default branch. done and wont_do end an issue (D117, D134).',
+                'anyOf' => [
+                    [
+                        'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'in_review', 'approved', 'done', 'wont_do'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueSummary' => [
                 'type' => 'object',
@@ -5022,8 +5462,13 @@ final class BundledSchemas
             'SessionName' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
             'WaitingFor' => [
-                'enum' => ['requester', 'assignee'],
                 'description' => 'The role of the party that has the next step on an issue (D134).',
+                'anyOf' => [
+                    [
+                        'enum' => ['requester', 'assignee'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
         ],
     ];
@@ -5126,20 +5571,40 @@ final class BundledSchemas
                 ],
             ],
             'ActorKind' => [
-                'enum' => ['user', 'agent', 'system'],
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent', 'system'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'CommentLabel' => [
-                'enum' => ['comment', 'decision', 'question', 'answer', 'dismissal', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'],
                 'description' => 'What a comment of an issue is (D121). comment: progress or a remark. decision: a choice, with its reason and what it rules out. question: asks the user with its questions. answer: the answers of a user to a question comment, which it replaces. dismissal: the user does not answer a question comment, which it replaces. The server sets question, answer, and dismissal (D124). finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent.',
+                'anyOf' => [
+                    [
+                        'enum' => ['comment', 'decision', 'question', 'answer', 'dismissal', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
             'IssueApproval' => [
-                'enum' => ['user', 'agent_review', 'self'],
                 'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent_review', 'self'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueCategory' => [
-                'enum' => ['bug', 'change'],
                 'description' => 'What an issue is (D133). bug: something that exists is wrong against its specification, its documentation, or its evident intent. change: all else, so a feature, an alteration, a refactoring, or an upgrade.',
+                'anyOf' => [
+                    [
+                        'enum' => ['bug', 'change'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueClaim' => [
                 'type' => 'object',
@@ -5275,15 +5740,30 @@ final class BundledSchemas
                 ],
             ],
             'IssuePartyKind' => [
-                'enum' => ['user', 'agent'],
                 'description' => 'user: a user of the tenant. agent: any agent of the tenant (D134).',
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueSection' => [
-                'enum' => ['problem', 'plan', 'result', 'followUps'],
+                'anyOf' => [
+                    [
+                        'enum' => ['problem', 'plan', 'result', 'followUps'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueStatus' => [
-                'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'in_review', 'approved', 'done', 'wont_do'],
                 'description' => 'in_review: the work is ready and not merged, and waits for the review of the requester. approved: the requester accepted the work, and the assignee merges it. done: the work is on the default branch. done and wont_do end an issue (D117, D134).',
+                'anyOf' => [
+                    [
+                        'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'in_review', 'approved', 'done', 'wont_do'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueSummary' => [
                 'type' => 'object',
@@ -5342,8 +5822,13 @@ final class BundledSchemas
             'SessionName' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
             'WaitingFor' => [
-                'enum' => ['requester', 'assignee'],
                 'description' => 'The role of the party that has the next step on an issue (D134).',
+                'anyOf' => [
+                    [
+                        'enum' => ['requester', 'assignee'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
         ],
     ];
@@ -5501,20 +5986,40 @@ final class BundledSchemas
                 ],
             ],
             'ActorKind' => [
-                'enum' => ['user', 'agent', 'system'],
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent', 'system'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'ApprovalMode' => [
-                'enum' => ['user', 'agent_review', 'self', 'by_issue'],
                 'description' => 'Who approves a plan and ends an issue of the project. user: only a signed-in user. agent_review: also an agent, with the name of a reviewing agent and its review on record. self: no approval (D117). by_issue: the approval of each issue says it (D129).',
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent_review', 'self', 'by_issue'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
             'IssueApproval' => [
-                'enum' => ['user', 'agent_review', 'self'],
                 'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent_review', 'self'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueCategory' => [
-                'enum' => ['bug', 'change'],
                 'description' => 'What an issue is (D133). bug: something that exists is wrong against its specification, its documentation, or its evident intent. change: all else, so a feature, an alteration, a refactoring, or an upgrade.',
+                'anyOf' => [
+                    [
+                        'enum' => ['bug', 'change'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueClaim' => [
                 'type' => 'object',
@@ -5548,12 +6053,22 @@ final class BundledSchemas
                 ],
             ],
             'IssuePartyKind' => [
-                'enum' => ['user', 'agent'],
                 'description' => 'user: a user of the tenant. agent: any agent of the tenant (D134).',
+                'anyOf' => [
+                    [
+                        'enum' => ['user', 'agent'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'IssueStatus' => [
-                'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'in_review', 'approved', 'done', 'wont_do'],
                 'description' => 'in_review: the work is ready and not merged, and waits for the review of the requester. approved: the requester accepted the work, and the assignee merges it. done: the work is on the default branch. done and wont_do end an issue (D117, D134).',
+                'anyOf' => [
+                    [
+                        'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'in_review', 'approved', 'done', 'wont_do'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
             'PlanApproval' => [
                 'type' => 'object',
@@ -5578,8 +6093,13 @@ final class BundledSchemas
             'SessionName' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
             'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
             'WaitingFor' => [
-                'enum' => ['requester', 'assignee'],
                 'description' => 'The role of the party that has the next step on an issue (D134).',
+                'anyOf' => [
+                    [
+                        'enum' => ['requester', 'assignee'],
+                    ],
+                    ['type' => 'string'],
+                ],
             ],
         ],
     ];

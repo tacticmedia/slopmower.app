@@ -83,7 +83,7 @@ final class BundleSchemasCommand
         $constants = [];
 
         foreach (self::ROOTS as $constant => $root) {
-            $exported = str_replace("\n", "\n    ", VarExporter::export($this->bundle($root)));
+            $exported = str_replace("\n", "\n    ", VarExporter::export(self::openSets($this->bundle($root))));
             $constants[] = "    /** {$root} */\n    public const array {$constant} = {$exported};";
         }
 
@@ -123,6 +123,43 @@ final class BundleSchemasCommand
         ksort($definitions);
 
         return [] === $definitions ? $schema : $schema + ['$defs' => $definitions];
+    }
+
+    /**
+     * Each `enum` becomes `anyOf` of the `enum` and any string, so a client that validates against an older tools/list
+     * accepts a new value (D135). An `enum` under `if` is a condition and stays, as does the `enum` of an open set.
+     */
+    private static function openSets(mixed $node, bool $openSetMember = false): mixed
+    {
+        if (!\is_array($node)) {
+            return $node;
+        }
+
+        $isOpenSet = \is_array($node['anyOf'] ?? null) && \in_array(['type' => 'string'], $node['anyOf'], true);
+
+        foreach ($node as $key => $value) {
+            if ('if' === $key) {
+                continue;
+            }
+
+            $node[$key] = 'anyOf' === $key && $isOpenSet && \is_array($value)
+                ? array_map(static fn (mixed $member): mixed => self::openSets($member, true), $value)
+                : self::openSets($value);
+        }
+
+        $enum = $node['enum'] ?? null;
+
+        if ($openSetMember || !\is_array($enum) || !array_is_list($enum)) {
+            return $node;
+        }
+
+        if (isset($node['anyOf'])) {
+            throw new \LogicException('A schema node with enum and anyOf cannot become an open set.');
+        }
+
+        unset($node['enum']);
+
+        return $node + ['anyOf' => [['enum' => $enum], ['type' => 'string']]];
     }
 
     /**

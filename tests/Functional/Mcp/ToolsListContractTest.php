@@ -96,6 +96,54 @@ final class ToolsListContractTest extends WebTestCase
         self::assertGreaterThan(0, $checked);
     }
 
+    #[TestDox('No output schema of tools/list has a closed set: each enum is a condition under if, or a member of an anyOf with any string')]
+    public function testOutputSchemasHaveNoClosedSet(): void
+    {
+        $closed = [];
+        $open = 0;
+
+        foreach ($this->listedTools() as $tool) {
+            self::collectSets($tool['outputSchema'] ?? null, $tool['name'], $closed, $open);
+        }
+
+        self::assertSame([], $closed);
+        self::assertGreaterThan(0, $open);
+    }
+
+    /**
+     * @param list<string> $closed The paths of the closed sets
+     */
+    private static function collectSets(mixed $node, string $path, array &$closed, int &$open, bool $openSetMember = false): void
+    {
+        if (!\is_array($node)) {
+            return;
+        }
+
+        if (isset($node['enum']) && $openSetMember) {
+            ++$open;
+        } elseif (isset($node['enum'])) {
+            $closed[] = $path;
+        }
+
+        $isOpenSet = \is_array($node['anyOf'] ?? null) && \in_array(['type' => 'string'], $node['anyOf'], true);
+
+        foreach ($node as $key => $value) {
+            if ('if' === $key) {
+                continue;
+            }
+
+            if ('anyOf' === $key && $isOpenSet && \is_array($value)) {
+                foreach ($value as $index => $member) {
+                    self::collectSets($member, "{$path}/anyOf/{$index}", $closed, $open, true);
+                }
+
+                continue;
+            }
+
+            self::collectSets($value, "{$path}/{$key}", $closed, $open);
+        }
+    }
+
     /**
      * JSON object members in key order, so a comparison ignores the member order of the serializer.
      */
