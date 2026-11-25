@@ -601,7 +601,7 @@
         {
             "name": "list_comments",
             "title": "List comments",
-            "description": "List the comments of every issue of one project, newest first, each with its issue, its label, its body, and its questions. A replaced comment is left out. label returns only the comments with that label: every decision, or every papercut, of the project is one call. question returns the questions that wait for the user, because the answers and a dismissal replace their question comment.",
+            "description": "List the comments of every issue of one project, newest first, each with its issue, its label, its body, and its questions. A replaced comment is left out. issue returns only the comments of that issue. label returns only the comments with that label: every decision, or every papercut, of the project or of one issue is one call. question returns the questions that wait for the user, because the answers and a dismissal replace their question comment.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -609,6 +609,15 @@
                         "type": "string",
                         "description": "Project key from list_projects, for example SM",
                         "pattern": "^[A-Z]{2,10}$"
+                    },
+                    "issue": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "description": "Only the comments of this issue of the project, for example SM-12",
+                        "default": null,
+                        "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$"
                     },
                     "label": {
                         "type": [

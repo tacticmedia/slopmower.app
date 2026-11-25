@@ -374,8 +374,8 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 ### 4.28 `list_comments`
 
 - **Output:** [`lists.schema.json#/$defs/IssueCommentPage`](schemas/lists.schema.json).
-- **Behaviour:** REST I5: the `comment` entries of every issue of the project, newest first by entry ID, each with the summary of its issue, its label, its actor, its body, and its questions. A replaced comment is left out. `label` returns only the comments with that label. `question` returns the question comments that wait for an answer, because the answers and a dismissal replace their question comment. `limit` is 1 to 200, by default 50.
-- **Errors:** `not_found` for the project, `invalid_input` for the cursor or a cursor sent with another filter.
+- **Behaviour:** REST I5: the `comment` entries of every issue of the project, newest first by entry ID, each with the summary of its issue, its label, its actor, its body, and its questions. A replaced comment is left out. `issue` returns only the comments of that issue of the project. `label` returns only the comments with that label. `question` returns the question comments that wait for an answer, because the answers and a dismissal replace their question comment. `limit` is 1 to 200, by default 50.
+- **Errors:** `not_found` for the project or the issue, `invalid_input` on `issue` for an issue of another project, and for the cursor or a cursor sent with another filter.
 - **Example:** arguments `{"project":"BILL"}`. `structuredContent`: [fixtures/lists.issue-comment-page.json](fixtures/lists.issue-comment-page.json).
 
 ### 4.29 `get_issue_updates`

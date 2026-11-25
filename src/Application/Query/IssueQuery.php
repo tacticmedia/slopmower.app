@@ -228,14 +228,18 @@ final class IssueQuery
     }
 
     /**
-     * The comment entries of every issue of the project that no comment replaced, newest first by entry ID.
+     * The comment entries of every issue of the project, or of one issue, that no comment replaced, newest first by entry ID.
      *
      * @throws NotFound
-     * @throws InvalidInput A malformed cursor, or a cursor of other filters
+     * @throws InvalidInput An issue of another project, a malformed cursor, or a cursor of other filters
      */
-    public function comments(string $projectKey, ?CommentLabel $label, int $limit, ?string $cursor): IssueCommentPage
+    public function comments(string $projectKey, ?IssueKey $issue, ?CommentLabel $label, int $limit, ?string $cursor): IssueCommentPage
     {
-        $filters = ['project' => $projectKey, 'label' => $label?->value];
+        if (null !== $issue && $issue->projectKey !== $projectKey) {
+            throw InvalidInput::field('issue', "Must be an issue of the project {$projectKey}.");
+        }
+
+        $filters = ['project' => $projectKey, 'issue' => $issue?->toString(), 'label' => $label?->value];
         $builder = $this->entityManager->createQueryBuilder()
             ->select('entry', 'issue')
             ->from(IssueEntry::class, 'entry')
@@ -247,6 +251,10 @@ final class IssueQuery
             ->setParameter('kind', IssueEntryKind::Comment)
             ->orderBy('entry.id', \SortDirection::Descending)
             ->setMaxResults($limit + 1);
+
+        if (null !== $issue) {
+            $builder->andWhere('entry.issue = :issue')->setParameter('issue', $this->issue($issue)->getId(), IssueId::class);
+        }
 
         if (null !== $label) {
             // A comment stored without a label counts as comment, as IssueEntry::getLabel() reads it.

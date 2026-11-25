@@ -438,6 +438,25 @@ final class IssueToolsTest extends WebTestCase
         self::assertSame(['Keep `round()` as deprecated.', 'The test is next.'], [$firstPage['items'][0]['body'], $secondPage['items'][0]['body']]);
     }
 
+    #[TestDox('list_comments with issue returns the comments of that issue, also with a label, and refuses a key of another project, an unknown issue, and a cursor of another filter')]
+    public function testListCommentsOfOneIssue(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change']);
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode', 'category' => 'change']);
+        $this->call('comment_on_issue', ['issue' => 'SM-1', 'body' => 'Round once per invoice.', 'label' => 'decision']);
+        $this->call('comment_on_issue', ['issue' => 'SM-1', 'body' => 'The test is next.']);
+        $this->call('comment_on_issue', ['issue' => 'SM-2', 'body' => 'Keep `round()` as deprecated.', 'label' => 'decision']);
+        $bodies = static fn (array $page): array => array_column($page['items'], 'body');
+        $unfiltered = $this->call('list_comments', ['project' => 'SM', 'limit' => 1]);
+
+        self::assertSame(['The test is next.', 'Round once per invoice.'], $bodies($this->call('list_comments', ['project' => 'SM', 'issue' => 'SM-1'])));
+        self::assertSame(['Round once per invoice.'], $bodies($this->call('list_comments', ['project' => 'SM', 'issue' => 'SM-1', 'label' => 'decision'])));
+        self::assertSame('issue', $this->refusal('list_comments', ['project' => 'SM', 'issue' => 'DOC-1'])['field']);
+        self::assertSame('cursor', $this->refusal('list_comments', ['project' => 'SM', 'issue' => 'SM-1', 'cursor' => $unfiltered['nextCursor']])['field']);
+        self::assertToolError($this->mcp->callTool('list_comments', ['project' => 'SM', 'issue' => 'SM-9']), 'not_found');
+    }
+
     #[TestDox('A comment stored without a label reads as comment, in get_issue and in the label filter of list_comments')]
     public function testCommentWithoutALabelReadsAsComment(): void
     {

@@ -23,7 +23,7 @@ the `slopmower` MCP server.
 | `update_issue` | `issue`, `session`, `title?`, `category?`, `problem?`, `plan?`, `result?`, `followUps?`, `approval?`, `requester?`, `assignee?` | Write the title, the category, or a section, raise the approval to `user`, or change a party |
 | `set_issue_status` | `issue`, `session`, `status`, `waitingFor?`, `note?`, `reviewer?` | Move the issue to another status, or hand it to the other party |
 | `comment_on_issue` | `issue`, `session`, `body`, `label?`, `replaces?`, `questions?` | Record a step or a decision in the thread, with its label, ask the user with `questions`, or replace a comment that no longer holds |
-| `list_comments` | `project`, `label?`, `cursor?`, `limit?` | Read the comments of the project across its issues, all or those of one label |
+| `list_comments` | `project`, `issue?`, `label?`, `cursor?`, `limit?` | Read the comments of the project or of one issue, all or those of one label |
 | `link_issues` | `issue`, `target`, `note`, `kind?` | Link two issues, with the reason, or say that `issue` waits for `target` |
 | `approve_plan` | `issue`, `session`, `planRevision`, `reviewer`, `reviewNote` | Record the review of the plan by another agent |
 | `get_issue_updates` | `project`, `cursor?`, `limit?` | Learn what others wrote in the issues of the project since your last cursor, while you wait for the user |
@@ -95,8 +95,8 @@ The user and later sessions read every text of an issue. Write for them.
 | `papercut` | A small friction in the tools, the code, or the process |
 | `review` | The findings of a reviewing agent, or the changes that the requester asks for |
 
-`list_comments` with a `label` returns the comments of that label across
-the issues of the project, for example every decision or every papercut.
+`list_comments` with a `label` returns the comments of that label of the
+project, or of one `issue`: every papercut, or every decision of SM-12.
 
 ## Versions
 

@@ -307,6 +307,12 @@ final class McpRestParityTest extends WebTestCase
         self::assertSame($restComments, $mcpComments);
         self::assertSame([['SM-2', 'finding'], ['SM-1', 'finding']], array_map(static fn (array $item): array => [$item['issue']['key'], $item['label']], $mcpComments['items']), 'The label of I3 and of the tool.');
 
+        $restIssueComments = self::assertApiResponse(self::bearerRequest($this->client, $this->secret, 'GET', '/api/v1/projects/SM/comments?issue=SM-2'), 200, self::TOOL_SCHEMAS['list_comments']);
+        $mcpIssueComments = self::assertToolResult($this->mcp, $this->mcp->callTool('list_comments', ['project' => 'SM', 'issue' => 'SM-2']), 'list_comments');
+
+        self::assertSame($restIssueComments, $mcpIssueComments);
+        self::assertSame(['SM-2'], array_values(array_unique(array_map(static fn (array $item): string => $item['issue']['key'], $mcpIssueComments['items']))));
+
         $this->client->loginUser($this->user, 'web');
         self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/comments', ['body' => 'Keep `round()` as deprecated.']);
 

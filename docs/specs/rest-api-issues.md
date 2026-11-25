@@ -141,10 +141,11 @@ An agent does not call I4. Its approval is the MCP tool `approve_plan`, which re
 - **Request:** `GET /api/v1/projects/{projectKey}/comments`
 - **Authentication:** S, B
 - **Success:** 200 [`IssueCommentPage`](schemas/lists.schema.json): the `comment` entries of every issue of the project, each with the summary of its issue, its label, its actor, its body, and its questions. Entries of another kind and replaced comments are left out. With the label `question`, the list has the question comments that wait for an answer, because the answers and a dismissal replace their question comment. Example: [fixtures/lists.issue-comment-page.json](fixtures/lists.issue-comment-page.json).
-- **Errors:** 422 `invalid_input` for a cursor sent with another `label` than that of the page that returned it.
+- **Errors:** 404 `not_found` for the project or the issue. 422 `invalid_input` on `issue` for a value that is not an issue key or is an issue of another project, and for a cursor sent with another `issue` or `label` than that of the page that returned it.
 
 | Query | Type | Default | Notes |
 |---|---|---|---|
+| `issue` | IssueKey | all | Only the comments of this issue of the project. |
 | `label` | CommentLabel | all | One value. A comment stored without a label counts as `comment`. |
 | `limit` | integer 1-200 | 50 | |
 | `cursor` | Cursor | none | |

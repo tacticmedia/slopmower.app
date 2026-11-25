@@ -261,9 +261,9 @@ final class McpTools
      *
      * @return array<string, mixed>
      */
-    public function listComments(string $project, ?CommentLabel $label = null, ?string $cursor = null, int $limit = 50): array
+    public function listComments(string $project, ?string $issue = null, ?CommentLabel $label = null, ?string $cursor = null, int $limit = 50): array
     {
-        return $this->run('list_comments', fn (): IssueCommentPage => $this->issues->comments($project, $label, $limit, $cursor));
+        return $this->run('list_comments', fn (): IssueCommentPage => $this->issues->comments($project, null === $issue ? null : IssueKey::fromString($issue, 'issue'), $label, $limit, $cursor));
     }
 
     /**

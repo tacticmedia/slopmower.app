@@ -111,7 +111,7 @@ final class IssueController extends AbstractController
         #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)]
         IssueCommentListQuery $query = new IssueCommentListQuery(),
     ): JsonResponse {
-        return $this->json($this->issues->comments($project->getKey(), $query->label, $query->limit, $query->cursor));
+        return $this->json($this->issues->comments($project->getKey(), null === $query->issue ? null : IssueKey::fromString($query->issue, 'issue'), $query->label, $query->limit, $query->cursor));
     }
 
     /**
