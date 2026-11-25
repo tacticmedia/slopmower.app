@@ -1,7 +1,7 @@
 import { cleanLastNewline, type FileContents, type LineAnnotation, type SelectedLineRange, VirtualizedFile, Virtualizer } from '@pierre/diffs';
 import { File, type FileOptions, useVirtualizer, VirtualizerContext, WorkerPoolContextProvider } from '@pierre/diffs/react';
 import { BaseStyles } from '@primer/react';
-import { memo, type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, type ReactNode, type RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CodeAnnotation } from './annotations';
 import { characterColumn } from './characterColumn';
 import { type LineRange, lineRange } from './lineHash';
@@ -319,7 +319,8 @@ const FileView = memo(function FileView({
     // Without the wrapper, annotation content inherits the code font of the view.
     const renderSlot = useCallback((annotation: LineAnnotation<undefined>) => <BaseStyles>{renderAnnotation(annotation.lineNumber)}</BaseStyles>, [renderAnnotation]);
 
-    useEffect(() => {
+    // At the commit, not after the paint: by then the view can have reported a later range, and its own selection would be scrolled to.
+    useLayoutEffect(() => {
         if (null !== selection && !isSameRange(selection, reported.current)) {
             pendingScroll.current = { range: selection, moves: 0, startedAtMs: performance.now(), running: false };
             scrollWhenRendered();
