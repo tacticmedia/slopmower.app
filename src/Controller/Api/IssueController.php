@@ -82,7 +82,7 @@ final class IssueController extends AbstractController
 
         $replaces = null === $input->replaces ? null : IssueEntryId::fromString($input->replaces, 'replaces');
 
-        return $this->json($this->issues->view($this->commands->comment($issue->getKey(), $input->body, $input->label ?? CommentLabel::Comment, $actor, $input->session, $replaces, $input->questions ?? []), $actor), Response::HTTP_CREATED);
+        return $this->json($this->issues->view($this->commands->comment($issue->getKey(), $input->body, $input->label ?? CommentLabel::Comment, $actor, $input->session, $replaces, $input->questions ?? [], $input->dismiss), $actor), Response::HTTP_CREATED);
     }
 
     #[Route('/projects/{projectKey}/comments', name: 'comments', methods: ['GET'])]

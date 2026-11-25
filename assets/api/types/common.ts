@@ -241,8 +241,8 @@ export const ISSUE_ENTRY_KINDS = ['comment', 'status_changed', 'section_changed'
 export type KnownIssueEntryKind = (typeof ISSUE_ENTRY_KINDS)[number];
 export type IssueEntryKind = OpenSet<KnownIssueEntryKind>;
 
-/** What a comment of an issue is (D121). The server sets `question` and `answer` on a comment with questions (D124). */
-export const COMMENT_LABELS = ['comment', 'decision', 'question', 'answer', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'] as const;
+/** What a comment of an issue is (D121). The server sets `question` and `answer` on a comment with questions, and `dismissal` (D124). */
+export const COMMENT_LABELS = ['comment', 'decision', 'question', 'answer', 'dismissal', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'] as const;
 export type CommentLabel = (typeof COMMENT_LABELS)[number];
 
 /** What a link is for the issue that is read (D126). `blocks` is a `blocked_by` link, read from its target. */

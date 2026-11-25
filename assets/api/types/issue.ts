@@ -83,7 +83,7 @@ export type IssueEntry = {
     createdAt: DateTime;
     /** A comment, empty for the answers of a user, or with `history` the text of this version of a section. */
     body: Markdown | null;
-    /** Of a comment with the label `question`, or with their answers of one with the label `answer` (D124). Else empty. */
+    /** Of a comment with the label `question` or `dismissal`, or with their answers of one with the label `answer` (D124). Else empty. */
     questions: Question[];
     section: IssueSection | null;
     from: IssueStatus | null;

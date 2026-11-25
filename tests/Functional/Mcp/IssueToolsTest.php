@@ -400,7 +400,7 @@ final class IssueToolsTest extends WebTestCase
         self::assertCount(4, $this->call('get_issue', ['issue' => 'SM-1', 'history' => true])['thread'], 'A refused comment is not stored.');
     }
 
-    #[TestDox('comment_on_issue with questions stores them trimmed with the label question and changes no status, and refuses the labels question and answer without questions')]
+    #[TestDox('comment_on_issue with questions stores them trimmed with the label question and changes no status, and refuses the labels question, answer, and dismissal without questions')]
     public function testAgentAsksQuestions(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
@@ -408,14 +408,14 @@ final class IssueToolsTest extends WebTestCase
         $questions = [['question' => '  Remove `round()` in 3.0?  ', 'detail' => 'BILL-9 still calls it.'], ['question' => 'Which type holds the amounts?']];
 
         $asked = $this->call('comment_on_issue', $issue + ['body' => 'Two choices before the plan.', 'label' => 'decision', 'questions' => $questions]);
-        $withoutQuestions = array_map(fn (string $label): array => $this->refusal('comment_on_issue', $issue + ['body' => 'Remove `round()` in 3.0?', 'label' => $label]), ['question', 'answer']);
+        $withoutQuestions = array_map(fn (string $label): array => $this->refusal('comment_on_issue', $issue + ['body' => 'Remove `round()` in 3.0?', 'label' => $label]), ['question', 'answer', 'dismissal']);
 
         self::assertSame('draft', $asked['status']);
         self::assertSame(
             [['question', [['question' => 'Remove `round()` in 3.0?', 'detail' => 'BILL-9 still calls it.', 'answer' => null], ['question' => 'Which type holds the amounts?', 'detail' => null, 'answer' => null]]]],
             array_map(static fn (array $entry): array => [$entry['label'], $entry['questions']], $this->call('get_issue', $issue)['thread']),
         );
-        self::assertSame(['label', 'label'], array_column($withoutQuestions, 'field'));
+        self::assertSame(['label', 'label', 'label'], array_column($withoutQuestions, 'field'));
     }
 
     #[TestDox('An agent replaces its open question comment, and list_comments with the label question then leaves it out')]
@@ -429,6 +429,23 @@ final class IssueToolsTest extends WebTestCase
         $this->call('comment_on_issue', $issue + ['body' => 'The user said in the session: remove `round()` in 3.0.', 'label' => 'decision', 'replaces' => $open[0]['id']]);
 
         self::assertSame([['Remove `round()` in 3.0?']], array_map(static fn (array $comment): array => array_column($comment['questions'], 'question'), $open));
+        self::assertSame([], $this->call('list_comments', ['project' => 'SM', 'label' => 'question'])['items']);
+    }
+
+    #[TestDox('After a dismissal of the user, list_comments with the label dismissal lists it, and with the label question no longer lists the question comment')]
+    public function testListCommentsAfterADismissal(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once'])['key']];
+        $this->call('comment_on_issue', $issue + ['body' => 'One choice before the plan.', 'questions' => [['question' => 'Remove `round()` in 3.0?']]]);
+        $asked = $this->call('list_comments', ['project' => 'SM', 'label' => 'question'])['items'][0]['id'];
+        $this->client->loginUser($this->user, 'web');
+        self::assertSame(201, self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/comments', ['body' => '', 'replaces' => $asked, 'dismiss' => true])->getStatusCode());
+
+        self::assertSame(
+            [['dismissal', 'Dismissed.', ['Remove `round()` in 3.0?']]],
+            array_map(static fn (array $comment): array => [$comment['label'], $comment['body'], array_column($comment['questions'], 'question')], $this->call('list_comments', ['project' => 'SM', 'label' => 'dismissal'])['items']),
+        );
         self::assertSame([], $this->call('list_comments', ['project' => 'SM', 'label' => 'question'])['items']);
     }
 

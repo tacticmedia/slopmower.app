@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Issue;
 
 /**
- * What a comment of an issue is (D121). The server sets Question and Answer on a comment with questions (D124).
+ * What a comment of an issue is (D121). The server sets Question and Answer on a comment with questions, and Dismissal
+ * on the dismissal of a question comment (D124).
  */
 enum CommentLabel: string
 {
@@ -13,6 +14,7 @@ enum CommentLabel: string
     case Decision = 'decision';
     case Question = 'question';
     case Answer = 'answer';
+    case Dismissal = 'dismissal';
     case Finding = 'finding';
     case Deviation = 'deviation';
     case ScopeCreep = 'scope_creep';

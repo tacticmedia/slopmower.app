@@ -103,7 +103,8 @@ final class IssueCommands
     }
 
     /**
-     * A move that passes the issue on ends its claim, also a move of a user.
+     * A move that passes the issue on ends its claim, also a move of a user. A move to wont_do dismisses each open question
+     * comment (D124).
      *
      * @throws NotFound|InvalidInput
      */
@@ -112,6 +113,12 @@ final class IssueCommands
         return $this->write($key, $actor, $session, function (Issue $issue, \DateTimeImmutable $now) use ($status, $note, $reviewer, $actor): void {
             if ($status !== $issue->getStatus()) {
                 $this->entityManager->persist(IssueEntry::statusChanged($issue, $actor, $issue->getStatus(), $status, $note, $reviewer, $now));
+
+                if (IssueStatus::WontDo === $status) {
+                    foreach ($this->openQuestionComments($issue) as $asked) {
+                        $this->entityManager->persist(IssueEntry::comment($issue, $actor, "Dismissed: the issue is won't do.", CommentLabel::Dismissal, $now, $asked, self::dismissed($asked)));
+                    }
+                }
 
                 if (IssueClaim::endsWith($issue->getStatus(), $status)) {
                     $issue->claim(null);
@@ -155,15 +162,16 @@ final class IssueCommands
     /**
      * In any status: no rule of {@see IssueRules} and no claim refuses a comment. With questions (D124), an agent asks, a
      * user answers the open question comment of $replaces, and the label is `question` or `answer`, whatever $label is.
+     * With $dismiss, a user dismisses that comment, and the label is `dismissal`.
      *
      * @param IssueEntryId|null     $replaces  A comment of the issue that the new comment replaces (D123)
      * @param list<CommentQuestion> $questions
      *
      * @throws NotFound|InvalidInput
      */
-    public function comment(IssueKey $key, string $body, CommentLabel $label, Actor $actor, ?string $session, ?IssueEntryId $replaces = null, array $questions = []): Issue
+    public function comment(IssueKey $key, string $body, CommentLabel $label, Actor $actor, ?string $session, ?IssueEntryId $replaces = null, array $questions = [], bool $dismiss = false): Issue
     {
-        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $body, $label, $actor, $session, $replaces, $questions): array {
+        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $body, $label, $actor, $session, $replaces, $questions, $dismiss): array {
             $this->issues->project($key->projectKey, LockMode::PESSIMISTIC_WRITE);
             $issue = $this->issues->issue($key, LockMode::PESSIMISTIC_WRITE);
 
@@ -171,11 +179,19 @@ final class IssueCommands
                 $issue->claim(IssueClaim::renew($issue->getClaim(), $actor, self::session($session), $now));
             }
 
-            if ([] === $questions) {
+            if ($dismiss && ActorKind::User !== $actor->kind) {
+                throw InvalidInput::field('dismiss', 'Only a signed-in user dismisses questions.');
+            }
+
+            if ($dismiss && [] !== $questions) {
+                throw InvalidInput::field('dismiss', 'A dismissal takes no questions.');
+            }
+
+            if ([] === $questions && !$dismiss) {
                 self::requireText('body', $body);
 
-                if (CommentLabel::Question === $label || CommentLabel::Answer === $label) {
-                    throw InvalidInput::field('label', 'The server sets this label on a comment with questions. Give questions, or another label.');
+                if (\in_array($label, [CommentLabel::Question, CommentLabel::Answer, CommentLabel::Dismissal], true)) {
+                    throw InvalidInput::field('label', 'The server sets this label on a comment with questions or a dismissal. Give questions, or another label.');
                 }
             }
 
@@ -187,11 +203,12 @@ final class IssueCommands
 
             $replaced = null === $replaces ? null : $this->replaceable($issue, $replaces, $actor);
             [$label, $questions] = match (true) {
+                $dismiss => [CommentLabel::Dismissal, self::dismissed($replaced)],
                 [] === $questions => [$label, []],
                 ActorKind::User === $actor->kind => [CommentLabel::Answer, self::answers($questions, $replaced)],
                 default => [CommentLabel::Question, array_map(static fn (CommentQuestion $question): CommentQuestion => new CommentQuestion(trim($question->question), $question->detail), $questions)],
             };
-            $this->entityManager->persist(IssueEntry::comment($issue, $actor, $body, $label, $now, $replaced, $questions));
+            $this->entityManager->persist(IssueEntry::comment($issue, $actor, $dismiss && '' === trim($body) ? 'Dismissed.' : $body, $label, $now, $replaced, $questions));
             $issue->touch($now);
 
             return [$issue];
@@ -286,14 +303,60 @@ final class IssueCommands
      */
     private static function answers(array $answers, ?IssueEntry $asked): array
     {
+        $questions = self::openQuestions($asked, 'Answers need the ID of the question comment that they answer.');
+
+        return array_column($questions, 'question') === array_map(static fn (CommentQuestion $answer): string => trim($answer->question), $answers)
+            ? array_map(static fn (array $question, CommentQuestion $answer): CommentQuestion => new CommentQuestion($question['question'], $question['detail'], trim($answer->answer ?? '')), $questions, $answers)
+            : throw InvalidInput::field('questions', 'Must repeat each question of the question comment, in its order, with its answer.');
+    }
+
+    /**
+     * The questions of the open question comment $asked, each with its detail and without an answer (D124).
+     *
+     * @return list<CommentQuestion>
+     *
+     * @throws InvalidInput
+     */
+    private static function dismissed(?IssueEntry $asked): array
+    {
+        return array_map(static fn (array $question): CommentQuestion => new CommentQuestion($question['question'], $question['detail']), self::openQuestions($asked, 'A dismissal needs the ID of the question comment that it dismisses.'));
+    }
+
+    /**
+     * @return list<array{question: string, detail: ?string, answer: ?string}>
+     *
+     * @throws InvalidInput
+     */
+    private static function openQuestions(?IssueEntry $asked, string $withoutReplaces): array
+    {
         $questions = $asked?->getQuestions() ?? [];
 
         return match (true) {
-            null === $asked => throw InvalidInput::field('replaces', 'Answers need the ID of the question comment that they answer.'),
+            null === $asked => throw InvalidInput::field('replaces', $withoutReplaces),
             CommentLabel::Question !== $asked->getLabel() || [] === $questions => throw InvalidInput::field('replaces', 'Is no open question comment.'),
-            array_column($questions, 'question') !== array_map(static fn (CommentQuestion $answer): string => trim($answer->question), $answers) => throw InvalidInput::field('questions', 'Must repeat each question of the question comment, in its order, with its answer.'),
-            default => array_map(static fn (array $question, CommentQuestion $answer): CommentQuestion => new CommentQuestion($question['question'], $question['detail'], trim($answer->answer ?? '')), $questions, $answers),
+            default => $questions,
         };
+    }
+
+    /**
+     * @return list<IssueEntry> The question comments of $issue with questions that no comment replaced, oldest first
+     */
+    private function openQuestionComments(Issue $issue): array
+    {
+        /** @var list<IssueEntry> $asked */
+        $asked = $this->entityManager->createQueryBuilder()
+            ->select('entry')
+            ->from(IssueEntry::class, 'entry')
+            ->where('entry.issue = :issue')
+            ->andWhere('entry.label = :question')
+            ->andWhere('NOT EXISTS (SELECT newer.id FROM '.IssueEntry::class.' newer WHERE newer.replaces = entry)')
+            ->setParameter('issue', $issue->getId(), IssueId::class)
+            ->setParameter('question', CommentLabel::Question)
+            ->orderBy('entry.id')
+            ->getQuery()
+            ->getResult();
+
+        return array_values(array_filter($asked, static fn (IssueEntry $entry): bool => [] !== $entry->getQuestions()));
     }
 
     private function entry(string $where, IssueEntryId $id): ?IssueEntry

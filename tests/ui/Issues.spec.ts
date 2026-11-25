@@ -245,6 +245,23 @@ test.describe('Issues', () => {
         await expect(page.getByTestId('open-questions'), 'An answer comment has no form.').toHaveCount(0);
     });
 
+    test('"Dismiss" sends I3 with replaces and dismiss, the form is gone, and the question comment shows "Dismissed"', async ({ page, api }) => {
+        const issues = new FakeIssues(api);
+        issues.add(issueDetail());
+        const asked = issues.agentAsks(ISSUE_KEY, 'Two choices before the test.', QUESTIONS);
+        await page.goto(`/issues/${ISSUE_KEY}`);
+        const form = page.getByRole('form', { name: /^Questions of / });
+
+        await form.getByRole('button', { name: 'Dismiss', exact: true }).click();
+
+        await expect(form).toHaveCount(0);
+        expect(api.bodies('POST', COMMENTS)).toEqual([{ body: '', replaces: asked.id, dismiss: true }]);
+        await expect(page.locator(`#entry-${asked.id}`)).toHaveText(/claude-code laptop.*Question commented.*Dismissed/);
+        const dismissal = page.getByTestId('issue-entry').last();
+        await expect(dismissal).toHaveText(/jan Dismissal commented.*Dismissed\./);
+        await expect(dismissal, 'The form is gone, so the focus is on the dismissal.').toBeFocused();
+    });
+
     test('A stored question comment without questions shows no form', async ({ page, api }) => {
         const issues = new FakeIssues(api);
         issues.add(issueDetail());
@@ -582,6 +599,25 @@ test.describe('Issues', () => {
         await expect(page.getByTestId('issue-status').first()).toHaveText("Won't do");
         await expect(page.getByTestId('issue-entry').last()).toHaveText(/jan changed the status from In progress to Won't do.*BILL-9 covers it\./);
         expect(api.bodies('POST', STATUS)).toEqual([{ status: 'wont_do', note: 'BILL-9 covers it.' }]);
+    });
+
+    test('"Won\'t do" on an issue with an open question comment dismisses it and does not move the focus to the dismissal', async ({ page, api }) => {
+        const issues = new FakeIssues(api);
+        issues.add(issueDetail());
+        issues.agentAsks(ISSUE_KEY, 'Two choices before the test.', QUESTIONS);
+        await page.goto(`/issues/${ISSUE_KEY}`);
+        await expect(page.getByTestId('open-questions')).toBeVisible();
+
+        await chooseStatus(page, "Won't do");
+        const dialog = page.getByRole('dialog');
+        await dialog.getByRole('textbox', { name: 'Note' }).fill('BILL-9 covers it.');
+        await dialog.getByRole('button', { name: "Set won't do" }).click();
+
+        await expect(page.getByTestId('open-questions')).toHaveCount(0);
+        const dismissal = page.getByTestId('issue-entry').last();
+        await expect(dismissal).toHaveText(/jan Dismissal commented.*Dismissed: the issue is won't do\./);
+        await expect(dismissal).not.toBeFocused();
+        await expect(page).not.toHaveURL(/#entry-/);
     });
 
     test('A refused status shows only the reason of the server, and the page shows the newest issue', async ({ page, api }) => {

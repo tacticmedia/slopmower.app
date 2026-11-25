@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useId, useRef, useState, useTransition } fro
 import { Link as RouterLink, useFetcher, useLoaderData, useNavigate } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
 import { COMMENT_LABELS, type CommentLabel, ISSUE_APPROVALS } from '../../api/types/common';
+import type { IssueCommentInput } from '../../api/types/inputs';
 import type { Issue, IssueDetail, IssueEntry, IssueLink } from '../../api/types/issue';
 import { CommentBox, type CommentText } from '../../comments/CommentBox';
 import boxStyles from '../../comments/CommentBox.module.css';
@@ -24,8 +25,8 @@ import type { IssueIntent } from './issueData';
 import { APPROVAL_MODE_NAMES } from './ApprovalModeField';
 import { useIssueWrite } from './useIssueWrite';
 
-/** The server sets `question` and `answer` (D124). */
-const WRITABLE_LABELS = COMMENT_LABELS.filter((label) => 'question' !== label && 'answer' !== label);
+/** The server sets `question`, `answer`, and `dismissal` (D124). */
+const WRITABLE_LABELS = COMMENT_LABELS.filter((label) => 'question' !== label && 'answer' !== label && 'dismissal' !== label);
 
 /**
  * The layout of the request page: the timeline, the open questions, and the comment box in the main column, the details
@@ -34,7 +35,7 @@ const WRITABLE_LABELS = COMMENT_LABELS.filter((label) => 'question' !== label &&
 export function IssueRoute() {
     const { issue, links, thread } = useLoaderData<IssueDetail>();
     useDocumentTitle(`${issue.key} ${issue.title}`);
-    useFocusOnAnswers(thread);
+    const sentFrom = useFocusOnReply(thread);
 
     return (
         <article className={styles.page} data-testid="issue-detail" data-issue-key={issue.key}>
@@ -74,7 +75,7 @@ export function IssueRoute() {
                     <IssueTimeline issue={issue} thread={thread} />
                     {thread.map((entry) =>
                         isOpenQuestion(entry) ? (
-                            <OpenQuestions key={entry.id} entry={entry} draftKey={answersDraftKey(issue.key, entry)} />
+                            <OpenQuestions key={entry.id} entry={entry} draftKey={answersDraftKey(issue.key, entry)} onSend={sentFrom} />
                         ) : (
                             isWithdrawnQuestion(entry, thread) && <WithdrawnQuestions key={entry.id} entry={entry} draftKey={answersDraftKey(issue.key, entry)} />
                         ),
@@ -172,18 +173,27 @@ function LinkList({ links }: { links: IssueLink[] }) {
     );
 }
 
-/** "Send answers" removes its form, so the page goes to the answer comment, which the timeline scrolls to and focuses. */
-function useFocusOnAnswers(thread: IssueEntry[]): void {
+/**
+ * "Send answers" and "Dismiss" remove their form, so the page goes to the answers or the dismissal of that form, which
+ * the timeline scrolls to and focuses. A dismissal of a move to `wont_do` moves nothing.
+ *
+ * @returns Records the question comment whose form sends
+ */
+function useFocusOnReply(thread: IssueEntry[]): (questionId: string) => void {
     const navigate = useNavigate();
-    const open = useRef<string[]>([]);
+    const sent = useRef<string | null>(null);
 
     useEffect(() => {
-        const answer = thread.find(({ label, replaces }) => 'answer' === label && null !== replaces && open.current.includes(replaces));
-        open.current = thread.filter(isOpenQuestion).map(({ id }) => id);
-        if (undefined !== answer) {
-            void navigate({ hash: entryId(answer.id) }, { replace: true });
+        const reply = thread.find(({ label, replaces }) => ('answer' === label || 'dismissal' === label) && null !== replaces && replaces === sent.current);
+        if (undefined !== reply) {
+            sent.current = null;
+            void navigate({ hash: entryId(reply.id) }, { replace: true });
         }
     }, [thread, navigate]);
+
+    return (questionId) => {
+        sent.current = questionId;
+    };
 }
 
 /** A question comment is open while it has a question and no comment replaced it (D124). */
@@ -191,9 +201,9 @@ function isOpenQuestion({ label, questions, replacedBy }: IssueEntry): boolean {
     return 'question' === label && questions.length > 0 && null === replacedBy;
 }
 
-/** The agent replaced a question comment with a comment that is no answer, so the form of the comment is gone. */
+/** The agent replaced a question comment with a comment that is no answer and no dismissal, so the form of the comment is gone. */
 function isWithdrawnQuestion({ label, questions, replacedBy }: IssueEntry, thread: IssueEntry[]): boolean {
-    return 'question' === label && questions.length > 0 && thread.some(({ id, label: replacing }) => id === replacedBy && 'answer' !== replacing);
+    return 'question' === label && questions.length > 0 && thread.some(({ id, label: replacing }) => id === replacedBy && 'answer' !== replacing && 'dismissal' !== replacing);
 }
 
 function answersDraftKey(issueKey: string, { id }: IssueEntry): string {
@@ -201,10 +211,16 @@ function answersDraftKey(issueKey: string, { id }: IssueEntry): string {
 }
 
 /**
- * The form of an open question comment. "Send answers" sends I3 with `replaces`, so the answers replace the comment,
- * and the form goes with it.
+ * The form of an open question comment. "Send answers" and "Dismiss" send I3 with `replaces`, so the answers or the
+ * dismissal replace the comment, and the form goes with it.
  */
-function OpenQuestions({ entry, draftKey }: { entry: IssueEntry; draftKey: string }) {
+function OpenQuestions({ entry, draftKey, onSend }: { entry: IssueEntry; draftKey: string; onSend(questionId: string): void }) {
+    const send = (input: IssueCommentInput, answersKey: string): IssueIntent => {
+        onSend(entry.id);
+
+        return { intent: 'comment', input, draftKey: answersKey };
+    };
+
     return (
         <section className={styles.questions} data-testid="issue-questions">
             <p className={styles.questionsLine}>
@@ -214,7 +230,8 @@ function OpenQuestions({ entry, draftKey }: { entry: IssueEntry; draftKey: strin
                 label={`Questions of ${entry.actor.name}, ${dateTimeFormat.format(new Date(entry.createdAt))}`}
                 questions={entry.questions}
                 draftKey={draftKey}
-                intent={(questions, answersKey): IssueIntent => ({ intent: 'comment', input: { body: '', replaces: entry.id, questions }, draftKey: answersKey })}
+                intent={(questions, answersKey) => send({ body: '', replaces: entry.id, questions }, answersKey)}
+                dismiss={(answersKey) => send({ body: '', replaces: entry.id, dismiss: true }, answersKey)}
             />
         </section>
     );

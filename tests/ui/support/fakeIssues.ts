@@ -132,13 +132,15 @@ export class FakeIssues {
                     return refusal('note', 'wont_do needs a note that says why.');
                 }
 
+                const dismissals = 'wont_do' === status ? detail.thread.filter(isOpenQuestion).map((asked) => dismissal(asked, "Dismissed: the issue is won't do.")) : [];
+
                 return (
                     missingSection({ ...issue, status }) ??
                     json(
                         'issue.schema.json',
                         status === issue.status
                             ? issue
-                            : this.#write(detail, { status, claim: 'in_progress' === issue.status || PASSING_STATUSES.includes(status) ? null : issue.claim }, entry('status_changed', { from: issue.status, to: status, note })),
+                            : this.#write(detail, { status, claim: 'in_progress' === issue.status || PASSING_STATUSES.includes(status) ? null : issue.claim }, entry('status_changed', { from: issue.status, to: status, note }), ...dismissals),
                     )
                 );
             }),
@@ -161,17 +163,20 @@ export class FakeIssues {
         );
         api.on('POST', '/api/v1/issues/:issueKey/comments', ({ params, body }) =>
             this.#answer(params.issueKey, (detail) => {
-                const { body: text, label, replaces = null, questions = [] } = body as IssueCommentInput;
-                if (0 === questions.length) {
+                const { body: text, label, replaces = null, questions = [], dismiss = false } = body as IssueCommentInput;
+                if (0 === questions.length && !dismiss) {
                     return '' === text.trim()
                         ? refusal('body', 'Must contain a non-whitespace character.')
                         : json('issue.schema.json', this.#write(detail, {}, entry('comment', { body: text, label: label ?? 'comment', replaces })), 201);
                 }
-                const asked = detail.thread.find(({ id, label: known, replacedBy }) => id === replaces && 'question' === known && null === replacedBy)?.questions ?? [];
-                if (0 === asked.length) {
+                const open = detail.thread.find((known) => known.id === replaces && isOpenQuestion(known));
+                if (undefined === open) {
                     return refusal('replaces', 'Is no open question comment.');
                 }
-                const answers = asked.map((question, index) => ({ ...question, answer: questions[index]?.answer ?? null }));
+                if (dismiss) {
+                    return json('issue.schema.json', this.#write(detail, {}, dismissal(open, '' === text.trim() ? 'Dismissed.' : text)), 201);
+                }
+                const answers = open.questions.map((question, index) => ({ ...question, answer: questions[index]?.answer ?? null }));
 
                 return json('issue.schema.json', this.#write(detail, {}, entry('comment', { body: text, label: 'answer', replaces, questions: answers })), 201);
             }),
@@ -337,6 +342,15 @@ function entry(kind: IssueEntry['kind'], fields: Partial<IssueEntry>): IssueEntr
         replacedBy: null,
         ...fields,
     };
+}
+
+function isOpenQuestion({ label, questions, replacedBy }: IssueEntry): boolean {
+    return 'question' === label && questions.length > 0 && null === replacedBy;
+}
+
+/** The comment of the user that dismisses the open question comment `asked` (D124). */
+function dismissal({ id, questions }: IssueEntry, body: string): IssueEntry {
+    return entry('comment', { body, label: 'dismissal', replaces: id, questions });
 }
 
 /** `replacedBy` of the comments, and `replaces` and `replacedBy` of the section versions and the plan approvals, as the server derives them. */

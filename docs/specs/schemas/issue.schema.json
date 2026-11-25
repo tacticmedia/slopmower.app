@@ -252,7 +252,7 @@
           "items": {
             "$ref": "common.schema.json#/$defs/Question"
           },
-          "description": "comment only, else empty. A comment with the label question asks them, and a comment with the label answer repeats each one with its answer (D124)."
+          "description": "comment only, else empty. A comment with the label question asks them, a comment with the label answer repeats each one with its answer, and a comment with the label dismissal repeats them without answers (D124)."
         },
         "section": {
           "anyOf": [
@@ -323,7 +323,7 @@
               "type": "null"
             }
           ],
-          "description": "The ID of the entry that this entry replaced. section_changed: the entry of the version before it. comment: the comment that its writer named, for the label answer the question comment. Else null."
+          "description": "The ID of the entry that this entry replaced. section_changed: the entry of the version before it. comment: the comment that its writer named, for the labels answer and dismissal the question comment. Else null."
         },
         "replacedBy": {
           "anyOf": [
@@ -369,7 +369,7 @@
           "items": {
             "$ref": "common.schema.json#/$defs/Question"
           },
-          "description": "The questions of a comment with the label question, or each question with its answer of a comment with the label answer. Else empty (D124)."
+          "description": "The questions of a comment with the label question or dismissal, or each question with its answer of a comment with the label answer. Else empty (D124)."
         }
       }
     },

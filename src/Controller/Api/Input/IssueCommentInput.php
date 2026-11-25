@@ -9,8 +9,8 @@ use App\Domain\Request\CommentQuestion;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * inputs.schema.json#/$defs/IssueCommentInput. {@see \App\Application\IssueCommands::comment()} checks the body and
- * `questions` (D124).
+ * inputs.schema.json#/$defs/IssueCommentInput. {@see \App\Application\IssueCommands::comment()} checks the body,
+ * `questions`, and `dismiss` (D124).
  */
 final readonly class IssueCommentInput
 {
@@ -25,6 +25,7 @@ final readonly class IssueCommentInput
         #[Assert\Ulid]
         public ?string $replaces = null,
         public ?array $questions = null,
+        public bool $dismiss = false,
         #[Assert\Length(min: 1, max: 64)]
         public ?string $session = null,
     ) {

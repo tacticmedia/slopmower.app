@@ -37,6 +37,7 @@
 .actions {
     display: flex;
     justify-content: flex-end;
+    gap: var(--base-size-8);
 }
 
 .list {

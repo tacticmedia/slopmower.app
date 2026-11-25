@@ -73,8 +73,8 @@ final class InputFixturesTest extends WebTestCase
      * Per fixture: its schema, the endpoint, the success status and schema, whether an agent token calls, the fixture
      * requests that the agent claims first, whether a draft must exist, whether the agent proposes on the first
      * request, whether the agent links the fixture URL to the first request, whether the agent suggested the first
-     * request, whether the review is of the GitHub repository acme/billing, with general requests and no clone, and
-     * whether the issue BILL-1 exists with a plan and a comment of the agent.
+     * request, whether the review is of the GitHub repository acme/billing, with general requests and no clone,
+     * whether the issue BILL-1 exists with a plan and a comment of the agent, and whether that comment asks a question.
      */
     private const array CASES = [
         'inputs.accept-suggestion.json' => ['schema' => 'inputs.schema.json#/$defs/AcceptSuggestionInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/accept-suggestion', 'status' => 200, 'response' => self::RESULT, 'suggested' => true],
@@ -93,6 +93,7 @@ final class InputFixturesTest extends WebTestCase
         'inputs.create-project.json' => ['schema' => 'inputs.schema.json#/$defs/CreateProjectInput', 'method' => 'POST', 'path' => '/api/v1/projects', 'status' => 201, 'response' => 'project.schema.json'],
         'inputs.create-token.json' => ['schema' => 'inputs.schema.json#/$defs/CreateTokenInput', 'method' => 'POST', 'path' => '/api/v1/tokens', 'status' => 201, 'response' => 'api-token.schema.json#/$defs/ApiTokenWithSecret'],
         'inputs.dismiss-suggestion.json' => ['schema' => 'inputs.schema.json#/$defs/DismissSuggestionInput', 'method' => 'POST', 'path' => '/api/v1/requests/{requestId}/dismiss-suggestion', 'status' => 200, 'response' => self::RESULT, 'suggested' => true],
+        'inputs.issue-comment-dismiss.json' => ['schema' => 'inputs.schema.json#/$defs/IssueCommentInput', 'method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/comments', 'status' => 201, 'response' => 'issue.schema.json', 'issue' => true, 'asked' => true],
         'inputs.issue-comment.json' => ['schema' => 'inputs.schema.json#/$defs/IssueCommentInput', 'method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/comments', 'status' => 201, 'response' => 'issue.schema.json', 'issue' => true],
         'inputs.issue-status.json' => ['schema' => 'inputs.schema.json#/$defs/IssueStatusInput', 'method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/status', 'status' => 200, 'response' => 'issue.schema.json', 'issue' => true],
         'inputs.link-commits.json' => ['schema' => 'inputs.schema.json#/$defs/LinkCommitsInput', 'method' => 'POST', 'path' => '/api/v1/commit-links', 'status' => 200, 'response' => 'link-commits-result.schema.json', 'bearer' => true, 'claimed' => [self::FIXTURE_REQUEST_ID, self::FIXTURE_SECOND_REQUEST_ID]],
@@ -119,7 +120,7 @@ final class InputFixturesTest extends WebTestCase
     ];
 
     /**
-     * @param array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true, linked?: true, suggested?: true, github?: true, issue?: true} $case
+     * @param array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true, linked?: true, suggested?: true, github?: true, issue?: true, asked?: true} $case
      */
     #[TestDox('Every request body fixture of docs/specs is accepted by its endpoint')]
     #[DataProvider('fixtures')]
@@ -175,7 +176,7 @@ final class InputFixturesTest extends WebTestCase
             $mcp = new McpTestClient($client, $secret);
             self::assertToolResult($mcp, $mcp->callTool('create_issue', ['project' => 'BILL', 'title' => 'Round invoice totals once per invoice']), 'create_issue');
             $ids[self::FIXTURE_PLAN_REVISION] = (string) self::assertToolResult($mcp, $mcp->callTool('update_issue', ['issue' => 'BILL-1', 'session' => 'billing-3f9a', 'plan' => 'Add `TaxRounding::perInvoice()`.']), 'update_issue')['planRevision'];
-            self::assertToolResult($mcp, $mcp->callTool('comment_on_issue', ['issue' => 'BILL-1', 'session' => 'billing-3f9a', 'body' => '`round()` goes.']), 'comment_on_issue');
+            self::assertToolResult($mcp, $mcp->callTool('comment_on_issue', ['issue' => 'BILL-1', 'session' => 'billing-3f9a', 'body' => '`round()` goes.'] + (isset($case['asked']) ? ['questions' => [['question' => 'Remove `round()` in 3.0?']]] : [])), 'comment_on_issue');
             $thread = self::assertToolResult($mcp, $mcp->callTool('get_issue', ['issue' => 'BILL-1']), 'get_issue')['thread'];
             $ids[self::FIXTURE_COMMENT_ID] = (string) array_last($thread)['id'];
         }
@@ -205,7 +206,7 @@ final class InputFixturesTest extends WebTestCase
     }
 
     /**
-     * @return iterable<string, array{string, array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true, linked?: true, suggested?: true, github?: true, issue?: true}}>
+     * @return iterable<string, array{string, array{schema: string, method: string, path: string, status: int, response: string, bearer?: true, claimed?: list<string>, draft?: true, proposed?: true, linked?: true, suggested?: true, github?: true, issue?: true, asked?: true}}>
      */
     public static function fixtures(): iterable
     {

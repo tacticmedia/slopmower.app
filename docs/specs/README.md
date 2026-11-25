@@ -275,6 +275,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Updates of a project, decision D128: the tool `get_issue_updates`, the endpoint I10, the schema `IssueUpdatesPage`, the topic of a project, the live-update type `issue`, and the third selector of A3. All are additive. A stored entry has no number and comes before every cursor.
     - Approval per issue, decision D129: the property `approvalGuidelines` of `Project`, the property `approval` of `Issue` and `IssueSummary` with the closed set `IssueApproval`, and the optional inputs `approvalGuidelines` of P2 and P3 and `approval` of I6, I7, `create_issue`, and `update_issue`. Not additive: `ApprovalMode` gets the value `by_issue`. A stored issue has no approval and reads as `user`.
     - Claims of issues, decision D130: the definition `SessionName`, the schema `IssueClaim`, the property `claim` of `Issue` and `IssueSummary`, the input `session` of `update_issue`, `set_issue_status`, `approve_plan`, `comment_on_issue`, I3, I7, and I8, and the endpoint I11. Not additive: the four tools need `session`, and so do I3, I7, and I8 from a token. A write of an agent on an issue that another session holds answers `invalid_input` on `session`. A stored issue has no claim.
+    - Dismissed questions, decision D124: the optional input `dismiss` of I3. Not additive: `CommentLabel` gets the value `dismissal`, which the server sets and refuses on a comment without questions and without `dismiss`, and a move to `wont_do` writes a `dismissal` comment for each open question comment. A stored question comment stays open until a comment replaces it.
 
 ## 9. Contract tests
 
@@ -382,6 +383,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.create-project.json](fixtures/inputs.create-project.json) | `inputs.schema.json#/$defs/CreateProjectInput` | P2 |
 | [inputs.create-token.json](fixtures/inputs.create-token.json) | `inputs.schema.json#/$defs/CreateTokenInput` | T2 |
 | [inputs.dismiss-suggestion.json](fixtures/inputs.dismiss-suggestion.json) | `inputs.schema.json#/$defs/DismissSuggestionInput` | Q22 |
+| [inputs.issue-comment-dismiss.json](fixtures/inputs.issue-comment-dismiss.json) | `inputs.schema.json#/$defs/IssueCommentInput` | I3 with `dismiss` (D124) |
 | [inputs.issue-comment.json](fixtures/inputs.issue-comment.json) | `inputs.schema.json#/$defs/IssueCommentInput` | I3 with a label and `replaces`, `comment_on_issue` |
 | [inputs.issue-status.json](fixtures/inputs.issue-status.json) | `inputs.schema.json#/$defs/IssueStatusInput` | I8 with the note of `wont_do`, `set_issue_status` |
 | [inputs.link-commits.json](fixtures/inputs.link-commits.json) | `inputs.schema.json#/$defs/LinkCommitsInput` | Q7 |

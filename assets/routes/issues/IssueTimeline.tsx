@@ -2,7 +2,7 @@ import { ArrowSwitchIcon, CheckIcon, ChevronRightIcon, CommentIcon, DotFillIcon,
 import { Button, Details, Label, Link, RelativeTime, Timeline } from '@primer/react';
 import { type ReactNode, useEffect } from 'react';
 import { Link as RouterLink, useLocation } from 'react-router';
-import { ISSUE_SECTIONS, type IssueSection as Section } from '../../api/types/common';
+import { type CommentLabel, ISSUE_SECTIONS, type IssueSection as Section } from '../../api/types/common';
 import type { Issue, IssueEntry } from '../../api/types/issue';
 import { MarkdownBody } from '../../comments/MarkdownBody';
 import { QuestionList } from '../../comments/Questions';
@@ -22,6 +22,14 @@ const ENTRY_ICONS: Record<string, Icon> = {
 
 type SectionVersion = IssueEntry & { section: Section };
 
+/** A question comment that the answers or a dismissal of a user replaced (D124): its state, and the link to that comment. */
+type ClosedQuestion = { state: string; link: string };
+
+const CLOSED_QUESTIONS: Partial<Record<CommentLabel, ClosedQuestion>> = {
+    answer: { state: 'Answered', link: 'Answers' },
+    dismissal: { state: 'Dismissed', link: 'Dismissal' },
+};
+
 /** The entry of the text that a section has now. A section without text has none: "Write" gives it one. */
 function isCurrentVersion(issue: Issue, entry: IssueEntry): entry is SectionVersion {
     return 'section_changed' === entry.kind && null !== entry.section && null === entry.replacedBy && hasText(issue, entry.section);
@@ -35,7 +43,7 @@ export function IssueTimeline({ issue, thread }: { issue: Issue; thread: IssueEn
     const { search, hash, key } = useLocation();
     const filter = labelFilter(new URLSearchParams(search));
     const entries = null === filter ? thread : thread.filter((entry) => filter === entry.label);
-    const answered = new Set(thread.filter(({ label }) => 'answer' === label).map(({ replaces }) => replaces));
+    const closed = new Map(thread.flatMap(({ label, replaces }) => (null === label || undefined === CLOSED_QUESTIONS[label] ? [] : [[replaces, CLOSED_QUESTIONS[label]] as const])));
 
     // The browser does not move to the hash of a navigation of the router. `key` moves again for the same link.
     useEffect(() => {
@@ -74,7 +82,7 @@ export function IssueTimeline({ issue, thread }: { issue: Issue; thread: IssueEn
                             issue={issue}
                             entry={entry}
                             linked={hash === `#${entryId(entry.id)}`}
-                            answered={answered.has(entry.id)}
+                            closed={closed.get(entry.id) ?? null}
                         />
                     ))}
                 </Timeline>
@@ -127,10 +135,10 @@ function WriteSection({ issue, section }: { issue: Issue; section: Section }) {
 /**
  * An entry of an unknown kind shows its kind as text, with its actor and time.
  *
- * @param linked   The hash of the URL names the entry
- * @param answered The entry is a question comment, and the answers of a user replaced it (D124)
+ * @param linked The hash of the URL names the entry
+ * @param closed The entry is a question comment that the answers or a dismissal replaced
  */
-function TimelineEntry({ issue, entry, linked, answered }: { issue: Issue; entry: IssueEntry; linked: boolean; answered: boolean }) {
+function TimelineEntry({ issue, entry, linked, closed }: { issue: Issue; entry: IssueEntry; linked: boolean; closed: ClosedQuestion | null }) {
     const EntryIcon = ENTRY_ICONS[entry.kind] ?? DotFillIcon;
     const replaced = null !== entry.replacedBy;
     const text = (entry.body ?? entry.note ?? entry.reviewNote ?? '').trim();
@@ -155,7 +163,7 @@ function TimelineEntry({ issue, entry, linked, answered }: { issue: Issue; entry
             {replaced && (
                 <>
                     {' '}
-                    <Label variant="secondary">{answered ? 'Answered' : 'Replaced'}</Label>
+                    <Label variant="secondary">{closed?.state ?? 'Replaced'}</Label>
                 </>
             )}
         </>
@@ -181,7 +189,7 @@ function TimelineEntry({ issue, entry, linked, answered }: { issue: Issue; entry
                                 {content}
                             </Details>
                         )}
-                        <EntryLink id={entry.replacedBy}>{answered ? 'Answers' : 'Newer version'}</EntryLink>
+                        <EntryLink id={entry.replacedBy}>{closed?.link ?? 'Newer version'}</EntryLink>
                     </div>
                 ) : (
                     <>

@@ -146,6 +146,69 @@ final class IssueApiTest extends WebTestCase
         self::assertSame([$plain, $asked], array_column($this->agent('get_issue', ['issue' => 'SM-1', 'history' => true])['thread'], 'id'), 'A refused answer is not stored.');
     }
 
+    #[TestDox('I3 with dismiss replaces the open question comment with the label dismissal and its questions without answers, and an empty body becomes "Dismissed."')]
+    public function testUserDismissesQuestions(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once']);
+        $asked = $this->ask();
+
+        self::assertApiResponse(self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/comments', ['body' => ' ', 'label' => 'decision', 'replaces' => $asked, 'dismiss' => true]), 201, self::ISSUE);
+
+        $questions = [['question' => 'Remove `round()` in 3.0?', 'detail' => 'BILL-9 still calls it.', 'answer' => null], ['question' => 'Which type holds the amounts?', 'detail' => null, 'answer' => null]];
+        self::assertSame(
+            [['dismissal', 'user', 'Dismissed.', $asked, $questions]],
+            array_map(static fn (array $entry): array => [$entry['label'], $entry['actor']['kind'], $entry['body'], $entry['replaces'], $entry['questions']], $this->agent('get_issue', ['issue' => 'SM-1'])['thread']),
+        );
+    }
+
+    #[TestDox('I3 refuses dismiss from a token, with questions, without replaces, and for a comment that is no open question comment, and refuses the label dismissal without dismiss')]
+    public function testDismissRefusals(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once']);
+        $this->agent('comment_on_issue', ['issue' => 'SM-1', 'body' => 'The test is next.']);
+        $plain = $this->agent('get_issue', ['issue' => 'SM-1'])['thread'][0]['id'];
+        $asked = $this->ask();
+        $field = fn (Response $response): ?string => self::assertApiError($response, 422, 'invalid_input')['details']['violations'][0]['field'] ?? null;
+        $post = fn (array $body): Response => self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/comments', $body + ['body' => '', 'dismiss' => true]);
+
+        self::assertSame(
+            ['dismiss', 'dismiss', 'replaces', 'replaces', 'label'],
+            [
+                $field(self::bearerRequest($this->client, $this->secret, 'POST', '/api/v1/issues/SM-1/comments', ['body' => '', 'replaces' => $asked, 'dismiss' => true, 'session' => self::SESSION])),
+                $field($post(['replaces' => $asked, 'questions' => [['question' => 'Remove `round()` in 3.0?', 'answer' => 'Yes'], ['question' => 'Which type holds the amounts?', 'answer' => 'Money']]])),
+                $field($post([])),
+                $field($post(['replaces' => $plain])),
+                $field($post(['body' => 'Not now.', 'label' => 'dismissal', 'dismiss' => false])),
+            ],
+        );
+        self::assertSame([$plain, $asked], array_column($this->agent('get_issue', ['issue' => 'SM-1', 'history' => true])['thread'], 'id'), 'A refused dismissal is not stored.');
+    }
+
+    #[TestDox('I8 to wont_do dismisses each open question comment with the user as the actor and leaves an answered one, and set_issue_status of an agent in a self project dismisses with the agent')]
+    public function testWontDoDismissesOpenQuestions(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once']);
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode']);
+        $answered = $this->ask();
+        $first = $this->ask();
+        $second = $this->ask();
+        $answers = [['question' => 'Remove `round()` in 3.0?', 'answer' => 'Yes'], ['question' => 'Which type holds the amounts?', 'answer' => 'Money']];
+        self::assertApiResponse(self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/comments', ['body' => '', 'replaces' => $answered, 'questions' => $answers]), 201, self::ISSUE);
+        $this->agent('comment_on_issue', ['issue' => 'SM-2', 'body' => 'One choice.', 'questions' => [['question' => 'Show the mode on the PDF?']]]);
+        $askedOnSecond = array_last($this->agent('get_issue', ['issue' => 'SM-2'])['thread'])['id'];
+
+        self::assertApiResponse(self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/status', ['status' => 'wont_do', 'note' => 'SM-9 covers it.']), 200, self::ISSUE);
+        $this->agent('set_issue_status', ['issue' => 'SM-2', 'status' => 'wont_do', 'note' => 'SM-9 covers it.']);
+
+        $dismissed = "Dismissed: the issue is won't do.";
+        $rows = fn (string $issue): array => array_map(static fn (array $entry): array => [$entry['label'] ?? $entry['kind'], $entry['actor']['kind'], $entry['body'], $entry['replaces']], $this->agent('get_issue', ['issue' => $issue])['thread']);
+        self::assertSame([['answer', 'user', '', $answered], ['status_changed', 'user', null, null], ['dismissal', 'user', $dismissed, $first], ['dismissal', 'user', $dismissed, $second]], $rows('SM-1'));
+        self::assertSame([['status_changed', 'agent', null, null], ['dismissal', 'agent', $dismissed, $askedOnSecond]], $rows('SM-2'));
+    }
+
     #[TestDox('I3 refuses an unknown label with 422 on label, and writes no comment')]
     public function testUnknownLabelIsRefused(): void
     {

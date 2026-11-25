@@ -91,18 +91,20 @@ An entry is replaced when its `replacedBy` is not null, as the [issue tools](mcp
 
 - **Request:** `POST /api/v1/issues/{issueKey}/comments`
 - **Authentication:** S, B
-- **Body:** [`IssueCommentInput`](schemas/inputs.schema.json), `{body, label, replaces, questions, session}`. `label` is a `CommentLabel` of [common.schema.json](schemas/common.schema.json), by default `comment`. `replaces` is the ID of a comment of this issue that no longer holds. `questions` is 0 to 10 items of `{question, detail, answer}`, and `body` can be empty with them. Example: [fixtures/inputs.issue-comment.json](fixtures/inputs.issue-comment.json).
+- **Body:** [`IssueCommentInput`](schemas/inputs.schema.json), `{body, label, replaces, questions, dismiss, session}`. `label` is a `CommentLabel` of [common.schema.json](schemas/common.schema.json), by default `comment`. `replaces` is the ID of a comment of this issue that no longer holds. `questions` is 0 to 10 items of `{question, detail, answer}`, and `body` can be empty with them. `dismiss` is a boolean, by default false, and `body` can be empty with it. Example: [fixtures/inputs.issue-comment.json](fixtures/inputs.issue-comment.json).
 - **Success:** 201 [`Issue`](schemas/issue.schema.json), without its links and its thread. The comment is a `comment` entry of the thread with the label and with the caller as its actor. It is allowed in any status. With `replaces`, the named comment is replaced: it stays stored, and I2 without `history` and I5 leave it out.
 - **Questions:** "Questions" of the [issue tools](mcp.md#issue-tools) has the rules (D124). A token asks: no item has an `answer`, and the comment gets the label `question`. A session answers: `replaces` names an open question comment, `questions` repeats its questions in order, each with an `answer`, and the comment gets the label `answer` and the `detail` of each question. The server sets both labels, whatever `label` says, and changes no status. Example of an answer: `{"body":"","replaces":"01K7F3G0H1J2K3M4N5P6Q7R8S9","questions":[{"question":"Remove `InvoiceTotals::round()` in 3.0?","answer":"Yes"}]}`.
+- **Dismissal:** a session that does not answer an open question comment sends `dismiss: true` and `replaces`, which names that comment (D124). The comment gets the label `dismissal`, whatever `label` says, and the questions of that comment without answers, and it replaces the question comment. An empty or whitespace `body` becomes "Dismissed.". It changes no status. Example: [fixtures/inputs.issue-comment-dismiss.json](fixtures/inputs.issue-comment-dismiss.json).
 - **Errors**, in this order:
   - 422 `invalid_input`:
     - on `session`, for a token without it;
-    - on `body`, "Must contain a non-whitespace character.", for a comment without questions;
-    - on `label`, for a value outside `CommentLabel`, and for `question` or `answer` on a comment without questions;
-    - on `replaces`, for a value that is no ULID, and for answers without it;
+    - on `dismiss`, for a token, and with `questions`;
+    - on `body`, "Must contain a non-whitespace character.", for a comment without questions and without `dismiss`;
+    - on `label`, for a value outside `CommentLabel`, and for `question`, `answer`, or `dismissal` on a comment without questions and without `dismiss`;
+    - on `replaces`, for a value that is no ULID, and for answers or `dismiss` without it;
     - on `questions`, for more than 10 items, and on `questions.<index>.question`, `.detail`, or `.answer`, for an item that breaks a rule of D107: a question that is not one line of 1 to 200 characters, a `detail` of more than 4,000 characters, an `answer` from a token, and an item without an `answer` from a session;
   - 404 `not_found`, for a `replaces` that names no entry that the caller can see;
-  - 422 `invalid_input` on `replaces`, for an entry that is no comment of this issue, for a comment that is replaced already, for a comment of a user when the caller is a token, and, with answers, for a comment that is no open question comment;
+  - 422 `invalid_input` on `replaces`, for an entry that is no comment of this issue, for a comment that is replaced already, for a comment of a user when the caller is a token, and, with answers or `dismiss`, for a comment that is no open question comment;
   - 422 `invalid_input` on `questions`, for answers that do not repeat the questions of that comment in order.
 
 A token call gives the same result as the MCP tool `comment_on_issue`.
@@ -125,7 +127,7 @@ An agent does not call I4. Its approval is the MCP tool `approve_plan`, which re
 
 - **Request:** `GET /api/v1/projects/{projectKey}/comments`
 - **Authentication:** S, B
-- **Success:** 200 [`IssueCommentPage`](schemas/lists.schema.json): the `comment` entries of every issue of the project, each with the summary of its issue, its label, its actor, its body, and its questions. Entries of another kind and replaced comments are left out. With the label `question`, the list has the question comments that wait for an answer, because the answers replace their question comment. Example: [fixtures/lists.issue-comment-page.json](fixtures/lists.issue-comment-page.json).
+- **Success:** 200 [`IssueCommentPage`](schemas/lists.schema.json): the `comment` entries of every issue of the project, each with the summary of its issue, its label, its actor, its body, and its questions. Entries of another kind and replaced comments are left out. With the label `question`, the list has the question comments that wait for an answer, because the answers and a dismissal replace their question comment. Example: [fixtures/lists.issue-comment-page.json](fixtures/lists.issue-comment-page.json).
 - **Errors:** 422 `invalid_input` for a cursor sent with another `label` than that of the page that returned it.
 
 | Query | Type | Default | Notes |
@@ -170,7 +172,7 @@ The call has no precondition: the last write wins. A token call gives the same r
 - **Request:** `POST /api/v1/issues/{issueKey}/status`
 - **Authentication:** S, B
 - **Body:** [`IssueStatusInput`](schemas/inputs.schema.json), `{status, note, reviewer, session}`. Example: [fixtures/inputs.issue-status.json](fixtures/inputs.issue-status.json).
-- **Success:** 200 [`Issue`](schemas/issue.schema.json). The move writes a `status_changed` entry with `from`, `to`, `note`, and `reviewer`. Any status can follow any other status when the rules hold.
+- **Success:** 200 [`Issue`](schemas/issue.schema.json). The move writes a `status_changed` entry with `from`, `to`, `note`, and `reviewer`. Any status can follow any other status when the rules hold. A move to `wont_do` also dismisses each open question comment of the issue: one `comment` entry with the label `dismissal` each, with the caller as its actor and the body "Dismissed: the issue is won't do." (D124).
 - **Errors:** 422 `invalid_input` on `session`, for a token without it and for an issue that another session holds, and on the field of a broken rule of the [issue tools](mcp.md#issue-tools): `problem`, `plan`, `result`, `note`, `reviewer`, `status`, or `issue`. The message says what is missing.
 
 A user needs no approval of the plan and no reviewer. The status that the issue has answers 200 for a user and writes no entry, when the content rules hold: `wont_do` still needs its `note`. A token call gives the same result as the MCP tool `set_issue_status`.
@@ -213,7 +215,7 @@ Each write that appends an entry to the thread of an issue gives the entry the n
 - **The caller** is the actor of the call: a session is its user, and a token is the agent of its name and its user. Two tokens of one user with the same name are one caller, so an agent does not see the entries of another session with its token name, for example the review comment that it recorded.
 - **No entry:** a title change, a change of `approval`, a link, a new issue without a `problem`, and the release of a claim (I11) write no entry, so no update tells of them.
 
-The answers of a user are one `comment` entry with the label `answer`, each question with its `answer`, which replaces the question comment (D124). A plan approval of a user is a `plan_approved` entry, followed by a `status_changed` entry to `todo` when the issue was in `awaiting_user_input`. The MCP tool `get_issue_updates` returns the same body.
+The answers of a user are one `comment` entry with the label `answer`, each question with its `answer`, which replaces the question comment (D124). A dismissal is a `comment` entry with the label `dismissal`, which replaces the question comment. A plan approval of a user is a `plan_approved` entry, followed by a `status_changed` entry to `todo` when the issue was in `awaiting_user_input`. The MCP tool `get_issue_updates` returns the same body.
 
 ### I11 Release the claim
 

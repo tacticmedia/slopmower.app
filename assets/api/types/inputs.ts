@@ -167,14 +167,16 @@ export type PreferencesInput = {
 };
 
 export type IssueCommentInput = {
-    /** May be empty when `questions` is not. */
+    /** May be empty when `questions` is not, and with `dismiss`. */
     body: Markdown;
-    /** Absent or null: comment. With `questions`, the server sets `question` or `answer`. */
+    /** Absent or null: comment. With `questions` or `dismiss`, the server sets `question`, `answer`, or `dismissal`. */
     label?: CommentLabel | null;
-    /** The comment of the issue that this comment replaces. With answers: the open question comment. */
+    /** The comment of the issue that this comment replaces. With answers or `dismiss`: the open question comment. */
     replaces?: Ulid | null;
     /** At most 10. An agent asks without answers; a user answers every question of the comment of `replaces`. */
     questions?: QuestionInput[];
+    /** A user does not answer the open question comment of `replaces` (D124). */
+    dismiss?: boolean;
     /** The agent session that writes (D130). A token needs it, and the server ignores it for a user. */
     session?: string | null;
 };

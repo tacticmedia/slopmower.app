@@ -30,13 +30,15 @@ type QuestionFormProps = {
     draftKey: string;
     /** The JSON body for the action of the route, from every question with its answer, and with `draftKey`, so the write that succeeds removes the draft (D109). */
     intent(answers: QuestionInput[], draftKey: string): SubmitTarget;
+    /** The JSON body of "Dismiss", with `draftKey`. Without it the form has no "Dismiss". */
+    dismiss?(draftKey: string): SubmitTarget;
 };
 
 /**
  * The open questions of an agent comment (D107, D124). "Send answers" submits every question with its answer, so the
  * answer comment reads on its own. A reload keeps the typed answers.
  */
-export function QuestionForm({ questions, label, draftKey, intent }: QuestionFormProps) {
+export function QuestionForm({ questions, label, draftKey, intent, dismiss }: QuestionFormProps) {
     const fetcher = useFetcher<ActionResult>();
     const [draft, setDraft] = useSessionDraft(draftKey);
     const id = useId();
@@ -59,6 +61,12 @@ export function QuestionForm({ questions, label, draftKey, intent }: QuestionFor
             return;
         }
         void fetcher.submit(intent(questions.map(({ question }, index) => ({ question, answer: given[index] ?? '' })), draftKey), { method: 'post', encType: 'application/json' });
+    };
+
+    const sendDismissal = (target: SubmitTarget): void => {
+        if (!busy) {
+            void fetcher.submit(target, { method: 'post', encType: 'application/json' });
+        }
     };
 
     return (
@@ -101,6 +109,11 @@ export function QuestionForm({ questions, label, draftKey, intent }: QuestionFor
                 </InlineMessage>
             )}
             <div className={styles.actions}>
+                {undefined !== dismiss && (
+                    <Button onClick={() => sendDismissal(dismiss(draftKey))} disabled={busy}>
+                        Dismiss
+                    </Button>
+                )}
                 <Button type="submit" variant="primary" disabled={given.includes('')} loading={busy}>
                     Send answers
                 </Button>

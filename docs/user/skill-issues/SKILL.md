@@ -80,6 +80,7 @@ The user and later sessions read every text of an issue. Write for them.
 | `decision` | A choice, with its reason and what it rules out |
 | `question` | Your questions to the user. The server sets it on a comment with `questions`. |
 | `answer` | The answers of the user. The server sets it. |
+| `dismissal` | The user does not answer your questions. The server sets it. |
 | `finding` | A verified fact, with its source |
 | `deviation` | Work that differs from the plan |
 | `scope_creep` | Work that came up and was left out, or was added |
@@ -121,13 +122,17 @@ comment.
 - The user answers each question with Yes, No, or text. The answers are one
   comment with the label `answer`, which replaces your comment. `get_issue`
   returns it with each question and its `answer`.
+- When the user does not answer, a comment with the label `dismissal`
+  replaces your comment. A move to `wont_do` dismisses each open question
+  comment too. Do not ask again. Decide, or leave the issue as the user left
+  it.
 - `list_comments` with the label `question` returns the questions of the
   project that wait for an answer.
 - When the user answers in the session, call `comment_on_issue` with the
   label `decision`, a text that quotes the answer, and `replaces`, the `id`
   of your question comment.
-- The server sets the labels `question` and `answer`. It refuses both on a
-  comment without `questions`.
+- The server sets the labels `question`, `answer`, and `dismissal`. It
+  refuses them on a comment without `questions`.
 - A question does not change the status. Set `awaiting_user_input` when the
   work waits for the answers. Take the cursor of section 8 before you ask.
 
@@ -310,8 +315,9 @@ issue again.
    because your entries are left out.
 2. Call `get_issue_updates` again with your last `cursor`. Each item of `entries` is a new
    entry of an issue of the project, with the summary of that issue. The
-   answers of the user are a `comment` with the label `answer`, an approval is
-   a `plan_approved` entry, and a status change is a `status_changed` entry.
+   answers of the user are a `comment` with the label `answer`, a dismissal
+   is a `comment` with the label `dismissal`, an approval is a
+   `plan_approved` entry, and a status change is a `status_changed` entry.
    Keep the returned `cursor`. If `hasMore` is true, call again at once.
 3. When an entry of your issue lets you go on, call `get_issue` and continue
    with section 4.
@@ -373,7 +379,7 @@ A tool error is a result with `isError: true`. Its text is JSON:
 |---|---|---|
 | `unauthorized` | The token is missing, wrong, revoked, or expired. It arrives as HTTP 401 from the server, not as a tool result. | Tell the user to check `SLOPMOWER_TOKEN`. Go on as section 7 says. |
 | `not_found` | No such project, issue, or entry of `replaces` for this token. A token for one repository sees only the project of that repository. | Check the key or the `id`, then list again |
-| `invalid_input` | The input failed a check, or the write breaks a rule. `details.violations[0].field` names what is wrong: `problem`, `plan`, or `result` is missing, or the plan has no approval; `status` is the status that the issue has, or one that only the user sets; `note` or `reviewer` is missing; `planRevision` is not the newest; `issue` is in `done` or `wont_do`, or only the user approves its plan; `approval` is given outside `by_issue`, or lowered by an agent; `target` is the issue itself; `replaces` is no comment of the issue, is replaced already, or is a comment of the user; `label` is `question` or `answer` on a comment without `questions`; `questions.<index>` breaks a rule of a question; `session` names another session than the one that holds the issue. | On `session`, stop the work on that issue. Otherwise read the message, fix the issue or the input, and call again |
+| `invalid_input` | The input failed a check, or the write breaks a rule. `details.violations[0].field` names what is wrong: `problem`, `plan`, or `result` is missing, or the plan has no approval; `status` is the status that the issue has, or one that only the user sets; `note` or `reviewer` is missing; `planRevision` is not the newest; `issue` is in `done` or `wont_do`, or only the user approves its plan; `approval` is given outside `by_issue`, or lowered by an agent; `target` is the issue itself; `replaces` is no comment of the issue, is replaced already, or is a comment of the user; `label` is `question`, `answer`, or `dismissal` on a comment without `questions`; `questions.<index>` breaks a rule of a question; `session` names another session than the one that holds the issue. | On `session`, stop the work on that issue. Otherwise read the message, fix the issue or the input, and call again |
 | `rate_limited` | Too many calls in a short time | Wait `details.retryAfterSeconds` seconds, then retry |
 | `internal_error` | An unexpected server failure | Try once more, then go on as section 7 says |
 
