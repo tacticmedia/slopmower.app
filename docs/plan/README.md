@@ -378,13 +378,13 @@ The session writes it into `reports/MNN.md`:
 
 ## Verified versions
 
-Checked on 2026-09-29. The `@playwright/test` and `playwright-php/playwright` rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08; the `symfony/scheduler` row on 2026-10-13; the `sentry/*` row on 2026-10-15; the `tacticmedia/qa-bundle` and `@tacticmedia/qa-capture` rows on 2026-10-16; the `react-joyride` row on 2026-10-19; the `@sentry/react` row on 2026-10-28; the `@sentry/vite-plugin` row and the F100 versions on 2026-11-03; the Composer rows and the `@symfony/reprise` version on 2026-11-22 (F125); the PHP and FrankenPHP rows on 2026-11-22 (SM-8); the `dicebear/*` row on 2026-11-25 (SM-44); the Node.js rows on 2026-11-25 (SM-93). `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
+Checked on 2026-09-29. The `@playwright/test` and `playwright-php/playwright` rows on 2026-10-03; the Symfony, Doctrine ORM, PHPUnit, PHPStan, Symfony AI Mate, `@primer/behaviors`, and `@pierre/diffs` rows on 2026-10-07; the tree-sitter and `symbols` image rows on 2026-10-08; the `symfony/scheduler` row on 2026-10-13; the `sentry/*` row on 2026-10-15; the `tacticmedia/qa-bundle` and `@tacticmedia/qa-capture` rows on 2026-10-16; the `react-joyride` row on 2026-10-19; the `@sentry/react` row on 2026-10-28; the `@sentry/vite-plugin` row and the F100 versions on 2026-11-03; the Composer rows and the `@symfony/reprise` version on 2026-11-22 (F125); the PHP and FrankenPHP rows on 2026-11-22 (SM-8); the `dicebear/*` row on 2026-11-25 (SM-44); the Node.js rows on 2026-11-25 (SM-93); the PostgreSQL row on 2026-11-25 (SM-176). `composer.lock`, `package-lock.json`, `symbols/package-lock.json`, and the images hold these versions.
 
 | Package | Version | Source |
 |---|---|---|
 | PHP | 8.5.13 | https://www.php.net/releases/index.php?json&version=8 |
 | Symfony | 8.1.11. 8.2 is at 8.2.0-BETA2. 8.1 ends 01/2027. | https://symfony.com/releases/8.1.json |
-| PostgreSQL | 18.6, Docker tag `18-alpine` | https://www.postgresql.org/versions.json |
+| PostgreSQL | 18.7, Docker tag `18.7-alpine` | https://www.postgresql.org/versions.json |
 | FrankenPHP | 1.14.0, Docker tag `dunglas/frankenphp:1.14.0-php8.5-trixie`, with Caddy 2.11.9 and Mercure 1.1.6, worker mode through Symfony Runtime's `FrankenPhpWorkerRunner` | https://github.com/php/frankenphp/releases/tag/v1.14.0 |
 | dunglas/symfony-docker | Template, guide "Using Symfony Docker with an existing project" | https://github.com/dunglas/symfony-docker |
 | Node.js | 24 LTS, 24.22.3 | https://nodejs.org/dist/index.json |
