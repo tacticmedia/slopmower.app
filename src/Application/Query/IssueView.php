@@ -24,6 +24,7 @@ final readonly class IssueView
         public IssueKey $key,
         public string $title,
         public IssueStatus $status,
+        public ApprovalMode $approval,
         public ?string $problem,
         public ?string $plan,
         public ?string $result,

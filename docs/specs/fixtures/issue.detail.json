@@ -3,6 +3,7 @@
     "key": "BILL-12",
     "title": "Round invoice totals once per invoice",
     "status": "in_progress",
+    "approval": "agent_review",
     "problem": "Invoice totals round each line, so an invoice of three lines can be 1 cent off.\n\nDone when `InvoiceTotalsTest` has a case with three lines of 0.335 and the total is 1.01.",
     "plan": "1. Add `TaxRounding::perInvoice()` in `src/Billing/TaxRounding.php`.\n2. Use it in `InvoiceTotals::total()`.\n3. Test: a case with three lines of 0.335 in `tests/Billing/InvoiceTotalsTest.php`.",
     "result": null,
@@ -48,6 +49,7 @@
         "key": "BILL-9",
         "title": "Round shipping totals per line",
         "status": "done",
+        "approval": "agent_review",
         "updatedAt": "2026-10-02T09:03:30Z"
       },
       "kind": "relates",

@@ -65,6 +65,32 @@ test.describe('Issues', () => {
         expect(api.callsTo('GET', '/api/v1/projects/:projectKey/issues').at(-1)?.query.get('status')).toBe('draft');
     });
 
+    test('The issue list shows "No approval" on an issue with the approval self', async ({ page, api }) => {
+        const issues = new FakeIssues(api);
+        issues.add(issueDetail());
+        issues.add(issueDetail({ key: 'BILL-13', title: 'Fix a typo in the README', approval: 'self', updatedAt: '2026-10-02T09:04:18Z' }));
+        await page.goto('/projects/BILL');
+
+        await expect(page.getByTestId('issue-row').filter({ has: page.getByTestId('no-approval') })).toHaveText([/Fix a typo in the README.*No approval.*BILL-13/]);
+    });
+
+    test('The approval in the sidebar sends I7 in a project of the mode "Per issue", and is text in a project of another mode', async ({ page, api }) => {
+        const issues = new FakeIssues(api);
+        issues.add(issueDetail({ approval: 'user', project: { key: 'BILL', name: 'Billing', approvalMode: 'by_issue' } }));
+        issues.add(issueDetail({ key: 'BILL-13' }));
+        await page.goto(`/issues/${ISSUE_KEY}`);
+        const approval = page.getByRole('combobox', { name: 'Approval of the issue' });
+        await expect(approval).toHaveValue('user');
+
+        await approval.selectOption({ label: 'No approval' });
+
+        await expect(approval).toHaveValue('self');
+        await expect(approval).toBeEnabled();
+        expect(api.bodies('PATCH', ISSUE)).toEqual([{ approval: 'self' }]);
+        await page.goto('/issues/BILL-13');
+        await expect(page.getByTestId('issue-approval')).toHaveText('Agent review');
+    });
+
     test('The issue page shows each section version as Markdown in the timeline, the row "Current", the link with its note, and each entry', async ({ page, api }) => {
         await openIssue(page, api);
         const current = page.getByTestId('issue-current');
@@ -429,6 +455,24 @@ test.describe('Issues', () => {
         await expect(page.getByTestId('settings-saved')).toBeVisible();
         expect(api.bodies('PATCH', '/api/v1/projects/:projectKey')).toEqual([{ name: 'Billing', approvalMode: 'user', repositoryIds: [beta?.id] }]);
         expect(issues.projects[0]).toEqual(project({ approvalMode: 'user', repositories: ['beta'] }));
+    });
+
+    test('The project settings show the guidelines below the mode "Per issue" only, and save them with the mode', async ({ page, api }) => {
+        new FakeRepositories(api);
+        const issues = new FakeIssues(api);
+        issues.projects = [project({ repositories: [] })];
+        const guidelines = '- A fix of a typo: `self`.';
+        await page.goto('/projects/BILL/settings');
+        const field = page.getByRole('textbox', { name: 'Guidelines for the agent' });
+        await expect(field).toBeHidden();
+
+        await page.getByRole('radio', { name: 'Per issue' }).check();
+        await field.fill(guidelines);
+        await page.getByRole('button', { name: 'Save' }).click();
+
+        await expect(page.getByTestId('settings-saved')).toBeVisible();
+        expect(api.bodies('PATCH', '/api/v1/projects/:projectKey')).toEqual([{ name: 'Billing', approvalMode: 'by_issue', approvalGuidelines: guidelines, repositoryIds: [] }]);
+        expect(issues.projects[0]).toEqual(project({ approvalMode: 'by_issue', approvalGuidelines: guidelines, repositories: [] }));
     });
 
     test('"New issue" creates a draft with the title and the problem, and opens its page', async ({ page, api }) => {

@@ -169,7 +169,7 @@ These two principles control all decisions.
 - A project holds the issues of its repositories. A repository belongs to at most one project.
 - An issue records one change in four sections, the problem, the plan, the result, and the follow-ups, and in a thread of comments, status changes, section changes, and plan approvals. Issues can be linked, each link with its reason.
 - An agent creates, plans, works, discusses, links, and ends issues through the MCP server. A second Agent Skill and the server instructions make it track each user request that changes code, documentation, or configuration, without being asked.
-- A project has one approval mode: only the user approves a plan and ends an issue, an agent does both with the review of another agent on record, or no approval.
+- A project has one approval mode: only the user approves a plan and ends an issue, an agent does both with the review of another agent on record, no approval, or one of these three per issue. Per issue, the agent chooses the approval of a new issue by the guidelines of the user, and the user can change it (D129).
 - The MCP tools come first (D116 to D118). The web interface, the search, and the REST endpoints follow as issues of the tracker itself (D119).
 
 ## 4. Non-goals of the proof of concept

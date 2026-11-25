@@ -22,6 +22,8 @@ final readonly class CreateProjectInput
         public ?string $name = null,
         #[Assert\NotNull]
         public ?ApprovalMode $approvalMode = null,
+        #[Assert\Length(max: 10000)]
+        public ?string $approvalGuidelines = null,
     ) {
     }
 }

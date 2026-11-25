@@ -40,6 +40,7 @@ final class IssueToolsTest extends WebTestCase
     private const string REVIEW_NOTE = 'The plan covers the rounding and its test.';
     private const string REVIEWER = 'plan-reviewer';
     private const string AGENT_NAME = 'claude-code laptop';
+    private const string GUIDELINES = "- A change of an API: `user`.\n- A fix of a typo: `self`.";
 
     private KernelBrowser $client;
 
@@ -68,10 +69,10 @@ final class IssueToolsTest extends WebTestCase
         $detail = $this->call('get_issue', ['issue' => 'SM-2']);
 
         self::assertSame(['SM-1', 'SM-2', 'DOC-1'], [$first['key'], $second['key'], $other['key']]);
-        self::assertSame(['Round invoice totals once', 'draft', null, null, 'agent', self::AGENT_NAME], [$first['title'], $first['status'], $first['problem'], $first['planRevision'], $first['createdBy']['kind'], $first['createdBy']['agentName']]);
+        self::assertSame(['Round invoice totals once', 'draft', 'self', null, null, 'agent', self::AGENT_NAME], [$first['title'], $first['status'], $first['approval'], $first['problem'], $first['planRevision'], $first['createdBy']['kind'], $first['createdBy']['agentName']]);
         self::assertSame(['key' => 'SM', 'name' => 'Project SM', 'approvalMode' => 'self'], $first['project']);
         self::assertSame(['SM-2', 'SM-1'], array_column($page['items'], 'key'), 'Newest first.');
-        self::assertSame(['key' => 'SM-2', 'title' => 'Show the rounding mode', 'status' => 'todo', 'updatedAt' => $second['updatedAt']], $todo['items'][0]);
+        self::assertSame(['key' => 'SM-2', 'title' => 'Show the rounding mode', 'status' => 'todo', 'approval' => 'self', 'updatedAt' => $second['updatedAt']], $todo['items'][0]);
         self::assertCount(1, $todo['items']);
         self::assertSame($second, $detail['issue']);
         self::assertSame([], $detail['links']);
@@ -80,13 +81,17 @@ final class IssueToolsTest extends WebTestCase
         self::assertSame(['SM-3'], [$this->call('create_issue', ['project' => 'SM', 'title' => 'After a refusal'])['key']], 'A refused issue takes no number.');
     }
 
-    #[TestDox('Each row of the rules table refuses and allows, as the approval mode says')]
+    #[TestDox('Each row of the rules table refuses and allows, as the approval that binds the issue says')]
     #[DataProvider('approvalModes')]
-    public function testRulesOfEachApprovalMode(ApprovalMode $mode): void
+    public function testRulesOfEachApprovalMode(ApprovalMode $projectMode, ?ApprovalMode $approval): void
     {
-        self::storeProject($this->user->getTenantId(), 'SM', $mode);
-        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once'])['key']];
+        self::storeProject($this->user->getTenantId(), 'SM', $projectMode);
+        $mode = $approval ?? (ApprovalMode::ByIssue === $projectMode ? ApprovalMode::User : $projectMode);
+        $create = fn (string $title): array => $this->call('create_issue', ['project' => 'SM', 'title' => $title] + (null === $approval ? [] : ['approval' => $approval->value]));
+        $created = $create('Round invoice totals once');
+        $issue = ['issue' => $created['key']];
         $review = ['note' => 'The test passes.', 'reviewer' => 'result-reviewer'];
+        self::assertSame($mode->value, $created['approval']);
 
         // backlog and todo need a problem.
         self::assertSame('problem', $this->refusal('set_issue_status', $issue + ['status' => 'backlog'])['field']);
@@ -119,7 +124,7 @@ final class IssueToolsTest extends WebTestCase
         self::assertSame('in_review', $this->call('set_issue_status', $issue + ['status' => 'in_review'])['status']);
 
         // wont_do needs a note, and an agent ends an issue as the mode says.
-        $duplicate = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'A duplicate'])['key'], 'status' => 'wont_do'];
+        $duplicate = ['issue' => $create('A duplicate')['key'], 'status' => 'wont_do'];
 
         if (ApprovalMode::User === $mode) {
             self::assertSame('status', $this->refusal('set_issue_status', $issue + ['status' => 'done'] + $review)['field']);
@@ -141,13 +146,44 @@ final class IssueToolsTest extends WebTestCase
     }
 
     /**
-     * @return iterable<string, array{ApprovalMode}>
+     * @return iterable<string, array{ApprovalMode, ApprovalMode|null}> The mode of the project, and the approval of the issue
      */
     public static function approvalModes(): iterable
     {
-        foreach (ApprovalMode::cases() as $mode) {
-            yield $mode->value => [$mode];
+        foreach ([ApprovalMode::User, ApprovalMode::AgentReview, ApprovalMode::Self] as $mode) {
+            yield $mode->value => [$mode, null];
         }
+
+        yield 'by_issue without approval' => [ApprovalMode::ByIssue, null];
+        yield 'by_issue with self' => [ApprovalMode::ByIssue, ApprovalMode::Self];
+    }
+
+    #[TestDox('list_projects returns the approval guidelines that the user saved')]
+    public function testListProjectsReturnsTheGuidelines(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $this->client->loginUser($this->user, 'web');
+        self::apiRequest($this->client, 'PATCH', '/api/v1/projects/SM', ['approvalMode' => 'by_issue', 'approvalGuidelines' => self::GUIDELINES]);
+
+        self::assertSame([['by_issue', self::GUIDELINES]], array_map(static fn (array $project): array => [$project['approvalMode'], $project['approvalGuidelines']], $this->call('list_projects', [])['items']));
+    }
+
+    #[TestDox('An agent sets any approval on a new issue of a by_issue project, later changes it only to user, and sets none in a project of another mode')]
+    public function testApprovalOfAnAgent(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM', ApprovalMode::ByIssue);
+        self::storeProject($this->user->getTenantId(), 'DOC', ApprovalMode::User);
+        $logged = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Fix a typo in the README', 'approval' => 'self'])['key']];
+        $material = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once'])['key']];
+
+        $lowered = $this->refusal('update_issue', $material + ['approval' => 'self']);
+        $raised = $this->call('update_issue', $logged + ['approval' => 'user']);
+        $loweredAgain = $this->refusal('update_issue', $logged + ['approval' => 'self']);
+        $otherMode = $this->refusal('create_issue', ['project' => 'DOC', 'title' => 'Describe the rounding', 'approval' => 'user']);
+
+        self::assertSame(['approval', 'approval', 'approval'], [$lowered['field'], $loweredAgain['field'], $otherMode['field']]);
+        self::assertSame(['user', 'user'], [$raised['approval'], $this->call('get_issue', $material)['issue']['approval']]);
+        self::assertSame([], $this->call('list_issues', ['project' => 'DOC'])['items'], 'A refused issue is not stored.');
     }
 
     #[TestDox('A plan with new text clears the approval, and the same text keeps it')]
@@ -273,7 +309,7 @@ final class IssueToolsTest extends WebTestCase
 
         self::assertSame([['SM-2', 'decision', 'Keep `round()` as deprecated.'], ['SM-1', 'decision', 'Round once per invoice.']], array_map($row, $decisions['items']));
         self::assertNull($decisions['nextCursor']);
-        self::assertSame(['key' => 'SM-2', 'title' => $second['title'], 'status' => 'draft', 'updatedAt' => $commented['updatedAt']], $decisions['items'][0]['issue']);
+        self::assertSame(['key' => 'SM-2', 'title' => $second['title'], 'status' => 'draft', 'approval' => 'self', 'updatedAt' => $commented['updatedAt']], $decisions['items'][0]['issue']);
         self::assertSame(self::AGENT_NAME, $decisions['items'][0]['actor']['agentName']);
         self::assertSame([['SM-2', 'decision'], ['SM-1', 'comment'], ['SM-1', 'decision']], array_map(static fn (array $comment): array => [$comment['issue']['key'], $comment['label']], $all['items']), 'No section_changed entry, and no comment of DOC.');
         self::assertSame(['Keep `round()` as deprecated.', 'The test is next.'], [$firstPage['items'][0]['body'], $secondPage['items'][0]['body']]);
@@ -455,7 +491,7 @@ final class IssueToolsTest extends WebTestCase
         $updates = self::assertToolResult($scoped, $scoped->callTool('get_issue_updates', ['project' => 'SM', 'cursor' => 0]), 'get_issue_updates');
 
         self::assertSame([['DOC', ['beta']], ['OPS', []], ['SM', ['alpha']]], array_map(static fn (array $project): array => [$project['key'], $project['repositories']], $allProjects['items']));
-        self::assertSame([['key' => 'SM', 'name' => 'Project SM', 'approvalMode' => 'self', 'repositories' => ['alpha']]], $projects['items']);
+        self::assertSame([['key' => 'SM', 'name' => 'Project SM', 'approvalMode' => 'self', 'approvalGuidelines' => null, 'repositories' => ['alpha']]], $projects['items']);
         self::assertSame(['SM-1'], array_column($issues['items'], 'key'));
         self::assertSame(['A comment of SM.'], array_column($comments['items'], 'body'));
         self::assertSame([['SM-1', 'A comment of SM.']], array_map(static fn (array $item): array => [$item['issue']['key'], $item['entry']['body']], $updates['entries']), 'The entries of another token name.');

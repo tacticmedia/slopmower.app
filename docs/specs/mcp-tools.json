@@ -165,7 +165,7 @@
         {
             "name": "create_issue",
             "title": "Create issue",
-            "description": "Create an issue of a project. Its key is the project key, a hyphen, and the next number of the project, for example SM-12. Look through the open issues of the project first, and continue one that covers the request. status is draft while the problem is incomplete, and backlog or todo when it is ready; backlog and todo need problem. Write technical English, as short as possible, and only what a later reader needs.",
+            "description": "Create an issue of a project. Its key is the project key, a hyphen, and the next number of the project, for example SM-12. Look through the open issues of the project first, and continue one that covers the request. status is draft while the problem is incomplete, and backlog or todo when it is ready; backlog and todo need problem. In approvalMode by_issue, choose approval by approvalGuidelines: self or agent_review only where a guideline says so, else user. Write technical English, as short as possible, and only what a later reader needs.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -200,6 +200,20 @@
                             "draft",
                             "backlog",
                             "todo"
+                        ]
+                    },
+                    "approval": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Only in approvalMode by_issue: who approves the plan and ends this issue. Null: user",
+                        "default": null,
+                        "enum": [
+                            "user",
+                            "agent_review",
+                            "self",
+                            null
                         ]
                     }
                 },
@@ -641,7 +655,7 @@
         {
             "name": "list_projects",
             "title": "List projects",
-            "description": "List the projects of the issue tracker that this token sees, with key, name, approvalMode, and the names of their repositories. Track the work on a repository as issues of the project that lists it. A token of one repository sees only the project of that repository.",
+            "description": "List the projects of the issue tracker that this token sees, with key, name, approvalMode, approvalGuidelines, and the names of their repositories. Track the work on a repository as issues of the project that lists it. A token of one repository sees only the project of that repository.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -1395,7 +1409,7 @@
         {
             "name": "update_issue",
             "title": "Update issue",
-            "description": "Change the title or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem: what the user wants, and how to tell that it is done. plan: the steps, the files, and the tests. result: what was done, with the commit SHAs, and each deviation from the plan. followUps: what came up and was left out. A plan with new text clears its approval. An agent cannot change plan in in_progress or in_review, and no field of an issue in done or wont_do. Write technical English, as short as possible, and only what a later reader needs.",
+            "description": "Change the title or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem: what the user wants, and how to tell that it is done. plan: the steps, the files, and the tests. result: what was done, with the commit SHAs, and each deviation from the plan. followUps: what came up and was left out. A plan with new text clears its approval. An agent cannot change plan in in_progress or in_review, and no field of an issue in done or wont_do. approval exists only in approvalMode by_issue, and an agent changes it only to user. Write technical English, as short as possible, and only what a later reader needs.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -1458,6 +1472,20 @@
                         "minLength": 1,
                         "maxLength": 65536,
                         "pattern": "^[^\\x00]*$"
+                    },
+                    "approval": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Only in approvalMode by_issue: who approves the plan and ends this issue. An agent changes it only to user",
+                        "default": null,
+                        "enum": [
+                            "user",
+                            "agent_review",
+                            "self",
+                            null
+                        ]
                     }
                 },
                 "required": [

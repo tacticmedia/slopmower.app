@@ -109,6 +109,9 @@ test.describe('Issues', () => {
         await page.goto('/projects/BILL');
         await page.getByRole('link', { name: 'Project settings' }).click();
         await captureScreen('Project settings', page.getByRole('button', { name: 'Save' }));
+        await page.getByRole('radio', { name: 'Per issue' }).check();
+        await page.getByRole('textbox', { name: 'Guidelines for the agent' }).fill('- A change of an API, a schema, or a dependency: `user`.\n- A fix of a test, a typo, or a log line: `self`.');
+        await captureScreen('Project settings per issue', page.getByRole('textbox', { name: 'Guidelines for the agent' }));
 
         await page.goto('/projects/BILL/issues/new');
         await page.getByRole('textbox', { name: 'Title' }).fill('Show the rounding mode on the invoice PDF');

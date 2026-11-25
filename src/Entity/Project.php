@@ -8,6 +8,7 @@ use App\Domain\Identity\ProjectId;
 use App\Domain\Identity\TenantId;
 use App\Domain\Issue\ApprovalMode;
 use App\Domain\Issue\IssueKey;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -32,6 +33,9 @@ class Project implements TenantOwned
 
     #[ORM\Column(enumType: ApprovalMode::class)]
     private ApprovalMode $approvalMode;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $approvalGuidelines = null;
 
     #[ORM\Column]
     private int $nextIssueNumber = 1;
@@ -82,6 +86,11 @@ class Project implements TenantOwned
         return $this->approvalMode;
     }
 
+    public function getApprovalGuidelines(): ?string
+    {
+        return $this->approvalGuidelines;
+    }
+
     public function rename(string $name): void
     {
         $this->name = $name;
@@ -90,6 +99,14 @@ class Project implements TenantOwned
     public function setApprovalMode(ApprovalMode $approvalMode): void
     {
         $this->approvalMode = $approvalMode;
+    }
+
+    /**
+     * Whitespace only removes them.
+     */
+    public function setApprovalGuidelines(?string $approvalGuidelines): void
+    {
+        $this->approvalGuidelines = '' === trim($approvalGuidelines ?? '') ? null : $approvalGuidelines;
     }
 
     /**

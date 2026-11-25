@@ -1,8 +1,9 @@
 import { Banner, Link, RelativeTime, Select } from '@primer/react';
+import { InlineMessage } from '@primer/react/experimental';
 import { type ReactNode, useEffect, useId, useRef, useState, useTransition } from 'react';
 import { Link as RouterLink, useFetcher, useLoaderData, useNavigate } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
-import { COMMENT_LABELS, type CommentLabel } from '../../api/types/common';
+import { COMMENT_LABELS, type CommentLabel, ISSUE_APPROVALS } from '../../api/types/common';
 import type { Issue, IssueDetail, IssueEntry, IssueLink } from '../../api/types/issue';
 import { CommentBox, type CommentText } from '../../comments/CommentBox';
 import boxStyles from '../../comments/CommentBox.module.css';
@@ -20,6 +21,7 @@ import { IssueTitle } from './IssueTitle';
 import styles from './Issues.module.css';
 import type { IssueIntent } from './issueData';
 import { APPROVAL_MODE_NAMES } from './ApprovalModeField';
+import { useIssueWrite } from './useIssueWrite';
 
 /** The server sets `question` and `answer` (D124). */
 const WRITABLE_LABELS = COMMENT_LABELS.filter((label) => 'question' !== label && 'answer' !== label);
@@ -56,6 +58,9 @@ export function IssueRoute() {
                         </Link>
                         <span className={styles.muted}>{APPROVAL_MODE_NAMES[issue.project.approvalMode]}</span>
                     </SidebarSection>
+                    <SidebarSection title="Approval">
+                        <ApprovalOfIssue key={issue.key} issue={issue} />
+                    </SidebarSection>
                     <SidebarSection title="Plan approval">
                         <ApprovalState issue={issue} />
                     </SidebarSection>
@@ -89,6 +94,43 @@ function SidebarSection({ title, children }: { title: string; children: ReactNod
             </h2>
             {children}
         </section>
+    );
+}
+
+/** The mode that binds the issue. In a `by_issue` project the user changes it with I7 (D129). */
+function ApprovalOfIssue({ issue }: { issue: Issue }) {
+    const { busy, error, send } = useIssueWrite();
+    const [chosen, setChosen] = useState(issue.approval);
+
+    if ('by_issue' !== issue.project.approvalMode) {
+        return <span data-testid="issue-approval">{APPROVAL_MODE_NAMES[issue.approval]}</span>;
+    }
+
+    return (
+        <>
+            <Select
+                aria-label="Approval of the issue"
+                value={busy ? chosen : issue.approval}
+                disabled={busy}
+                onChange={(event) => {
+                    const approval = ISSUE_APPROVALS.find((known) => known === event.target.value) ?? issue.approval;
+                    setChosen(approval);
+                    send({ intent: 'update', input: { approval } });
+                }}
+                data-testid="issue-approval"
+            >
+                {ISSUE_APPROVALS.map((approval) => (
+                    <Select.Option key={approval} value={approval}>
+                        {APPROVAL_MODE_NAMES[approval]}
+                    </Select.Option>
+                ))}
+            </Select>
+            {null !== error && (
+                <InlineMessage variant="critical" role="alert">
+                    {error}
+                </InlineMessage>
+            )}
+        </>
     );
 }
 

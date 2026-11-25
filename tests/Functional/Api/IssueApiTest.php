@@ -61,7 +61,7 @@ final class IssueApiTest extends WebTestCase
         $todo = self::assertApiResponse(self::apiRequest($this->client, 'GET', '/api/v1/projects/SM/issues?status=todo'), 200, 'lists.schema.json#/$defs/IssuePage');
         $detail = self::assertApiResponse(self::apiRequest($this->client, 'GET', '/api/v1/issues/SM-2'), 200, 'issue.schema.json#/$defs/IssueDetail');
 
-        self::assertSame([['key' => 'SM', 'name' => 'Project SM', 'approvalMode' => 'self', 'repositories' => ['alpha']]], $projects['items']);
+        self::assertSame([['key' => 'SM', 'name' => 'Project SM', 'approvalMode' => 'self', 'approvalGuidelines' => null, 'repositories' => ['alpha']]], $projects['items']);
         self::assertSame(['SM-2', 'SM-1'], array_column($issues['items'], 'key'), 'Newest change first.');
         self::assertSame(['SM-2'], array_column($todo['items'], 'key'));
         self::assertSame(['SM-2', self::PROBLEM, ['section_changed']], [$detail['issue']['key'], $detail['issue']['problem'], array_column($detail['thread'], 'kind')]);
@@ -228,6 +228,23 @@ final class IssueApiTest extends WebTestCase
 
         self::assertSame('plan', $before['details']['violations'][0]['field'] ?? null);
         self::assertSame('in_progress', $after['status']);
+    }
+
+    #[TestDox('In a by_issue project, I7 of a user changes the approval from user to self, so an agent starts without an approval, and refuses by_issue')]
+    public function testUserChangesTheApproval(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM', ApprovalMode::ByIssue);
+        $this->plannedIssue('todo');
+        $claim = ['issue' => 'SM-1', 'status' => 'in_progress'];
+        $approval = fn (string $approval): Response => self::apiRequest($this->client, 'PATCH', '/api/v1/issues/SM-1', ['approval' => $approval]);
+
+        $before = self::assertToolError($this->mcp->callTool('set_issue_status', $claim), 'invalid_input');
+        $lowered = self::assertApiResponse($approval('self'), 200, self::ISSUE);
+        $started = $this->agent('set_issue_status', $claim);
+        $byIssue = self::assertApiError($approval('by_issue'), 422, 'invalid_input');
+
+        self::assertSame(['plan', 'self', 'in_progress'], [$before['details']['violations'][0]['field'] ?? null, $lowered['approval'], $started['status']]);
+        self::assertSame(['approval'], array_column($byIssue['details']['violations'] ?? [], 'field'));
     }
 
     #[TestDox('I8 by a user sets in_progress without an approval and done, sets done again without an entry, and leaves done')]

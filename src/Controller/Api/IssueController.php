@@ -178,7 +178,7 @@ final class IssueController extends AbstractController
     ): JsonResponse {
         \assert(null !== $input->title);
         $actor = $this->currentActor->get();
-        $issue = $this->commands->create($project->getKey(), $input->title, $input->problem, $input->status ?? IssueStatus::Draft, $actor);
+        $issue = $this->commands->create($project->getKey(), $input->title, $input->problem, $input->status ?? IssueStatus::Draft, $actor, $input->approval);
 
         return $this->json($this->issues->view($issue, $actor), Response::HTTP_CREATED, ['Location' => $this->generateUrl('api_issue_get', ['issueKey' => $issue->getKey()->toString()])]);
     }
@@ -189,7 +189,7 @@ final class IssueController extends AbstractController
         #[MapRequestPayload(acceptFormat: 'json')] UpdateIssueInput $input,
     ): JsonResponse {
         $actor = $this->currentActor->get();
-        $updated = $this->commands->update($issue->getKey(), $input->title, $input->problem, $input->plan, $input->result, $input->followUps, $actor);
+        $updated = $this->commands->update($issue->getKey(), $input->title, $input->problem, $input->plan, $input->result, $input->followUps, $actor, $input->approval);
 
         return $this->json($this->issues->view($updated, $actor));
     }

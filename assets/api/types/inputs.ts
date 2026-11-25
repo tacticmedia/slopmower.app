@@ -1,6 +1,6 @@
 import type { AnchorInput } from './anchor';
 import type { TokenName } from './api-token';
-import type { ApprovalMode, CodeAccess, CommentLabel, CommitSha, DateTime, Delivery, IssueStatus, Markdown, ProjectKey, PullRequestUrl, RepoPath, RequestType, Tour, Ulid, UnifiedDiff } from './common';
+import type { ApprovalMode, CodeAccess, CommentLabel, CommitSha, DateTime, Delivery, IssueApproval, IssueStatus, Markdown, ProjectKey, PullRequestUrl, RepoPath, RequestType, Tour, Ulid, UnifiedDiff } from './common';
 import type { LocalDirectory } from './repository';
 
 export type ConnectRepositoryInput =
@@ -186,11 +186,14 @@ export type CreateProjectInput = {
     key: ProjectKey;
     name: string;
     approvalMode: ApprovalMode;
+    approvalGuidelines?: string | null;
 };
 
 export type UpdateProjectInput = {
     name?: string | null;
     approvalMode?: ApprovalMode | null;
+    /** Absent or null keeps them. Whitespace only removes them. */
+    approvalGuidelines?: string | null;
     /** The whole list of the repositories of the project. Absent or null keeps it. */
     repositoryIds?: Ulid[] | null;
 };
@@ -200,6 +203,8 @@ export type CreateIssueInput = {
     problem?: Markdown | null;
     /** Absent or null: draft. */
     status?: Extract<IssueStatus, 'draft' | 'backlog' | 'todo'> | null;
+    /** Only in a `by_issue` project. */
+    approval?: IssueApproval | null;
 };
 
 /** Absent or null keeps a field. At least one field is given. */
@@ -209,6 +214,8 @@ export type UpdateIssueInput = {
     plan?: Markdown | null;
     result?: Markdown | null;
     followUps?: Markdown | null;
+    /** Only in a `by_issue` project. */
+    approval?: IssueApproval | null;
 };
 
 export type IssueStatusInput = {

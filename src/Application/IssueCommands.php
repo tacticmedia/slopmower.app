@@ -12,6 +12,7 @@ use App\Domain\Error\InvalidInput;
 use App\Domain\Error\NotFound;
 use App\Domain\Identity\IssueEntryId;
 use App\Domain\Identity\IssueId;
+use App\Domain\Issue\ApprovalMode;
 use App\Domain\Issue\CommentLabel;
 use App\Domain\Issue\IssueEntryKind;
 use App\Domain\Issue\IssueKey;
@@ -52,19 +53,20 @@ final class IssueCommands
      *
      * @throws NotFound|InvalidInput
      */
-    public function create(string $projectKey, string $title, ?string $problem, IssueStatus $status, Actor $actor): Issue
+    public function create(string $projectKey, string $title, ?string $problem, IssueStatus $status, Actor $actor, ?ApprovalMode $approval = null): Issue
     {
-        return $this->transactional(function (\DateTimeImmutable $now) use ($projectKey, $title, $problem, $status, $actor): array {
+        return $this->transactional(function (\DateTimeImmutable $now) use ($projectKey, $title, $problem, $status, $actor, $approval): array {
             $project = $this->issues->project($projectKey, LockMode::PESSIMISTIC_WRITE);
             $issue = new Issue($project, $project->takeIssueNumber(), self::title($title), $status, $actor, $now);
             $this->entityManager->persist($issue);
+            self::changeApproval($issue, $approval, $actor, $now, isNew: true);
 
             if (null !== $problem) {
                 $this->changeSection($issue, IssueSection::Problem, $problem, $actor, $now);
             }
 
             $this->entityManager->flush();
-            IssueRules::check(null, $this->issues->state($issue), $project->getApprovalMode(), $actor->kind);
+            IssueRules::check(null, $this->issues->state($issue), $issue->getApprovalMode(), $actor->kind);
 
             return [$issue];
         });
@@ -75,14 +77,16 @@ final class IssueCommands
      *
      * @throws NotFound|InvalidInput
      */
-    public function update(IssueKey $key, ?string $title, ?string $problem, ?string $plan, ?string $result, ?string $followUps, Actor $actor): Issue
+    public function update(IssueKey $key, ?string $title, ?string $problem, ?string $plan, ?string $result, ?string $followUps, Actor $actor, ?ApprovalMode $approval = null): Issue
     {
         $texts = array_filter(['problem' => $problem, 'plan' => $plan, 'result' => $result, 'followUps' => $followUps], static fn (?string $text): bool => null !== $text);
 
-        return $this->write($key, $actor, function (Issue $issue, \DateTimeImmutable $now) use ($title, $texts, $actor): void {
-            if (null === $title && [] === $texts) {
+        return $this->write($key, $actor, function (Issue $issue, \DateTimeImmutable $now) use ($title, $texts, $actor, $approval): void {
+            if (null === $title && [] === $texts && null === $approval) {
                 throw InvalidInput::field('', 'Give at least one field to change.');
             }
+
+            self::changeApproval($issue, $approval, $actor, $now, isNew: false);
 
             $newTitle = null === $title ? null : self::title($title);
 
@@ -289,10 +293,36 @@ final class IssueCommands
             $change($issue, $now);
             // The state reads the plan revision from the stored entries.
             $this->entityManager->flush();
-            IssueRules::check($before, $this->issues->state($issue), $issue->getProject()->getApprovalMode(), $actor->kind, $setsStatus, $note, $reviewer);
+            IssueRules::check($before, $this->issues->state($issue), $issue->getApprovalMode(), $actor->kind, $setsStatus, $note, $reviewer);
 
             return [$issue];
         });
+    }
+
+    /**
+     * D129: only in a by_issue project. An agent sets any approval on a new issue and later only user, so it never
+     * lowers the approval of a plan that it wrote. Writes no entry, as a new title writes none.
+     *
+     * @throws InvalidInput
+     */
+    private static function changeApproval(Issue $issue, ?ApprovalMode $approval, Actor $actor, \DateTimeImmutable $now, bool $isNew): void
+    {
+        $mode = $issue->getProject()->getApprovalMode();
+        $refusal = match (true) {
+            null === $approval => null,
+            ApprovalMode::ByIssue !== $mode => "The approval mode of the project is {$mode->value}. Only a project in by_issue takes an approval per issue.",
+            ApprovalMode::ByIssue === $approval => 'Must be user, agent_review, or self.',
+            !$isNew && ActorKind::Agent === $actor->kind && ApprovalMode::User !== $approval && $approval !== $issue->getApprovalMode() => 'An agent changes the approval of an issue only to user.',
+            default => null,
+        };
+
+        if (null !== $refusal) {
+            throw InvalidInput::field('approval', $refusal);
+        }
+
+        if (null !== $approval && $approval !== $issue->getApprovalMode()) {
+            $issue->setApproval($approval, $now);
+        }
     }
 
     /**

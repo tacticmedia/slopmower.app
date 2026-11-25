@@ -16,11 +16,11 @@ the `slopmower` MCP server.
 
 | Tool | Parameters | Use it to |
 |---|---|---|
-| `list_projects` | `cursor?`, `limit?` | Find the project that owns this repository, with its `approvalMode` |
+| `list_projects` | `cursor?`, `limit?` | Find the project that owns this repository, with its `approvalMode` and `approvalGuidelines` |
 | `list_issues` | `project`, `status?`, `cursor?`, `limit?` | Look through the issues of the project, newest change first |
 | `get_issue` | `issue`, `history?` | Read one issue with its sections, its links, and its thread: the current content, or the full log with `history` |
-| `create_issue` | `project`, `title`, `problem?`, `status?` | Start an issue, `draft` by default |
-| `update_issue` | `issue`, `title?`, `problem?`, `plan?`, `result?`, `followUps?` | Write the title or a section |
+| `create_issue` | `project`, `title`, `problem?`, `status?`, `approval?` | Start an issue, `draft` by default |
+| `update_issue` | `issue`, `title?`, `problem?`, `plan?`, `result?`, `followUps?`, `approval?` | Write the title or a section, or raise the approval to `user` |
 | `set_issue_status` | `issue`, `status`, `note?`, `reviewer?` | Move the issue to another status |
 | `comment_on_issue` | `issue`, `body`, `label?`, `replaces?`, `questions?` | Record a step or a decision in the thread, with its label, ask the user with `questions`, or replace a comment that no longer holds |
 | `list_comments` | `project`, `label?`, `cursor?`, `limit?` | Read the comments of the project across its issues, all or those of one label |
@@ -121,6 +121,27 @@ relation, and neither waits.
 - A second `link_issues` call for the same two issues, in either order,
   replaces their link. Use it to change the kind or the note.
 
+## Approval
+
+Each issue answer has `approval`: who approves its plan and ends it, `user`,
+`agent_review`, or `self`. It is the `approvalMode` of the project, except in
+`by_issue`, where each issue has its own.
+
+In a `by_issue` project, choose the `approval` of each issue when you call
+`create_issue`:
+
+- Read `approvalGuidelines`. The user says there which issue needs the user,
+  and which one you work on your own.
+- Choose `self` or `agent_review` only where a guideline says so. Without
+  guidelines, or when they do not cover the issue, choose `user` or leave
+  `approval` out.
+- Say in one `decision` comment which guideline gives `self`.
+- An issue with `self` still has `problem`, `plan`, and `result`.
+- Later you can change `approval` only to `user`. Do it when the work turns
+  out to need the user. In `in_progress`, set `awaiting_user_input` first.
+
+Outside `by_issue`, do not give `approval`.
+
 ## 1. Find the project
 
 Call `list_projects`. The project of this repository is the one whose
@@ -132,7 +153,8 @@ Call `list_projects`. The project of this repository is the one whose
   directory name of the main repository.
 
 If no project lists the repository, do not use the issue tools, and work as
-usual. Otherwise keep the `key` and the `approvalMode` of the project.
+usual. Otherwise keep the `key`, the `approvalMode`, and the
+`approvalGuidelines` of the project.
 
 ## 2. When to track
 
@@ -177,7 +199,7 @@ parameter that you leave out stays as it is.
    `draft` while the problem is incomplete, and ask the user what is missing.
 2. When the problem is complete, call `set_issue_status` with `todo`.
 3. Write the plan with `update_issue`. The answer has its `planRevision`.
-4. Get the plan approved as `approvalMode` says:
+4. Get the plan approved as `approval` says:
    - `self`: the plan needs no approval.
    - `agent_review`: another agent reviews it, as section 5 describes.
    - `user`: only the user approves it, with the button "Approve plan". When
@@ -194,7 +216,7 @@ parameter that you leave out stays as it is.
    `fix: SM-12 round invoice totals once`.
 8. Write `result` with `update_issue`: what you did, the commit SHAs, and each
    deviation from the plan. Then call `set_issue_status` with `in_review`.
-9. End the issue as `approvalMode` allows:
+9. End the issue as `approval` allows:
    - `self`: call `set_issue_status` with `done`.
    - `agent_review`: another agent or subagent reviews the result. Then call
      `set_issue_status` with `done`, its name as `reviewer`, and its findings
@@ -268,8 +290,9 @@ issue again.
    with section 4.
 
 The entries of your token name are left out: yours, and those of every other
-session with the same token name. A title change, a link, and a new issue
-without a problem write no entry, so no update tells of them.
+session with the same token name. A title change, a change of `approval`, a
+link, and a new issue without a problem write no entry, so no update tells of
+them.
 
 In Claude Code, watch the project with the `Monitor` tool: the description
 `Slopmower project <project key>`, `timeout_ms` 1800000, and the command
@@ -322,7 +345,7 @@ A tool error is a result with `isError: true`. Its text is JSON:
 |---|---|---|
 | `unauthorized` | The token is missing, wrong, revoked, or expired. It arrives as HTTP 401 from the server, not as a tool result. | Tell the user to check `SLOPMOWER_TOKEN`. Go on as section 7 says. |
 | `not_found` | No such project, issue, or entry of `replaces` for this token. A token for one repository sees only the project of that repository. | Check the key or the `id`, then list again |
-| `invalid_input` | The input failed a check, or the write breaks a rule. `details.violations[0].field` names what is wrong: `problem`, `plan`, or `result` is missing, or the plan has no approval; `status` is the status that the issue has, or one that only the user sets; `note` or `reviewer` is missing; `planRevision` is not the newest; `issue` is in `done` or `wont_do`, or only the user approves its plan; `target` is the issue itself; `replaces` is no comment of the issue, is replaced already, or is a comment of the user; `label` is `question` or `answer` on a comment without `questions`; `questions.<index>` breaks a rule of a question. | Read the message, fix the issue or the input, and call again |
+| `invalid_input` | The input failed a check, or the write breaks a rule. `details.violations[0].field` names what is wrong: `problem`, `plan`, or `result` is missing, or the plan has no approval; `status` is the status that the issue has, or one that only the user sets; `note` or `reviewer` is missing; `planRevision` is not the newest; `issue` is in `done` or `wont_do`, or only the user approves its plan; `approval` is given outside `by_issue`, or lowered by an agent; `target` is the issue itself; `replaces` is no comment of the issue, is replaced already, or is a comment of the user; `label` is `question` or `answer` on a comment without `questions`; `questions.<index>` breaks a rule of a question. | Read the message, fix the issue or the input, and call again |
 | `rate_limited` | Too many calls in a short time | Wait `details.retryAfterSeconds` seconds, then retry |
 | `internal_error` | An unexpected server failure | Try once more, then go on as section 7 says |
 

@@ -330,8 +330,12 @@
       "description": "done means delivered. done and wont_do end an issue (D117)."
     },
     "ApprovalMode": {
+      "enum": ["user", "agent_review", "self", "by_issue"],
+      "description": "Who approves a plan and ends an issue of the project. user: only a signed-in user. agent_review: also an agent, with the name of a reviewing agent and its review on record. self: no approval (D117). by_issue: the approval of each issue says it (D129)."
+    },
+    "IssueApproval": {
       "enum": ["user", "agent_review", "self"],
-      "description": "Who approves a plan and ends an issue of the project. user: only a signed-in user. agent_review: also an agent, with the name of a reviewing agent and its review on record. self: no approval (D117)."
+      "description": "The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129)."
     },
     "IssueSection": {
       "enum": ["problem", "plan", "result", "followUps"]

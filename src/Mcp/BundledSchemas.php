@@ -4156,8 +4156,8 @@ final class BundledSchemas
         ],
         '$defs' => [
             'ApprovalMode' => [
-                'enum' => ['user', 'agent_review', 'self'],
-                'description' => 'Who approves a plan and ends an issue of the project. user: only a signed-in user. agent_review: also an agent, with the name of a reviewing agent and its review on record. self: no approval (D117).',
+                'enum' => ['user', 'agent_review', 'self', 'by_issue'],
+                'description' => 'Who approves a plan and ends an issue of the project. user: only a signed-in user. agent_review: also an agent, with the name of a reviewing agent and its review on record. self: no approval (D117). by_issue: the approval of each issue says it (D129).',
             ],
             'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
             'NextCursor' => [
@@ -4170,11 +4170,16 @@ final class BundledSchemas
                 'title' => 'Project',
                 'description' => 'A project of the issue tracker. A repository belongs to at most one project (D116).',
                 'type' => 'object',
-                'required' => ['key', 'name', 'approvalMode', 'repositories'],
+                'required' => ['key', 'name', 'approvalMode', 'approvalGuidelines', 'repositories'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/ProjectKey'],
                     'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255],
                     'approvalMode' => ['$ref' => '#/$defs/ApprovalMode'],
+                    'approvalGuidelines' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 10000,
+                        'description' => 'Markdown of the user: which issue needs the approval of the user, and which one an agent works on its own. In by_issue, an agent chooses the approval of a new issue by it (D129).',
+                    ],
                     'repositories' => [
                         'type' => 'array',
                         'items' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255],
@@ -4201,6 +4206,10 @@ final class BundledSchemas
         '$defs' => [
             'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
+            'IssueApproval' => [
+                'enum' => ['user', 'agent_review', 'self'],
+                'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
+            ],
             'IssueKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
             'IssueStatus' => [
                 'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'awaiting_user_input', 'in_review', 'done', 'wont_do'],
@@ -4208,11 +4217,12 @@ final class BundledSchemas
             ],
             'IssueSummary' => [
                 'type' => 'object',
-                'required' => ['key', 'title', 'status', 'updatedAt'],
+                'required' => ['key', 'title', 'status', 'approval', 'updatedAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
                     'status' => ['$ref' => '#/$defs/IssueStatus'],
+                    'approval' => ['$ref' => '#/$defs/IssueApproval'],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
                 ],
             ],
@@ -4317,6 +4327,10 @@ final class BundledSchemas
             ],
             'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
+            'IssueApproval' => [
+                'enum' => ['user', 'agent_review', 'self'],
+                'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
+            ],
             'IssueComment' => [
                 'type' => 'object',
                 'required' => ['id', 'issue', 'label', 'actor', 'createdAt', 'body', 'questions'],
@@ -4342,11 +4356,12 @@ final class BundledSchemas
             ],
             'IssueSummary' => [
                 'type' => 'object',
-                'required' => ['key', 'title', 'status', 'updatedAt'],
+                'required' => ['key', 'title', 'status', 'approval', 'updatedAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
                     'status' => ['$ref' => '#/$defs/IssueStatus'],
+                    'approval' => ['$ref' => '#/$defs/IssueApproval'],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
                 ],
             ],
@@ -4479,8 +4494,8 @@ final class BundledSchemas
                 'enum' => ['user', 'agent', 'system'],
             ],
             'ApprovalMode' => [
-                'enum' => ['user', 'agent_review', 'self'],
-                'description' => 'Who approves a plan and ends an issue of the project. user: only a signed-in user. agent_review: also an agent, with the name of a reviewing agent and its review on record. self: no approval (D117).',
+                'enum' => ['user', 'agent_review', 'self', 'by_issue'],
+                'description' => 'Who approves a plan and ends an issue of the project. user: only a signed-in user. agent_review: also an agent, with the name of a reviewing agent and its review on record. self: no approval (D117). by_issue: the approval of each issue says it (D129).',
             ],
             'CommentLabel' => [
                 'enum' => ['comment', 'decision', 'question', 'answer', 'finding', 'deviation', 'scope_creep', 'papercut', 'review'],
@@ -4491,11 +4506,12 @@ final class BundledSchemas
                 'title' => 'Issue',
                 'description' => 'An issue without its links and its thread: the result of every issue write.',
                 'type' => 'object',
-                'required' => ['key', 'title', 'status', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt'],
+                'required' => ['key', 'title', 'status', 'approval', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
                     'status' => ['$ref' => '#/$defs/IssueStatus'],
+                    'approval' => ['$ref' => '#/$defs/IssueApproval'],
                     'problem' => [
                         'type' => ['string', 'null'],
                         'maxLength' => 65536,
@@ -4549,6 +4565,10 @@ final class BundledSchemas
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
                 ],
+            ],
+            'IssueApproval' => [
+                'enum' => ['user', 'agent_review', 'self'],
+                'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
             ],
             'IssueEntry' => [
                 'type' => 'object',
@@ -4671,11 +4691,12 @@ final class BundledSchemas
             ],
             'IssueSummary' => [
                 'type' => 'object',
-                'required' => ['key', 'title', 'status', 'updatedAt'],
+                'required' => ['key', 'title', 'status', 'approval', 'updatedAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
                     'status' => ['$ref' => '#/$defs/IssueStatus'],
+                    'approval' => ['$ref' => '#/$defs/IssueApproval'],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
                 ],
             ],
@@ -4834,6 +4855,10 @@ final class BundledSchemas
                 'description' => 'What a comment of an issue is (D121). comment: progress or a remark. decision: a choice, with its reason and what it rules out. question: asks the user with its questions. answer: the answers of a user to a question comment, which it replaces. The server sets question and answer (D124). finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent.',
             ],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
+            'IssueApproval' => [
+                'enum' => ['user', 'agent_review', 'self'],
+                'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
+            ],
             'IssueEntry' => [
                 'type' => 'object',
                 'required' => ['id', 'kind', 'label', 'actor', 'createdAt', 'body', 'questions', 'section', 'from', 'to', 'note', 'reviewer', 'reviewNote', 'planRevision', 'replaces', 'replacedBy'],
@@ -4939,11 +4964,12 @@ final class BundledSchemas
             ],
             'IssueSummary' => [
                 'type' => 'object',
-                'required' => ['key', 'title', 'status', 'updatedAt'],
+                'required' => ['key', 'title', 'status', 'approval', 'updatedAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
                     'status' => ['$ref' => '#/$defs/IssueStatus'],
+                    'approval' => ['$ref' => '#/$defs/IssueApproval'],
                     'updatedAt' => ['$ref' => '#/$defs/DateTime'],
                 ],
             ],
@@ -4982,11 +5008,12 @@ final class BundledSchemas
         'title' => 'Issue',
         'description' => 'An issue without its links and its thread: the result of every issue write.',
         'type' => 'object',
-        'required' => ['key', 'title', 'status', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt'],
+        'required' => ['key', 'title', 'status', 'approval', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt'],
         'properties' => [
             'key' => ['$ref' => '#/$defs/IssueKey'],
             'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
             'status' => ['$ref' => '#/$defs/IssueStatus'],
+            'approval' => ['$ref' => '#/$defs/IssueApproval'],
             'problem' => [
                 'type' => ['string', 'null'],
                 'maxLength' => 65536,
@@ -5115,10 +5142,14 @@ final class BundledSchemas
                 'enum' => ['user', 'agent', 'system'],
             ],
             'ApprovalMode' => [
-                'enum' => ['user', 'agent_review', 'self'],
-                'description' => 'Who approves a plan and ends an issue of the project. user: only a signed-in user. agent_review: also an agent, with the name of a reviewing agent and its review on record. self: no approval (D117).',
+                'enum' => ['user', 'agent_review', 'self', 'by_issue'],
+                'description' => 'Who approves a plan and ends an issue of the project. user: only a signed-in user. agent_review: also an agent, with the name of a reviewing agent and its review on record. self: no approval (D117). by_issue: the approval of each issue says it (D129).',
             ],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
+            'IssueApproval' => [
+                'enum' => ['user', 'agent_review', 'self'],
+                'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
+            ],
             'IssueKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
             'IssueStatus' => [
                 'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'awaiting_user_input', 'in_review', 'done', 'wont_do'],
@@ -5232,7 +5263,7 @@ final class BundledSchemas
         [
             'name' => 'create_issue',
             'title' => 'Create issue',
-            'description' => 'Create an issue of a project. Its key is the project key, a hyphen, and the next number of the project, for example SM-12. Look through the open issues of the project first, and continue one that covers the request. status is draft while the problem is incomplete, and backlog or todo when it is ready; backlog and todo need problem. Write technical English, as short as possible, and only what a later reader needs.',
+            'description' => 'Create an issue of a project. Its key is the project key, a hyphen, and the next number of the project, for example SM-12. Look through the open issues of the project first, and continue one that covers the request. status is draft while the problem is incomplete, and backlog or todo when it is ready; backlog and todo need problem. In approvalMode by_issue, choose approval by approvalGuidelines: self or agent_review only where a guideline says so, else user. Write technical English, as short as possible, and only what a later reader needs.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
@@ -5251,6 +5282,12 @@ final class BundledSchemas
                         'description' => 'The first status',
                         'default' => 'draft',
                         'enum' => ['draft', 'backlog', 'todo'],
+                    ],
+                    'approval' => [
+                        'type' => ['string', 'null'],
+                        'description' => 'Only in approvalMode by_issue: who approves the plan and ends this issue. Null: user',
+                        'default' => null,
+                        'enum' => ['user', 'agent_review', 'self', null],
                     ],
                 ],
                 'required' => ['project', 'title'],
@@ -5481,7 +5518,7 @@ final class BundledSchemas
         [
             'name' => 'list_projects',
             'title' => 'List projects',
-            'description' => 'List the projects of the issue tracker that this token sees, with key, name, approvalMode, and the names of their repositories. Track the work on a repository as issues of the project that lists it. A token of one repository sees only the project of that repository.',
+            'description' => 'List the projects of the issue tracker that this token sees, with key, name, approvalMode, approvalGuidelines, and the names of their repositories. Track the work on a repository as issues of the project that lists it. A token of one repository sees only the project of that repository.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
@@ -5878,7 +5915,7 @@ final class BundledSchemas
         [
             'name' => 'update_issue',
             'title' => 'Update issue',
-            'description' => 'Change the title or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem: what the user wants, and how to tell that it is done. plan: the steps, the files, and the tests. result: what was done, with the commit SHAs, and each deviation from the plan. followUps: what came up and was left out. A plan with new text clears its approval. An agent cannot change plan in in_progress or in_review, and no field of an issue in done or wont_do. Write technical English, as short as possible, and only what a later reader needs.',
+            'description' => 'Change the title or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem: what the user wants, and how to tell that it is done. plan: the steps, the files, and the tests. result: what was done, with the commit SHAs, and each deviation from the plan. followUps: what came up and was left out. A plan with new text clears its approval. An agent cannot change plan in in_progress or in_review, and no field of an issue in done or wont_do. approval exists only in approvalMode by_issue, and an agent changes it only to user. Write technical English, as short as possible, and only what a later reader needs.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
@@ -5922,6 +5959,12 @@ final class BundledSchemas
                         'minLength' => 1,
                         'maxLength' => 65536,
                         'pattern' => '^[^\\x00]*$',
+                    ],
+                    'approval' => [
+                        'type' => ['string', 'null'],
+                        'description' => 'Only in approvalMode by_issue: who approves the plan and ends this issue. An agent changes it only to user',
+                        'default' => null,
+                        'enum' => ['user', 'agent_review', 'self', null],
                     ],
                 ],
                 'required' => ['issue'],

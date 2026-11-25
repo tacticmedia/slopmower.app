@@ -8,6 +8,7 @@
         "key": "BILL-14",
         "title": "Round the totals of credit notes",
         "status": "todo",
+        "approval": "agent_review",
         "updatedAt": "2026-10-02T09:31:07Z"
       },
       "entry": {
@@ -46,6 +47,7 @@
         "key": "BILL-14",
         "title": "Round the totals of credit notes",
         "status": "todo",
+        "approval": "agent_review",
         "updatedAt": "2026-10-02T09:31:07Z"
       },
       "entry": {
@@ -78,6 +80,7 @@
         "key": "BILL-14",
         "title": "Round the totals of credit notes",
         "status": "todo",
+        "approval": "agent_review",
         "updatedAt": "2026-10-02T09:31:07Z"
       },
       "entry": {

@@ -1,4 +1,4 @@
-import { ISSUE_SECTIONS, type IssueStatus, type Question } from '../../../assets/api/types/common';
+import { type ApprovalMode, ISSUE_SECTIONS, type IssueStatus, type Question } from '../../../assets/api/types/common';
 import type { ApprovePlanInput, CreateIssueInput, CreateProjectInput, IssueCommentInput, IssueStatusInput, UpdateIssueInput, UpdateProjectInput } from '../../../assets/api/types/inputs';
 import type { Issue, IssueDetail, IssueEntry, IssueSummary } from '../../../assets/api/types/issue';
 import type { Project } from '../../../assets/api/types/project';
@@ -28,20 +28,20 @@ export class FakeIssues {
     constructor(api: MockApi, repositories: () => Repository[] = () => []) {
         api.on('GET', '/api/v1/projects', () => json('lists.schema.json#/$defs/ProjectPage', { items: this.projects, nextCursor: null }));
         api.on('POST', '/api/v1/projects', ({ body }) => {
-            const { key, name, approvalMode } = body as CreateProjectInput;
+            const { key, name, approvalMode, approvalGuidelines = null } = body as CreateProjectInput;
             if (!/^[A-Z]{2,10}$/.test(key)) {
                 return refusal('key', 'Must have 2 to 10 upper-case letters.');
             }
             if (this.projects.some((known) => known.key === key)) {
                 return refusal('key', `The project ${key} exists already.`);
             }
-            const created: Project = { key, name: name.trim(), approvalMode, repositories: [] };
+            const created: Project = { key, name: name.trim(), approvalMode, approvalGuidelines: guidelines(approvalGuidelines), repositories: [] };
             this.projects = [...this.projects, created];
 
             return json('project.schema.json', created, 201);
         });
         api.on('PATCH', '/api/v1/projects/:projectKey', ({ params, body }) => {
-            const { name, approvalMode, repositoryIds } = body as UpdateProjectInput;
+            const { name, approvalMode, approvalGuidelines, repositoryIds } = body as UpdateProjectInput;
             const stored = this.projects.find(({ key }) => key === params.projectKey);
             const members = (repositoryIds ?? []).map((id) => repositories().find((known) => known.id === id)?.name);
             if (undefined === stored || members.includes(undefined)) {
@@ -57,6 +57,7 @@ export class FakeIssues {
                 ...stored,
                 name: name?.trim() ?? stored.name,
                 approvalMode: approvalMode ?? stored.approvalMode,
+                approvalGuidelines: null === approvalGuidelines || undefined === approvalGuidelines ? stored.approvalGuidelines : guidelines(approvalGuidelines),
                 repositories: null === repositoryIds || undefined === repositoryIds ? stored.repositories : [...new Set(members as string[])].toSorted(),
             };
             this.projects = this.projects.map((known) => (known === stored ? changed : known));
@@ -64,10 +65,13 @@ export class FakeIssues {
             return json('project.schema.json', changed);
         });
         api.on('POST', '/api/v1/projects/:projectKey/issues', ({ params, body }) => {
-            const { title, problem = null, status } = body as CreateIssueInput;
+            const { title, problem = null, status, approval = null } = body as CreateIssueInput;
             const owner = this.projects.find(({ key }) => key === params.projectKey);
             if (undefined === owner) {
                 return notFound();
+            }
+            if (null !== approval && 'by_issue' !== owner.approvalMode) {
+                return approvalRefusal(owner.approvalMode);
             }
             const numbers = [...this.issues.keys()].filter((key) => key.startsWith(`${owner.key}-`)).map((key) => Number(key.slice(owner.key.length + 1)));
             const created: Issue = {
@@ -75,6 +79,7 @@ export class FakeIssues {
                 key: `${owner.key}-${Math.max(0, ...numbers) + 1}`,
                 title: title.trim(),
                 status: status ?? 'draft',
+                approval: 'by_issue' === owner.approvalMode ? (approval ?? 'user') : owner.approvalMode,
                 problem,
                 plan: null,
                 project: { key: owner.key, name: owner.name, approvalMode: owner.approvalMode },
@@ -96,6 +101,12 @@ export class FakeIssues {
             this.#answer(params.issueKey, (detail) => {
                 const input = body as UpdateIssueInput;
                 const changes: Partial<Issue> = null === input.title || undefined === input.title ? {} : { title: input.title.trim() };
+                if (null !== input.approval && undefined !== input.approval) {
+                    if ('by_issue' !== detail.issue.project.approvalMode) {
+                        return approvalRefusal(detail.issue.project.approvalMode);
+                    }
+                    changes.approval = input.approval;
+                }
                 const entries: IssueEntry[] = [];
                 for (const section of ISSUE_SECTIONS) {
                     const text = input[section];
@@ -132,7 +143,7 @@ export class FakeIssues {
                 .map(({ issue }) => issue)
                 .filter((issue) => issue.project.key === params.projectKey && (null === status || issue.status === status))
                 .toSorted((first, second) => second.updatedAt.localeCompare(first.updatedAt))
-                .map(({ key, title, status: issueStatus, updatedAt }) => ({ key, title, status: issueStatus, updatedAt }));
+                .map(summary);
 
             return json('lists.schema.json#/$defs/IssuePage', { items, nextCursor: null });
         });
@@ -180,11 +191,11 @@ export class FakeIssues {
             const label = query.get('label');
             const items = [...this.issues.values()]
                 .filter(({ issue }) => issue.project.key === params.projectKey)
-                .flatMap(({ issue: { key, title, status, updatedAt }, thread }) =>
+                .flatMap(({ issue, thread }) =>
                     thread.flatMap(({ id, label: entryLabel, actor, createdAt, body, questions, replacedBy }) =>
                         null === entryLabel || null === body || null !== replacedBy || (null !== label && entryLabel !== label)
                             ? []
-                            : [{ id, issue: { key, title, status, updatedAt }, label: entryLabel, actor, createdAt, body, questions }],
+                            : [{ id, issue: summary(issue), label: entryLabel, actor, createdAt, body, questions }],
                     ),
                 )
                 .toSorted((first, second) => second.id.localeCompare(first.id));
@@ -267,8 +278,17 @@ export class FakeIssues {
     }
 }
 
-function summary({ key, title, status, updatedAt }: Issue): IssueSummary {
-    return { key, title, status, updatedAt };
+function summary({ key, title, status, approval, updatedAt }: Issue): IssueSummary {
+    return { key, title, status, approval, updatedAt };
+}
+
+/** P2 and P3 store whitespace only as null. */
+function guidelines(text: string | null): string | null {
+    return '' === (text ?? '').trim() ? null : text;
+}
+
+function approvalRefusal(mode: ApprovalMode): MockResponse {
+    return refusal('approval', `The approval mode of the project is ${mode}. Only a project in by_issue takes an approval per issue.`);
 }
 
 /** By project key, then by number. */

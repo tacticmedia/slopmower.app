@@ -210,7 +210,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
    - changing a type, format, or nullability. Making a non-null field nullable is breaking.
    - a new required input;
    - tighter validation;
-   - new values in **closed** sets: `RequestStatus`, `Awaiting`, `Resolution`, `AnchorKind`, `ActorKind`, `CommitLinkState`, `LocationStatus`, `OrphanReason`, `ProposalState`, `PullRequestState`, `SuggestionState`, `RepositorySource`, `RepositoryAccess`, `ReviewState`, `IndexState`, `CarryOverOutcome`, `IssueStatus`, `ApprovalMode`, `IssueSection`, `CommentLabel`, `sync.state`, token `scope` and `state`, commit file `status`, tree entry `type`;
+   - new values in **closed** sets: `RequestStatus`, `Awaiting`, `Resolution`, `AnchorKind`, `ActorKind`, `CommitLinkState`, `LocationStatus`, `OrphanReason`, `ProposalState`, `PullRequestState`, `SuggestionState`, `RepositorySource`, `RepositoryAccess`, `ReviewState`, `IndexState`, `CarryOverOutcome`, `IssueStatus`, `ApprovalMode`, `IssueApproval`, `IssueSection`, `CommentLabel`, `sync.state`, token `scope` and `state`, commit file `status`, tree entry `type`;
    - a different HTTP status or error code for an existing situation;
    - changed defaults, sort orders, or pagination style;
    - a changed meaning of an existing field.
@@ -273,6 +273,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Dependencies of issues, decision D126: the set `IssueLinkKind`, the property `kind` of `IssueLink`, the optional input `kind` of `link_issues`, the endpoint I9, and the schema `IssueGraph`. Not additive: a second `link_issues` call for a pair replaces its link, where it gave `invalid_input`. A stored link has the kind `relates`.
     - Blame authors, decision D127: the property `contributors` of `Blame` with the schema `BlameContributor`, and the properties `contributorIndex` and `htmlUrl` of `BlameCommit`. All are additive. The V17 ETag is `v2` and holds the code access.
     - Updates of a project, decision D128: the tool `get_issue_updates`, the endpoint I10, the schema `IssueUpdatesPage`, the topic of a project, the live-update type `issue`, and the third selector of A3. All are additive. A stored entry has no number and comes before every cursor.
+    - Approval per issue, decision D129: the property `approvalGuidelines` of `Project`, the property `approval` of `Issue` and `IssueSummary` with the closed set `IssueApproval`, and the optional inputs `approvalGuidelines` of P2 and P3 and `approval` of I6, I7, `create_issue`, and `update_issue`. Not additive: `ApprovalMode` gets the value `by_issue`. A stored issue has no approval and reads as `user`.
 
 ## 9. Contract tests
 

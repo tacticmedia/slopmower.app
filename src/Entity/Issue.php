@@ -8,6 +8,7 @@ use App\Doctrine\Embeddable\ActorEmbeddable;
 use App\Domain\Actor\Actor;
 use App\Domain\Identity\IssueId;
 use App\Domain\Identity\TenantId;
+use App\Domain\Issue\ApprovalMode;
 use App\Domain\Issue\IssueKey;
 use App\Domain\Issue\IssueSection;
 use App\Domain\Issue\IssueStatus;
@@ -40,6 +41,10 @@ class Issue implements TenantOwned
 
     #[ORM\Column(enumType: IssueStatus::class)]
     private IssueStatus $status;
+
+    /** Counts only in a by_issue project. Never ByIssue. */
+    #[ORM\Column(nullable: true, enumType: ApprovalMode::class)]
+    private ?ApprovalMode $approval = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $problem = null;
@@ -110,6 +115,17 @@ class Issue implements TenantOwned
         return $this->status;
     }
 
+    /**
+     * The mode that binds the issue: its approval in a by_issue project, where null reads as user, else the mode of
+     * the project (D129).
+     */
+    public function getApprovalMode(): ApprovalMode
+    {
+        $mode = $this->project->getApprovalMode();
+
+        return ApprovalMode::ByIssue === $mode ? $this->approval ?? ApprovalMode::User : $mode;
+    }
+
     public function getSection(IssueSection $section): ?string
     {
         return match ($section) {
@@ -162,6 +178,12 @@ class Issue implements TenantOwned
             $this->planApproval = null;
         }
 
+        $this->updatedAt = $now;
+    }
+
+    public function setApproval(ApprovalMode $approval, \DateTimeImmutable $now): void
+    {
+        $this->approval = $approval;
         $this->updatedAt = $now;
     }
 

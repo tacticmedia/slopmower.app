@@ -5,7 +5,7 @@ import { useDocumentTitle } from '../../layout/useDocumentTitle';
 import headerStyles from '../../requests/RequestListHeader.module.css';
 import rowStyles from '../../requests/RequestRow.module.css';
 import listStyles from '../requests/RequestList.module.css';
-import { ISSUE_STATUS_TEXT, IssueStatusLabel } from './IssueStatusLabel';
+import { ISSUE_STATUS_TEXT, IssueStatusLabel, NoApprovalLabel } from './IssueStatusLabel';
 import styles from './Issues.module.css';
 import { type ProjectData, statusFilter } from './issueData';
 import { APPROVAL_MODE_NAMES } from './ApprovalModeField';
@@ -94,6 +94,7 @@ export function ProjectRoute() {
                                         </Link>
                                         <span className={rowStyles.labels}>
                                             <IssueStatusLabel status={issue.status} />
+                                            <NoApprovalLabel approval={issue.approval} />
                                         </span>
                                     </div>
                                     <div className={rowStyles.meta}>{issue.key}</div>

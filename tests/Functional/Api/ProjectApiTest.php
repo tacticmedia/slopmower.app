@@ -35,6 +35,8 @@ final class ProjectApiTest extends WebTestCase
     private const string PROJECT = 'project.schema.json';
     private const string PROJECTS = '/api/v1/projects';
     private const array BILLING = ['key' => 'BILL', 'name' => 'Billing', 'approvalMode' => 'user'];
+    private const array BILLING_PROJECT = self::BILLING + ['approvalGuidelines' => null];
+    private const string GUIDELINES = "- A change of an API: `user`.\n- A fix of a typo: `self`.";
 
     private KernelBrowser $client;
 
@@ -52,7 +54,7 @@ final class ProjectApiTest extends WebTestCase
         $response = self::apiRequest($this->client, 'POST', self::PROJECTS, ['name' => '  Billing '] + self::BILLING);
 
         $created = self::assertApiResponse($response, 201, self::PROJECT);
-        self::assertSame(self::BILLING + ['repositories' => []], $created);
+        self::assertSame(self::BILLING_PROJECT + ['repositories' => []], $created);
         self::assertSame('/api/v1/projects/BILL', $response->headers->get('Location'));
         self::assertSame([$created], $this->projects());
     }
@@ -112,9 +114,23 @@ final class ProjectApiTest extends WebTestCase
         $kept = $this->change('BILL', []);
         $none = $this->change('BILL', ['repositoryIds' => []]);
 
-        self::assertSame(self::BILLING + ['repositories' => []], $renamed);
+        self::assertSame(self::BILLING_PROJECT + ['repositories' => []], $renamed);
         self::assertSame([['alpha', 'beta'], ['beta'], ['beta'], []], array_column([$both, $one, $kept, $none], 'repositories'));
         self::assertSame([$none], $this->projects());
+    }
+
+    #[TestDox('P3 saves the approval guidelines, keeps them without the field, removes them with whitespace only, and refuses more than 10,000 characters')]
+    public function testApprovalGuidelines(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'BILL');
+
+        $saved = $this->change('BILL', ['approvalMode' => 'by_issue', 'approvalGuidelines' => self::GUIDELINES]);
+        $kept = $this->change('BILL', ['name' => 'Billing']);
+        $tooLong = self::assertApiError(self::apiRequest($this->client, 'PATCH', self::PROJECTS.'/BILL', ['approvalGuidelines' => str_repeat('a', 10001)]), 422, 'invalid_input');
+        $removed = $this->change('BILL', ['approvalGuidelines' => " \n"]);
+
+        self::assertSame([['by_issue', self::GUIDELINES], ['by_issue', self::GUIDELINES], ['by_issue', null]], array_map(static fn (array $project): array => [$project['approvalMode'], $project['approvalGuidelines']], [$saved, $kept, $removed]));
+        self::assertSame(['approvalGuidelines'], array_column($tooLong['details']['violations'] ?? [], 'field'));
     }
 
     #[TestDox('P3 answers 404 for an ID that the caller cannot see, then 422 on repositoryIds for a repository of another project, and changes nothing')]
@@ -147,7 +163,7 @@ final class ProjectApiTest extends WebTestCase
         $this->change('BILL', ['repositoryIds' => [$alpha->getId()->toString()]]);
         $after = self::assertToolResult($scoped, $scoped->callTool('list_projects'), 'list_projects');
 
-        self::assertSame([[], [self::BILLING + ['repositories' => ['alpha']]]], [$before['items'], $after['items']]);
+        self::assertSame([[], [self::BILLING_PROJECT + ['repositories' => ['alpha']]]], [$before['items'], $after['items']]);
     }
 
     #[TestDox('P2 and P3 refuse a token with 403, so no agent sets the approval mode')]

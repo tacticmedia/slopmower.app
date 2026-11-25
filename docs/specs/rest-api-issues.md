@@ -17,7 +17,7 @@ The endpoints are the issue tracker for the web UI and for agents without MCP (D
 
 - **Request:** `GET /api/v1/projects`
 - **Authentication:** S, B
-- **Success:** 200 [`ProjectPage`](schemas/lists.schema.json): the projects that the caller sees, each with the names of its repositories that the caller sees, in name order. Example: [fixtures/lists.project-page.json](fixtures/lists.project-page.json).
+- **Success:** 200 [`ProjectPage`](schemas/lists.schema.json): the projects that the caller sees, each with its `approvalGuidelines` and the names of its repositories that the caller sees, in name order. Example: [fixtures/lists.project-page.json](fixtures/lists.project-page.json).
 - **Errors:** common errors only.
 
 | Query | Type | Default | Notes |
@@ -31,29 +31,32 @@ The list is sorted by `key`. The MCP tool `list_projects` returns the same body.
 
 - **Request:** `POST /api/v1/projects`
 - **Authentication:** S
-- **Body:** [`CreateProjectInput`](schemas/inputs.schema.json), `{key, name, approvalMode}`. Example: [fixtures/inputs.create-project.json](fixtures/inputs.create-project.json).
+- **Body:** [`CreateProjectInput`](schemas/inputs.schema.json), `{key, name, approvalMode, approvalGuidelines}`. `approvalGuidelines` is optional. Example: [fixtures/inputs.create-project.json](fixtures/inputs.create-project.json).
 - **Success:** 201 [`Project`](schemas/project.schema.json) with `repositories` empty, and `Location: /api/v1/projects/{projectKey}`, the path of P3.
 - **Errors:** 422 `invalid_input`:
   - on `key`, for a value that is no `ProjectKey`, and for a key that the tenant has already;
   - on `name`, for whitespace only or more than 255 characters;
-  - on `approvalMode`, for a value outside `ApprovalMode`.
+  - on `approvalMode`, for a value outside `ApprovalMode`;
+  - on `approvalGuidelines`, for more than 10,000 characters.
 
-The key never changes, because the issue keys hold it. The server stores the name trimmed. The new project has no repository, so a token of one repository does not see it until P3 gives it that repository.
+The key never changes, because the issue keys hold it. The server stores the name trimmed. It stores `approvalGuidelines` as sent, and whitespace only as null. The new project has no repository, so a token of one repository does not see it until P3 gives it that repository.
 
 ### P3 Change a project
 
 - **Request:** `PATCH /api/v1/projects/{projectKey}`
 - **Authentication:** S
-- **Body:** [`UpdateProjectInput`](schemas/inputs.schema.json), `{name, approvalMode, repositoryIds}`. Absent or null keeps a value, and a body without a field changes nothing. Example: [fixtures/inputs.update-project.json](fixtures/inputs.update-project.json).
+- **Body:** [`UpdateProjectInput`](schemas/inputs.schema.json), `{name, approvalMode, approvalGuidelines, repositoryIds}`. Absent or null keeps a value, and a body without a field changes nothing. Example: [fixtures/inputs.update-project.json](fixtures/inputs.update-project.json).
 - **Success:** 200 [`Project`](schemas/project.schema.json).
 - **Errors**, in this order:
-  - 422 `invalid_input` on `name`, `approvalMode`, or `repositoryIds`, for a malformed value;
+  - 422 `invalid_input` on `name`, `approvalMode`, `approvalGuidelines`, or `repositoryIds`, for a malformed value;
   - 404 `not_found`, for an ID of `repositoryIds` that the caller cannot see;
   - 422 `invalid_input` on `repositoryIds`, for a repository of another project. The message names the repository and that project.
 
 `repositoryIds` is the whole list of the repositories of the project, at most 500 IDs: a repository that the list leaves out leaves the project, an empty list removes every repository, and an ID twice counts once. A refused call changes nothing. A token of one repository sees the project only while its repository belongs to it.
 
-A new `approvalMode` holds for each later write. After a change to `user`, an issue in `in_progress` or `in_review` whose plan no user approved needs that approval ([I4](#i4-approve-the-plan)) before an agent writes its sections or sets `in_review`.
+A new `approvalMode` holds for each later write. After a change to `user`, an issue in `in_progress` or `in_review` whose plan no user approved needs that approval ([I4](#i4-approve-the-plan)) before an agent writes its sections or sets `in_review`. In `by_issue`, the `approval` of each issue binds it, as "Approval mode" of the [issue tools](mcp.md#issue-tools) says (D129).
+
+Whitespace only in `approvalGuidelines` removes the guidelines. They stay when the mode changes.
 
 ### I1 List issues
 
@@ -135,11 +138,12 @@ The list is sorted by the entry `id` descending, which is newest first. The MCP 
 
 - **Request:** `POST /api/v1/projects/{projectKey}/issues`
 - **Authentication:** S, B
-- **Body:** [`CreateIssueInput`](schemas/inputs.schema.json), `{title, problem, status}`. `status` is `draft`, `backlog`, or `todo`, by default `draft`. Example: [fixtures/inputs.create-issue.json](fixtures/inputs.create-issue.json).
+- **Body:** [`CreateIssueInput`](schemas/inputs.schema.json), `{title, problem, status, approval}`. `status` is `draft`, `backlog`, or `todo`, by default `draft`. `approval` is `user`, `agent_review`, or `self`, only in a project with the approval mode `by_issue`. Without it the issue reads as `user`. Example: [fixtures/inputs.create-issue.json](fixtures/inputs.create-issue.json).
 - **Success:** 201 [`Issue`](schemas/issue.schema.json) with `Location: /api/v1/issues/{issueKey}`. The issue has the next number of the project. A `problem` writes a `section_changed` entry. The server stores the title trimmed.
 - **Errors:** 422 `invalid_input`:
   - on `title`, for whitespace only, more than 200 characters, or a line break;
   - on `status`, for a status other than `draft`, `backlog`, and `todo`;
+  - on `approval`, for `by_issue`, and for a project of another approval mode;
   - on `problem`, for `backlog` or `todo` without a problem.
 
 A token call gives the same result as the MCP tool `create_issue`.
@@ -148,11 +152,12 @@ A token call gives the same result as the MCP tool `create_issue`.
 
 - **Request:** `PATCH /api/v1/issues/{issueKey}`
 - **Authentication:** S, B
-- **Body:** [`UpdateIssueInput`](schemas/inputs.schema.json), `{title, problem, plan, result, followUps}`. Absent or null keeps a field. A text has at least 1 character, so no section is cleared. Example: [fixtures/inputs.update-issue.json](fixtures/inputs.update-issue.json).
-- **Success:** 200 [`Issue`](schemas/issue.schema.json). Each section with new text writes a `section_changed` entry with that text, which replaces the entry of the version before it, and a `plan` with new text clears `planApproval`. A value that equals the stored one changes nothing.
+- **Body:** [`UpdateIssueInput`](schemas/inputs.schema.json), `{title, problem, plan, result, followUps, approval}`. Absent or null keeps a field. A text has at least 1 character, so no section is cleared. A session sets any `approval`, and a token changes it only to `user`. Example: [fixtures/inputs.update-issue.json](fixtures/inputs.update-issue.json).
+- **Success:** 200 [`Issue`](schemas/issue.schema.json). Each section with new text writes a `section_changed` entry with that text, which replaces the entry of the version before it, and a `plan` with new text clears `planApproval`. A change of `approval` writes no entry. A value that equals the stored one changes nothing.
 - **Errors:** 422 `invalid_input`:
   - for a body without a field;
   - on `title`, for whitespace only, more than 200 characters, or a line break;
+  - on `approval`, for `by_issue`, for a project of another approval mode, and for a change of a token to another value than `user`;
   - on the field of a broken rule of the [issue tools](mcp.md#issue-tools), for example on `plan` for a plan of whitespace only in `in_progress`.
 
 The call has no precondition: the last write wins. A token call gives the same result as the MCP tool `update_issue`.
@@ -203,6 +208,6 @@ Each write that appends an entry to the thread of an issue gives the entry the n
 - **With a cursor:** `entries` holds the entries after `cursor`, oldest first, each as `{issue, entry}`: the summary of its issue and the entry. `issues` is empty. The read takes the newest number of the project first, then the entries up to it, so it misses no entry that commits later. It reads at most `limit` entries. With more, `hasMore` is true and `cursor` is the number of the last entry that it read; else `cursor` is the newest number. A page can hold fewer than `limit` entries, also none, while `hasMore` is true, because it leaves out entries.
 - **Left out:** the entries of the caller, and each entry that is replaced at the time of the read. An entry reads as in I2 without `history`: `replacedBy` is null, and a `section_changed` entry has `body` null, because the issue has the text. An entry from before the sequence has no number and comes before every cursor.
 - **The caller** is the actor of the call: a session is its user, and a token is the agent of its name and its user. Two tokens of one user with the same name are one caller, so an agent does not see the entries of another session with its token name, for example the review comment that it recorded.
-- **No entry:** a title change, a link, and a new issue without a `problem` write no entry, so no update tells of them.
+- **No entry:** a title change, a change of `approval`, a link, and a new issue without a `problem` write no entry, so no update tells of them.
 
 The answers of a user are one `comment` entry with the label `answer`, each question with its `answer`, which replaces the question comment (D124). A plan approval of a user is a `plan_approved` entry, followed by a `status_changed` entry to `todo` when the issue was in `awaiting_user_input`. The MCP tool `get_issue_updates` returns the same body.

@@ -97,10 +97,16 @@ export async function projectSettingsLoader({ request, params }: LoaderFunctionA
     return { project: projectOf(projects, params), projects, repositories };
 }
 
-/** P3 with the whole form: the name, the mode, and the checked repositories. */
+/** P3 with the whole form: the name, the mode, the guidelines while they show, and the checked repositories. */
 export async function projectSettingsAction({ request, params }: ActionFunctionArgs): Promise<ActionResult> {
     const form = await request.formData();
-    const input: UpdateProjectInput = { name: String(form.get('name')), approvalMode: String(form.get('approvalMode')) as ApprovalMode, repositoryIds: form.getAll('repositoryIds').map(String) };
+    const guidelines = form.get('approvalGuidelines');
+    const input: UpdateProjectInput = {
+        name: String(form.get('name')),
+        approvalMode: String(form.get('approvalMode')) as ApprovalMode,
+        ...(null === guidelines ? {} : { approvalGuidelines: String(guidelines) }),
+        repositoryIds: form.getAll('repositoryIds').map(String),
+    };
 
     return writeResult(() => apiWrite('PATCH', `/api/v1/projects/${encodedRouteParam(params, 'projectKey')}`, input, request.signal));
 }

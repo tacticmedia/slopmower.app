@@ -4,18 +4,21 @@
       "key": "BILL-12",
       "title": "Round invoice totals once per invoice",
       "status": "in_progress",
+      "approval": "agent_review",
       "updatedAt": "2026-10-02T09:20:05Z"
     },
     {
       "key": "BILL-13",
       "title": "Show the rounding mode on the invoice PDF",
       "status": "draft",
+      "approval": "agent_review",
       "updatedAt": "2026-10-02T09:04:18Z"
     },
     {
       "key": "BILL-9",
       "title": "Round shipping totals per line",
       "status": "done",
+      "approval": "agent_review",
       "updatedAt": "2026-10-02T09:03:30Z"
     }
   ],

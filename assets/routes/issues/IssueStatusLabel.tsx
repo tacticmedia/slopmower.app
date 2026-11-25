@@ -1,5 +1,6 @@
 import { Label, type LabelProps } from '@primer/react';
-import type { IssueStatus } from '../../api/types/common';
+import type { IssueApproval, IssueStatus } from '../../api/types/common';
+import { APPROVAL_MODE_NAMES } from './ApprovalModeField';
 
 export const ISSUE_STATUS_TEXT: Record<IssueStatus, string> = {
     draft: 'Draft',
@@ -22,6 +23,15 @@ const VARIANTS: Record<IssueStatus, NonNullable<LabelProps['variant']>> = {
     done: 'done',
     wont_do: 'secondary',
 };
+
+/** An issue that an agent works on and ends without the user (D129). */
+export function NoApprovalLabel({ approval }: { approval: IssueApproval }) {
+    return 'self' === approval ? (
+        <Label variant="secondary" data-testid="no-approval">
+            {APPROVAL_MODE_NAMES.self}
+        </Label>
+    ) : null;
+}
 
 export function IssueStatusLabel({ status }: { status: IssueStatus }) {
     return (

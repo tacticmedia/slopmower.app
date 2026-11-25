@@ -64,7 +64,7 @@ final class IssueQuery
         $repositoryNames = $this->repositoryNames($projects);
 
         return new ProjectPage(
-            array_map(static fn (Project $project): ProjectView => new ProjectView($project->getKey(), $project->getName(), $project->getApprovalMode(), $repositoryNames[$project->getId()->toString()] ?? []), $projects),
+            array_map(static fn (Project $project): ProjectView => new ProjectView($project->getKey(), $project->getName(), $project->getApprovalMode(), $project->getApprovalGuidelines(), $repositoryNames[$project->getId()->toString()] ?? []), $projects),
             Cursor::next($rows, $limit, [], static fn (Project $project): array => [$project->getKey()]),
         );
     }
@@ -74,7 +74,7 @@ final class IssueQuery
      */
     public function projectView(Project $project): ProjectView
     {
-        return new ProjectView($project->getKey(), $project->getName(), $project->getApprovalMode(), $this->repositoryNames([$project])[$project->getId()->toString()] ?? []);
+        return new ProjectView($project->getKey(), $project->getName(), $project->getApprovalMode(), $project->getApprovalGuidelines(), $this->repositoryNames([$project])[$project->getId()->toString()] ?? []);
     }
 
     /**
@@ -297,6 +297,7 @@ final class IssueQuery
             $issue->getKey(),
             $issue->getTitle(),
             $issue->getStatus(),
+            $issue->getApprovalMode(),
             $issue->getSection(IssueSection::Problem),
             $issue->getSection(IssueSection::Plan),
             $issue->getSection(IssueSection::Result),
@@ -304,7 +305,7 @@ final class IssueQuery
             ['key' => $project->getKey(), 'name' => $project->getName(), 'approvalMode' => $project->getApprovalMode()],
             $state->planRevision,
             null === $approval ? null : ['approvedBy' => $approval->getActor(), 'approvedAt' => $approval->getCreatedAt(), 'reviewer' => $approval->get('reviewer'), 'reviewNote' => $approval->get('reviewNote')],
-            IssueRules::allowedStatuses($state, $project->getApprovalMode(), $actor->kind),
+            IssueRules::allowedStatuses($state, $issue->getApprovalMode(), $actor->kind),
             $issue->getCreatedBy(),
             $issue->getCreatedAt(),
             $issue->getUpdatedAt(),

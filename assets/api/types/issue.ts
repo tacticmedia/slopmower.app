@@ -3,6 +3,7 @@ import type {
     ApprovalMode,
     CommentLabel,
     DateTime,
+    IssueApproval,
     IssueEntryKind,
     IssueKey,
     IssueLinkKind,
@@ -27,6 +28,7 @@ export type Issue = {
     key: IssueKey;
     title: string;
     status: IssueStatus;
+    approval: IssueApproval;
     problem: Markdown | null;
     plan: Markdown | null;
     result: Markdown | null;
@@ -47,6 +49,7 @@ export type IssueSummary = {
     key: IssueKey;
     title: string;
     status: IssueStatus;
+    approval: IssueApproval;
     updatedAt: DateTime;
 };
 

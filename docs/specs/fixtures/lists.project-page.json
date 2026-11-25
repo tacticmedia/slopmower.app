@@ -4,6 +4,7 @@
       "key": "BILL",
       "name": "Billing",
       "approvalMode": "agent_review",
+      "approvalGuidelines": null,
       "repositories": [
         "acme/billing",
         "billing"

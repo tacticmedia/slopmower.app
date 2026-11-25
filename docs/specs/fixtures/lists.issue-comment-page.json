@@ -6,6 +6,7 @@
         "key": "BILL-12",
         "title": "Round invoice totals once per invoice",
         "status": "in_progress",
+        "approval": "agent_review",
         "updatedAt": "2026-10-02T09:20:05Z"
       },
       "label": "comment",
@@ -26,6 +27,7 @@
         "key": "BILL-12",
         "title": "Round invoice totals once per invoice",
         "status": "in_progress",
+        "approval": "agent_review",
         "updatedAt": "2026-10-02T09:20:05Z"
       },
       "label": "decision",
@@ -46,6 +48,7 @@
         "key": "BILL-9",
         "title": "Round shipping totals per line",
         "status": "done",
+        "approval": "agent_review",
         "updatedAt": "2026-10-02T09:03:30Z"
       },
       "label": "papercut",

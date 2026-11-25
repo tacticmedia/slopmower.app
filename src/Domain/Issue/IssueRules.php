@@ -145,6 +145,7 @@ final class IssueRules
             ApprovalMode::Self => true,
             ApprovalMode::User => $byUser,
             ApprovalMode::AgentReview => $byUser || (ActorKind::Agent === $issue->approvedBy && null !== $issue->reviewer),
+            ApprovalMode::ByIssue => throw new \LogicException('The approval of the issue binds it, never by_issue.'),
         };
     }
 

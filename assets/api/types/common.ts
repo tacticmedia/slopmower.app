@@ -226,9 +226,13 @@ export const ISSUE_STATUSES = [
 ] as const;
 export type IssueStatus = (typeof ISSUE_STATUSES)[number];
 
-/** Who approves a plan and ends an issue of a project (D117). */
-export const APPROVAL_MODES = ['user', 'agent_review', 'self'] as const;
+/** Who approves a plan and ends an issue of a project (D117). `by_issue`: the approval of each issue (D129). */
+export const APPROVAL_MODES = ['user', 'agent_review', 'self', 'by_issue'] as const;
 export type ApprovalMode = (typeof APPROVAL_MODES)[number];
+
+/** The approval mode that binds an issue (D129). */
+export const ISSUE_APPROVALS = ['user', 'agent_review', 'self'] as const;
+export type IssueApproval = (typeof ISSUE_APPROVALS)[number];
 
 export const ISSUE_SECTIONS = ['problem', 'plan', 'result', 'followUps'] as const;
 export type IssueSection = (typeof ISSUE_SECTIONS)[number];

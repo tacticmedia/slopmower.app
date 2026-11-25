@@ -764,6 +764,18 @@
         },
         "approvalMode": {
           "$ref": "common.schema.json#/$defs/ApprovalMode"
+        },
+        "approvalGuidelines": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 10000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Markdown. Absent, null, or whitespace only: no guidelines."
         }
       }
     },
@@ -793,6 +805,18 @@
             }
           ],
           "description": "Absent or null keeps the mode."
+        },
+        "approvalGuidelines": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 10000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Markdown. Absent or null keeps the guidelines, and whitespace only removes them."
         },
         "repositoryIds": {
           "anyOf": [
@@ -842,6 +866,17 @@
           ],
           "default": "draft",
           "description": "Absent or null: draft."
+        },
+        "approval": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/IssueApproval"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Only in a project with the approval mode by_issue. Absent or null: user."
         }
       }
     },
@@ -911,6 +946,17 @@
             }
           ],
           "description": "Markdown: what came up and was left out."
+        },
+        "approval": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/IssueApproval"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Only in a project with the approval mode by_issue. Absent or null keeps it. An agent changes it only to user."
         }
       }
     },

@@ -239,7 +239,7 @@ Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 
 ### Issue tools
 
-Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D128). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs. The REST endpoints of [rest-api-issues.md](rest-api-issues.md) share the model and the rules of this section.
+Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D128, D129). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs. The REST endpoints of [rest-api-issues.md](rest-api-issues.md) share the model and the rules of this section.
 
 - **Visibility.** A token of one repository sees only the project of that repository, with its issues. A project without a repository is invisible to it. Any other key gets `not_found`.
 - **Sections.** An issue has the Markdown sections `problem`, `plan`, `result`, and `followUps`, each null or at most 65,536 characters.
@@ -260,12 +260,16 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
   - The labels `question` and `answer` are refused on a comment without questions: `label`.
   - No question and no answer changes the status. The agent sets `awaiting_user_input`.
 - **Approval.** `planApproval` holds the approval of the plan of `planRevision`. A `plan` with new text clears it. The same text changes nothing and writes no entry. An approval of an agent has a `reviewer` and a `reviewNote`. An approval of a user, REST [I4](rest-api-issues.md#i4-approve-the-plan), has both null.
-- **Rules.** The server checks the state that a write gives (D117). The content rules hold for every actor. The approval rules bind agents only, and the MCP actor is always an agent.
+- **Approval mode.** The `approvalMode` of the project binds each issue. In `by_issue`, the `approval` of each issue binds it, and an issue without one reads as `user` (D129). `approval` of `Issue` and `IssueSummary` is the mode that binds the issue, in every project mode.
+  - `create_issue` and `update_issue` take `approval` only in a `by_issue` project, else `invalid_input` on `approval`. `by_issue` is no `approval`.
+  - An agent sets any `approval` when it creates the issue, and later changes it only to `user`. A user sets any value. A change writes no entry.
+  - `approvalGuidelines` of the project is Markdown of the user: which issue needs the user, and which one an agent works on its own. An agent chooses the `approval` of a new issue by it, and `user` where the guidelines do not cover the issue.
+- **Rules.** The server checks the state that a write gives (D117), with the `approval` that the write gives. The content rules hold for every actor. The approval rules bind agents only, and the MCP actor is always an agent. The modes of the table are the `approval` of the issue.
 
   | Status | What must hold | Field of the refusal |
   |---|---|---|
   | `backlog`, `todo`, `in_progress`, `in_review`, `done` | `problem` is not empty | `problem` |
-  | `in_progress`, `in_review`, `done` | `plan` is not empty and approved as `approvalMode` says: `user`, by a user; `agent_review`, by a user or by an agent with a reviewer; `self`, no approval | `plan` |
+  | `in_progress`, `in_review`, `done` | `plan` is not empty and approved as `approval` says: `user`, by a user; `agent_review`, by a user or by an agent with a reviewer; `self`, no approval | `plan` |
   | `in_review`, `done` | `result` is not empty | `result` |
   | `done`, `wont_do`, set by an agent | `user`: refused. `agent_review`: `reviewer` and `note` given. `self`: allowed. | `status`, `reviewer`, `note` |
   | `wont_do` | `note` given | `note` |
@@ -282,7 +286,7 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 ### 4.19 `list_projects`
 
 - **Output:** [`lists.schema.json#/$defs/ProjectPage`](schemas/lists.schema.json).
-- **Behaviour:** REST P1: the projects that the token sees, in key order, each with the names of its repositories that the token sees, in name order. `limit` is 1 to 500, by default 100.
+- **Behaviour:** REST P1: the projects that the token sees, in key order, each with its `approvalGuidelines` and the names of its repositories that the token sees, in name order. `limit` is 1 to 500, by default 100.
 - **Errors:** `invalid_input` for the cursor.
 - **Example:** arguments `{}`. `structuredContent`: [fixtures/lists.project-page.json](fixtures/lists.project-page.json).
 
@@ -303,15 +307,15 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 ### 4.22 `create_issue`
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json).
-- **Behaviour:** REST I6: a new issue with the next number of the project, which the server takes under a lock on the project row. `status` is `draft`, `backlog`, or `todo`, by default `draft`. A `problem` writes a `section_changed` entry. The server stores the title trimmed.
-- **Errors:** `not_found` for the project, `invalid_input` for a title of whitespace only or with a line break, or on `problem` for `backlog` or `todo` without a problem.
+- **Behaviour:** REST I6: a new issue with the next number of the project, which the server takes under a lock on the project row. `status` is `draft`, `backlog`, or `todo`, by default `draft`. `approval` is for a `by_issue` project only, as "Approval mode" says. A `problem` writes a `section_changed` entry. The server stores the title trimmed.
+- **Errors:** `not_found` for the project, `invalid_input` for a title of whitespace only or with a line break, on `approval` for a project of another approval mode, or on `problem` for `backlog` or `todo` without a problem.
 - **Example:** arguments `{"project":"BILL","title":"Round invoice totals once per invoice"}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with status `draft` and the sections null.
 
 ### 4.23 `update_issue`
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json).
-- **Behaviour:** REST I7: changes the given fields. Null leaves a field as it is. Each section with new text writes a `section_changed` entry with that text, which replaces the entry of the version before it, and a `plan` with new text clears `planApproval`. A call whose values equal the stored ones changes nothing.
-- **Errors:** `not_found`, `invalid_input` for a call with no field, a title of whitespace only or with a line break, or a broken rule of the issue tools.
+- **Behaviour:** REST I7: changes the given fields. Null leaves a field as it is. Each section with new text writes a `section_changed` entry with that text, which replaces the entry of the version before it, and a `plan` with new text clears `planApproval`. `approval` changes only to `user`, as "Approval mode" says. A call whose values equal the stored ones changes nothing.
+- **Errors:** `not_found`, `invalid_input` for a call with no field, a title of whitespace only or with a line break, on `approval` for a project of another approval mode or a change to another value than `user`, or a broken rule of the issue tools.
 - **Example:** arguments `{"issue":"BILL-12","plan":"1. Add `TaxRounding::perInvoice()` ..."}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with a new `planRevision` and `planApproval` null.
 
 ### 4.24 `set_issue_status`
@@ -340,7 +344,7 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json).
 - **Behaviour:** records the review of the plan by another agent: a `plan_approved` entry with `reviewer`, `reviewNote`, and `planRevision`, which becomes `planApproval`. The server cannot prove the review. A second approval becomes `planApproval`, and the entry of the first one stays in the thread. The approval of a user has no tool: REST [I4](rest-api-issues.md#i4-approve-the-plan).
-- **Errors:** `not_found`, `invalid_input` on `issue` when `approvalMode` is `user` or the issue is in `done` or `wont_do`, on `plan` for an issue without a plan, on `planRevision` for a revision that is not the newest, on `reviewer` for whitespace only, and on `reviewNote` for fewer than 20 characters after trimming.
+- **Errors:** `not_found`, `invalid_input` on `issue` when `approval` is `user` or the issue is in `done` or `wont_do`, on `plan` for an issue without a plan, on `planRevision` for a revision that is not the newest, on `reviewer` for whitespace only, and on `reviewNote` for fewer than 20 characters after trimming.
 - **Example:** arguments `{"issue":"BILL-12","planRevision":"01K7F3C5D6E7F8G9H0J1K2M3N4","reviewer":"plan-reviewer"}` plus the `reviewNote` of the fixture give [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json).
 
 ### 4.28 `list_comments`
@@ -353,7 +357,7 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 ### 4.29 `get_issue_updates`
 
 - **Output:** [`issue.schema.json#/$defs/IssueUpdatesPage`](schemas/issue.schema.json).
-- **Behaviour:** REST [I10](rest-api-issues.md#i10-get-the-updates-of-a-project) (D128). Without a cursor: the issues of the project in `todo`, `in_progress`, `awaiting_user_input`, and `in_review`, and the newest cursor. With a cursor: the entries of every issue of the project after it, oldest first, each with the summary of its issue, without the entries of the caller and without a replaced entry. The caller is the agent of the token name: a second session with the same token name is the same caller, and its entries are left out too. A title change, a link, and a new issue without a `problem` write no entry. `limit` is 1 to 200, by default 50. The agent that waits for the user calls it with the returned cursor; the answers of the user, a plan approval, and a status change arrive as entries.
+- **Behaviour:** REST [I10](rest-api-issues.md#i10-get-the-updates-of-a-project) (D128). Without a cursor: the issues of the project in `todo`, `in_progress`, `awaiting_user_input`, and `in_review`, and the newest cursor. With a cursor: the entries of every issue of the project after it, oldest first, each with the summary of its issue, without the entries of the caller and without a replaced entry. The caller is the agent of the token name: a second session with the same token name is the same caller, and its entries are left out too. A title change, a change of `approval`, a link, and a new issue without a `problem` write no entry. `limit` is 1 to 200, by default 50. The agent that waits for the user calls it with the returned cursor; the answers of the user, a plan approval, and a status change arrive as entries.
 - **Errors:** `not_found` for the project, `invalid_input` on `cursor` for a cursor ahead of the server. A `cursor` below 0 and a `limit` outside its range are JSON-RPC -32602.
 - **Example:** arguments `{"project":"BILL"}` give [fixtures/issue.updates-first-call.json](fixtures/issue.updates-first-call.json). Arguments `{"project":"BILL","cursor":41}` give [fixtures/issue.updates-cursor.json](fixtures/issue.updates-cursor.json).
 

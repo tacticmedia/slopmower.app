@@ -67,6 +67,7 @@ final class ProjectController extends AbstractController
         }
 
         $project = new Project($currentActor->sessionUser()->getTenantId(), $input->key, trim($input->name), $input->approvalMode, $clock->now());
+        $project->setApprovalGuidelines($input->approvalGuidelines);
         $this->entityManager->persist($project);
 
         try {
@@ -123,6 +124,10 @@ final class ProjectController extends AbstractController
 
         if (null !== $input->approvalMode) {
             $project->setApprovalMode($input->approvalMode);
+        }
+
+        if (null !== $input->approvalGuidelines) {
+            $project->setApprovalGuidelines($input->approvalGuidelines);
         }
 
         $this->entityManager->flush();
