@@ -39,6 +39,43 @@ function scrollWindowTo(page: Page, top: number): Promise<void> {
     }), top);
 }
 
+type HeldIntersections = { heldIntersections: { holding: boolean; headerStates: () => boolean[]; deliver: () => void } };
+
+/** While `holding`, each observer keeps its entries, and `deliver()` passes them in one callback per observer, as a slow client does. */
+async function wrapIntersectionObserver(page: Page): Promise<void> {
+    await page.addInitScript(() => {
+        const held = new Map<IntersectionObserver, { callback: IntersectionObserverCallback; entries: IntersectionObserverEntry[] }>();
+        const control: HeldIntersections['heldIntersections'] = {
+            holding: false,
+            headerStates: () =>
+                [...held.values()]
+                    .flatMap(({ entries }) => entries)
+                    .filter(({ target }) => null !== target.closest('[data-testid="file-header"]'))
+                    .map(({ isIntersecting }) => isIntersecting),
+            deliver: () => {
+                control.holding = false;
+                held.forEach(({ callback, entries }, observer) => callback(entries, observer));
+                held.clear();
+            },
+        };
+        Object.assign(window, { heldIntersections: control });
+        window.IntersectionObserver = class extends IntersectionObserver {
+            constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+                super((entries, observer) => {
+                    if (!control.holding) {
+                        callback(entries, observer);
+
+                        return;
+                    }
+                    const call = held.get(observer) ?? { callback, entries: [] };
+                    call.entries.push(...entries);
+                    held.set(observer, call);
+                }, options);
+            }
+        };
+    });
+}
+
 test.describe('CodeBrowserLayout', () => {
     test('The code browser spans the window, and the window scrolls the headers away while the tree and the toolbar stick', async ({ page, api }) => {
         await openFile(page, reviewWithManyRootFiles(api), LARGE_FILE);
@@ -65,6 +102,26 @@ test.describe('CodeBrowserLayout', () => {
         await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
         await expect(stuck).toHaveCount(0);
         await expect(page.getByRole('heading', { level: 1 })).toBeInViewport();
+    });
+
+    test('The stuck row goes when one observer callback reports the scroll away and back', async ({ page, api }) => {
+        await wrapIntersectionObserver(page);
+        await openFile(page, new FakeReview(api), LARGE_FILE);
+        await waitForCodeHeight(page);
+        await page.evaluate(() => {
+            (window as unknown as HeldIntersections).heldIntersections.holding = true;
+        });
+
+        await scrollWindowTo(page, 3000);
+        await scrollWindowTo(page, 0);
+        await expect.poll(() => page.evaluate(() => (window as unknown as HeldIntersections).heldIntersections.headerStates())).toEqual([false, true]);
+        await page.evaluate(() => new Promise<void>((resolve) => {
+            (window as unknown as HeldIntersections).heldIntersections.deliver();
+            // React renders the state change in a task after the callback.
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        }));
+
+        await expect(page.locator('[data-testid="stuck-header"]')).toHaveCount(0);
     });
 
     test('The pane splitter resizes the tree with the keyboard, and the width stays after a reload', async ({ page, api }) => {

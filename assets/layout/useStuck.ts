@@ -9,7 +9,11 @@ export function useStuck(sentinel: RefObject<HTMLElement | null>): boolean {
         if (null === element) {
             return;
         }
-        const observer = new IntersectionObserver(([entry]) => setStuck(undefined !== entry && !entry.isIntersecting && entry.boundingClientRect.top < 0));
+        // A slow client reports several changes in one callback, oldest first.
+        const observer = new IntersectionObserver((entries) => {
+            const entry = entries.at(-1);
+            setStuck(undefined !== entry && !entry.isIntersecting && entry.boundingClientRect.top < 0);
+        });
         observer.observe(element);
 
         return () => observer.disconnect();
