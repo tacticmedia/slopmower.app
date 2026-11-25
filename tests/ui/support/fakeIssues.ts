@@ -1,6 +1,6 @@
 import { type ApprovalMode, ISSUE_SECTIONS, type IssueStatus, type Question } from '../../../assets/api/types/common';
 import type { ApprovePlanInput, CreateIssueInput, CreateProjectInput, IssueCommentInput, IssueStatusInput, UpdateIssueInput, UpdateProjectInput } from '../../../assets/api/types/inputs';
-import type { Issue, IssueDetail, IssueEntry, IssueSummary } from '../../../assets/api/types/issue';
+import type { Issue, IssueCommits, IssueDetail, IssueEntry, IssueSummary } from '../../../assets/api/types/issue';
 import type { Project } from '../../../assets/api/types/project';
 import type { Repository } from '../../../assets/api/types/repository';
 import { issueDetail, newId, now, project, USER } from './builders';
@@ -20,13 +20,15 @@ const PASSING_STATUSES: readonly IssueStatus[] = ['backlog', 'awaiting_user_inpu
 const WAITS_FOR_USER: readonly IssueStatus[] = ['awaiting_user_input', 'in_review'];
 
 /**
- * The issue tracker in memory, as a signed-in user sees it: P1 to P3, I1 to I9, and I11, with the rules of
+ * The issue tracker in memory, as a signed-in user sees it: P1 to P3, I1 to I9, I11, and I12, with the rules of
  * docs/specs/rest-api-issues.md. `repositories` answers the connected repositories, whose IDs P3 takes.
  */
 export class FakeIssues {
     projects: Project[] = [project()];
     /** By issue key. */
     readonly issues = new Map<string, IssueDetail>();
+    /** I12 by issue key. Without an entry, I12 lists no commit. */
+    readonly commits = new Map<string, IssueCommits>();
 
     constructor(api: MockApi, repositories: () => Repository[] = () => []) {
         api.on('GET', '/api/v1/projects', () => json('lists.schema.json#/$defs/ProjectPage', { items: this.projects, nextCursor: null }));
@@ -167,6 +169,9 @@ export class FakeIssues {
         });
         api.on('GET', '/api/v1/issues/:issueKey', ({ params, query }) =>
             this.#answer(params.issueKey, (detail) => json('issue.schema.json#/$defs/IssueDetail', 'true' === query.get('history') ? detail : { ...detail, thread: currentContent(detail.thread) })),
+        );
+        api.on('GET', '/api/v1/issues/:issueKey/commits', ({ params }) =>
+            this.#answer(params.issueKey, ({ issue }) => json('issue.schema.json#/$defs/IssueCommits', this.commits.get(issue.key) ?? { items: [], unavailable: [] })),
         );
         api.on('POST', '/api/v1/issues/:issueKey/comments', ({ params, body }) =>
             this.#answer(params.issueKey, (detail) => {

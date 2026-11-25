@@ -5,7 +5,7 @@ import { Link as RouterLink, useFetcher, useLoaderData, useNavigate } from 'reac
 import type { ActionResult } from '../../api/actionResult';
 import { COMMENT_LABELS, type CommentLabel, ISSUE_APPROVALS, ISSUE_CATEGORIES } from '../../api/types/common';
 import type { IssueCommentInput } from '../../api/types/inputs';
-import type { Issue, IssueDetail, IssueEntry, IssueLink } from '../../api/types/issue';
+import type { Issue, IssueEntry, IssueLink } from '../../api/types/issue';
 import { CommentBox, type CommentText } from '../../comments/CommentBox';
 import boxStyles from '../../comments/CommentBox.module.css';
 import { MarkdownBody } from '../../comments/MarkdownBody';
@@ -16,12 +16,13 @@ import sidebarStyles from '../../requests/RequestSidebar.module.css';
 import { dateTimeFormat } from '../../settings/TokenTable';
 import { ActorName, COMMENT_LABEL_TEXT } from './CommentParts';
 import { IssueClaimLine } from './IssueClaimLine';
+import { IssueCommitList } from './IssueCommitList';
 import { BugLabel, ISSUE_CATEGORY_TEXT, IssueStatusLabel } from './IssueStatusLabel';
 import { IssueStatusMenu } from './IssueStatusMenu';
 import { EntryLink, entryId, IssueTimeline } from './IssueTimeline';
 import { IssueTitle } from './IssueTitle';
 import styles from './Issues.module.css';
-import type { IssueIntent } from './issueData';
+import type { IssueData, IssueIntent } from './issueData';
 import { APPROVAL_MODE_NAMES } from './ApprovalModeField';
 import { useIssueWrite } from './useIssueWrite';
 
@@ -33,7 +34,7 @@ const WRITABLE_LABELS = COMMENT_LABELS.filter((label) => 'question' !== label &&
  * in the sidebar. The page has no thread widget of its own (D2): Primer parts, `MarkdownBody`, and `CommentBox`.
  */
 export function IssueRoute() {
-    const { issue, links, thread } = useLoaderData<IssueDetail>();
+    const { issue, links, thread, commits } = useLoaderData<IssueData>();
     useDocumentTitle(`${issue.key} ${issue.title}`);
     const sentFrom = useFocusOnReply(thread);
 
@@ -73,6 +74,9 @@ export function IssueRoute() {
                     </SidebarSection>
                     <SidebarSection title="Links">
                         {0 === links.length ? <span className={styles.muted}>None</span> : <LinkList links={links} />}
+                    </SidebarSection>
+                    <SidebarSection title="Commits">
+                        <IssueCommitList commits={commits} />
                     </SidebarSection>
                 </aside>
                 <div key={issue.key} className={styles.main}>

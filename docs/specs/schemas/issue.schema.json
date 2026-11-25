@@ -478,6 +478,76 @@
           "description": "With a cursor: the entries after it, oldest first, as get_issue reads them without history. Without a cursor: empty."
         }
       }
+    },
+    "IssueCommits": {
+      "type": "object",
+      "required": ["items", "unavailable"],
+      "description": "The result of I12 (D132): the commits of the branches whose message or branch name has the issue key, read from the server clones at the time of the call.",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["repository", "sha", "subject", "authorName", "committedAt", "onDefaultBranch", "branch", "htmlUrl"],
+            "properties": {
+              "repository": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255,
+                "description": "Repository.name"
+              },
+              "sha": {
+                "$ref": "common.schema.json#/$defs/CommitSha"
+              },
+              "subject": {
+                "type": "string",
+                "description": "The subject of the commit message: its first paragraph on one line. Empty for an empty message."
+              },
+              "authorName": {
+                "type": "string",
+                "description": "As the commit records it, without a mailmap."
+              },
+              "committedAt": {
+                "$ref": "common.schema.json#/$defs/DateTime"
+              },
+              "onDefaultBranch": {
+                "type": "boolean"
+              },
+              "branch": {
+                "type": ["string", "null"],
+                "minLength": 1,
+                "description": "Null on the default branch. Else a branch that has the commit, a branch with the key in its name first."
+              },
+              "htmlUrl": {
+                "type": ["string", "null"],
+                "description": "The commit on github.com. Null for a local repository."
+              }
+            }
+          },
+          "description": "At most 100 commits per repository, newest committedAt first."
+        },
+        "unavailable": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["repository", "reason"],
+            "properties": {
+              "repository": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255,
+                "description": "Repository.name"
+              },
+              "reason": {
+                "type": "string",
+                "enum": ["no_server_copy", "cloning", "clone_failed", "removed", "read_failed"],
+                "description": "no_server_copy: the code access pass_through or browser. read_failed: git failed on the clone. Else the reason of repository_unavailable."
+              }
+            }
+          },
+          "description": "The repositories of the project whose clone the server cannot read, in name order."
+        }
+      }
     }
   }
 }

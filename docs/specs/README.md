@@ -276,6 +276,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Approval per issue, decision D129: the property `approvalGuidelines` of `Project`, the property `approval` of `Issue` and `IssueSummary` with the closed set `IssueApproval`, and the optional inputs `approvalGuidelines` of P2 and P3 and `approval` of I6, I7, `create_issue`, and `update_issue`. Not additive: `ApprovalMode` gets the value `by_issue`. A stored issue has no approval and reads as `user`.
     - Claims of issues, decision D130: the definition `SessionName`, the schema `IssueClaim`, the property `claim` of `Issue` and `IssueSummary`, the input `session` of `update_issue`, `set_issue_status`, `approve_plan`, `comment_on_issue`, I3, I7, and I8, and the endpoint I11. Not additive: the four tools need `session`, and so do I3, I7, and I8 from a token. A write of an agent on an issue that another session holds answers `invalid_input` on `session`. A stored issue has no claim.
     - Dismissed questions, decision D124: the optional input `dismiss` of I3. Not additive: `CommentLabel` gets the value `dismissal`, which the server sets and refuses on a comment without questions and without `dismiss`, and a move to `wont_do` writes a `dismissal` comment for each open question comment. A stored question comment stays open until a comment replaces it.
+    - Commits of an issue, decision D132: the endpoint I12 and the schema `IssueCommits`. All are additive.
     - Issue category, decision D133: the closed set `IssueCategory`, the property `category` of `Issue` and `IssueSummary`, the optional input `category` of I7 and `update_issue`, and the filter `category` of I1 and `list_issues`. Not additive: I6 and `create_issue` need `category`. A stored issue reads as `change`.
 
 ## 9. Contract tests
@@ -330,7 +331,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [inputs.schema.json](schemas/inputs.schema.json) | `https://slopmower.invalid/schemas/v1/inputs.schema.json` | `$defs` only: every REST request body |
 | [live-update.schema.json](schemas/live-update.schema.json) | `https://slopmower.invalid/schemas/v1/live-update.schema.json` | Data of one Mercure update, IDs only |
 | [project.schema.json](schemas/project.schema.json) | `https://slopmower.invalid/schemas/v1/project.schema.json` | A project of the issue tracker, with the names of its repositories |
-| [issue.schema.json](schemas/issue.schema.json) | `https://slopmower.invalid/schemas/v1/issue.schema.json` | An issue without its links and its thread, plus `PlanApproval`, `IssueSummary`, `IssueLink`, `IssueEntry`, `IssueComment`, `IssueDetail`, the result of I2 and `get_issue`, `IssueGraph`, the result of I9, and `IssueUpdatesPage`, the result of I10 and `get_issue_updates` |
+| [issue.schema.json](schemas/issue.schema.json) | `https://slopmower.invalid/schemas/v1/issue.schema.json` | An issue without its links and its thread, plus `PlanApproval`, `IssueSummary`, `IssueLink`, `IssueEntry`, `IssueComment`, `IssueDetail`, the result of I2 and `get_issue`, `IssueGraph`, the result of I9, `IssueUpdatesPage`, the result of I10 and `get_issue_updates`, and `IssueCommits`, the result of I12 |
 
 ## 11. Fixtures
 
@@ -363,6 +364,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
 | [error.unauthorized.json](fixtures/error.unauthorized.json) | `error.schema.json` | Any endpoint, the MCP transport |
 | [file-content.browser.json](fixtures/file-content.browser.json) | `file-content.schema.json` | V7 of a `browser` repository |
 | [file-content.php.json](fixtures/file-content.php.json) | `file-content.schema.json` | V7 |
+| [issue.commits.json](fixtures/issue.commits.json) | `issue.schema.json#/$defs/IssueCommits` | I12 |
 | [issue.detail.json](fixtures/issue.detail.json) | `issue.schema.json#/$defs/IssueDetail` | I2 and `get_issue` with `history` |
 | [issue.graph.json](fixtures/issue.graph.json) | `issue.schema.json#/$defs/IssueGraph` | I9 |
 | [issue.updates-cursor.json](fixtures/issue.updates-cursor.json) | `issue.schema.json#/$defs/IssueUpdatesPage` | I10 with a cursor, `get_issue_updates` |

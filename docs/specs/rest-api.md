@@ -96,6 +96,7 @@ Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json). 
 | [I9](rest-api-issues.md#i9-get-the-dependency-graph-of-a-project) | GET | `/api/v1/projects/{projectKey}/graph` | S, B | 200 | [`issue.schema.json#/$defs/IssueGraph`](schemas/issue.schema.json) |
 | [I10](rest-api-issues.md#i10-get-the-updates-of-a-project) | GET | `/api/v1/projects/{projectKey}/updates` | S, B | 200 | [`issue.schema.json#/$defs/IssueUpdatesPage`](schemas/issue.schema.json) |
 | [I11](rest-api-issues.md#i11-release-the-claim) | POST | `/api/v1/issues/{issueKey}/release` | S | 200 | [`issue.schema.json`](schemas/issue.schema.json) |
+| [I12](rest-api-issues.md#i12-list-the-commits-of-an-issue) | GET | `/api/v1/issues/{issueKey}/commits` | S, B | 200 | [`issue.schema.json#/$defs/IssueCommits`](schemas/issue.schema.json) |
 
 Common errors are not repeated per endpoint:
 

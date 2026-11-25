@@ -150,17 +150,85 @@ final class GitCodeReader implements CodeReader
         }
 
         // With -z, NUL also separates the commits, so each record is 5 fields. A subject can be empty.
-        return array_map(static function (array $fields): LogCommit {
-            [$sha, $authorName, $authoredAtUnixSeconds, $committedAtUnixSeconds, $subject] = $fields + ['', '', '0', '0', ''];
+        return array_map(static fn (array $fields): LogCommit => self::logCommit($fields), array_chunk(explode("\0", $output), 5));
+    }
 
-            return new LogCommit(
-                CommitSha::fromString($sha),
-                mb_scrub($subject, 'UTF-8'),
-                mb_scrub($authorName, 'UTF-8'),
-                new \DateTimeImmutable('@'.$authoredAtUnixSeconds),
-                new \DateTimeImmutable('@'.$committedAtUnixSeconds),
-            );
-        }, array_chunk(explode("\0", $output), 5));
+    /**
+     * @return list<string> Without `refs/heads/`
+     *
+     * @throws GitFailed
+     */
+    public function branches(): array
+    {
+        $output = $this->git->run($this->gitDir, ['for-each-ref', '--format=%(refname:lstrip=2)', self::HEADS]);
+
+        return array_values(array_filter(explode("\n", $output), static fn (string $branch): bool => '' !== $branch));
+    }
+
+    /**
+     * `git log` of branches, as {@see log()}.
+     *
+     * @param non-empty-list<string> $branches       Without `refs/heads/`
+     * @param string|null            $exceptBranch   Leaves out the commits of this branch
+     * @param string|null            $messagePattern An extended regular expression that one line of the message matches
+     *
+     * @return list<array{LogCommit, string}> Newest first, each commit with the branch of $branches through which git reached it
+     *
+     * @throws GitFailed
+     */
+    public function branchLog(array $branches, ?string $exceptBranch, ?string $messagePattern, int $limit): array
+    {
+        $revisions = array_map(static fn (string $branch): string => self::HEADS.$branch, $branches);
+        if (null !== $exceptBranch) {
+            $revisions[] = '^'.self::HEADS.$exceptBranch;
+        }
+
+        return $this->sourcedLog($revisions, [], $messagePattern, $limit);
+    }
+
+    /**
+     * {@see branchLog()} of one branch. With $exceptBranch, `--cherry-pick --right-only` also leaves out each commit
+     * whose patch $exceptBranch has after the fork point, for example the old copy of a rebased commit. One branch per
+     * call, because with several branches git compares only the commits after the newest fork point.
+     *
+     * @return list<array{LogCommit, string}>
+     *
+     * @throws GitFailed
+     */
+    public function branchOnlyLog(string $branch, ?string $exceptBranch, ?string $messagePattern, int $limit): array
+    {
+        return null === $exceptBranch
+            ? $this->sourcedLog([self::HEADS.$branch], [], $messagePattern, $limit)
+            : $this->sourcedLog([self::HEADS.$exceptBranch.'...'.self::HEADS.$branch], ['--cherry-pick', '--right-only'], $messagePattern, $limit);
+    }
+
+    /**
+     * The revisions go through standard input, so many branches stay within the argument limit. A branch that a fetch
+     * removed meanwhile counts as no revision.
+     *
+     * @param list<string> $revisions
+     * @param list<string> $options
+     *
+     * @return list<array{LogCommit, string}>
+     */
+    private function sourcedLog(array $revisions, array $options, ?string $messagePattern, int $limit): array
+    {
+        $grep = null === $messagePattern ? [] : ['--extended-regexp', "--grep={$messagePattern}"];
+        $output = $this->git->run(
+            $this->gitDir,
+            ['log', '--no-mailmap', '-z', '-n', (string) $limit, '--format=format:%H%x00%an%x00%at%x00%ct%x00%s%x00%S', ...$options, ...$grep, '--ignore-missing', '--stdin'],
+            standardInput: implode("\n", $revisions)."\n",
+        );
+
+        if ('' === $output) {
+            return [];
+        }
+
+        // %S is the branch as given, also on the right of `...`, so it starts with refs/heads/.
+        return array_map(
+            static fn (array $fields): array => [self::logCommit($fields), mb_scrub(substr($fields[5] ?? '', strlen(self::HEADS)), 'UTF-8')],
+            array_chunk(explode("\0", $output), 6),
+        );
     }
 
     /**
@@ -466,6 +534,22 @@ final class GitCodeReader implements CodeReader
         $this->batch?->stop();
         $this->batch = null;
         $this->changedPaths = [];
+    }
+
+    /**
+     * @param list<string> $fields SHA, author name, author time, committer time, and subject of `git log -z`
+     */
+    private static function logCommit(array $fields): LogCommit
+    {
+        [$sha, $authorName, $authoredAtUnixSeconds, $committedAtUnixSeconds, $subject] = $fields + ['', '', '0', '0', ''];
+
+        return new LogCommit(
+            CommitSha::fromString($sha),
+            mb_scrub($subject, 'UTF-8'),
+            mb_scrub($authorName, 'UTF-8'),
+            new \DateTimeImmutable('@'.$authoredAtUnixSeconds),
+            new \DateTimeImmutable('@'.$committedAtUnixSeconds),
+        );
     }
 
     /**

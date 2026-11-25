@@ -2,6 +2,7 @@ import type { Actor } from './actor';
 import type {
     ApprovalMode,
     CommentLabel,
+    CommitSha,
     DateTime,
     IssueApproval,
     IssueCategory,
@@ -134,4 +135,29 @@ export type IssueUpdatesPage = {
     hasMore: boolean;
     issues: IssueSummary[];
     entries: { issue: IssueSummary; entry: IssueEntry }[];
+};
+
+/** Why I12 reads no commit of a repository: `no_server_copy` for Pass-through and Browser only, `read_failed` when git failed on the clone, else the clone is not ready. */
+export const ISSUE_COMMITS_UNAVAILABLE_REASONS = ['no_server_copy', 'cloning', 'clone_failed', 'removed', 'read_failed'] as const;
+export type IssueCommitsUnavailableReason = (typeof ISSUE_COMMITS_UNAVAILABLE_REASONS)[number];
+
+/** The result of I12 (D132): the commits of the branches whose message or branch name has the issue key, read at the call. */
+export type IssueCommits = {
+    /** At most 100 per repository, newest `committedAt` first. */
+    items: {
+        /** `Repository.name` */
+        repository: string;
+        sha: CommitSha;
+        /** The first paragraph of the message on one line. Empty for an empty message. */
+        subject: string;
+        authorName: string;
+        committedAt: DateTime;
+        onDefaultBranch: boolean;
+        /** Null on the default branch. Else a branch that has the commit, a branch with the key in its name first. */
+        branch: string | null;
+        /** The commit on github.com. Null for a local repository. */
+        htmlUrl: string | null;
+    }[];
+    /** In name order. */
+    unavailable: { repository: string; reason: IssueCommitsUnavailableReason }[];
 };

@@ -40,6 +40,7 @@ import {
 import { DRAFT_KINDS } from './types/draft';
 import { REPOSITORY_UNAVAILABLE_REASONS } from './types/error';
 import { FILE_CONTENT_TYPES } from './types/file-content';
+import { ISSUE_COMMITS_UNAVAILABLE_REASONS } from './types/issue';
 import { LOCATION_TARGETS } from './types/location';
 import { SIGN_IN_METHODS } from './types/me';
 import { SYNC_STATES } from './types/repository';
@@ -88,6 +89,7 @@ const ENUM_ARRAYS: [schemaFileName: string, jsonPointer: string, tsArray: readon
     ['common.schema.json', '/$defs/CommentLabel/enum', COMMENT_LABELS],
     ['common.schema.json', '/$defs/IssueLinkKind/enum', ISSUE_LINK_KINDS],
     ['error.schema.json', '/$defs/RepositoryUnavailableDetails/properties/reason/enum', REPOSITORY_UNAVAILABLE_REASONS],
+    ['issue.schema.json', '/$defs/IssueCommits/properties/unavailable/items/properties/reason/enum', ISSUE_COMMITS_UNAVAILABLE_REASONS],
     ['location.schema.json', '/properties/target/enum', LOCATION_TARGETS],
     ['repository.schema.json', '/$defs/Sync/properties/state/enum', SYNC_STATES],
     ['commit-diff.schema.json', '/$defs/CommitDiffFile/properties/status/enum', COMMIT_DIFF_FILE_STATUSES],

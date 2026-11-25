@@ -1,6 +1,6 @@
 import type { CommentLabel, Question } from '../../assets/api/types/common';
 import type { Issue, IssueDetail, IssueEntry } from '../../assets/api/types/issue';
-import { issueDetail, project } from '../ui/support/builders';
+import { issueCommits, issueDetail, project } from '../ui/support/builders';
 import { FakeIssues } from '../ui/support/fakeIssues';
 import { FakeRepositories } from '../ui/support/fakeRepositories';
 import { expect, test } from './support/test';
@@ -46,6 +46,7 @@ test.describe('Issues', () => {
             ),
         );
         issues.add(issue({ key: 'BILL-15', title: 'Name the rounding mode in the README', status: 'in_review', updatedAt: '2026-10-02T09:18:22Z' }));
+        issues.commits.set('BILL-12', issueCommits());
         issues.block('BILL-13', 'BILL-12');
         issues.block('BILL-14', 'BILL-12');
 
@@ -57,6 +58,7 @@ test.describe('Issues', () => {
 
         await page.getByRole('link', { name: 'Round invoice totals once per invoice' }).click();
         await captureScreen('Issue', page.getByTestId('issue-thread'));
+        await captureScreen('Issue sidebar', page.getByTestId('issue-sidebar'));
 
         await page.locator('[data-testid="issue-entry"][data-replaced="true"] summary').first().click({ position: { x: 8, y: 8 } });
         await captureScreen('Issue replaced version', page.getByText('Round the total in'));

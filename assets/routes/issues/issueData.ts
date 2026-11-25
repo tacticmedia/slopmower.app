@@ -1,9 +1,9 @@
 import { type ActionFunctionArgs, type LoaderFunctionArgs, type Params, redirect } from 'react-router';
 import { actionError, type ActionResult, type InputFailure, inputFailure, refusalReasons, writeResult } from '../../api/actionResult';
-import { apiGet, apiGetAllPages, apiWrite } from '../../api/client';
+import { ApiError, apiGet, apiGetAllPages, apiWrite } from '../../api/client';
 import { type ApprovalMode, COMMENT_LABELS, type CommentLabel, ISSUE_CATEGORIES, ISSUE_STATUSES, type IssueCategory, type IssueStatus } from '../../api/types/common';
 import type { ApprovePlanInput, CreateIssueInput, CreateProjectInput, IssueCommentInput, IssueStatusInput, UpdateIssueInput, UpdateProjectInput } from '../../api/types/inputs';
-import type { Issue, IssueComment, IssueDetail, IssueGraph, IssueSummary } from '../../api/types/issue';
+import type { Issue, IssueComment, IssueCommits, IssueDetail, IssueGraph, IssueSummary } from '../../api/types/issue';
 import type { NextCursor, ProjectPage } from '../../api/types/lists';
 import type { Project } from '../../api/types/project';
 import type { Repository } from '../../api/types/repository';
@@ -168,9 +168,24 @@ export async function projectGraphLoader({ request, params }: LoaderFunctionArgs
     return { project: projectOf(projects, params), graph };
 }
 
-/** I2 with the replaced entries and the text of each section version, for the timeline. */
-export function issueLoader({ request, params }: LoaderFunctionArgs): Promise<IssueDetail> {
-    return apiGet<IssueDetail>(`/api/v1/issues/${encodedRouteParam(params, 'issueKey')}?history=true`, request.signal);
+/** I12, or its error, which shows in the section and keeps the page. */
+export type IssueData = IssueDetail & { commits: IssueCommits | ApiError };
+
+/** I2 with the replaced entries and the text of each section version, for the timeline, and I12. */
+export async function issueLoader({ request, params }: LoaderFunctionArgs): Promise<IssueData> {
+    const issuePath = `/api/v1/issues/${encodedRouteParam(params, 'issueKey')}`;
+    const [detail, commits] = await Promise.all([
+        apiGet<IssueDetail>(`${issuePath}?history=true`, request.signal),
+        apiGet<IssueCommits>(`${issuePath}/commits`, request.signal).catch((error: unknown) => {
+            if (error instanceof ApiError) {
+                return error;
+            }
+
+            throw error;
+        }),
+    ]);
+
+    return { ...detail, commits };
 }
 
 const ISSUE_WRITES: Record<IssueIntent['intent'], { method: 'POST' | 'PATCH'; path: string }> = {

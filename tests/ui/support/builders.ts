@@ -16,7 +16,7 @@ import type { CommitDiff, CommitDiffFile } from '../../../assets/api/types/commi
 import type { Declaration } from '../../../assets/api/types/declaration';
 import type { ErrorBody, ErrorDetails } from '../../../assets/api/types/error';
 import type { Event } from '../../../assets/api/types/event';
-import type { Issue, IssueDetail } from '../../../assets/api/types/issue';
+import type { Issue, IssueCommits, IssueDetail } from '../../../assets/api/types/issue';
 import type { CandidateList, CodeToken, CommitLog, DeclarationList, MercureAuthorization, ProjectPage, ReviewPage, SearchHitList } from '../../../assets/api/types/lists';
 import type { Me } from '../../../assets/api/types/me';
 import type { Project } from '../../../assets/api/types/project';
@@ -348,6 +348,11 @@ export function addedFile(path: string, text: string): CommitDiffFile {
 /** The project `BILL` of `lists.project-page.json`. */
 export function project(overrides: Partial<Project> = {}): Project {
     return { ...fixture<ProjectPage>('lists.project-page.json').items[0], ...overrides } as Project;
+}
+
+/** `issue.commits.json`: two commits of `acme/billing`, one on the default branch, and the local `billing` while it clones. */
+export function issueCommits(): IssueCommits {
+    return fixture<IssueCommits>('issue.commits.json');
 }
 
 /** `issue.detail.json`: `BILL-12` in progress, with a plan that an agent approved, one link, and its thread. */

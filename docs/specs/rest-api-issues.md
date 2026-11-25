@@ -2,7 +2,7 @@
 
 This file continues [rest-api.md](rest-api.md). That file has the conventions, the [endpoint index](rest-api.md#2-endpoint-index), and the common errors, which this file does not repeat. Request bodies are defined in [inputs.schema.json](schemas/inputs.schema.json).
 
-The endpoints are the issue tracker for the web UI and for agents without MCP (D120, D122). The issue endpoints call the same application services as the [issue tools](mcp.md#issue-tools) and return the same JSON. The model, the visibility, and the rules of the issue tools hold here too. P2 and P3 have no tool: only a signed-in user creates and changes a project. I9 has no tool: the graph is for the web UI. I10 is the twin of the tool `get_issue_updates`, for the watch loop of the `slopmower-issues` skill (D128). I11 has no tool: only a user releases a claim.
+The endpoints are the issue tracker for the web UI and for agents without MCP (D120, D122). The issue endpoints call the same application services as the [issue tools](mcp.md#issue-tools) and return the same JSON. The model, the visibility, and the rules of the issue tools hold here too. P2 and P3 have no tool: only a signed-in user creates and changes a project. I9 has no tool: the graph is for the web UI. I10 is the twin of the tool `get_issue_updates`, for the watch loop of the `slopmower-issues` skill (D128). I11 has no tool: only a user releases a claim. I12 has no tool.
 
 ## 1. Keys, actors, and rules
 
@@ -229,3 +229,20 @@ The answers of a user are one `comment` entry with the label `answer`, each ques
 - **Errors:** common errors only.
 
 The user frees an issue that an agent session holds, for example after the session ended. No tool releases a claim: an agent gives up an issue in work with `todo` and a note (D130).
+
+### I12 List the commits of an issue
+
+- **Request:** `GET /api/v1/issues/{issueKey}/commits`
+- **Authentication:** S, B
+- **Success:** 200 [`IssueCommits`](schemas/issue.schema.json), `{items, unavailable}` (D132). Example: [fixtures/issue.commits.json](fixtures/issue.commits.json).
+- **Errors:** common errors only.
+
+The server reads the server clone of each repository of the project that the caller sees, as it is, without a fetch, as R9 does (D76). It stores nothing, so after a rebase and a fetch the next read has the new commits and not the old ones.
+
+- **Key in the message:** each commit of a branch with the issue key in its message between word boundaries, as D125 finds a key. The match is case-sensitive, and `BILL-12` does not match `BILL-123`. Tags and the pin refs of the server do not count.
+- **Key in the branch name:** each commit of a branch whose name has the issue key between word boundaries in any letter case, for example `bill-12-round-totals`.
+- **Copies:** a commit of a branch other than the default branch is left out when the default branch has it, or has a commit with the same patch after the fork point of the branch, as `git log --cherry-pick` compares them. So the old copy of a rebased or cherry-picked commit is not listed. Known limit: the commits of a branch that was squash-merged from several commits stay listed until the branch is deleted, because the patch of the squashed commit differs from each of theirs.
+- `onDefaultBranch` is true when the default branch has the commit, and `branch` is null then. Else `branch` names a branch that has the commit, a branch with the key in its name first.
+- At most 100 commits per repository, the newest `committedAt` first. `items` is sorted by `committedAt` descending.
+- `subject` and `authorName` are as in [R9](rest-api.md#r9-list-the-latest-commits). `htmlUrl` is `https://github.com/{owner}/{name}/commit/{sha}` for a GitHub repository and null for a local one, as in V17 (D127).
+- `unavailable` names each repository of the project whose clone the server cannot read, in name order, with its `reason`: `no_server_copy` for the code access `pass_through` and `browser`, `read_failed` when git fails on the clone, else the reason of `repository_unavailable` of R9: `cloning`, `clone_failed`, or `removed`.
