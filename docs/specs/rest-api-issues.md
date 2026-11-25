@@ -240,7 +240,7 @@ The user frees an issue that an agent session holds, for example after the sessi
 - **Success:** 200 [`IssueCommits`](schemas/issue.schema.json), `{items, unavailable}` (D132). Example: [fixtures/issue.commits.json](fixtures/issue.commits.json).
 - **Errors:** common errors only.
 
-The server reads the server clone of each repository of the project that the caller sees, as it is, without a fetch, as R9 does (D76). It stores nothing, so after a rebase and a fetch the next read has the new commits and not the old ones.
+The server reads the server clone of each repository of the project that the caller sees, as it is. For a local repository in the sync state `idle` it also requests an asynchronous fetch, as [R5](rest-api.md#r5-fetch-a-repository) does, at most once in 10 s per repository (D138). The limit counts each request, also a request whose fetch fails. The `repository` live update at the end of the fetch makes the issue page read again. A GitHub repository is not fetched. The request never changes the answer. The server stores nothing, so after a rebase and a fetch the next read has the new commits and not the old ones.
 
 - **Key in the message:** each commit of a branch with the issue key in its message between word boundaries, as D125 finds a key. The match is case-sensitive, and `BILL-12` does not match `BILL-123`. Tags and the pin refs of the server do not count.
 - **Key in the branch name:** each commit of a branch whose name has the issue key between word boundaries in any letter case, for example `bill-12-round-totals`.

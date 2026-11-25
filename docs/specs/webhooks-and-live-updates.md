@@ -94,6 +94,7 @@ An MCP tool name also stands for its REST endpoint.
 | `link_commits` with a pending link | fetch, as a fallback | fetch | asynchronous job, debounced 5 s per repository |
 | `mark_ready_for_review` with pending links | fetch | fetch | synchronous, 60 s timeout |
 | `get_request` with `at` not in the clone | fetch | fetch | synchronous, 60 s timeout |
+| Read of the commits of an issue, [I12](rest-api-issues.md#i12-list-the-commits-of-an-issue), for a repository in `idle`, at most once in 10 s per repository | none | fetch | asynchronous job |
 
 - **Single flight:** a `symfony/lock` key `fetch:<repositoryId>` makes one fetch run at a time. The lock store uses PostgreSQL advisory locks, because the `php` and `worker` containers share the clones. A request that arrives during a fetch sets a flag, and one more fetch runs afterwards. A synchronous trigger waits at most 5 s for a running fetch, then fails with `fetch_failed` (D93).
 - **Credentials:** a GitHub fetch uses a fresh installation token as `http.https://github.com/.extraheader` with `AUTHORIZATION: basic <base64>`. The token reaches git only through the environment variables `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`, and `GIT_CONFIG_VALUE_<n>`, never through the argument list, because `symfony/process` exceptions print the arguments. The token never goes into the git configuration of the clone.

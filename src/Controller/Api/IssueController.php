@@ -19,6 +19,7 @@ use App\Controller\Api\Input\IssueListQuery;
 use App\Controller\Api\Input\IssueStatusInput;
 use App\Controller\Api\Input\IssueUpdatesQuery;
 use App\Controller\Api\Input\UpdateIssueInput;
+use App\Domain\Error\NotFound;
 use App\Domain\Error\RepositoryUnavailable;
 use App\Domain\Git\CommitSha;
 use App\Domain\Identity\IssueEntryId;
@@ -30,6 +31,7 @@ use App\Domain\Issue\IssuePartyKind;
 use App\Domain\Issue\IssueStatus;
 use App\Domain\Repository\CodeAccess;
 use App\Domain\Repository\RepositorySource;
+use App\Domain\Repository\SyncState;
 use App\Entity\Issue;
 use App\Entity\IssueLink;
 use App\Entity\Project;
@@ -45,11 +47,13 @@ use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\HttpKernel\Attribute\ValueResolver;
+use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -229,11 +233,17 @@ final class IssueController extends AbstractController
     }
 
     /**
-     * D132: reads each clone as it is, without a fetch, and stores nothing.
+     * D132: reads each clone as it is and stores nothing. D138: requests an asynchronous fetch of a local repository in
+     * `idle`, at most once in 10 s per repository.
      */
     #[Route('/issues/{issueKey}/commits', name: 'commits', methods: ['GET'])]
-    public function commits(#[ValueResolver(IssueKeyResolver::class)] Issue $issue, EntityManagerInterface $entityManager, FetchRepository $fetchRepository, LoggerInterface $logger): JsonResponse
-    {
+    public function commits(
+        #[ValueResolver(IssueKeyResolver::class)] Issue $issue,
+        EntityManagerInterface $entityManager,
+        FetchRepository $fetchRepository,
+        LoggerInterface $logger,
+        #[Target('issue_commits_fetch')] RateLimiterFactoryInterface $fetchLimiter,
+    ): JsonResponse {
         /** @var list<Repository> $repositories */
         $repositories = $entityManager->createQueryBuilder()
             ->select('repository')
@@ -249,6 +259,14 @@ final class IssueController extends AbstractController
 
         foreach ($repositories as $repository) {
             $name = $repository->getName()->toString();
+
+            if (RepositorySource::Local === $repository->getSource() && SyncState::Idle === $repository->getSyncState() && $fetchLimiter->create($repository->getId()->toString())->consume()->isAccepted()) {
+                try {
+                    $fetchRepository->request($repository->getId());
+                } catch (NotFound|RepositoryUnavailable) {
+                    // The read goes on as without the request.
+                }
+            }
 
             try {
                 $reader = CodeAccess::Clone === $repository->getCodeAccess() ? $fetchRepository->readyReader($repository->getId()) : null;

@@ -10,6 +10,8 @@ use App\Domain\Repository\CodeAccess;
 use App\Domain\Repository\RepositoryName;
 use App\Entity\Repository;
 use App\Git\TenantDataPaths;
+use App\Message\FetchRepositoryJob;
+use App\Repository\RepositoryRepository;
 use App\Tests\Support\Api\ApiFixtures;
 use App\Tests\Support\Api\ReviewApiFixtures;
 use App\Tests\Support\Contract\JsonApiAssertions;
@@ -20,17 +22,21 @@ use App\Tests\Support\Git\GitRepositoryBuilder;
 use App\Tests\Support\Messenger\QueuedMessages;
 use App\Tests\Support\Source\LocalSources;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;
+use Symfony\Component\Clock\Test\ClockSensitiveTrait;
+use Symfony\Component\Messenger\Envelope;
 
 /**
- * I12 of docs/specs/rest-api-issues.md (D132), for the issue SM-1.
+ * I12 of docs/specs/rest-api-issues.md (D132, D138), for the issue SM-1.
  */
 final class IssueCommitsTest extends WebTestCase
 {
     use ApiFixtures;
+    use ClockSensitiveTrait;
     use EnvironmentVariables;
     use JsonApiAssertions;
     use LocalSources;
@@ -49,6 +55,7 @@ final class IssueCommitsTest extends WebTestCase
 
     protected function setUp(): void
     {
+        self::mockTime('2026-11-25 09:00:00');
         $this->useTemporaryLocalSources();
         $this->source = $this->newSource();
         $this->client = static::createClient();
@@ -141,12 +148,11 @@ final class IssueCommitsTest extends WebTestCase
     public function testAmend(): void
     {
         $old = $this->source->commit(message: 'feat: SM-1 first try');
-        $repositoryId = $this->connectTo('SM');
+        $this->connectTo('SM');
         $before = $this->commits();
         $this->source->git('commit', '--quiet', '--amend', '--allow-empty', '--message=feat: SM-1 second try');
         $this->source->git('tag', 'first-try', $old);
         $new = $this->source->revParse('HEAD');
-        self::assertApiResponse(self::apiRequest($this->client, 'POST', "/api/v1/repositories/{$repositoryId}/fetch"), 202, 'repository.schema.json');
         self::runQueuedMessages();
 
         $after = $this->commits();
@@ -192,6 +198,86 @@ final class IssueCommitsTest extends WebTestCase
         self::assertSame([['invoices'], [['repository' => 'billing', 'reason' => 'read_failed']]], [array_column($commits['items'], 'repository'), $commits['unavailable']]);
     }
 
+    #[TestDox('A read queues one fetch of an idle local repository and lists the clone as it is')]
+    public function testReadQueuesFetch(): void
+    {
+        $this->connectTo('SM');
+        $this->source->commit(message: 'feat: SM-1 after the clone');
+
+        $commits = $this->commits();
+
+        self::assertSame([1, []], [self::queuedFetches(), $commits['items']]);
+    }
+
+    #[TestDox('After the queued fetch ran, a read 9 s after the first read queues none and a read at 10 s queues one')]
+    #[DataProvider('fetchOutcomes')]
+    public function testOneFetchRequestPer10Seconds(bool $fetchFails): void
+    {
+        $repositoryId = RepositoryId::fromString($this->connectTo('SM'));
+        $this->commits();
+
+        if ($fetchFails) {
+            rename("{$this->localRepositoriesDirectory}/billing", "{$this->localRepositoriesDirectory}/moved");
+        }
+
+        self::runQueuedMessages();
+        $failed = null !== self::freshRepository($repositoryId)->getLastError();
+        Clock::get()->sleep(9);
+        $this->commits();
+        $after9Seconds = self::queuedFetches();
+        Clock::get()->sleep(1);
+        $this->commits();
+
+        self::assertSame([$fetchFails, 0, 1], [$failed, $after9Seconds, self::queuedFetches()]);
+    }
+
+    /**
+     * @return iterable<string, array{bool}>
+     */
+    public static function fetchOutcomes(): iterable
+    {
+        yield 'fetch succeeds' => [false];
+        yield 'fetch fails' => [true];
+    }
+
+    #[TestDox('A repository with a running fetch gets no fetch request')]
+    public function testRunningFetch(): void
+    {
+        $repositoryId = $this->connectTo('SM');
+        self::getContainer()->get(RepositoryRepository::class)->startFetch(RepositoryId::fromString($repositoryId));
+
+        $this->commits();
+
+        self::assertSame(0, self::queuedFetches());
+    }
+
+    #[TestDox('A GitHub repository with Server copy in idle gets no fetch request, and its missing clone gives read_failed')]
+    public function testGitHubRepository(): void
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $gitHub = Repository::gitHub($this->tenantId, RepositoryName::github('acme/billing'), 812345, 5551, true, Clock::get()->now());
+        $entityManager->persist($gitHub);
+        $entityManager->flush();
+        $entityManager->clear();
+        self::getContainer()->get(RepositoryRepository::class)->recordSuccess($gitHub->getId(), CodeAccess::Clone, Clock::get()->now(), 'main', null);
+        self::assertApiResponse(self::apiRequest($this->client, 'PATCH', '/api/v1/projects/SM', ['repositoryIds' => [$gitHub->getId()->toString()]]), 200, 'project.schema.json');
+
+        $commits = $this->commits();
+
+        self::assertSame([0, [['repository' => 'acme/billing', 'reason' => 'read_failed']]], [self::queuedFetches(), $commits['unavailable']]);
+    }
+
+    #[TestDox('A commit made after the last fetch is listed by the read after the queued fetch ran')]
+    public function testCommitAfterTheLastFetch(): void
+    {
+        $this->connectTo('SM');
+        $sha = $this->source->commit(message: 'feat: SM-1 after the clone');
+        $this->commits();
+        self::runQueuedMessages();
+
+        self::assertSame([$sha], array_column($this->commits()['items'], 'sha'));
+    }
+
     /**
      * Connects and clones the local source with R3, then sets it, with $otherRepositoryIds, as the repositories of the
      * project with P3.
@@ -204,6 +290,14 @@ final class IssueCommitsTest extends WebTestCase
         self::assertApiResponse(self::apiRequest($this->client, 'PATCH', "/api/v1/projects/{$projectKey}", ['repositoryIds' => [$repositoryId, ...$otherRepositoryIds]]), 200, 'project.schema.json');
 
         return $repositoryId;
+    }
+
+    /**
+     * The client restarts the kernel before each request, so the transport holds only what the last request queued.
+     */
+    private static function queuedFetches(): int
+    {
+        return \count(array_filter(self::asyncTransport()->getSent(), static fn (Envelope $envelope): bool => $envelope->getMessage() instanceof FetchRepositoryJob));
     }
 
     /**

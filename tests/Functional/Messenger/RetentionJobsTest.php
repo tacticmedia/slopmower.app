@@ -22,6 +22,7 @@ use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Cache\Adapter\DoctrineDbalAdapter;
 use Symfony\Component\Cache\DependencyInjection\CachePoolPass;
+use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -37,11 +38,11 @@ final class RetentionJobsTest extends KernelTestCase
     #[TestDox('The prune job deletes an expired row of rate_limiter.cache and keeps a live one')]
     public function testPruneDeletesExpiredRateLimiterRows(): void
     {
+        self::mockTime('2026-10-13 03:00:00 UTC');
         $pool = static::getContainer()->get('rate_limiter.cache');
         $pool->save($pool->getItem('expired')->set(1)->expiresAfter(60));
         $pool->save($pool->getItem('live')->set(1)->expiresAfter(3600));
-        // The pool stamps a row with time(), which the mock clock does not move.
-        self::connection()->executeStatement('UPDATE cache_items SET item_time = item_time - 120');
+        Clock::get()->sleep(120);
 
         self::receive(new PruneRateLimiterCacheJob());
 
