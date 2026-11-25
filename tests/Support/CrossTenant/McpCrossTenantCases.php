@@ -42,7 +42,7 @@ final class McpCrossTenantCases
             'list_projects' => [],
             'list_issues' => [['project' => '{projectKey}']],
             'get_issue' => [['issue' => '{issueKey}']],
-            'create_issue' => [['project' => '{projectKey}', 'title' => 'Use Money']],
+            'create_issue' => [['project' => '{projectKey}', 'title' => 'Use Money', 'category' => 'change']],
             'update_issue' => [['issue' => '{issueKey}', 'session' => 'billing-3f9a', 'title' => 'Use Money']],
             'set_issue_status' => [['issue' => '{issueKey}', 'session' => 'billing-3f9a', 'status' => 'backlog']],
             'comment_on_issue' => [['issue' => '{issueKey}', 'session' => 'billing-3f9a', 'body' => 'Done.'], ['issue' => 'SM-1', 'session' => 'billing-3f9a', 'body' => 'Done.', 'replaces' => '{entryId}']],

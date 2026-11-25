@@ -1,7 +1,7 @@
 import { type ActionFunctionArgs, type LoaderFunctionArgs, type Params, redirect } from 'react-router';
 import { actionError, type ActionResult, type InputFailure, inputFailure, refusalReasons, writeResult } from '../../api/actionResult';
 import { apiGet, apiGetAllPages, apiWrite } from '../../api/client';
-import { type ApprovalMode, COMMENT_LABELS, type CommentLabel, ISSUE_STATUSES, type IssueStatus } from '../../api/types/common';
+import { type ApprovalMode, COMMENT_LABELS, type CommentLabel, ISSUE_CATEGORIES, ISSUE_STATUSES, type IssueCategory, type IssueStatus } from '../../api/types/common';
 import type { ApprovePlanInput, CreateIssueInput, CreateProjectInput, IssueCommentInput, IssueStatusInput, UpdateIssueInput, UpdateProjectInput } from '../../api/types/inputs';
 import type { Issue, IssueComment, IssueDetail, IssueGraph, IssueSummary } from '../../api/types/issue';
 import type { NextCursor, ProjectPage } from '../../api/types/lists';
@@ -119,6 +119,13 @@ export function statusFilter(search: URLSearchParams): IssueStatus | null {
     return ISSUE_STATUSES.find((known) => known === status) ?? null;
 }
 
+/** The I1 `category` of the URL. An unknown value is no filter. */
+export function categoryFilter(search: URLSearchParams): IssueCategory | null {
+    const category = search.get('category');
+
+    return ISSUE_CATEGORIES.find((known) => known === category) ?? null;
+}
+
 /** The `label` of the URL, for I5 and the thread of an issue. An unknown value is no filter. */
 export function labelFilter(search: URLSearchParams): CommentLabel | null {
     const label = search.get('label');
@@ -126,11 +133,14 @@ export function labelFilter(search: URLSearchParams): CommentLabel | null {
     return COMMENT_LABELS.find((known) => known === label) ?? null;
 }
 
-/** Every item of I1 or I5 with the URL filter. Neither has the project, so its name comes from P1. */
-async function projectList<Item>({ request, params }: LoaderFunctionArgs, list: 'issues' | 'comments', filter: 'status' | 'label', value: string | null): Promise<{ project: Project; items: Item[] }> {
+/** Every item of I1 or I5 with the URL filters. Neither has the project, so its name comes from P1. */
+async function projectList<Item>({ request, params }: LoaderFunctionArgs, list: 'issues' | 'comments', filters: Record<string, string | null>): Promise<{ project: Project; items: Item[] }> {
     const key = encodedRouteParam(params, 'projectKey');
+    const query = Object.entries(filters)
+        .flatMap(([name, value]) => (null === value ? [] : [`&${name}=${value}`]))
+        .join('');
     const [page, projects] = await Promise.all([
-        apiGetAllPages<{ items: Item[]; nextCursor: NextCursor }>(`/api/v1/projects/${key}/${list}?limit=200${null === value ? '' : `&${filter}=${value}`}`, request.signal),
+        apiGetAllPages<{ items: Item[]; nextCursor: NextCursor }>(`/api/v1/projects/${key}/${list}?limit=200${query}`, request.signal),
         allProjects(request.signal),
     ]);
 
@@ -138,14 +148,15 @@ async function projectList<Item>({ request, params }: LoaderFunctionArgs, list: 
 }
 
 export async function projectLoader(args: LoaderFunctionArgs): Promise<ProjectData> {
-    const { project, items } = await projectList<IssueSummary>(args, 'issues', 'status', statusFilter(new URL(args.request.url).searchParams));
+    const search = new URL(args.request.url).searchParams;
+    const { project, items } = await projectList<IssueSummary>(args, 'issues', { status: statusFilter(search), category: categoryFilter(search) });
 
     return { project, issues: items };
 }
 
 /** Without a label it loads the body of every comment of the project. Page the list when a project outgrows that. */
 export async function projectCommentsLoader(args: LoaderFunctionArgs): Promise<ProjectCommentsData> {
-    const { project, items } = await projectList<IssueComment>(args, 'comments', 'label', labelFilter(new URL(args.request.url).searchParams));
+    const { project, items } = await projectList<IssueComment>(args, 'comments', { label: labelFilter(new URL(args.request.url).searchParams) });
 
     return { project, comments: items };
 }

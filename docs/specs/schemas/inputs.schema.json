@@ -853,10 +853,14 @@
     },
     "CreateIssueInput": {
       "type": "object",
-      "required": ["title"],
+      "required": ["title", "category"],
       "properties": {
         "title": {
           "$ref": "common.schema.json#/$defs/Title"
+        },
+        "category": {
+          "$ref": "common.schema.json#/$defs/IssueCategory",
+          "description": "No default (D133)."
         },
         "problem": {
           "anyOf": [
@@ -911,6 +915,17 @@
           ],
           "description": "Absent or null keeps the title."
         },
+        "category": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/IssueCategory"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Absent or null keeps the category."
+        },
         "problem": {
           "anyOf": [
             {
@@ -922,7 +937,7 @@
               "type": "null"
             }
           ],
-          "description": "Markdown: what the user wants, and how to tell that it is done."
+          "description": "Markdown. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done."
         },
         "plan": {
           "anyOf": [

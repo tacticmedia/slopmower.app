@@ -10,9 +10,9 @@ function comment(id: string, label: CommentLabel, body: string, createdAt: strin
     return { ...(issueDetail().thread.at(-1) as IssueEntry), id, label, body, createdAt, questions };
 }
 
-/** Without the claim of `BILL-12`, unless `overrides` names one. */
+/** A change without the claim of `BILL-12`, unless `overrides` says otherwise. */
 function issue(overrides: Partial<Issue>, ...thread: IssueEntry[]): IssueDetail {
-    return { ...issueDetail({ claim: null, ...overrides }), thread };
+    return { ...issueDetail({ category: 'change', claim: null, ...overrides }), thread };
 }
 
 test.describe('Issues', () => {
@@ -21,7 +21,7 @@ test.describe('Issues', () => {
         issues.projects = [project(), project({ key: 'DOC', name: 'Documentation', approvalMode: 'user', repositories: [] })];
         issues.add(
             issue(
-                { claim: issueDetail().issue.claim },
+                { category: 'bug', claim: issueDetail().issue.claim },
                 ...issueDetail().thread,
                 comment('01K7F3G0G9H0J1K2M3N4P5Q6R7', 'finding', '`InvoiceTotalsTest` has no case with more than one line. Source: `tests/Billing/InvoiceTotalsTest.php`.', '2026-10-02T09:22:10Z'),
                 comment('01K7F3H0G9H0J1K2M3N4P5Q6R7', 'deviation', 'The test is in `TaxRoundingTest`, not in `InvoiceTotalsTest`, because the rule is in `TaxRounding`.', '2026-10-02T09:24:31Z'),
@@ -118,6 +118,7 @@ test.describe('Issues', () => {
 
         await page.goto('/projects/BILL/issues/new');
         await page.getByRole('textbox', { name: 'Title' }).fill('Show the rounding mode on the invoice PDF');
+        await page.getByRole('radio', { name: 'Change request' }).check();
         await page.getByRole('textbox', { name: 'Problem' }).fill('The PDF does not say how the total rounds.\n\nDone when the footer of the PDF names the mode.');
         await captureScreen('New issue', page.getByRole('button', { name: 'Create issue' }));
         await page.getByRole('button', { name: 'Create issue' }).click();

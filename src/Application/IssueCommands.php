@@ -14,6 +14,7 @@ use App\Domain\Identity\IssueEntryId;
 use App\Domain\Identity\IssueId;
 use App\Domain\Issue\ApprovalMode;
 use App\Domain\Issue\CommentLabel;
+use App\Domain\Issue\IssueCategory;
 use App\Domain\Issue\IssueClaim;
 use App\Domain\Issue\IssueEntryKind;
 use App\Domain\Issue\IssueKey;
@@ -55,11 +56,11 @@ final class IssueCommands
      *
      * @throws NotFound|InvalidInput
      */
-    public function create(string $projectKey, string $title, ?string $problem, IssueStatus $status, Actor $actor, ?ApprovalMode $approval = null): Issue
+    public function create(string $projectKey, string $title, IssueCategory $category, ?string $problem, IssueStatus $status, Actor $actor, ?ApprovalMode $approval = null): Issue
     {
-        return $this->transactional(function (\DateTimeImmutable $now) use ($projectKey, $title, $problem, $status, $actor, $approval): array {
+        return $this->transactional(function (\DateTimeImmutable $now) use ($projectKey, $title, $category, $problem, $status, $actor, $approval): array {
             $project = $this->issues->project($projectKey, LockMode::PESSIMISTIC_WRITE);
-            $issue = new Issue($project, $project->takeIssueNumber(), self::title($title), $status, $actor, $now);
+            $issue = new Issue($project, $project->takeIssueNumber(), self::title($title), $category, $status, $actor, $now);
             $this->entityManager->persist($issue);
             self::changeApproval($issue, $approval, $actor, $now, isNew: true);
 
@@ -75,20 +76,24 @@ final class IssueCommands
     }
 
     /**
-     * Null leaves a field as it is. A value that equals the stored one changes nothing.
+     * Null leaves a field as it is. A value that equals the stored one changes nothing. A category writes no entry (D133).
      *
      * @throws NotFound|InvalidInput
      */
-    public function update(IssueKey $key, ?string $title, ?string $problem, ?string $plan, ?string $result, ?string $followUps, Actor $actor, ?string $session, ?ApprovalMode $approval = null): Issue
+    public function update(IssueKey $key, ?string $title, ?string $problem, ?string $plan, ?string $result, ?string $followUps, Actor $actor, ?string $session, ?ApprovalMode $approval = null, ?IssueCategory $category = null): Issue
     {
         $texts = array_filter(['problem' => $problem, 'plan' => $plan, 'result' => $result, 'followUps' => $followUps], static fn (?string $text): bool => null !== $text);
 
-        return $this->write($key, $actor, $session, function (Issue $issue, \DateTimeImmutable $now) use ($title, $texts, $actor, $approval): void {
-            if (null === $title && [] === $texts && null === $approval) {
+        return $this->write($key, $actor, $session, function (Issue $issue, \DateTimeImmutable $now) use ($title, $texts, $actor, $approval, $category): void {
+            if (null === $title && [] === $texts && null === $approval && null === $category) {
                 throw InvalidInput::field('', 'Give at least one field to change.');
             }
 
             self::changeApproval($issue, $approval, $actor, $now, isNew: false);
+
+            if (null !== $category) {
+                $issue->setCategory($category);
+            }
 
             $newTitle = null === $title ? null : self::title($title);
 

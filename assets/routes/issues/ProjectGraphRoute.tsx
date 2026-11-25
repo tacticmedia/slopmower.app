@@ -7,7 +7,7 @@ import type { IssueGraph, IssueSummary } from '../../api/types/issue';
 import { useDocumentTitle } from '../../layout/useDocumentTitle';
 import graphStyles from './IssueGraph.module.css';
 import { APPROVAL_MODE_NAMES } from './ApprovalModeField';
-import { ISSUE_STATUS_TEXT, IssueStatusLabel, NoApprovalLabel } from './IssueStatusLabel';
+import { BugLabel, ISSUE_CATEGORY_TEXT, ISSUE_STATUS_TEXT, IssueStatusLabel, NoApprovalLabel } from './IssueStatusLabel';
 import styles from './Issues.module.css';
 import type { ProjectGraphData } from './issueData';
 
@@ -84,7 +84,7 @@ function NodeLink({ issue, blockedBy, projectKey }: Pick<GraphNode, 'issue' | 'b
         <RouterLink
             to={`/issues/${issue.key}`}
             className={graphStyles.node}
-            aria-label={`${issue.key}: ${issue.title}. ${ISSUE_STATUS_TEXT[issue.status]}.${waitsText ? ' Waits for you.' : ''}${'self' === issue.approval ? ` ${APPROVAL_MODE_NAMES.self}.` : ''}${null === blocked ? '' : ` ${blocked}.`}`}
+            aria-label={`${issue.key}: ${issue.title}. ${ISSUE_STATUS_TEXT[issue.status]}.${'bug' === issue.category ? ` ${ISSUE_CATEGORY_TEXT.bug}.` : ''}${waitsText ? ' Waits for you.' : ''}${'self' === issue.approval ? ` ${APPROVAL_MODE_NAMES.self}.` : ''}${null === blocked ? '' : ` ${blocked}.`}`}
             data-testid="graph-node"
             data-waits={waits || undefined}
             data-blocked={null !== blocked || undefined}
@@ -94,7 +94,7 @@ function NodeLink({ issue, blockedBy, projectKey }: Pick<GraphNode, 'issue' | 'b
             {/* Plain text: a link in a link is not valid (D125). */}
             <span className={graphStyles.title}>{issue.title}</span>{' '}
             <span className={graphStyles.status}>
-                <IssueStatusLabel status={issue.status} />
+                <IssueStatusLabel status={issue.status} /> <BugLabel category={issue.category} />
             </span>{' '}
             <span className={graphStyles.state}>
                 {waitsText && <strong>Waits for you</strong>} <NoApprovalLabel approval={issue.approval} /> {blocked}

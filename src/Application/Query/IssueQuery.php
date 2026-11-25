@@ -12,6 +12,7 @@ use App\Domain\Identity\IssueId;
 use App\Domain\Identity\ProjectId;
 use App\Domain\Identity\UserId;
 use App\Domain\Issue\CommentLabel;
+use App\Domain\Issue\IssueCategory;
 use App\Domain\Issue\IssueClaim;
 use App\Domain\Issue\IssueEntryKind;
 use App\Domain\Issue\IssueKey;
@@ -87,9 +88,9 @@ final class IssueQuery
      * @throws NotFound
      * @throws InvalidInput A malformed cursor, or a cursor of other filters
      */
-    public function list(string $projectKey, ?IssueStatus $status, int $limit, ?string $cursor): IssuePage
+    public function list(string $projectKey, ?IssueStatus $status, ?IssueCategory $category, int $limit, ?string $cursor): IssuePage
     {
-        $filters = ['project' => $projectKey, 'status' => $status?->value];
+        $filters = ['project' => $projectKey, 'status' => $status?->value, 'category' => $category?->value];
         $builder = $this->entityManager->createQueryBuilder()
             ->select('issue')
             ->from(Issue::class, 'issue')
@@ -101,6 +102,10 @@ final class IssueQuery
 
         if (null !== $status) {
             $builder->andWhere('issue.status = :status')->setParameter('status', $status);
+        }
+
+        if (null !== $category) {
+            $builder->andWhere('issue.category = :category')->setParameter('category', $category);
         }
 
         if (null !== $cursor) {
@@ -307,6 +312,7 @@ final class IssueQuery
         return new IssueView(
             $issue->getKey(),
             $issue->getTitle(),
+            $issue->getCategory(),
             $issue->getStatus(),
             $issue->getApprovalMode(),
             IssueClaim::held($issue->getClaim(), $this->clock->now()),

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Api\Input;
 
 use App\Domain\Issue\ApprovalMode;
+use App\Domain\Issue\IssueCategory;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -15,6 +16,7 @@ final readonly class UpdateIssueInput
     public function __construct(
         #[RequestTitle]
         public ?string $title = null,
+        public ?IssueCategory $category = null,
         #[Assert\Length(min: 1, max: 65536)]
         public ?string $problem = null,
         #[Assert\Length(min: 1, max: 65536)]

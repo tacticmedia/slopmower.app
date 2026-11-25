@@ -13,6 +13,7 @@ Every session starts at [docs/plan/README.md](docs/plan/README.md): the environm
 No feature, refactoring, or behaviour change lives only in a session. The record is the Slopmower issue tracker: the project `SM` of the instance that the main checkout runs, through the `slopmower` MCP server (D119). The skill `slopmower-issues` has the workflow, and any later session continues from the issue without the conversation.
 
 - **Before any code:** the request is an issue of `SM` with its `problem`, and its `plan` is approved as the approval mode of the project says. Look through the open issues before you create one.
+- **Category:** an issue is a `bug` when something that exists is wrong against its specification, its documentation, or its evident intent. Its `problem` says what is wrong, how to see it, and what is expected. Every other issue is a `change`: a feature, an alteration, a refactoring, or an upgrade.
 - **An idea that is not scheduled** becomes a `draft` or `backlog` issue in the session where it comes up.
 - **Every source counts:** Jan in a session, a change request in Slopmower (also when Slopmower reviews itself), a review finding, or a follow-up of another issue.
 - **Local fixes:** a change request that asks only for a local fix is documented by its own thread and its linked commits. A request that asks for more gets an issue, and its thread names the issue key.

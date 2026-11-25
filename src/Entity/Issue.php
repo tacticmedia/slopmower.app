@@ -9,6 +9,7 @@ use App\Domain\Actor\Actor;
 use App\Domain\Identity\IssueId;
 use App\Domain\Identity\TenantId;
 use App\Domain\Issue\ApprovalMode;
+use App\Domain\Issue\IssueCategory;
 use App\Domain\Issue\IssueClaim;
 use App\Domain\Issue\IssueKey;
 use App\Domain\Issue\IssueSection;
@@ -39,6 +40,10 @@ class Issue implements TenantOwned
 
     #[ORM\Column(length: 200)]
     private string $title;
+
+    // The database default fills the column when a data-only dump from before it is restored.
+    #[ORM\Column(enumType: IssueCategory::class, options: ['default' => 'change'])]
+    private IssueCategory $category;
 
     #[ORM\Column(enumType: IssueStatus::class)]
     private IssueStatus $status;
@@ -86,13 +91,14 @@ class Issue implements TenantOwned
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
-    public function __construct(Project $project, int $number, string $title, IssueStatus $status, Actor $createdBy, \DateTimeImmutable $createdAt)
+    public function __construct(Project $project, int $number, string $title, IssueCategory $category, IssueStatus $status, Actor $createdBy, \DateTimeImmutable $createdAt)
     {
         $this->id = IssueId::generate();
         $this->tenantId = $project->getTenantId();
         $this->project = $project;
         $this->number = $number;
         $this->title = $title;
+        $this->category = $category;
         $this->status = $status;
         $this->claimHolder = ActorEmbeddable::of(null);
         $this->createdBy = ActorEmbeddable::of($createdBy);
@@ -123,6 +129,11 @@ class Issue implements TenantOwned
     public function getTitle(): string
     {
         return $this->title;
+    }
+
+    public function getCategory(): IssueCategory
+    {
+        return $this->category;
     }
 
     public function getStatus(): IssueStatus
@@ -217,6 +228,14 @@ class Issue implements TenantOwned
         }
 
         $this->updatedAt = $now;
+    }
+
+    /**
+     * Sets no updatedAt, so a reclassification does not reorder the list (D133).
+     */
+    public function setCategory(IssueCategory $category): void
+    {
+        $this->category = $category;
     }
 
     public function setApproval(ApprovalMode $approval, \DateTimeImmutable $now): void

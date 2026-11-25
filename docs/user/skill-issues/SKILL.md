@@ -17,10 +17,10 @@ the `slopmower` MCP server.
 | Tool | Parameters | Use it to |
 |---|---|---|
 | `list_projects` | `cursor?`, `limit?` | Find the project that owns this repository, with its `approvalMode` and `approvalGuidelines` |
-| `list_issues` | `project`, `status?`, `cursor?`, `limit?` | Look through the issues of the project, newest change first |
+| `list_issues` | `project`, `status?`, `category?`, `cursor?`, `limit?` | Look through the issues of the project, newest change first |
 | `get_issue` | `issue`, `history?` | Read one issue with its sections, its links, and its thread: the current content, or the full log with `history` |
-| `create_issue` | `project`, `title`, `problem?`, `status?`, `approval?` | Start an issue, `draft` by default |
-| `update_issue` | `issue`, `session`, `title?`, `problem?`, `plan?`, `result?`, `followUps?`, `approval?` | Write the title or a section, or raise the approval to `user` |
+| `create_issue` | `project`, `title`, `category`, `problem?`, `status?`, `approval?` | Start an issue, `draft` by default |
+| `update_issue` | `issue`, `session`, `title?`, `category?`, `problem?`, `plan?`, `result?`, `followUps?`, `approval?` | Write the title, the category, or a section, or raise the approval to `user` |
 | `set_issue_status` | `issue`, `session`, `status`, `note?`, `reviewer?` | Move the issue to another status |
 | `comment_on_issue` | `issue`, `session`, `body`, `label?`, `replaces?`, `questions?` | Record a step or a decision in the thread, with its label, ask the user with `questions`, or replace a comment that no longer holds |
 | `list_comments` | `project`, `label?`, `cursor?`, `limit?` | Read the comments of the project across its issues, all or those of one label |
@@ -204,12 +204,20 @@ A step of a tracked issue is a comment, not an issue: call `comment_on_issue`.
 
 ## 3. Sections
 
+An issue has a `category`. Give it to `create_issue`, which has no default.
+Change it with `update_issue`, which writes no entry for it.
+
+| Category | Use it for |
+|---|---|
+| `bug` | Something that exists is wrong against its specification, its documentation, or its evident intent |
+| `change` | All else: a feature, an alteration, a refactoring, or an upgrade |
+
 An issue has four Markdown sections. Write them with `update_issue`. A
 parameter that you leave out stays as it is.
 
 | Section | Content |
 |---|---|
-| `problem` | What the user wants, and how to tell that it is done |
+| `problem` | A bug: what is wrong, how to see it, and what is expected. A change: what is wanted, and how to tell that it is done |
 | `plan` | The steps, the files, and the tests |
 | `result` | What was done, with the commit SHAs, and each deviation from the plan |
 | `followUps` | What came up and was left out |
@@ -227,8 +235,9 @@ parameter that you leave out stays as it is.
 | `done` | Delivered |
 | `wont_do` | Not done, with a note that says why |
 
-1. Call `create_issue` with a title, and with `problem` when you know it. Keep
-   `draft` while the problem is incomplete, and ask the user what is missing.
+1. Call `create_issue` with a title, the category, and `problem` when you
+   know it. Keep `draft` while the problem is incomplete, and ask the user
+   what is missing.
 2. When the problem is complete, call `set_issue_status` with `todo`.
 3. Write the plan with `update_issue`. The answer has its `planRevision`.
 4. Get the plan approved as `approval` says:
@@ -293,7 +302,7 @@ and let the reviewer read the plan again.
 Write into `followUps` what came up and was left out. Each follow-up also
 becomes an issue:
 
-1. Call `create_issue` with status `draft`.
+1. Call `create_issue` with its category and status `draft`.
 2. Call `link_issues` with the new issue as `issue`, its origin as `target`,
    and a `note` that says how they relate.
 

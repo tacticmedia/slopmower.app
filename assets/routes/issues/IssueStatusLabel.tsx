@@ -1,5 +1,5 @@
 import { Label, type LabelProps } from '@primer/react';
-import type { IssueApproval, IssueStatus } from '../../api/types/common';
+import type { IssueApproval, IssueCategory, IssueStatus } from '../../api/types/common';
 import { APPROVAL_MODE_NAMES } from './ApprovalModeField';
 
 export const ISSUE_STATUS_TEXT: Record<IssueStatus, string> = {
@@ -23,6 +23,18 @@ const VARIANTS: Record<IssueStatus, NonNullable<LabelProps['variant']>> = {
     done: 'done',
     wont_do: 'secondary',
 };
+
+/** The names of the categories on the screens (D133). */
+export const ISSUE_CATEGORY_TEXT: Record<IssueCategory, string> = { bug: 'Bug report', change: 'Change request' };
+
+/** A change shows no label. */
+export function BugLabel({ category }: { category: IssueCategory }) {
+    return 'bug' === category ? (
+        <Label variant="danger" data-testid="bug-label">
+            {ISSUE_CATEGORY_TEXT.bug}
+        </Label>
+    ) : null;
+}
 
 /** An issue that an agent works on and ends without the user (D129). */
 export function NoApprovalLabel({ approval }: { approval: IssueApproval }) {

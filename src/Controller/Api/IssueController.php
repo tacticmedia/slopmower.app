@@ -60,7 +60,7 @@ final class IssueController extends AbstractController
         #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)]
         IssueListQuery $query = new IssueListQuery(),
     ): JsonResponse {
-        return $this->json($this->issues->list($project->getKey(), $query->status, $query->limit, $query->cursor));
+        return $this->json($this->issues->list($project->getKey(), $query->status, $query->category, $query->limit, $query->cursor));
     }
 
     #[Route('/issues/{issueKey}', name: 'get', methods: ['GET'])]
@@ -178,9 +178,9 @@ final class IssueController extends AbstractController
         #[MapEntity(mapping: ['projectKey' => 'key'])] Project $project,
         #[MapRequestPayload(acceptFormat: 'json')] CreateIssueInput $input,
     ): JsonResponse {
-        \assert(null !== $input->title);
+        \assert(null !== $input->title && null !== $input->category);
         $actor = $this->currentActor->get();
-        $issue = $this->commands->create($project->getKey(), $input->title, $input->problem, $input->status ?? IssueStatus::Draft, $actor, $input->approval);
+        $issue = $this->commands->create($project->getKey(), $input->title, $input->category, $input->problem, $input->status ?? IssueStatus::Draft, $actor, $input->approval);
 
         return $this->json($this->issues->view($issue, $actor), Response::HTTP_CREATED, ['Location' => $this->generateUrl('api_issue_get', ['issueKey' => $issue->getKey()->toString()])]);
     }
@@ -191,7 +191,7 @@ final class IssueController extends AbstractController
         #[MapRequestPayload(acceptFormat: 'json')] UpdateIssueInput $input,
     ): JsonResponse {
         $actor = $this->currentActor->get();
-        $updated = $this->commands->update($issue->getKey(), $input->title, $input->problem, $input->plan, $input->result, $input->followUps, $actor, $input->session, $input->approval);
+        $updated = $this->commands->update($issue->getKey(), $input->title, $input->problem, $input->plan, $input->result, $input->followUps, $actor, $input->session, $input->approval, $input->category);
 
         return $this->json($this->issues->view($updated, $actor));
     }

@@ -136,7 +136,7 @@ final class PurgeTenantTest extends WebTestCase
     {
         self::storeProject($user->getTenantId(), 'SM');
         $mcp = new McpTestClient($this->client, $secret);
-        $mcp->callTool('create_issue', ['project' => 'SM', 'title' => 'Round once']);
+        $mcp->callTool('create_issue', ['project' => 'SM', 'title' => 'Round once', 'category' => 'change']);
         $planned = $mcp->callTool('update_issue', ['issue' => 'SM-1', 'session' => 'purge', 'plan' => 'Add `TaxRounding`.']);
         self::assertIsArray($planned['structuredContent'] ?? null, (string) json_encode($planned));
         $mcp->callTool('approve_plan', ['issue' => 'SM-1', 'session' => 'purge', 'planRevision' => $planned['structuredContent']['planRevision'], 'reviewer' => 'plan-reviewer', 'reviewNote' => 'The plan covers the rounding.']);
@@ -144,7 +144,7 @@ final class PurgeTenantTest extends WebTestCase
         $thread = $mcp->callTool('get_issue', ['issue' => 'SM-1'])['structuredContent']['thread'] ?? null;
         self::assertIsArray($thread);
         self::assertFalse($mcp->callTool('comment_on_issue', ['issue' => 'SM-1', 'session' => 'purge', 'body' => '`round()` stays.', 'replaces' => array_last($thread)['id']])['isError'] ?? false);
-        $mcp->callTool('create_issue', ['project' => 'SM', 'title' => 'Round twice']);
+        $mcp->callTool('create_issue', ['project' => 'SM', 'title' => 'Round twice', 'category' => 'change']);
         self::assertFalse($mcp->callTool('link_issues', ['issue' => 'SM-2', 'target' => 'SM-1', 'note' => 'The same rounding.'])['isError'] ?? false);
     }
 

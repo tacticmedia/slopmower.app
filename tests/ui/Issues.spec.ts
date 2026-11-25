@@ -65,6 +65,24 @@ test.describe('Issues', () => {
         expect(api.callsTo('GET', '/api/v1/projects/:projectKey/issues').at(-1)?.query.get('status')).toBe('draft');
     });
 
+    test('The issue list shows "Bug report" on a bug, and the category filter keeps the status filter', async ({ page, api }) => {
+        const issues = new FakeIssues(api);
+        issues.add(issueDetail());
+        issues.add(issueDetail({ key: 'BILL-13', title: 'Show the rounding mode on the invoice PDF', category: 'change', status: 'draft', updatedAt: '2026-10-02T09:04:18Z' }));
+        const rows = page.getByTestId('issue-row');
+        await page.goto('/projects/BILL?status=in_progress');
+        await expect(rows.filter({ has: page.getByTestId('bug-label') })).toHaveText([/Round invoice totals once per invoice.*In progress.*Bug report.*BILL-12/]);
+
+        await page.getByRole('button', { name: 'Category: All' }).click();
+        await page.getByRole('menuitemradio', { name: 'Change requests' }).click();
+
+        await expect(page).toHaveURL('/projects/BILL?status=in_progress&category=change');
+        await expect(page.getByTestId('issue-list-empty')).toHaveText('No issue matches the filters. Clear the filters');
+        expect(api.callsTo('GET', '/api/v1/projects/:projectKey/issues').at(-1)?.query.get('category')).toBe('change');
+        await page.getByRole('link', { name: 'Clear the filters' }).click();
+        await expect(rows).toHaveCount(2);
+    });
+
     test('The issue list shows "No approval" on an issue with the approval self', async ({ page, api }) => {
         const issues = new FakeIssues(api);
         issues.add(issueDetail());
@@ -89,6 +107,19 @@ test.describe('Issues', () => {
         expect(api.bodies('PATCH', ISSUE)).toEqual([{ approval: 'self' }]);
         await page.goto('/issues/BILL-13');
         await expect(page.getByTestId('issue-approval')).toHaveText('Agent review');
+    });
+
+    test('The issue header shows "Bug report" for a bug, and the category in the sidebar sends I7', async ({ page, api }) => {
+        await openIssue(page, api);
+        const category = page.getByRole('combobox', { name: 'Category of the issue' });
+        await expect(page.getByTestId('bug-label')).toHaveText('Bug report');
+        await expect(category).toHaveValue('bug');
+
+        await category.selectOption({ label: 'Change request' });
+
+        await expect(category).toHaveValue('change');
+        await expect(page.getByTestId('bug-label')).toHaveCount(0);
+        expect(api.bodies('PATCH', ISSUE)).toEqual([{ category: 'change' }]);
     });
 
     test('The issue page shows each section version as Markdown in the timeline, the row "Current", the link with its note, and each entry', async ({ page, api }) => {
@@ -492,22 +523,28 @@ test.describe('Issues', () => {
         expect(issues.projects[0]).toEqual(project({ approvalMode: 'by_issue', approvalGuidelines: guidelines, repositories: [] }));
     });
 
-    test('"New issue" creates a draft with the title and the problem, and opens its page', async ({ page, api }) => {
+    test('"New issue" is off without a category, and creates a draft with the title, the category, and the problem', async ({ page, api }) => {
         const issues = new FakeIssues(api);
         issues.add(issueDetail());
         await page.goto('/projects/BILL');
         await page.getByRole('link', { name: 'New issue' }).click();
         await expect(page).toHaveURL('/projects/BILL/issues/new');
+        const problem = page.getByRole('textbox', { name: 'Problem' });
 
         await page.getByRole('textbox', { name: 'Title' }).fill('Show the rounding mode on the invoice PDF');
-        await page.getByRole('textbox', { name: 'Problem' }).fill('The PDF does not say how the total rounds.');
+        await expect(page.getByRole('button', { name: 'Create issue' })).toBeDisabled();
+        await page.getByRole('radio', { name: 'Bug report' }).check();
+        await expect(problem).toHaveAttribute('placeholder', 'What is wrong, how to see it, and what is expected');
+        await page.getByRole('radio', { name: 'Change request' }).check();
+        await expect(problem).toHaveAttribute('placeholder', 'What is wanted, and how to tell that it is done');
+        await problem.fill('The PDF does not say how the total rounds.');
         await page.getByRole('button', { name: 'Create issue' }).click();
 
         await expect(page).toHaveURL('/issues/BILL-13');
         await expect(page.getByRole('heading', { level: 1 })).toHaveText('Show the rounding mode on the invoice PDF BILL-13');
         await expect(page.getByTestId('issue-status').first()).toHaveText('Draft');
         await expect(section(page, 'problem')).toContainText('The PDF does not say how the total rounds.');
-        expect(api.bodies('POST', '/api/v1/projects/:projectKey/issues')).toEqual([{ title: 'Show the rounding mode on the invoice PDF', problem: 'The PDF does not say how the total rounds.' }]);
+        expect(api.bodies('POST', '/api/v1/projects/:projectKey/issues')).toEqual([{ title: 'Show the rounding mode on the invoice PDF', category: 'change', problem: 'The PDF does not say how the total rounds.' }]);
     });
 
     test('"Edit" of the title saves the new title', async ({ page, api }) => {

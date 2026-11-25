@@ -97,7 +97,7 @@ final class CrossTenantCases
             'api_issue_comment' => ['method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/comments', 'body' => ['body' => 'Keep the old method.'], 'status' => 201, 'schema' => 'issue.schema.json'],
             'api_issue_approve_plan' => ['method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/plan-approval', 'body' => ['planRevision' => self::PLAN_REVISION], 'status' => 200, 'schema' => 'issue.schema.json'],
             'api_issue_comments' => ['method' => 'GET', 'path' => '/api/v1/projects/{projectKey}/comments', 'body' => null, 'status' => 200, 'schema' => 'lists.schema.json#/$defs/IssueCommentPage'],
-            'api_issue_create' => ['method' => 'POST', 'path' => '/api/v1/projects/{projectKey}/issues', 'body' => ['title' => 'Use Money'], 'status' => 201, 'schema' => 'issue.schema.json'],
+            'api_issue_create' => ['method' => 'POST', 'path' => '/api/v1/projects/{projectKey}/issues', 'body' => ['title' => 'Use Money', 'category' => 'change'], 'status' => 201, 'schema' => 'issue.schema.json'],
             'api_issue_update' => ['method' => 'PATCH', 'path' => '/api/v1/issues/{issueKey}', 'body' => ['title' => 'Use Money'], 'status' => 200, 'schema' => 'issue.schema.json'],
             'api_issue_set_status' => ['method' => 'POST', 'path' => '/api/v1/issues/{issueKey}/status', 'body' => ['status' => 'backlog'], 'status' => 200, 'schema' => 'issue.schema.json'],
             'api_issue_graph' => ['method' => 'GET', 'path' => '/api/v1/projects/{projectKey}/graph', 'body' => null, 'status' => 200, 'schema' => 'issue.schema.json#/$defs/IssueGraph'],

@@ -126,11 +126,11 @@ final class McpCrossTenantInventoryTest extends WebTestCase
         [, $secret] = self::storeToken($user);
         self::storeProject($other->getTenantId(), 'OILU');
         self::storeProject($user->getTenantId(), 'SM');
-        self::assertToolResult($otherMcp = new McpTestClient($client, self::storeToken($other)[1]), $otherMcp->callTool('create_issue', ['project' => 'OILU', 'title' => 'Use Money']), 'create_issue');
+        self::assertToolResult($otherMcp = new McpTestClient($client, self::storeToken($other)[1]), $otherMcp->callTool('create_issue', ['project' => 'OILU', 'title' => 'Use Money', 'category' => 'change']), 'create_issue');
         self::assertToolResult($otherMcp, $otherMcp->callTool('comment_on_issue', ['issue' => 'OILU-1', 'session' => 'billing-3f9a', 'body' => 'Done.']), 'comment_on_issue');
         $otherThread = self::assertToolResult($otherMcp, $otherMcp->callTool('get_issue', ['issue' => 'OILU-1']), 'get_issue')['thread'];
         $mcp = new McpTestClient($client, $secret);
-        self::assertToolResult($mcp, $mcp->callTool('create_issue', ['project' => 'SM', 'title' => 'Use Money']), 'create_issue');
+        self::assertToolResult($mcp, $mcp->callTool('create_issue', ['project' => 'SM', 'title' => 'Use Money', 'category' => 'change']), 'create_issue');
 
         return [$mcp, [
             'tenantId' => $other->getTenantId()->toString(),

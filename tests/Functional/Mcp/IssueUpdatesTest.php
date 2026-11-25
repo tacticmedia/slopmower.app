@@ -49,7 +49,7 @@ final class IssueUpdatesTest extends WebTestCase
     public function testAgentGetsTheWritesOfTheUser(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM', ApprovalMode::User);
-        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'problem' => self::PROBLEM, 'status' => 'todo']);
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change', 'problem' => self::PROBLEM, 'status' => 'todo']);
         $planRevision = $this->call('update_issue', ['issue' => 'SM-1', 'plan' => self::PLAN])['planRevision'];
         $this->call('comment_on_issue', ['issue' => 'SM-1', 'body' => 'One choice before the work.', 'questions' => [['question' => 'Remove `round()` in 3.0?']]]);
         $this->call('set_issue_status', ['issue' => 'SM-1', 'status' => 'awaiting_user_input']);
@@ -66,7 +66,7 @@ final class IssueUpdatesTest extends WebTestCase
         $ofUser = self::assertApiResponse(self::apiRequest($this->client, 'GET', "/api/v1/projects/SM/updates?cursor={$start['cursor']}"), 200, 'issue.schema.json#/$defs/IssueUpdatesPage');
         $row = static fn (array $item): array => [$item['entry']['kind'], $item['entry']['label'], $item['entry']['actor']['kind'], $item['entry']['body'], $item['entry']['to']];
 
-        self::assertSame(['cursor' => 4, 'hasMore' => false, 'issues' => [['key' => 'SM-1', 'title' => 'Round invoice totals once', 'status' => 'awaiting_user_input', 'approval' => 'user', 'claim' => null, 'updatedAt' => $start['issues'][0]['updatedAt']]], 'entries' => []], $start);
+        self::assertSame(['cursor' => 4, 'hasMore' => false, 'issues' => [['key' => 'SM-1', 'title' => 'Round invoice totals once', 'category' => 'change', 'status' => 'awaiting_user_input', 'approval' => 'user', 'claim' => null, 'updatedAt' => $start['issues'][0]['updatedAt']]], 'entries' => []], $start);
         self::assertSame([
             ['comment', 'comment', 'user', 'Use Money for the amounts.', null],
             ['comment', 'answer', 'user', '', null],
@@ -84,8 +84,8 @@ final class IssueUpdatesTest extends WebTestCase
     public function testPagesAcrossIssues(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
-        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once']);
-        $this->call('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode']);
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change']);
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode', 'category' => 'change']);
         $start = $this->call('get_issue_updates', ['project' => 'SM'])['cursor'];
 
         foreach (['SM-1', 'SM-2', 'SM-1'] as $index => $issueKey) {
@@ -105,11 +105,11 @@ final class IssueUpdatesTest extends WebTestCase
     {
         self::storeProject($this->user->getTenantId(), 'SM');
         self::storeProject($this->user->getTenantId(), 'DOC');
-        $this->call('create_issue', ['project' => 'SM', 'title' => 'A draft']);
-        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'problem' => self::PROBLEM, 'status' => 'todo']);
-        $this->call('create_issue', ['project' => 'SM', 'title' => 'A duplicate']);
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'A draft', 'category' => 'change']);
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change', 'problem' => self::PROBLEM, 'status' => 'todo']);
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'A duplicate', 'category' => 'change']);
         $this->call('set_issue_status', ['issue' => 'SM-3', 'status' => 'wont_do', 'note' => 'SM-2 covers it.']);
-        $this->call('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode', 'problem' => self::PROBLEM, 'status' => 'todo']);
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode', 'category' => 'change', 'problem' => self::PROBLEM, 'status' => 'todo']);
         $this->call('set_issue_status', ['issue' => 'SM-4', 'status' => 'awaiting_user_input']);
 
         $first = $this->call('get_issue_updates', ['project' => 'SM']);

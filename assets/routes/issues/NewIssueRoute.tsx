@@ -1,7 +1,8 @@
-import { Button, FormControl, Heading, Link, TextInput } from '@primer/react';
+import { Button, FormControl, Heading, Link, Radio, RadioGroup, TextInput } from '@primer/react';
 import { useId, useRef, useState } from 'react';
 import { Link as RouterLink, useFetcher, useLoaderData } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
+import { ISSUE_CATEGORIES, type IssueCategory } from '../../api/types/common';
 import type { Project } from '../../api/types/project';
 import { TITLE_MAX_CHARACTERS } from '../../comments/CommentBox';
 import { MarkdownEditor } from '../../comments/MarkdownEditor';
@@ -10,26 +11,34 @@ import { ActionErrorMessage } from '../../layout/ActionErrorMessage';
 import { useDocumentTitle } from '../../layout/useDocumentTitle';
 import { useSessionDraft } from '../../layout/useSessionDraft';
 import { useSubmitOnce } from '../../layout/useSubmitOnce';
-import { SECTION_CONTENT } from './IssueSection';
+import { PROBLEM_CONTENT, SECTION_CONTENT } from './IssueSection';
+import { ISSUE_CATEGORY_TEXT } from './IssueStatusLabel';
 import styles from './Issues.module.css';
 import type { NewIssueIntent } from './issueData';
 
+const CATEGORY_CAPTIONS: Record<IssueCategory, string> = {
+    bug: 'Something that exists is wrong.',
+    change: 'A feature, an alteration, a refactoring, or an upgrade.',
+};
+
 /**
- * I6 with a title and a problem. The issue is a draft, and its page sets the status. The problem keeps its text over a
- * reload (D109).
+ * I6 with a title, a category, and a problem. No category is chosen at first (D133). The issue is a draft, and its page
+ * sets the status. The problem keeps its text over a reload (D109).
  */
 export function NewIssueRoute() {
     const project = useLoaderData<Project>();
     const fetcher = useFetcher<ActionResult>();
     const draftKey = `project:${project.key}:new-issue`;
     const [title, setTitle] = useState('');
+    const [category, setCategory] = useState<IssueCategory | null>(null);
     const [problem, setProblem] = useSessionDraft(draftKey);
     const [preview, setPreview] = useState(false);
     const textarea = useRef<HTMLTextAreaElement>(null);
     const editorId = useId();
     const busy = 'idle' !== fetcher.state;
-    const intent: NewIssueIntent = { input: { title: title.trim(), ...('' === problem.trim() ? {} : { problem }) }, draftKey };
-    const submitOnce = useSubmitOnce(() => fetcher.submit(intent, { method: 'post', encType: 'application/json' }));
+    // "Create issue" is off without a category, which also stops a submit with Enter.
+    const intent: NewIssueIntent | null = null === category ? null : { input: { title: title.trim(), category, ...('' === problem.trim() ? {} : { problem }) }, draftKey };
+    const submitOnce = useSubmitOnce(() => (null === intent ? Promise.resolve() : fetcher.submit(intent, { method: 'post', encType: 'application/json' })));
     useUnsavedComment(!busy && ('' !== title.trim() || '' !== problem.trim()), draftKey);
     useDocumentTitle(`New issue of ${project.name}`);
 
@@ -46,13 +55,32 @@ export function NewIssueRoute() {
                     <FormControl.Label>Title</FormControl.Label>
                     <TextInput value={title} onChange={(event) => setTitle(event.target.value)} maxLength={TITLE_MAX_CHARACTERS} autoComplete="off" readOnly={busy} block autoFocus />
                 </FormControl>
+                <RadioGroup name="category" required disabled={busy} onChange={(selected) => setCategory(ISSUE_CATEGORIES.find((known) => known === selected) ?? null)}>
+                    <RadioGroup.Label>Category</RadioGroup.Label>
+                    {ISSUE_CATEGORIES.map((known) => (
+                        <FormControl key={known}>
+                            <Radio value={known} />
+                            <FormControl.Label>{ISSUE_CATEGORY_TEXT[known]}</FormControl.Label>
+                            <FormControl.Caption>{CATEGORY_CAPTIONS[known]}</FormControl.Caption>
+                        </FormControl>
+                    ))}
+                </RadioGroup>
                 <FormControl id={editorId}>
                     <FormControl.Label>Problem</FormControl.Label>
-                    <MarkdownEditor ref={textarea} id={editorId} value={problem} onChange={setProblem} preview={preview} onPreviewChange={setPreview} placeholder={SECTION_CONTENT.problem} readOnly={busy} />
+                    <MarkdownEditor
+                        ref={textarea}
+                        id={editorId}
+                        value={problem}
+                        onChange={setProblem}
+                        preview={preview}
+                        onPreviewChange={setPreview}
+                        placeholder={null === category ? SECTION_CONTENT.problem : PROBLEM_CONTENT[category]}
+                        readOnly={busy}
+                    />
                     <FormControl.Caption>Optional. The issue starts as a draft, and its page sets the status. Backlog and To do need a problem.</FormControl.Caption>
                 </FormControl>
                 <div className={styles.actions}>
-                    <Button type="submit" variant="primary" disabled={'' === title.trim()} loading={busy}>
+                    <Button type="submit" variant="primary" disabled={'' === title.trim() || null === category} loading={busy}>
                         Create issue
                     </Button>
                     <Button as={RouterLink} to={`/projects/${project.key}`}>

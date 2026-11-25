@@ -6,6 +6,7 @@ namespace App\Tests\Functional\Mcp;
 
 use App\Domain\Actor\Actor;
 use App\Domain\Identity\IssueEntryId;
+use App\Domain\Identity\IssueId;
 use App\Domain\Issue\ApprovalMode;
 use App\Domain\Issue\IssueKey;
 use App\Entity\Issue;
@@ -64,9 +65,9 @@ final class IssueToolsTest extends WebTestCase
         self::storeProject($this->user->getTenantId(), 'SM');
         self::storeProject($this->user->getTenantId(), 'DOC');
 
-        $first = $this->call('create_issue', ['project' => 'SM', 'title' => '  Round invoice totals once  ']);
-        $second = $this->call('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode', 'problem' => self::PROBLEM, 'status' => 'todo']);
-        $other = $this->call('create_issue', ['project' => 'DOC', 'title' => 'Describe the rounding']);
+        $first = $this->call('create_issue', ['project' => 'SM', 'title' => '  Round invoice totals once  ', 'category' => 'change']);
+        $second = $this->call('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode', 'category' => 'change', 'problem' => self::PROBLEM, 'status' => 'todo']);
+        $other = $this->call('create_issue', ['project' => 'DOC', 'title' => 'Describe the rounding', 'category' => 'change']);
         $page = $this->call('list_issues', ['project' => 'SM']);
         $todo = $this->call('list_issues', ['project' => 'SM', 'status' => 'todo']);
         $detail = $this->call('get_issue', ['issue' => 'SM-2']);
@@ -75,13 +76,77 @@ final class IssueToolsTest extends WebTestCase
         self::assertSame(['Round invoice totals once', 'draft', 'self', null, null, 'agent', self::AGENT_NAME], [$first['title'], $first['status'], $first['approval'], $first['problem'], $first['planRevision'], $first['createdBy']['kind'], $first['createdBy']['agentName']]);
         self::assertSame(['key' => 'SM', 'name' => 'Project SM', 'approvalMode' => 'self'], $first['project']);
         self::assertSame(['SM-2', 'SM-1'], array_column($page['items'], 'key'), 'Newest first.');
-        self::assertSame(['key' => 'SM-2', 'title' => 'Show the rounding mode', 'status' => 'todo', 'approval' => 'self', 'claim' => null, 'updatedAt' => $second['updatedAt']], $todo['items'][0]);
+        self::assertSame(['key' => 'SM-2', 'title' => 'Show the rounding mode', 'category' => 'change', 'status' => 'todo', 'approval' => 'self', 'claim' => null, 'updatedAt' => $second['updatedAt']], $todo['items'][0]);
         self::assertCount(1, $todo['items']);
         self::assertSame($second, $detail['issue']);
         self::assertSame([], $detail['links']);
         self::assertSame([['section_changed', 'problem', null]], array_map(static fn (array $entry): array => [$entry['kind'], $entry['section'], $entry['body']], $detail['thread']), 'A section_changed entry has its section and no text.');
-        self::assertSame('problem', $this->refusal('create_issue', ['project' => 'SM', 'title' => 'Without a problem', 'status' => 'todo'])['field']);
-        self::assertSame(['SM-3'], [$this->call('create_issue', ['project' => 'SM', 'title' => 'After a refusal'])['key']], 'A refused issue takes no number.');
+        self::assertSame('problem', $this->refusal('create_issue', ['project' => 'SM', 'title' => 'Without a problem', 'category' => 'change', 'status' => 'todo'])['field']);
+        self::assertSame(['SM-3'], [$this->call('create_issue', ['project' => 'SM', 'title' => 'After a refusal', 'category' => 'change'])['key']], 'A refused issue takes no number.');
+    }
+
+    #[TestDox('create_issue needs category, and a bug shows it in the issue, the list, a link, and a comment row')]
+    public function testCategoryOfANewIssue(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+
+        self::assertJsonRpcError($this->mcp->callToolResponse('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once']), -32602);
+        $bug = $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'bug']);
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode', 'category' => 'change']);
+        $this->call('link_issues', ['issue' => 'SM-2', 'target' => 'SM-1', 'note' => 'SM-1 rounds the totals.']);
+        $this->call('comment_on_issue', ['issue' => 'SM-1', 'body' => 'The test is next.']);
+
+        self::assertSame(['SM-1', 'bug'], [$bug['key'], $bug['category']]);
+        self::assertEquals(['SM-1' => 'bug', 'SM-2' => 'change'], array_column($this->call('list_issues', ['project' => 'SM'])['items'], 'category', 'key'));
+        self::assertSame('bug', $this->call('get_issue', ['issue' => 'SM-2'])['links'][0]['issue']['category']);
+        self::assertSame('bug', $this->call('list_comments', ['project' => 'SM'])['items'][0]['issue']['category']);
+    }
+
+    #[TestDox('update_issue changes the category without a new updatedAt and without an entry, and an agent cannot change it on an ended issue')]
+    public function testCategoryChange(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        self::mockTime('2026-11-25 09:00:00');
+        $created = $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change', 'problem' => self::PROBLEM]);
+        self::mockTime('2026-11-25 10:00:00');
+
+        $changed = $this->call('update_issue', ['issue' => 'SM-1', 'category' => 'bug']);
+        $thread = $this->call('get_issue', ['issue' => 'SM-1', 'history' => true])['thread'];
+        $this->call('set_issue_status', ['issue' => 'SM-1', 'status' => 'wont_do', 'note' => 'SM-9 covers it.']);
+        $ended = $this->refusal('update_issue', ['issue' => 'SM-1', 'category' => 'change']);
+
+        self::assertSame(['bug', $created['updatedAt']], [$changed['category'], $changed['updatedAt']]);
+        self::assertSame([['section_changed', 'problem']], array_map(static fn (array $entry): array => [$entry['kind'], $entry['section']], $thread));
+        self::assertSame(['issue', 'bug'], [$ended['field'], $this->call('get_issue', ['issue' => 'SM-1'])['issue']['category']]);
+    }
+
+    #[TestDox('list_issues filters by category, and refuses a cursor of another category')]
+    public function testListByCategory(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'bug']);
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode', 'category' => 'change']);
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round the shipping totals twice', 'category' => 'bug']);
+
+        $bugs = $this->call('list_issues', ['project' => 'SM', 'category' => 'bug']);
+        $firstPage = $this->call('list_issues', ['project' => 'SM', 'category' => 'bug', 'limit' => 1]);
+        $otherCategory = $this->refusal('list_issues', ['project' => 'SM', 'category' => 'change', 'limit' => 1, 'cursor' => $firstPage['nextCursor']]);
+
+        self::assertSame(['SM-3', 'SM-1'], array_column($bugs['items'], 'key'));
+        self::assertSame('cursor', $otherCategory['field']);
+    }
+
+    #[TestDox('An issue stored without a category, as a data dump from before the column restores it, reads as change')]
+    public function testIssueWithoutACategoryReadsAsChange(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'bug']);
+        $connection = self::getContainer()->get(EntityManagerInterface::class)->getConnection();
+        $columns = implode(', ', $connection->fetchFirstColumn("SELECT column_name FROM information_schema.columns WHERE table_name = 'issue' AND column_name NOT IN ('id', 'number', 'category')"));
+
+        $connection->executeStatement("INSERT INTO issue (id, number, {$columns}) SELECT ?, 2, {$columns} FROM issue", [IssueId::generate()->toRfc4122()]);
+
+        self::assertSame('change', $this->call('get_issue', ['issue' => 'SM-2'])['issue']['category']);
     }
 
     #[TestDox('Each row of the rules table refuses and allows, as the approval that binds the issue says')]
@@ -90,7 +155,7 @@ final class IssueToolsTest extends WebTestCase
     {
         self::storeProject($this->user->getTenantId(), 'SM', $projectMode);
         $mode = $approval ?? (ApprovalMode::ByIssue === $projectMode ? ApprovalMode::User : $projectMode);
-        $create = fn (string $title): array => $this->call('create_issue', ['project' => 'SM', 'title' => $title] + (null === $approval ? [] : ['approval' => $approval->value]));
+        $create = fn (string $title): array => $this->call('create_issue', ['project' => 'SM', 'title' => $title, 'category' => 'change'] + (null === $approval ? [] : ['approval' => $approval->value]));
         $created = $create('Round invoice totals once');
         $issue = ['issue' => $created['key']];
         $review = ['note' => 'The test passes.', 'reviewer' => 'result-reviewer'];
@@ -176,13 +241,13 @@ final class IssueToolsTest extends WebTestCase
     {
         self::storeProject($this->user->getTenantId(), 'SM', ApprovalMode::ByIssue);
         self::storeProject($this->user->getTenantId(), 'DOC', ApprovalMode::User);
-        $logged = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Fix a typo in the README', 'approval' => 'self'])['key']];
-        $material = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once'])['key']];
+        $logged = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Fix a typo in the README', 'category' => 'change', 'approval' => 'self'])['key']];
+        $material = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change'])['key']];
 
         $lowered = $this->refusal('update_issue', $material + ['approval' => 'self']);
         $raised = $this->call('update_issue', $logged + ['approval' => 'user']);
         $loweredAgain = $this->refusal('update_issue', $logged + ['approval' => 'self']);
-        $otherMode = $this->refusal('create_issue', ['project' => 'DOC', 'title' => 'Describe the rounding', 'approval' => 'user']);
+        $otherMode = $this->refusal('create_issue', ['project' => 'DOC', 'title' => 'Describe the rounding', 'category' => 'change', 'approval' => 'user']);
 
         self::assertSame(['approval', 'approval', 'approval'], [$lowered['field'], $loweredAgain['field'], $otherMode['field']]);
         self::assertSame(['user', 'user'], [$raised['approval'], $this->call('get_issue', $material)['issue']['approval']]);
@@ -195,7 +260,7 @@ final class IssueToolsTest extends WebTestCase
         // One instant, so the renewed claim of each write is the same.
         self::mockTime('2026-11-25 09:00:00');
         self::storeProject($this->user->getTenantId(), 'SM', ApprovalMode::AgentReview);
-        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'problem' => self::PROBLEM, 'status' => 'todo'])['key']];
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change', 'problem' => self::PROBLEM, 'status' => 'todo'])['key']];
         $planned = $this->call('update_issue', $issue + ['plan' => self::PLAN]);
 
         $approved = $this->call('approve_plan', $issue + ['planRevision' => $planned['planRevision'], 'reviewer' => self::REVIEWER, 'reviewNote' => self::REVIEW_NOTE]);
@@ -220,8 +285,8 @@ final class IssueToolsTest extends WebTestCase
         self::storeProject($this->user->getTenantId(), 'SM', ApprovalMode::AgentReview);
         self::storeProject($this->user->getTenantId(), 'DOC', ApprovalMode::User);
         $review = ['reviewer' => self::REVIEWER, 'reviewNote' => self::REVIEW_NOTE];
-        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once'])['key']];
-        $userIssue = ['issue' => $this->call('create_issue', ['project' => 'DOC', 'title' => 'Describe the rounding'])['key']];
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change'])['key']];
+        $userIssue = ['issue' => $this->call('create_issue', ['project' => 'DOC', 'title' => 'Describe the rounding', 'category' => 'change'])['key']];
 
         $withoutPlan = $this->refusal('approve_plan', $issue + ['planRevision' => IssueEntryId::generate()->toString()] + $review);
         $oldRevision = $this->call('update_issue', $issue + ['plan' => self::PLAN])['planRevision'];
@@ -240,7 +305,7 @@ final class IssueToolsTest extends WebTestCase
     public function testPlanOfWorkInProgressAndEndedIssue(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
-        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'problem' => self::PROBLEM, 'status' => 'todo'])['key']];
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change', 'problem' => self::PROBLEM, 'status' => 'todo'])['key']];
         $this->call('update_issue', $issue + ['plan' => self::PLAN]);
         $this->call('set_issue_status', $issue + ['status' => 'in_progress']);
 
@@ -262,7 +327,7 @@ final class IssueToolsTest extends WebTestCase
     public function testThreadHoldsCommentsAndStatusChanges(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
-        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once'])['key']];
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change'])['key']];
 
         $blank = $this->refusal('comment_on_issue', $issue + ['body' => "  \n"]);
         $this->call('comment_on_issue', $issue + ['body' => 'A duplicate of the rounding request.']);
@@ -281,7 +346,7 @@ final class IssueToolsTest extends WebTestCase
     public function testCommentLabel(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
-        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once'])['key']];
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change'])['key']];
 
         $this->call('comment_on_issue', $issue + ['body' => 'The test is next.']);
         $this->call('comment_on_issue', $issue + ['body' => 'Round once per invoice, not per line.', 'label' => 'decision']);
@@ -298,9 +363,9 @@ final class IssueToolsTest extends WebTestCase
     {
         self::storeProject($this->user->getTenantId(), 'SM');
         self::storeProject($this->user->getTenantId(), 'DOC');
-        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'problem' => self::PROBLEM]);
-        $second = $this->call('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode']);
-        $this->call('create_issue', ['project' => 'DOC', 'title' => 'Describe the rounding']);
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change', 'problem' => self::PROBLEM]);
+        $second = $this->call('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode', 'category' => 'change']);
+        $this->call('create_issue', ['project' => 'DOC', 'title' => 'Describe the rounding', 'category' => 'change']);
         $this->call('comment_on_issue', ['issue' => 'SM-1', 'body' => 'Round once per invoice.', 'label' => 'decision']);
         $this->call('comment_on_issue', ['issue' => 'SM-1', 'body' => 'The test is next.']);
         $commented = $this->call('comment_on_issue', ['issue' => 'SM-2', 'body' => 'Keep `round()` as deprecated.', 'label' => 'decision']);
@@ -314,7 +379,7 @@ final class IssueToolsTest extends WebTestCase
 
         self::assertSame([['SM-2', 'decision', 'Keep `round()` as deprecated.'], ['SM-1', 'decision', 'Round once per invoice.']], array_map($row, $decisions['items']));
         self::assertNull($decisions['nextCursor']);
-        self::assertSame(['key' => 'SM-2', 'title' => $second['title'], 'status' => 'draft', 'approval' => 'self', 'claim' => null, 'updatedAt' => $commented['updatedAt']], $decisions['items'][0]['issue']);
+        self::assertSame(['key' => 'SM-2', 'title' => $second['title'], 'category' => 'change', 'status' => 'draft', 'approval' => 'self', 'claim' => null, 'updatedAt' => $commented['updatedAt']], $decisions['items'][0]['issue']);
         self::assertSame(self::AGENT_NAME, $decisions['items'][0]['actor']['agentName']);
         self::assertSame([['SM-2', 'decision'], ['SM-1', 'comment'], ['SM-1', 'decision']], array_map(static fn (array $comment): array => [$comment['issue']['key'], $comment['label']], $all['items']), 'No section_changed entry, and no comment of DOC.');
         self::assertSame(['Keep `round()` as deprecated.', 'The test is next.'], [$firstPage['items'][0]['body'], $secondPage['items'][0]['body']]);
@@ -324,7 +389,7 @@ final class IssueToolsTest extends WebTestCase
     public function testCommentWithoutALabelReadsAsComment(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
-        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once'])['key']];
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change'])['key']];
         $this->call('comment_on_issue', $issue + ['body' => 'Round once per invoice.', 'label' => 'decision']);
         self::getContainer()->get(EntityManagerInterface::class)->getConnection()->executeStatement('UPDATE issue_entry SET label = NULL');
 
@@ -337,7 +402,7 @@ final class IssueToolsTest extends WebTestCase
     public function testReplacedPlanVersion(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM', ApprovalMode::AgentReview);
-        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'problem' => self::PROBLEM])['key']];
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change', 'problem' => self::PROBLEM])['key']];
         $newPlan = self::PLAN.' 3. Update the README.';
         $first = $this->call('update_issue', $issue + ['plan' => self::PLAN])['planRevision'];
         $this->call('approve_plan', $issue + ['planRevision' => $first, 'reviewer' => self::REVIEWER, 'reviewNote' => self::REVIEW_NOTE]);
@@ -360,7 +425,7 @@ final class IssueToolsTest extends WebTestCase
     public function testReplacedComment(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
-        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once'])['key']];
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change'])['key']];
         $this->call('comment_on_issue', $issue + ['body' => '`round()` goes.', 'label' => 'decision']);
         $old = $this->call('get_issue', $issue)['thread'][0]['id'];
         $row = static fn (array $entry): array => [$entry['body'], $entry['replaces'], $entry['replacedBy']];
@@ -378,8 +443,8 @@ final class IssueToolsTest extends WebTestCase
     public function testReplacesRefusals(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
-        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'problem' => self::PROBLEM]);
-        $this->call('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode']);
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change', 'problem' => self::PROBLEM]);
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode', 'category' => 'change']);
         $this->call('comment_on_issue', ['issue' => 'SM-1', 'body' => '`round()` goes.']);
         $this->call('comment_on_issue', ['issue' => 'SM-2', 'body' => 'The PDF has no footer.']);
         $this->client->loginUser($this->user, 'web');
@@ -404,7 +469,7 @@ final class IssueToolsTest extends WebTestCase
     public function testAgentAsksQuestions(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
-        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once'])['key']];
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change'])['key']];
         $questions = [['question' => '  Remove `round()` in 3.0?  ', 'detail' => 'BILL-9 still calls it.'], ['question' => 'Which type holds the amounts?']];
 
         $asked = $this->call('comment_on_issue', $issue + ['body' => 'Two choices before the plan.', 'label' => 'decision', 'questions' => $questions]);
@@ -422,7 +487,7 @@ final class IssueToolsTest extends WebTestCase
     public function testAgentWithdrawsItsQuestions(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
-        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once'])['key']];
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change'])['key']];
         $this->call('comment_on_issue', $issue + ['body' => 'One choice before the plan.', 'questions' => [['question' => 'Remove `round()` in 3.0?']]]);
 
         $open = $this->call('list_comments', ['project' => 'SM', 'label' => 'question'])['items'];
@@ -436,7 +501,7 @@ final class IssueToolsTest extends WebTestCase
     public function testListCommentsAfterADismissal(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
-        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once'])['key']];
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change'])['key']];
         $this->call('comment_on_issue', $issue + ['body' => 'One choice before the plan.', 'questions' => [['question' => 'Remove `round()` in 3.0?']]]);
         $asked = $this->call('list_comments', ['project' => 'SM', 'label' => 'question'])['items'][0]['id'];
         $this->client->loginUser($this->user, 'web');
@@ -453,8 +518,8 @@ final class IssueToolsTest extends WebTestCase
     public function testLinks(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
-        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once']);
-        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round the shipping totals']);
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change']);
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round the shipping totals', 'category' => 'change']);
         $note = 'SM-2 came up while SM-1 was in progress.';
 
         self::assertJsonRpcError($this->mcp->callToolResponse('link_issues', ['issue' => 'SM-2', 'target' => 'SM-1']), -32602);
@@ -475,8 +540,8 @@ final class IssueToolsTest extends WebTestCase
     public function testBlockedByLinkAndItsReplacement(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
-        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once']);
-        $this->call('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode']);
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change']);
+        $this->call('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode', 'category' => 'change']);
         $links = fn (string $issue): array => array_map(static fn (array $link): array => [$link['issue']['key'], $link['kind'], $link['note']], $this->call('get_issue', ['issue' => $issue])['links']);
 
         $this->call('link_issues', ['issue' => 'SM-2', 'target' => 'SM-1', 'note' => 'SM-1 adds the mode.', 'kind' => 'blocked_by']);
@@ -501,7 +566,7 @@ final class IssueToolsTest extends WebTestCase
         self::storeProject($tenantId, 'OPS');
 
         foreach (['SM', 'DOC', 'OPS'] as $project) {
-            $this->call('create_issue', ['project' => $project, 'title' => "An issue of {$project}"]);
+            $this->call('create_issue', ['project' => $project, 'title' => "An issue of {$project}", 'category' => 'change']);
             $this->call('comment_on_issue', ['issue' => "{$project}-1", 'body' => "A comment of {$project}."]);
         }
 
@@ -517,13 +582,13 @@ final class IssueToolsTest extends WebTestCase
         self::assertSame(['SM-1'], array_column($issues['items'], 'key'));
         self::assertSame(['A comment of SM.'], array_column($comments['items'], 'body'));
         self::assertSame([['SM-1', 'A comment of SM.']], array_map(static fn (array $item): array => [$item['issue']['key'], $item['entry']['body']], $updates['entries']), 'The entries of another token name.');
-        self::assertSame('SM-2', self::assertToolResult($scoped, $scoped->callTool('create_issue', ['project' => 'SM', 'title' => 'From the scoped agent']), 'create_issue')['key']);
+        self::assertSame('SM-2', self::assertToolResult($scoped, $scoped->callTool('create_issue', ['project' => 'SM', 'title' => 'From the scoped agent', 'category' => 'change']), 'create_issue')['key']);
 
         foreach (['DOC', 'OPS'] as $hidden) {
             self::assertToolError($scoped->callTool('list_issues', ['project' => $hidden]), 'not_found');
             self::assertToolError($scoped->callTool('list_comments', ['project' => $hidden]), 'not_found');
             self::assertToolError($scoped->callTool('get_issue_updates', ['project' => $hidden]), 'not_found');
-            self::assertToolError($scoped->callTool('create_issue', ['project' => $hidden, 'title' => 'Hidden']), 'not_found');
+            self::assertToolError($scoped->callTool('create_issue', ['project' => $hidden, 'title' => 'Hidden', 'category' => 'change']), 'not_found');
             self::assertToolError($scoped->callTool('get_issue', ['issue' => "{$hidden}-1"]), 'not_found');
             self::assertToolError($scoped->callTool('link_issues', ['issue' => 'SM-1', 'target' => "{$hidden}-1", 'note' => 'The same change.']), 'not_found');
         }

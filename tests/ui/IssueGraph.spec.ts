@@ -1,22 +1,25 @@
 import type { Locator, Page } from '@playwright/test';
+import type { Issue, IssueDetail } from '../../assets/api/types/issue';
 import { issueDetail } from './support/builders';
 import { FakeIssues } from './support/fakeIssues';
 import type { MockApi } from './support/mockApi';
 import { expect, test } from './support/test';
 
 /**
- * `BILL-14`, which waits for the user, blocks `BILL-12` in progress, which blocks `BILL-13`, a draft: the blocker has the
- * higher key, so the key order is not the reading order. `DOC-2` of another project is in review and blocks `BILL-13` too.
- * `BILL-15` is in review and `BILL-16` is a draft, both without a dependency.
+ * `BILL-14`, which waits for the user, blocks `BILL-12` in progress, a bug, which blocks `BILL-13`, a draft: the blocker
+ * has the higher key, so the key order is not the reading order. `DOC-2` of another project is in review and blocks
+ * `BILL-13` too. `BILL-15` is in review and `BILL-16` is a draft, both without a dependency. Each issue but `BILL-12` is a
+ * change.
  */
 async function openGraph(page: Page, api: MockApi): Promise<void> {
     const issues = new FakeIssues(api);
+    const change = (overrides: Partial<Issue>): IssueDetail => issueDetail({ category: 'change', ...overrides });
     issues.add(issueDetail());
-    issues.add(issueDetail({ key: 'BILL-13', title: 'Show the rounding mode on the invoice PDF', status: 'draft' }));
-    issues.add(issueDetail({ key: 'BILL-14', title: 'Round the totals of credit notes', status: 'awaiting_user_input' }));
-    issues.add(issueDetail({ key: 'BILL-15', title: 'Name the rounding mode in the README', status: 'in_review' }));
-    issues.add(issueDetail({ key: 'BILL-16', title: 'Round the totals of quotes', status: 'draft' }));
-    issues.add(issueDetail({ key: 'DOC-2', title: 'Name the rounding modes', status: 'in_review', project: { key: 'DOC', name: 'Docs', approvalMode: 'user' } }));
+    issues.add(change({ key: 'BILL-13', title: 'Show the rounding mode on the invoice PDF', status: 'draft' }));
+    issues.add(change({ key: 'BILL-14', title: 'Round the totals of credit notes', status: 'awaiting_user_input' }));
+    issues.add(change({ key: 'BILL-15', title: 'Name the rounding mode in the README', status: 'in_review' }));
+    issues.add(change({ key: 'BILL-16', title: 'Round the totals of quotes', status: 'draft' }));
+    issues.add(change({ key: 'DOC-2', title: 'Name the rounding modes', status: 'in_review', project: { key: 'DOC', name: 'Docs', approvalMode: 'user' } }));
     issues.block('BILL-13', 'BILL-12');
     issues.block('BILL-13', 'DOC-2');
     issues.block('BILL-12', 'BILL-14');
@@ -44,10 +47,12 @@ test.describe('Dependency graph of a project', () => {
         await expect(page.locator('[data-testid="issue-graph"] svg[aria-hidden="true"] polyline')).toHaveCount(3);
     });
 
-    test('A node says its status, that it waits for the user, and the keys that block it, in its name and in its text', async ({ page, api }) => {
+    test('A node says its status, "Bug report" for a bug, that it waits for the user, and the keys that block it, in its name and in its text', async ({ page, api }) => {
         await openGraph(page, api);
 
-        await expect(node(page, 'BILL-12')).toHaveAccessibleName('BILL-12: Round invoice totals once per invoice. In progress. Blocked by BILL-14.');
+        await expect(node(page, 'BILL-12')).toHaveAccessibleName('BILL-12: Round invoice totals once per invoice. In progress. Bug report. Blocked by BILL-14.');
+        await expect(node(page, 'BILL-12').getByTestId('bug-label')).toHaveText('Bug report');
+        await expect(node(page, 'BILL-13').getByTestId('bug-label')).toHaveCount(0);
         await expect(node(page, 'BILL-15')).toHaveAccessibleName('BILL-15: Name the rounding mode in the README. In review. Waits for you.');
         await expect(node(page, 'BILL-14'), 'The status says it already.').toHaveAccessibleName('BILL-14: Round the totals of credit notes. Waiting for you.');
         await expect(node(page, 'BILL-15')).toContainText('Waits for you');

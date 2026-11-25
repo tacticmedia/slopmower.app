@@ -68,10 +68,13 @@ export class FakeIssues {
             return json('project.schema.json', changed);
         });
         api.on('POST', '/api/v1/projects/:projectKey/issues', ({ params, body }) => {
-            const { title, problem = null, status, approval = null } = body as CreateIssueInput;
+            const { title, category, problem = null, status, approval = null } = body as CreateIssueInput;
             const owner = this.projects.find(({ key }) => key === params.projectKey);
             if (undefined === owner) {
                 return notFound();
+            }
+            if (undefined === category) {
+                return refusal('category', 'This value should not be null.');
             }
             if (null !== approval && 'by_issue' !== owner.approvalMode) {
                 return approvalRefusal(owner.approvalMode);
@@ -81,6 +84,7 @@ export class FakeIssues {
                 ...issueDetail().issue,
                 key: `${owner.key}-${Math.max(0, ...numbers) + 1}`,
                 title: title.trim(),
+                category,
                 status: status ?? 'draft',
                 approval: 'by_issue' === owner.approvalMode ? (approval ?? 'user') : owner.approvalMode,
                 problem,
@@ -104,7 +108,7 @@ export class FakeIssues {
         api.on('PATCH', '/api/v1/issues/:issueKey', ({ params, body }) =>
             this.#answer(params.issueKey, (detail) => {
                 const input = body as UpdateIssueInput;
-                const changes: Partial<Issue> = null === input.title || undefined === input.title ? {} : { title: input.title.trim() };
+                const changes: Partial<Issue> = { ...(null === input.title || undefined === input.title ? {} : { title: input.title.trim() }), ...(null === input.category || undefined === input.category ? {} : { category: input.category }) };
                 if (null !== input.approval && undefined !== input.approval) {
                     if ('by_issue' !== detail.issue.project.approvalMode) {
                         return approvalRefusal(detail.issue.project.approvalMode);
@@ -121,7 +125,10 @@ export class FakeIssues {
                     }
                 }
 
-                return missingSection({ ...detail.issue, ...changes }) ?? json('issue.schema.json', this.#write(detail, changes, ...entries));
+                // A change of the category alone keeps updatedAt (D133).
+                const categoryOnly = 0 === entries.length && Object.keys(changes).every((field) => 'category' === field);
+
+                return missingSection({ ...detail.issue, ...changes }) ?? json('issue.schema.json', this.#write(detail, categoryOnly ? { ...changes, updatedAt: detail.issue.updatedAt } : changes, ...entries));
             }),
         );
         api.on('POST', '/api/v1/issues/:issueKey/status', ({ params, body }) =>
@@ -149,10 +156,10 @@ export class FakeIssues {
             if (!this.projects.some(({ key }) => key === params.projectKey)) {
                 return notFound();
             }
-            const status = query.get('status');
+            const [status, category] = [query.get('status'), query.get('category')];
             const items = [...this.issues.values()]
                 .map(({ issue }) => issue)
-                .filter((issue) => issue.project.key === params.projectKey && (null === status || issue.status === status))
+                .filter((issue) => issue.project.key === params.projectKey && (null === status || issue.status === status) && (null === category || issue.category === category))
                 .toSorted((first, second) => second.updatedAt.localeCompare(first.updatedAt))
                 .map(summary);
 
@@ -293,15 +300,15 @@ export class FakeIssues {
     }
 
     #write(detail: IssueDetail, changes: Partial<Issue>, ...entries: IssueEntry[]): Issue {
-        const issue = { ...detail.issue, ...changes, updatedAt: now() };
+        const issue = { ...detail.issue, updatedAt: now(), ...changes };
         this.issues.set(issue.key, { ...detail, issue, thread: versioned([...detail.thread, ...entries]) });
 
         return issue;
     }
 }
 
-function summary({ key, title, status, approval, claim, updatedAt }: Issue): IssueSummary {
-    return { key, title, status, approval, claim, updatedAt };
+function summary({ key, title, category, status, approval, claim, updatedAt }: Issue): IssueSummary {
+    return { key, title, category, status, approval, claim, updatedAt };
 }
 
 /** P2 and P3 store whitespace only as null. */

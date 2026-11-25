@@ -239,10 +239,13 @@ Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 
 ### Issue tools
 
-Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D128 to D130). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs. The REST endpoints of [rest-api-issues.md](rest-api-issues.md) share the model and the rules of this section.
+Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D128 to D130, D133). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs. The REST endpoints of [rest-api-issues.md](rest-api-issues.md) share the model and the rules of this section.
 
 - **Visibility.** A token of one repository sees only the project of that repository, with its issues. A project without a repository is invisible to it. Any other key gets `not_found`.
 - **Sections.** An issue has the Markdown sections `problem`, `plan`, `result`, and `followUps`, each null or at most 65,536 characters.
+- **Category.** `category` of `Issue` and `IssueSummary` is an `IssueCategory` of [common.schema.json](schemas/common.schema.json) (D133). `bug`: something that exists is wrong against its specification, its documentation, or its evident intent. `change`: all else, so a feature, an alteration, a refactoring, or an upgrade. The `problem` of a bug says what is wrong, how to see it, and what is expected; of a change, what is wanted, and how to tell that it is done.
+  - `create_issue` needs `category`, with no default. `update_issue` changes it. The change writes no entry and does not set `updatedAt`.
+  - An issue stored without a category reads as `change`.
 - **Thread.** Each write that changes the issue appends its entry in the same transaction and sets `updatedAt`. The entry gets the next number of the sequence of its project, which is the cursor of `get_issue_updates` (D128). The entry kinds are `comment`, `status_changed`, `section_changed`, and `plan_approved`. No write changes or removes a stored entry. A `section_changed` entry stores the new text, so it is one version of its section. The plan revision of an issue is the ID of the newest `section_changed` entry of `plan`.
 - **Replaced entries.** A new version replaces an entry, and the replaced entry stays in the thread (D123). `replacedBy` of an entry is the ID of the entry that replaced it, and null for a current entry. `replaces` is the ID of the entry that it replaced, or null.
   - A `section_changed` entry is replaced by the next entry of its section. The server reads this from the order of the entries and stores nothing for it.
@@ -302,7 +305,7 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 ### 4.20 `list_issues`
 
 - **Output:** [`lists.schema.json#/$defs/IssuePage`](schemas/lists.schema.json).
-- **Behaviour:** REST I1: the summaries of the issues of the project, newest `updatedAt` first, then by ID. `status` returns only the issues with that status. `limit` is 1 to 200, by default 50. `claim` of a summary names the session that holds the issue, so an agent skips an issue of another session without `get_issue`.
+- **Behaviour:** REST I1: the summaries of the issues of the project, newest `updatedAt` first, then by ID. `status` returns only the issues with that status, and `category` only the issues of that category. `limit` is 1 to 200, by default 50. `claim` of a summary names the session that holds the issue, so an agent skips an issue of another session without `get_issue`.
 - **Errors:** `not_found` for the project, `invalid_input` for the cursor or a cursor sent with another filter.
 - **Example:** arguments `{"project":"BILL"}`. `structuredContent`: [fixtures/lists.issue-page.json](fixtures/lists.issue-page.json).
 
@@ -316,14 +319,14 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 ### 4.22 `create_issue`
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json).
-- **Behaviour:** REST I6: a new issue with the next number of the project, which the server takes under a lock on the project row. `status` is `draft`, `backlog`, or `todo`, by default `draft`. `approval` is for a `by_issue` project only, as "Approval mode" says. A `problem` writes a `section_changed` entry. The server stores the title trimmed.
-- **Errors:** `not_found` for the project, `invalid_input` for a title of whitespace only or with a line break, on `approval` for a project of another approval mode, or on `problem` for `backlog` or `todo` without a problem.
-- **Example:** arguments `{"project":"BILL","title":"Round invoice totals once per invoice"}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with status `draft` and the sections null.
+- **Behaviour:** REST I6: a new issue with the next number of the project, which the server takes under a lock on the project row. `category` is required, as "Category" says. `status` is `draft`, `backlog`, or `todo`, by default `draft`. `approval` is for a `by_issue` project only, as "Approval mode" says. A `problem` writes a `section_changed` entry. The server stores the title trimmed.
+- **Errors:** `not_found` for the project, `invalid_input` for a title of whitespace only or with a line break, on `approval` for a project of another approval mode, or on `problem` for `backlog` or `todo` without a problem. A call without `category` is JSON-RPC -32602.
+- **Example:** arguments `{"project":"BILL","title":"Round invoice totals once per invoice","category":"bug"}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with status `draft` and the sections null.
 
 ### 4.23 `update_issue`
 
 - **Output:** [`issue.schema.json`](schemas/issue.schema.json).
-- **Behaviour:** REST I7: changes the given fields. Null leaves a field as it is. Each section with new text writes a `section_changed` entry with that text, which replaces the entry of the version before it, and a `plan` with new text clears `planApproval`. `approval` changes only to `user`, as "Approval mode" says. A call whose values equal the stored ones changes nothing.
+- **Behaviour:** REST I7: changes the given fields. Null leaves a field as it is. Each section with new text writes a `section_changed` entry with that text, which replaces the entry of the version before it, and a `plan` with new text clears `planApproval`. `category` changes without an entry, as "Category" says. `approval` changes only to `user`, as "Approval mode" says. A call whose values equal the stored ones changes nothing.
 - **Errors:** `not_found`, `invalid_input` on `session` for an issue of another holder, and for a call with no field, a title of whitespace only or with a line break, on `approval` for a project of another approval mode or a change to another value than `user`, or a broken rule of the issue tools.
 - **Example:** arguments `{"issue":"BILL-12","session":"billing-3f9a","plan":"1. Add `TaxRounding::perInvoice()` ..."}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with a new `planRevision` and `planApproval` null.
 
@@ -366,7 +369,7 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 ### 4.29 `get_issue_updates`
 
 - **Output:** [`issue.schema.json#/$defs/IssueUpdatesPage`](schemas/issue.schema.json).
-- **Behaviour:** REST [I10](rest-api-issues.md#i10-get-the-updates-of-a-project) (D128). Without a cursor: the issues of the project in `todo`, `in_progress`, `awaiting_user_input`, and `in_review`, and the newest cursor. With a cursor: the entries of every issue of the project after it, oldest first, each with the summary of its issue, without the entries of the caller and without a replaced entry. The caller is the agent of the token name: a second session with the same token name is the same caller, and its entries are left out too. A title change, a change of `approval`, a link, and a new issue without a `problem` write no entry. `limit` is 1 to 200, by default 50. The agent that waits for the user calls it with the returned cursor; the answers of the user, a dismissal, a plan approval, and a status change arrive as entries. A dismissal is a comment with the label `dismissal`.
+- **Behaviour:** REST [I10](rest-api-issues.md#i10-get-the-updates-of-a-project) (D128). Without a cursor: the issues of the project in `todo`, `in_progress`, `awaiting_user_input`, and `in_review`, and the newest cursor. With a cursor: the entries of every issue of the project after it, oldest first, each with the summary of its issue, without the entries of the caller and without a replaced entry. The caller is the agent of the token name: a second session with the same token name is the same caller, and its entries are left out too. A title change, a change of `category` or `approval`, a link, and a new issue without a `problem` write no entry. `limit` is 1 to 200, by default 50. The agent that waits for the user calls it with the returned cursor; the answers of the user, a dismissal, a plan approval, and a status change arrive as entries. A dismissal is a comment with the label `dismissal`.
 - **Errors:** `not_found` for the project, `invalid_input` on `cursor` for a cursor ahead of the server. A `cursor` below 0 and a `limit` outside its range are JSON-RPC -32602.
 - **Example:** arguments `{"project":"BILL"}` give [fixtures/issue.updates-first-call.json](fixtures/issue.updates-first-call.json). Arguments `{"project":"BILL","cursor":41}` give [fixtures/issue.updates-cursor.json](fixtures/issue.updates-cursor.json).
 
@@ -410,7 +413,7 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 | `suggest_request` | `POST /api/v1/reviews/{id}/suggestions` |
 | `set_request_title` | `POST /api/v1/requests/{id}/title` |
 | `list_projects` | `GET /api/v1/projects` |
-| `list_issues` | `GET /api/v1/projects/{projectKey}/issues?status=` |
+| `list_issues` | `GET /api/v1/projects/{projectKey}/issues?status=&category=` |
 | `get_issue` | `GET /api/v1/issues/{issueKey}?history=` |
 | `comment_on_issue` | `POST /api/v1/issues/{issueKey}/comments` |
 | `list_comments` | `GET /api/v1/projects/{projectKey}/comments?label=` |

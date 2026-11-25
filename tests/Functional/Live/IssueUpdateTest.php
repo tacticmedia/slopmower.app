@@ -8,6 +8,7 @@ use App\Application\IssueCommands;
 use App\Domain\Actor\Actor;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Issue\CommentLabel;
+use App\Domain\Issue\IssueCategory;
 use App\Domain\Issue\IssueKey;
 use App\Domain\Issue\IssueLinkKind;
 use App\Domain\Issue\IssueStatus;
@@ -38,8 +39,8 @@ final class IssueUpdateTest extends KernelTestCase
         $agent = Actor::agent($user->getId(), 'claude-code laptop');
         [$issue, $other] = [new IssueKey('SM', 1), new IssueKey('DOC', 1)];
 
-        $commands->create('SM', 'Round invoice totals once', 'Invoice totals round each line.', IssueStatus::Todo, $agent);
-        $commands->create('DOC', 'Describe the rounding', null, IssueStatus::Draft, $agent);
+        $commands->create('SM', 'Round invoice totals once', IssueCategory::Change, 'Invoice totals round each line.', IssueStatus::Todo, $agent);
+        $commands->create('DOC', 'Describe the rounding', IssueCategory::Change, null, IssueStatus::Draft, $agent);
         $commands->update($issue, null, null, '1. Add `TaxRounding::perInvoice()`.', null, null, $agent, 'billing-3f9a');
         $commands->comment($issue, 'The test is next.', CommentLabel::Comment, $agent, 'billing-3f9a');
         $commands->setStatus($issue, IssueStatus::InProgress, null, null, $agent, 'billing-3f9a');
@@ -65,7 +66,7 @@ final class IssueUpdateTest extends KernelTestCase
         $connection->beginTransaction();
 
         try {
-            self::getContainer()->get(IssueCommands::class)->create('SM', 'Round invoice totals once', null, IssueStatus::Draft, Actor::agent($user->getId(), 'claude-code laptop'));
+            self::getContainer()->get(IssueCommands::class)->create('SM', 'Round invoice totals once', IssueCategory::Change, null, IssueStatus::Draft, Actor::agent($user->getId(), 'claude-code laptop'));
             self::fail('A write inside a transaction is refused.');
         } catch (\LogicException $refused) {
             self::assertSame('An issue write runs only outside a database transaction.', $refused->getMessage());

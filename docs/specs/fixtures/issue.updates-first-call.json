@@ -5,6 +5,7 @@
     {
       "key": "BILL-12",
       "title": "Round invoice totals once per invoice",
+      "category": "bug",
       "status": "in_progress",
       "approval": "agent_review",
       "claim": {
@@ -24,6 +25,7 @@
     {
       "key": "BILL-14",
       "title": "Round the totals of credit notes",
+      "category": "change",
       "status": "awaiting_user_input",
       "approval": "agent_review",
       "claim": null,

@@ -139,7 +139,7 @@ final class CrossTenantRouteInventoryTest extends WebTestCase
         $otherRequest = self::storeRequest($otherReview);
         [$otherToken, $otherSecret] = self::storeToken($other);
         self::storeProject($other->getTenantId(), 'OILUOILU');
-        self::assertToolResult($otherMcp = new McpTestClient($client, $otherSecret), $otherMcp->callTool('create_issue', ['project' => 'OILUOILU', 'title' => 'Use Money']), 'create_issue');
+        self::assertToolResult($otherMcp = new McpTestClient($client, $otherSecret), $otherMcp->callTool('create_issue', ['project' => 'OILUOILU', 'title' => 'Use Money', 'category' => 'change']), 'create_issue');
         $user = self::signIn($client);
         self::storeRepository($user->getTenantId(), 'alpha');
         [, $secret] = self::storeToken($user);

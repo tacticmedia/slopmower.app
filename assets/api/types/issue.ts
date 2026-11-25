@@ -4,6 +4,7 @@ import type {
     CommentLabel,
     DateTime,
     IssueApproval,
+    IssueCategory,
     IssueEntryKind,
     IssueKey,
     IssueLinkKind,
@@ -35,6 +36,7 @@ export type IssueClaim = {
 export type Issue = {
     key: IssueKey;
     title: string;
+    category: IssueCategory;
     status: IssueStatus;
     approval: IssueApproval;
     /** Null without a claim and after its end. */
@@ -58,6 +60,7 @@ export type Issue = {
 export type IssueSummary = {
     key: IssueKey;
     title: string;
+    category: IssueCategory;
     status: IssueStatus;
     approval: IssueApproval;
     claim: IssueClaim | null;

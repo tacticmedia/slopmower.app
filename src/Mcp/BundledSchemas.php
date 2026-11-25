@@ -4283,6 +4283,10 @@ final class BundledSchemas
                 'enum' => ['user', 'agent_review', 'self'],
                 'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
             ],
+            'IssueCategory' => [
+                'enum' => ['bug', 'change'],
+                'description' => 'What an issue is (D133). bug: something that exists is wrong against its specification, its documentation, or its evident intent. change: all else, so a feature, an alteration, a refactoring, or an upgrade.',
+            ],
             'IssueClaim' => [
                 'type' => 'object',
                 'required' => ['holder', 'session', 'since', 'until'],
@@ -4301,10 +4305,11 @@ final class BundledSchemas
             ],
             'IssueSummary' => [
                 'type' => 'object',
-                'required' => ['key', 'title', 'status', 'approval', 'claim', 'updatedAt'],
+                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'updatedAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
+                    'category' => ['$ref' => '#/$defs/IssueCategory'],
                     'status' => ['$ref' => '#/$defs/IssueStatus'],
                     'approval' => ['$ref' => '#/$defs/IssueApproval'],
                     'claim' => [
@@ -4424,6 +4429,10 @@ final class BundledSchemas
                 'enum' => ['user', 'agent_review', 'self'],
                 'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
             ],
+            'IssueCategory' => [
+                'enum' => ['bug', 'change'],
+                'description' => 'What an issue is (D133). bug: something that exists is wrong against its specification, its documentation, or its evident intent. change: all else, so a feature, an alteration, a refactoring, or an upgrade.',
+            ],
             'IssueClaim' => [
                 'type' => 'object',
                 'required' => ['holder', 'session', 'since', 'until'],
@@ -4460,10 +4469,11 @@ final class BundledSchemas
             ],
             'IssueSummary' => [
                 'type' => 'object',
-                'required' => ['key', 'title', 'status', 'approval', 'claim', 'updatedAt'],
+                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'updatedAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
+                    'category' => ['$ref' => '#/$defs/IssueCategory'],
                     'status' => ['$ref' => '#/$defs/IssueStatus'],
                     'approval' => ['$ref' => '#/$defs/IssueApproval'],
                     'claim' => [
@@ -4618,10 +4628,11 @@ final class BundledSchemas
                 'title' => 'Issue',
                 'description' => 'An issue without its links and its thread: the result of every issue write.',
                 'type' => 'object',
-                'required' => ['key', 'title', 'status', 'approval', 'claim', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt'],
+                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
+                    'category' => ['$ref' => '#/$defs/IssueCategory'],
                     'status' => ['$ref' => '#/$defs/IssueStatus'],
                     'approval' => ['$ref' => '#/$defs/IssueApproval'],
                     'claim' => [
@@ -4634,7 +4645,7 @@ final class BundledSchemas
                     'problem' => [
                         'type' => ['string', 'null'],
                         'maxLength' => 65536,
-                        'description' => 'Markdown: what the user wants, and how to tell that it is done.',
+                        'description' => 'Markdown. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done.',
                     ],
                     'plan' => [
                         'type' => ['string', 'null'],
@@ -4688,6 +4699,10 @@ final class BundledSchemas
             'IssueApproval' => [
                 'enum' => ['user', 'agent_review', 'self'],
                 'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
+            ],
+            'IssueCategory' => [
+                'enum' => ['bug', 'change'],
+                'description' => 'What an issue is (D133). bug: something that exists is wrong against its specification, its documentation, or its evident intent. change: all else, so a feature, an alteration, a refactoring, or an upgrade.',
             ],
             'IssueClaim' => [
                 'type' => 'object',
@@ -4821,10 +4836,11 @@ final class BundledSchemas
             ],
             'IssueSummary' => [
                 'type' => 'object',
-                'required' => ['key', 'title', 'status', 'approval', 'claim', 'updatedAt'],
+                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'updatedAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
+                    'category' => ['$ref' => '#/$defs/IssueCategory'],
                     'status' => ['$ref' => '#/$defs/IssueStatus'],
                     'approval' => ['$ref' => '#/$defs/IssueApproval'],
                     'claim' => [
@@ -4997,6 +5013,10 @@ final class BundledSchemas
                 'enum' => ['user', 'agent_review', 'self'],
                 'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
             ],
+            'IssueCategory' => [
+                'enum' => ['bug', 'change'],
+                'description' => 'What an issue is (D133). bug: something that exists is wrong against its specification, its documentation, or its evident intent. change: all else, so a feature, an alteration, a refactoring, or an upgrade.',
+            ],
             'IssueClaim' => [
                 'type' => 'object',
                 'required' => ['holder', 'session', 'since', 'until'],
@@ -5113,10 +5133,11 @@ final class BundledSchemas
             ],
             'IssueSummary' => [
                 'type' => 'object',
-                'required' => ['key', 'title', 'status', 'approval', 'claim', 'updatedAt'],
+                'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'updatedAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
                     'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
+                    'category' => ['$ref' => '#/$defs/IssueCategory'],
                     'status' => ['$ref' => '#/$defs/IssueStatus'],
                     'approval' => ['$ref' => '#/$defs/IssueApproval'],
                     'claim' => [
@@ -5165,10 +5186,11 @@ final class BundledSchemas
         'title' => 'Issue',
         'description' => 'An issue without its links and its thread: the result of every issue write.',
         'type' => 'object',
-        'required' => ['key', 'title', 'status', 'approval', 'claim', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt'],
+        'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt'],
         'properties' => [
             'key' => ['$ref' => '#/$defs/IssueKey'],
             'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
+            'category' => ['$ref' => '#/$defs/IssueCategory'],
             'status' => ['$ref' => '#/$defs/IssueStatus'],
             'approval' => ['$ref' => '#/$defs/IssueApproval'],
             'claim' => [
@@ -5181,7 +5203,7 @@ final class BundledSchemas
             'problem' => [
                 'type' => ['string', 'null'],
                 'maxLength' => 65536,
-                'description' => 'Markdown: what the user wants, and how to tell that it is done.',
+                'description' => 'Markdown. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done.',
             ],
             'plan' => [
                 'type' => ['string', 'null'],
@@ -5314,6 +5336,10 @@ final class BundledSchemas
                 'enum' => ['user', 'agent_review', 'self'],
                 'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
             ],
+            'IssueCategory' => [
+                'enum' => ['bug', 'change'],
+                'description' => 'What an issue is (D133). bug: something that exists is wrong against its specification, its documentation, or its evident intent. change: all else, so a feature, an alteration, a refactoring, or an upgrade.',
+            ],
             'IssueClaim' => [
                 'type' => 'object',
                 'required' => ['holder', 'session', 'since', 'until'],
@@ -5441,15 +5467,20 @@ final class BundledSchemas
         [
             'name' => 'create_issue',
             'title' => 'Create issue',
-            'description' => 'Create an issue of a project. Its key is the project key, a hyphen, and the next number of the project, for example SM-12. Look through the open issues of the project first, and continue one that covers the request. status is draft while the problem is incomplete, and backlog or todo when it is ready; backlog and todo need problem. In approvalMode by_issue, choose approval by approvalGuidelines: self or agent_review only where a guideline says so, else user. Write technical English, as short as possible, and only what a later reader needs.',
+            'description' => 'Create an issue of a project. Its key is the project key, a hyphen, and the next number of the project, for example SM-12. Look through the open issues of the project first, and continue one that covers the request. category is bug when something that exists is wrong against its specification, its documentation, or its evident intent, and change for all else: a feature, an alteration, a refactoring, or an upgrade. status is draft while the problem is incomplete, and backlog or todo when it is ready; backlog and todo need problem. In approvalMode by_issue, choose approval by approvalGuidelines: self or agent_review only where a guideline says so, else user. Write technical English, as short as possible, and only what a later reader needs.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
                     'project' => ['type' => 'string', 'description' => 'Project key from list_projects, for example SM', 'pattern' => '^[A-Z]{2,10}$'],
                     'title' => ['type' => 'string', 'description' => 'One line that names the issue', 'minLength' => 1, 'maxLength' => 200, 'pattern' => '^[^\\x00]*$'],
+                    'category' => [
+                        'type' => 'string',
+                        'description' => 'bug: something that exists is wrong. change: all else',
+                        'enum' => ['bug', 'change'],
+                    ],
                     'problem' => [
                         'type' => ['null', 'string'],
-                        'description' => 'Markdown: what the user wants, and how to tell that it is done',
+                        'description' => 'Markdown. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done',
                         'default' => null,
                         'minLength' => 1,
                         'maxLength' => 65536,
@@ -5468,7 +5499,7 @@ final class BundledSchemas
                         'enum' => ['user', 'agent_review', 'self', null],
                     ],
                 ],
-                'required' => ['project', 'title'],
+                'required' => ['project', 'title', 'category'],
             ],
             'annotations' => ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => false, 'openWorldHint' => false],
             'outputSchema' => self::ISSUE,
@@ -5678,6 +5709,12 @@ final class BundledSchemas
                         'description' => 'Only issues with this status',
                         'default' => null,
                         'enum' => ['draft', 'backlog', 'todo', 'in_progress', 'awaiting_user_input', 'in_review', 'done', 'wont_do', null],
+                    ],
+                    'category' => [
+                        'type' => ['string', 'null'],
+                        'description' => 'Only issues of this category',
+                        'default' => null,
+                        'enum' => ['bug', 'change', null],
                     ],
                     'cursor' => [
                         'type' => ['null', 'string'],
@@ -6094,7 +6131,7 @@ final class BundledSchemas
         [
             'name' => 'update_issue',
             'title' => 'Update issue',
-            'description' => 'Change the title or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem: what the user wants, and how to tell that it is done. plan: the steps, the files, and the tests. result: what was done, with the commit SHAs, and each deviation from the plan. followUps: what came up and was left out. A plan with new text clears its approval. An agent cannot change plan in in_progress or in_review, and no field of an issue in done or wont_do. approval exists only in approvalMode by_issue, and an agent changes it only to user. The write holds the issue for your session for 2 hours. While another session holds it, the write is refused on session: take another issue. Write technical English, as short as possible, and only what a later reader needs.',
+            'description' => 'Change the title, the category, or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem: for a bug, what is wrong, how to see it, and what is expected; for a change, what is wanted, and how to tell that it is done. plan: the steps, the files, and the tests. result: what was done, with the commit SHAs, and each deviation from the plan. followUps: what came up and was left out. A plan with new text clears its approval. An agent cannot change plan in in_progress or in_review, and no field of an issue in done or wont_do. approval exists only in approvalMode by_issue, and an agent changes it only to user. The write holds the issue for your session for 2 hours. While another session holds it, the write is refused on session: take another issue. Write technical English, as short as possible, and only what a later reader needs.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
@@ -6108,9 +6145,15 @@ final class BundledSchemas
                         'maxLength' => 200,
                         'pattern' => '^[^\\x00]*$',
                     ],
+                    'category' => [
+                        'type' => ['string', 'null'],
+                        'description' => 'bug: something that exists is wrong. change: all else',
+                        'default' => null,
+                        'enum' => ['bug', 'change', null],
+                    ],
                     'problem' => [
                         'type' => ['null', 'string'],
-                        'description' => 'Markdown: what the user wants, and how to tell that it is done',
+                        'description' => 'Markdown. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done',
                         'default' => null,
                         'minLength' => 1,
                         'maxLength' => 65536,

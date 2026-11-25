@@ -48,6 +48,7 @@ use App\Domain\Identity\RequestId;
 use App\Domain\Identity\ReviewId;
 use App\Domain\Issue\ApprovalMode;
 use App\Domain\Issue\CommentLabel;
+use App\Domain\Issue\IssueCategory;
 use App\Domain\Issue\IssueKey;
 use App\Domain\Issue\IssueLinkKind;
 use App\Domain\Issue\IssueStatus;
@@ -143,9 +144,9 @@ final class McpTools
      *
      * @return array<string, mixed>
      */
-    public function createIssue(string $project, string $title, ?string $problem = null, IssueStatus $status = IssueStatus::Draft, ?ApprovalMode $approval = null): array
+    public function createIssue(string $project, string $title, IssueCategory $category, ?string $problem = null, IssueStatus $status = IssueStatus::Draft, ?ApprovalMode $approval = null): array
     {
-        return $this->issueWrite('create_issue', fn (Actor $actor): Issue => $this->issueCommands->create($project, $title, $problem, $status, $actor, $approval));
+        return $this->issueWrite('create_issue', fn (Actor $actor): Issue => $this->issueCommands->create($project, $title, $category, $problem, $status, $actor, $approval));
     }
 
     /**
@@ -266,9 +267,9 @@ final class McpTools
      *
      * @return array<string, mixed>
      */
-    public function listIssues(string $project, ?IssueStatus $status = null, ?string $cursor = null, int $limit = 50): array
+    public function listIssues(string $project, ?IssueStatus $status = null, ?IssueCategory $category = null, ?string $cursor = null, int $limit = 50): array
     {
-        return $this->run('list_issues', fn (): IssuePage => $this->issues->list($project, $status, $limit, $cursor));
+        return $this->run('list_issues', fn (): IssuePage => $this->issues->list($project, $status, $category, $limit, $cursor));
     }
 
     /**
@@ -476,9 +477,9 @@ final class McpTools
      *
      * @return array<string, mixed>
      */
-    public function updateIssue(string $issue, string $session, ?string $title = null, ?string $problem = null, ?string $plan = null, ?string $result = null, ?string $followUps = null, ?ApprovalMode $approval = null): array
+    public function updateIssue(string $issue, string $session, ?string $title = null, ?IssueCategory $category = null, ?string $problem = null, ?string $plan = null, ?string $result = null, ?string $followUps = null, ?ApprovalMode $approval = null): array
     {
-        return $this->issueWrite('update_issue', fn (Actor $actor): Issue => $this->issueCommands->update(IssueKey::fromString($issue, 'issue'), $title, $problem, $plan, $result, $followUps, $actor, $session, $approval));
+        return $this->issueWrite('update_issue', fn (Actor $actor): Issue => $this->issueCommands->update(IssueKey::fromString($issue, 'issue'), $title, $problem, $plan, $result, $followUps, $actor, $session, $approval, $category));
     }
 
     /**

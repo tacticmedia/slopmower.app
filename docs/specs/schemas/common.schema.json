@@ -336,6 +336,10 @@
       "enum": ["draft", "backlog", "todo", "in_progress", "awaiting_user_input", "in_review", "done", "wont_do"],
       "description": "done means delivered. done and wont_do end an issue (D117)."
     },
+    "IssueCategory": {
+      "enum": ["bug", "change"],
+      "description": "What an issue is (D133). bug: something that exists is wrong against its specification, its documentation, or its evident intent. change: all else, so a feature, an alteration, a refactoring, or an upgrade."
+    },
     "ApprovalMode": {
       "enum": ["user", "agent_review", "self", "by_issue"],
       "description": "Who approves a plan and ends an issue of the project. user: only a signed-in user. agent_review: also an agent, with the name of a reviewing agent and its review on record. self: no approval (D117). by_issue: the approval of each issue says it (D129)."

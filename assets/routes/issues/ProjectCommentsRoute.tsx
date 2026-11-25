@@ -7,6 +7,7 @@ import headerStyles from '../../requests/RequestListHeader.module.css';
 import rowStyles from '../../requests/RequestRow.module.css';
 import listStyles from '../requests/RequestList.module.css';
 import { ActorName, CommentLabelBadge, CommentLabelFilter, NoCommentWithLabel } from './CommentParts';
+import { BugLabel } from './IssueStatusLabel';
 import styles from './Issues.module.css';
 import { labelFilter, type ProjectCommentsData } from './issueData';
 
@@ -47,6 +48,7 @@ export function ProjectCommentsRoute() {
                                             {comment.issue.title}
                                         </Link>
                                         <span className={rowStyles.labels}>
+                                            <BugLabel category={comment.issue.category} />
                                             <CommentLabelBadge label={comment.label} />
                                         </span>
                                     </div>

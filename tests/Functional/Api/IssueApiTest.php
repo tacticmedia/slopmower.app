@@ -54,8 +54,8 @@ final class IssueApiTest extends WebTestCase
     {
         $tenantId = $this->user->getTenantId();
         self::storeProject($tenantId, 'SM', repository: self::storeRepository($tenantId, 'alpha'));
-        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once']);
-        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode', 'problem' => self::PROBLEM, 'status' => 'todo']);
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change']);
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode', 'category' => 'change', 'problem' => self::PROBLEM, 'status' => 'todo']);
 
         $projects = self::assertApiResponse(self::apiRequest($this->client, 'GET', '/api/v1/projects'), 200, 'lists.schema.json#/$defs/ProjectPage');
         $issues = self::assertApiResponse(self::apiRequest($this->client, 'GET', '/api/v1/projects/SM/issues'), 200, 'lists.schema.json#/$defs/IssuePage');
@@ -72,7 +72,7 @@ final class IssueApiTest extends WebTestCase
     public function testCommentOfTheUser(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
-        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once']);
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change']);
 
         self::assertApiResponse(self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/comments', ['body' => 'Keep `round()` as deprecated.']), 201, self::ISSUE);
 
@@ -106,7 +106,7 @@ final class IssueApiTest extends WebTestCase
     public function testUserAnswersQuestions(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
-        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once']);
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change']);
         $asked = $this->ask();
         $answers = [['question' => ' Remove `round()` in 3.0? ', 'answer' => ' Yes '], ['question' => 'Which type holds the amounts?', 'answer' => 'Money']];
 
@@ -125,7 +125,7 @@ final class IssueApiTest extends WebTestCase
     public function testAnswerRefusals(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
-        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once']);
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change']);
         $this->agent('comment_on_issue', ['issue' => 'SM-1', 'body' => 'The test is next.']);
         $plain = $this->agent('get_issue', ['issue' => 'SM-1'])['thread'][0]['id'];
         $asked = $this->ask();
@@ -150,7 +150,7 @@ final class IssueApiTest extends WebTestCase
     public function testUserDismissesQuestions(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
-        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once']);
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change']);
         $asked = $this->ask();
 
         self::assertApiResponse(self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/comments', ['body' => ' ', 'label' => 'decision', 'replaces' => $asked, 'dismiss' => true]), 201, self::ISSUE);
@@ -166,7 +166,7 @@ final class IssueApiTest extends WebTestCase
     public function testDismissRefusals(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
-        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once']);
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change']);
         $this->agent('comment_on_issue', ['issue' => 'SM-1', 'body' => 'The test is next.']);
         $plain = $this->agent('get_issue', ['issue' => 'SM-1'])['thread'][0]['id'];
         $asked = $this->ask();
@@ -190,8 +190,8 @@ final class IssueApiTest extends WebTestCase
     public function testWontDoDismissesOpenQuestions(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
-        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once']);
-        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode']);
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change']);
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode', 'category' => 'change']);
         $answered = $this->ask();
         $first = $this->ask();
         $second = $this->ask();
@@ -213,7 +213,7 @@ final class IssueApiTest extends WebTestCase
     public function testUnknownLabelIsRefused(): void
     {
         self::storeProject($this->user->getTenantId(), 'SM');
-        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once']);
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change']);
 
         $error = self::assertApiError(self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/comments', ['body' => 'Keep `round()` as deprecated.', 'label' => 'idea']), 422, 'invalid_input');
 
@@ -241,7 +241,7 @@ final class IssueApiTest extends WebTestCase
     {
         self::storeProject($this->user->getTenantId(), 'SM', ApprovalMode::User);
         $withProblem = $this->plannedIssue('awaiting_user_input');
-        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode']);
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Show the rounding mode', 'category' => 'change']);
         $withoutProblem = (string) $this->agent('update_issue', ['issue' => 'SM-2', 'plan' => self::PLAN])['planRevision'];
         $this->agent('set_issue_status', ['issue' => 'SM-2', 'status' => 'awaiting_user_input']);
 
@@ -311,6 +311,20 @@ final class IssueApiTest extends WebTestCase
         self::assertSame(['approval'], array_column($byIssue['details']['violations'] ?? [], 'field'));
     }
 
+    #[TestDox('I6 without category answers 422 on category, and I7 of a user changes the category of an ended issue')]
+    public function testCategoryOfTheUser(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change']);
+        $this->agent('set_issue_status', ['issue' => 'SM-1', 'status' => 'wont_do', 'note' => 'SM-9 covers it.']);
+
+        $missing = self::assertApiError(self::apiRequest($this->client, 'POST', '/api/v1/projects/SM/issues', ['title' => 'Show the rounding mode']), 422, 'invalid_input');
+        $changed = self::assertApiResponse(self::apiRequest($this->client, 'PATCH', '/api/v1/issues/SM-1', ['category' => 'bug']), 200, self::ISSUE);
+
+        self::assertSame(['category'], array_column($missing['details']['violations'] ?? [], 'field'));
+        self::assertSame(['bug', 'wont_do'], [$changed['category'], $changed['status']]);
+    }
+
     #[TestDox('I8 by a user sets in_progress without an approval and done, sets done again without an entry, and leaves done')]
     public function testUserSetsEveryStatus(): void
     {
@@ -342,7 +356,7 @@ final class IssueApiTest extends WebTestCase
 
         foreach (['SM' => ['Add the rounding mode', 'Show the rounding mode', 'Round the shipping totals', 'Round the quotes'], 'DOC' => ['Name the rounding modes', 'Name the tax terms']] as $project => $titles) {
             foreach ($titles as $title) {
-                $this->agent('create_issue', ['project' => $project, 'title' => $title]);
+                $this->agent('create_issue', ['project' => $project, 'title' => $title, 'category' => 'change']);
             }
         }
 
@@ -371,9 +385,9 @@ final class IssueApiTest extends WebTestCase
         $other = TenantFixtures::of(self::getContainer())->withLogin('other')->create();
         self::storeProject($other->getTenantId(), 'DOC');
         $otherMcp = new McpTestClient($this->client, self::storeToken($other)[1]);
-        self::assertToolResult($otherMcp, $otherMcp->callTool('create_issue', ['project' => 'DOC', 'title' => 'Describe the rounding']), 'create_issue');
+        self::assertToolResult($otherMcp, $otherMcp->callTool('create_issue', ['project' => 'DOC', 'title' => 'Describe the rounding', 'category' => 'change']), 'create_issue');
         self::storeProject($this->user->getTenantId(), 'SM');
-        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once']);
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change']);
 
         self::assertApiError(self::apiRequest($this->client, 'GET', '/api/v1/projects/DOC/issues?limit=0'), 404, 'not_found');
         self::assertApiError(self::apiRequest($this->client, 'POST', '/api/v1/issues/DOC-1/comments', []), 404, 'not_found');
@@ -389,7 +403,7 @@ final class IssueApiTest extends WebTestCase
      */
     private function plannedIssue(string $status): string
     {
-        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'problem' => self::PROBLEM, 'status' => 'todo']);
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change', 'problem' => self::PROBLEM, 'status' => 'todo']);
         $planRevision = (string) $this->agent('update_issue', ['issue' => 'SM-1', 'plan' => self::PLAN])['planRevision'];
 
         if ('todo' !== $status) {

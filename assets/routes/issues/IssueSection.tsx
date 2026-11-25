@@ -2,7 +2,7 @@ import { Button } from '@primer/react';
 import type { Ref } from 'react';
 import { useFetcher } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
-import type { IssueSection as Section } from '../../api/types/common';
+import type { IssueCategory, IssueSection as Section } from '../../api/types/common';
 import type { Issue } from '../../api/types/issue';
 import { CommentBox } from '../../comments/CommentBox';
 import { ActionErrorMessage } from '../../layout/ActionErrorMessage';
@@ -14,12 +14,18 @@ import { type IssueWrite, useIssueWrite } from './useIssueWrite';
 
 export const SECTION_TITLES: Record<Section, string> = { problem: 'Problem', plan: 'Plan', result: 'Result', followUps: 'Follow-ups' };
 
-/** What a section holds: the placeholder of its editor. */
+/** What a section holds: the placeholder of its editor. The problem of an issue holds what its category says. */
 export const SECTION_CONTENT: Record<Section, string> = {
-    problem: 'What is wanted, and how to tell that it is done',
+    problem: 'What is wrong or wanted, and how to tell that it is done',
     plan: 'The steps, the files, and the tests',
     result: 'What was done, with the commits, and each deviation from the plan',
     followUps: 'What came up and was left out',
+};
+
+/** What the problem holds for each category (D133). */
+export const PROBLEM_CONTENT: Record<IssueCategory, string> = {
+    bug: 'What is wrong, how to see it, and what is expected',
+    change: 'What is wanted, and how to tell that it is done',
 };
 
 /** Whitespace only is no text, as the rules of the server read a section. */
@@ -47,7 +53,7 @@ export function SectionEditor({ issue, section, write }: { issue: Issue; section
         <CommentBox
             label={SECTION_TITLES[section]}
             labelVisible
-            placeholder={SECTION_CONTENT[section]}
+            placeholder={'problem' === section ? PROBLEM_CONTENT[issue.category] : SECTION_CONTENT[section]}
             submitLabel="Save"
             draftKey={key}
             onSubmit={({ body }) => write.send({ intent: 'update', input: { [section]: body }, draftKey: key })}

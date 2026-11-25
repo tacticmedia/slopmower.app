@@ -167,7 +167,7 @@ These two principles control all decisions.
 
 - The tracker is the long-term memory of the changes to a repository: a human can read it, and a human and an agent can search it.
 - A project holds the issues of its repositories. A repository belongs to at most one project.
-- An issue records one change in four sections, the problem, the plan, the result, and the follow-ups, and in a thread of comments, status changes, section changes, and plan approvals. Issues can be linked, each link with its reason.
+- An issue is a bug report or a change request. It records one bug or one change in four sections, the problem, the plan, the result, and the follow-ups, and in a thread of comments, status changes, section changes, and plan approvals. Issues can be linked, each link with its reason.
 - An agent creates, plans, works, discusses, links, and ends issues through the MCP server. A second Agent Skill and the server instructions make it track each user request that changes code, documentation, or configuration, without being asked.
 - A project has one approval mode: only the user approves a plan and ends an issue, an agent does both with the review of another agent on record, no approval, or one of these three per issue. Per issue, the agent chooses the approval of a new issue by the guidelines of the user, and the user can change it (D129).
 - The MCP tools come first (D116 to D118). The web interface, the search, and the REST endpoints follow as issues of the tracker itself (D119).

@@ -51,7 +51,7 @@ final class IssueClaimsTest extends WebTestCase
         [, $this->secret] = self::storeToken($user);
         $this->mcp = new McpTestClient($this->client, $this->secret);
         self::storeProject($user->getTenantId(), 'SM');
-        $this->created = $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'problem' => 'Invoice totals round each line.', 'status' => 'todo']);
+        $this->created = $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change', 'problem' => 'Invoice totals round each line.', 'status' => 'todo']);
     }
 
     #[TestDox('create_issue takes no claim, the first write of a session takes it, and get_issue and list_issues show it')]

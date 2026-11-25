@@ -2,6 +2,7 @@
   "issue": {
     "key": "BILL-12",
     "title": "Round invoice totals once per invoice",
+    "category": "bug",
     "status": "in_progress",
     "approval": "agent_review",
     "claim": {
@@ -60,6 +61,7 @@
       "issue": {
         "key": "BILL-9",
         "title": "Round shipping totals per line",
+        "category": "change",
         "status": "done",
         "approval": "agent_review",
         "claim": null,

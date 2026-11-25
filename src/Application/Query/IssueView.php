@@ -6,6 +6,7 @@ namespace App\Application\Query;
 
 use App\Domain\Actor\Actor;
 use App\Domain\Issue\ApprovalMode;
+use App\Domain\Issue\IssueCategory;
 use App\Domain\Issue\IssueClaim;
 use App\Domain\Issue\IssueKey;
 use App\Domain\Issue\IssueStatus;
@@ -24,6 +25,7 @@ final readonly class IssueView
     public function __construct(
         public IssueKey $key,
         public string $title,
+        public IssueCategory $category,
         public IssueStatus $status,
         public ApprovalMode $approval,
         public ?IssueClaim $claim,

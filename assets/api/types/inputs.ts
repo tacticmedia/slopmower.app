@@ -1,6 +1,6 @@
 import type { AnchorInput } from './anchor';
 import type { TokenName } from './api-token';
-import type { ApprovalMode, CodeAccess, CommentLabel, CommitSha, DateTime, Delivery, IssueApproval, IssueStatus, Markdown, ProjectKey, PullRequestUrl, RepoPath, RequestType, Tour, Ulid, UnifiedDiff } from './common';
+import type { ApprovalMode, CodeAccess, CommentLabel, CommitSha, DateTime, Delivery, IssueApproval, IssueCategory, IssueStatus, Markdown, ProjectKey, PullRequestUrl, RepoPath, RequestType, Tour, Ulid, UnifiedDiff } from './common';
 import type { LocalDirectory } from './repository';
 
 export type ConnectRepositoryInput =
@@ -204,6 +204,7 @@ export type UpdateProjectInput = {
 
 export type CreateIssueInput = {
     title: string;
+    category: IssueCategory;
     problem?: Markdown | null;
     /** Absent or null: draft. */
     status?: Extract<IssueStatus, 'draft' | 'backlog' | 'todo'> | null;
@@ -214,6 +215,7 @@ export type CreateIssueInput = {
 /** Absent or null keeps a field. At least one field is given. */
 export type UpdateIssueInput = {
     title?: string | null;
+    category?: IssueCategory | null;
     problem?: Markdown | null;
     plan?: Markdown | null;
     result?: Markdown | null;

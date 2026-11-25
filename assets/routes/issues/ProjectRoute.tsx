@@ -1,22 +1,36 @@
 import { ActionList, ActionMenu, Button, Heading, Link, RelativeTime } from '@primer/react';
 import { Link as RouterLink, useLoaderData, useSearchParams } from 'react-router';
-import { ISSUE_STATUSES, type IssueStatus } from '../../api/types/common';
+import { ISSUE_CATEGORIES, ISSUE_STATUSES, type IssueCategory, type IssueStatus } from '../../api/types/common';
 import { useDocumentTitle } from '../../layout/useDocumentTitle';
 import headerStyles from '../../requests/RequestListHeader.module.css';
 import rowStyles from '../../requests/RequestRow.module.css';
 import listStyles from '../requests/RequestList.module.css';
-import { ISSUE_STATUS_TEXT, IssueStatusLabel, NoApprovalLabel } from './IssueStatusLabel';
+import { BugLabel, ISSUE_STATUS_TEXT, IssueStatusLabel, NoApprovalLabel } from './IssueStatusLabel';
 import styles from './Issues.module.css';
-import { type ProjectData, statusFilter } from './issueData';
+import { categoryFilter, type ProjectData, statusFilter } from './issueData';
 import { APPROVAL_MODE_NAMES } from './ApprovalModeField';
 
 const STATUS_OPTIONS: readonly (IssueStatus | null)[] = [null, ...ISSUE_STATUSES];
+const CATEGORY_OPTIONS: readonly (IssueCategory | null)[] = [null, ...ISSUE_CATEGORIES];
+const CATEGORY_FILTER_TEXT: Record<IssueCategory, string> = { bug: 'Bug reports', change: 'Change requests' };
 
-/** The issues of one project, newest change first. The status filter is the URL search parameter `status` of I1. */
+/** The issues of one project, newest change first. The filters are the URL search parameters `status` and `category` of I1. */
 export function ProjectRoute() {
     const { project, issues } = useLoaderData<ProjectData>();
     const [searchParams, setSearchParams] = useSearchParams();
     const filter = statusFilter(searchParams);
+    const category = categoryFilter(searchParams);
+    const setFilter = (name: 'status' | 'category', value: string | null): void =>
+        setSearchParams((current) => {
+            const next = new URLSearchParams(current);
+            if (null === value) {
+                next.delete(name);
+            } else {
+                next.set(name, value);
+            }
+
+            return next;
+        });
     useDocumentTitle(project.name);
 
     return (
@@ -61,8 +75,20 @@ export function ProjectRoute() {
                             <ActionMenu.Overlay>
                                 <ActionList selectionVariant="single">
                                     {STATUS_OPTIONS.map((status) => (
-                                        <ActionList.Item key={status ?? 'all'} selected={status === filter} onSelect={() => setSearchParams(null === status ? {} : { status })}>
+                                        <ActionList.Item key={status ?? 'all'} selected={status === filter} onSelect={() => setFilter('status', status)}>
                                             {null === status ? 'All' : ISSUE_STATUS_TEXT[status]}
+                                        </ActionList.Item>
+                                    ))}
+                                </ActionList>
+                            </ActionMenu.Overlay>
+                        </ActionMenu>
+                        <ActionMenu>
+                            <ActionMenu.Button size="small">Category: {null === category ? 'All' : CATEGORY_FILTER_TEXT[category]}</ActionMenu.Button>
+                            <ActionMenu.Overlay>
+                                <ActionList selectionVariant="single">
+                                    {CATEGORY_OPTIONS.map((option) => (
+                                        <ActionList.Item key={option ?? 'all'} selected={option === category} onSelect={() => setFilter('category', option)}>
+                                            {null === option ? 'All' : CATEGORY_FILTER_TEXT[option]}
                                         </ActionList.Item>
                                     ))}
                                 </ActionList>
@@ -72,13 +98,13 @@ export function ProjectRoute() {
                 </div>
                 {0 === issues.length ? (
                     <p className={listStyles.empty} data-testid="issue-list-empty">
-                        {null === filter ? (
+                        {null === filter && null === category ? (
                             'No issues yet.'
                         ) : (
                             <>
-                                No issue has this status.{' '}
+                                No issue matches the filters.{' '}
                                 <Link as={RouterLink} to={{ search: '' }}>
-                                    Clear the filter
+                                    Clear the filters
                                 </Link>
                             </>
                         )}
@@ -94,6 +120,7 @@ export function ProjectRoute() {
                                         </Link>
                                         <span className={rowStyles.labels}>
                                             <IssueStatusLabel status={issue.status} />
+                                            <BugLabel category={issue.category} />
                                             <NoApprovalLabel approval={issue.approval} />
                                         </span>
                                     </div>

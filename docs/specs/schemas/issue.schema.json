@@ -4,7 +4,7 @@
   "title": "Issue",
   "description": "An issue without its links and its thread: the result of every issue write.",
   "type": "object",
-  "required": ["key", "title", "status", "approval", "claim", "problem", "plan", "result", "followUps", "project", "planRevision", "planApproval", "allowedStatuses", "createdBy", "createdAt", "updatedAt"],
+  "required": ["key", "title", "category", "status", "approval", "claim", "problem", "plan", "result", "followUps", "project", "planRevision", "planApproval", "allowedStatuses", "createdBy", "createdAt", "updatedAt"],
   "properties": {
     "key": {
       "$ref": "common.schema.json#/$defs/IssueKey"
@@ -13,6 +13,9 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 200
+    },
+    "category": {
+      "$ref": "common.schema.json#/$defs/IssueCategory"
     },
     "status": {
       "$ref": "common.schema.json#/$defs/IssueStatus"
@@ -34,7 +37,7 @@
     "problem": {
       "type": ["string", "null"],
       "maxLength": 65536,
-      "description": "Markdown: what the user wants, and how to tell that it is done."
+      "description": "Markdown. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done."
     },
     "plan": {
       "type": ["string", "null"],
@@ -156,7 +159,7 @@
     },
     "IssueSummary": {
       "type": "object",
-      "required": ["key", "title", "status", "approval", "claim", "updatedAt"],
+      "required": ["key", "title", "category", "status", "approval", "claim", "updatedAt"],
       "properties": {
         "key": {
           "$ref": "common.schema.json#/$defs/IssueKey"
@@ -165,6 +168,9 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 200
+        },
+        "category": {
+          "$ref": "common.schema.json#/$defs/IssueCategory"
         },
         "status": {
           "$ref": "common.schema.json#/$defs/IssueStatus"

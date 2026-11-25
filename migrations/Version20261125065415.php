@@ -1,0 +1,30 @@
+<?php
+
+declare(strict_types=1);
+
+namespace DoctrineMigrations;
+
+use Doctrine\DBAL\Schema\Schema;
+use Doctrine\Migrations\AbstractMigration;
+
+/**
+ * Auto-generated Migration: Please modify to your needs!
+ */
+final class Version20261125065415 extends AbstractMigration
+{
+    public function getDescription(): string
+    {
+        return 'The category of an issue, change for each stored issue (D133)';
+    }
+
+    public function up(Schema $schema): void
+    {
+        $this->addSql('ALTER TABLE issue ADD category VARCHAR(255) DEFAULT \'change\' NOT NULL');
+    }
+
+    public function down(Schema $schema): void
+    {
+        // this down() migration is auto-generated, please modify it to your needs
+        $this->addSql('ALTER TABLE issue DROP category');
+    }
+}

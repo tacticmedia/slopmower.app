@@ -1,6 +1,7 @@
 {
   "key": "BILL-12",
   "title": "Round invoice totals once per invoice",
+  "category": "bug",
   "status": "todo",
   "approval": "agent_review",
   "claim": {

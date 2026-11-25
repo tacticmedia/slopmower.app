@@ -278,11 +278,12 @@ final class McpRestParityTest extends WebTestCase
     {
         self::mockTime('2026-09-29 07:40:00');
         self::storeProject($this->user->getTenantId(), 'SM');
-        $this->assertIssueWriteParity('create_issue', ['project' => 'SM'], 'POST', '/api/v1/projects/SM/issues', ['title' => 'Round invoice totals once', 'problem' => 'Invoice totals round each line.'], 201);
+        $this->assertIssueWriteParity('create_issue', ['project' => 'SM'], 'POST', '/api/v1/projects/SM/issues', ['title' => 'Round invoice totals once', 'category' => 'bug', 'problem' => 'Invoice totals round each line.'], 201);
 
         $reads = [
             ['list_projects', [], '/api/v1/projects'],
             ['list_issues', ['project' => 'SM', 'status' => 'draft'], '/api/v1/projects/SM/issues?status=draft'],
+            ['list_issues', ['project' => 'SM', 'category' => 'change'], '/api/v1/projects/SM/issues?category=change'],
             ['get_issue', ['issue' => 'SM-1'], '/api/v1/issues/SM-1'],
         ];
 

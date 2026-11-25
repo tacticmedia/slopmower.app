@@ -3,7 +3,7 @@ import { InlineMessage } from '@primer/react/experimental';
 import { type ReactNode, useEffect, useId, useRef, useState, useTransition } from 'react';
 import { Link as RouterLink, useFetcher, useLoaderData, useNavigate } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
-import { COMMENT_LABELS, type CommentLabel, ISSUE_APPROVALS } from '../../api/types/common';
+import { COMMENT_LABELS, type CommentLabel, ISSUE_APPROVALS, ISSUE_CATEGORIES } from '../../api/types/common';
 import type { IssueCommentInput } from '../../api/types/inputs';
 import type { Issue, IssueDetail, IssueEntry, IssueLink } from '../../api/types/issue';
 import { CommentBox, type CommentText } from '../../comments/CommentBox';
@@ -16,7 +16,7 @@ import sidebarStyles from '../../requests/RequestSidebar.module.css';
 import { dateTimeFormat } from '../../settings/TokenTable';
 import { ActorName, COMMENT_LABEL_TEXT } from './CommentParts';
 import { IssueClaimLine } from './IssueClaimLine';
-import { IssueStatusLabel } from './IssueStatusLabel';
+import { BugLabel, ISSUE_CATEGORY_TEXT, IssueStatusLabel } from './IssueStatusLabel';
 import { IssueStatusMenu } from './IssueStatusMenu';
 import { EntryLink, entryId, IssueTimeline } from './IssueTimeline';
 import { IssueTitle } from './IssueTitle';
@@ -46,6 +46,7 @@ export function IssueRoute() {
                 <IssueTitle key={issue.key} issue={issue} />
                 <div className={styles.state}>
                     <IssueStatusLabel status={issue.status} />
+                    <BugLabel category={issue.category} />
                     <IssueStatusMenu key={issue.key} issue={issue} />
                     <span className={styles.muted}>
                         {issue.createdBy.name} opened this <RelativeTime datetime={issue.createdAt} /> · updated <RelativeTime datetime={issue.updatedAt} />
@@ -60,6 +61,9 @@ export function IssueRoute() {
                             {issue.project.name}
                         </Link>
                         <span className={styles.muted}>{APPROVAL_MODE_NAMES[issue.project.approvalMode]}</span>
+                    </SidebarSection>
+                    <SidebarSection title="Category">
+                        <CategoryOfIssue key={issue.key} issue={issue} />
                     </SidebarSection>
                     <SidebarSection title="Approval">
                         <ApprovalOfIssue key={issue.key} issue={issue} />
@@ -97,6 +101,39 @@ function SidebarSection({ title, children }: { title: string; children: ReactNod
             </h2>
             {children}
         </section>
+    );
+}
+
+/** I7 with `category` (D133). */
+function CategoryOfIssue({ issue }: { issue: Issue }) {
+    const { busy, error, send } = useIssueWrite();
+    const [chosen, setChosen] = useState(issue.category);
+
+    return (
+        <>
+            <Select
+                aria-label="Category of the issue"
+                value={busy ? chosen : issue.category}
+                disabled={busy}
+                onChange={(event) => {
+                    const category = ISSUE_CATEGORIES.find((known) => known === event.target.value) ?? issue.category;
+                    setChosen(category);
+                    send({ intent: 'update', input: { category } });
+                }}
+                data-testid="issue-category"
+            >
+                {ISSUE_CATEGORIES.map((category) => (
+                    <Select.Option key={category} value={category}>
+                        {ISSUE_CATEGORY_TEXT[category]}
+                    </Select.Option>
+                ))}
+            </Select>
+            {null !== error && (
+                <InlineMessage variant="critical" role="alert">
+                    {error}
+                </InlineMessage>
+            )}
+        </>
     );
 }
 

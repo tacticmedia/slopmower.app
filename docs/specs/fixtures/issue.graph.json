@@ -3,6 +3,7 @@
     {
       "key": "BILL-12",
       "title": "Round invoice totals once per invoice",
+      "category": "bug",
       "status": "in_progress",
       "approval": "agent_review",
       "claim": {
@@ -22,6 +23,7 @@
     {
       "key": "BILL-13",
       "title": "Show the rounding mode on the invoice PDF",
+      "category": "change",
       "status": "draft",
       "approval": "agent_review",
       "claim": null,
@@ -30,6 +32,7 @@
     {
       "key": "BILL-14",
       "title": "Round the totals of credit notes",
+      "category": "change",
       "status": "awaiting_user_input",
       "approval": "agent_review",
       "claim": null,
@@ -38,6 +41,7 @@
     {
       "key": "DOC-3",
       "title": "Name the rounding modes in the handbook",
+      "category": "change",
       "status": "in_review",
       "approval": "agent_review",
       "claim": null,
