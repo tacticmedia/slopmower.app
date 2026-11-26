@@ -22,7 +22,7 @@ use Mcp\Schema\ToolAnnotations;
 #[McpTool(
     name: 'propose_solution',
     title: 'Propose solution',
-    description: 'Propose how you will solve a request that you hold, before you link commits. Required when the request has requireApproval true; also useful when the request is unclear or large. A new proposal replaces the current one. The user approves it or requests changes: the decision comes back through get_updates, and get_request shows it in proposal.state. Until the user approves, link_commits and mark_ready_for_review fail with invalid_transition.',
+    description: 'Propose how you will solve a request that you hold, before you link commits. Required when the request has requireApproval true; also useful when the request is unclear or large. plan is for the user, at most 1,500 characters: what changes, one line each; out of scope; risk. The detail of the change goes into diff. A new proposal replaces the current one. The user approves it or requests changes: the decision comes back through get_updates, and get_request shows it in proposal.state. Until the user approves, link_commits and mark_ready_for_review fail with invalid_transition.',
     annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
     outputSchema: BundledSchemas::REQUEST_COMMAND_RESULT,
 )]
@@ -42,7 +42,7 @@ final readonly class ProposeSolutionTool
     public function __invoke(
         #[Schema(description: 'Request ID', pattern: Input::ULID)]
         string $id,
-        #[Schema(description: 'Markdown plan: what you will change, and why', minLength: 1, maxLength: 65536, pattern: Input::NO_NUL)]
+        #[Schema(description: 'Markdown, for the user: what changes, one line each; out of scope; risk. No file lists, tests, or sources: the detail goes into diff. At most 1,500 characters', minLength: 1, maxLength: 65536, pattern: Input::NO_NUL)]
         string $plan,
         #[Schema(description: 'Optional unified diff of the change from `git diff`, at most 9 files', minLength: 1, maxLength: 65536, pattern: Input::NO_NUL)]
         ?string $diff = null,

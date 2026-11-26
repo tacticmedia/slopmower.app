@@ -427,7 +427,7 @@ Example error, [fixtures/error.invalid-input.json](fixtures/error.invalid-input.
 - **Authentication:** B
 - **Body:** [`ProposeSolutionInput`](schemas/inputs.schema.json), `{plan, diff?}`. `diff` is the output of `git diff` for the change, 1 to 9 files. Example: [fixtures/inputs.propose-solution.json](fixtures/inputs.propose-solution.json).
 - **Success:** 200 `RequestCommandResult` with one `request.proposed` event. Its `body` is the plan, and its `diff` the diff. Example: [fixtures/request-command-result.proposed.json](fixtures/request-command-result.proposed.json).
-- **Errors:** 422 `invalid_input`: a plan of whitespace only, or a diff that is not in git format, has more than 9 files, or is too long; 409 `invalid_transition`, 409 `review_closed`.
+- **Errors:** 422 `invalid_input`: a plan of whitespace only or of more than 1,500 characters (D145), or a diff that is not in git format, has more than 9 files, or is too long; 409 `invalid_transition`, 409 `review_closed`.
 
 The proposal replaces the current one, also an approved one. The request then waits for the user. Example of the request, read by the user: [fixtures/request.proposal-pending.json](fixtures/request.proposal-pending.json).
 

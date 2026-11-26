@@ -199,7 +199,7 @@ Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 
 - **Output:** [`request-command-result.schema.json`](schemas/request-command-result.schema.json).
 - **Behaviour:** REST Q14. The user approves with Q15, or replies to ask for changes. The approval has no tool.
-- **Errors:** `not_found`, `review_closed`, `invalid_transition`, `invalid_input` for a plan of whitespace only or a diff that is not a git diff of 1 to 9 files.
+- **Errors:** `not_found`, `review_closed`, `invalid_transition`, `invalid_input` for a plan of whitespace only or of more than 1,500 characters (D145), or a diff that is not a git diff of 1 to 9 files.
 - **Example:** arguments as in [fixtures/inputs.propose-solution.json](fixtures/inputs.propose-solution.json) plus `id` give [fixtures/request-command-result.proposed.json](fixtures/request-command-result.proposed.json).
 
 ### 4.14 `link_pull_request`

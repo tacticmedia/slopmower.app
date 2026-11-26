@@ -69,6 +69,7 @@ final class RequestDecider
     private const int MAX_TITLE_CHARACTERS = 200;
     private const int MAX_QUESTIONS = 10;
     private const int MAX_QUESTION_TEXT_CHARACTERS = 4000;
+    private const int MAX_PROPOSAL_PLAN_CHARACTERS = 1500;
 
     /**
      * @param list<RequestState> $states             The state of each request that the command names
@@ -244,7 +245,13 @@ final class RequestDecider
             $command instanceof UnlinkPullRequest => self::unlinkPullRequestViolations($command, $byId[$command->requestId->toString()]),
             $command instanceof MarkReadyForReview, $command instanceof Reopen => self::textViolations('note', $command->note),
             $command instanceof MarkWontDo => self::reasonViolations($command->reason),
-            $command instanceof ProposeSolution => [...self::textViolations('plan', $command->plan), ...self::diffViolations($command->diff)],
+            $command instanceof ProposeSolution => [
+                ...self::textViolations('plan', $command->plan),
+                ...(mb_strlen($command->plan, 'UTF-8') > self::MAX_PROPOSAL_PLAN_CHARACTERS
+                    ? [['field' => 'plan', 'message' => 'At most 1,500 characters: what changes for the user, out of scope, and the risk. Put the detail into the diff.']]
+                    : []),
+                ...self::diffViolations($command->diff),
+            ],
             $command instanceof ApproveProposal => self::proposalViolations($byId[$command->requestId->toString()], $command->proposalEventId),
             $command instanceof SetTitle => self::titleViolations($command->title),
             default => [],

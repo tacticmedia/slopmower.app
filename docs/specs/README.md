@@ -37,7 +37,7 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 
 | Field | Limit |
 |---|---|
-| `body`, required `note`, proposal `plan` | 1 to 65,536 characters, at least one non-whitespace character. A comment `body` with `questions` can be empty. |
+| `body`, required `note`, proposal `plan` | 1 to 65,536 characters, at least one non-whitespace character. A proposal `plan` has at most 1,500 characters (D145). A comment `body` with `questions` can be empty. |
 | proposal `diff` | 1 to 65,536 characters, a unified diff in git format with 1 to 9 lines that start with `diff --git ` |
 | optional `note`, `summary`, close `note` | 0 to 65,536 characters, or null |
 | `reason` of won't do | at least 20 characters after trimming, at most 65,536 characters |
@@ -284,6 +284,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Issue ranking, decision D137: the closed set `IssuePriority`, the optional input `priority` of I6 and `create_issue`, the property `lastActivityAt` of `Issue` and `IssueSummary`, the optional inputs `sort`, `activeWithinHours`, `idleForHours`, and `noActivity` of I1 and `list_issues`, and the endpoint I13 with the input `RankIssueInput`. Not additive: I1 and `list_issues` sort by rank by default, bugs first, and without `status` return only the open issues. A stored issue has the rank of its number.
     - Agent notes, decision D143: the property `notes` of `Issue` and the optional input `notes` of I7 and `update_issue`. Not additive: `IssueSection` gets the value `notes`. The MCP output schemas accept it as an open set (D135). A stored issue has `notes` null.
     - Length limit on agent text, decision D144: a token or an MCP call writes at most 1,500 characters into `problem`, `plan`, and `result`, where it wrote 65,536. Not additive: it is tighter validation. A stored longer text stays, and a resend of it passes.
+    - Length limit on a proposal plan, decision D145: Q14 and `propose_solution` take at most 1,500 characters in `plan`, where they took 65,536. Not additive: it is tighter validation. A stored longer proposal stays.
 
 ## 9. Contract tests
 

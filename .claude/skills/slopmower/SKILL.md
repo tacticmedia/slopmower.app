@@ -139,7 +139,8 @@ and read their whole thread, because the user rejected an earlier result.
 4. Propose first when `requireApproval` is true, or when the request is unclear
    or large. `proposal` in `get_request` holds the current proposal and its
    `state`.
-   - Start `plan` with `Summary:`, as the section "Writing" says.
+   - Write `plan` as the section "Writing" says. The detail of the change
+     goes into `diff`, when you send one.
    - Plan only: describe the change in `plan`. Do not edit code.
    - Plan with a diff, when the change is straightforward and touches fewer than
      10 files: start from a clean working tree, make the change, run
@@ -278,7 +279,7 @@ in one pass.
 | Content | Only what the user needs: a fact with its source, a decision with its reason, a question, or a next step. |
 | Unchecked | Write "Not checked" for a fact that you did not check. Do not hedge a fact that you checked. |
 | No slop | No greeting, praise, apology, thanks, filler, or closing summary. Do not repeat the request or an earlier text. No judging words, for example "robust", "comprehensive", or "seamless". No bold label on each list item. No em dash. |
-| `plan` | Starts with `Summary:`, at most 80 words, read in 30 seconds or less: what changes, where, the risk, and each choice for the user. The steps follow. |
+| `plan` | For the user: what changes, one line each; out of scope; risk. No file lists, tests, sources, or quotes of the user. |
 | Note | `mark_ready_for_review`: what changed and how you tested it, in at most 5 lines. |
 
 ## Rules

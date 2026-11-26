@@ -102,6 +102,18 @@ final class ClaimReleaseToolTest extends WebTestCase
         self::assertSame(['claim', ['reply']], [$error['details']['action'] ?? null, $error['details']['allowedActions'] ?? null]);
     }
 
+    #[TestDox('A proposal plan over 1,500 characters gives isError invalid_input on plan, and one of 1,500 multibyte characters passes')]
+    public function testProposalPlanLengthLimit(): void
+    {
+        self::assertToolResult($this->mcp, $this->mcp->callTool('claim_request', ['id' => $this->requestId]), 'claim_request');
+
+        $error = self::assertToolError($this->mcp->callTool('propose_solution', ['id' => $this->requestId, 'plan' => str_repeat('a', 1501)]), 'invalid_input');
+        $atTheLimit = self::assertToolResult($this->mcp, $this->mcp->callTool('propose_solution', ['id' => $this->requestId, 'plan' => str_repeat('ä', 1500)]), 'propose_solution');
+
+        self::assertSame([['field' => 'plan', 'message' => 'At most 1,500 characters: what changes for the user, out of scope, and the risk. Put the detail into the diff.']], $error['details']['violations'] ?? null);
+        self::assertSame(str_repeat('ä', 1500), $atTheLimit['events'][0]['body']);
+    }
+
     #[TestDox('release_request restores the status before the claim')]
     public function testReleaseRestoresStatusBeforeClaim(): void
     {
