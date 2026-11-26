@@ -17,6 +17,20 @@ export const COMMENT_LABEL_TEXT: Record<CommentLabel, string> = {
     review: 'Review',
 };
 
+/** The texts of `CommentLabel` in docs/specs (D121). */
+export const COMMENT_LABEL_MEANINGS: Record<CommentLabel, string> = {
+    comment: 'Progress or a remark.',
+    decision: 'A choice, with its reason and what it rules out.',
+    question: 'Asks the user with its questions.',
+    answer: 'The answers of a user to a question comment, which it replaces.',
+    dismissal: 'The user does not answer a question comment, which it replaces.',
+    finding: 'A verified fact, with its source.',
+    deviation: 'The work differs from the plan.',
+    scope_creep: 'Work that came up and was left out, or was added.',
+    papercut: 'A small friction in the tools, the code, or the process.',
+    review: 'The findings of a reviewing agent.',
+};
+
 /** A colour for the labels that a reader acts on. The others are gray. */
 const VARIANTS: Record<CommentLabel, NonNullable<LabelProps['variant']>> = {
     comment: 'secondary',

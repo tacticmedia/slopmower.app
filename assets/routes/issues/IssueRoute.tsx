@@ -1,24 +1,23 @@
-import { Banner, Button, Link, RelativeTime, Select } from '@primer/react';
+import { ActionList, ActionMenu, Banner, Button, Link, RelativeTime } from '@primer/react';
 import { InlineMessage } from '@primer/react/experimental';
 import { type ReactNode, useEffect, useId, useRef, useState, useTransition } from 'react';
-import { Link as RouterLink, useFetcher, useLoaderData, useNavigate, useRouteLoaderData } from 'react-router';
+import { Link as RouterLink, useFetcher, useLoaderData, useNavigate } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
-import { COMMENT_LABELS, type CommentLabel, ISSUE_APPROVALS, ISSUE_CATEGORIES, ISSUE_PARTY_KINDS, type WaitingFor } from '../../api/types/common';
+import { COMMENT_LABELS, type CommentLabel } from '../../api/types/common';
 import type { IssueCommentInput } from '../../api/types/inputs';
 import type { Issue, IssueEntry, IssueLink } from '../../api/types/issue';
-import type { Me } from '../../api/types/me';
 import { CommentBox, type CommentText } from '../../comments/CommentBox';
-import boxStyles from '../../comments/CommentBox.module.css';
 import { MarkdownBody } from '../../comments/MarkdownBody';
 import { QuestionForm, QuestionList, withDraftAnswers } from '../../comments/Questions';
 import { useDocumentTitle } from '../../layout/useDocumentTitle';
 import { removeSessionDraft, useSessionDraft } from '../../layout/useSessionDraft';
 import sidebarStyles from '../../requests/RequestSidebar.module.css';
 import { dateTimeFormat } from '../../settings/TokenTable';
-import { ActorName, COMMENT_LABEL_TEXT } from './CommentParts';
+import { ActorName, COMMENT_LABEL_MEANINGS, COMMENT_LABEL_TEXT } from './CommentParts';
 import { IssueClaimLine } from './IssueClaimLine';
 import { IssueCommitList } from './IssueCommitList';
-import { BugLabel, ISSUE_CATEGORY_TEXT, IssueStatusLabel } from './IssueStatusLabel';
+import { ApprovalOfIssue, CategoryOfIssue, PartyOfIssue } from './IssueFieldMenu';
+import { BugLabel, IssueStatusLabel } from './IssueStatusLabel';
 import { IssueStatusMenu } from './IssueStatusMenu';
 import { EntryLink, entryId, IssueTimeline } from './IssueTimeline';
 import { IssueTitle } from './IssueTitle';
@@ -127,39 +126,6 @@ function SidebarSection({ title, children }: { title: string; children: ReactNod
     );
 }
 
-/** I7 with `category` (D133). */
-function CategoryOfIssue({ issue }: { issue: Issue }) {
-    const { busy, error, send } = useIssueWrite();
-    const [chosen, setChosen] = useState(issue.category);
-
-    return (
-        <>
-            <Select
-                aria-label="Category of the issue"
-                value={busy ? chosen : issue.category}
-                disabled={busy}
-                onChange={(event) => {
-                    const category = ISSUE_CATEGORIES.find((known) => known === event.target.value) ?? issue.category;
-                    setChosen(category);
-                    send({ intent: 'update', input: { category } });
-                }}
-                data-testid="issue-category"
-            >
-                {ISSUE_CATEGORIES.map((category) => (
-                    <Select.Option key={category} value={category}>
-                        {ISSUE_CATEGORY_TEXT[category]}
-                    </Select.Option>
-                ))}
-            </Select>
-            {null !== error && (
-                <InlineMessage variant="critical" role="alert">
-                    {error}
-                </InlineMessage>
-            )}
-        </>
-    );
-}
-
 /** I8 with the status of the issue and {@link handOverTo}. The primary button while the issue waits for the signed-in user. */
 function HandOver({ issue }: { issue: Issue }) {
     const { busy, error, send } = useIssueWrite();
@@ -181,79 +147,6 @@ function HandOver({ issue }: { issue: Issue }) {
             >
                 Hand over to {partyName('requester' === next ? issue.requester : issue.assignee)}
             </Button>
-            {null !== error && (
-                <InlineMessage variant="critical" role="alert">
-                    {error}
-                </InlineMessage>
-            )}
-        </>
-    );
-}
-
-/** I7 with `requester` or `assignee`: the signed-in user or "Agent" (D134). */
-function PartyOfIssue({ issue, role }: { issue: Issue; role: WaitingFor }) {
-    const { busy, error, send } = useIssueWrite();
-    const login = useRouteLoaderData<Me>('root')?.user.login ?? 'You';
-    const party = issue[role];
-    const [chosen, setChosen] = useState(party.kind);
-    const title = 'requester' === role ? 'Requester' : 'Assignee';
-
-    return (
-        <>
-            <Select
-                aria-label={`${title} of the issue`}
-                value={busy ? chosen : party.kind}
-                disabled={busy}
-                onChange={(event) => {
-                    const kind = ISSUE_PARTY_KINDS.find((known) => known === event.target.value) ?? party.kind;
-                    setChosen(kind);
-                    send({ intent: 'update', input: { [role]: kind } });
-                }}
-                data-testid={`issue-${role}`}
-            >
-                {ISSUE_PARTY_KINDS.map((kind) => (
-                    <Select.Option key={kind} value={kind}>
-                        {'agent' === kind ? 'Agent' : login}
-                    </Select.Option>
-                ))}
-            </Select>
-            {null !== error && (
-                <InlineMessage variant="critical" role="alert">
-                    {error}
-                </InlineMessage>
-            )}
-        </>
-    );
-}
-
-/** The mode that binds the issue. In a `by_issue` project the user changes it with I7 (D129). */
-function ApprovalOfIssue({ issue }: { issue: Issue }) {
-    const { busy, error, send } = useIssueWrite();
-    const [chosen, setChosen] = useState(issue.approval);
-
-    if ('by_issue' !== issue.project.approvalMode) {
-        return <span data-testid="issue-approval">{APPROVAL_MODE_NAMES[issue.approval]}</span>;
-    }
-
-    return (
-        <>
-            <Select
-                aria-label="Approval of the issue"
-                value={busy ? chosen : issue.approval}
-                disabled={busy}
-                onChange={(event) => {
-                    const approval = ISSUE_APPROVALS.find((known) => known === event.target.value) ?? issue.approval;
-                    setChosen(approval);
-                    send({ intent: 'update', input: { approval } });
-                }}
-                data-testid="issue-approval"
-            >
-                {ISSUE_APPROVALS.map((approval) => (
-                    <Select.Option key={approval} value={approval}>
-                        {APPROVAL_MODE_NAMES[approval]}
-                    </Select.Option>
-                ))}
-            </Select>
             {null !== error && (
                 <InlineMessage variant="critical" role="alert">
                     {error}
@@ -417,7 +310,6 @@ function CommentForm({ issueKey }: { issueKey: string }) {
     const [commenting, startComment] = useTransition();
     const [label, setLabel] = useState<CommentLabel>('comment');
     const [sent, setSent] = useState(false);
-    const labelId = useId();
     const draftKey = `issue:${issueKey}:comment`;
     const error = commenting ? null : (fetcher.data?.error ?? null);
     const comment = ({ body }: CommentText): boolean => {
@@ -449,18 +341,21 @@ function CommentForm({ issueKey }: { issueKey: string }) {
             error={error}
             busy={commenting}
             actions={
-                <span className={boxStyles.option}>
-                    <label htmlFor={labelId} className={boxStyles.optionLabel}>
-                        Label
-                    </label>
-                    <Select id={labelId} value={label} onChange={(event) => setLabel(WRITABLE_LABELS.find((known) => known === event.target.value) ?? 'comment')} disabled={commenting}>
-                        {WRITABLE_LABELS.map((known) => (
-                            <Select.Option key={known} value={known}>
-                                {COMMENT_LABEL_TEXT[known]}
-                            </Select.Option>
-                        ))}
-                    </Select>
-                </span>
+                <ActionMenu>
+                    <ActionMenu.Button aria-label={`Comment label: ${COMMENT_LABEL_TEXT[label]}`} disabled={commenting}>
+                        Label: {COMMENT_LABEL_TEXT[label]}
+                    </ActionMenu.Button>
+                    <ActionMenu.Overlay width="medium">
+                        <ActionList selectionVariant="single">
+                            {WRITABLE_LABELS.map((known) => (
+                                <ActionList.Item key={known} selected={known === label} onSelect={() => setLabel(known)}>
+                                    {COMMENT_LABEL_TEXT[known]}
+                                    <ActionList.Description variant="block">{COMMENT_LABEL_MEANINGS[known]}</ActionList.Description>
+                                </ActionList.Item>
+                            ))}
+                        </ActionList>
+                    </ActionMenu.Overlay>
+                </ActionMenu>
             }
         />
     );

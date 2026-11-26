@@ -27,6 +27,11 @@ const VARIANTS: Record<IssueStatus, NonNullable<LabelProps['variant']>> = {
 /** The names of the categories on the screens (D133). */
 export const ISSUE_CATEGORY_TEXT: Record<IssueCategory, string> = { bug: 'Bug report', change: 'Change request' };
 
+export const ISSUE_CATEGORY_MEANINGS: Record<IssueCategory, string> = {
+    bug: 'Something that exists is wrong against its specification, its documentation, or its evident intent.',
+    change: 'A feature, an alteration, a refactoring, or an upgrade.',
+};
+
 /** A change shows no label. */
 export function BugLabel({ category }: { category: IssueCategory }) {
     return 'bug' === category ? (

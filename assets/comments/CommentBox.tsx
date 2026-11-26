@@ -160,7 +160,8 @@ export function CommentBox({
         send();
     };
     const pressKey = (event: KeyboardEvent<HTMLFormElement>): void => {
-        if (event.nativeEvent.isComposing) {
+        // React bubbles the keys of a portal, for example a menu overlay of `actions`, through the form.
+        if (event.nativeEvent.isComposing || !(event.target instanceof Node && event.currentTarget.contains(event.target))) {
             return;
         }
         if (isPressed(SUBMIT_SHORTCUT, event.nativeEvent)) {

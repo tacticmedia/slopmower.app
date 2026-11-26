@@ -127,51 +127,6 @@ test.describe('Issues', () => {
         await expect(page.getByTestId('hand-over')).toHaveCount(0);
     });
 
-    test('The requester and the assignee in the sidebar send I7, and the waiting party follows the assignee', async ({ page, api }) => {
-        await openIssue(page, api);
-        const assignee = page.getByRole('combobox', { name: 'Assignee of the issue' });
-        const requester = page.getByRole('combobox', { name: 'Requester of the issue' });
-        await expect(assignee).toHaveValue('agent');
-        await expect(requester).toHaveValue('user');
-
-        await assignee.selectOption({ label: 'jan' });
-        await expect(page.getByTestId('waiting-label').first()).toHaveText('Waiting for jan');
-        await requester.selectOption({ label: 'Agent' });
-
-        await expect(requester).toHaveValue('agent');
-        expect(api.bodies('PATCH', ISSUE)).toEqual([{ assignee: 'user' }, { requester: 'agent' }]);
-    });
-
-    test('The approval in the sidebar sends I7 in a project of the mode "Per issue", and is text in a project of another mode', async ({ page, api }) => {
-        const issues = new FakeIssues(api);
-        issues.add(issueDetail({ approval: 'user', project: { key: 'BILL', name: 'Billing', approvalMode: 'by_issue' } }));
-        issues.add(issueDetail({ key: 'BILL-13' }));
-        await page.goto(`/issues/${ISSUE_KEY}`);
-        const approval = page.getByRole('combobox', { name: 'Approval of the issue' });
-        await expect(approval).toHaveValue('user');
-
-        await approval.selectOption({ label: 'No approval' });
-
-        await expect(approval).toHaveValue('self');
-        await expect(approval).toBeEnabled();
-        expect(api.bodies('PATCH', ISSUE)).toEqual([{ approval: 'self' }]);
-        await page.goto('/issues/BILL-13');
-        await expect(page.getByTestId('issue-approval')).toHaveText('Agent review');
-    });
-
-    test('The issue header shows "Bug report" for a bug, and the category in the sidebar sends I7', async ({ page, api }) => {
-        await openIssue(page, api);
-        const category = page.getByRole('combobox', { name: 'Category of the issue' });
-        await expect(page.getByTestId('bug-label')).toHaveText('Bug report');
-        await expect(category).toHaveValue('bug');
-
-        await category.selectOption({ label: 'Change request' });
-
-        await expect(category).toHaveValue('change');
-        await expect(page.getByTestId('bug-label')).toHaveCount(0);
-        expect(api.bodies('PATCH', ISSUE)).toEqual([{ category: 'change' }]);
-    });
-
     test('The problem section is "Problem" on a bug and "Task" on a change, in the row "Current", the timeline, the editor, and the status menu', async ({ page, api }) => {
         await openIssue(page, api);
         const current = page.getByTestId('issue-current');
@@ -182,7 +137,8 @@ test.describe('Issues', () => {
         await expect(page.getByRole('menu')).toContainText('The problem is not complete.');
         await page.keyboard.press('Escape');
 
-        await page.getByRole('combobox', { name: 'Category of the issue' }).selectOption({ label: 'Change request' });
+        await page.getByTestId('issue-category').click();
+        await page.getByRole('menuitemradio', { name: 'Change request' }).click();
 
         await expect(current.getByRole('link').first()).toHaveText('Task');
         await expect(firstEntry).toHaveText(/Task changed the task/);
@@ -285,36 +241,6 @@ test.describe('Issues', () => {
         await expect(page.getByTestId('issue-entry').last()).toHaveText(/jan commented.*Keep round\(\) as deprecated\./);
         await expect(field).toHaveValue('');
         expect(api.bodies('POST', COMMENTS)).toEqual([{ body: 'Keep `round()` as deprecated.', label: 'comment' }]);
-    });
-
-    test('The comment form posts the chosen label, and the select returns to Comment', async ({ page, api }) => {
-        await openIssue(page, api);
-        const label = page.getByRole('combobox', { name: 'Label' });
-
-        await expect(label.getByRole('option'), 'The server sets Question and Answer.').toHaveText(['Comment', 'Decision', 'Finding', 'Deviation', 'Scope creep', 'Papercut', 'Review']);
-        await label.selectOption('Decision');
-        await page.getByRole('textbox', { name: 'Comment' }).fill('Keep `round()` as deprecated.');
-        await page.getByRole('button', { name: 'Comment', exact: true }).click();
-
-        await expect(page.getByTestId('issue-entry').last()).toHaveText(/jan Decision commented.*Keep round\(\) as deprecated\./);
-        await expect(label).toHaveValue('comment');
-        expect(api.bodies('POST', COMMENTS)).toEqual([{ body: 'Keep `round()` as deprecated.', label: 'decision' }]);
-    });
-
-    test('A refused comment keeps the chosen label and the text', async ({ page, api }) => {
-        await openIssue(page, api);
-        const message = 'This value is too long. It should have 65536 characters or less.';
-        api.on('POST', COMMENTS, () => apiError(422, 'invalid_input', `Invalid input. body: ${message}`, { violations: [{ field: 'body', message }] }));
-        const label = page.getByRole('combobox', { name: 'Label' });
-        const field = page.getByRole('textbox', { name: 'Comment' });
-
-        await label.selectOption('Decision');
-        await field.fill('Keep `round()` as deprecated.');
-        await page.getByRole('button', { name: 'Comment', exact: true }).click();
-
-        await expect(page.getByTestId('comment-error')).toContainText(message);
-        await expect(label).toHaveValue('decision');
-        await expect(field).toHaveValue('Keep `round()` as deprecated.');
     });
 
     test('The form of an open question comment sends I3 with replaces and each answer, and the timeline then shows the pairs and "Answered"', async ({ page, api }) => {

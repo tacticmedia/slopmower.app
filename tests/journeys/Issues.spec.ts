@@ -127,7 +127,7 @@ test.describe('Issues', () => {
         }
         const issues = new FakeIssues(api, () => repositories.repositories);
         issues.projects = [project({ repositories: ['billing'] }), project({ key: 'DOC', name: 'Documentation', approvalMode: 'user', repositories: ['handbook'] })];
-        issues.add(issueDetail());
+        issues.add(issueDetail({ approval: 'user', project: { key: 'BILL', name: 'Billing', approvalMode: 'by_issue' } }));
         const dialog = page.getByRole('dialog');
 
         await page.goto('/projects');
@@ -158,6 +158,10 @@ test.describe('Issues', () => {
         await page.getByRole('textbox', { name: 'Result' }).fill('Added `TaxRounding::perInvoice()` in a1b2c3d. No deviation.');
         await captureScreen('Issue section editor', page.getByRole('textbox', { name: 'Result' }));
         await page.getByRole('button', { name: 'Cancel' }).click();
+
+        await page.getByTestId('issue-approval').click();
+        await captureScreen('Issue approval menu', page.getByRole('menuitemradio', { name: 'No approval' }));
+        await page.keyboard.press('Escape');
 
         await page.getByRole('button', { name: 'Set status' }).click();
         await captureScreen('Issue status menu', page.getByRole('menuitem', { name: "Won't do" }));

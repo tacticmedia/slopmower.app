@@ -19,14 +19,14 @@ test.describe('IssueLiveUpdates', () => {
         const yes = form.getByRole('group', { name: QUESTIONS[0]?.question }).getByRole('button', { name: 'Yes', exact: true });
         const other = form.getByRole('group', { name: QUESTIONS[1]?.question }).getByRole('textbox', { name: 'Other answer' });
         const comment = page.getByRole('textbox', { name: 'Comment' });
-        const label = page.getByRole('combobox', { name: 'Label' });
         const result = page.getByRole('textbox', { name: 'Result' });
         await page.getByRole('button', { name: 'Write Result' }).click();
         await result.fill('Added `TaxRounding::perInvoice()`.');
         await yes.click();
         await other.fill('Money');
         await comment.fill('Keep `round()` as deprecated.');
-        await label.selectOption('Decision');
+        await page.getByRole('button', { name: 'Comment label: Comment' }).click();
+        await page.getByRole('menuitemradio', { name: 'Decision' }).click();
         await expect(page.locator('[data-live="connected"]')).toBeAttached();
 
         issues.agentComments(ISSUE_KEY, 'The test is in.');
@@ -34,7 +34,7 @@ test.describe('IssueLiveUpdates', () => {
 
         await expect(page.getByTestId('issue-entry').last()).toHaveText(/claude-code laptop.*commented.*The test is in\./);
         await expect(comment).toHaveValue('Keep `round()` as deprecated.');
-        await expect(label).toHaveValue('decision');
+        await expect(page.getByRole('button', { name: 'Comment label: Decision' })).toBeVisible();
         await expect(result).toHaveValue('Added `TaxRounding::perInvoice()`.');
         await expect(yes).toHaveAttribute('aria-pressed', 'true');
         await expect(other).toHaveValue('Money');

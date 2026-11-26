@@ -9,10 +9,10 @@ export const APPROVAL_MODE_NAMES: Record<ApprovalMode, string> = {
 };
 
 /** Who approves a plan and who ends an issue (D117, D129). */
-const SUMMARIES: Record<ApprovalMode, string> = {
-    user: 'You approve each plan, and you end each issue.',
-    agent_review: 'An agent approves a plan and ends an issue, each with the review of a second agent on record.',
-    self: 'An agent starts without an approval and ends its issues.',
+export const APPROVAL_MODE_SUMMARIES: Record<ApprovalMode, string> = {
+    user: 'You approve the plan and accept the work. An agent cannot end the issue without you.',
+    agent_review: 'A second agent reviews the plan and the work. Then the agent approves the plan and ends the issue, with the review on record.',
+    self: 'The agent starts without a plan approval. It checks its own work and ends the issue.',
     by_issue: 'Each issue has one of these three. An agent chooses it by your guidelines when it creates the issue, and you change it on the issue.',
 };
 
@@ -26,7 +26,7 @@ export function ApprovalModeField({ value, onChange }: { value: ApprovalMode; on
                 <FormControl key={mode}>
                     <Radio value={mode} defaultChecked={mode === value} />
                     <FormControl.Label>{APPROVAL_MODE_NAMES[mode]}</FormControl.Label>
-                    <FormControl.Caption>{SUMMARIES[mode]}</FormControl.Caption>
+                    <FormControl.Caption>{APPROVAL_MODE_SUMMARIES[mode]}</FormControl.Caption>
                 </FormControl>
             ))}
         </RadioGroup>
