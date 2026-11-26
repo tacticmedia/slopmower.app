@@ -39,6 +39,7 @@ export function IssueRoute() {
     const { issue, links, thread, commits } = useLoaderData<IssueData>();
     useDocumentTitle(`${issue.key} ${issue.title}`);
     const sentFrom = useFocusOnReply(thread);
+    const openQuestions = thread.filter(isOpenQuestion);
 
     return (
         <article className={styles.page} data-testid="issue-detail" data-issue-key={issue.key}>
@@ -93,7 +94,15 @@ export function IssueRoute() {
                     <IssueTimeline issue={issue} thread={thread} />
                     {thread.map((entry) =>
                         isOpenQuestion(entry) ? (
-                            <OpenQuestions key={entry.id} issue={issue} entry={entry} draftKey={answersDraftKey(issue.key, entry)} onSend={sentFrom} />
+                            <OpenQuestions
+                                key={entry.id}
+                                issue={issue}
+                                entry={entry}
+                                position={openQuestions.indexOf(entry) + 1}
+                                count={openQuestions.length}
+                                draftKey={answersDraftKey(issue.key, entry)}
+                                onSend={sentFrom}
+                            />
                         ) : (
                             isWithdrawnQuestion(entry, thread) && <WithdrawnQuestions key={entry.id} entry={entry} draftKey={answersDraftKey(issue.key, entry)} />
                         ),
@@ -333,7 +342,21 @@ function answersDraftKey(issueKey: string, { id }: IssueEntry): string {
  * dismissal replace the comment, and the form goes with it. While the issue waits for the signed-in user, "Send answers
  * and hand over" also sends {@link handOverTo} (D136).
  */
-function OpenQuestions({ issue, entry, draftKey, onSend }: { issue: Issue; entry: IssueEntry; draftKey: string; onSend(questionId: string): void }) {
+function OpenQuestions({
+    issue,
+    entry,
+    position,
+    count,
+    draftKey,
+    onSend,
+}: {
+    issue: Issue;
+    entry: IssueEntry;
+    position: number;
+    count: number;
+    draftKey: string;
+    onSend(questionId: string): void;
+}) {
     const isYou = useIsYou();
     const next = isYou(waitingParty(issue)) ? handOverTo(issue) : null;
     const send = (input: IssueCommentInput, answersKey: string): IssueIntent => {
@@ -348,7 +371,7 @@ function OpenQuestions({ issue, entry, draftKey, onSend }: { issue: Issue; entry
                 <EntryLink id={entry.id}>Questions</EntryLink> of <ActorName actor={entry.actor} /> <RelativeTime datetime={entry.createdAt} />
             </p>
             <QuestionForm
-                label={`Questions of ${entry.actor.name}, ${dateTimeFormat.format(new Date(entry.createdAt))}`}
+                label={`Questions of ${entry.actor.name}, ${dateTimeFormat.format(new Date(entry.createdAt))}${count > 1 ? `, ${position} of ${count}` : ''}`}
                 questions={entry.questions}
                 draftKey={draftKey}
                 intent={(questions, answersKey) => send({ body: '', replaces: entry.id, questions }, answersKey)}

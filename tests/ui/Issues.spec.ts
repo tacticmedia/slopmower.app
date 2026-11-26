@@ -353,6 +353,17 @@ test.describe('Issues', () => {
         await expect(page.getByTestId('open-questions')).toHaveCount(0);
     });
 
+    test('Two open question comments have forms whose names end with their position', async ({ page, api }) => {
+        const issues = new FakeIssues(api);
+        issues.add(issueDetail());
+        issues.agentAsks(ISSUE_KEY, 'Two choices before the test.', QUESTIONS);
+        issues.agentAsks(ISSUE_KEY, 'One more choice.', QUESTIONS.slice(1));
+        await page.goto(`/issues/${ISSUE_KEY}`);
+
+        await expect(page.getByRole('form', { name: /^Questions of claude-code laptop, .*, 1 of 2$/ })).toHaveCount(1);
+        await expect(page.getByRole('form', { name: /^Questions of claude-code laptop, .*, 2 of 2$/ })).toHaveCount(1);
+    });
+
     test('Typed answers stay after a reload until "Send answers" sends them', async ({ page, api }) => {
         const issues = new FakeIssues(api);
         issues.add(issueDetail());
