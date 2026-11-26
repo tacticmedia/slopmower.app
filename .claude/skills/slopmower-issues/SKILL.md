@@ -104,7 +104,9 @@ The statuses are `draft`, `backlog` or `todo`, `in_progress`, `in_review`,
 - If the user changes `plan` after its approval, the approval is gone. Set
   `todo`, then do step 3 again.
 - Write into `followUps` what came up and was left out. Each follow-up also
-  becomes a `draft` issue, which you link to its origin with `link_issues`.
+  becomes an issue, which you link to its origin with `link_issues`: a `bug`
+  in `todo`, or a `change` in `backlog`. Only an incomplete problem is a
+  `draft`, because a `draft` waits for the user.
 
 ## Ask the user and wait
 
