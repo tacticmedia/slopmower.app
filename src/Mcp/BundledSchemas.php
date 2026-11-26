@@ -30,10 +30,10 @@ final class BundledSchemas
                     ['type' => 'string'],
                 ],
             ],
-            'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
-            'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
+            'CommitSha' => ['type' => 'string', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
+            'Cursor' => ['type' => 'string', 'description' => 'Opaque pagination cursor.'],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
-            'LocalDirectory' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255, 'pattern' => '^(?!\\.)[^/\\x00-\\x1f]+$', 'description' => 'Name of a direct child directory of APP_LOCAL_REPOSITORIES_DIR.'],
+            'LocalDirectory' => ['type' => 'string', 'description' => 'Name of a direct child directory of APP_LOCAL_REPOSITORIES_DIR.'],
             'NextCursor' => [
                 'anyOf' => [
                     ['$ref' => '#/$defs/Cursor'],
@@ -48,7 +48,7 @@ final class BundledSchemas
                     'id' => ['$ref' => '#/$defs/Ulid'],
                     'source' => ['$ref' => '#/$defs/RepositorySource'],
                     'codeAccess' => ['$ref' => '#/$defs/CodeAccess'],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255, 'description' => 'github: owner/name. local: directory name. Unique per tenant.'],
+                    'name' => ['type' => 'string', 'description' => 'github: owner/name. local: directory name. Unique per tenant.'],
                     'github' => [
                         'anyOf' => [
                             ['type' => 'null'],
@@ -56,9 +56,9 @@ final class BundledSchemas
                                 'type' => 'object',
                                 'required' => ['repositoryId', 'installationId', 'owner', 'private', 'htmlUrl', 'checkEveryPullRequest'],
                                 'properties' => [
-                                    'repositoryId' => ['type' => 'integer', 'minimum' => 1],
-                                    'installationId' => ['type' => 'integer', 'minimum' => 1],
-                                    'owner' => ['type' => 'string', 'minLength' => 1],
+                                    'repositoryId' => ['type' => 'integer'],
+                                    'installationId' => ['type' => 'integer'],
+                                    'owner' => ['type' => 'string'],
                                     'private' => ['type' => 'boolean'],
                                     'htmlUrl' => ['type' => 'string', 'format' => 'uri'],
                                     'checkEveryPullRequest' => ['type' => 'boolean', 'description' => 'Whether every pull request gets the check of the user, not only the linked ones. R8 sets it.'],
@@ -84,7 +84,7 @@ final class BundledSchemas
                     ],
                     'access' => ['$ref' => '#/$defs/RepositoryAccess'],
                     'sync' => ['$ref' => '#/$defs/Sync'],
-                    'openReviewCount' => ['type' => 'integer', 'minimum' => 0],
+                    'openReviewCount' => ['type' => 'integer'],
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                 ],
                 'allOf' => [
@@ -173,7 +173,7 @@ final class BundledSchemas
                     ],
                 ],
             ],
-            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'Ulid' => ['type' => 'string', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
         ],
     ];
 
@@ -205,11 +205,9 @@ final class BundledSchemas
                     ],
                     'agentName' => [
                         'type' => ['string', 'null'],
-                        'minLength' => 1,
-                        'maxLength' => 64,
                         'description' => 'API token name. Agents only.',
                     ],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
+                    'name' => ['type' => 'string', 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
                     'avatarUrl' => [
                         'type' => ['string', 'null'],
                         'format' => 'uri',
@@ -285,8 +283,8 @@ final class BundledSchemas
                     ['type' => 'string'],
                 ],
             ],
-            'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
-            'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
+            'CommitSha' => ['type' => 'string', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
+            'Cursor' => ['type' => 'string', 'description' => 'Opaque pagination cursor.'],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
             'Delivery' => [
                 'type' => 'object',
@@ -306,7 +304,7 @@ final class BundledSchemas
                 ],
                 'description' => 'How the agent delivers its work (D85).',
             ],
-            'EventSeq' => ['type' => 'integer', 'minimum' => 0, 'description' => 'Per-tenant event number, gapless, in commit order.'],
+            'EventSeq' => ['type' => 'integer', 'description' => 'Per-tenant event number, gapless, in commit order.'],
             'IndexState' => [
                 'anyOf' => [
                     [
@@ -322,11 +320,10 @@ final class BundledSchemas
                     'state' => ['$ref' => '#/$defs/IndexState'],
                     'filesTotal' => [
                         'type' => ['integer', 'null'],
-                        'minimum' => 0,
                         'description' => 'Null until the path list is written.',
                     ],
-                    'filesDone' => ['type' => 'integer', 'minimum' => 0],
-                    'symbolsTotal' => ['type' => 'integer', 'minimum' => 0],
+                    'filesDone' => ['type' => 'integer'],
+                    'symbolsTotal' => ['type' => 'integer'],
                     'startedAt' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/DateTime'],
@@ -344,7 +341,7 @@ final class BundledSchemas
                     ],
                 ],
             ],
-            'LocalDirectory' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255, 'pattern' => '^(?!\\.)[^/\\x00-\\x1f]+$', 'description' => 'Name of a direct child directory of APP_LOCAL_REPOSITORIES_DIR.'],
+            'LocalDirectory' => ['type' => 'string', 'description' => 'Name of a direct child directory of APP_LOCAL_REPOSITORIES_DIR.'],
             'NextCursor' => [
                 'anyOf' => [
                     ['$ref' => '#/$defs/Cursor'],
@@ -359,7 +356,7 @@ final class BundledSchemas
                     'id' => ['$ref' => '#/$defs/Ulid'],
                     'source' => ['$ref' => '#/$defs/RepositorySource'],
                     'codeAccess' => ['$ref' => '#/$defs/CodeAccess'],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255, 'description' => 'github: owner/name. local: directory name. Unique per tenant.'],
+                    'name' => ['type' => 'string', 'description' => 'github: owner/name. local: directory name. Unique per tenant.'],
                     'github' => [
                         'anyOf' => [
                             ['type' => 'null'],
@@ -367,9 +364,9 @@ final class BundledSchemas
                                 'type' => 'object',
                                 'required' => ['repositoryId', 'installationId', 'owner', 'private', 'htmlUrl', 'checkEveryPullRequest'],
                                 'properties' => [
-                                    'repositoryId' => ['type' => 'integer', 'minimum' => 1],
-                                    'installationId' => ['type' => 'integer', 'minimum' => 1],
-                                    'owner' => ['type' => 'string', 'minLength' => 1],
+                                    'repositoryId' => ['type' => 'integer'],
+                                    'installationId' => ['type' => 'integer'],
+                                    'owner' => ['type' => 'string'],
                                     'private' => ['type' => 'boolean'],
                                     'htmlUrl' => ['type' => 'string', 'format' => 'uri'],
                                     'checkEveryPullRequest' => ['type' => 'boolean', 'description' => 'Whether every pull request gets the check of the user, not only the linked ones. R8 sets it.'],
@@ -395,7 +392,7 @@ final class BundledSchemas
                     ],
                     'access' => ['$ref' => '#/$defs/RepositoryAccess'],
                     'sync' => ['$ref' => '#/$defs/Sync'],
-                    'openReviewCount' => ['type' => 'integer', 'minimum' => 0],
+                    'openReviewCount' => ['type' => 'integer'],
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                 ],
                 'allOf' => [
@@ -457,29 +454,29 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => ['total', 'byStatus', 'byAwaiting', 'outdated'],
                 'properties' => [
-                    'total' => ['type' => 'integer', 'minimum' => 0],
+                    'total' => ['type' => 'integer'],
                     'byStatus' => [
                         'type' => 'object',
                         'required' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
                         'properties' => [
-                            'open' => ['type' => 'integer', 'minimum' => 0],
-                            'in_progress' => ['type' => 'integer', 'minimum' => 0],
-                            'ready_for_review' => ['type' => 'integer', 'minimum' => 0],
-                            'verified' => ['type' => 'integer', 'minimum' => 0],
-                            'reopened' => ['type' => 'integer', 'minimum' => 0],
-                            'wont_do' => ['type' => 'integer', 'minimum' => 0],
+                            'open' => ['type' => 'integer'],
+                            'in_progress' => ['type' => 'integer'],
+                            'ready_for_review' => ['type' => 'integer'],
+                            'verified' => ['type' => 'integer'],
+                            'reopened' => ['type' => 'integer'],
+                            'wont_do' => ['type' => 'integer'],
                         ],
                     ],
                     'byAwaiting' => [
                         'type' => 'object',
                         'required' => ['agent', 'user', 'none'],
                         'properties' => [
-                            'agent' => ['type' => 'integer', 'minimum' => 0],
-                            'user' => ['type' => 'integer', 'minimum' => 0],
-                            'none' => ['type' => 'integer', 'minimum' => 0],
+                            'agent' => ['type' => 'integer'],
+                            'user' => ['type' => 'integer'],
+                            'none' => ['type' => 'integer'],
                         ],
                     ],
-                    'outdated' => ['type' => 'integer', 'minimum' => 0],
+                    'outdated' => ['type' => 'integer'],
                 ],
             ],
             'Review' => [
@@ -489,9 +486,9 @@ final class BundledSchemas
                 'properties' => [
                     'id' => ['$ref' => '#/$defs/Ulid'],
                     'repositoryId' => ['$ref' => '#/$defs/Ulid'],
-                    'repositoryName' => ['type' => 'string', 'minLength' => 1],
-                    'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
-                    'ref' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255, 'description' => 'As given at start: branch, tag, or SHA.'],
+                    'repositoryName' => ['type' => 'string'],
+                    'title' => ['type' => 'string'],
+                    'ref' => ['type' => 'string', 'description' => 'As given at start: branch, tag, or SHA.'],
                     'commitSha' => ['$ref' => '#/$defs/CommitSha'],
                     'state' => ['$ref' => '#/$defs/ReviewState'],
                     'startedBy' => ['$ref' => '#/$defs/Actor'],
@@ -510,7 +507,6 @@ final class BundledSchemas
                     ],
                     'closeNote' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 65536,
                     ],
                     'delivery' => ['$ref' => '#/$defs/Delivery', 'description' => 'The latest choice of Submit feedback (D5). Both values are null until the user picks one.'],
                     'capabilities' => ['$ref' => '#/$defs/Capabilities'],
@@ -580,7 +576,7 @@ final class BundledSchemas
                     ],
                 ],
             ],
-            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'Ulid' => ['type' => 'string', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
             'Workspace' => [
                 'anyOf' => [
                     [
@@ -600,7 +596,7 @@ final class BundledSchemas
         'properties' => [
             'reviewId' => ['$ref' => '#/$defs/Ulid'],
             'reviewState' => ['$ref' => '#/$defs/ReviewState'],
-            'total' => ['type' => 'integer', 'minimum' => 0],
+            'total' => ['type' => 'integer'],
             'items' => [
                 'type' => 'array',
                 'items' => ['$ref' => '#/$defs/RequestSummary'],
@@ -623,11 +619,9 @@ final class BundledSchemas
                     ],
                     'agentName' => [
                         'type' => ['string', 'null'],
-                        'minLength' => 1,
-                        'maxLength' => 64,
                         'description' => 'API token name. Agents only.',
                     ],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
+                    'name' => ['type' => 'string', 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
                     'avatarUrl' => [
                         'type' => ['string', 'null'],
                         'format' => 'uri',
@@ -740,33 +734,27 @@ final class BundledSchemas
                 'properties' => [
                     'lines' => [
                         'type' => ['array', 'null'],
-                        'maxItems' => 200,
                         'items' => ['type' => 'string'],
                         'description' => 'Normalized lines (LF, no trailing whitespace); all lines up to 200, else the first 100 and the last 100.',
                     ],
                     'truncated' => ['type' => 'boolean'],
-                    'lineCount' => ['type' => 'integer', 'minimum' => 1],
+                    'lineCount' => ['type' => 'integer'],
                     'before' => [
                         'type' => ['array', 'null'],
-                        'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
                     'after' => [
                         'type' => ['array', 'null'],
-                        'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
-                    'normalizedHash' => ['type' => 'string', 'pattern' => '^sha256:[0-9a-f]{64}$', 'description' => 'SHA-256 of the full region in comparison form: each line trimmed, each inner whitespace run replaced by one space, lines joined with LF, no final LF.'],
+                    'normalizedHash' => ['type' => 'string', 'description' => 'SHA-256 of the full region in comparison form: each line trimmed, each inner whitespace run replaced by one space, lines joined with LF, no final LF.'],
                 ],
             ],
-            'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
+            'Cursor' => ['type' => 'string', 'description' => 'Opaque pagination cursor.'],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
-            'EventSeq' => ['type' => 'integer', 'minimum' => 0, 'description' => 'Per-tenant event number, gapless, in commit order.'],
+            'EventSeq' => ['type' => 'integer', 'description' => 'Per-tenant event number, gapless, in commit order.'],
             'Group' => [
                 'type' => 'string',
-                'minLength' => 1,
-                'maxLength' => 80,
-                'pattern' => '\\S',
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'The group label of a request: one line without CR or LF, with at least one non-whitespace character. Requests with the same group are one unit of feedback. The server trims it, then checks the length.',
             ],
@@ -829,8 +817,8 @@ final class BundledSchemas
                 'required' => ['startLine', 'endLine'],
                 'description' => '1-based, inclusive; endLine >= startLine.',
                 'properties' => [
-                    'startLine' => ['type' => 'integer', 'minimum' => 1],
-                    'endLine' => ['type' => 'integer', 'minimum' => 1],
+                    'startLine' => ['type' => 'integer'],
+                    'endLine' => ['type' => 'integer'],
                 ],
             ],
             'NextCursor' => [
@@ -855,7 +843,7 @@ final class BundledSchemas
                     ['type' => 'string'],
                 ],
             ],
-            'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
+            'RepoPath' => ['type' => 'string', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'anyOf' => [
                     [
@@ -898,7 +886,7 @@ final class BundledSchemas
                         ],
                         'description' => 'Null while the request has no title.',
                     ],
-                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set. Else the plain text of the first non-blank line of body: the line rendered as GitHub Flavored Markdown without raw HTML, without tags, with decoded entities, and trimmed. A line whose plain text is empty is skipped, and a body with no plain text gives its first non-blank line, trimmed. A text over 200 characters is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
+                    'summary' => ['type' => 'string', 'description' => 'The title when set. Else the plain text of the first non-blank line of body: the line rendered as GitHub Flavored Markdown without raw HTML, without tags, with decoded entities, and trimmed. A line whose plain text is empty is skipped, and a body with no plain text gives its first non-blank line, trimmed. A text over 200 characters is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
                     'author' => ['$ref' => '#/$defs/Actor'],
                     'claimedBy' => [
                         'anyOf' => [
@@ -912,9 +900,9 @@ final class BundledSchemas
                             ['type' => 'null'],
                         ],
                     ],
-                    'commentCount' => ['type' => 'integer', 'minimum' => 0],
-                    'commitCount' => ['type' => 'integer', 'minimum' => 0],
-                    'pendingCommitCount' => ['type' => 'integer', 'minimum' => 0],
+                    'commentCount' => ['type' => 'integer'],
+                    'commitCount' => ['type' => 'integer'],
+                    'pendingCommitCount' => ['type' => 'integer'],
                     'outdated' => [
                         'type' => ['boolean', 'null'],
                         'description' => 'Location at the default-branch head is changed, orphaned, or unverified. Null until computed, when the clone is gone, and for a general request.',
@@ -1034,20 +1022,17 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => ['language', 'kind', 'fqn'],
                 'properties' => [
-                    'language' => ['type' => 'string', 'minLength' => 1, 'description' => 'The `language` of V9, for example \'php\' or \'typescript\'. Open set.'],
+                    'language' => ['type' => 'string', 'description' => 'The `language` of V9, for example \'php\' or \'typescript\'. Open set.'],
                     'kind' => ['$ref' => '#/$defs/SymbolKind'],
-                    'fqn' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 1024],
+                    'fqn' => ['type' => 'string'],
                 ],
             ],
             'Title' => [
                 'type' => 'string',
-                'minLength' => 1,
-                'maxLength' => 200,
-                'pattern' => '\\S',
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'The title of a request: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
-            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'Ulid' => ['type' => 'string', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
         ],
     ];
 
@@ -1061,7 +1046,7 @@ final class BundledSchemas
             'reviewState' => ['$ref' => '#/$defs/ReviewState'],
             'cursor' => ['$ref' => '#/$defs/EventSeq', 'description' => 'Pass as cursor next time.'],
             'hasMore' => ['type' => 'boolean', 'description' => 'More events wait: call again at once with cursor.'],
-            'awaitingTotal' => ['type' => 'integer', 'minimum' => 0],
+            'awaitingTotal' => ['type' => 'integer'],
             'requests' => [
                 'type' => 'array',
                 'items' => ['$ref' => '#/$defs/UpdatedRequest'],
@@ -1088,11 +1073,9 @@ final class BundledSchemas
                     ],
                     'agentName' => [
                         'type' => ['string', 'null'],
-                        'minLength' => 1,
-                        'maxLength' => 64,
                         'description' => 'API token name. Agents only.',
                     ],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
+                    'name' => ['type' => 'string', 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
                     'avatarUrl' => [
                         'type' => ['string', 'null'],
                         'format' => 'uri',
@@ -1198,7 +1181,7 @@ final class BundledSchemas
                     'requestId' => ['$ref' => '#/$defs/Ulid'],
                 ],
             ],
-            'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
+            'CommitSha' => ['type' => 'string', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'ContentSnapshot' => [
                 'type' => 'object',
                 'required' => ['truncated', 'lineCount', 'normalizedHash'],
@@ -1206,23 +1189,20 @@ final class BundledSchemas
                 'properties' => [
                     'lines' => [
                         'type' => ['array', 'null'],
-                        'maxItems' => 200,
                         'items' => ['type' => 'string'],
                         'description' => 'Normalized lines (LF, no trailing whitespace); all lines up to 200, else the first 100 and the last 100.',
                     ],
                     'truncated' => ['type' => 'boolean'],
-                    'lineCount' => ['type' => 'integer', 'minimum' => 1],
+                    'lineCount' => ['type' => 'integer'],
                     'before' => [
                         'type' => ['array', 'null'],
-                        'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
                     'after' => [
                         'type' => ['array', 'null'],
-                        'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
-                    'normalizedHash' => ['type' => 'string', 'pattern' => '^sha256:[0-9a-f]{64}$', 'description' => 'SHA-256 of the full region in comparison form: each line trimmed, each inner whitespace run replaced by one space, lines joined with LF, no final LF.'],
+                    'normalizedHash' => ['type' => 'string', 'description' => 'SHA-256 of the full region in comparison form: each line trimmed, each inner whitespace run replaced by one space, lines joined with LF, no final LF.'],
                 ],
             ],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
@@ -1303,7 +1283,7 @@ final class BundledSchemas
                     ],
                 ],
             ],
-            'EventSeq' => ['type' => 'integer', 'minimum' => 0, 'description' => 'Per-tenant event number, gapless, in commit order.'],
+            'EventSeq' => ['type' => 'integer', 'description' => 'Per-tenant event number, gapless, in commit order.'],
             'EventType' => [
                 'anyOf' => [
                     [
@@ -1318,9 +1298,6 @@ final class BundledSchemas
             ],
             'Group' => [
                 'type' => 'string',
-                'minLength' => 1,
-                'maxLength' => 80,
-                'pattern' => '\\S',
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'The group label of a request: one line without CR or LF, with at least one non-whitespace character. Requests with the same group are one unit of feedback. The server trims it, then checks the length.',
             ],
@@ -1383,8 +1360,8 @@ final class BundledSchemas
                 'required' => ['startLine', 'endLine'],
                 'description' => '1-based, inclusive; endLine >= startLine.',
                 'properties' => [
-                    'startLine' => ['type' => 'integer', 'minimum' => 1],
-                    'endLine' => ['type' => 'integer', 'minimum' => 1],
+                    'startLine' => ['type' => 'integer'],
+                    'endLine' => ['type' => 'integer'],
                 ],
             ],
             'Proposal' => [
@@ -1403,7 +1380,7 @@ final class BundledSchemas
                     ['type' => 'string'],
                 ],
             ],
-            'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://[^\\s\\x00]+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
+            'PullRequestUrl' => ['type' => 'string', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
             'Question' => [
                 'type' => 'object',
                 'required' => ['question', 'detail', 'answer'],
@@ -1411,12 +1388,10 @@ final class BundledSchemas
                     'question' => ['$ref' => '#/$defs/QuestionText'],
                     'detail' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 4000,
                         'description' => 'Markdown that gives the context of the question.',
                     ],
                     'answer' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 4000,
                         'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
                     ],
                 ],
@@ -1424,13 +1399,10 @@ final class BundledSchemas
             ],
             'QuestionText' => [
                 'type' => 'string',
-                'minLength' => 1,
-                'maxLength' => 200,
-                'pattern' => '\\S',
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'A question of an agent: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
-            'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
+            'RepoPath' => ['type' => 'string', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'anyOf' => [
                     [
@@ -1473,7 +1445,7 @@ final class BundledSchemas
                         ],
                         'description' => 'Null while the request has no title.',
                     ],
-                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set. Else the plain text of the first non-blank line of body: the line rendered as GitHub Flavored Markdown without raw HTML, without tags, with decoded entities, and trimmed. A line whose plain text is empty is skipped, and a body with no plain text gives its first non-blank line, trimmed. A text over 200 characters is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
+                    'summary' => ['type' => 'string', 'description' => 'The title when set. Else the plain text of the first non-blank line of body: the line rendered as GitHub Flavored Markdown without raw HTML, without tags, with decoded entities, and trimmed. A line whose plain text is empty is skipped, and a body with no plain text gives its first non-blank line, trimmed. A text over 200 characters is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
                     'author' => ['$ref' => '#/$defs/Actor'],
                     'claimedBy' => [
                         'anyOf' => [
@@ -1487,9 +1459,9 @@ final class BundledSchemas
                             ['type' => 'null'],
                         ],
                     ],
-                    'commentCount' => ['type' => 'integer', 'minimum' => 0],
-                    'commitCount' => ['type' => 'integer', 'minimum' => 0],
-                    'pendingCommitCount' => ['type' => 'integer', 'minimum' => 0],
+                    'commentCount' => ['type' => 'integer'],
+                    'commitCount' => ['type' => 'integer'],
+                    'pendingCommitCount' => ['type' => 'integer'],
                     'outdated' => [
                         'type' => ['boolean', 'null'],
                         'description' => 'Location at the default-branch head is changed, orphaned, or unverified. Null until computed, when the clone is gone, and for a general request.',
@@ -1609,21 +1581,18 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => ['language', 'kind', 'fqn'],
                 'properties' => [
-                    'language' => ['type' => 'string', 'minLength' => 1, 'description' => 'The `language` of V9, for example \'php\' or \'typescript\'. Open set.'],
+                    'language' => ['type' => 'string', 'description' => 'The `language` of V9, for example \'php\' or \'typescript\'. Open set.'],
                     'kind' => ['$ref' => '#/$defs/SymbolKind'],
-                    'fqn' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 1024],
+                    'fqn' => ['type' => 'string'],
                 ],
             ],
             'Title' => [
                 'type' => 'string',
-                'minLength' => 1,
-                'maxLength' => 200,
-                'pattern' => '\\S',
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'The title of a request: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
-            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
-            'UnifiedDiff' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
+            'Ulid' => ['type' => 'string', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'UnifiedDiff' => ['type' => 'string', 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
             'UpdatedRequest' => [
                 'type' => 'object',
                 'required' => ['request', 'newEvents', 'omittedEvents'],
@@ -1633,7 +1602,7 @@ final class BundledSchemas
                         'type' => 'array',
                         'items' => ['$ref' => '#/$defs/Event'],
                     ],
-                    'omittedEvents' => ['type' => 'integer', 'minimum' => 0, 'description' => 'Older unseen events left out in null-cursor mode. Read them with get_request.'],
+                    'omittedEvents' => ['type' => 'integer', 'description' => 'Older unseen events left out in null-cursor mode. Read them with get_request.'],
                 ],
             ],
         ],
@@ -1675,7 +1644,7 @@ final class BundledSchemas
                 ],
                 'description' => 'Null while the request has no title.',
             ],
-            'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set. Else the plain text of the first non-blank line of body: the line rendered as GitHub Flavored Markdown without raw HTML, without tags, with decoded entities, and trimmed. A line whose plain text is empty is skipped, and a body with no plain text gives its first non-blank line, trimmed. A text over 200 characters is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
+            'summary' => ['type' => 'string', 'description' => 'The title when set. Else the plain text of the first non-blank line of body: the line rendered as GitHub Flavored Markdown without raw HTML, without tags, with decoded entities, and trimmed. A line whose plain text is empty is skipped, and a body with no plain text gives its first non-blank line, trimmed. A text over 200 characters is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
             'author' => ['$ref' => '#/$defs/Actor'],
             'claimedBy' => [
                 'anyOf' => [
@@ -1689,9 +1658,9 @@ final class BundledSchemas
                     ['type' => 'null'],
                 ],
             ],
-            'commentCount' => ['type' => 'integer', 'minimum' => 0],
-            'commitCount' => ['type' => 'integer', 'minimum' => 0],
-            'pendingCommitCount' => ['type' => 'integer', 'minimum' => 0],
+            'commentCount' => ['type' => 'integer'],
+            'commitCount' => ['type' => 'integer'],
+            'pendingCommitCount' => ['type' => 'integer'],
             'outdated' => [
                 'type' => ['boolean', 'null'],
             ],
@@ -1743,7 +1712,6 @@ final class BundledSchemas
             ],
             'thread' => [
                 'type' => 'array',
-                'minItems' => 1,
                 'items' => ['$ref' => '#/$defs/ThreadEntry'],
                 'description' => 'Ascending seq; starts with request.opened.',
             ],
@@ -1832,11 +1800,9 @@ final class BundledSchemas
                     ],
                     'agentName' => [
                         'type' => ['string', 'null'],
-                        'minLength' => 1,
-                        'maxLength' => 64,
                         'description' => 'API token name. Agents only.',
                     ],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
+                    'name' => ['type' => 'string', 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
                     'avatarUrl' => [
                         'type' => ['string', 'null'],
                         'format' => 'uri',
@@ -1966,11 +1932,10 @@ final class BundledSchemas
                 'properties' => [
                     'targetSha' => ['$ref' => '#/$defs/CommitSha'],
                     'path' => ['$ref' => '#/$defs/RepoPath'],
-                    'startLine' => ['type' => 'integer', 'minimum' => 1],
-                    'endLine' => ['type' => 'integer', 'minimum' => 1],
+                    'startLine' => ['type' => 'integer'],
+                    'endLine' => ['type' => 'integer'],
                     'lines' => [
                         'type' => 'array',
-                        'maxItems' => 400,
                         'items' => ['type' => 'string'],
                         'description' => 'Raw lines startLine to endLine, without line endings.',
                     ],
@@ -1988,7 +1953,6 @@ final class BundledSchemas
                     'linkedAt' => ['$ref' => '#/$defs/DateTime'],
                     'note' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 65536,
                     ],
                     'foundAt' => [
                         'anyOf' => [
@@ -2045,7 +2009,7 @@ final class BundledSchemas
                     ['type' => 'string'],
                 ],
             ],
-            'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
+            'CommitSha' => ['type' => 'string', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'ContentSnapshot' => [
                 'type' => 'object',
                 'required' => ['truncated', 'lineCount', 'normalizedHash'],
@@ -2053,23 +2017,20 @@ final class BundledSchemas
                 'properties' => [
                     'lines' => [
                         'type' => ['array', 'null'],
-                        'maxItems' => 200,
                         'items' => ['type' => 'string'],
                         'description' => 'Normalized lines (LF, no trailing whitespace); all lines up to 200, else the first 100 and the last 100.',
                     ],
                     'truncated' => ['type' => 'boolean'],
-                    'lineCount' => ['type' => 'integer', 'minimum' => 1],
+                    'lineCount' => ['type' => 'integer'],
                     'before' => [
                         'type' => ['array', 'null'],
-                        'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
                     'after' => [
                         'type' => ['array', 'null'],
-                        'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
-                    'normalizedHash' => ['type' => 'string', 'pattern' => '^sha256:[0-9a-f]{64}$', 'description' => 'SHA-256 of the full region in comparison form: each line trimmed, each inner whitespace run replaced by one space, lines joined with LF, no final LF.'],
+                    'normalizedHash' => ['type' => 'string', 'description' => 'SHA-256 of the full region in comparison form: each line trimmed, each inner whitespace run replaced by one space, lines joined with LF, no final LF.'],
                 ],
             ],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
@@ -2091,12 +2052,9 @@ final class BundledSchemas
                 ],
                 'description' => 'How the agent delivers its work (D85).',
             ],
-            'EventSeq' => ['type' => 'integer', 'minimum' => 0, 'description' => 'Per-tenant event number, gapless, in commit order.'],
+            'EventSeq' => ['type' => 'integer', 'description' => 'Per-tenant event number, gapless, in commit order.'],
             'Group' => [
                 'type' => 'string',
-                'minLength' => 1,
-                'maxLength' => 80,
-                'pattern' => '\\S',
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'The group label of a request: one line without CR or LF, with at least one non-whitespace character. Requests with the same group are one unit of feedback. The server trims it, then checks the length.',
             ],
@@ -2159,8 +2117,8 @@ final class BundledSchemas
                 'required' => ['startLine', 'endLine'],
                 'description' => '1-based, inclusive; endLine >= startLine.',
                 'properties' => [
-                    'startLine' => ['type' => 'integer', 'minimum' => 1],
-                    'endLine' => ['type' => 'integer', 'minimum' => 1],
+                    'startLine' => ['type' => 'integer'],
+                    'endLine' => ['type' => 'integer'],
                 ],
             ],
             'Location' => [
@@ -2193,7 +2151,7 @@ final class BundledSchemas
                         ],
                         'description' => 'Null for file anchors and orphaned locations.',
                     ],
-                    'confidence' => ['type' => 'number', 'minimum' => 0, 'maximum' => 1, 'description' => '1 for exact and shifted. For changed: 1 for a file anchor and for a symbol found by its FQN, else the line similarity of architecture section 5.4. 0 for orphaned and unverified.'],
+                    'confidence' => ['type' => 'number', 'description' => '1 for exact and shifted. For changed: 1 for a file anchor and for a symbol found by its FQN, else the line similarity of architecture section 5.4. 0 for orphaned and unverified.'],
                     'reason' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/OrphanReason'],
@@ -2260,8 +2218,8 @@ final class BundledSchemas
                     ['type' => 'string'],
                 ],
             ],
-            'Markdown' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'GitHub-flavoured Markdown with at least one non-whitespace character.'],
-            'ObjectSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full git object ID of a blob, tree, or commit.'],
+            'Markdown' => ['type' => 'string', 'description' => 'GitHub-flavoured Markdown with at least one non-whitespace character.'],
+            'ObjectSha' => ['type' => 'string', 'description' => 'Full git object ID of a blob, tree, or commit.'],
             'OrphanReason' => [
                 'anyOf' => [
                     [
@@ -2323,7 +2281,7 @@ final class BundledSchemas
                     ['type' => 'string'],
                 ],
             ],
-            'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://[^\\s\\x00]+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
+            'PullRequestUrl' => ['type' => 'string', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
             'Question' => [
                 'type' => 'object',
                 'required' => ['question', 'detail', 'answer'],
@@ -2331,12 +2289,10 @@ final class BundledSchemas
                     'question' => ['$ref' => '#/$defs/QuestionText'],
                     'detail' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 4000,
                         'description' => 'Markdown that gives the context of the question.',
                     ],
                     'answer' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 4000,
                         'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
                     ],
                 ],
@@ -2344,13 +2300,10 @@ final class BundledSchemas
             ],
             'QuestionText' => [
                 'type' => 'string',
-                'minLength' => 1,
-                'maxLength' => 200,
-                'pattern' => '\\S',
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'A question of an agent: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
-            'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
+            'RepoPath' => ['type' => 'string', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'anyOf' => [
                     [
@@ -2405,9 +2358,9 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => ['language', 'kind', 'fqn'],
                 'properties' => [
-                    'language' => ['type' => 'string', 'minLength' => 1, 'description' => 'The `language` of V9, for example \'php\' or \'typescript\'. Open set.'],
+                    'language' => ['type' => 'string', 'description' => 'The `language` of V9, for example \'php\' or \'typescript\'. Open set.'],
                     'kind' => ['$ref' => '#/$defs/SymbolKind'],
-                    'fqn' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 1024],
+                    'fqn' => ['type' => 'string'],
                 ],
             ],
             'ThreadEntry' => [
@@ -2482,14 +2435,11 @@ final class BundledSchemas
             ],
             'Title' => [
                 'type' => 'string',
-                'minLength' => 1,
-                'maxLength' => 200,
-                'pattern' => '\\S',
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'The title of a request: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
-            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
-            'UnifiedDiff' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
+            'Ulid' => ['type' => 'string', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'UnifiedDiff' => ['type' => 'string', 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
             'Workspace' => [
                 'anyOf' => [
                     [
@@ -2545,11 +2495,9 @@ final class BundledSchemas
                     ],
                     'agentName' => [
                         'type' => ['string', 'null'],
-                        'minLength' => 1,
-                        'maxLength' => 64,
                         'description' => 'API token name. Agents only.',
                     ],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
+                    'name' => ['type' => 'string', 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
                     'avatarUrl' => [
                         'type' => ['string', 'null'],
                         'format' => 'uri',
@@ -2655,7 +2603,7 @@ final class BundledSchemas
                     'requestId' => ['$ref' => '#/$defs/Ulid'],
                 ],
             ],
-            'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
+            'CommitSha' => ['type' => 'string', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'ContentSnapshot' => [
                 'type' => 'object',
                 'required' => ['truncated', 'lineCount', 'normalizedHash'],
@@ -2663,23 +2611,20 @@ final class BundledSchemas
                 'properties' => [
                     'lines' => [
                         'type' => ['array', 'null'],
-                        'maxItems' => 200,
                         'items' => ['type' => 'string'],
                         'description' => 'Normalized lines (LF, no trailing whitespace); all lines up to 200, else the first 100 and the last 100.',
                     ],
                     'truncated' => ['type' => 'boolean'],
-                    'lineCount' => ['type' => 'integer', 'minimum' => 1],
+                    'lineCount' => ['type' => 'integer'],
                     'before' => [
                         'type' => ['array', 'null'],
-                        'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
                     'after' => [
                         'type' => ['array', 'null'],
-                        'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
-                    'normalizedHash' => ['type' => 'string', 'pattern' => '^sha256:[0-9a-f]{64}$', 'description' => 'SHA-256 of the full region in comparison form: each line trimmed, each inner whitespace run replaced by one space, lines joined with LF, no final LF.'],
+                    'normalizedHash' => ['type' => 'string', 'description' => 'SHA-256 of the full region in comparison form: each line trimmed, each inner whitespace run replaced by one space, lines joined with LF, no final LF.'],
                 ],
             ],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
@@ -2760,7 +2705,7 @@ final class BundledSchemas
                     ],
                 ],
             ],
-            'EventSeq' => ['type' => 'integer', 'minimum' => 0, 'description' => 'Per-tenant event number, gapless, in commit order.'],
+            'EventSeq' => ['type' => 'integer', 'description' => 'Per-tenant event number, gapless, in commit order.'],
             'EventType' => [
                 'anyOf' => [
                     [
@@ -2775,9 +2720,6 @@ final class BundledSchemas
             ],
             'Group' => [
                 'type' => 'string',
-                'minLength' => 1,
-                'maxLength' => 80,
-                'pattern' => '\\S',
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'The group label of a request: one line without CR or LF, with at least one non-whitespace character. Requests with the same group are one unit of feedback. The server trims it, then checks the length.',
             ],
@@ -2840,8 +2782,8 @@ final class BundledSchemas
                 'required' => ['startLine', 'endLine'],
                 'description' => '1-based, inclusive; endLine >= startLine.',
                 'properties' => [
-                    'startLine' => ['type' => 'integer', 'minimum' => 1],
-                    'endLine' => ['type' => 'integer', 'minimum' => 1],
+                    'startLine' => ['type' => 'integer'],
+                    'endLine' => ['type' => 'integer'],
                 ],
             ],
             'Proposal' => [
@@ -2860,7 +2802,7 @@ final class BundledSchemas
                     ['type' => 'string'],
                 ],
             ],
-            'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://[^\\s\\x00]+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
+            'PullRequestUrl' => ['type' => 'string', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
             'Question' => [
                 'type' => 'object',
                 'required' => ['question', 'detail', 'answer'],
@@ -2868,12 +2810,10 @@ final class BundledSchemas
                     'question' => ['$ref' => '#/$defs/QuestionText'],
                     'detail' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 4000,
                         'description' => 'Markdown that gives the context of the question.',
                     ],
                     'answer' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 4000,
                         'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
                     ],
                 ],
@@ -2881,13 +2821,10 @@ final class BundledSchemas
             ],
             'QuestionText' => [
                 'type' => 'string',
-                'minLength' => 1,
-                'maxLength' => 200,
-                'pattern' => '\\S',
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'A question of an agent: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
-            'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
+            'RepoPath' => ['type' => 'string', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'anyOf' => [
                     [
@@ -2930,7 +2867,7 @@ final class BundledSchemas
                         ],
                         'description' => 'Null while the request has no title.',
                     ],
-                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set. Else the plain text of the first non-blank line of body: the line rendered as GitHub Flavored Markdown without raw HTML, without tags, with decoded entities, and trimmed. A line whose plain text is empty is skipped, and a body with no plain text gives its first non-blank line, trimmed. A text over 200 characters is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
+                    'summary' => ['type' => 'string', 'description' => 'The title when set. Else the plain text of the first non-blank line of body: the line rendered as GitHub Flavored Markdown without raw HTML, without tags, with decoded entities, and trimmed. A line whose plain text is empty is skipped, and a body with no plain text gives its first non-blank line, trimmed. A text over 200 characters is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
                     'author' => ['$ref' => '#/$defs/Actor'],
                     'claimedBy' => [
                         'anyOf' => [
@@ -2944,9 +2881,9 @@ final class BundledSchemas
                             ['type' => 'null'],
                         ],
                     ],
-                    'commentCount' => ['type' => 'integer', 'minimum' => 0],
-                    'commitCount' => ['type' => 'integer', 'minimum' => 0],
-                    'pendingCommitCount' => ['type' => 'integer', 'minimum' => 0],
+                    'commentCount' => ['type' => 'integer'],
+                    'commitCount' => ['type' => 'integer'],
+                    'pendingCommitCount' => ['type' => 'integer'],
                     'outdated' => [
                         'type' => ['boolean', 'null'],
                         'description' => 'Location at the default-branch head is changed, orphaned, or unverified. Null until computed, when the clone is gone, and for a general request.',
@@ -3058,21 +2995,18 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => ['language', 'kind', 'fqn'],
                 'properties' => [
-                    'language' => ['type' => 'string', 'minLength' => 1, 'description' => 'The `language` of V9, for example \'php\' or \'typescript\'. Open set.'],
+                    'language' => ['type' => 'string', 'description' => 'The `language` of V9, for example \'php\' or \'typescript\'. Open set.'],
                     'kind' => ['$ref' => '#/$defs/SymbolKind'],
-                    'fqn' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 1024],
+                    'fqn' => ['type' => 'string'],
                 ],
             ],
             'Title' => [
                 'type' => 'string',
-                'minLength' => 1,
-                'maxLength' => 200,
-                'pattern' => '\\S',
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'The title of a request: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
-            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
-            'UnifiedDiff' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
+            'Ulid' => ['type' => 'string', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'UnifiedDiff' => ['type' => 'string', 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
         ],
     ];
 
@@ -3086,7 +3020,6 @@ final class BundledSchemas
             'state' => ['$ref' => '#/$defs/CommitLinkState'],
             'requests' => [
                 'type' => 'array',
-                'minItems' => 1,
                 'items' => ['$ref' => '#/$defs/RequestSummary'],
             ],
             'events' => [
@@ -3110,11 +3043,9 @@ final class BundledSchemas
                     ],
                     'agentName' => [
                         'type' => ['string', 'null'],
-                        'minLength' => 1,
-                        'maxLength' => 64,
                         'description' => 'API token name. Agents only.',
                     ],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
+                    'name' => ['type' => 'string', 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
                     'avatarUrl' => [
                         'type' => ['string', 'null'],
                         'format' => 'uri',
@@ -3228,7 +3159,7 @@ final class BundledSchemas
                     ['type' => 'string'],
                 ],
             ],
-            'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
+            'CommitSha' => ['type' => 'string', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'ContentSnapshot' => [
                 'type' => 'object',
                 'required' => ['truncated', 'lineCount', 'normalizedHash'],
@@ -3236,23 +3167,20 @@ final class BundledSchemas
                 'properties' => [
                     'lines' => [
                         'type' => ['array', 'null'],
-                        'maxItems' => 200,
                         'items' => ['type' => 'string'],
                         'description' => 'Normalized lines (LF, no trailing whitespace); all lines up to 200, else the first 100 and the last 100.',
                     ],
                     'truncated' => ['type' => 'boolean'],
-                    'lineCount' => ['type' => 'integer', 'minimum' => 1],
+                    'lineCount' => ['type' => 'integer'],
                     'before' => [
                         'type' => ['array', 'null'],
-                        'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
                     'after' => [
                         'type' => ['array', 'null'],
-                        'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
-                    'normalizedHash' => ['type' => 'string', 'pattern' => '^sha256:[0-9a-f]{64}$', 'description' => 'SHA-256 of the full region in comparison form: each line trimmed, each inner whitespace run replaced by one space, lines joined with LF, no final LF.'],
+                    'normalizedHash' => ['type' => 'string', 'description' => 'SHA-256 of the full region in comparison form: each line trimmed, each inner whitespace run replaced by one space, lines joined with LF, no final LF.'],
                 ],
             ],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
@@ -3333,7 +3261,7 @@ final class BundledSchemas
                     ],
                 ],
             ],
-            'EventSeq' => ['type' => 'integer', 'minimum' => 0, 'description' => 'Per-tenant event number, gapless, in commit order.'],
+            'EventSeq' => ['type' => 'integer', 'description' => 'Per-tenant event number, gapless, in commit order.'],
             'EventType' => [
                 'anyOf' => [
                     [
@@ -3348,9 +3276,6 @@ final class BundledSchemas
             ],
             'Group' => [
                 'type' => 'string',
-                'minLength' => 1,
-                'maxLength' => 80,
-                'pattern' => '\\S',
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'The group label of a request: one line without CR or LF, with at least one non-whitespace character. Requests with the same group are one unit of feedback. The server trims it, then checks the length.',
             ],
@@ -3413,8 +3338,8 @@ final class BundledSchemas
                 'required' => ['startLine', 'endLine'],
                 'description' => '1-based, inclusive; endLine >= startLine.',
                 'properties' => [
-                    'startLine' => ['type' => 'integer', 'minimum' => 1],
-                    'endLine' => ['type' => 'integer', 'minimum' => 1],
+                    'startLine' => ['type' => 'integer'],
+                    'endLine' => ['type' => 'integer'],
                 ],
             ],
             'Proposal' => [
@@ -3433,7 +3358,7 @@ final class BundledSchemas
                     ['type' => 'string'],
                 ],
             ],
-            'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://[^\\s\\x00]+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
+            'PullRequestUrl' => ['type' => 'string', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
             'Question' => [
                 'type' => 'object',
                 'required' => ['question', 'detail', 'answer'],
@@ -3441,12 +3366,10 @@ final class BundledSchemas
                     'question' => ['$ref' => '#/$defs/QuestionText'],
                     'detail' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 4000,
                         'description' => 'Markdown that gives the context of the question.',
                     ],
                     'answer' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 4000,
                         'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
                     ],
                 ],
@@ -3454,13 +3377,10 @@ final class BundledSchemas
             ],
             'QuestionText' => [
                 'type' => 'string',
-                'minLength' => 1,
-                'maxLength' => 200,
-                'pattern' => '\\S',
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'A question of an agent: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
-            'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
+            'RepoPath' => ['type' => 'string', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'anyOf' => [
                     [
@@ -3503,7 +3423,7 @@ final class BundledSchemas
                         ],
                         'description' => 'Null while the request has no title.',
                     ],
-                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set. Else the plain text of the first non-blank line of body: the line rendered as GitHub Flavored Markdown without raw HTML, without tags, with decoded entities, and trimmed. A line whose plain text is empty is skipped, and a body with no plain text gives its first non-blank line, trimmed. A text over 200 characters is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
+                    'summary' => ['type' => 'string', 'description' => 'The title when set. Else the plain text of the first non-blank line of body: the line rendered as GitHub Flavored Markdown without raw HTML, without tags, with decoded entities, and trimmed. A line whose plain text is empty is skipped, and a body with no plain text gives its first non-blank line, trimmed. A text over 200 characters is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
                     'author' => ['$ref' => '#/$defs/Actor'],
                     'claimedBy' => [
                         'anyOf' => [
@@ -3517,9 +3437,9 @@ final class BundledSchemas
                             ['type' => 'null'],
                         ],
                     ],
-                    'commentCount' => ['type' => 'integer', 'minimum' => 0],
-                    'commitCount' => ['type' => 'integer', 'minimum' => 0],
-                    'pendingCommitCount' => ['type' => 'integer', 'minimum' => 0],
+                    'commentCount' => ['type' => 'integer'],
+                    'commitCount' => ['type' => 'integer'],
+                    'pendingCommitCount' => ['type' => 'integer'],
                     'outdated' => [
                         'type' => ['boolean', 'null'],
                         'description' => 'Location at the default-branch head is changed, orphaned, or unverified. Null until computed, when the clone is gone, and for a general request.',
@@ -3631,21 +3551,18 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => ['language', 'kind', 'fqn'],
                 'properties' => [
-                    'language' => ['type' => 'string', 'minLength' => 1, 'description' => 'The `language` of V9, for example \'php\' or \'typescript\'. Open set.'],
+                    'language' => ['type' => 'string', 'description' => 'The `language` of V9, for example \'php\' or \'typescript\'. Open set.'],
                     'kind' => ['$ref' => '#/$defs/SymbolKind'],
-                    'fqn' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 1024],
+                    'fqn' => ['type' => 'string'],
                 ],
             ],
             'Title' => [
                 'type' => 'string',
-                'minLength' => 1,
-                'maxLength' => 200,
-                'pattern' => '\\S',
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'The title of a request: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
-            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
-            'UnifiedDiff' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
+            'Ulid' => ['type' => 'string', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'UnifiedDiff' => ['type' => 'string', 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
         ],
     ];
 
@@ -3658,7 +3575,6 @@ final class BundledSchemas
             'url' => ['$ref' => '#/$defs/PullRequestUrl'],
             'requests' => [
                 'type' => 'array',
-                'minItems' => 1,
                 'items' => ['$ref' => '#/$defs/RequestSummary'],
             ],
             'events' => [
@@ -3682,11 +3598,9 @@ final class BundledSchemas
                     ],
                     'agentName' => [
                         'type' => ['string', 'null'],
-                        'minLength' => 1,
-                        'maxLength' => 64,
                         'description' => 'API token name. Agents only.',
                     ],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
+                    'name' => ['type' => 'string', 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
                     'avatarUrl' => [
                         'type' => ['string', 'null'],
                         'format' => 'uri',
@@ -3792,7 +3706,7 @@ final class BundledSchemas
                     'requestId' => ['$ref' => '#/$defs/Ulid'],
                 ],
             ],
-            'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
+            'CommitSha' => ['type' => 'string', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'ContentSnapshot' => [
                 'type' => 'object',
                 'required' => ['truncated', 'lineCount', 'normalizedHash'],
@@ -3800,23 +3714,20 @@ final class BundledSchemas
                 'properties' => [
                     'lines' => [
                         'type' => ['array', 'null'],
-                        'maxItems' => 200,
                         'items' => ['type' => 'string'],
                         'description' => 'Normalized lines (LF, no trailing whitespace); all lines up to 200, else the first 100 and the last 100.',
                     ],
                     'truncated' => ['type' => 'boolean'],
-                    'lineCount' => ['type' => 'integer', 'minimum' => 1],
+                    'lineCount' => ['type' => 'integer'],
                     'before' => [
                         'type' => ['array', 'null'],
-                        'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
                     'after' => [
                         'type' => ['array', 'null'],
-                        'maxItems' => 3,
                         'items' => ['type' => 'string'],
                     ],
-                    'normalizedHash' => ['type' => 'string', 'pattern' => '^sha256:[0-9a-f]{64}$', 'description' => 'SHA-256 of the full region in comparison form: each line trimmed, each inner whitespace run replaced by one space, lines joined with LF, no final LF.'],
+                    'normalizedHash' => ['type' => 'string', 'description' => 'SHA-256 of the full region in comparison form: each line trimmed, each inner whitespace run replaced by one space, lines joined with LF, no final LF.'],
                 ],
             ],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
@@ -3897,7 +3808,7 @@ final class BundledSchemas
                     ],
                 ],
             ],
-            'EventSeq' => ['type' => 'integer', 'minimum' => 0, 'description' => 'Per-tenant event number, gapless, in commit order.'],
+            'EventSeq' => ['type' => 'integer', 'description' => 'Per-tenant event number, gapless, in commit order.'],
             'EventType' => [
                 'anyOf' => [
                     [
@@ -3912,9 +3823,6 @@ final class BundledSchemas
             ],
             'Group' => [
                 'type' => 'string',
-                'minLength' => 1,
-                'maxLength' => 80,
-                'pattern' => '\\S',
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'The group label of a request: one line without CR or LF, with at least one non-whitespace character. Requests with the same group are one unit of feedback. The server trims it, then checks the length.',
             ],
@@ -3977,8 +3885,8 @@ final class BundledSchemas
                 'required' => ['startLine', 'endLine'],
                 'description' => '1-based, inclusive; endLine >= startLine.',
                 'properties' => [
-                    'startLine' => ['type' => 'integer', 'minimum' => 1],
-                    'endLine' => ['type' => 'integer', 'minimum' => 1],
+                    'startLine' => ['type' => 'integer'],
+                    'endLine' => ['type' => 'integer'],
                 ],
             ],
             'Proposal' => [
@@ -3997,7 +3905,7 @@ final class BundledSchemas
                     ['type' => 'string'],
                 ],
             ],
-            'PullRequestUrl' => ['type' => 'string', 'maxLength' => 2048, 'pattern' => '^https://[^\\s\\x00]+$', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
+            'PullRequestUrl' => ['type' => 'string', 'description' => 'An https URL without whitespace. For a GitHub repository: https://github.com/{owner}/{name}/pull/{number} of the review\'s repository.'],
             'Question' => [
                 'type' => 'object',
                 'required' => ['question', 'detail', 'answer'],
@@ -4005,12 +3913,10 @@ final class BundledSchemas
                     'question' => ['$ref' => '#/$defs/QuestionText'],
                     'detail' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 4000,
                         'description' => 'Markdown that gives the context of the question.',
                     ],
                     'answer' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 4000,
                         'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
                     ],
                 ],
@@ -4018,13 +3924,10 @@ final class BundledSchemas
             ],
             'QuestionText' => [
                 'type' => 'string',
-                'minLength' => 1,
-                'maxLength' => 200,
-                'pattern' => '\\S',
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'A question of an agent: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
-            'RepoPath' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 4096, 'pattern' => '^(?!/)(?!-)(?![^\\x00]*//)(?!([^\\x00]*/)?\\.\\.?(/|$))[^\\x00]*[^/\\x00]$', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
+            'RepoPath' => ['type' => 'string', 'description' => 'Relative path, \'/\' separators, no leading \'/\' or \'-\', no empty, \'.\' or \'..\' segment, no NUL byte.'],
             'RequestStatus' => [
                 'anyOf' => [
                     [
@@ -4067,7 +3970,7 @@ final class BundledSchemas
                         ],
                         'description' => 'Null while the request has no title.',
                     ],
-                    'summary' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200, 'description' => 'The title when set. Else the plain text of the first non-blank line of body: the line rendered as GitHub Flavored Markdown without raw HTML, without tags, with decoded entities, and trimmed. A line whose plain text is empty is skipped, and a body with no plain text gives its first non-blank line, trimmed. A text over 200 characters is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
+                    'summary' => ['type' => 'string', 'description' => 'The title when set. Else the plain text of the first non-blank line of body: the line rendered as GitHub Flavored Markdown without raw HTML, without tags, with decoded entities, and trimmed. A line whose plain text is empty is skipped, and a body with no plain text gives its first non-blank line, trimmed. A text over 200 characters is cut and ends with U+2026 HORIZONTAL ELLIPSIS.'],
                     'author' => ['$ref' => '#/$defs/Actor'],
                     'claimedBy' => [
                         'anyOf' => [
@@ -4081,9 +3984,9 @@ final class BundledSchemas
                             ['type' => 'null'],
                         ],
                     ],
-                    'commentCount' => ['type' => 'integer', 'minimum' => 0],
-                    'commitCount' => ['type' => 'integer', 'minimum' => 0],
-                    'pendingCommitCount' => ['type' => 'integer', 'minimum' => 0],
+                    'commentCount' => ['type' => 'integer'],
+                    'commitCount' => ['type' => 'integer'],
+                    'pendingCommitCount' => ['type' => 'integer'],
                     'outdated' => [
                         'type' => ['boolean', 'null'],
                         'description' => 'Location at the default-branch head is changed, orphaned, or unverified. Null until computed, when the clone is gone, and for a general request.',
@@ -4195,21 +4098,18 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => ['language', 'kind', 'fqn'],
                 'properties' => [
-                    'language' => ['type' => 'string', 'minLength' => 1, 'description' => 'The `language` of V9, for example \'php\' or \'typescript\'. Open set.'],
+                    'language' => ['type' => 'string', 'description' => 'The `language` of V9, for example \'php\' or \'typescript\'. Open set.'],
                     'kind' => ['$ref' => '#/$defs/SymbolKind'],
-                    'fqn' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 1024],
+                    'fqn' => ['type' => 'string'],
                 ],
             ],
             'Title' => [
                 'type' => 'string',
-                'minLength' => 1,
-                'maxLength' => 200,
-                'pattern' => '\\S',
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'The title of a request: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
-            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
-            'UnifiedDiff' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
+            'Ulid' => ['type' => 'string', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'UnifiedDiff' => ['type' => 'string', 'description' => 'Unified diff in git format, as `git diff` writes it, with 1 to 9 lines that start with `diff --git `.'],
         ],
     ];
 
@@ -4221,9 +4121,9 @@ final class BundledSchemas
         'properties' => [
             'id' => ['$ref' => '#/$defs/Ulid'],
             'repositoryId' => ['$ref' => '#/$defs/Ulid'],
-            'repositoryName' => ['type' => 'string', 'minLength' => 1],
-            'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
-            'ref' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255, 'description' => 'As given at start: branch, tag, or SHA.'],
+            'repositoryName' => ['type' => 'string'],
+            'title' => ['type' => 'string'],
+            'ref' => ['type' => 'string', 'description' => 'As given at start: branch, tag, or SHA.'],
             'commitSha' => ['$ref' => '#/$defs/CommitSha'],
             'state' => ['$ref' => '#/$defs/ReviewState'],
             'startedBy' => ['$ref' => '#/$defs/Actor'],
@@ -4242,7 +4142,6 @@ final class BundledSchemas
             ],
             'closeNote' => [
                 'type' => ['string', 'null'],
-                'maxLength' => 65536,
             ],
             'delivery' => ['$ref' => '#/$defs/Delivery', 'description' => 'The latest choice of Submit feedback (D5). Both values are null until the user picks one.'],
             'capabilities' => ['$ref' => '#/$defs/Capabilities'],
@@ -4288,11 +4187,9 @@ final class BundledSchemas
                     ],
                     'agentName' => [
                         'type' => ['string', 'null'],
-                        'minLength' => 1,
-                        'maxLength' => 64,
                         'description' => 'API token name. Agents only.',
                     ],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
+                    'name' => ['type' => 'string', 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
                     'avatarUrl' => [
                         'type' => ['string', 'null'],
                         'format' => 'uri',
@@ -4359,7 +4256,7 @@ final class BundledSchemas
                 ],
                 'description' => 'What the host of the repository offers.',
             ],
-            'CommitSha' => ['type' => 'string', 'pattern' => '^([0-9a-f]{40}|[0-9a-f]{64})$', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
+            'CommitSha' => ['type' => 'string', 'description' => 'Full SHA-1 or SHA-256 commit ID, lower case.'],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
             'Delivery' => [
                 'type' => 'object',
@@ -4379,7 +4276,7 @@ final class BundledSchemas
                 ],
                 'description' => 'How the agent delivers its work (D85).',
             ],
-            'EventSeq' => ['type' => 'integer', 'minimum' => 0, 'description' => 'Per-tenant event number, gapless, in commit order.'],
+            'EventSeq' => ['type' => 'integer', 'description' => 'Per-tenant event number, gapless, in commit order.'],
             'IndexState' => [
                 'anyOf' => [
                     [
@@ -4395,11 +4292,10 @@ final class BundledSchemas
                     'state' => ['$ref' => '#/$defs/IndexState'],
                     'filesTotal' => [
                         'type' => ['integer', 'null'],
-                        'minimum' => 0,
                         'description' => 'Null until the path list is written.',
                     ],
-                    'filesDone' => ['type' => 'integer', 'minimum' => 0],
-                    'symbolsTotal' => ['type' => 'integer', 'minimum' => 0],
+                    'filesDone' => ['type' => 'integer'],
+                    'symbolsTotal' => ['type' => 'integer'],
                     'startedAt' => [
                         'anyOf' => [
                             ['$ref' => '#/$defs/DateTime'],
@@ -4421,29 +4317,29 @@ final class BundledSchemas
                 'type' => 'object',
                 'required' => ['total', 'byStatus', 'byAwaiting', 'outdated'],
                 'properties' => [
-                    'total' => ['type' => 'integer', 'minimum' => 0],
+                    'total' => ['type' => 'integer'],
                     'byStatus' => [
                         'type' => 'object',
                         'required' => ['open', 'in_progress', 'ready_for_review', 'verified', 'reopened', 'wont_do'],
                         'properties' => [
-                            'open' => ['type' => 'integer', 'minimum' => 0],
-                            'in_progress' => ['type' => 'integer', 'minimum' => 0],
-                            'ready_for_review' => ['type' => 'integer', 'minimum' => 0],
-                            'verified' => ['type' => 'integer', 'minimum' => 0],
-                            'reopened' => ['type' => 'integer', 'minimum' => 0],
-                            'wont_do' => ['type' => 'integer', 'minimum' => 0],
+                            'open' => ['type' => 'integer'],
+                            'in_progress' => ['type' => 'integer'],
+                            'ready_for_review' => ['type' => 'integer'],
+                            'verified' => ['type' => 'integer'],
+                            'reopened' => ['type' => 'integer'],
+                            'wont_do' => ['type' => 'integer'],
                         ],
                     ],
                     'byAwaiting' => [
                         'type' => 'object',
                         'required' => ['agent', 'user', 'none'],
                         'properties' => [
-                            'agent' => ['type' => 'integer', 'minimum' => 0],
-                            'user' => ['type' => 'integer', 'minimum' => 0],
-                            'none' => ['type' => 'integer', 'minimum' => 0],
+                            'agent' => ['type' => 'integer'],
+                            'user' => ['type' => 'integer'],
+                            'none' => ['type' => 'integer'],
                         ],
                     ],
-                    'outdated' => ['type' => 'integer', 'minimum' => 0],
+                    'outdated' => ['type' => 'integer'],
                 ],
             ],
             'ReviewState' => [
@@ -4454,7 +4350,7 @@ final class BundledSchemas
                     ['type' => 'string'],
                 ],
             ],
-            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'Ulid' => ['type' => 'string', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
             'Workspace' => [
                 'anyOf' => [
                     [
@@ -4489,7 +4385,7 @@ final class BundledSchemas
                     ['type' => 'string'],
                 ],
             ],
-            'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
+            'Cursor' => ['type' => 'string', 'description' => 'Opaque pagination cursor.'],
             'NextCursor' => [
                 'anyOf' => [
                     ['$ref' => '#/$defs/Cursor'],
@@ -4503,21 +4399,20 @@ final class BundledSchemas
                 'required' => ['key', 'name', 'approvalMode', 'approvalGuidelines', 'repositories'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/ProjectKey'],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255],
+                    'name' => ['type' => 'string'],
                     'approvalMode' => ['$ref' => '#/$defs/ApprovalMode'],
                     'approvalGuidelines' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 10000,
                         'description' => 'Markdown of the user: which issue needs the approval of the user, and which one an agent works on its own. In by_issue, an agent chooses the approval of a new issue by it (D129).',
                     ],
                     'repositories' => [
                         'type' => 'array',
-                        'items' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255],
+                        'items' => ['type' => 'string'],
                         'description' => 'The names of the repositories of the project that the caller sees, as in Repository.name, in name order.',
                     ],
                 ],
             ],
-            'ProjectKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}$', 'description' => 'The key of a project: 2 to 10 upper-case letters, unique per tenant. It never changes.'],
+            'ProjectKey' => ['type' => 'string', 'description' => 'The key of a project: 2 to 10 upper-case letters, unique per tenant. It never changes.'],
         ],
     ];
 
@@ -4549,11 +4444,9 @@ final class BundledSchemas
                     ],
                     'agentName' => [
                         'type' => ['string', 'null'],
-                        'minLength' => 1,
-                        'maxLength' => 64,
                         'description' => 'API token name. Agents only.',
                     ],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
+                    'name' => ['type' => 'string', 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
                     'avatarUrl' => [
                         'type' => ['string', 'null'],
                         'format' => 'uri',
@@ -4612,7 +4505,7 @@ final class BundledSchemas
                     ['type' => 'string'],
                 ],
             ],
-            'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
+            'Cursor' => ['type' => 'string', 'description' => 'Opaque pagination cursor.'],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
             'IssueApproval' => [
                 'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
@@ -4643,7 +4536,7 @@ final class BundledSchemas
                     'until' => ['$ref' => '#/$defs/DateTime', 'description' => '2 hours after the newest write of the holder.'],
                 ],
             ],
-            'IssueKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
+            'IssueKey' => ['type' => 'string', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
             'IssueParty' => [
                 'type' => 'object',
                 'required' => ['kind', 'userId', 'name'],
@@ -4686,7 +4579,7 @@ final class BundledSchemas
                 'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'updatedAt', 'lastActivityAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
-                    'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
+                    'title' => ['type' => 'string'],
                     'category' => ['$ref' => '#/$defs/IssueCategory'],
                     'status' => ['$ref' => '#/$defs/IssueStatus'],
                     'approval' => ['$ref' => '#/$defs/IssueApproval'],
@@ -4722,8 +4615,8 @@ final class BundledSchemas
                     ['type' => 'null'],
                 ],
             ],
-            'SessionName' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
-            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'SessionName' => ['type' => 'string', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
+            'Ulid' => ['type' => 'string', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
             'WaitingFor' => [
                 'description' => 'The role of the party that has the next step on an issue (D134).',
                 'anyOf' => [
@@ -4764,11 +4657,9 @@ final class BundledSchemas
                     ],
                     'agentName' => [
                         'type' => ['string', 'null'],
-                        'minLength' => 1,
-                        'maxLength' => 64,
                         'description' => 'API token name. Agents only.',
                     ],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
+                    'name' => ['type' => 'string', 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
                     'avatarUrl' => [
                         'type' => ['string', 'null'],
                         'format' => 'uri',
@@ -4836,7 +4727,7 @@ final class BundledSchemas
                     ['type' => 'string'],
                 ],
             ],
-            'Cursor' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 2048, 'description' => 'Opaque pagination cursor.'],
+            'Cursor' => ['type' => 'string', 'description' => 'Opaque pagination cursor.'],
             'DateTime' => ['type' => 'string', 'format' => 'date-time', 'description' => 'RFC 3339, UTC, \'Z\' suffix, second precision.'],
             'IssueApproval' => [
                 'description' => 'The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129).',
@@ -4877,7 +4768,7 @@ final class BundledSchemas
                     'label' => ['$ref' => '#/$defs/CommentLabel'],
                     'actor' => ['$ref' => '#/$defs/Actor'],
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
-                    'body' => ['type' => 'string', 'maxLength' => 65536, 'description' => 'The Markdown comment. Empty for the answers of a user.'],
+                    'body' => ['type' => 'string', 'description' => 'The Markdown comment. Empty for the answers of a user.'],
                     'questions' => [
                         'type' => 'array',
                         'items' => ['$ref' => '#/$defs/Question'],
@@ -4885,7 +4776,7 @@ final class BundledSchemas
                     ],
                 ],
             ],
-            'IssueKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
+            'IssueKey' => ['type' => 'string', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
             'IssueParty' => [
                 'type' => 'object',
                 'required' => ['kind', 'userId', 'name'],
@@ -4928,7 +4819,7 @@ final class BundledSchemas
                 'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'updatedAt', 'lastActivityAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
-                    'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
+                    'title' => ['type' => 'string'],
                     'category' => ['$ref' => '#/$defs/IssueCategory'],
                     'status' => ['$ref' => '#/$defs/IssueStatus'],
                     'approval' => ['$ref' => '#/$defs/IssueApproval'],
@@ -4971,12 +4862,10 @@ final class BundledSchemas
                     'question' => ['$ref' => '#/$defs/QuestionText'],
                     'detail' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 4000,
                         'description' => 'Markdown that gives the context of the question.',
                     ],
                     'answer' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 4000,
                         'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
                     ],
                 ],
@@ -4984,14 +4873,11 @@ final class BundledSchemas
             ],
             'QuestionText' => [
                 'type' => 'string',
-                'minLength' => 1,
-                'maxLength' => 200,
-                'pattern' => '\\S',
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'A question of an agent: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
-            'SessionName' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
-            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'SessionName' => ['type' => 'string', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
+            'Ulid' => ['type' => 'string', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
             'WaitingFor' => [
                 'description' => 'The role of the party that has the next step on an issue (D134).',
                 'anyOf' => [
@@ -5038,11 +4924,9 @@ final class BundledSchemas
                     ],
                     'agentName' => [
                         'type' => ['string', 'null'],
-                        'minLength' => 1,
-                        'maxLength' => 64,
                         'description' => 'API token name. Agents only.',
                     ],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
+                    'name' => ['type' => 'string', 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
                     'avatarUrl' => [
                         'type' => ['string', 'null'],
                         'format' => 'uri',
@@ -5130,7 +5014,7 @@ final class BundledSchemas
                 ],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
-                    'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
+                    'title' => ['type' => 'string'],
                     'category' => ['$ref' => '#/$defs/IssueCategory'],
                     'status' => ['$ref' => '#/$defs/IssueStatus'],
                     'approval' => ['$ref' => '#/$defs/IssueApproval'],
@@ -5152,32 +5036,26 @@ final class BundledSchemas
                     ],
                     'problem' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 65536,
                         'description' => 'Markdown, for the user. bug: what is wrong, and how to see it. change: what is wanted. The current understanding: a new version when it changes.',
                     ],
                     'acceptanceCriteria' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 65536,
                         'description' => 'Markdown, for the user: how to tell that the issue is done, as outcomes that the user can see. bug: what is expected. A new version keeps the plan approval (D147).',
                     ],
                     'plan' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 65536,
                         'description' => 'Markdown, for the user: what changes, one line each; out of scope; risk.',
                     ],
                     'result' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 65536,
                         'description' => 'Markdown, for the user: what changed, where the work is, and each deviation from the plan.',
                     ],
                     'followUps' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 65536,
                         'description' => 'Markdown: what came up and was left out.',
                     ],
                     'notes' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 65536,
                         'description' => 'Markdown, the working memory of the agents: research with sources, steps with files, tests, progress. A new version keeps the plan approval (D143).',
                     ],
                     'project' => [
@@ -5185,7 +5063,7 @@ final class BundledSchemas
                         'required' => ['key', 'name', 'approvalMode'],
                         'properties' => [
                             'key' => ['$ref' => '#/$defs/ProjectKey'],
-                            'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255],
+                            'name' => ['type' => 'string'],
                             'approvalMode' => ['$ref' => '#/$defs/ApprovalMode'],
                         ],
                     ],
@@ -5268,7 +5146,6 @@ final class BundledSchemas
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                     'body' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 65536,
                         'description' => 'comment: the Markdown comment, empty for the answers of a user. section_changed: the Markdown text of this version of the section with history, and null without it, because the issue has the current text. Else null.',
                     ],
                     'questions' => [
@@ -5306,18 +5183,14 @@ final class BundledSchemas
                     ],
                     'note' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 65536,
                         'description' => 'status_changed only: the Markdown note of the change, when one was given.',
                     ],
                     'reviewer' => [
                         'type' => ['string', 'null'],
-                        'minLength' => 1,
-                        'maxLength' => 64,
                         'description' => 'status_changed and plan_approved: the name of the reviewing agent, when one was given.',
                     ],
                     'reviewNote' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 65536,
                         'description' => 'plan_approved only: the Markdown findings of the reviewer.',
                     ],
                     'planRevision' => [
@@ -5352,7 +5225,7 @@ final class BundledSchemas
                 ],
                 'description' => 'Open set.',
             ],
-            'IssueKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
+            'IssueKey' => ['type' => 'string', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
             'IssueLink' => [
                 'type' => 'object',
                 'required' => ['issue', 'kind', 'note', 'createdBy', 'createdAt'],
@@ -5360,7 +5233,7 @@ final class BundledSchemas
                 'properties' => [
                     'issue' => ['$ref' => '#/$defs/IssueSummary', 'description' => 'The other issue of the link.'],
                     'kind' => ['$ref' => '#/$defs/IssueLinkKind'],
-                    'note' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 65536, 'description' => 'Markdown: the reason for the link.'],
+                    'note' => ['type' => 'string', 'description' => 'Markdown: the reason for the link.'],
                     'createdBy' => ['$ref' => '#/$defs/Actor'],
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                 ],
@@ -5424,7 +5297,7 @@ final class BundledSchemas
                 'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'updatedAt', 'lastActivityAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
-                    'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
+                    'title' => ['type' => 'string'],
                     'category' => ['$ref' => '#/$defs/IssueCategory'],
                     'status' => ['$ref' => '#/$defs/IssueStatus'],
                     'approval' => ['$ref' => '#/$defs/IssueApproval'],
@@ -5462,18 +5335,15 @@ final class BundledSchemas
                     'approvedAt' => ['$ref' => '#/$defs/DateTime'],
                     'reviewer' => [
                         'type' => ['string', 'null'],
-                        'minLength' => 1,
-                        'maxLength' => 64,
                         'description' => 'The name of the agent that reviewed the plan. Null for an approval of a user.',
                     ],
                     'reviewNote' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 65536,
                         'description' => 'Markdown: the findings of the reviewer. Null for an approval of a user.',
                     ],
                 ],
             ],
-            'ProjectKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}$', 'description' => 'The key of a project: 2 to 10 upper-case letters, unique per tenant. It never changes.'],
+            'ProjectKey' => ['type' => 'string', 'description' => 'The key of a project: 2 to 10 upper-case letters, unique per tenant. It never changes.'],
             'Question' => [
                 'type' => 'object',
                 'required' => ['question', 'detail', 'answer'],
@@ -5481,12 +5351,10 @@ final class BundledSchemas
                     'question' => ['$ref' => '#/$defs/QuestionText'],
                     'detail' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 4000,
                         'description' => 'Markdown that gives the context of the question.',
                     ],
                     'answer' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 4000,
                         'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
                     ],
                 ],
@@ -5494,14 +5362,11 @@ final class BundledSchemas
             ],
             'QuestionText' => [
                 'type' => 'string',
-                'minLength' => 1,
-                'maxLength' => 200,
-                'pattern' => '\\S',
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'A question of an agent: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
-            'SessionName' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
-            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'SessionName' => ['type' => 'string', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
+            'Ulid' => ['type' => 'string', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
             'WaitingFor' => [
                 'description' => 'The role of the party that has the next step on an issue (D134).',
                 'anyOf' => [
@@ -5520,7 +5385,7 @@ final class BundledSchemas
         'required' => ['cursor', 'hasMore', 'issues', 'entries'],
         'description' => 'The result of I10 and get_issue_updates (D128): what changed in a project since a cursor, without the entries of the caller.',
         'properties' => [
-            'cursor' => ['type' => 'integer', 'minimum' => 0, 'description' => 'Pass as cursor next time. A number of the entry sequence of the project.'],
+            'cursor' => ['type' => 'integer', 'description' => 'Pass as cursor next time. A number of the entry sequence of the project.'],
             'hasMore' => ['type' => 'boolean', 'description' => 'More entries wait: call again at once with cursor.'],
             'issues' => [
                 'type' => 'array',
@@ -5556,11 +5421,9 @@ final class BundledSchemas
                     ],
                     'agentName' => [
                         'type' => ['string', 'null'],
-                        'minLength' => 1,
-                        'maxLength' => 64,
                         'description' => 'API token name. Agents only.',
                     ],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
+                    'name' => ['type' => 'string', 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
                     'avatarUrl' => [
                         'type' => ['string', 'null'],
                         'format' => 'uri',
@@ -5676,7 +5539,6 @@ final class BundledSchemas
                     'createdAt' => ['$ref' => '#/$defs/DateTime'],
                     'body' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 65536,
                         'description' => 'comment: the Markdown comment, empty for the answers of a user. section_changed: the Markdown text of this version of the section with history, and null without it, because the issue has the current text. Else null.',
                     ],
                     'questions' => [
@@ -5714,18 +5576,14 @@ final class BundledSchemas
                     ],
                     'note' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 65536,
                         'description' => 'status_changed only: the Markdown note of the change, when one was given.',
                     ],
                     'reviewer' => [
                         'type' => ['string', 'null'],
-                        'minLength' => 1,
-                        'maxLength' => 64,
                         'description' => 'status_changed and plan_approved: the name of the reviewing agent, when one was given.',
                     ],
                     'reviewNote' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 65536,
                         'description' => 'plan_approved only: the Markdown findings of the reviewer.',
                     ],
                     'planRevision' => [
@@ -5760,7 +5618,7 @@ final class BundledSchemas
                 ],
                 'description' => 'Open set.',
             ],
-            'IssueKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
+            'IssueKey' => ['type' => 'string', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
             'IssueParty' => [
                 'type' => 'object',
                 'required' => ['kind', 'userId', 'name'],
@@ -5811,7 +5669,7 @@ final class BundledSchemas
                 'required' => ['key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'updatedAt', 'lastActivityAt'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
-                    'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
+                    'title' => ['type' => 'string'],
                     'category' => ['$ref' => '#/$defs/IssueCategory'],
                     'status' => ['$ref' => '#/$defs/IssueStatus'],
                     'approval' => ['$ref' => '#/$defs/IssueApproval'],
@@ -5848,12 +5706,10 @@ final class BundledSchemas
                     'question' => ['$ref' => '#/$defs/QuestionText'],
                     'detail' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 4000,
                         'description' => 'Markdown that gives the context of the question.',
                     ],
                     'answer' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 4000,
                         'description' => 'Null on an agent comment. On a user comment the answer: Yes, No, or text.',
                     ],
                 ],
@@ -5861,14 +5717,11 @@ final class BundledSchemas
             ],
             'QuestionText' => [
                 'type' => 'string',
-                'minLength' => 1,
-                'maxLength' => 200,
-                'pattern' => '\\S',
                 'not' => ['pattern' => '[\\r\\n]'],
                 'description' => 'A question of an agent: one line without CR or LF, with at least one non-whitespace character. The server trims it, then checks the length.',
             ],
-            'SessionName' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
-            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'SessionName' => ['type' => 'string', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
+            'Ulid' => ['type' => 'string', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
             'WaitingFor' => [
                 'description' => 'The role of the party that has the next step on an issue (D134).',
                 'anyOf' => [
@@ -5892,7 +5745,7 @@ final class BundledSchemas
         ],
         'properties' => [
             'key' => ['$ref' => '#/$defs/IssueKey'],
-            'title' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 200],
+            'title' => ['type' => 'string'],
             'category' => ['$ref' => '#/$defs/IssueCategory'],
             'status' => ['$ref' => '#/$defs/IssueStatus'],
             'approval' => ['$ref' => '#/$defs/IssueApproval'],
@@ -5914,32 +5767,26 @@ final class BundledSchemas
             ],
             'problem' => [
                 'type' => ['string', 'null'],
-                'maxLength' => 65536,
                 'description' => 'Markdown, for the user. bug: what is wrong, and how to see it. change: what is wanted. The current understanding: a new version when it changes.',
             ],
             'acceptanceCriteria' => [
                 'type' => ['string', 'null'],
-                'maxLength' => 65536,
                 'description' => 'Markdown, for the user: how to tell that the issue is done, as outcomes that the user can see. bug: what is expected. A new version keeps the plan approval (D147).',
             ],
             'plan' => [
                 'type' => ['string', 'null'],
-                'maxLength' => 65536,
                 'description' => 'Markdown, for the user: what changes, one line each; out of scope; risk.',
             ],
             'result' => [
                 'type' => ['string', 'null'],
-                'maxLength' => 65536,
                 'description' => 'Markdown, for the user: what changed, where the work is, and each deviation from the plan.',
             ],
             'followUps' => [
                 'type' => ['string', 'null'],
-                'maxLength' => 65536,
                 'description' => 'Markdown: what came up and was left out.',
             ],
             'notes' => [
                 'type' => ['string', 'null'],
-                'maxLength' => 65536,
                 'description' => 'Markdown, the working memory of the agents: research with sources, steps with files, tests, progress. A new version keeps the plan approval (D143).',
             ],
             'project' => [
@@ -5947,7 +5794,7 @@ final class BundledSchemas
                 'required' => ['key', 'name', 'approvalMode'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/ProjectKey'],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255],
+                    'name' => ['type' => 'string'],
                     'approvalMode' => ['$ref' => '#/$defs/ApprovalMode'],
                 ],
             ],
@@ -5998,11 +5845,9 @@ final class BundledSchemas
                     ],
                     'agentName' => [
                         'type' => ['string', 'null'],
-                        'minLength' => 1,
-                        'maxLength' => 64,
                         'description' => 'API token name. Agents only.',
                     ],
-                    'name' => ['type' => 'string', 'minLength' => 1, 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
+                    'name' => ['type' => 'string', 'description' => 'Display name: login for users, agentName for agents, \'Slopmower\' for system.'],
                     'avatarUrl' => [
                         'type' => ['string', 'null'],
                         'format' => 'uri',
@@ -6100,7 +5945,7 @@ final class BundledSchemas
                     'until' => ['$ref' => '#/$defs/DateTime', 'description' => '2 hours after the newest write of the holder.'],
                 ],
             ],
-            'IssueKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}-[1-9][0-9]{0,8}$', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
+            'IssueKey' => ['type' => 'string', 'description' => 'The name of an issue: the key of its project, a hyphen, and its number in the project, for example SM-12.'],
             'IssueParty' => [
                 'type' => 'object',
                 'required' => ['kind', 'userId', 'name'],
@@ -6146,20 +5991,17 @@ final class BundledSchemas
                     'approvedAt' => ['$ref' => '#/$defs/DateTime'],
                     'reviewer' => [
                         'type' => ['string', 'null'],
-                        'minLength' => 1,
-                        'maxLength' => 64,
                         'description' => 'The name of the agent that reviewed the plan. Null for an approval of a user.',
                     ],
                     'reviewNote' => [
                         'type' => ['string', 'null'],
-                        'maxLength' => 65536,
                         'description' => 'Markdown: the findings of the reviewer. Null for an approval of a user.',
                     ],
                 ],
             ],
-            'ProjectKey' => ['type' => 'string', 'pattern' => '^[A-Z]{2,10}$', 'description' => 'The key of a project: 2 to 10 upper-case letters, unique per tenant. It never changes.'],
-            'SessionName' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'pattern' => '^[^\\x00]*$', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
-            'Ulid' => ['type' => 'string', 'pattern' => '^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
+            'ProjectKey' => ['type' => 'string', 'description' => 'The key of a project: 2 to 10 upper-case letters, unique per tenant. It never changes.'],
+            'SessionName' => ['type' => 'string', 'description' => 'The name of an agent session, which holds the claim of an issue (D130). The server compares it as sent.'],
+            'Ulid' => ['type' => 'string', 'description' => 'ULID, Crockford base32. Upper case in output, case-insensitive in input.'],
             'WaitingFor' => [
                 'description' => 'The role of the party that has the next step on an issue (D134).',
                 'anyOf' => [

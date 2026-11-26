@@ -224,6 +224,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
    - emit every schema property;
    - never add `additionalProperties: false` to response schemas;
    - validate the responses in tests: REST responses against the files in [schemas/](schemas/), and MCP `structuredContent` against the `outputSchema` of each tool, both with `opis/json-schema` 2.6.0.
+   - keep a client with an older `tools/list` working within v1: the MCP output schemas have open sets and no value limits, and a `tools/call` takes the string form of an integer or boolean input (decisions D135 and D146 of [architecture.md](../architecture.md) section 11).
 6. **Deprecation:**
    - The `/docs` changelog announces it.
    - Deprecated REST endpoints send `Deprecation: @<unix time>` as in RFC 9745, `Sunset: <HTTP-date>` as in RFC 8594, and `Link: <https://<host>/docs/<page>>; rel="deprecation"`.
@@ -285,6 +286,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Agent notes, decision D143: the property `notes` of `Issue` and the optional input `notes` of I7 and `update_issue`. Not additive: `IssueSection` gets the value `notes`. The MCP output schemas accept it as an open set (D135). A stored issue has `notes` null.
     - Length limit on agent text, decision D144: a token or an MCP call writes at most 1,500 characters into `problem`, `plan`, and `result`, where it wrote 65,536. Not additive: it is tighter validation. A stored longer text stays, and a resend of it passes.
     - Length limit on a proposal plan, decision D145: Q14 and `propose_solution` take at most 1,500 characters in `plan`, where they took 65,536. Not additive: it is tighter validation. A stored longer proposal stays.
+    - A client with an older `tools/list`, decision D146: the MCP output schemas of `tools/list` have no value limits, and a `tools/call` takes the string form of an integer or boolean input. It relaxes validation, so it is additive. The schema files and REST keep the limits.
     - Acceptance criteria, decision D147: the property `acceptanceCriteria` of `Issue`, and the optional input `acceptanceCriteria` of I6, I7, `create_issue`, and `update_issue`. Not additive: `IssueSection` gets the value `acceptanceCriteria`, which the MCP output schemas accept as an open set (D135). A stored issue has `acceptanceCriteria` null.
 
 ## 9. Contract tests

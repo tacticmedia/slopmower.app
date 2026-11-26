@@ -43,6 +43,8 @@ final class BundleSchemasCommand
     /** Keys that identify a file. A bundled copy lives inside another document. */
     private const array FILE_KEYS = ['$schema', '$id', '$defs'];
 
+    private const array VALUE_LIMITS = ['maxLength', 'minLength', 'pattern', 'maximum', 'minimum', 'exclusiveMaximum', 'exclusiveMinimum', 'multipleOf', 'maxItems', 'minItems', 'maxContains', 'minContains', 'maxProperties', 'minProperties'];
+
     /** @var array<string, array<string, mixed>> Decoded schema files by name */
     private array $documents = [];
 
@@ -105,8 +107,10 @@ final class BundleSchemasCommand
     }
 
     /**
-     * Each `enum` becomes `anyOf` of the `enum` and any string, so a client that validates against an older tools/list
-     * accepts a new value (D135). An `enum` under `if` is a condition and stays, as does the `enum` of an open set.
+     * Each `enum` becomes `anyOf` of the `enum` and any string, and each value limit goes, so a client that validates
+     * against an older tools/list accepts a new value (D135) and a value within a raised limit (D146). A node under `if`
+     * or `not` stays, because a change there tightens the check, as does the `enum` of an open set. A limit keyword with
+     * an array value is a property.
      */
     private static function openSets(mixed $node, bool $openSetMember = false): mixed
     {
@@ -114,10 +118,19 @@ final class BundleSchemasCommand
             return $node;
         }
 
+        if (isset($node['oneOf'])) {
+            throw new \LogicException('A schema node with oneOf can match two members once its limits are gone.');
+        }
+
         $isOpenSet = \is_array($node['anyOf'] ?? null) && \in_array(['type' => 'string'], $node['anyOf'], true);
 
         foreach ($node as $key => $value) {
-            if ('if' === $key) {
+            if ('if' === $key || 'not' === $key) {
+                continue;
+            }
+
+            if (\in_array($key, self::VALUE_LIMITS, true) && \is_scalar($value)) {
+                unset($node[$key]);
                 continue;
             }
 

@@ -99,7 +99,7 @@ final class ToolsListContractTest extends WebTestCase
         self::assertGreaterThan(0, $checked);
     }
 
-    #[TestDox('No output schema of tools/list has a closed set: each enum is a condition under if, or a member of an anyOf with any string')]
+    #[TestDox('No output schema of tools/list has a closed set: each enum is under if or not, or a member of an anyOf with any string')]
     public function testOutputSchemasHaveNoClosedSet(): void
     {
         $closed = [];
@@ -111,6 +111,36 @@ final class ToolsListContractTest extends WebTestCase
 
         self::assertSame([], $closed);
         self::assertGreaterThan(0, $open);
+    }
+
+    #[TestDox('No output schema of tools/list has a value limit outside if and not')]
+    public function testOutputSchemasHaveNoValueLimit(): void
+    {
+        $limits = [];
+
+        foreach ($this->listedTools() as $tool) {
+            self::collectLimits($tool['outputSchema'] ?? null, $tool['name'], $limits);
+        }
+
+        self::assertSame([], $limits);
+    }
+
+    /**
+     * @param list<string> $limits The paths of the value limits
+     */
+    private static function collectLimits(mixed $node, string $path, array &$limits): void
+    {
+        if (!\is_array($node)) {
+            return;
+        }
+
+        foreach ($node as $key => $value) {
+            if (\in_array($key, ['maxLength', 'minLength', 'pattern', 'maximum', 'minimum', 'exclusiveMaximum', 'exclusiveMinimum', 'multipleOf', 'maxItems', 'minItems', 'maxContains', 'minContains', 'maxProperties', 'minProperties'], true) && \is_scalar($value)) {
+                $limits[] = "{$path}/{$key}";
+            } elseif ('if' !== $key && 'not' !== $key) {
+                self::collectLimits($value, "{$path}/{$key}", $limits);
+            }
+        }
     }
 
     /**
@@ -131,7 +161,7 @@ final class ToolsListContractTest extends WebTestCase
         $isOpenSet = \is_array($node['anyOf'] ?? null) && \in_array(['type' => 'string'], $node['anyOf'], true);
 
         foreach ($node as $key => $value) {
-            if ('if' === $key) {
+            if ('if' === $key || 'not' === $key) {
                 continue;
             }
 

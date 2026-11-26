@@ -250,7 +250,7 @@ make up
   | `src/Controller` | `Api/` with the value resolver of `{issueKey}`, `E2e/`, and the controllers outside `/api/v1` |
   | `src/Http` | The `/api/v1` listeners, the cursor codec, the `QueryInput` marker, the Sentry `before_send` callback |
   | `src/Serializer/Normalizer` | The value normalizers, and one normalizer per schema whose response class cannot be schema-shaped. REST and MCP share them. |
-  | `src/Mcp` | `Tool/` with one class per tool (D142), `ToolCall`, the session decorators, generated `BundledSchemas` |
+  | `src/Mcp` | `Tool/` with one class per tool (D142), `ToolCall`, the session decorators, `StringArgumentListener` (D146), generated `BundledSchemas` |
   | `docs/user/skill`, `docs/user/skill-issues` | The two Agent Skills: `slopmower` for the requests, `slopmower-issues` for the issue tracker. `.claude/skills/<name>/SKILL.md` holds the same bytes. |
   | `src/Live`, `src/Index`, `src/Anchoring`, `src/Docs` | Mercure, symbol index, re-anchoring, public documentation |
   | `src/Message`, `src/MessageHandler`, `src/Messenger`, `src/Schedule.php` | Messenger messages, every Messenger handler, middleware, the SQL of the queue `failed`, the schedule of the recurring jobs |
