@@ -1,0 +1,1707 @@
+[
+    {
+        "name": "approve_plan",
+        "title": "Approve plan",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "issue": {
+                    "type": "string",
+                    "description": "Issue key, for example SM-12",
+                    "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$"
+                },
+                "session": {
+                    "type": "string",
+                    "description": "Your session name, the same in each write: the directory name of your working tree, a hyphen, and 4 hex digits, in Claude Code the first 4 characters of CLAUDE_CODE_SESSION_ID, else random digits kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "planRevision": {
+                    "type": "string",
+                    "description": "planRevision of the issue, as the reviewer read it",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                },
+                "reviewer": {
+                    "type": "string",
+                    "description": "Name of the agent or subagent that reviewed the plan",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "reviewNote": {
+                    "type": "string",
+                    "description": "Markdown: the findings of the reviewer, at least 20 characters",
+                    "minLength": 20,
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                }
+            },
+            "required": [
+                "issue",
+                "session",
+                "planRevision",
+                "reviewer",
+                "reviewNote"
+            ]
+        },
+        "description": "Record that another agent or subagent reviewed the plan of an issue. Use it in a project with approvalMode agent_review, before you set in_progress. The reviewer reads the plan of planRevision; reviewer is its name and reviewNote its findings. The author of a plan does not review it. Fails with invalid_input in approvalMode user, for an issue without a plan, and for a planRevision that is not the newest: then call get_issue and review the newest plan. A plan with new text clears the approval. The call holds the issue for your session for 2 hours, and is refused on session while another session holds it.",
+        "annotations": {
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "idempotentHint": false,
+            "openWorldHint": false
+        },
+        "outputSchema": "ISSUE"
+    },
+    {
+        "name": "claim_request",
+        "title": "Claim request",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "Request ID",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                }
+            },
+            "required": [
+                "id"
+            ]
+        },
+        "description": "Claim an open or reopened request before you edit code for it. Status becomes in_progress. Claiming a request that you already hold succeeds and changes nothing. Fails with invalid_transition when the status does not allow it or another agent holds it: then take the next request.",
+        "annotations": {
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "idempotentHint": true,
+            "openWorldHint": false
+        },
+        "outputSchema": "REQUEST_COMMAND_RESULT"
+    },
+    {
+        "name": "comment_on_issue",
+        "title": "Comment on issue",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "issue": {
+                    "type": "string",
+                    "description": "Issue key, for example SM-12",
+                    "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$"
+                },
+                "session": {
+                    "type": "string",
+                    "description": "Your session name, the same in each write: the directory name of your working tree, a hyphen, and 4 hex digits, in Claude Code the first 4 characters of CLAUDE_CODE_SESSION_ID, else random digits kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "body": {
+                    "type": "string",
+                    "description": "Markdown comment",
+                    "minLength": 1,
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "label": {
+                    "type": "string",
+                    "default": "comment",
+                    "enum": [
+                        "comment",
+                        "decision",
+                        "question",
+                        "answer",
+                        "dismissal",
+                        "finding",
+                        "deviation",
+                        "scope_creep",
+                        "papercut",
+                        "review"
+                    ],
+                    "description": "comment: progress or a remark. decision: a choice, with its reason and what it rules out. question, answer, and dismissal: the server sets them, and refuses them on a comment without questions. finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent."
+                },
+                "replaces": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "id of the comment of this issue that the new comment replaces",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                },
+                "questions": {
+                    "type": "array",
+                    "default": [],
+                    "description": "Questions for the user, each answered with Yes, No, or text: one decision per question, your recommendation in detail. The comment gets the label question.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "question": {
+                                "type": "string",
+                                "description": "The question, in one line",
+                                "minLength": 1,
+                                "maxLength": 200,
+                                "pattern": "^[^\\x00]*$"
+                            },
+                            "detail": {
+                                "type": [
+                                    "null",
+                                    "string"
+                                ],
+                                "description": "Optional Markdown context of the question",
+                                "default": null,
+                                "maxLength": 4000,
+                                "pattern": "^[^\\x00]*$"
+                            }
+                        },
+                        "required": [
+                            "question"
+                        ],
+                        "additionalProperties": false
+                    },
+                    "maxItems": 10
+                }
+            },
+            "required": [
+                "issue",
+                "session",
+                "body"
+            ]
+        },
+        "description": "Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. label says what the comment is, and list_comments finds the comments of a project by it. When the user must decide something, put each decision in questions, then hand the issue to the requester with set_issue_status, the status that it has, and waitingFor requester: the user answers each question with Yes, No, or text, and the answers replace your comment, so get_issue has each question with its answer. When the user does not answer, a comment with the label dismissal replaces your comment: do not ask again; decide, or leave the issue as the user left it. Do not ask for the approval of a plan: the user approves it with a button. When a comment of an agent no longer holds, write the new one with replaces, the id of the old one, and do not write a second comment about it: the old one stays in the history, and get_issue and list_comments leave it out. Replace a question comment in this way to withdraw its questions. You cannot replace a comment of a user. A claim of another session never refuses a comment, and a comment renews the claim of your session. Write technical English, as short as possible, and only what a later reader needs.",
+        "annotations": {
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "idempotentHint": false,
+            "openWorldHint": false
+        },
+        "outputSchema": "ISSUE"
+    },
+    {
+        "name": "create_issue",
+        "title": "Create issue",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "project": {
+                    "type": "string",
+                    "description": "Project key from list_projects, for example SM",
+                    "pattern": "^[A-Z]{2,10}$"
+                },
+                "title": {
+                    "type": "string",
+                    "description": "One line that names the issue",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "category": {
+                    "type": "string",
+                    "enum": [
+                        "bug",
+                        "change"
+                    ],
+                    "description": "bug: something that exists is wrong. change: all else"
+                },
+                "problem": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Markdown. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done",
+                    "minLength": 1,
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "status": {
+                    "type": "string",
+                    "default": "draft",
+                    "enum": [
+                        "draft",
+                        "backlog",
+                        "todo"
+                    ],
+                    "description": "The first status"
+                },
+                "approval": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null,
+                    "enum": [
+                        "user",
+                        "agent_review",
+                        "self",
+                        null
+                    ],
+                    "description": "Only in approvalMode by_issue: who approves the plan and ends this issue. Null: user"
+                },
+                "requester": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null,
+                    "enum": [
+                        "user",
+                        "agent",
+                        null
+                    ],
+                    "description": "user or agent. Null: user"
+                },
+                "assignee": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null,
+                    "enum": [
+                        "user",
+                        "agent",
+                        null
+                    ],
+                    "description": "user or agent. Null: agent"
+                },
+                "priority": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null,
+                    "enum": [
+                        "top",
+                        "urgent",
+                        "high",
+                        "normal",
+                        "low",
+                        "none",
+                        null
+                    ],
+                    "description": "The place among the open issues of the category. top: first. urgent, high, normal, low: after the first 10, 25, 50, or 75 percent. none or null: last"
+                }
+            },
+            "required": [
+                "project",
+                "title",
+                "category"
+            ]
+        },
+        "description": "Create an issue of a project. Its key is the project key, a hyphen, and the next number of the project, for example SM-12. Look through the open issues of the project first, and continue one that covers the request. category is bug when something that exists is wrong against its specification, its documentation, or its evident intent, and change for all else: a feature, an alteration, a refactoring, or an upgrade. status is draft while the problem is incomplete, and backlog or todo when it is ready; backlog and todo need problem. In approvalMode by_issue, choose approval by approvalGuidelines: self or agent_review only where a guideline says so, else user. requester asks for the work and accepts it, and assignee does it: user is the user of your token, agent is any agent. By default the user requests and an agent works. Set requester agent only for work that no user asked for, on an issue whose approval is not user. priority places the issue among the open issues of its category: none, the default, for a follow-up or an idea; a higher value only when the user said how urgent the work is, or the approvalGuidelines say so. Write technical English, as short as possible, and only what a later reader needs.",
+        "annotations": {
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "idempotentHint": false,
+            "openWorldHint": false
+        },
+        "outputSchema": "ISSUE"
+    },
+    {
+        "name": "get_issue",
+        "title": "Get issue",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "issue": {
+                    "type": "string",
+                    "description": "Issue key, for example SM-12",
+                    "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$"
+                },
+                "history": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "true: also the replaced entries, and the text of each section version"
+                }
+            },
+            "required": [
+                "issue"
+            ]
+        },
+        "description": "Read one issue: the four sections, planRevision, the plan approval, allowedStatuses, its links, and its thread. By default the thread is the current content: it has no replaced entry, and a section_changed entry names its section and holds no text, because the issue has it. history: true returns the full log: every entry, also each earlier version of a section with its text in body, and each replaced comment. replacedBy of an entry is the id of the entry that replaced it, or null.",
+        "annotations": {
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "idempotentHint": true,
+            "openWorldHint": false
+        },
+        "outputSchema": "ISSUE_DETAIL"
+    },
+    {
+        "name": "get_issue_updates",
+        "title": "Get issue updates",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "project": {
+                    "type": "string",
+                    "description": "Project key from list_projects, for example SM",
+                    "pattern": "^[A-Z]{2,10}$"
+                },
+                "cursor": {
+                    "type": [
+                        "null",
+                        "integer"
+                    ],
+                    "default": null,
+                    "description": "The cursor from the previous call. Null returns the issues in work and the newest cursor.",
+                    "minimum": 0
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 50,
+                    "description": "Maximum entries (with a cursor) or issues (without one)",
+                    "minimum": 1,
+                    "maximum": 200
+                }
+            },
+            "required": [
+                "project"
+            ]
+        },
+        "description": "Return what changed in one project since cursor: the new entries of the threads of its issues, oldest first, each with the summary of its issue, as get_issue reads them without history. Your own entries and replaced entries are left out; another session with your token name counts as you. Without a cursor, return the issues in todo, in_progress, in_review, and approved, and the newest cursor. Always keep the returned cursor for the next call; if hasMore is true, call again at once. Poll it while an issue waits for the user: answers are a comment with the label answer, a dismissal is a comment with the label dismissal, an approval is a plan_approved entry. A title change, a link, and a new issue without a problem write no entry.",
+        "annotations": {
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "idempotentHint": true,
+            "openWorldHint": false
+        },
+        "outputSchema": "ISSUE_UPDATES_PAGE"
+    },
+    {
+        "name": "get_request",
+        "title": "Get request",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "Request ID",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                },
+                "at": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Commit SHA (7-64 hex digits) to locate the anchor at",
+                    "pattern": "^[0-9a-f]{7,64}$"
+                },
+                "context": {
+                    "type": [
+                        "null",
+                        "integer"
+                    ],
+                    "default": null,
+                    "description": "Lines of context around the located code to include as excerpt",
+                    "minimum": 0,
+                    "maximum": 50
+                }
+            },
+            "required": [
+                "id"
+            ]
+        },
+        "description": "Return one request in full: title, body, thread, anchor with a code snapshot at the review commit, linked commits, location, how to deliver the work (delivery), and the actions you may take now (allowedActions). `at` locates the anchor at another commit that the server's clone has (pushed, or committed in a local repository); by default the location is at the default-branch head. Your working tree can differ: find the code with anchor.snapshot, its before and after lines, and anchor.symbol.fqn. A general request has anchor, location, and excerpt null. It belongs to the whole review, and its body and thread say what to change. A request with title null has no title: give it one with set_request_title before you claim it. type says what the user asks for: change, a code change; question, claim it, answer with reply_to_request, change no code, then mark_ready_for_review with a note that points to the answer; rule, claim it, add the rule as one bullet in the user's words under `## Rules from Slopmower` in AGENTS.md at the repository root (create the file when it is missing), add `@AGENTS.md` to CLAUDE.md when it exists and does not import AGENTS.md, fix the anchored code when it breaks the rule, all in one commit, then link, mark ready, and follow the rule from then on. group, when not null, makes the request one unit of feedback with the other requests of that group: read them with list_requests and group, and handle them together in one commit.",
+        "annotations": {
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "idempotentHint": true,
+            "openWorldHint": false
+        },
+        "outputSchema": "REQUEST"
+    },
+    {
+        "name": "get_updates",
+        "title": "Get updates",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "review": {
+                    "type": "string",
+                    "description": "Review ID from list_reviews",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                },
+                "cursor": {
+                    "type": [
+                        "null",
+                        "integer"
+                    ],
+                    "default": null,
+                    "description": "The cursor from the previous call. Null returns everything that waits for you.",
+                    "minimum": 0
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 100,
+                    "description": "Maximum events (with a cursor) or requests (without one)",
+                    "minimum": 1,
+                    "maximum": 500
+                }
+            },
+            "required": [
+                "review"
+            ]
+        },
+        "description": "Return what changed in one review since `cursor`, grouped by request, leaving out your own actions. Without a cursor, return every request that waits for you with its unseen events. Always keep the returned cursor for the next call; if hasMore is true, call again at once. reviewState 'closed' means stop.",
+        "annotations": {
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "idempotentHint": true,
+            "openWorldHint": false
+        },
+        "outputSchema": "UPDATES_PAGE"
+    },
+    {
+        "name": "link_commits",
+        "title": "Link commits",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "commitSha": {
+                    "type": "string",
+                    "description": "Full commit SHA",
+                    "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+                },
+                "requestIds": {
+                    "type": "array",
+                    "description": "Every request that this commit covers, all from one review",
+                    "items": {
+                        "type": "string",
+                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                    },
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "uniqueItems": true
+                },
+                "note": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Optional note shown with the link",
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                }
+            },
+            "required": [
+                "commitSha",
+                "requestIds"
+            ]
+        },
+        "description": "Record that a commit implements one or more requests that you hold (status in_progress). Use the full SHA from `git rev-parse HEAD`. The commit may be unpushed: the link stays pending until the server's clone has it. Linking does not finish a request.",
+        "annotations": {
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "idempotentHint": true,
+            "openWorldHint": false
+        },
+        "outputSchema": "LINK_COMMITS_RESULT"
+    },
+    {
+        "name": "link_issues",
+        "title": "Link issues",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "issue": {
+                    "type": "string",
+                    "description": "Issue key, for example SM-12",
+                    "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$"
+                },
+                "target": {
+                    "type": "string",
+                    "description": "Key of the other issue",
+                    "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$"
+                },
+                "note": {
+                    "type": "string",
+                    "description": "Markdown: the reason for the link",
+                    "minLength": 1,
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "kind": {
+                    "type": "string",
+                    "default": "relates",
+                    "enum": [
+                        "relates",
+                        "blocked_by"
+                    ],
+                    "description": "relates: no dependency. blocked_by: issue waits for target."
+                }
+            },
+            "required": [
+                "issue",
+                "target",
+                "note"
+            ]
+        },
+        "description": "Link two issues, with the reason in note. Both issues show the link. When issue needs target first, set kind to blocked_by: get_issue then shows blocked_by on issue and blocks on target, and the dependency graph of the project shows the order to the user. Without kind the link is relates: link a follow-up issue to its origin in this way. A second call for the same two issues, in either order, replaces their link, so it changes the kind or the note. A link of an issue to itself fails with invalid_input.",
+        "annotations": {
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "idempotentHint": false,
+            "openWorldHint": false
+        },
+        "outputSchema": "ISSUE"
+    },
+    {
+        "name": "link_pull_request",
+        "title": "Link pull request",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "Pull request URL",
+                    "maxLength": 2048,
+                    "pattern": "^https://[^\\s\\x00]+$"
+                },
+                "requestIds": {
+                    "type": "array",
+                    "description": "Every request that this pull request covers, all from one review",
+                    "items": {
+                        "type": "string",
+                        "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                    },
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "uniqueItems": true
+                },
+                "note": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Optional note shown with the link",
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                }
+            },
+            "required": [
+                "url",
+                "requestIds"
+            ]
+        },
+        "description": "Record that a pull request implements one or more requests: each one in_progress and held by you, or ready_for_review. For a GitHub repository the URL is https://github.com/{owner}/{name}/pull/{number} of the reviewed repository. A local repository has no pull requests. Linking does not change the status. Open a pull request when delivery.pullRequest of get_request is true; when it is null, only when the user or the repository's instructions ask for it.",
+        "annotations": {
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "idempotentHint": true,
+            "openWorldHint": false
+        },
+        "outputSchema": "LINK_PULL_REQUEST_RESULT"
+    },
+    {
+        "name": "list_comments",
+        "title": "List comments",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "project": {
+                    "type": "string",
+                    "description": "Project key from list_projects, for example SM",
+                    "pattern": "^[A-Z]{2,10}$"
+                },
+                "issue": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Only the comments of this issue of the project, for example SM-12",
+                    "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$"
+                },
+                "label": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null,
+                    "enum": [
+                        "comment",
+                        "decision",
+                        "question",
+                        "answer",
+                        "dismissal",
+                        "finding",
+                        "deviation",
+                        "scope_creep",
+                        "papercut",
+                        "review",
+                        null
+                    ],
+                    "description": "Only comments with this label"
+                },
+                "cursor": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "nextCursor of the previous page",
+                    "minLength": 1,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 50,
+                    "description": "Page size",
+                    "minimum": 1,
+                    "maximum": 200
+                }
+            },
+            "required": [
+                "project"
+            ]
+        },
+        "description": "List the comments of every issue of one project, newest first, each with its issue, its label, its body, and its questions. A replaced comment is left out. issue returns only the comments of that issue. label returns only the comments with that label: every decision, or every papercut, of the project or of one issue is one call. question returns the questions that wait for the user, because the answers and a dismissal replace their question comment.",
+        "annotations": {
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "idempotentHint": true,
+            "openWorldHint": false
+        },
+        "outputSchema": "ISSUE_COMMENT_PAGE"
+    },
+    {
+        "name": "list_issues",
+        "title": "List issues",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "project": {
+                    "type": "string",
+                    "description": "Project key from list_projects, for example SM",
+                    "pattern": "^[A-Z]{2,10}$"
+                },
+                "sort": {
+                    "type": "string",
+                    "default": "rank",
+                    "enum": [
+                        "rank",
+                        "updated"
+                    ],
+                    "description": "rank: the order of the user, bugs first. updated: newest updatedAt first"
+                },
+                "status": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null,
+                    "enum": [
+                        "draft",
+                        "backlog",
+                        "todo",
+                        "in_progress",
+                        "in_review",
+                        "approved",
+                        "done",
+                        "wont_do",
+                        null
+                    ],
+                    "description": "Only issues with this status. Null: all with sort updated, the open ones with sort rank"
+                },
+                "category": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null,
+                    "enum": [
+                        "bug",
+                        "change",
+                        null
+                    ],
+                    "description": "Only issues of this category"
+                },
+                "waitingForKind": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null,
+                    "enum": [
+                        "user",
+                        "agent",
+                        null
+                    ],
+                    "description": "Only issues that wait for a party of this kind: agent for the issues that you can work on"
+                },
+                "activeWithinHours": {
+                    "type": [
+                        "null",
+                        "integer"
+                    ],
+                    "default": null,
+                    "description": "Only issues with activity in the last N hours. At most one activity filter",
+                    "minimum": 1,
+                    "maximum": 8760
+                },
+                "idleForHours": {
+                    "type": [
+                        "null",
+                        "integer"
+                    ],
+                    "default": null,
+                    "description": "Only issues without activity for N hours, an issue without activity counted from its creation",
+                    "minimum": 1,
+                    "maximum": 8760
+                },
+                "noActivity": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "true: only issues without activity: no comment, status change, section version, or plan approval since the creation"
+                },
+                "cursor": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "nextCursor of the previous page",
+                    "minLength": 1,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 50,
+                    "description": "Page size",
+                    "minimum": 1,
+                    "maximum": 200
+                }
+            },
+            "required": [
+                "project"
+            ]
+        },
+        "description": "List the issues of one project as summaries. By default in the order of the user: the bugs first, then by rank, and without status only the open issues. Work from the top: the next issue is status todo, waitingForKind agent, limit 1. claim names the agent session that holds an issue: skip an issue of another session. waitingFor names the party with the next step: work on an issue that waits for an agent, and leave an issue that waits for a user. Call get_issue for the sections, the links, and the thread.",
+        "annotations": {
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "idempotentHint": true,
+            "openWorldHint": false
+        },
+        "outputSchema": "ISSUE_PAGE"
+    },
+    {
+        "name": "list_projects",
+        "title": "List projects",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "cursor": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "nextCursor of the previous page",
+                    "minLength": 1,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 100,
+                    "description": "Page size",
+                    "minimum": 1,
+                    "maximum": 500
+                }
+            }
+        },
+        "description": "List the projects of the issue tracker that this token sees, with key, name, approvalMode, approvalGuidelines, and the names of their repositories. Track the work on a repository as issues of the project that lists it. A token of one repository sees only the project of that repository.",
+        "annotations": {
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "idempotentHint": true,
+            "openWorldHint": false
+        },
+        "outputSchema": "PROJECT_PAGE"
+    },
+    {
+        "name": "list_repositories",
+        "title": "List repositories",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "cursor": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "nextCursor of the previous page",
+                    "minLength": 1,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 100,
+                    "description": "Page size",
+                    "minimum": 1,
+                    "maximum": 500
+                }
+            }
+        },
+        "description": "List the repositories that this token can see: id, source (github or local), name, default branch, and number of open reviews. Use the name or id as `repository` in list_reviews.",
+        "annotations": {
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "idempotentHint": true,
+            "openWorldHint": false
+        },
+        "outputSchema": "REPOSITORY_PAGE"
+    },
+    {
+        "name": "list_requests",
+        "title": "List requests",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "review": {
+                    "type": "string",
+                    "description": "Review ID from list_reviews",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                },
+                "status": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null,
+                    "enum": [
+                        "open",
+                        "in_progress",
+                        "ready_for_review",
+                        "verified",
+                        "reopened",
+                        "wont_do",
+                        null
+                    ],
+                    "description": "Only requests with this status"
+                },
+                "awaiting": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null,
+                    "enum": [
+                        "agent",
+                        "user",
+                        "none",
+                        null
+                    ],
+                    "description": "Only requests where it is this party's turn; \"agent\" means you"
+                },
+                "path": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Only requests whose file path starts with this prefix; general requests never match",
+                    "minLength": 1,
+                    "maxLength": 4096,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "outdated": {
+                    "type": [
+                        "null",
+                        "boolean"
+                    ],
+                    "default": null,
+                    "description": "Only requests whose code changed (true) or did not change (false) on the default branch"
+                },
+                "suggestion": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null,
+                    "enum": [
+                        "pending",
+                        "accepted",
+                        "dismissed",
+                        null
+                    ],
+                    "description": "Only suggestions in this state; requests that the user opened never match"
+                },
+                "group": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Only requests of this group, an exact match; requests without a group never match",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "cursor": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "nextCursor of the previous page",
+                    "minLength": 1,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 50,
+                    "description": "Page size",
+                    "minimum": 1,
+                    "maximum": 200
+                }
+            },
+            "required": [
+                "review"
+            ]
+        },
+        "description": "List the change requests of one review, oldest first, with optional filters. Returns summaries: title is null while a request has none, and summary is the title or else the first line of the body as plain text. Call get_request for the body, thread, anchor, and location. Requests with the same group are one unit of feedback: pass group to read them all, claim each, make one change in one commit, link it to every request of the group, and mark each ready with the same note; with requireApproval, propose the same plan on each.",
+        "annotations": {
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "idempotentHint": true,
+            "openWorldHint": false
+        },
+        "outputSchema": "REQUEST_PAGE"
+    },
+    {
+        "name": "list_reviews",
+        "title": "List reviews",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "repository": {
+                    "type": "string",
+                    "description": "Repository ID, GitHub owner/name, or local directory name",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "includeClosed": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Also list closed reviews"
+                },
+                "cursor": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "nextCursor of the previous page",
+                    "minLength": 1,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 50,
+                    "description": "Page size",
+                    "minimum": 1,
+                    "maximum": 100
+                }
+            },
+            "required": [
+                "repository"
+            ]
+        },
+        "description": "List the reviews of one repository, newest first. Only open reviews unless includeClosed is true. Each review is pinned to one commit and holds its own requests; pass its id as `review` to get_updates and list_requests.",
+        "annotations": {
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "idempotentHint": true,
+            "openWorldHint": false
+        },
+        "outputSchema": "REVIEW_PAGE"
+    },
+    {
+        "name": "mark_ready_for_review",
+        "title": "Mark ready for review",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "Request ID",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                },
+                "note": {
+                    "type": "string",
+                    "description": "What you changed and how you tested it",
+                    "minLength": 1,
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                }
+            },
+            "required": [
+                "id",
+                "note"
+            ]
+        },
+        "description": "Tell the user that a request you hold is done. The note says what you changed and how you tested it. Every linked commit must be in the server's clone: for GitHub repositories push first (the server fetches once), otherwise this fails with commits_not_available. A request that needs no code change may have no commits; say why in the note.",
+        "annotations": {
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "idempotentHint": false,
+            "openWorldHint": false
+        },
+        "outputSchema": "REQUEST_COMMAND_RESULT"
+    },
+    {
+        "name": "mark_wont_do",
+        "title": "Mark won't do",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "Request ID",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                },
+                "reason": {
+                    "type": "string",
+                    "description": "Checkable justification, at least 20 characters",
+                    "minLength": 20,
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                }
+            },
+            "required": [
+                "id",
+                "reason"
+            ]
+        },
+        "description": "Decline an open or reopened request, or one that you hold. Give evidence that the user can check: a file and line, a test result, a conflicting requirement, or why the request is wrong. At least 20 characters. The user then verifies or reopens it.",
+        "annotations": {
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "idempotentHint": false,
+            "openWorldHint": false
+        },
+        "outputSchema": "REQUEST_COMMAND_RESULT"
+    },
+    {
+        "name": "propose_solution",
+        "title": "Propose solution",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "Request ID",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                },
+                "plan": {
+                    "type": "string",
+                    "description": "Markdown plan: what you will change, and why",
+                    "minLength": 1,
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "diff": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Optional unified diff of the change from `git diff`, at most 9 files",
+                    "minLength": 1,
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                }
+            },
+            "required": [
+                "id",
+                "plan"
+            ]
+        },
+        "description": "Propose how you will solve a request that you hold, before you link commits. Required when the request has requireApproval true; also useful when the request is unclear or large. A new proposal replaces the current one. The user approves it or requests changes: the decision comes back through get_updates, and get_request shows it in proposal.state. Until the user approves, link_commits and mark_ready_for_review fail with invalid_transition.",
+        "annotations": {
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "idempotentHint": false,
+            "openWorldHint": false
+        },
+        "outputSchema": "REQUEST_COMMAND_RESULT"
+    },
+    {
+        "name": "release_request",
+        "title": "Release request",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "Request ID",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                },
+                "note": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Why you stop, for the user",
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                }
+            },
+            "required": [
+                "id"
+            ]
+        },
+        "description": "Give back a request that you claimed but will not finish. Its status returns to what it was before the claim (open or reopened).",
+        "annotations": {
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "idempotentHint": false,
+            "openWorldHint": false
+        },
+        "outputSchema": "REQUEST_COMMAND_RESULT"
+    },
+    {
+        "name": "reply_to_request",
+        "title": "Reply to request",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "Request ID",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                },
+                "body": {
+                    "type": "string",
+                    "description": "Markdown comment",
+                    "minLength": 1,
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "question": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "True when you need an answer from the user"
+                },
+                "questions": {
+                    "type": "array",
+                    "default": [],
+                    "description": "Questions for the user, each answered with Yes, No, or text. A comment with questions is a question.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "question": {
+                                "type": "string",
+                                "description": "The question, in one line",
+                                "minLength": 1,
+                                "maxLength": 200,
+                                "pattern": "^[^\\x00]*$"
+                            },
+                            "detail": {
+                                "type": [
+                                    "null",
+                                    "string"
+                                ],
+                                "description": "Optional Markdown context of the question",
+                                "default": null,
+                                "maxLength": 4000,
+                                "pattern": "^[^\\x00]*$"
+                            }
+                        },
+                        "required": [
+                            "question"
+                        ],
+                        "additionalProperties": false
+                    },
+                    "maxItems": 10
+                }
+            },
+            "required": [
+                "id",
+                "body"
+            ]
+        },
+        "description": "Add a comment to a request's thread, in any status. Set question to true when you need the user's answer; the request then waits for the user and comes back through get_updates when they reply. Put each question you need answered in questions: the user answers each with Yes, No, or text, and the answers come back as a user comment whose questions hold each question with its answer.",
+        "annotations": {
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "idempotentHint": false,
+            "openWorldHint": false
+        },
+        "outputSchema": "REQUEST_COMMAND_RESULT"
+    },
+    {
+        "name": "set_issue_status",
+        "title": "Set issue status",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "issue": {
+                    "type": "string",
+                    "description": "Issue key, for example SM-12",
+                    "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$"
+                },
+                "session": {
+                    "type": "string",
+                    "description": "Your session name, the same in each write: the directory name of your working tree, a hyphen, and 4 hex digits, in Claude Code the first 4 characters of CLAUDE_CODE_SESSION_ID, else random digits kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "backlog",
+                        "todo",
+                        "in_progress",
+                        "in_review",
+                        "approved",
+                        "done",
+                        "wont_do"
+                    ],
+                    "description": "The new status"
+                },
+                "waitingFor": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null,
+                    "enum": [
+                        "requester",
+                        "assignee",
+                        null
+                    ],
+                    "description": "requester or assignee: who has the next step after the move. Null: the default of the status, or in the status that the issue has, the party that it waits for"
+                },
+                "note": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Markdown: why, for the thread. Required for wont_do, and in approvalMode agent_review for approved, wont_do, and done from another status than approved",
+                    "minLength": 1,
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "reviewer": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Name of the agent or subagent that reviewed the result. Required in approvalMode agent_review for approved, wont_do, and done from another status than approved",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[^\\x00]*$"
+                }
+            },
+            "required": [
+                "issue",
+                "session",
+                "status"
+            ]
+        },
+        "description": "Move an issue to another status, or hand it to the other party in the status that it has. The server checks the state that the move gives: backlog, todo, in_progress, in_review, approved, and done need problem; in_progress, in_review, approved, and done need a plan that is approved as approvalMode says; in_review, approved, and done need result; wont_do needs note. approved, done, and wont_do from an agent: refused in approvalMode user, with reviewer and note in agent_review, free in self. done from approved is free in every mode. in_review: the work is ready and not merged, and waits for the review of the requester. approved: the requester accepted it; merge it, write the commit on the default branch into result, and set done. waitingFor is the party with the next step: by default the requester in draft and in_review, the assignee in todo, in_progress, and approved, nobody in backlog, done, and wont_do. When the user must decide, hand the issue to the requester: send the status that it has with waitingFor requester. allowedStatuses does not list that status, and the hand-over is allowed. Take an issue back from a user only after the user answered in the session, and record the answer as a decision first. The move holds the issue for your session for 2 hours. A move to backlog, in_review, done, or wont_do, out of in_progress, or to a user ends the claim. To give up an issue in work, set todo with a note. A refusal is invalid_input on the field that breaks the rule: on session while another session holds the issue, so take another issue. allowedStatuses of the issue lists the other statuses that you can set now.",
+        "annotations": {
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "idempotentHint": false,
+            "openWorldHint": false
+        },
+        "outputSchema": "ISSUE"
+    },
+    {
+        "name": "set_request_title",
+        "title": "Set request title",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "Request ID",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                },
+                "title": {
+                    "type": "string",
+                    "description": "One line of at most 80 characters that summarizes the body",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "^[^\\x00]*$"
+                }
+            },
+            "required": [
+                "id",
+                "title"
+            ]
+        },
+        "description": "Set the title of a request whose title is null: one line of at most 80 characters that summarizes its body. Call it before you claim such a request. Fails with invalid_transition when the request has a title; only the user changes a title.",
+        "annotations": {
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "idempotentHint": false,
+            "openWorldHint": false
+        },
+        "outputSchema": "REQUEST_COMMAND_RESULT"
+    },
+    {
+        "name": "start_review",
+        "title": "Start review",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "repository": {
+                    "type": "string",
+                    "description": "Repository ID, GitHub owner/name, or local directory name",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "ref": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Branch, tag, or commit SHA to pin; null for the default branch",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "title": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Review title; null for \"<ref> @ <short SHA>\"",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "^[^\\x00]*$"
+                }
+            },
+            "required": [
+                "repository"
+            ]
+        },
+        "description": "Start a review of one repository, pinned to one commit, when the user asks you to review code and no review was named. Without ref, the review pins the head of the default branch. Read the code at the returned commitSha, then call suggest_request once per finding.",
+        "annotations": {
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "idempotentHint": false,
+            "openWorldHint": false
+        },
+        "outputSchema": "REVIEW"
+    },
+    {
+        "name": "suggest_request",
+        "title": "Suggest request",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "review": {
+                    "type": "string",
+                    "description": "Review ID from start_review or list_reviews",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                },
+                "title": {
+                    "type": "string",
+                    "description": "One line of at most 80 characters that summarizes the body",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "body": {
+                    "type": "string",
+                    "description": "Markdown: what to change, and why",
+                    "minLength": 1,
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "anchorKind": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null,
+                    "enum": [
+                        "line",
+                        "range",
+                        "symbol",
+                        "file",
+                        null
+                    ],
+                    "description": "line, range, symbol, or file; null for a general request"
+                },
+                "path": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "File path at the review commit; required with anchorKind",
+                    "minLength": 1,
+                    "maxLength": 4096,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "startLine": {
+                    "type": [
+                        "null",
+                        "integer"
+                    ],
+                    "default": null,
+                    "description": "First line, for line and range",
+                    "minimum": 1
+                },
+                "endLine": {
+                    "type": [
+                        "null",
+                        "integer"
+                    ],
+                    "default": null,
+                    "description": "Last line, for line and range; equal to startLine for line",
+                    "minimum": 1
+                },
+                "symbol": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Fully qualified name of the symbol, for symbol",
+                    "minLength": 1,
+                    "maxLength": 1024,
+                    "pattern": "^[^\\x00]*$"
+                }
+            },
+            "required": [
+                "review",
+                "title",
+                "body"
+            ]
+        },
+        "description": "Suggest one change while you review code. The suggestion is a request that waits for the user, who accepts or dismisses it; do not edit code for it. Give it a title: one line of at most 80 characters that summarizes the body. Use the narrowest anchor: anchorKind line or range with path, startLine, and endLine; symbol with path and the fully qualified name in symbol, for example App\\Billing\\InvoiceTotals::total(); file with path. Without anchorKind the suggestion concerns the whole review. If the server does not find the symbol, use a range. An accepted suggestion comes back through get_updates as a request that waits for you.",
+        "annotations": {
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "idempotentHint": false,
+            "openWorldHint": false
+        },
+        "outputSchema": "REQUEST_COMMAND_RESULT"
+    },
+    {
+        "name": "unlink_commit",
+        "title": "Unlink commit",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "commitSha": {
+                    "type": "string",
+                    "description": "Full commit SHA",
+                    "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+                },
+                "requestId": {
+                    "type": "string",
+                    "description": "Request ID",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                }
+            },
+            "required": [
+                "commitSha",
+                "requestId"
+            ]
+        },
+        "description": "Remove a commit link that you made by mistake from a request that you hold.",
+        "annotations": {
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "idempotentHint": false,
+            "openWorldHint": false
+        },
+        "outputSchema": "REQUEST_COMMAND_RESULT"
+    },
+    {
+        "name": "unlink_pull_request",
+        "title": "Unlink pull request",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "Pull request URL",
+                    "maxLength": 2048,
+                    "pattern": "^https://[^\\s\\x00]+$"
+                },
+                "requestId": {
+                    "type": "string",
+                    "description": "Request ID",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$"
+                }
+            },
+            "required": [
+                "url",
+                "requestId"
+            ]
+        },
+        "description": "Remove a pull request link that you made by mistake from a request: in_progress and held by you, or ready_for_review.",
+        "annotations": {
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "idempotentHint": false,
+            "openWorldHint": false
+        },
+        "outputSchema": "REQUEST_COMMAND_RESULT"
+    },
+    {
+        "name": "update_issue",
+        "title": "Update issue",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "issue": {
+                    "type": "string",
+                    "description": "Issue key, for example SM-12",
+                    "pattern": "^[A-Z]{2,10}-[1-9][0-9]{0,8}$"
+                },
+                "session": {
+                    "type": "string",
+                    "description": "Your session name, the same in each write: the directory name of your working tree, a hyphen, and 4 hex digits, in Claude Code the first 4 characters of CLAUDE_CODE_SESSION_ID, else random digits kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "title": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "One line that names the issue",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "category": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null,
+                    "enum": [
+                        "bug",
+                        "change",
+                        null
+                    ],
+                    "description": "bug: something that exists is wrong. change: all else"
+                },
+                "problem": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Markdown. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done",
+                    "minLength": 1,
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "plan": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Markdown: the steps, the files, and the tests",
+                    "minLength": 1,
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "result": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Markdown: what was done, with the commit SHAs, and each deviation from the plan",
+                    "minLength": 1,
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "followUps": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Markdown: what came up and was left out",
+                    "minLength": 1,
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "approval": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null,
+                    "enum": [
+                        "user",
+                        "agent_review",
+                        "self",
+                        null
+                    ],
+                    "description": "Only in approvalMode by_issue: who approves the plan and ends this issue. An agent changes it only to user"
+                },
+                "requester": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null,
+                    "enum": [
+                        "user",
+                        "agent",
+                        null
+                    ],
+                    "description": "user or agent. Null keeps it"
+                },
+                "assignee": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null,
+                    "enum": [
+                        "user",
+                        "agent",
+                        null
+                    ],
+                    "description": "user or agent. Null keeps it"
+                }
+            },
+            "required": [
+                "issue",
+                "session"
+            ]
+        },
+        "description": "Change the title, the category, or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem: for a bug, what is wrong, how to see it, and what is expected; for a change, what is wanted, and how to tell that it is done. plan: the steps, the files, and the tests. result: what was done, with the commit SHAs, and each deviation from the plan. followUps: what came up and was left out. A plan with new text clears its approval. An agent cannot change plan in in_progress, in_review, or approved, and no field of an issue in done or wont_do. approval exists only in approvalMode by_issue, and an agent changes it only to user, and with the agent as the requester also sends requester user. requester and assignee change without an entry, and the issue then waits for the new party of its waitingFor. The write holds the issue for your session for 2 hours. While another session holds it, the write is refused on session: take another issue. Write technical English, as short as possible, and only what a later reader needs.",
+        "annotations": {
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "idempotentHint": true,
+            "openWorldHint": false
+        },
+        "outputSchema": "ISSUE"
+    }
+]

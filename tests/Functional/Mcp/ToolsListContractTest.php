@@ -14,7 +14,7 @@ use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
- * The tools of docs/specs/mcp-tools.json (D99).
+ * The tools of `App\Mcp\Tool` (D142).
  */
 final class ToolsListContractTest extends WebTestCase
 {
@@ -56,20 +56,21 @@ final class ToolsListContractTest extends WebTestCase
         'url' => 'common.schema.json#/$defs/PullRequestUrl',
     ];
 
-    #[TestDox('tools/list gives the tools of docs/specs/mcp-tools.json in its order, each with the bundled output schema of its reference')]
-    public function testToolsEqualDocsSpecs(): void
+    #[TestDox('tools/list equals tests/Fixtures/mcp/tools-list.json in its order, where outputSchema names a BundledSchemas constant')]
+    public function testToolsEqualFixture(): void
     {
-        $listed = $this->listedTools();
-        $expected = self::specsJson('mcp-tools.json')['tools'];
-        self::assertIsArray($expected);
+        $fixture = json_decode((string) file_get_contents(\dirname(__DIR__, 2).'/Fixtures/mcp/tools-list.json'), true, flags: \JSON_THROW_ON_ERROR);
+        self::assertIsArray($fixture);
+        $expected = [];
 
-        self::assertSame(array_column($expected, 'name'), array_column($listed, 'name'));
-        self::assertSame(self::keySorted(BundledSchemas::TOOLS), self::keySorted($listed));
-
-        foreach ($expected as $index => $tool) {
+        foreach ($fixture as $tool) {
             self::assertIsArray($tool);
-            self::assertSame(self::keySorted(array_diff_key($tool, ['outputSchema' => true])), self::keySorted(array_diff_key($listed[$index], ['outputSchema' => true])), "The tool {$tool['name']}.");
+            self::assertIsString($tool['outputSchema']);
+            $tool['outputSchema'] = \constant(BundledSchemas::class.'::'.$tool['outputSchema']);
+            $expected[] = $tool;
         }
+
+        self::assertSame(self::keySorted($expected), self::keySorted($this->listedTools()));
     }
 
     #[TestDox('Each tool input pattern equals the pattern of its common.schema.json definition')]

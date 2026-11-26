@@ -250,7 +250,7 @@ make up
   | `src/Controller` | `Api/` with the value resolver of `{issueKey}`, `E2e/`, and the controllers outside `/api/v1` |
   | `src/Http` | The `/api/v1` listeners, the cursor codec, the `QueryInput` marker, the Sentry `before_send` callback |
   | `src/Serializer/Normalizer` | The value normalizers, and one normalizer per schema whose response class cannot be schema-shaped. REST and MCP share them. |
-  | `src/Mcp` | `McpTools` with every tool, the session decorators, generated `BundledSchemas` |
+  | `src/Mcp` | `Tool/` with one class per tool (D142), `ToolCall`, the session decorators, generated `BundledSchemas` |
   | `docs/user/skill`, `docs/user/skill-issues` | The two Agent Skills: `slopmower` for the requests, `slopmower-issues` for the issue tracker. `.claude/skills/<name>/SKILL.md` holds the same bytes. |
   | `src/Live`, `src/Index`, `src/Anchoring`, `src/Docs` | Mercure, symbol index, re-anchoring, public documentation |
   | `src/Message`, `src/MessageHandler`, `src/Messenger`, `src/Schedule.php` | Messenger messages, every Messenger handler, middleware, the SQL of the queue `failed`, the schedule of the recurring jobs |
@@ -261,7 +261,7 @@ make up
   - Use attributes: `#[Route]`, `#[IsGranted]`, `#[MapRequestPayload]`, `#[MapQueryString]`, `#[AsCommand]`, `#[AsMessageHandler]`, `#[AsEventListener]`, `#[Autowire]`, `#[When]`. A route that exists only in one environment also sets `env:` on `#[Route]`.
   - Rely on autowiring. No YAML service definition unless it is unavoidable.
 - Paginated lists use `Http\Cursor`: `decode()` checks the sort key types, and `next()` makes `nextCursor`. The updates feed V10 takes the event `seq` as its cursor.
-- A controller maps the input and returns the normalized JSON. Logic that another caller shares is in a service. Logic with no other consumer stays in the controller, in the action or a private method. Path IDs and path keys resolve to visible entities in argument value resolvers, so the error check order of docs/specs holds: `#[MapEntity]`, or `Controller\Api\IssueKeyResolver` for an `{issueKey}`. See M11. Errors are `DomainError` subclasses. `ApiExceptionListener` maps them for REST, and `McpTools::run()` maps them for MCP.
+- A controller maps the input and returns the normalized JSON. Logic that another caller shares is in a service. Logic with no other consumer stays in the controller, in the action or a private method. Path IDs and path keys resolve to visible entities in argument value resolvers, so the error check order of docs/specs holds: `#[MapEntity]`, or `Controller\Api\IssueKeyResolver` for an `{issueKey}`. See M11. Errors are `DomainError` subclasses. `ApiExceptionListener` maps them for REST, and `ToolCall::run()` maps them for MCP.
 - Reads:
   - A read that several callers share, REST and MCP (D37) or a controller and a use case, is one method of an `Application\Query` service. A method that builds the same view as such a read stays next to it, for example `ReviewQuery::get()`.
   - A read with one caller stays in its controller, for example Q9 in `CommitDiffController`.

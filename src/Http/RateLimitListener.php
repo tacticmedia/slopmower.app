@@ -12,7 +12,7 @@ use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
  * The limiters per call of docs/specs/README.md section "Rate limits" for /api/v1, and `mcp_http` for /_mcp. The MCP
- * tool calls consume `api_token` and `api_user` in {@see \App\Mcp\McpTools}. {@see ApiExceptionListener} answers a
+ * tool calls consume `api_token` and `api_user` in {@see \App\Mcp\ToolCall}. {@see ApiExceptionListener} answers a
  * {@see RateLimited}.
  */
 #[AsEventListener(event: KernelEvents::REQUEST, priority: self::PRIORITY)]

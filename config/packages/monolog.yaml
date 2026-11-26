@@ -58,7 +58,7 @@ when@prod:
     monolog:
         handlers:
             # No code and no agent text in logs: mcp/sdk 0.9.0 puts JSON-RPC bodies and tool arguments into its records,
-            # also at error, so no handler takes the channel mcp. McpTools::run() logs a failed tool on the channel app.
+            # also at error, so no handler takes the channel mcp. ToolCall::run() logs a failed tool on the channel app.
             main:
                 type: fingers_crossed
                 action_level: error

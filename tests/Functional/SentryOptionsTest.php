@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional;
 
 use App\Http\SentryClientErrorFilter;
-use App\Mcp\McpTools;
+use App\Mcp\ToolCall;
 use App\Tests\Support\Environment\EnvironmentContainer;
 use PHPUnit\Framework\Attributes\TestDox;
 use Sentry\DataCollection\DataCollectionPolicy;
@@ -88,7 +88,7 @@ final class SentryOptionsTest extends KernelTestCase
     #[TestDox('In prod, the MCP tools get the Sentry hub')]
     public function testMcpToolsGetTheHub(): void
     {
-        $arguments = self::prodContainer()->getDefinition(McpTools::class)->getArguments();
+        $arguments = self::prodContainer()->getDefinition(ToolCall::class)->getArguments();
         $hub = end($arguments);
 
         self::assertInstanceOf(Reference::class, $hub);
