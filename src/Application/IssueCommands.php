@@ -51,7 +51,7 @@ final class IssueCommands
 {
     private const int REVIEW_NOTE_MIN_CHARACTERS = 20;
     private const int AGENT_SECTION_MAX_CHARACTERS = 1500;
-    private const array AGENT_LIMITED_SECTIONS = [IssueSection::Problem, IssueSection::Plan, IssueSection::Result];
+    private const array AGENT_LIMITED_SECTIONS = [IssueSection::Problem, IssueSection::AcceptanceCriteria, IssueSection::Plan, IssueSection::Result];
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
@@ -67,9 +67,11 @@ final class IssueCommands
      *
      * @throws NotFound|InvalidInput
      */
-    public function create(string $projectKey, string $title, IssueCategory $category, ?string $problem, IssueStatus $status, Actor $actor, ?ApprovalMode $approval = null, ?IssuePartyKind $requester = null, ?IssuePartyKind $assignee = null, ?IssuePriority $priority = null): Issue
+    public function create(string $projectKey, string $title, IssueCategory $category, ?string $problem, ?string $acceptanceCriteria, IssueStatus $status, Actor $actor, ?ApprovalMode $approval = null, ?IssuePartyKind $requester = null, ?IssuePartyKind $assignee = null, ?IssuePriority $priority = null): Issue
     {
-        return $this->transactional(function (\DateTimeImmutable $now) use ($projectKey, $title, $category, $problem, $status, $actor, $approval, $requester, $assignee, $priority): array {
+        $texts = array_filter(['problem' => $problem, 'acceptanceCriteria' => $acceptanceCriteria], static fn (?string $text): bool => null !== $text);
+
+        return $this->transactional(function (\DateTimeImmutable $now) use ($projectKey, $title, $category, $texts, $status, $actor, $approval, $requester, $assignee, $priority): array {
             $project = $this->issues->project($projectKey, LockMode::PESSIMISTIC_WRITE);
             $issue = new Issue(
                 $project,
@@ -86,8 +88,8 @@ final class IssueCommands
             $this->entityManager->persist($issue);
             self::changeApproval($issue, $approval, $actor, $now, isNew: true);
 
-            if (null !== $problem) {
-                $this->changeSection($issue, IssueSection::Problem, $problem, $actor, $now);
+            foreach ($texts as $section => $text) {
+                $this->changeSection($issue, IssueSection::from($section), $text, $actor, $now);
             }
 
             $this->entityManager->flush();
@@ -103,9 +105,9 @@ final class IssueCommands
      *
      * @throws NotFound|InvalidInput
      */
-    public function update(IssueKey $key, ?string $title, ?string $problem, ?string $plan, ?string $result, ?string $followUps, ?string $notes, Actor $actor, ?string $session, ?ApprovalMode $approval = null, ?IssueCategory $category = null, ?IssuePartyKind $requester = null, ?IssuePartyKind $assignee = null): Issue
+    public function update(IssueKey $key, ?string $title, ?string $problem, ?string $acceptanceCriteria, ?string $plan, ?string $result, ?string $followUps, ?string $notes, Actor $actor, ?string $session, ?ApprovalMode $approval = null, ?IssueCategory $category = null, ?IssuePartyKind $requester = null, ?IssuePartyKind $assignee = null): Issue
     {
-        $texts = array_filter(['problem' => $problem, 'plan' => $plan, 'result' => $result, 'followUps' => $followUps, 'notes' => $notes], static fn (?string $text): bool => null !== $text);
+        $texts = array_filter(['problem' => $problem, 'acceptanceCriteria' => $acceptanceCriteria, 'plan' => $plan, 'result' => $result, 'followUps' => $followUps, 'notes' => $notes], static fn (?string $text): bool => null !== $text);
 
         return $this->write($key, $actor, $session, function (Issue $issue, \DateTimeImmutable $now) use ($title, $texts, $actor, $approval, $category, $requester, $assignee): void {
             if (null === $title && [] === $texts && null === $approval && null === $category && null === $requester && null === $assignee) {

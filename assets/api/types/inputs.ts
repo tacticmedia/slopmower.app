@@ -210,6 +210,7 @@ export type CreateIssueInput = {
     title: string;
     category: IssueCategory;
     problem?: Markdown | null;
+    acceptanceCriteria?: Markdown | null;
     /** Absent or null: draft. */
     status?: Extract<IssueStatus, 'draft' | 'backlog' | 'todo'> | null;
     /** Only in a `by_issue` project. */
@@ -233,6 +234,7 @@ export type UpdateIssueInput = {
     title?: string | null;
     category?: IssueCategory | null;
     problem?: Markdown | null;
+    acceptanceCriteria?: Markdown | null;
     plan?: Markdown | null;
     result?: Markdown | null;
     followUps?: Markdown | null;

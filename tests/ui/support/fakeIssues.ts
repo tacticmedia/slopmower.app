@@ -86,7 +86,7 @@ export class FakeIssues {
             return json('project.schema.json', changed);
         });
         api.on('POST', '/api/v1/projects/:projectKey/issues', ({ params, body }) => {
-            const { title, category, problem = null, status, approval = null, requester = null, assignee = null, priority = null } = body as CreateIssueInput;
+            const { title, category, problem = null, acceptanceCriteria = null, status, approval = null, requester = null, assignee = null, priority = null } = body as CreateIssueInput;
             const owner = this.projects.find(({ key }) => key === params.projectKey);
             if (undefined === owner) {
                 return notFound();
@@ -109,6 +109,7 @@ export class FakeIssues {
                 assignee: party(assignee ?? 'agent'),
                 waitingFor: DEFAULT_WAITING_FOR[status ?? 'draft'],
                 problem,
+                acceptanceCriteria,
                 plan: null,
                 project: { key: owner.key, name: owner.name, approvalMode: owner.approvalMode },
                 planRevision: null,
@@ -130,7 +131,11 @@ export class FakeIssues {
             });
             const before = open[Math.ceil((open.length * PRIORITY_SHARE_PERCENT[priority ?? 'none']) / 100)];
             this.ranked.splice(undefined === before ? this.ranked.length : this.ranked.indexOf(before), 0, created.key);
-            this.issues.set(created.key, { issue: created, links: [], thread: null === problem ? [] : [entry('section_changed', { section: 'problem', body: problem })] });
+            const thread = [
+                ...(null === problem ? [] : [entry('section_changed', { section: 'problem', body: problem })]),
+                ...(null === acceptanceCriteria ? [] : [entry('section_changed', { section: 'acceptanceCriteria', body: acceptanceCriteria })]),
+            ];
+            this.issues.set(created.key, { issue: created, links: [], thread });
 
             return json('issue.schema.json', created, 201);
         });

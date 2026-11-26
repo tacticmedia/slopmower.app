@@ -21,6 +21,8 @@ final readonly class UpdateIssueInput
         #[Assert\Length(min: 1, max: 65536)]
         public ?string $problem = null,
         #[Assert\Length(min: 1, max: 65536)]
+        public ?string $acceptanceCriteria = null,
+        #[Assert\Length(min: 1, max: 65536)]
         public ?string $plan = null,
         #[Assert\Length(min: 1, max: 65536)]
         public ?string $result = null,

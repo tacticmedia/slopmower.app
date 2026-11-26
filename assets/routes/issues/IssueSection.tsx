@@ -13,22 +13,34 @@ import type { IssueIntent } from './issueData';
 import { type IssueWrite, useIssueWrite } from './useIssueWrite';
 import { handOverTo } from './WaitingLabel';
 
-export const SECTION_TITLES: Record<Section, string> = { problem: 'Problem', plan: 'Plan', result: 'Result', followUps: 'Follow-ups', notes: 'Notes' };
+/** The `problem` entries of these maps hold while no category is chosen. */
+const SECTION_TITLES: Record<Section, string> = { problem: 'Problem or task', acceptanceCriteria: 'Acceptance criteria', plan: 'Plan', result: 'Result', followUps: 'Follow-ups', notes: 'Notes' };
 
-/** What a section holds: the placeholder of its editor. The problem of an issue holds what its category says. */
-export const SECTION_CONTENT: Record<Section, string> = {
-    problem: 'What is wrong or wanted, and how to tell that it is done',
+const PROBLEM_TITLES: Record<IssueCategory, string> = { bug: 'Problem', change: 'Task' };
+
+/** What a section holds: the help text and the placeholder of its editor. */
+const SECTION_CONTENT: Record<Section, string> = {
+    problem: 'What is wrong or wanted.',
+    acceptanceCriteria: 'How to tell that it is done: outcomes that you can see. Not how to get there.',
     plan: 'What changes for the user, one line each; out of scope; risk',
     result: 'What changed, where the work is, and each deviation from the plan',
     followUps: 'What came up and was left out',
     notes: 'Research, steps, files, and tests for the agent that does the work',
 };
 
-/** What the problem holds for each category (D133). */
-export const PROBLEM_CONTENT: Record<IssueCategory, string> = {
-    bug: 'What is wrong, how to see it, and what is expected',
-    change: 'What is wanted, and how to tell that it is done',
+const PROBLEM_CONTENT: Record<IssueCategory, string> = {
+    bug: 'What is wrong, and how to see it. Not the fix.',
+    change: 'What is wanted. Not how to build it.',
 };
+
+/** The problem of a change is its task (D147). The API name stays `problem`. */
+export function sectionTitle(section: Section, category: IssueCategory | null): string {
+    return 'problem' === section && null !== category ? PROBLEM_TITLES[category] : SECTION_TITLES[section];
+}
+
+export function sectionContent(section: Section, category: IssueCategory | null): string {
+    return 'problem' === section && null !== category ? PROBLEM_CONTENT[category] : SECTION_CONTENT[section];
+}
 
 /** Whitespace only is no text, as the rules of the server read a section. */
 export function hasText(issue: Issue, section: Section): boolean {
@@ -53,9 +65,9 @@ export function SectionEditor({ issue, section, write }: { issue: Issue; section
 
     return (
         <CommentBox
-            label={SECTION_TITLES[section]}
+            label={sectionTitle(section, issue.category)}
             labelVisible
-            placeholder={'problem' === section ? PROBLEM_CONTENT[issue.category] : SECTION_CONTENT[section]}
+            placeholder={sectionContent(section, issue.category)}
             submitLabel="Save"
             draftKey={key}
             onSubmit={({ body }) => write.send({ intent: 'update', input: { [section]: body }, draftKey: key })}
@@ -111,7 +123,7 @@ export function ChangesEditor({ issue, section, write, disabled }: { issue: Issu
 
     return (
         <CommentBox
-            label={`Changes to the ${SECTION_TITLES[section].toLowerCase()}`}
+            label={`Changes to the ${sectionTitle(section, issue.category).toLowerCase()}`}
             labelVisible
             placeholder="What to change, and why"
             submitLabel="Request changes"

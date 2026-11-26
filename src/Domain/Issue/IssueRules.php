@@ -82,6 +82,7 @@ final class IssueRules
                 ? "The issue is {$after->status->value} already."
                 : "The issue is {$after->status->value} and waits for its {$after->waitingFor->value} already."],
             $after->plan !== $before->plan && in_array($before->status, self::PLAN_IS_FIXED, true) => ['plan', "An agent cannot change the plan of an issue in {$before->status->value}. Write the deviation into result."],
+            $after->acceptanceCriteria !== $before->acceptanceCriteria && in_array($before->status, self::PLAN_IS_FIXED, true) => ['acceptanceCriteria', "An agent cannot change the acceptance criteria of an issue in {$before->status->value}. Write the deviation into result."],
             default => null,
         };
     }

@@ -377,6 +377,7 @@ final class IssueQuery
             $issue->getAssignee(),
             $issue->getWaitingFor(),
             $issue->getSection(IssueSection::Problem),
+            $issue->getSection(IssueSection::AcceptanceCriteria),
             $issue->getSection(IssueSection::Plan),
             $issue->getSection(IssueSection::Result),
             $issue->getSection(IssueSection::FollowUps),
@@ -410,6 +411,7 @@ final class IssueQuery
             $approval?->get('planRevision'),
             $issue->getWaitingFor(),
             $issue->getRequester()->kind,
+            $issue->getSection(IssueSection::AcceptanceCriteria),
         );
     }
 

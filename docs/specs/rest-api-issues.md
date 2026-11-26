@@ -160,8 +160,8 @@ The list is sorted by the entry `id` descending, which is newest first. The MCP 
 
 - **Request:** `POST /api/v1/projects/{projectKey}/issues`
 - **Authentication:** S, B
-- **Body:** [`CreateIssueInput`](schemas/inputs.schema.json), `{title, category, problem, status, approval, requester, assignee, priority}`. `category` is `bug` or `change`, with no default (D133). `status` is `draft`, `backlog`, or `todo`, by default `draft`. `approval` is `user`, `agent_review`, or `self`, only in a project with the approval mode `by_issue`. Without it the issue reads as `user`. `requester` and `assignee` are `user` or `agent`, by default `user` and `agent`; `user` is the user of the caller (D134). `priority` is an `IssuePriority` of [common.schema.json](schemas/common.schema.json), by default `none`. Example: [fixtures/inputs.create-issue.json](fixtures/inputs.create-issue.json).
-- **Success:** 201 [`Issue`](schemas/issue.schema.json) with `Location: /api/v1/issues/{issueKey}`. The issue has the next number of the project, and `waitingFor` is the default of its status. A `problem` writes a `section_changed` entry, which is no activity. The server stores the title trimmed.
+- **Body:** [`CreateIssueInput`](schemas/inputs.schema.json), `{title, category, problem, acceptanceCriteria, status, approval, requester, assignee, priority}`. `category` is `bug` or `change`, with no default (D133). `status` is `draft`, `backlog`, or `todo`, by default `draft`. `approval` is `user`, `agent_review`, or `self`, only in a project with the approval mode `by_issue`. Without it the issue reads as `user`. `requester` and `assignee` are `user` or `agent`, by default `user` and `agent`; `user` is the user of the caller (D134). `priority` is an `IssuePriority` of [common.schema.json](schemas/common.schema.json), by default `none`. Example: [fixtures/inputs.create-issue.json](fixtures/inputs.create-issue.json).
+- **Success:** 201 [`Issue`](schemas/issue.schema.json) with `Location: /api/v1/issues/{issueKey}`. The issue has the next number of the project, and `waitingFor` is the default of its status. A `problem` and an `acceptanceCriteria` each write a `section_changed` entry, which is no activity. The server stores the title trimmed.
 - **Priority:** `priority` places the issue among the n open issues of its category, in rank order (D137). `top`: first. `urgent`, `high`, `normal`, and `low`: directly after the first ceil(n x p) issues, with p 10, 25, 50, and 75 percent, so it is the last issue of that share. `none`: last. The server stores no priority.
 - **Errors:** 422 `invalid_input`:
   - on `title`, for whitespace only, more than 200 characters, or a line break;
@@ -170,7 +170,8 @@ The list is sorted by the entry `id` descending, which is newest first. The MCP 
   - on `status`, for a status other than `draft`, `backlog`, and `todo`;
   - on `approval`, for `by_issue`, and for a project of another approval mode;
   - on `requester`, for `agent` when the approval of the issue is `user`;
-  - on `problem`, for `backlog` or `todo` without a problem, and for a problem of a token of more than 1,500 characters (D144).
+  - on `problem`, for `backlog` or `todo` without a problem, and for a problem of a token of more than 1,500 characters (D144);
+  - on `acceptanceCriteria`, for a text of a token of more than 1,500 characters (D147).
 
 A token call gives the same result as the MCP tool `create_issue`.
 
@@ -178,7 +179,7 @@ A token call gives the same result as the MCP tool `create_issue`.
 
 - **Request:** `PATCH /api/v1/issues/{issueKey}`
 - **Authentication:** S, B
-- **Body:** [`UpdateIssueInput`](schemas/inputs.schema.json), `{title, category, problem, plan, result, followUps, notes, approval, requester, assignee, session}`. Absent or null keeps a field, and `session` is no field to change. A text has at least 1 character, so no section is cleared. A session sets any `approval`, and a token changes it only to `user`. Example: [fixtures/inputs.update-issue.json](fixtures/inputs.update-issue.json).
+- **Body:** [`UpdateIssueInput`](schemas/inputs.schema.json), `{title, category, problem, acceptanceCriteria, plan, result, followUps, notes, approval, requester, assignee, session}`. Absent or null keeps a field, and `session` is no field to change. A text has at least 1 character, so no section is cleared. A session sets any `approval`, and a token changes it only to `user`. Example: [fixtures/inputs.update-issue.json](fixtures/inputs.update-issue.json).
 - **Success:** 200 [`Issue`](schemas/issue.schema.json). Each section with new text writes a `section_changed` entry with that text, which replaces the entry of the version before it, and a `plan` with new text clears `planApproval`. A change of `category`, `approval`, `requester`, or `assignee` writes no entry, and a change of `category` does not set `updatedAt`. A value that equals the stored one changes nothing.
 - **Errors:** 422 `invalid_input`:
   - on `session`, for a token without it, and for an issue that another session holds;
@@ -187,7 +188,7 @@ A token call gives the same result as the MCP tool `create_issue`.
   - on `category`, for a value outside `IssueCategory`;
   - on `approval`, for `by_issue`, for a project of another approval mode, and for a change of a token to another value than `user`;
   - on `requester`, for `agent` when the approval of the issue is `user`;
-  - on `problem`, `plan`, or `result`, for a new text of a token of more than 1,500 characters (D144);
+  - on `problem`, `acceptanceCriteria`, `plan`, or `result`, for a new text of a token of more than 1,500 characters (D144, D147);
   - on the field of a broken rule of the [issue tools](mcp.md#issue-tools), for example on `plan` for a plan of whitespace only in `in_progress`.
 
 The call has no precondition: the last write wins. A token call gives the same result as the MCP tool `update_issue`.

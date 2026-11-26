@@ -7,7 +7,7 @@ import type { IssueSection as Section } from '../../api/types/common';
 import type { Issue, IssueEntry } from '../../api/types/issue';
 import type { Me } from '../../api/types/me';
 import { MarkdownBody } from '../../comments/MarkdownBody';
-import { ApprovePlan, ChangesEditor, canApprove, canRequestChanges, SECTION_TITLES, SectionEditor, useChangesWrite, useSectionWrite } from './IssueSection';
+import { ApprovePlan, ChangesEditor, canApprove, canRequestChanges, SectionEditor, sectionTitle, useChangesWrite, useSectionWrite } from './IssueSection';
 import styles from './Issues.module.css';
 
 // A separate chunk, so the diff library loads with the first diff.
@@ -36,6 +36,7 @@ export function SectionEntry({ issue, section, line, author, earlier, changesReq
     const text = useRef<HTMLDivElement>(null);
     const focusAfterRead = useRef(false);
     // A live reload brings the plan of another actor, which one click must not approve unread.
+    const title = sectionTitle(section, issue.category);
     const changed = 'plan' === section && readRevision !== issue.planRevision && (author.kind !== viewer?.kind || author.userId !== viewer.userId || author.agentName !== viewer.agentName);
 
     // "Read the new plan" leaves the page, so the focus goes to the approval, or to the plan without one.
@@ -65,11 +66,11 @@ export function SectionEntry({ issue, section, line, author, earlier, changesReq
                 {!write.open && (
                     <span className={styles.actions}>
                         {undefined !== earlier && (
-                            <Button size="small" aria-label={`Show changes of the ${SECTION_TITLES[section].toLowerCase()}`} aria-pressed={diffShown} leadingVisual={diffShown ? CheckIcon : undefined} onClick={() => setDiffShown(!diffShown)}>
+                            <Button size="small" aria-label={`Show changes of the ${title.toLowerCase()}`} aria-pressed={diffShown} leadingVisual={diffShown ? CheckIcon : undefined} onClick={() => setDiffShown(!diffShown)}>
                                 Show changes
                             </Button>
                         )}
-                        <Button size="small" aria-label={`Revise ${SECTION_TITLES[section]}`} onClick={() => write.setOpen(true)}>
+                        <Button size="small" aria-label={`Revise ${title}`} onClick={() => write.setOpen(true)}>
                             Revise
                         </Button>
                     </span>

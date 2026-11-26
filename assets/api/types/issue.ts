@@ -56,6 +56,8 @@ export type Issue = {
     /** The party with the next step. Null in `backlog`, `done`, and `wont_do`. */
     waitingFor: WaitingFor | null;
     problem: Markdown | null;
+    /** How to tell that the issue is done. A new version keeps the plan approval (D147). */
+    acceptanceCriteria: Markdown | null;
     plan: Markdown | null;
     result: Markdown | null;
     followUps: Markdown | null;

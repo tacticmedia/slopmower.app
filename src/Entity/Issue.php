@@ -64,6 +64,9 @@ class Issue implements TenantOwned
     private ?string $problem = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $acceptanceCriteria = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $plan = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
@@ -226,6 +229,7 @@ class Issue implements TenantOwned
     {
         return match ($section) {
             IssueSection::Problem => $this->problem,
+            IssueSection::AcceptanceCriteria => $this->acceptanceCriteria,
             IssueSection::Plan => $this->plan,
             IssueSection::Result => $this->result,
             IssueSection::FollowUps => $this->followUps,
@@ -299,6 +303,7 @@ class Issue implements TenantOwned
     {
         match ($section) {
             IssueSection::Problem => $this->problem = $text,
+            IssueSection::AcceptanceCriteria => $this->acceptanceCriteria = $text,
             IssueSection::Plan => $this->plan = $text,
             IssueSection::Result => $this->result = $text,
             IssueSection::FollowUps => $this->followUps = $text,

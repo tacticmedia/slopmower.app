@@ -7,8 +7,9 @@ metadata:
 
 # Slopmower issues: track the work
 
-An issue is the record of one change: the problem, the plan, the result, the
-follow-ups, and the notes. The user reads `problem`, `plan`, and `result`.
+An issue is the record of one change: the problem, the acceptance criteria,
+the plan, the result, the follow-ups, and the notes. The user reads `problem`,
+`acceptanceCriteria`, `plan`, and `result`.
 The next session continues from `notes`. All calls go to the `slopmower` MCP
 server.
 
@@ -30,8 +31,8 @@ This skill has the workflow. The rules of each call are in three places:
 | `list_projects` | `cursor?`, `limit?` | Find the project of this repository |
 | `list_issues` | `project`, `sort?`, `status?`, `category?`, `waitingForKind?`, `activeWithinHours?`, `idleForHours?`, `noActivity?`, `cursor?`, `limit?` | List the issues in the order of the user, with filters |
 | `get_issue` | `issue`, `history?` | Read one issue with its sections, its links, and its thread |
-| `create_issue` | `project`, `title`, `category`, `problem?`, `status?`, `approval?`, `requester?`, `assignee?`, `priority?` | Start an issue |
-| `update_issue` | `issue`, `session`, `title?`, `category?`, `problem?`, `plan?`, `result?`, `followUps?`, `notes?`, `approval?`, `requester?`, `assignee?` | Write the title, the category, a section, or a party |
+| `create_issue` | `project`, `title`, `category`, `problem?`, `acceptanceCriteria?`, `status?`, `approval?`, `requester?`, `assignee?`, `priority?` | Start an issue |
+| `update_issue` | `issue`, `session`, `title?`, `category?`, `problem?`, `acceptanceCriteria?`, `plan?`, `result?`, `followUps?`, `notes?`, `approval?`, `requester?`, `assignee?` | Write the title, the category, a section, or a party |
 | `set_issue_status` | `issue`, `session`, `status`, `waitingFor?`, `note?`, `reviewer?` | Move an issue, or hand it to the other party |
 | `comment_on_issue` | `issue`, `session`, `body`, `label?`, `replaces?`, `questions?` | Record a decision or a finding, ask the user, or replace a comment |
 | `list_comments` | `project`, `issue?`, `label?`, `cursor?`, `limit?` | Read the comments of a project or of one issue, by label |
@@ -66,9 +67,9 @@ The statuses are `draft`, `backlog` or `todo`, `in_progress`, `in_review`,
 `approved`, and `done`. `wont_do` ends an issue without the work, and needs a
 `note`.
 
-1. Problem. Call `create_issue` with the title, the category, and `problem`.
-   Keep `draft` and ask the user while the problem is incomplete. Then set
-   `todo`, or `backlog` when the work waits.
+1. Problem. Call `create_issue` with the title, the category, `problem`, and
+   `acceptanceCriteria`. Keep `draft` and ask the user while the problem is
+   incomplete. Then set `todo`, or `backlog` when the work waits.
 2. Research. Write what you learn into `notes` with `update_issue`, as the
    section "Writing" says.
 3. Questions. Ask each question whose answer changes the plan, as "Ask the
@@ -192,7 +193,8 @@ Write each text of an issue in ASD-STE100 Simplified Technical English.
 | Content | In `notes` and comments, only a fact with its source, a decision with its reason, a deviation, a question, or a next step. If a reader does not need a text, do not write it. |
 | Unchecked | Write "Not checked" in `notes` for a fact that you did not check. `plan` names only risks. Do not hedge a fact that you checked. |
 | No slop | No greeting, praise, apology, thanks, filler, or closing summary. Do not repeat the issue or an earlier text. No judging words, for example "robust", "comprehensive", or "seamless". No bold label on each list item. No em dash. |
-| `problem` | For the user: what is wrong or wanted, and how to tell that it is done. It names no solution, and "Done when" is an outcome that the user can see, not a mechanism. The current understanding: write a new version when it changes. |
+| `problem` | For the user: what is wrong and how to see it, or what is wanted. It names no solution and has no "Done when". The current understanding: write a new version when it changes. |
+| `acceptanceCriteria` | For the user: how to tell that the issue is done, as outcomes that the user can see, not a mechanism. For a bug, what is expected. |
 | `plan` | For the user: what changes, one line each; out of scope; risk. No files, tests, sources, quotes of the user, "if" branches, or priority, effort, or triage lines. |
 | `result` | For the user: what changed, where the work is, and each deviation. No file lists or test counts. |
 | `notes` | For the agents: research with sources, steps with files, tests, docs, what is not checked, and progress. |

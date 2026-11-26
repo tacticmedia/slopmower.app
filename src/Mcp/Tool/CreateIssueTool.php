@@ -25,7 +25,7 @@ use Mcp\Schema\ToolAnnotations;
 #[McpTool(
     name: 'create_issue',
     title: 'Create issue',
-    description: 'Create an issue of a project. Its key is the project key, a hyphen, and the next number of the project, for example SM-12. Look through the open issues of the project first, and continue one that covers the request. category is bug when something that exists is wrong against its specification, its documentation, or its evident intent, and change for all else: a feature, an alteration, a refactoring, or an upgrade. status is draft while the problem is incomplete, and backlog or todo when it is ready; backlog and todo need problem. In approvalMode by_issue, choose approval by approvalGuidelines: self or agent_review only where a guideline says so, else user. requester asks for the work and accepts it, and assignee does it: user is the user of your token, agent is any agent. By default the user requests and an agent works. Set requester agent only for work that no user asked for, on an issue whose approval is not user. priority places the issue among the open issues of its category: none, the default, for a follow-up or an idea; a higher value only when the user said how urgent the work is, or the approvalGuidelines say so. Write technical English, as short as possible, and only what a later reader needs.',
+    description: 'Create an issue of a project. Its key is the project key, a hyphen, and the next number of the project, for example SM-12. Look through the open issues of the project first, and continue one that covers the request. category is bug when something that exists is wrong against its specification, its documentation, or its evident intent, and change for all else: a feature, an alteration, a refactoring, or an upgrade. status is draft while the problem is incomplete, and backlog or todo when it is ready; backlog and todo need problem. Write problem and acceptanceCriteria together: problem says what is wrong or wanted, and acceptanceCriteria how to tell that the issue is done. In approvalMode by_issue, choose approval by approvalGuidelines: self or agent_review only where a guideline says so, else user. requester asks for the work and accepts it, and assignee does it: user is the user of your token, agent is any agent. By default the user requests and an agent works. Set requester agent only for work that no user asked for, on an issue whose approval is not user. priority places the issue among the open issues of its category: none, the default, for a follow-up or an idea; a higher value only when the user said how urgent the work is, or the approvalGuidelines say so. Write technical English, as short as possible, and only what a later reader needs.',
     annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
     outputSchema: BundledSchemas::ISSUE,
 )]
@@ -51,6 +51,8 @@ final readonly class CreateIssueTool
         IssueCategory $category,
         #[Schema(description: Input::PROBLEM, minLength: 1, maxLength: 65536, pattern: Input::NO_NUL)]
         ?string $problem = null,
+        #[Schema(description: Input::ACCEPTANCE_CRITERIA, minLength: 1, maxLength: 65536, pattern: Input::NO_NUL)]
+        ?string $acceptanceCriteria = null,
         #[Schema(description: 'The first status', enum: ['draft', 'backlog', 'todo'])]
         IssueStatus $status = IssueStatus::Draft,
         #[Schema(description: 'Only in approvalMode by_issue: who approves the plan and ends this issue. Null: user', enum: ['user', 'agent_review', 'self', null])]
@@ -62,10 +64,10 @@ final readonly class CreateIssueTool
         #[Schema(description: 'The place among the open issues of the category. top: first. urgent, high, normal, low: after the first 10, 25, 50, or 75 percent. none or null: last')]
         ?IssuePriority $priority = null,
     ): array {
-        return $this->toolCall->run('create_issue', function () use ($project, $title, $category, $problem, $status, $approval, $requester, $assignee, $priority): IssueView {
+        return $this->toolCall->run('create_issue', function () use ($project, $title, $category, $problem, $acceptanceCriteria, $status, $approval, $requester, $assignee, $priority): IssueView {
             $actor = $this->currentActor->get();
 
-            return $this->issues->view($this->issueCommands->create($project, $title, $category, $problem, $status, $actor, $approval, $requester, $assignee, $priority), $actor);
+            return $this->issues->view($this->issueCommands->create($project, $title, $category, $problem, $acceptanceCriteria, $status, $actor, $approval, $requester, $assignee, $priority), $actor);
         });
     }
 }

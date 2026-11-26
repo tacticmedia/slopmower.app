@@ -5125,8 +5125,8 @@ final class BundledSchemas
                 'description' => 'An issue without its links and its thread: the result of every issue write.',
                 'type' => 'object',
                 'required' => [
-                    'key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'problem', 'plan', 'result', 'followUps', 'notes', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt',
-                    'updatedAt', 'lastActivityAt',
+                    'key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'problem', 'acceptanceCriteria', 'plan', 'result', 'followUps', 'notes', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy',
+                    'createdAt', 'updatedAt', 'lastActivityAt',
                 ],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
@@ -5153,7 +5153,12 @@ final class BundledSchemas
                     'problem' => [
                         'type' => ['string', 'null'],
                         'maxLength' => 65536,
-                        'description' => 'Markdown, for the user. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done. The current understanding: a new version when it changes.',
+                        'description' => 'Markdown, for the user. bug: what is wrong, and how to see it. change: what is wanted. The current understanding: a new version when it changes.',
+                    ],
+                    'acceptanceCriteria' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 65536,
+                        'description' => 'Markdown, for the user: how to tell that the issue is done, as outcomes that the user can see. bug: what is expected. A new version keeps the plan approval (D147).',
                     ],
                     'plan' => [
                         'type' => ['string', 'null'],
@@ -5400,7 +5405,7 @@ final class BundledSchemas
             'IssueSection' => [
                 'anyOf' => [
                     [
-                        'enum' => ['problem', 'plan', 'result', 'followUps', 'notes'],
+                        'enum' => ['problem', 'acceptanceCriteria', 'plan', 'result', 'followUps', 'notes'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -5787,7 +5792,7 @@ final class BundledSchemas
             'IssueSection' => [
                 'anyOf' => [
                     [
-                        'enum' => ['problem', 'plan', 'result', 'followUps', 'notes'],
+                        'enum' => ['problem', 'acceptanceCriteria', 'plan', 'result', 'followUps', 'notes'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -5882,8 +5887,8 @@ final class BundledSchemas
         'description' => 'An issue without its links and its thread: the result of every issue write.',
         'type' => 'object',
         'required' => [
-            'key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'problem', 'plan', 'result', 'followUps', 'notes', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt',
-            'updatedAt', 'lastActivityAt',
+            'key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'problem', 'acceptanceCriteria', 'plan', 'result', 'followUps', 'notes', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy',
+            'createdAt', 'updatedAt', 'lastActivityAt',
         ],
         'properties' => [
             'key' => ['$ref' => '#/$defs/IssueKey'],
@@ -5910,7 +5915,12 @@ final class BundledSchemas
             'problem' => [
                 'type' => ['string', 'null'],
                 'maxLength' => 65536,
-                'description' => 'Markdown, for the user. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done. The current understanding: a new version when it changes.',
+                'description' => 'Markdown, for the user. bug: what is wrong, and how to see it. change: what is wanted. The current understanding: a new version when it changes.',
+            ],
+            'acceptanceCriteria' => [
+                'type' => ['string', 'null'],
+                'maxLength' => 65536,
+                'description' => 'Markdown, for the user: how to tell that the issue is done, as outcomes that the user can see. bug: what is expected. A new version keeps the plan approval (D147).',
             ],
             'plan' => [
                 'type' => ['string', 'null'],

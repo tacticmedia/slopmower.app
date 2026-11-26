@@ -207,7 +207,7 @@ final class IssueController extends AbstractController
     ): JsonResponse {
         \assert(null !== $input->title && null !== $input->category);
         $actor = $this->currentActor->get();
-        $issue = $this->commands->create($project->getKey(), $input->title, $input->category, $input->problem, $input->status ?? IssueStatus::Draft, $actor, $input->approval, $input->requester, $input->assignee, $input->priority);
+        $issue = $this->commands->create($project->getKey(), $input->title, $input->category, $input->problem, $input->acceptanceCriteria, $input->status ?? IssueStatus::Draft, $actor, $input->approval, $input->requester, $input->assignee, $input->priority);
 
         return $this->json($this->issues->view($issue, $actor), Response::HTTP_CREATED, ['Location' => $this->generateUrl('api_issue_get', ['issueKey' => $issue->getKey()->toString()])]);
     }
@@ -218,7 +218,7 @@ final class IssueController extends AbstractController
         #[MapRequestPayload(acceptFormat: 'json')] UpdateIssueInput $input,
     ): JsonResponse {
         $actor = $this->currentActor->get();
-        $updated = $this->commands->update($issue->getKey(), $input->title, $input->problem, $input->plan, $input->result, $input->followUps, $input->notes, $actor, $input->session, $input->approval, $input->category, $input->requester, $input->assignee);
+        $updated = $this->commands->update($issue->getKey(), $input->title, $input->problem, $input->acceptanceCriteria, $input->plan, $input->result, $input->followUps, $input->notes, $actor, $input->session, $input->approval, $input->category, $input->requester, $input->assignee);
 
         return $this->json($this->issues->view($updated, $actor));
     }

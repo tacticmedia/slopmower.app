@@ -38,6 +38,7 @@ final class IssueToolsTest extends WebTestCase
     use ResetDatabase;
 
     private const string PROBLEM = 'Invoice totals round each line. Done when a test with three lines of 0.335 gives 1.01.';
+    private const string ACCEPTANCE_CRITERIA = 'An invoice of three lines of 0.335 totals 1.01, not 1.02.';
     private const string PLAN = '1. Add `TaxRounding::perInvoice()`. 2. Test three lines of 0.335.';
     private const string RESULT = 'Added `TaxRounding::perInvoice()` in a1b2c3d. No deviation.';
     private const string REVIEW_NOTE = 'The plan covers the rounding and its test.';
@@ -390,6 +391,49 @@ final class IssueToolsTest extends WebTestCase
 
         self::assertSame('Rounding is in `InvoiceTotals::total()`.', $read['notes']);
         self::assertSame([$approved['planRevision'], $approved['planApproval']], [$read['planRevision'], $read['planApproval']]);
+    }
+
+    #[TestDox('create_issue and update_issue write acceptanceCriteria, each version a section_changed entry')]
+    public function testAcceptanceCriteriaOfCreateAndUpdate(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+
+        $created = $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'bug', 'problem' => self::PROBLEM, 'acceptanceCriteria' => self::ACCEPTANCE_CRITERIA]);
+        $updated = $this->call('update_issue', ['issue' => 'SM-1', 'acceptanceCriteria' => 'An invoice of three lines of 0.335 totals 1.01.']);
+        $thread = $this->call('get_issue', ['issue' => 'SM-1', 'history' => true])['thread'];
+
+        self::assertSame([self::ACCEPTANCE_CRITERIA, 'An invoice of three lines of 0.335 totals 1.01.'], [$created['acceptanceCriteria'], $updated['acceptanceCriteria']]);
+        self::assertSame([['problem', self::PROBLEM], ['acceptanceCriteria', self::ACCEPTANCE_CRITERIA], ['acceptanceCriteria', 'An invoice of three lines of 0.335 totals 1.01.']], array_map(static fn (array $entry): array => [$entry['section'], $entry['body']], $thread));
+    }
+
+    #[TestDox('A new version of acceptanceCriteria keeps the plan approval')]
+    public function testAcceptanceCriteriaKeepThePlanApproval(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM', ApprovalMode::AgentReview);
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change', 'problem' => self::PROBLEM, 'status' => 'todo'])['key']];
+        $planned = $this->call('update_issue', $issue + ['plan' => self::PLAN]);
+        $approved = $this->call('approve_plan', $issue + ['planRevision' => $planned['planRevision'], 'reviewer' => self::REVIEWER, 'reviewNote' => self::REVIEW_NOTE]);
+
+        $changed = $this->call('update_issue', $issue + ['acceptanceCriteria' => self::ACCEPTANCE_CRITERIA]);
+
+        self::assertSame([$approved['planRevision'], $approved['planApproval']], [$changed['planRevision'], $changed['planApproval']]);
+    }
+
+    #[TestDox('An agent cannot change acceptanceCriteria of an issue in in_progress, and a user can')]
+    public function testAcceptanceCriteriaOfWorkInProgress(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change', 'problem' => self::PROBLEM, 'acceptanceCriteria' => self::ACCEPTANCE_CRITERIA, 'status' => 'todo'])['key']];
+        $this->call('update_issue', $issue + ['plan' => self::PLAN]);
+        $this->call('set_issue_status', $issue + ['status' => 'in_progress']);
+        $this->client->loginUser($this->user, 'web');
+
+        $ofTheAgent = $this->refusal('update_issue', $issue + ['acceptanceCriteria' => 'An invoice totals 1.01.']);
+        self::apiRequest($this->client, 'PATCH', '/api/v1/issues/SM-1', ['acceptanceCriteria' => 'An invoice totals 1.01.']);
+
+        self::assertSame('acceptanceCriteria', $ofTheAgent['field']);
+        self::assertResponseIsSuccessful();
+        self::assertSame('An invoice totals 1.01.', $this->call('get_issue', $issue)['issue']['acceptanceCriteria']);
     }
 
     #[TestDox('A comment and a status change are in the thread with their actor')]

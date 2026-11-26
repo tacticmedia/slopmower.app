@@ -19,8 +19,8 @@ export type IssueIntent =
     | { intent: 'set_status'; input: IssueStatusInput; draftKey?: string }
     | { intent: 'release'; input: null };
 
-/** The JSON body of the form of a new issue. */
-export type NewIssueIntent = { input: CreateIssueInput; draftKey: string };
+/** The JSON body of the form of a new issue. The action removes the session drafts `draftKeys` after the write. */
+export type NewIssueIntent = { input: CreateIssueInput; draftKeys: string[] };
 
 /** The JSON body of a move in the issue list. */
 export type RankIntent = { issueKey: string; input: RankIssueInput };
@@ -98,11 +98,13 @@ export async function newIssueLoader({ request, params }: LoaderFunctionArgs): P
 
 /** I6. The page becomes the new issue. */
 export async function newIssueAction({ request, params }: ActionFunctionArgs): Promise<ActionResult | Response> {
-    const { input, draftKey } = (await request.json()) as NewIssueIntent;
+    const { input, draftKeys } = (await request.json()) as NewIssueIntent;
 
     try {
         const issue = await apiWrite<Issue>('POST', `/api/v1/projects/${encodedRouteParam(params, 'projectKey')}/issues`, input, request.signal);
-        removeSessionDraft(draftKey);
+        for (const draftKey of draftKeys) {
+            removeSessionDraft(draftKey);
+        }
 
         return redirect(`/issues/${issue.key}`);
     } catch (error) {

@@ -24,6 +24,8 @@ final readonly class CreateIssueInput
         public ?IssueCategory $category = null,
         #[Assert\Length(min: 1, max: 65536)]
         public ?string $problem = null,
+        #[Assert\Length(min: 1, max: 65536)]
+        public ?string $acceptanceCriteria = null,
         public ?IssueStatus $status = null,
         public ?ApprovalMode $approval = null,
         public ?IssuePartyKind $requester = null,

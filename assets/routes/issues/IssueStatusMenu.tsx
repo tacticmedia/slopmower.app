@@ -4,21 +4,22 @@ import { useRef } from 'react';
 import { ISSUE_STATUSES, type IssueStatus } from '../../api/types/common';
 import type { Issue } from '../../api/types/issue';
 import { NoteDialog } from '../../requests/NoteDialog';
+import { sectionTitle } from './IssueSection';
 import { ISSUE_STATUS_TEXT } from './IssueStatusLabel';
 import styles from './Issues.module.css';
 import { useIssueWrite } from './useIssueWrite';
 
 /** What a status means, and the section that the server asks for. */
-const MEANINGS: Record<IssueStatus, string> = {
-    draft: 'The problem is not complete.',
-    backlog: 'The problem is complete. The work waits.',
+const meanings = (problem: string): Record<IssueStatus, string> => ({
+    draft: `The ${problem} is not complete.`,
+    backlog: `The ${problem} is complete. The work waits.`,
     todo: 'Ready for work.',
     in_progress: 'The work runs. Needs a plan.',
     in_review: 'The work is ready, not merged. Needs a result.',
     approved: 'The requester accepted the work. The assignee merges it.',
     done: 'Merged. The issue ends.',
     wont_do: 'Not done. The issue ends, with your note.',
-};
+});
 
 /**
  * I8 for every status except the one that the issue has (D122). The server holds the rules, so no status is hidden or
@@ -28,6 +29,7 @@ export function IssueStatusMenu({ issue }: { issue: Issue }) {
     const { busy, error, open: noteOpen, setOpen: setNoteOpen, send } = useIssueWrite();
     const anchor = useRef<HTMLButtonElement>(null);
     const noteKey = `issue:${issue.key}:wont-do`;
+    const meaning = meanings(sectionTitle('problem', issue.category).toLowerCase());
     const move = (status: IssueStatus): void => {
         if ('wont_do' === status) {
             setNoteOpen(true);
@@ -47,7 +49,7 @@ export function IssueStatusMenu({ issue }: { issue: Issue }) {
                         {ISSUE_STATUSES.filter((status) => status !== issue.status).map((status) => (
                             <ActionList.Item key={status} onSelect={() => move(status)}>
                                 {ISSUE_STATUS_TEXT[status]}
-                                <ActionList.Description variant="block">{MEANINGS[status]}</ActionList.Description>
+                                <ActionList.Description variant="block">{meaning[status]}</ActionList.Description>
                             </ActionList.Item>
                         ))}
                     </ActionList>

@@ -50,7 +50,7 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 | token `name` | 1 to 64 characters, pattern in [api-token.schema.json](schemas/api-token.schema.json) |
 | pending suggestions | At most 500 per review. One more gets 422 `invalid_input`. |
 | issue `title` | 1 to 200 characters after trimming, one line without CR or LF, at least one non-whitespace character. The server stores it trimmed. |
-| issue `problem`, `plan`, `result`, `followUps`, `notes`, comment `body`, link `note`, status `note` | 1 to 65,536 characters. A new text of `problem`, `plan`, or `result` from a token or an MCP call has at most 1,500 characters (D144). A section or a status `note` of whitespace only counts as empty for the [issue rules](mcp.md#issue-tools). A comment `body` and a link `note` need one non-whitespace character. |
+| issue `problem`, `acceptanceCriteria`, `plan`, `result`, `followUps`, `notes`, comment `body`, link `note`, status `note` | 1 to 65,536 characters. A new text of `problem`, `acceptanceCriteria`, `plan`, or `result` from a token or an MCP call has at most 1,500 characters (D144, D147). A section or a status `note` of whitespace only counts as empty for the [issue rules](mcp.md#issue-tools). A comment `body` and a link `note` need one non-whitespace character. |
 | issue `reviewer` | 1 to 64 characters |
 | project `name` | 1 to 255 characters after trimming, at least one non-whitespace character. The server stores it trimmed. |
 | issue `reviewNote` | at least 20 characters after trimming, at most 65,536 characters |
@@ -285,6 +285,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Agent notes, decision D143: the property `notes` of `Issue` and the optional input `notes` of I7 and `update_issue`. Not additive: `IssueSection` gets the value `notes`. The MCP output schemas accept it as an open set (D135). A stored issue has `notes` null.
     - Length limit on agent text, decision D144: a token or an MCP call writes at most 1,500 characters into `problem`, `plan`, and `result`, where it wrote 65,536. Not additive: it is tighter validation. A stored longer text stays, and a resend of it passes.
     - Length limit on a proposal plan, decision D145: Q14 and `propose_solution` take at most 1,500 characters in `plan`, where they took 65,536. Not additive: it is tighter validation. A stored longer proposal stays.
+    - Acceptance criteria, decision D147: the property `acceptanceCriteria` of `Issue`, and the optional input `acceptanceCriteria` of I6, I7, `create_issue`, and `update_issue`. Not additive: `IssueSection` gets the value `acceptanceCriteria`, which the MCP output schemas accept as an open set (D135). A stored issue has `acceptanceCriteria` null.
 
 ## 9. Contract tests
 

@@ -7,6 +7,7 @@ namespace App\Domain\Issue;
 enum IssueSection: string
 {
     case Problem = 'problem';
+    case AcceptanceCriteria = 'acceptanceCriteria';
     case Plan = 'plan';
     case Result = 'result';
     case FollowUps = 'followUps';

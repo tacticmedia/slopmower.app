@@ -18,7 +18,9 @@ final class Input
     public const string COMMIT_SHA_PREFIX = '^[0-9a-f]{7,64}$';
     public const string PULL_REQUEST_URL = '^https://[^\s\x00]+$';
 
-    public const string PROBLEM = 'Markdown, for the user. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done. Name no solution; Done when is an outcome that the user can see, not a mechanism. The current understanding: write a new version when an answer, a review, or a finding changes it. At most 1,500 characters';
+    public const string PROBLEM = 'Markdown, for the user. bug: what is wrong, and how to see it. change: what is wanted. Name no solution, and no Done when: that goes into acceptanceCriteria. The current understanding: write a new version when an answer, a review, or a finding changes it. At most 1,500 characters';
+
+    public const string ACCEPTANCE_CRITERIA = 'Markdown, for the user: how to tell that the issue is done, as outcomes that the user can see, not a mechanism. bug: what is expected. At most 1,500 characters. An agent cannot change it in in_progress, in_review, or approved. A change keeps the plan approval';
 
     public const string SESSION = 'Your session name, the same in each write: the directory name of your working tree, a hyphen, and 4 hex digits, in Claude Code the first 4 characters of CLAUDE_CODE_SESSION_ID, else random digits kept in the file slopmower-session of your git directory. A subagent sends the name of the agent that started it.';
 

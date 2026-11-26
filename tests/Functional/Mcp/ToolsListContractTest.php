@@ -24,6 +24,7 @@ final class ToolsListContractTest extends WebTestCase
 
     /** The definition of each tool input that has a pattern, by input name. */
     private const array PATTERN_DEFINITIONS = [
+        'acceptanceCriteria' => 'common.schema.json#/$defs/NoNulText',
         'at' => 'common.schema.json#/$defs/CommitShaPrefix',
         'body' => 'common.schema.json#/$defs/NoNulText',
         'commitSha' => 'common.schema.json#/$defs/CommitSha',

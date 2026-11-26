@@ -147,7 +147,8 @@ test.describe('Issues', () => {
         await page.goto('/projects/BILL/issues/new');
         await page.getByRole('textbox', { name: 'Title' }).fill('Show the rounding mode on the invoice PDF');
         await page.getByRole('radio', { name: 'Change request' }).check();
-        await page.getByRole('textbox', { name: 'Problem' }).fill('The PDF does not say how the total rounds.\n\nDone when the footer of the PDF names the mode.');
+        await page.getByRole('textbox', { name: 'Task', exact: true }).fill('The PDF does not say how the total rounds.');
+        await page.getByRole('textbox', { name: 'Acceptance criteria' }).fill('The footer of the PDF names the rounding mode.');
         await captureScreen('New issue', page.getByRole('button', { name: 'Create issue' }));
         await page.getByRole('button', { name: 'Create issue' }).click();
         await page.waitForURL('/issues/BILL-13');

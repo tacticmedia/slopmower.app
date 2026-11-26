@@ -7,7 +7,7 @@ import type { Issue, IssueEntry } from '../../api/types/issue';
 import { MarkdownBody } from '../../comments/MarkdownBody';
 import { QuestionList } from '../../comments/Questions';
 import { ActorName, CommentLabelBadge, CommentLabelFilter, NoCommentWithLabel } from './CommentParts';
-import { hasText, planChangeRequest, SECTION_TITLES, SectionEditor, useSectionWrite } from './IssueSection';
+import { hasText, planChangeRequest, SectionEditor, sectionTitle, useSectionWrite } from './IssueSection';
 import { IssueStatusLabel } from './IssueStatusLabel';
 import styles from './Issues.module.css';
 import { labelFilter } from './issueData';
@@ -72,7 +72,7 @@ export function IssueTimeline({ issue, thread }: { issue: Issue; thread: IssueEn
                     if (undefined !== version) {
                         return (
                             <EntryLink key={section} id={version.id}>
-                                {SECTION_TITLES[section]}
+                                {sectionTitle(section, issue.category)}
                             </EntryLink>
                         );
                     }
@@ -121,7 +121,7 @@ export function EntryLink({ id, children }: { id: string; children: ReactNode })
 /** A section without text, in the row "Current". Its editor takes the line below the row. */
 function WriteSection({ issue, section }: { issue: Issue; section: Section }) {
     const write = useSectionWrite(issue, section);
-    const title = SECTION_TITLES[section];
+    const title = sectionTitle(section, issue.category);
 
     if (write.open) {
         return (
@@ -166,7 +166,7 @@ function TimelineEntry({ issue, entry, earlier, linked, closed, changesRequest }
                 <>
                     {' '}
                     <Label variant="primary" data-testid="section-label">
-                        {SECTION_TITLES[entry.section]}
+                        {sectionTitle(entry.section, issue.category)}
                     </Label>
                 </>
             )}
@@ -259,7 +259,7 @@ function EntryAction({ issue, entry }: { issue: Issue; entry: IssueEntry }) {
         );
     }
     if ('section_changed' === entry.kind && null !== entry.section) {
-        return `changed the ${SECTION_TITLES[entry.section].toLowerCase()}`;
+        return `changed the ${sectionTitle(entry.section, issue.category).toLowerCase()}`;
     }
     if ('plan_approved' === entry.kind) {
         return `approved the plan${reviewedBy}`;

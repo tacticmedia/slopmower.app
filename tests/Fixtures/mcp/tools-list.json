@@ -210,7 +210,18 @@
                         "string"
                     ],
                     "default": null,
-                    "description": "Markdown, for the user. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done. Name no solution; Done when is an outcome that the user can see, not a mechanism. The current understanding: write a new version when an answer, a review, or a finding changes it. At most 1,500 characters",
+                    "description": "Markdown, for the user. bug: what is wrong, and how to see it. change: what is wanted. Name no solution, and no Done when: that goes into acceptanceCriteria. The current understanding: write a new version when an answer, a review, or a finding changes it. At most 1,500 characters",
+                    "minLength": 1,
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "acceptanceCriteria": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Markdown, for the user: how to tell that the issue is done, as outcomes that the user can see, not a mechanism. bug: what is expected. At most 1,500 characters. An agent cannot change it in in_progress, in_review, or approved. A change keeps the plan approval",
                     "minLength": 1,
                     "maxLength": 65536,
                     "pattern": "^[^\\x00]*$"
@@ -289,7 +300,7 @@
                 "category"
             ]
         },
-        "description": "Create an issue of a project. Its key is the project key, a hyphen, and the next number of the project, for example SM-12. Look through the open issues of the project first, and continue one that covers the request. category is bug when something that exists is wrong against its specification, its documentation, or its evident intent, and change for all else: a feature, an alteration, a refactoring, or an upgrade. status is draft while the problem is incomplete, and backlog or todo when it is ready; backlog and todo need problem. In approvalMode by_issue, choose approval by approvalGuidelines: self or agent_review only where a guideline says so, else user. requester asks for the work and accepts it, and assignee does it: user is the user of your token, agent is any agent. By default the user requests and an agent works. Set requester agent only for work that no user asked for, on an issue whose approval is not user. priority places the issue among the open issues of its category: none, the default, for a follow-up or an idea; a higher value only when the user said how urgent the work is, or the approvalGuidelines say so. Write technical English, as short as possible, and only what a later reader needs.",
+        "description": "Create an issue of a project. Its key is the project key, a hyphen, and the next number of the project, for example SM-12. Look through the open issues of the project first, and continue one that covers the request. category is bug when something that exists is wrong against its specification, its documentation, or its evident intent, and change for all else: a feature, an alteration, a refactoring, or an upgrade. status is draft while the problem is incomplete, and backlog or todo when it is ready; backlog and todo need problem. Write problem and acceptanceCriteria together: problem says what is wrong or wanted, and acceptanceCriteria how to tell that the issue is done. In approvalMode by_issue, choose approval by approvalGuidelines: self or agent_review only where a guideline says so, else user. requester asks for the work and accepts it, and assignee does it: user is the user of your token, agent is any agent. By default the user requests and an agent works. Set requester agent only for work that no user asked for, on an issue whose approval is not user. priority places the issue among the open issues of its category: none, the default, for a follow-up or an idea; a higher value only when the user said how urgent the work is, or the approvalGuidelines say so. Write technical English, as short as possible, and only what a later reader needs.",
         "annotations": {
             "readOnlyHint": false,
             "destructiveHint": false,
@@ -319,7 +330,7 @@
                 "issue"
             ]
         },
-        "description": "Read one issue: the five sections problem, plan, result, followUps, and notes, planRevision, the plan approval, allowedStatuses, its links, and its thread. By default the thread is the current content: it has no replaced entry, and a section_changed entry names its section and holds no text, because the issue has it. history: true returns the full log: every entry, also each earlier version of a section with its text in body, and each replaced comment. replacedBy of an entry is the id of the entry that replaced it, or null.",
+        "description": "Read one issue: the six sections problem, acceptanceCriteria, plan, result, followUps, and notes, planRevision, the plan approval, allowedStatuses, its links, and its thread. By default the thread is the current content: it has no replaced entry, and a section_changed entry names its section and holds no text, because the issue has it. history: true returns the full log: every entry, also each earlier version of a section with its text in body, and each replaced comment. replacedBy of an entry is the id of the entry that replaced it, or null.",
         "annotations": {
             "readOnlyHint": true,
             "destructiveHint": false,
@@ -1611,7 +1622,18 @@
                         "string"
                     ],
                     "default": null,
-                    "description": "Markdown, for the user. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done. Name no solution; Done when is an outcome that the user can see, not a mechanism. The current understanding: write a new version when an answer, a review, or a finding changes it. At most 1,500 characters",
+                    "description": "Markdown, for the user. bug: what is wrong, and how to see it. change: what is wanted. Name no solution, and no Done when: that goes into acceptanceCriteria. The current understanding: write a new version when an answer, a review, or a finding changes it. At most 1,500 characters",
+                    "minLength": 1,
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "acceptanceCriteria": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Markdown, for the user: how to tell that the issue is done, as outcomes that the user can see, not a mechanism. bug: what is expected. At most 1,500 characters. An agent cannot change it in in_progress, in_review, or approved. A change keeps the plan approval",
                     "minLength": 1,
                     "maxLength": 65536,
                     "pattern": "^[^\\x00]*$"
@@ -1706,7 +1728,7 @@
                 "session"
             ]
         },
-        "description": "Change the title, the category, or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem, plan, and result are for the user, at most 1,500 characters each: research and steps go into notes. problem: for a bug, what is wrong, how to see it, and what is expected; for a change, what is wanted, and how to tell that it is done; the current understanding: write a new version when an answer, a review, or a finding changes it. plan: what changes, one line each; out of scope; risk; no files, tests, or sources. result: what changed, where the work is, and each deviation from the plan. followUps: what came up and was left out. notes: the working memory of the agents: research with sources, steps with files, tests, progress; a change keeps the plan approval; write it at milestones and before a hand-over. A plan with new text clears its approval. An agent cannot change plan in in_progress, in_review, or approved, and no field of an issue in done or wont_do. approval exists only in approvalMode by_issue, and an agent changes it only to user, and with the agent as the requester also sends requester user. requester and assignee change without an entry, and the issue then waits for the new party of its waitingFor. The write holds the issue for your session for 2 hours. While another session holds it, the write is refused on session: take another issue. Write technical English, as short as possible, and only what a later reader needs.",
+        "description": "Change the title, the category, or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem, acceptanceCriteria, plan, and result are for the user, at most 1,500 characters each: research and steps go into notes. problem: for a bug, what is wrong and how to see it; for a change, what is wanted; no solution and no Done when; the current understanding: write a new version when an answer, a review, or a finding changes it. acceptanceCriteria: how to tell that the issue is done, as outcomes that the user can see, not a mechanism; for a bug, what is expected; a change keeps the plan approval. plan: what changes, one line each; out of scope; risk; no files, tests, or sources. result: what changed, where the work is, and each deviation from the plan. followUps: what came up and was left out. notes: the working memory of the agents: research with sources, steps with files, tests, progress; a change keeps the plan approval; write it at milestones and before a hand-over. A plan with new text clears its approval. An agent cannot change plan or acceptanceCriteria in in_progress, in_review, or approved, and no field of an issue in done or wont_do. approval exists only in approvalMode by_issue, and an agent changes it only to user, and with the agent as the requester also sends requester user. requester and assignee change without an entry, and the issue then waits for the new party of its waitingFor. The write holds the issue for your session for 2 hours. While another session holds it, the write is refused on session: take another issue. Write technical English, as short as possible, and only what a later reader needs.",
         "annotations": {
             "readOnlyHint": false,
             "destructiveHint": false,

@@ -11,7 +11,7 @@ import { ActionErrorMessage } from '../../layout/ActionErrorMessage';
 import { useDocumentTitle } from '../../layout/useDocumentTitle';
 import { useSessionDraft } from '../../layout/useSessionDraft';
 import { useSubmitOnce } from '../../layout/useSubmitOnce';
-import { PROBLEM_CONTENT, SECTION_CONTENT } from './IssueSection';
+import { sectionContent, sectionTitle } from './IssueSection';
 import { ISSUE_CATEGORY_TEXT } from './IssueStatusLabel';
 import styles from './Issues.module.css';
 import type { NewIssueIntent } from './issueData';
@@ -24,9 +24,9 @@ const CATEGORY_CAPTIONS: Record<IssueCategory, string> = {
 };
 
 /**
- * I6 with a title, a category, a priority, and a problem. No category is chosen at first (D133), and the priority is
- * "None", the last place (D137). The issue is a draft, and its page sets the status. The problem keeps its text over a
- * reload (D109).
+ * I6 with a title, a category, a priority, a problem, and acceptance criteria. No category is chosen at first (D133), and
+ * the priority is "None", the last place (D137). The issue is a draft, and its page sets the status. The problem and the
+ * acceptance criteria keep their text over a reload (D109).
  */
 export function NewIssueRoute() {
     const project = useLoaderData<Project>();
@@ -35,15 +35,27 @@ export function NewIssueRoute() {
     const [title, setTitle] = useState('');
     const [category, setCategory] = useState<IssueCategory | null>(null);
     const [priority, setPriority] = useState<IssuePriority>('none');
+    const criteriaDraftKey = `${draftKey}:acceptance-criteria`;
     const [problem, setProblem] = useSessionDraft(draftKey);
+    const [acceptanceCriteria, setAcceptanceCriteria] = useSessionDraft(criteriaDraftKey);
     const [preview, setPreview] = useState(false);
+    const [criteriaPreview, setCriteriaPreview] = useState(false);
     const textarea = useRef<HTMLTextAreaElement>(null);
+    const criteriaTextarea = useRef<HTMLTextAreaElement>(null);
     const editorId = useId();
+    const criteriaEditorId = useId();
     const busy = 'idle' !== fetcher.state;
     // "Create issue" is off without a category, which also stops a submit with Enter.
-    const intent: NewIssueIntent | null = null === category ? null : { input: { title: title.trim(), category, priority, ...('' === problem.trim() ? {} : { problem }) }, draftKey };
+    const intent: NewIssueIntent | null =
+        null === category
+            ? null
+            : {
+                  input: { title: title.trim(), category, priority, ...('' === problem.trim() ? {} : { problem }), ...('' === acceptanceCriteria.trim() ? {} : { acceptanceCriteria }) },
+                  draftKeys: [draftKey, criteriaDraftKey],
+              };
     const submitOnce = useSubmitOnce(() => (null === intent ? Promise.resolve() : fetcher.submit(intent, { method: 'post', encType: 'application/json' })));
     useUnsavedComment(!busy && ('' !== title.trim() || '' !== problem.trim()), draftKey);
+    useUnsavedComment(!busy && '' !== acceptanceCriteria.trim(), criteriaDraftKey);
     useDocumentTitle(`New issue of ${project.name}`);
 
     return (
@@ -81,7 +93,7 @@ export function NewIssueRoute() {
                     <FormControl.Caption>The place among the open issues of the category: Top is first, None is last. Urgent, High, Normal, and Low come after the first 10, 25, 50, and 75 percent.</FormControl.Caption>
                 </FormControl>
                 <FormControl id={editorId}>
-                    <FormControl.Label>Problem</FormControl.Label>
+                    <FormControl.Label>{sectionTitle('problem', category)}</FormControl.Label>
                     <MarkdownEditor
                         ref={textarea}
                         id={editorId}
@@ -89,10 +101,24 @@ export function NewIssueRoute() {
                         onChange={setProblem}
                         preview={preview}
                         onPreviewChange={setPreview}
-                        placeholder={null === category ? SECTION_CONTENT.problem : PROBLEM_CONTENT[category]}
+                        placeholder={sectionContent('problem', category)}
                         readOnly={busy}
                     />
-                    <FormControl.Caption>Optional. The issue starts as a draft, and its page sets the status. Backlog and To do need a problem.</FormControl.Caption>
+                    <FormControl.Caption>{sectionContent('problem', category)} Optional. The issue starts as a draft, and its page sets the status. Backlog and To do need a problem.</FormControl.Caption>
+                </FormControl>
+                <FormControl id={criteriaEditorId}>
+                    <FormControl.Label>{sectionTitle('acceptanceCriteria', category)}</FormControl.Label>
+                    <MarkdownEditor
+                        ref={criteriaTextarea}
+                        id={criteriaEditorId}
+                        value={acceptanceCriteria}
+                        onChange={setAcceptanceCriteria}
+                        preview={criteriaPreview}
+                        onPreviewChange={setCriteriaPreview}
+                        placeholder={sectionContent('acceptanceCriteria', category)}
+                        readOnly={busy}
+                    />
+                    <FormControl.Caption>{sectionContent('acceptanceCriteria', category)}</FormControl.Caption>
                 </FormControl>
                 <div className={styles.actions}>
                     <Button type="submit" variant="primary" disabled={'' === title.trim() || null === category} loading={busy}>

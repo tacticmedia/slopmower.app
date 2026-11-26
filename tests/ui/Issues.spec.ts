@@ -172,20 +172,42 @@ test.describe('Issues', () => {
         expect(api.bodies('PATCH', ISSUE)).toEqual([{ category: 'change' }]);
     });
 
+    test('The problem section is "Problem" on a bug and "Task" on a change, in the row "Current", the timeline, the editor, and the status menu', async ({ page, api }) => {
+        await openIssue(page, api);
+        const current = page.getByTestId('issue-current');
+        const firstEntry = page.getByTestId('issue-entry').first();
+        await expect(current.getByRole('link').first()).toHaveText('Problem');
+        await expect(firstEntry).toHaveText(/Problem changed the problem/);
+        await page.getByRole('button', { name: 'Set status' }).click();
+        await expect(page.getByRole('menu')).toContainText('The problem is not complete.');
+        await page.keyboard.press('Escape');
+
+        await page.getByRole('combobox', { name: 'Category of the issue' }).selectOption({ label: 'Change request' });
+
+        await expect(current.getByRole('link').first()).toHaveText('Task');
+        await expect(firstEntry).toHaveText(/Task changed the task/);
+        await page.getByRole('button', { name: 'Set status' }).click();
+        await expect(page.getByRole('menu')).toContainText('The task is not complete.');
+        await page.keyboard.press('Escape');
+        await page.getByRole('button', { name: 'Revise Task' }).click();
+        await expect(page.getByRole('textbox', { name: 'Task' })).toHaveAttribute('placeholder', 'What is wanted. Not how to build it.');
+    });
+
     test('The issue page shows each section version as Markdown in the timeline, the row "Current", the link with its note, and each entry', async ({ page, api }) => {
         await openIssue(page, api);
         const current = page.getByTestId('issue-current');
 
         await expect(page.getByRole('heading', { level: 1 })).toHaveText(`Round invoice totals once per invoice ${ISSUE_KEY}`);
-        await expect(section(page, 'problem').locator('code')).toHaveText('InvoiceTotalsTest');
+        await expect(section(page, 'acceptanceCriteria')).toHaveText('An invoice of three lines of 0.335 totals 1.01, not 1.02.');
         await expect(section(page, 'plan').locator('ol > li')).toHaveCount(3);
-        await expect(current.getByRole('link')).toHaveText(['Problem', 'Plan']);
+        await expect(current.getByRole('link')).toHaveText(['Problem', 'Acceptance criteria', 'Plan']);
         await expect(current.getByRole('button', { name: 'Write Result' })).toBeVisible();
         await expect(current.getByRole('button', { name: 'Write Follow-ups' })).toBeVisible();
         await expect(page.getByTestId('issue-links')).toContainText('BILL-9 Round shipping totals per line');
         await expect(page.getByTestId('issue-links')).toContainText('BILL-9 owns the shipping totals, which this issue leaves alone.');
         await expect(page.getByTestId('issue-entry')).toHaveText([
             /claude-code laptop.*Problem changed the problem/,
+            /claude-code laptop.*Acceptance criteria changed the acceptance criteria/,
             /claude-code laptop.*Plan changed the plan.*Replaced/,
             /claude-code laptop.*Plan changed the plan/,
             /claude-code laptop.*approved the plan, reviewed by plan-reviewer,.*The plan covers the rounding and its test\./,
@@ -250,7 +272,7 @@ test.describe('Issues', () => {
 
         await expect(page.getByTestId('issue-thread-empty')).toContainText('No comment has this label.');
         await page.getByRole('link', { name: 'Clear the filter' }).click();
-        await expect(entries).toHaveCount(8);
+        await expect(entries).toHaveCount(9);
     });
 
     test('A comment posts its body with the label comment and shows in the thread as the comment of the user', async ({ page, api }) => {
@@ -594,21 +616,30 @@ test.describe('Issues', () => {
         }
     });
 
-    test('"New issue" is off without a category, and creates a draft with the title, the category, the priority, and the problem', async ({ page, api }) => {
+    test('"New issue" is off without a category, and creates a draft with the title, the category, the priority, the problem, and the acceptance criteria', async ({ page, api }) => {
         const issues = new FakeIssues(api);
         issues.add(issueDetail());
         await page.goto('/projects/BILL');
         await page.getByRole('link', { name: 'New issue' }).click();
         await expect(page).toHaveURL('/projects/BILL/issues/new');
-        const problem = page.getByRole('textbox', { name: 'Problem' });
+        const criteria = page.getByRole('textbox', { name: 'Acceptance criteria' });
+        const optional = 'Optional. The issue starts as a draft, and its page sets the status. Backlog and To do need a problem.';
+        const form = page.getByTestId('new-issue');
+        await expect(page.getByRole('textbox', { name: 'Problem or task' })).toBeVisible();
+        await expect(form.getByText(`What is wrong or wanted. ${optional}`)).toBeVisible();
+        await expect(form.getByText('How to tell that it is done: outcomes that you can see. Not how to get there.', { exact: true })).toBeVisible();
 
         await page.getByRole('textbox', { name: 'Title' }).fill('Show the rounding mode on the invoice PDF');
         await expect(page.getByRole('button', { name: 'Create issue' })).toBeDisabled();
         await page.getByRole('radio', { name: 'Bug report' }).check();
-        await expect(problem).toHaveAttribute('placeholder', 'What is wrong, how to see it, and what is expected');
+        await expect(page.getByRole('textbox', { name: 'Problem', exact: true })).toBeVisible();
+        await expect(form.getByText(`What is wrong, and how to see it. Not the fix. ${optional}`)).toBeVisible();
         await page.getByRole('radio', { name: 'Change request' }).check();
-        await expect(problem).toHaveAttribute('placeholder', 'What is wanted, and how to tell that it is done');
-        await problem.fill('The PDF does not say how the total rounds.');
+        const task = page.getByRole('textbox', { name: 'Task', exact: true });
+        await expect(form.getByText(`What is wanted. Not how to build it. ${optional}`)).toBeVisible();
+        await expect(task).toHaveAttribute('placeholder', 'What is wanted. Not how to build it.');
+        await task.fill('The PDF does not say how the total rounds.');
+        await criteria.fill('The footer of the PDF names the rounding mode.');
         await expect(page.getByRole('combobox', { name: 'Priority' })).toHaveValue('none');
         await page.getByRole('combobox', { name: 'Priority' }).selectOption('Urgent');
         await page.getByRole('button', { name: 'Create issue' }).click();
@@ -617,7 +648,10 @@ test.describe('Issues', () => {
         await expect(page.getByRole('heading', { level: 1 })).toHaveText('Show the rounding mode on the invoice PDF BILL-13');
         await expect(page.getByTestId('issue-status').first()).toHaveText('Draft');
         await expect(section(page, 'problem')).toContainText('The PDF does not say how the total rounds.');
-        expect(api.bodies('POST', '/api/v1/projects/:projectKey/issues')).toEqual([{ title: 'Show the rounding mode on the invoice PDF', category: 'change', priority: 'urgent', problem: 'The PDF does not say how the total rounds.' }]);
+        await expect(section(page, 'acceptanceCriteria')).toContainText('The footer of the PDF names the rounding mode.');
+        expect(api.bodies('POST', '/api/v1/projects/:projectKey/issues')).toEqual([
+            { title: 'Show the rounding mode on the invoice PDF', category: 'change', priority: 'urgent', problem: 'The PDF does not say how the total rounds.', acceptanceCriteria: 'The footer of the PDF names the rounding mode.' },
+        ]);
     });
 
     test('"Edit" of the title saves the new title', async ({ page, api }) => {

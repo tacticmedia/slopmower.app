@@ -35,6 +35,7 @@ final readonly class IssueView
         public IssueParty $assignee,
         public ?WaitingFor $waitingFor,
         public ?string $problem,
+        public ?string $acceptanceCriteria,
         public ?string $plan,
         public ?string $result,
         public ?string $followUps,

@@ -1,7 +1,8 @@
 {
   "title": "Round invoice totals once per invoice",
   "category": "bug",
-  "problem": "Invoice totals round each line, so an invoice of three lines can be 1 cent off.\n\nDone when `InvoiceTotalsTest` has a case with three lines of 0.335 and the total is 1.01.",
+  "problem": "Invoice totals round each line, so an invoice of three lines can be 1 cent off.",
+  "acceptanceCriteria": "An invoice of three lines of 0.335 totals 1.01, not 1.02.",
   "status": "todo",
   "requester": "user",
   "assignee": "agent",

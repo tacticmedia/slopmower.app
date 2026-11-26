@@ -250,7 +250,7 @@ export type ApprovalMode = (typeof APPROVAL_MODES)[number];
 export const ISSUE_APPROVALS = ['user', 'agent_review', 'self'] as const;
 export type IssueApproval = (typeof ISSUE_APPROVALS)[number];
 
-export const ISSUE_SECTIONS = ['problem', 'plan', 'result', 'followUps', 'notes'] as const;
+export const ISSUE_SECTIONS = ['problem', 'acceptanceCriteria', 'plan', 'result', 'followUps', 'notes'] as const;
 export type IssueSection = (typeof ISSUE_SECTIONS)[number];
 
 export const ISSUE_ENTRY_KINDS = ['comment', 'status_changed', 'section_changed', 'plan_approved'] as const;

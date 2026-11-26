@@ -27,6 +27,7 @@ final readonly class IssueState
         public ?string $approvedRevision = null,
         public ?WaitingFor $waitingFor = null,
         public IssuePartyKind $requester = IssuePartyKind::User,
+        public ?string $acceptanceCriteria = null,
     ) {
     }
 
