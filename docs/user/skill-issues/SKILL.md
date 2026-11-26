@@ -68,19 +68,19 @@ write names its session, and one session at a time holds an issue.
 
 ## Writing
 
-The user and later sessions read every text of an issue. Write for them.
+Write each text of an issue in ASD-STE100 Simplified Technical English.
 
-- Technical English: short sentences, active voice, present tense, one
-  statement per sentence, one word for one thing.
-- No mannered prose: no greeting, praise, apology, or filler, and no summary
-  of what the issue already says.
-- As short as possible. Write a fact with its source, a decision with its
-  reason, a deviation, a question, or a next step. If a text adds nothing
-  that a later reader needs, do not write it.
-- One comment states one thing. Give it the `label` of the table below that
-  says what it is. Do not start the text with the label as a word.
-- `result` is a short list: what changed, where the work is as section 4
-  says, the tests with their counts, and each deviation.
+| Item | Rule |
+|---|---|
+| Sentence | One statement. At most 20 words in a step, 25 words in a description. Active voice. Present tense for a fact, the imperative for a step. |
+| Paragraph | One topic, at most 6 sentences. A list for steps and for 3 or more items. Lists one level deep. |
+| Words | Common words. One word for one thing, and the same word each time. Names of code, files, and tools in backticks. |
+| Content | Only a fact with its source, a decision with its reason, a deviation, a question, or a next step. If a reader does not need a text, do not write it. |
+| Unchecked | Write "Not checked" for a fact that you did not check. Do not hedge a fact that you checked. |
+| No slop | No greeting, praise, apology, thanks, filler, or closing summary. Do not repeat the issue or an earlier text. No judging words, for example "robust", "comprehensive", or "seamless". No bold label on each list item. No em dash. |
+| `plan` | Starts with `Summary:`, at most 80 words, read in 30 seconds or less: what changes, where, the risk, and each choice for the user. The steps follow. |
+| `result` | A short list: what changed, where the work is as section 4 says, the tests with their counts, and each deviation. |
+| Comment | One thing per comment, with the `label` of the table below. Do not start the text with the label as a word. |
 
 | Label | Use it for |
 |---|---|
@@ -287,7 +287,7 @@ parameter that you leave out stays as it is.
 | Section | Content |
 |---|---|
 | `problem` | A bug: what is wrong, how to see it, and what is expected. A change: what is wanted, and how to tell that it is done |
-| `plan` | The steps, the files, and the tests |
+| `plan` | `Summary:` first, as the section "Writing" says, then the steps, the files, and the tests |
 | `result` | What was done, where the work is as section 4 says, and each deviation from the plan |
 | `followUps` | What came up and was left out |
 

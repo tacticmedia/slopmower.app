@@ -139,6 +139,7 @@ and read their whole thread, because the user rejected an earlier result.
 4. Propose first when `requireApproval` is true, or when the request is unclear
    or large. `proposal` in `get_request` holds the current proposal and its
    `state`.
+   - Start `plan` with `Summary:`, as the section "Writing" says.
    - Plan only: describe the change in `plan`. Do not edit code.
    - Plan with a diff, when the change is straightforward and touches fewer than
      10 files: start from a clean working tree, make the change, run
@@ -262,6 +263,23 @@ The user accepts or dismisses each suggestion. An accepted suggestion is an
 ordinary request that waits for you: work on it with section 4 when the user
 asks, for example "Work on Slopmower review 01K6B3A1B2C3D4E5F6G7H8J9KM". A
 dismissed suggestion is closed. A review holds at most 500 pending suggestions.
+
+## Writing
+
+The user reads each reply, note, plan, suggestion, and reason that you write.
+Write ASD-STE100 Simplified Technical English, so that the user gets each text
+in one pass.
+
+| Item | Rule |
+|---|---|
+| Sentence | One statement. At most 20 words in a step, 25 words in a description. Active voice. Present tense for a fact, the imperative for a step. |
+| Paragraph | One topic, at most 6 sentences. A list for steps and for 3 or more items. Lists one level deep. |
+| Words | Common words. One word for one thing, and the same word each time. Names of code, files, and tools in backticks. |
+| Content | Only what the user needs: a fact with its source, a decision with its reason, a question, or a next step. |
+| Unchecked | Write "Not checked" for a fact that you did not check. Do not hedge a fact that you checked. |
+| No slop | No greeting, praise, apology, thanks, filler, or closing summary. Do not repeat the request or an earlier text. No judging words, for example "robust", "comprehensive", or "seamless". No bold label on each list item. No em dash. |
+| `plan` | Starts with `Summary:`, at most 80 words, read in 30 seconds or less: what changes, where, the risk, and each choice for the user. The steps follow. |
+| Note | `mark_ready_for_review`: what changed and how you tested it, in at most 5 lines. |
 
 ## Rules
 
