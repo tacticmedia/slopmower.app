@@ -13,14 +13,15 @@ import type { IssueIntent } from './issueData';
 import { type IssueWrite, useIssueWrite } from './useIssueWrite';
 import { handOverTo } from './WaitingLabel';
 
-export const SECTION_TITLES: Record<Section, string> = { problem: 'Problem', plan: 'Plan', result: 'Result', followUps: 'Follow-ups' };
+export const SECTION_TITLES: Record<Section, string> = { problem: 'Problem', plan: 'Plan', result: 'Result', followUps: 'Follow-ups', notes: 'Notes' };
 
 /** What a section holds: the placeholder of its editor. The problem of an issue holds what its category says. */
 export const SECTION_CONTENT: Record<Section, string> = {
     problem: 'What is wrong or wanted, and how to tell that it is done',
-    plan: 'The steps, the files, and the tests',
-    result: 'What was done, with the commits, and each deviation from the plan',
+    plan: 'What changes for the user, one line each; out of scope; risk',
+    result: 'What changed, where the work is, and each deviation from the plan',
     followUps: 'What came up and was left out',
+    notes: 'Research, steps, files, and tests for the agent that does the work',
 };
 
 /** What the problem holds for each category (D133). */

@@ -5125,8 +5125,8 @@ final class BundledSchemas
                 'description' => 'An issue without its links and its thread: the result of every issue write.',
                 'type' => 'object',
                 'required' => [
-                    'key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt',
-                    'lastActivityAt',
+                    'key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'problem', 'plan', 'result', 'followUps', 'notes', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt',
+                    'updatedAt', 'lastActivityAt',
                 ],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/IssueKey'],
@@ -5153,22 +5153,27 @@ final class BundledSchemas
                     'problem' => [
                         'type' => ['string', 'null'],
                         'maxLength' => 65536,
-                        'description' => 'Markdown. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done.',
+                        'description' => 'Markdown, for the user. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done. The current understanding: a new version when it changes.',
                     ],
                     'plan' => [
                         'type' => ['string', 'null'],
                         'maxLength' => 65536,
-                        'description' => 'Markdown: the steps, the files, and the tests.',
+                        'description' => 'Markdown, for the user: what changes, one line each; out of scope; risk.',
                     ],
                     'result' => [
                         'type' => ['string', 'null'],
                         'maxLength' => 65536,
-                        'description' => 'Markdown: what was done, with the commit SHAs, and each deviation from the plan.',
+                        'description' => 'Markdown, for the user: what changed, where the work is, and each deviation from the plan.',
                     ],
                     'followUps' => [
                         'type' => ['string', 'null'],
                         'maxLength' => 65536,
                         'description' => 'Markdown: what came up and was left out.',
+                    ],
+                    'notes' => [
+                        'type' => ['string', 'null'],
+                        'maxLength' => 65536,
+                        'description' => 'Markdown, the working memory of the agents: research with sources, steps with files, tests, progress. A new version keeps the plan approval (D143).',
                     ],
                     'project' => [
                         'type' => 'object',
@@ -5395,7 +5400,7 @@ final class BundledSchemas
             'IssueSection' => [
                 'anyOf' => [
                     [
-                        'enum' => ['problem', 'plan', 'result', 'followUps'],
+                        'enum' => ['problem', 'plan', 'result', 'followUps', 'notes'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -5782,7 +5787,7 @@ final class BundledSchemas
             'IssueSection' => [
                 'anyOf' => [
                     [
-                        'enum' => ['problem', 'plan', 'result', 'followUps'],
+                        'enum' => ['problem', 'plan', 'result', 'followUps', 'notes'],
                     ],
                     ['type' => 'string'],
                 ],
@@ -5877,8 +5882,8 @@ final class BundledSchemas
         'description' => 'An issue without its links and its thread: the result of every issue write.',
         'type' => 'object',
         'required' => [
-            'key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'problem', 'plan', 'result', 'followUps', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt', 'updatedAt',
-            'lastActivityAt',
+            'key', 'title', 'category', 'status', 'approval', 'claim', 'requester', 'assignee', 'waitingFor', 'problem', 'plan', 'result', 'followUps', 'notes', 'project', 'planRevision', 'planApproval', 'allowedStatuses', 'createdBy', 'createdAt',
+            'updatedAt', 'lastActivityAt',
         ],
         'properties' => [
             'key' => ['$ref' => '#/$defs/IssueKey'],
@@ -5905,22 +5910,27 @@ final class BundledSchemas
             'problem' => [
                 'type' => ['string', 'null'],
                 'maxLength' => 65536,
-                'description' => 'Markdown. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done.',
+                'description' => 'Markdown, for the user. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done. The current understanding: a new version when it changes.',
             ],
             'plan' => [
                 'type' => ['string', 'null'],
                 'maxLength' => 65536,
-                'description' => 'Markdown: the steps, the files, and the tests.',
+                'description' => 'Markdown, for the user: what changes, one line each; out of scope; risk.',
             ],
             'result' => [
                 'type' => ['string', 'null'],
                 'maxLength' => 65536,
-                'description' => 'Markdown: what was done, with the commit SHAs, and each deviation from the plan.',
+                'description' => 'Markdown, for the user: what changed, where the work is, and each deviation from the plan.',
             ],
             'followUps' => [
                 'type' => ['string', 'null'],
                 'maxLength' => 65536,
                 'description' => 'Markdown: what came up and was left out.',
+            ],
+            'notes' => [
+                'type' => ['string', 'null'],
+                'maxLength' => 65536,
+                'description' => 'Markdown, the working memory of the agents: research with sources, steps with files, tests, progress. A new version keeps the plan approval (D143).',
             ],
             'project' => [
                 'type' => 'object',

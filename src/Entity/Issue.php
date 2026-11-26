@@ -72,6 +72,9 @@ class Issue implements TenantOwned
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $followUps = null;
 
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $notes = null;
+
     /** The plan_approved entry of the plan as it is. SET NULL, so a purge deletes the entries before the issues. */
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(onDelete: 'SET NULL')]
@@ -226,6 +229,7 @@ class Issue implements TenantOwned
             IssueSection::Plan => $this->plan,
             IssueSection::Result => $this->result,
             IssueSection::FollowUps => $this->followUps,
+            IssueSection::Notes => $this->notes,
         };
     }
 
@@ -298,6 +302,7 @@ class Issue implements TenantOwned
             IssueSection::Plan => $this->plan = $text,
             IssueSection::Result => $this->result = $text,
             IssueSection::FollowUps => $this->followUps = $text,
+            IssueSection::Notes => $this->notes = $text,
         };
 
         if (IssueSection::Plan === $section) {

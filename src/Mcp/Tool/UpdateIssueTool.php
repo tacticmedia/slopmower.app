@@ -24,7 +24,7 @@ use Mcp\Schema\ToolAnnotations;
 #[McpTool(
     name: 'update_issue',
     title: 'Update issue',
-    description: 'Change the title, the category, or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem: for a bug, what is wrong, how to see it, and what is expected; for a change, what is wanted, and how to tell that it is done. plan: the steps, the files, and the tests. result: what was done, with the commit SHAs, and each deviation from the plan. followUps: what came up and was left out. A plan with new text clears its approval. An agent cannot change plan in in_progress, in_review, or approved, and no field of an issue in done or wont_do. approval exists only in approvalMode by_issue, and an agent changes it only to user, and with the agent as the requester also sends requester user. requester and assignee change without an entry, and the issue then waits for the new party of its waitingFor. The write holds the issue for your session for 2 hours. While another session holds it, the write is refused on session: take another issue. Write technical English, as short as possible, and only what a later reader needs.',
+    description: 'Change the title, the category, or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem, plan, and result are short and for the user. problem: for a bug, what is wrong, how to see it, and what is expected; for a change, what is wanted, and how to tell that it is done; the current understanding: write a new version when an answer, a review, or a finding changes it. plan: what changes, one line each; out of scope; risk; no files, tests, or sources. result: what changed, where the work is, and each deviation from the plan. followUps: what came up and was left out. notes: the working memory of the agents: research with sources, steps with files, tests, progress; a change keeps the plan approval; write it at milestones and before a hand-over. A plan with new text clears its approval. An agent cannot change plan in in_progress, in_review, or approved, and no field of an issue in done or wont_do. approval exists only in approvalMode by_issue, and an agent changes it only to user, and with the agent as the requester also sends requester user. requester and assignee change without an entry, and the issue then waits for the new party of its waitingFor. The write holds the issue for your session for 2 hours. While another session holds it, the write is refused on session: take another issue. Write technical English, as short as possible, and only what a later reader needs.',
     annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false),
     outputSchema: BundledSchemas::ISSUE,
 )]
@@ -50,14 +50,16 @@ final readonly class UpdateIssueTool
         ?string $title = null,
         #[Schema(description: 'bug: something that exists is wrong. change: all else')]
         ?IssueCategory $category = null,
-        #[Schema(description: 'Markdown. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done', minLength: 1, maxLength: 65536, pattern: Input::NO_NUL)]
+        #[Schema(description: Input::PROBLEM, minLength: 1, maxLength: 65536, pattern: Input::NO_NUL)]
         ?string $problem = null,
-        #[Schema(description: 'Markdown: the steps, the files, and the tests', minLength: 1, maxLength: 65536, pattern: Input::NO_NUL)]
+        #[Schema(description: 'Markdown, for the user: what changes, one line each; out of scope; risk. No files, tests, or sources', minLength: 1, maxLength: 65536, pattern: Input::NO_NUL)]
         ?string $plan = null,
-        #[Schema(description: 'Markdown: what was done, with the commit SHAs, and each deviation from the plan', minLength: 1, maxLength: 65536, pattern: Input::NO_NUL)]
+        #[Schema(description: 'Markdown, for the user: what changed, where the work is (the branch, after the merge the commits), and each deviation from the plan', minLength: 1, maxLength: 65536, pattern: Input::NO_NUL)]
         ?string $result = null,
         #[Schema(description: 'Markdown: what came up and was left out', minLength: 1, maxLength: 65536, pattern: Input::NO_NUL)]
         ?string $followUps = null,
+        #[Schema(description: 'Markdown, the working memory of the agents: research with sources, steps with files, tests, progress. A change keeps the plan approval. Write it at milestones and before a hand-over', minLength: 1, maxLength: 65536, pattern: Input::NO_NUL)]
+        ?string $notes = null,
         #[Schema(description: 'Only in approvalMode by_issue: who approves the plan and ends this issue. An agent changes it only to user', enum: ['user', 'agent_review', 'self', null])]
         ?ApprovalMode $approval = null,
         #[Schema(description: 'user or agent. Null keeps it')]
@@ -65,10 +67,10 @@ final readonly class UpdateIssueTool
         #[Schema(description: 'user or agent. Null keeps it')]
         ?IssuePartyKind $assignee = null,
     ): array {
-        return $this->toolCall->run('update_issue', function () use ($issue, $session, $title, $category, $problem, $plan, $result, $followUps, $approval, $requester, $assignee): IssueView {
+        return $this->toolCall->run('update_issue', function () use ($issue, $session, $title, $category, $problem, $plan, $result, $followUps, $notes, $approval, $requester, $assignee): IssueView {
             $actor = $this->currentActor->get();
 
-            return $this->issues->view($this->issueCommands->update(IssueKey::fromString($issue, 'issue'), $title, $problem, $plan, $result, $followUps, $actor, $session, $approval, $category, $requester, $assignee), $actor);
+            return $this->issues->view($this->issueCommands->update(IssueKey::fromString($issue, 'issue'), $title, $problem, $plan, $result, $followUps, $notes, $actor, $session, $approval, $category, $requester, $assignee), $actor);
         });
     }
 }

@@ -10,4 +10,5 @@ enum IssueSection: string
     case Plan = 'plan';
     case Result = 'result';
     case FollowUps = 'followUps';
+    case Notes = 'notes';
 }

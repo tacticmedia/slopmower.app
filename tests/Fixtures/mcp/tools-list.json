@@ -45,7 +45,7 @@
                 "reviewNote"
             ]
         },
-        "description": "Record that another agent or subagent reviewed the plan of an issue. Use it in a project with approvalMode agent_review, before you set in_progress. The reviewer reads the plan of planRevision; reviewer is its name and reviewNote its findings. The author of a plan does not review it. Fails with invalid_input in approvalMode user, for an issue without a plan, and for a planRevision that is not the newest: then call get_issue and review the newest plan. A plan with new text clears the approval. The call holds the issue for your session for 2 hours, and is refused on session while another session holds it.",
+        "description": "Record that another agent or subagent reviewed the plan of an issue. Use it in a project with approvalMode agent_review, before you set in_progress. The reviewer reads plan of planRevision and notes, and checks that plan solves problem and that notes does nothing that plan does not say; reviewer is its name and reviewNote its findings. The author of a plan does not review it. Fails with invalid_input in approvalMode user, for an issue without a plan, and for a planRevision that is not the newest: then call get_issue and review the newest plan. A plan with new text clears the approval. The call holds the issue for your session for 2 hours, and is refused on session while another session holds it.",
         "annotations": {
             "readOnlyHint": false,
             "destructiveHint": false,
@@ -119,7 +119,7 @@
                         "papercut",
                         "review"
                     ],
-                    "description": "comment: progress or a remark. decision: a choice, with its reason and what it rules out. question, answer, and dismissal: the server sets them, and refuses them on a comment without questions. finding: a verified fact, with its source. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent."
+                    "description": "comment: a remark. decision: a choice of the user, with its reason. question, answer, and dismissal: the server sets them, and refuses them on a comment without questions. finding: a fact that the user needs, with its source; research goes into notes of update_issue. deviation: the work differs from the plan. scope_creep: work that came up and was left out, or was added. papercut: a small friction in the tools, the code, or the process. review: the findings of a reviewing agent."
                 },
                 "replaces": {
                     "type": [
@@ -169,7 +169,7 @@
                 "body"
             ]
         },
-        "description": "Add a Markdown comment to the thread of an issue, in any status. A step of the work on a tracked issue is a comment, not a new issue. label says what the comment is, and list_comments finds the comments of a project by it. When the user must decide something, put each decision in questions, then hand the issue to the requester with set_issue_status, the status that it has, and waitingFor requester: the user answers each question with Yes, No, or text, and the answers replace your comment, so get_issue has each question with its answer. When the user does not answer, a comment with the label dismissal replaces your comment: do not ask again; decide, or leave the issue as the user left it. Do not ask for the approval of a plan: the user approves it with a button. When a comment of an agent no longer holds, write the new one with replaces, the id of the old one, and do not write a second comment about it: the old one stays in the history, and get_issue and list_comments leave it out. Replace a question comment in this way to withdraw its questions. You cannot replace a comment of a user. A claim of another session never refuses a comment, and a comment renews the claim of your session. Write technical English, as short as possible, and only what a later reader needs.",
+        "description": "Add a Markdown comment to the thread of an issue, in any status. Work on a tracked issue goes into its thread and its notes, not into a new issue. label says what the comment is, and list_comments finds the comments of a project by it. When the user must decide something, put each decision in questions, then hand the issue to the requester with set_issue_status, the status that it has, and waitingFor requester: the user answers each question with Yes, No, or text, and the answers replace your comment, so get_issue has each question with its answer. When the user does not answer, a comment with the label dismissal replaces your comment: do not ask again; decide, or leave the issue as the user left it. Do not ask for the approval of a plan: the user approves it with a button. When a comment of an agent no longer holds, write the new one with replaces, the id of the old one, and do not write a second comment about it: the old one stays in the history, and get_issue and list_comments leave it out. Replace a question comment in this way to withdraw its questions. You cannot replace a comment of a user. A claim of another session never refuses a comment, and a comment renews the claim of your session. Write technical English, as short as possible, and only what a later reader needs.",
         "annotations": {
             "readOnlyHint": false,
             "destructiveHint": false,
@@ -210,7 +210,7 @@
                         "string"
                     ],
                     "default": null,
-                    "description": "Markdown. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done",
+                    "description": "Markdown, for the user. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done. Name no solution; Done when is an outcome that the user can see, not a mechanism. The current understanding: write a new version when an answer, a review, or a finding changes it",
                     "minLength": 1,
                     "maxLength": 65536,
                     "pattern": "^[^\\x00]*$"
@@ -319,7 +319,7 @@
                 "issue"
             ]
         },
-        "description": "Read one issue: the four sections, planRevision, the plan approval, allowedStatuses, its links, and its thread. By default the thread is the current content: it has no replaced entry, and a section_changed entry names its section and holds no text, because the issue has it. history: true returns the full log: every entry, also each earlier version of a section with its text in body, and each replaced comment. replacedBy of an entry is the id of the entry that replaced it, or null.",
+        "description": "Read one issue: the five sections problem, plan, result, followUps, and notes, planRevision, the plan approval, allowedStatuses, its links, and its thread. By default the thread is the current content: it has no replaced entry, and a section_changed entry names its section and holds no text, because the issue has it. history: true returns the full log: every entry, also each earlier version of a section with its text in body, and each replaced comment. replacedBy of an entry is the id of the entry that replaced it, or null.",
         "annotations": {
             "readOnlyHint": true,
             "destructiveHint": false,
@@ -1611,7 +1611,7 @@
                         "string"
                     ],
                     "default": null,
-                    "description": "Markdown. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done",
+                    "description": "Markdown, for the user. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done. Name no solution; Done when is an outcome that the user can see, not a mechanism. The current understanding: write a new version when an answer, a review, or a finding changes it",
                     "minLength": 1,
                     "maxLength": 65536,
                     "pattern": "^[^\\x00]*$"
@@ -1622,7 +1622,7 @@
                         "string"
                     ],
                     "default": null,
-                    "description": "Markdown: the steps, the files, and the tests",
+                    "description": "Markdown, for the user: what changes, one line each; out of scope; risk. No files, tests, or sources",
                     "minLength": 1,
                     "maxLength": 65536,
                     "pattern": "^[^\\x00]*$"
@@ -1633,7 +1633,7 @@
                         "string"
                     ],
                     "default": null,
-                    "description": "Markdown: what was done, with the commit SHAs, and each deviation from the plan",
+                    "description": "Markdown, for the user: what changed, where the work is (the branch, after the merge the commits), and each deviation from the plan",
                     "minLength": 1,
                     "maxLength": 65536,
                     "pattern": "^[^\\x00]*$"
@@ -1645,6 +1645,17 @@
                     ],
                     "default": null,
                     "description": "Markdown: what came up and was left out",
+                    "minLength": 1,
+                    "maxLength": 65536,
+                    "pattern": "^[^\\x00]*$"
+                },
+                "notes": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "default": null,
+                    "description": "Markdown, the working memory of the agents: research with sources, steps with files, tests, progress. A change keeps the plan approval. Write it at milestones and before a hand-over",
                     "minLength": 1,
                     "maxLength": 65536,
                     "pattern": "^[^\\x00]*$"
@@ -1695,7 +1706,7 @@
                 "session"
             ]
         },
-        "description": "Change the title, the category, or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem: for a bug, what is wrong, how to see it, and what is expected; for a change, what is wanted, and how to tell that it is done. plan: the steps, the files, and the tests. result: what was done, with the commit SHAs, and each deviation from the plan. followUps: what came up and was left out. A plan with new text clears its approval. An agent cannot change plan in in_progress, in_review, or approved, and no field of an issue in done or wont_do. approval exists only in approvalMode by_issue, and an agent changes it only to user, and with the agent as the requester also sends requester user. requester and assignee change without an entry, and the issue then waits for the new party of its waitingFor. The write holds the issue for your session for 2 hours. While another session holds it, the write is refused on session: take another issue. Write technical English, as short as possible, and only what a later reader needs.",
+        "description": "Change the title, the category, or the sections of an issue. Null leaves a field as it is; give at least one field. A section is Markdown. problem, plan, and result are short and for the user. problem: for a bug, what is wrong, how to see it, and what is expected; for a change, what is wanted, and how to tell that it is done; the current understanding: write a new version when an answer, a review, or a finding changes it. plan: what changes, one line each; out of scope; risk; no files, tests, or sources. result: what changed, where the work is, and each deviation from the plan. followUps: what came up and was left out. notes: the working memory of the agents: research with sources, steps with files, tests, progress; a change keeps the plan approval; write it at milestones and before a hand-over. A plan with new text clears its approval. An agent cannot change plan in in_progress, in_review, or approved, and no field of an issue in done or wont_do. approval exists only in approvalMode by_issue, and an agent changes it only to user, and with the agent as the requester also sends requester user. requester and assignee change without an entry, and the issue then waits for the new party of its waitingFor. The write holds the issue for your session for 2 hours. While another session holds it, the write is refused on session: take another issue. Write technical English, as short as possible, and only what a later reader needs.",
         "annotations": {
             "readOnlyHint": false,
             "destructiveHint": false,

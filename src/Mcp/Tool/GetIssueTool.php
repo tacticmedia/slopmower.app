@@ -20,7 +20,7 @@ use Mcp\Schema\ToolAnnotations;
 #[McpTool(
     name: 'get_issue',
     title: 'Get issue',
-    description: 'Read one issue: the four sections, planRevision, the plan approval, allowedStatuses, its links, and its thread. By default the thread is the current content: it has no replaced entry, and a section_changed entry names its section and holds no text, because the issue has it. history: true returns the full log: every entry, also each earlier version of a section with its text in body, and each replaced comment. replacedBy of an entry is the id of the entry that replaced it, or null.',
+    description: 'Read one issue: the five sections problem, plan, result, followUps, and notes, planRevision, the plan approval, allowedStatuses, its links, and its thread. By default the thread is the current content: it has no replaced entry, and a section_changed entry names its section and holds no text, because the issue has it. history: true returns the full log: every entry, also each earlier version of a section with its text in body, and each replaced comment. replacedBy of an entry is the id of the entry that replaced it, or null.',
     annotations: new ToolAnnotations(readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false),
     outputSchema: BundledSchemas::ISSUE_DETAIL,
 )]

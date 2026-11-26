@@ -59,6 +59,8 @@ export type Issue = {
     plan: Markdown | null;
     result: Markdown | null;
     followUps: Markdown | null;
+    /** The working memory of the agents. A new version keeps the plan approval (D143). */
+    notes: Markdown | null;
     project: { key: ProjectKey; name: string; approvalMode: ApprovalMode };
     /** The ID of the newest `section_changed` entry of the plan. */
     planRevision: Ulid | null;

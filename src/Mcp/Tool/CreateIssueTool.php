@@ -49,7 +49,7 @@ final readonly class CreateIssueTool
         string $title,
         #[Schema(description: 'bug: something that exists is wrong. change: all else')]
         IssueCategory $category,
-        #[Schema(description: 'Markdown. bug: what is wrong, how to see it, and what is expected. change: what is wanted, and how to tell that it is done', minLength: 1, maxLength: 65536, pattern: Input::NO_NUL)]
+        #[Schema(description: Input::PROBLEM, minLength: 1, maxLength: 65536, pattern: Input::NO_NUL)]
         ?string $problem = null,
         #[Schema(description: 'The first status', enum: ['draft', 'backlog', 'todo'])]
         IssueStatus $status = IssueStatus::Draft,

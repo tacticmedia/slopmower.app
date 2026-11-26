@@ -218,7 +218,7 @@ final class IssueController extends AbstractController
         #[MapRequestPayload(acceptFormat: 'json')] UpdateIssueInput $input,
     ): JsonResponse {
         $actor = $this->currentActor->get();
-        $updated = $this->commands->update($issue->getKey(), $input->title, $input->problem, $input->plan, $input->result, $input->followUps, $actor, $input->session, $input->approval, $input->category, $input->requester, $input->assignee);
+        $updated = $this->commands->update($issue->getKey(), $input->title, $input->problem, $input->plan, $input->result, $input->followUps, $input->notes, $actor, $input->session, $input->approval, $input->category, $input->requester, $input->assignee);
 
         return $this->json($this->issues->view($updated, $actor));
     }

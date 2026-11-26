@@ -22,7 +22,7 @@ use Mcp\Schema\ToolAnnotations;
 #[McpTool(
     name: 'approve_plan',
     title: 'Approve plan',
-    description: 'Record that another agent or subagent reviewed the plan of an issue. Use it in a project with approvalMode agent_review, before you set in_progress. The reviewer reads the plan of planRevision; reviewer is its name and reviewNote its findings. The author of a plan does not review it. Fails with invalid_input in approvalMode user, for an issue without a plan, and for a planRevision that is not the newest: then call get_issue and review the newest plan. A plan with new text clears the approval. The call holds the issue for your session for 2 hours, and is refused on session while another session holds it.',
+    description: 'Record that another agent or subagent reviewed the plan of an issue. Use it in a project with approvalMode agent_review, before you set in_progress. The reviewer reads plan of planRevision and notes, and checks that plan solves problem and that notes does nothing that plan does not say; reviewer is its name and reviewNote its findings. The author of a plan does not review it. Fails with invalid_input in approvalMode user, for an issue without a plan, and for a planRevision that is not the newest: then call get_issue and review the newest plan. A plan with new text clears the approval. The call holds the issue for your session for 2 hours, and is refused on session while another session holds it.',
     annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
     outputSchema: BundledSchemas::ISSUE,
 )]

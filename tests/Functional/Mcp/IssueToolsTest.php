@@ -376,6 +376,22 @@ final class IssueToolsTest extends WebTestCase
         self::assertSame(['done', null], [$commented['status'], $commented['followUps']]);
     }
 
+    #[TestDox('An agent writes notes of an issue in in_progress, and the plan approval stays')]
+    public function testNotesKeepThePlanApproval(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM', ApprovalMode::AgentReview);
+        $issue = ['issue' => $this->call('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change', 'problem' => self::PROBLEM, 'status' => 'todo'])['key']];
+        $planned = $this->call('update_issue', $issue + ['plan' => self::PLAN]);
+        $approved = $this->call('approve_plan', $issue + ['planRevision' => $planned['planRevision'], 'reviewer' => self::REVIEWER, 'reviewNote' => self::REVIEW_NOTE]);
+        $this->call('set_issue_status', $issue + ['status' => 'in_progress']);
+
+        $this->call('update_issue', $issue + ['notes' => 'Rounding is in `InvoiceTotals::total()`.']);
+        $read = $this->call('get_issue', $issue)['issue'];
+
+        self::assertSame('Rounding is in `InvoiceTotals::total()`.', $read['notes']);
+        self::assertSame([$approved['planRevision'], $approved['planApproval']], [$read['planRevision'], $read['planApproval']]);
+    }
+
     #[TestDox('A comment and a status change are in the thread with their actor')]
     public function testThreadHoldsCommentsAndStatusChanges(): void
     {

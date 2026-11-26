@@ -32,6 +32,7 @@
     "plan": "1. Add `TaxRounding::perInvoice()` in `src/Billing/TaxRounding.php`.\n2. Use it in `InvoiceTotals::total()`.\n3. Test: a case with three lines of 0.335 in `tests/Billing/InvoiceTotalsTest.php`.",
     "result": null,
     "followUps": null,
+    "notes": null,
     "project": {
       "key": "BILL",
       "name": "Billing",

@@ -50,7 +50,7 @@ This directory is the v1 contract of Slopmower: the REST API, the MCP server, th
 | token `name` | 1 to 64 characters, pattern in [api-token.schema.json](schemas/api-token.schema.json) |
 | pending suggestions | At most 500 per review. One more gets 422 `invalid_input`. |
 | issue `title` | 1 to 200 characters after trimming, one line without CR or LF, at least one non-whitespace character. The server stores it trimmed. |
-| issue `problem`, `plan`, `result`, `followUps`, comment `body`, link `note`, status `note` | 1 to 65,536 characters. A section or a status `note` of whitespace only counts as empty for the [issue rules](mcp.md#issue-tools). A comment `body` and a link `note` need one non-whitespace character. |
+| issue `problem`, `plan`, `result`, `followUps`, `notes`, comment `body`, link `note`, status `note` | 1 to 65,536 characters. A section or a status `note` of whitespace only counts as empty for the [issue rules](mcp.md#issue-tools). A comment `body` and a link `note` need one non-whitespace character. |
 | issue `reviewer` | 1 to 64 characters |
 | project `name` | 1 to 255 characters after trimming, at least one non-whitespace character. The server stores it trimmed. |
 | issue `reviewNote` | at least 20 characters after trimming, at most 65,536 characters |
@@ -282,6 +282,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Hand-over with a comment, decision D136: the optional input `waitingFor` of I3. It is additive.
     - Request for changes of a plan, decision D136: the optional input `planRevision` of I3, and `IssueEntry.planRevision` on a `review` comment. A new plan version does not replace such a comment. It is additive.
     - Issue ranking, decision D137: the closed set `IssuePriority`, the optional input `priority` of I6 and `create_issue`, the property `lastActivityAt` of `Issue` and `IssueSummary`, the optional inputs `sort`, `activeWithinHours`, `idleForHours`, and `noActivity` of I1 and `list_issues`, and the endpoint I13 with the input `RankIssueInput`. Not additive: I1 and `list_issues` sort by rank by default, bugs first, and without `status` return only the open issues. A stored issue has the rank of its number.
+    - Agent notes, decision D143: the property `notes` of `Issue` and the optional input `notes` of I7 and `update_issue`. Not additive: `IssueSection` gets the value `notes`. The MCP output schemas accept it as an open set (D135). A stored issue has `notes` null.
 
 ## 9. Contract tests
 

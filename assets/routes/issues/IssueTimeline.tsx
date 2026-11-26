@@ -38,7 +38,7 @@ function isCurrentVersion(issue: Issue, entry: IssueEntry): entry is SectionVers
 
 /**
  * The thread of I2 with `history`: nothing changes in place (D123). A section version, a comment, a status change, and
- * a plan approval are entries, oldest first. A replaced entry stays as one closed line.
+ * a plan approval are entries, oldest first. A replaced entry and the current notes stay as one closed line.
  */
 export function IssueTimeline({ issue, thread }: { issue: Issue; thread: IssueEntry[] }) {
     const { search, hash, key } = useLocation();
@@ -50,6 +50,7 @@ export function IssueTimeline({ issue, thread }: { issue: Issue; thread: IssueEn
     // The browser does not move to the hash of a navigation of the router. `key` moves again for the same link.
     useEffect(() => {
         const entry = document.getElementById(hash.slice(1));
+        entry?.querySelector('details')?.setAttribute('open', '');
         entry?.scrollIntoView();
         entry?.focus({ preventScroll: true });
     }, [hash, key]);
@@ -67,13 +68,16 @@ export function IssueTimeline({ issue, thread }: { issue: Issue; thread: IssueEn
                 {ISSUE_SECTIONS.map((section) => {
                     const version = thread.find((entry) => section === entry.section && isCurrentVersion(issue, entry));
 
-                    return undefined === version ? (
-                        <WriteSection key={section} issue={issue} section={section} />
-                    ) : (
-                        <EntryLink key={section} id={version.id}>
-                            {SECTION_TITLES[section]}
-                        </EntryLink>
-                    );
+                    if (undefined !== version) {
+                        return (
+                            <EntryLink key={section} id={version.id}>
+                                {SECTION_TITLES[section]}
+                            </EntryLink>
+                        );
+                    }
+
+                    // The notes are the working memory of the agents, so the page offers no "Write" (D143).
+                    return 'notes' === section ? null : <WriteSection key={section} issue={issue} section={section} />;
                 })}
             </div>
             {entries.length > 0 && (
@@ -179,7 +183,16 @@ function TimelineEntry({ issue, entry, linked, closed, changesRequest }: { issue
                 <EntryIcon aria-hidden />
             </Timeline.Badge>
             <Timeline.Body className={styles.entry}>
-                {isCurrentVersion(issue, entry) ? (
+                {isCurrentVersion(issue, entry) && 'notes' === entry.section ? (
+                    <div className={styles.entryHeader}>
+                        <Details className={styles.replaced} data-testid="notes-entry">
+                            <Details.Summary className={styles.replacedLine}>
+                                <ChevronRightIcon className={styles.chevron} aria-hidden /> {line}
+                            </Details.Summary>
+                            <SectionEntry issue={issue} section={entry.section} line={null} author={entry.actor} changesRequested={null} />
+                        </Details>
+                    </div>
+                ) : isCurrentVersion(issue, entry) ? (
                     <SectionEntry
                         issue={issue}
                         section={entry.section}

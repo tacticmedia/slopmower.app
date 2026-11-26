@@ -26,6 +26,8 @@ final readonly class UpdateIssueInput
         public ?string $result = null,
         #[Assert\Length(min: 1, max: 65536)]
         public ?string $followUps = null,
+        #[Assert\Length(min: 1, max: 65536)]
+        public ?string $notes = null,
         public ?ApprovalMode $approval = null,
         public ?IssuePartyKind $requester = null,
         public ?IssuePartyKind $assignee = null,

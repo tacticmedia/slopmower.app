@@ -380,6 +380,7 @@ final class IssueQuery
             $issue->getSection(IssueSection::Plan),
             $issue->getSection(IssueSection::Result),
             $issue->getSection(IssueSection::FollowUps),
+            $issue->getSection(IssueSection::Notes),
             ['key' => $project->getKey(), 'name' => $project->getName(), 'approvalMode' => $project->getApprovalMode()],
             $state->planRevision,
             null === $approval ? null : ['approvedBy' => $approval->getActor(), 'approvedAt' => $approval->getCreatedAt(), 'reviewer' => $approval->get('reviewer'), 'reviewNote' => $approval->get('reviewNote')],

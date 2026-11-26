@@ -361,7 +361,7 @@
       "description": "The approval mode that binds an issue: the approval of the issue in a by_issue project, else the mode of the project (D129)."
     },
     "IssueSection": {
-      "enum": ["problem", "plan", "result", "followUps"]
+      "enum": ["problem", "plan", "result", "followUps", "notes"]
     },
     "IssueEntryKind": {
       "anyOf": [

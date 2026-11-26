@@ -101,9 +101,9 @@ final class IssueCommands
      *
      * @throws NotFound|InvalidInput
      */
-    public function update(IssueKey $key, ?string $title, ?string $problem, ?string $plan, ?string $result, ?string $followUps, Actor $actor, ?string $session, ?ApprovalMode $approval = null, ?IssueCategory $category = null, ?IssuePartyKind $requester = null, ?IssuePartyKind $assignee = null): Issue
+    public function update(IssueKey $key, ?string $title, ?string $problem, ?string $plan, ?string $result, ?string $followUps, ?string $notes, Actor $actor, ?string $session, ?ApprovalMode $approval = null, ?IssueCategory $category = null, ?IssuePartyKind $requester = null, ?IssuePartyKind $assignee = null): Issue
     {
-        $texts = array_filter(['problem' => $problem, 'plan' => $plan, 'result' => $result, 'followUps' => $followUps], static fn (?string $text): bool => null !== $text);
+        $texts = array_filter(['problem' => $problem, 'plan' => $plan, 'result' => $result, 'followUps' => $followUps, 'notes' => $notes], static fn (?string $text): bool => null !== $text);
 
         return $this->write($key, $actor, $session, function (Issue $issue, \DateTimeImmutable $now) use ($title, $texts, $actor, $approval, $category, $requester, $assignee): void {
             if (null === $title && [] === $texts && null === $approval && null === $category && null === $requester && null === $assignee) {

@@ -41,7 +41,7 @@ final class IssueUpdateTest extends KernelTestCase
 
         $commands->create('SM', 'Round invoice totals once', IssueCategory::Change, 'Invoice totals round each line.', IssueStatus::Todo, $agent);
         $commands->create('DOC', 'Describe the rounding', IssueCategory::Change, null, IssueStatus::Draft, $agent);
-        $commands->update($issue, null, null, '1. Add `TaxRounding::perInvoice()`.', null, null, $agent, 'billing-3f9a');
+        $commands->update($issue, null, null, '1. Add `TaxRounding::perInvoice()`.', null, null, null, $agent, 'billing-3f9a');
         $commands->comment($issue, 'The test is next.', CommentLabel::Comment, $agent, 'billing-3f9a');
         $commands->setStatus($issue, IssueStatus::InProgress, null, null, $agent, 'billing-3f9a');
         $commands->link($issue, $other, IssueLinkKind::Relates, 'DOC-1 describes it.', $agent);

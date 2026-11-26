@@ -178,7 +178,7 @@ A token call gives the same result as the MCP tool `create_issue`.
 
 - **Request:** `PATCH /api/v1/issues/{issueKey}`
 - **Authentication:** S, B
-- **Body:** [`UpdateIssueInput`](schemas/inputs.schema.json), `{title, category, problem, plan, result, followUps, approval, requester, assignee, session}`. Absent or null keeps a field, and `session` is no field to change. A text has at least 1 character, so no section is cleared. A session sets any `approval`, and a token changes it only to `user`. Example: [fixtures/inputs.update-issue.json](fixtures/inputs.update-issue.json).
+- **Body:** [`UpdateIssueInput`](schemas/inputs.schema.json), `{title, category, problem, plan, result, followUps, notes, approval, requester, assignee, session}`. Absent or null keeps a field, and `session` is no field to change. A text has at least 1 character, so no section is cleared. A session sets any `approval`, and a token changes it only to `user`. Example: [fixtures/inputs.update-issue.json](fixtures/inputs.update-issue.json).
 - **Success:** 200 [`Issue`](schemas/issue.schema.json). Each section with new text writes a `section_changed` entry with that text, which replaces the entry of the version before it, and a `plan` with new text clears `planApproval`. A change of `category`, `approval`, `requester`, or `assignee` writes no entry, and a change of `category` does not set `updatedAt`. A value that equals the stored one changes nothing.
 - **Errors:** 422 `invalid_input`:
   - on `session`, for a token without it, and for an issue that another session holds;

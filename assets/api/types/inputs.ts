@@ -236,6 +236,7 @@ export type UpdateIssueInput = {
     plan?: Markdown | null;
     result?: Markdown | null;
     followUps?: Markdown | null;
+    notes?: Markdown | null;
     /** Only in a `by_issue` project. */
     approval?: IssueApproval | null;
     requester?: IssuePartyKind | null;

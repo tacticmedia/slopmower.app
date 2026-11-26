@@ -38,6 +38,7 @@ final readonly class IssueView
         public ?string $plan,
         public ?string $result,
         public ?string $followUps,
+        public ?string $notes,
         public array $project,
         public ?string $planRevision,
         public ?array $planApproval,

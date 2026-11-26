@@ -10,6 +10,13 @@ function comment(id: string, label: CommentLabel, body: string, createdAt: strin
     return { ...(issueDetail().thread.at(-1) as IssueEntry), id, label, body, createdAt, questions };
 }
 
+const NOTES = '- `InvoiceTotals::total()` rounds each line. Source: `src/Billing/InvoiceTotals.php:42`.\n- Steps: add `TaxRounding::perInvoice()`, call it in `total()`.\n- Test: three lines of 0.335 in `TaxRoundingTest`.\n- Not checked: credit notes.';
+
+/** A version of the notes of the agent of `issue.detail.json`. */
+function notes(id: string, body: string, createdAt: string): IssueEntry {
+    return { ...(issueDetail().thread[0] as IssueEntry), id, section: 'notes', body, createdAt };
+}
+
 /** A change without the claim of `BILL-12`, unless `overrides` says otherwise. */
 function issue(overrides: Partial<Issue>, ...thread: IssueEntry[]): IssueDetail {
     return { ...issueDetail({ category: 'change', claim: null, ...overrides }), thread };
@@ -21,9 +28,10 @@ test.describe('Issues', () => {
         issues.projects = [project(), project({ key: 'DOC', name: 'Documentation', approvalMode: 'user', repositories: [] })];
         issues.add(
             issue(
-                { category: 'bug', claim: issueDetail().issue.claim },
+                { category: 'bug', claim: issueDetail().issue.claim, notes: NOTES },
                 ...issueDetail().thread,
                 comment('01K7F3G0G9H0J1K2M3N4P5Q6R7', 'finding', '`InvoiceTotalsTest` has no case with more than one line. Source: `tests/Billing/InvoiceTotalsTest.php`.', '2026-10-02T09:22:10Z'),
+                notes('01K7F3G5G9H0J1K2M3N4P5Q6R7', NOTES, '2026-10-02T09:23:00Z'),
                 comment('01K7F3H0G9H0J1K2M3N4P5Q6R7', 'deviation', 'The test is in `TaxRoundingTest`, not in `InvoiceTotalsTest`, because the rule is in `TaxRounding`.', '2026-10-02T09:24:31Z'),
                 comment('01K7F3J0G9H0J1K2M3N4P5Q6R7', 'scope_creep', 'Credit notes round each line too. Left out: BILL-14.', '2026-10-02T09:25:02Z'),
                 comment('01K7F3K0G9H0J1K2M3N4P5Q6R7', 'review', 'The result matches the plan. One finding: the README still names `round()`.', '2026-10-02T09:31:45Z'),
@@ -62,6 +70,8 @@ test.describe('Issues', () => {
         await page.getByRole('link', { name: 'Round invoice totals once per invoice' }).click();
         await captureScreen('Issue', page.getByTestId('issue-thread'));
         await captureScreen('Issue sidebar', page.getByTestId('issue-sidebar'));
+        await page.getByTestId('notes-entry').locator('summary').click();
+        await captureScreen('Issue notes', page.getByTestId('notes-entry'));
 
         await page.locator('[data-testid="issue-entry"][data-replaced="true"] summary').first().click({ position: { x: 8, y: 8 } });
         await captureScreen('Issue replaced version', page.getByText('Round the total in'));

@@ -17,10 +17,10 @@ No feature, refactoring, or behaviour change lives only in a session. The record
 - **An idea that is not scheduled** becomes a `draft` or `backlog` issue in the session where it comes up.
 - **Every source counts:** Jan in a session, a change request in Slopmower (also when Slopmower reviews itself), a review finding, or a follow-up of another issue.
 - **Local fixes:** a change request that asks only for a local fix is documented by its own thread and its linked commits. A request that asks for more gets an issue, and its thread names the issue key.
-- **Decisions:** they go into the issue in the session that makes them, in the plan or as a comment. A decision about the architecture or a contract also goes into [architecture section 11](docs/architecture.md#11-decisions).
+- **Decisions:** they go into the issue in the session that makes them. A choice of the user is a `decision` comment. A decision that the user could object to is in the plan. The rest goes into `notes`. A decision about the architecture or a contract also goes into [architecture section 11](docs/architecture.md#11-decisions).
 - **Result:** the `result` section records what was built, the commit SHAs, and every deviation from the plan. Each follow-up becomes an issue that is linked to its origin: a `bug` in `todo`, or a `change` in `backlog`. Only an incomplete problem is a `draft`.
 - **Commits:** the issue key is in the commit subject, for example `feat: SM-12 search issues`.
-- **Unfinished work:** a session that stops with work unfinished writes the state into the issue as a comment: the done parts and the next step.
+- **Unfinished work:** a session that stops with work unfinished writes the state into `notes` of the issue: the done parts and the next step.
 - **Server down:** start the stack with `make up`. If the server still does not answer, keep working and write the entries when it answers again.
 - **Copy:** `make issues-dump` copies the record to `var/backups/`. Run it after a session that changed issues and before `make db-reset`.
 - **History:** [docs/plan/features.md](docs/plan/features.md), its scope files, and its reports hold the work up to F126. They are closed.

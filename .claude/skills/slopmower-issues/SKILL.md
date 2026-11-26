@@ -7,9 +7,10 @@ metadata:
 
 # Slopmower issues: track the work
 
-An issue is the record of one change: the problem, the plan, the result, and
-the follow-ups. The user reads it, and later sessions search it. All calls go
-to the `slopmower` MCP server.
+An issue is the record of one change: the problem, the plan, the result, the
+follow-ups, and the notes. The user reads `problem`, `plan`, and `result`.
+The next session continues from `notes`. All calls go to the `slopmower` MCP
+server.
 
 ## More information
 
@@ -30,9 +31,9 @@ This skill has the workflow. The rules of each call are in three places:
 | `list_issues` | `project`, `sort?`, `status?`, `category?`, `waitingForKind?`, `activeWithinHours?`, `idleForHours?`, `noActivity?`, `cursor?`, `limit?` | List the issues in the order of the user, with filters |
 | `get_issue` | `issue`, `history?` | Read one issue with its sections, its links, and its thread |
 | `create_issue` | `project`, `title`, `category`, `problem?`, `status?`, `approval?`, `requester?`, `assignee?`, `priority?` | Start an issue |
-| `update_issue` | `issue`, `session`, `title?`, `category?`, `problem?`, `plan?`, `result?`, `followUps?`, `approval?`, `requester?`, `assignee?` | Write the title, the category, a section, or a party |
+| `update_issue` | `issue`, `session`, `title?`, `category?`, `problem?`, `plan?`, `result?`, `followUps?`, `notes?`, `approval?`, `requester?`, `assignee?` | Write the title, the category, a section, or a party |
 | `set_issue_status` | `issue`, `session`, `status`, `waitingFor?`, `note?`, `reviewer?` | Move an issue, or hand it to the other party |
-| `comment_on_issue` | `issue`, `session`, `body`, `label?`, `replaces?`, `questions?` | Record a step, ask the user, or replace a comment |
+| `comment_on_issue` | `issue`, `session`, `body`, `label?`, `replaces?`, `questions?` | Record a decision or a finding, ask the user, or replace a comment |
 | `list_comments` | `project`, `issue?`, `label?`, `cursor?`, `limit?` | Read the comments of a project or of one issue, by label |
 | `link_issues` | `issue`, `target`, `note`, `kind?` | Link two issues, or say that one waits for the other |
 | `approve_plan` | `issue`, `session`, `planRevision`, `reviewer`, `reviewNote` | Record the plan review of another agent |
@@ -68,20 +69,24 @@ The statuses are `draft`, `backlog` or `todo`, `in_progress`, `in_review`,
 1. Problem. Call `create_issue` with the title, the category, and `problem`.
    Keep `draft` and ask the user while the problem is incomplete. Then set
    `todo`, or `backlog` when the work waits.
-2. Plan. Record each finding and each decision that the plan rests on as a
-   comment, with the label `finding` or `decision`. Then write `plan` with
-   `update_issue`.
-3. Plan approval. Do what the column "Plan" of the table says.
-4. Work. Set `in_progress` before you edit. Record each important step as a
-   comment. The server refuses a plan change now, so write each deviation
-   into `result`. Put the issue key into each commit subject, for example
+2. Research. Write what you learn into `notes` with `update_issue`, as the
+   section "Writing" says.
+3. Questions. Ask each question whose answer changes the plan, as "Ask the
+   user and wait" says, and wait. When an answer changes the goal, write a
+   new `problem` version.
+4. Plan. Write `plan` only when nothing is ambiguous.
+5. Plan approval. Do what the column "Plan" of the table says.
+6. Work. Set `in_progress` before you edit. Write `notes` at milestones
+   and before a hand-over, so another session can continue from it. Each
+   write is a new version and takes the claim. The server refuses a plan change now, so write each deviation into
+   `result`. Put the issue key into each commit subject, for example
    `fix: SM-12 round invoice totals once`.
-5. Review. Keep the work on a branch, or in a pull request when the
+7. Review. Keep the work on a branch, or in a pull request when the
    repository or the requester asks for one. Write `result` with the branch
    or the pull request URL. Name no commit SHA, because a rebase changes it.
    Then set `in_review`.
-6. Acceptance. Do what the column "Result" of the table says.
-7. Delivery. After `approved`, the session that built the branch rebases it
+8. Acceptance. Do what the column "Result" of the table says.
+9. Delivery. After `approved`, the session that built the branch rebases it
    onto the default branch, runs the checks, and merges it as the repository
    does. Then name the commits on the default branch in `result`, and set
    `done`.
@@ -89,20 +94,20 @@ The statuses are `draft`, `backlog` or `todo`, `in_progress`, `in_review`,
 | `approval` | Plan | Result |
 |---|---|---|
 | `self` | No approval | Review the work yourself, then set `approved` |
-| `agent_review` | Another agent or subagent checks that `plan` solves `problem`, and names the files and the tests. Then call `approve_plan` with the `planRevision` that it read, its name, and its findings | Another agent or subagent reviews the work. Then set `approved` with its name as `reviewer` and its findings as `note` |
+| `agent_review` | Another agent or subagent reads `plan` and `notes`. It checks that `plan` solves `problem`, and that `notes` does nothing that `plan` does not say. Then call `approve_plan` with the `planRevision` that it read, its name, and its findings | Another agent or subagent reviews the work. Then set `approved` with its name as `reviewer` and its findings as `note` |
 | `user` | Only the user approves, with the button "Approve plan". Hand the issue over and wait, as the section "Ask the user and wait" says | Leave `in_review` and tell the user. Only the user sets `approved` |
 
 - In a project with the `approvalMode` `by_issue`, choose `approval` in
   `create_issue` by `approvalGuidelines`: `self` or `agent_review` only where
-  a guideline says so, else `user`. Name the guideline in one `decision`
-  comment. Later you can only raise `approval` to `user`.
+  a guideline says so, else `user`. Name the guideline in `notes`. Later you
+  can only raise `approval` to `user`.
 - The requester asks for changes in a comment with the label `review`, and
   hands the issue back. For a plan, change it and get it approved again. In
   `in_progress` or a later status, set `todo` first. For the work, change
   the branch, update `result`, and set `in_review` with
   `waitingFor: requester`.
 - If the user changes `plan` after its approval, the approval is gone. Set
-  `todo`, then do step 3 again.
+  `todo`, then do step 5 again.
 - Write into `followUps` what came up and was left out. Each follow-up also
   becomes an issue, which you link to its origin with `link_issues`: a `bug`
   in `todo`, or a `change` in `backlog`. Only an incomplete problem is a
@@ -118,8 +123,8 @@ and on the work in `in_review`.
 2. Ask with `questions` of `comment_on_issue`, not in the text of a comment.
    - One decision per question, in one line, with a Yes or No answer where
      possible. Put your recommendation and its reason into `detail`.
-   - Ask only when the user has a real choice. Decide the rest, and record
-     each choice as a `decision`.
+   - Ask only when the user has a real choice. Decide the rest. A choice
+     that the user could object to goes into `plan`, the others into `notes`.
    - Do not ask for the approval of a plan. The button is the approval.
 3. Hand the issue to the requester: call `set_issue_status` with the status
    that the issue has and `waitingFor: requester`. In `in_progress`, set
@@ -184,16 +189,19 @@ Write each text of an issue in ASD-STE100 Simplified Technical English.
 | Sentence | One statement. At most 20 words in a step, 25 words in a description. Active voice. Present tense for a fact, the imperative for a step. |
 | Paragraph | One topic, at most 6 sentences. A list for steps and for 3 or more items. Lists one level deep. |
 | Words | Common words. One word for one thing, and the same word each time. Names of code, files, and tools in backticks. |
-| Content | Only a fact with its source, a decision with its reason, a deviation, a question, or a next step. If a reader does not need a text, do not write it. |
-| Unchecked | Write "Not checked" for a fact that you did not check. Do not hedge a fact that you checked. |
+| Content | In `notes` and comments, only a fact with its source, a decision with its reason, a deviation, a question, or a next step. If a reader does not need a text, do not write it. |
+| Unchecked | Write "Not checked" in `notes` for a fact that you did not check. `plan` names only risks. Do not hedge a fact that you checked. |
 | No slop | No greeting, praise, apology, thanks, filler, or closing summary. Do not repeat the issue or an earlier text. No judging words, for example "robust", "comprehensive", or "seamless". No bold label on each list item. No em dash. |
-| `plan` | Starts with `Summary:`, at most 80 words, read in 30 seconds or less: what changes, where, the risk, and each choice for the user. The steps, the files, and the tests follow. |
-| `result` | A short list: what changed, where the work is, the tests with their counts, and each deviation. |
-| Comment | One thing per comment. Its `label` says what it is: `decision`, a choice with its reason; `finding`, a verified fact with its source; `deviation`, work that differs from the plan; `scope_creep`, work that was left out or added; `review`, the findings of a reviewer; else `comment`. Do not start the text with the label as a word. |
+| `problem` | For the user: what is wrong or wanted, and how to tell that it is done. It names no solution, and "Done when" is an outcome that the user can see, not a mechanism. The current understanding: write a new version when it changes. |
+| `plan` | For the user: what changes, one line each; out of scope; risk. No files, tests, sources, quotes of the user, "if" branches, or priority, effort, or triage lines. |
+| `result` | For the user: what changed, where the work is, and each deviation. No file lists or test counts. |
+| `notes` | For the agents: research with sources, steps with files, tests, docs, what is not checked, and progress. |
+| Comment | One thing per comment. Its `label` says what it is: `decision`, a choice of the user with its reason; `finding`, a fact that the user needs, with its source, while research goes into `notes`; `deviation`, work that differs from the plan; `scope_creep`, work that was left out or added; `review`, the findings of a reviewer; else `comment`. Do not start the text with the label as a word. |
 
 ## Rules
 
-- One issue per user request. A step of a tracked issue is a comment.
+- One issue per user request. Work on a tracked issue goes into its `notes`
+  and its thread, not into a new issue.
 - Your first write holds an issue for your session for 2 hours, and each
   write renews it. When `claim` names another session, or the server refuses
   a write on `session`, take another issue. To give up an issue, set `todo`
