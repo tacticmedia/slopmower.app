@@ -46,6 +46,7 @@ export function IssueTimeline({ issue, thread }: { issue: Issue; thread: IssueEn
     const entries = null === filter ? thread : thread.filter((entry) => filter === entry.label);
     const closed = new Map(thread.flatMap(({ label, replaces }) => (null === label || undefined === CLOSED_QUESTIONS[label] ? [] : [[replaces, CLOSED_QUESTIONS[label]] as const])));
     const changesRequest = planChangeRequest(issue, thread);
+    const earlierVersions = new Map(thread.flatMap((entry) => (null === entry.section || null === entry.replacedBy ? [] : [[entry.replacedBy, entry] as const])));
 
     // The browser does not move to the hash of a navigation of the router. `key` moves again for the same link.
     useEffect(() => {
@@ -87,6 +88,7 @@ export function IssueTimeline({ issue, thread }: { issue: Issue; thread: IssueEn
                             key={isCurrentVersion(issue, entry) ? `section:${entry.section}` : entry.id}
                             issue={issue}
                             entry={entry}
+                            earlier={earlierVersions.get(entry.id)}
                             linked={hash === `#${entryId(entry.id)}`}
                             closed={closed.get(entry.id) ?? null}
                             changesRequest={changesRequest}
@@ -142,11 +144,12 @@ function WriteSection({ issue, section }: { issue: Issue; section: Section }) {
 /**
  * An entry of an unknown kind shows its kind as text, with its actor and time.
  *
+ * @param earlier        The section version that this entry replaced
  * @param linked         The hash of the URL names the entry
  * @param closed         The entry is a question comment that the answers or a dismissal replaced
  * @param changesRequest The request for changes of the current plan revision
  */
-function TimelineEntry({ issue, entry, linked, closed, changesRequest }: { issue: Issue; entry: IssueEntry; linked: boolean; closed: ClosedQuestion | null; changesRequest: IssueEntry | undefined }) {
+function TimelineEntry({ issue, entry, earlier, linked, closed, changesRequest }: { issue: Issue; entry: IssueEntry; earlier: IssueEntry | undefined; linked: boolean; closed: ClosedQuestion | null; changesRequest: IssueEntry | undefined }) {
     const EntryIcon = ENTRY_ICONS[entry.kind] ?? DotFillIcon;
     const replaced = null !== entry.replacedBy;
     const text = (entry.body ?? entry.note ?? entry.reviewNote ?? '').trim();
@@ -189,7 +192,7 @@ function TimelineEntry({ issue, entry, linked, closed, changesRequest }: { issue
                             <Details.Summary className={styles.replacedLine}>
                                 <ChevronRightIcon className={styles.chevron} aria-hidden /> {line}
                             </Details.Summary>
-                            <SectionEntry issue={issue} section={entry.section} line={null} author={entry.actor} changesRequested={null} />
+                            <SectionEntry issue={issue} section={entry.section} line={null} author={entry.actor} earlier={earlier} changesRequested={null} />
                         </Details>
                     </div>
                 ) : isCurrentVersion(issue, entry) ? (
@@ -198,6 +201,7 @@ function TimelineEntry({ issue, entry, linked, closed, changesRequest }: { issue
                         section={entry.section}
                         line={line}
                         author={entry.actor}
+                        earlier={earlier}
                         changesRequested={'plan' === entry.section && undefined !== changesRequest ? <ChangesRequested request={changesRequest} /> : null}
                     />
                 ) : null !== entry.replacedBy ? (

@@ -114,6 +114,10 @@ test.describe('Issues', () => {
         issues.changePlan('BILL-12', '1. Round the total once in `InvoiceTotals::total()`.\n2. Test: a case with three lines of 0.335.');
         await live.push({ type: 'issue', issueKey: 'BILL-12' });
         await captureScreen('Issue plan changed', page.getByTestId('plan-changed'));
+        await page.getByTestId('plan-changed').getByRole('button', { name: 'Show changes' }).click();
+        const plan = page.locator('[data-testid="issue-section"][data-section="plan"]');
+        await expect(plan.locator('[data-diff-span]').first()).toBeAttached();
+        await captureScreen('Issue plan changes', plan);
     });
 
     test('A new project, the settings of a project, a new issue, and the edits and the status of an issue', async ({ page, api, captureScreen }) => {

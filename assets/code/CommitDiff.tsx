@@ -82,6 +82,22 @@ export const ProposalDiff = memo(function ProposalDiff({ diff, cacheKey, overflo
     );
 });
 
+/**
+ * Two versions of a Markdown text. The worker pool marks the changed words.
+ *
+ * @param cacheKey Identifies the pair of versions
+ */
+export const TextDiff = memo(function TextDiff({ earlier, current, cacheKey }: { earlier: string; current: string; cacheKey: string }) {
+    // Without a final newline, each side gets a "No newline at end of file" row.
+    const fileDiff = useMemo(() => parseDiffFromFile({ name: 'text.md', contents: `${earlier}\n`, cacheKey: `${cacheKey}:earlier` }, { name: 'text.md', contents: `${current}\n`, cacheKey: `${cacheKey}:current` }), [earlier, current, cacheKey]);
+
+    return (
+        <WorkerPoolContextProvider poolOptions={POOL_OPTIONS} highlighterOptions={HIGHLIGHTER_OPTIONS}>
+            <FileDiff fileDiff={fileDiff} options={DIFF_OPTIONS.wrap} />
+        </WorkerPoolContextProvider>
+    );
+});
+
 type FileChangeProps = { repositoryId: string; file: CommitDiffFile; overflow: Overflow; initiallyExpanded: boolean };
 
 function FileChange({ repositoryId, file, overflow, initiallyExpanded }: FileChangeProps) {
