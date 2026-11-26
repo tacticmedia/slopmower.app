@@ -110,7 +110,8 @@ The statuses are `draft`, `backlog` or `todo`, `in_progress`, `in_review`,
 
 ## Ask the user and wait
 
-The user decides on your questions, and on a plan with the approval `user`.
+The user decides on your questions, and with the approval `user` on the plan
+and on the work in `in_review`.
 
 1. Call `get_issue_updates` with `project` and no cursor, and keep its
    `cursor`. Do this first, because your own writes are not in the updates.
