@@ -68,6 +68,9 @@ test.describe('Issues', () => {
         await page.getByRole('button', { name: 'Hand over to jan' }).click();
         await page.locator('[data-testid="issue-section"][data-section="plan"]').getByRole('button', { name: 'Request changes' }).click();
         await captureScreen('Issue request changes', page.getByRole('textbox', { name: 'Changes to the plan' }));
+        await page.getByRole('textbox', { name: 'Changes to the plan' }).fill('Round the shipping totals in BILL-9, not here.');
+        await page.locator('[data-testid="issue-section"][data-section="plan"]').getByRole('button', { name: 'Request changes' }).click();
+        await captureScreen('Issue changes requested', page.getByTestId('plan-changes-requested'));
 
         await page.goto('/issues/BILL-14');
         const questions = page.getByTestId('open-questions');

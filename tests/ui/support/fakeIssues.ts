@@ -228,9 +228,15 @@ export class FakeIssues {
         );
         api.on('POST', '/api/v1/issues/:issueKey/comments', ({ params, body }) =>
             this.#answer(params.issueKey, (detail) => {
-                const { body: text, label, replaces = null, questions = [], dismiss = false, waitingFor = null } = body as IssueCommentInput;
+                const { body: text, label, replaces = null, questions = [], dismiss = false, waitingFor = null, planRevision = null } = body as IssueCommentInput;
+                if (null !== planRevision && ('review' !== label || 0 < questions.length || dismiss)) {
+                    return refusal('planRevision', 'A request for changes of a plan has the label review.');
+                }
+                if (null !== planRevision && planRevision !== detail.issue.planRevision) {
+                    return refusal('planRevision', 'The plan changed after this revision. Read the plan again.');
+                }
                 if (0 === questions.length && !dismiss) {
-                    return '' === text.trim() ? refusal('body', 'Must contain a non-whitespace character.') : this.#comment(detail, entry('comment', { body: text, label: label ?? 'comment', replaces }), waitingFor);
+                    return '' === text.trim() ? refusal('body', 'Must contain a non-whitespace character.') : this.#comment(detail, entry('comment', { body: text, label: label ?? 'comment', replaces, planRevision }), waitingFor);
                 }
                 const open = detail.thread.find((known) => known.id === replaces && isOpenQuestion(known));
                 if (undefined === open) {

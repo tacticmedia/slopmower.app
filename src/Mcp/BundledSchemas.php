@@ -5315,7 +5315,7 @@ final class BundledSchemas
                             ['$ref' => '#/$defs/Ulid'],
                             ['type' => 'null'],
                         ],
-                        'description' => 'plan_approved only: the plan revision that the approval read.',
+                        'description' => 'plan_approved: the plan revision that the approval read. comment with the label review: the plan revision that the request asks to change (D136). Else null.',
                     ],
                     'replaces' => [
                         'anyOf' => [
@@ -5723,7 +5723,7 @@ final class BundledSchemas
                             ['$ref' => '#/$defs/Ulid'],
                             ['type' => 'null'],
                         ],
-                        'description' => 'plan_approved only: the plan revision that the approval read.',
+                        'description' => 'plan_approved: the plan revision that the approval read. comment with the label review: the plan revision that the request asks to change (D136). Else null.',
                     ],
                     'replaces' => [
                         'anyOf' => [

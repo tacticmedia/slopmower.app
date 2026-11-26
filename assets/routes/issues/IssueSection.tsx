@@ -3,7 +3,7 @@ import type { ReactNode, Ref } from 'react';
 import { useFetcher } from 'react-router';
 import type { ActionResult } from '../../api/actionResult';
 import type { IssueCategory, IssueSection as Section } from '../../api/types/common';
-import type { Issue } from '../../api/types/issue';
+import type { Issue, IssueEntry } from '../../api/types/issue';
 import { CommentBox } from '../../comments/CommentBox';
 import { ActionErrorMessage } from '../../layout/ActionErrorMessage';
 import { readSessionDraft } from '../../layout/useSessionDraft';
@@ -85,6 +85,11 @@ export function canRequestChanges(issue: Issue, section: Section): boolean {
     return 'plan' === section ? canApprove(issue) && 'in_review' !== issue.status && 'approved' !== issue.status : 'result' === section && 'in_review' === issue.status;
 }
 
+/** The request for changes of the plan revision that the page shows (D136). A new revision ends it. */
+export function planChangeRequest(issue: Issue, thread: IssueEntry[]): IssueEntry | undefined {
+    return null === issue.planRevision ? undefined : thread.findLast((entry) => 'comment' === entry.kind && issue.planRevision === entry.planRevision && null === entry.replacedBy);
+}
+
 function changesDraftKey(issue: Issue, section: Section): string {
     return `issue:${issue.key}:changes:${section}`;
 }
@@ -95,8 +100,8 @@ export function useChangesWrite(issue: Issue, section: Section): IssueWrite {
 }
 
 /**
- * "Request changes" sends I3 with the text, the label `review`, and `waitingFor: assignee`: one write that asks and hands
- * over (D136).
+ * "Request changes" sends I3 with the text, the label `review`, `waitingFor: assignee`, and for the plan its revision: one
+ * write that asks and hands over (D136).
  *
  * @param disabled The plan changed while the page was open, and the user has not read it yet
  */
@@ -110,7 +115,7 @@ export function ChangesEditor({ issue, section, write, disabled }: { issue: Issu
             placeholder="What to change, and why"
             submitLabel="Request changes"
             draftKey={key}
-            onSubmit={({ body }) => write.send({ intent: 'comment', input: { body, label: 'review', waitingFor: 'assignee' }, draftKey: key })}
+            onSubmit={({ body }) => write.send({ intent: 'comment', input: { body, label: 'review', waitingFor: 'assignee', ...('plan' === section ? { planRevision: issue.planRevision } : {}) }, draftKey: key })}
             onCancel={() => write.setOpen(false)}
             error={write.error}
             busy={write.busy}

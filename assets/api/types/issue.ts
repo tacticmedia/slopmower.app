@@ -117,6 +117,7 @@ export type IssueEntry = {
     note: Markdown | null;
     reviewer: string | null;
     reviewNote: Markdown | null;
+    /** `plan_approved`: the approved revision. A `review` comment: the revision that it asks to change (D136). */
     planRevision: Ulid | null;
     /** The entry that this entry replaced. */
     replaces: Ulid | null;

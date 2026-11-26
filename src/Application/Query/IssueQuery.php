@@ -576,7 +576,7 @@ final class IssueQuery
         }
 
         foreach ($thread as $entry) {
-            $nextPlan = $replacedBy[$entry->get('planRevision') ?? ''] ?? null;
+            $nextPlan = IssueEntryKind::PlanApproved === $entry->getKind() ? $replacedBy[$entry->get('planRevision') ?? ''] ?? null : null;
 
             if (null !== $nextPlan) {
                 $replacedBy[$entry->getId()->toString()] = $nextPlan;

@@ -7,7 +7,7 @@ import type { Issue, IssueEntry } from '../../api/types/issue';
 import { MarkdownBody } from '../../comments/MarkdownBody';
 import { QuestionList } from '../../comments/Questions';
 import { ActorName, CommentLabelBadge, CommentLabelFilter, NoCommentWithLabel } from './CommentParts';
-import { hasText, SECTION_TITLES, SectionEditor, useSectionWrite } from './IssueSection';
+import { hasText, planChangeRequest, SECTION_TITLES, SectionEditor, useSectionWrite } from './IssueSection';
 import { IssueStatusLabel } from './IssueStatusLabel';
 import styles from './Issues.module.css';
 import { labelFilter } from './issueData';
@@ -45,6 +45,7 @@ export function IssueTimeline({ issue, thread }: { issue: Issue; thread: IssueEn
     const filter = labelFilter(new URLSearchParams(search));
     const entries = null === filter ? thread : thread.filter((entry) => filter === entry.label);
     const closed = new Map(thread.flatMap(({ label, replaces }) => (null === label || undefined === CLOSED_QUESTIONS[label] ? [] : [[replaces, CLOSED_QUESTIONS[label]] as const])));
+    const changesRequest = planChangeRequest(issue, thread);
 
     // The browser does not move to the hash of a navigation of the router. `key` moves again for the same link.
     useEffect(() => {
@@ -84,6 +85,7 @@ export function IssueTimeline({ issue, thread }: { issue: Issue; thread: IssueEn
                             entry={entry}
                             linked={hash === `#${entryId(entry.id)}`}
                             closed={closed.get(entry.id) ?? null}
+                            changesRequest={changesRequest}
                         />
                     ))}
                 </Timeline>
@@ -136,10 +138,11 @@ function WriteSection({ issue, section }: { issue: Issue; section: Section }) {
 /**
  * An entry of an unknown kind shows its kind as text, with its actor and time.
  *
- * @param linked The hash of the URL names the entry
- * @param closed The entry is a question comment that the answers or a dismissal replaced
+ * @param linked         The hash of the URL names the entry
+ * @param closed         The entry is a question comment that the answers or a dismissal replaced
+ * @param changesRequest The request for changes of the current plan revision
  */
-function TimelineEntry({ issue, entry, linked, closed }: { issue: Issue; entry: IssueEntry; linked: boolean; closed: ClosedQuestion | null }) {
+function TimelineEntry({ issue, entry, linked, closed, changesRequest }: { issue: Issue; entry: IssueEntry; linked: boolean; closed: ClosedQuestion | null; changesRequest: IssueEntry | undefined }) {
     const EntryIcon = ENTRY_ICONS[entry.kind] ?? DotFillIcon;
     const replaced = null !== entry.replacedBy;
     const text = (entry.body ?? entry.note ?? entry.reviewNote ?? '').trim();
@@ -172,12 +175,18 @@ function TimelineEntry({ issue, entry, linked, closed }: { issue: Issue; entry: 
 
     return (
         <Timeline.Item id={entryId(entry.id)} tabIndex={-1} className={linked ? styles.linked : undefined} condensed={replaced} data-testid="issue-entry" data-kind={entry.kind} data-replaced={replaced}>
-            <Timeline.Badge variant={'plan_approved' === entry.kind && !replaced ? 'success' : undefined}>
+            <Timeline.Badge variant={'plan_approved' === entry.kind && !replaced ? 'success' : changesRequest?.id === entry.id ? 'danger' : undefined}>
                 <EntryIcon aria-hidden />
             </Timeline.Badge>
             <Timeline.Body className={styles.entry}>
                 {isCurrentVersion(issue, entry) ? (
-                    <SectionEntry issue={issue} section={entry.section} line={line} author={entry.actor} />
+                    <SectionEntry
+                        issue={issue}
+                        section={entry.section}
+                        line={line}
+                        author={entry.actor}
+                        changesRequested={'plan' === entry.section && undefined !== changesRequest ? <ChangesRequested request={changesRequest} /> : null}
+                    />
                 ) : null !== entry.replacedBy ? (
                     <div className={styles.entryHeader}>
                         {false === content ? (
@@ -203,6 +212,18 @@ function TimelineEntry({ issue, entry, linked, closed }: { issue: Issue; entry: 
     );
 }
 
+function ChangesRequested({ request }: { request: IssueEntry }) {
+    return (
+        <div className={`${styles.sectionFooter} ${styles.changesRequested}`} data-testid="plan-changes-requested">
+            <Label variant="danger">Changes requested</Label>
+            <span>
+                <ActorName actor={request.actor} /> asked for changes of this plan.
+            </span>
+            <EntryLink id={request.id}>Read the request</EntryLink>
+        </div>
+    );
+}
+
 /** A status change names its party by its role, as the issue names the party now (D134). */
 function EntryAction({ issue, entry }: { issue: Issue; entry: IssueEntry }) {
     const reviewedBy = null === entry.reviewer ? '' : `, reviewed by ${entry.reviewer},`;
@@ -225,6 +246,9 @@ function EntryAction({ issue, entry }: { issue: Issue; entry: IssueEntry }) {
     }
     if ('plan_approved' === entry.kind) {
         return `approved the plan${reviewedBy}`;
+    }
+    if ('comment' === entry.kind && null !== entry.planRevision) {
+        return 'requested changes to the plan';
     }
 
     return 'comment' === entry.kind ? 'commented' : entry.kind;

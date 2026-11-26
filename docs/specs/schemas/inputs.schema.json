@@ -752,6 +752,17 @@
           ],
           "description": "D136. A user hands the issue over with the comment, in one write: after the comment, the issue waits for this role in the status that it has. Absent or null: no hand-over. Refused from a token, and in backlog, done, and wont_do."
         },
+        "planRevision": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Ulid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "D136. Issue.planRevision of the plan that a review comment of a user asks to change. The entry stores it. Absent or null: the comment names no plan. Refused from a token, with another label than review, and for a revision that is not the newest."
+        },
         "session": {
           "anyOf": [
             {

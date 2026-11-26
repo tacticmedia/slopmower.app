@@ -16,10 +16,11 @@ const PLAN_CHANGED = 'The plan changed while this page was open.';
  * "Request changes" its box in the place of the footer. The timeline keys the entry by its section, so the editors, a
  * refusal of "Approve plan", and the plan revision that the user read stay when a newer version becomes this entry.
  *
- * @param line   Who wrote the version, and when
- * @param author The actor of the version
+ * @param line             Who wrote the version, and when
+ * @param author           The actor of the version
+ * @param changesRequested The footer of a plan revision with a request for changes, in the place of "Approve plan" (D136)
  */
-export function SectionEntry({ issue, section, line, author }: { issue: Issue; section: Section; line: ReactNode; author: Actor }) {
+export function SectionEntry({ issue, section, line, author, changesRequested }: { issue: Issue; section: Section; line: ReactNode; author: Actor; changesRequested: ReactNode }) {
     const write = useSectionWrite(issue, section);
     const changes = useChangesWrite(issue, section);
     const viewer = useRouteLoaderData<Me>('root')?.caller;
@@ -84,6 +85,8 @@ export function SectionEntry({ issue, section, line, author }: { issue: Issue; s
                     <div className={styles.sectionEditor}>
                         <ChangesEditor issue={issue} section={section} write={changes} disabled={changed} />
                     </div>
+                ) : 'plan' === section && null !== changesRequested ? (
+                    changesRequested
                 ) : 'plan' === section && canApprove(issue) ? (
                     <ApprovePlan ref={approveButton} planRevision={issue.planRevision} disabled={changed}>
                         {requestChanges}

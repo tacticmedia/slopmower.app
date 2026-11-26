@@ -197,14 +197,15 @@ final class IssueCommands
      * $waitingFor, a user hands the issue over in its status after the comment, and the content rules then check the
      * issue (D136).
      *
-     * @param IssueEntryId|null     $replaces  A comment of the issue that the new comment replaces (D123)
+     * @param IssueEntryId|null     $replaces     A comment of the issue that the new comment replaces (D123)
      * @param list<CommentQuestion> $questions
+     * @param IssueEntryId|null     $planRevision The newest plan revision, which a `review` comment of a user rejects (D136)
      *
      * @throws NotFound|InvalidInput
      */
-    public function comment(IssueKey $key, string $body, CommentLabel $label, Actor $actor, ?string $session, ?IssueEntryId $replaces = null, array $questions = [], bool $dismiss = false, ?WaitingFor $waitingFor = null): Issue
+    public function comment(IssueKey $key, string $body, CommentLabel $label, Actor $actor, ?string $session, ?IssueEntryId $replaces = null, array $questions = [], bool $dismiss = false, ?WaitingFor $waitingFor = null, ?IssueEntryId $planRevision = null): Issue
     {
-        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $body, $label, $actor, $session, $replaces, $questions, $dismiss, $waitingFor): array {
+        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $body, $label, $actor, $session, $replaces, $questions, $dismiss, $waitingFor, $planRevision): array {
             $this->issues->project($key->projectKey, LockMode::PESSIMISTIC_WRITE);
             $issue = $this->issues->issue($key, LockMode::PESSIMISTIC_WRITE);
 
@@ -222,6 +223,10 @@ final class IssueCommands
 
             if (null !== $waitingFor && ActorKind::User !== $actor->kind) {
                 throw InvalidInput::field('waitingFor', 'Only a signed-in user hands over with a comment. Call set_issue_status.');
+            }
+
+            if (null !== $planRevision && ActorKind::User !== $actor->kind) {
+                throw InvalidInput::field('planRevision', 'Only a signed-in user requests changes of a plan.');
             }
 
             if ([] === $questions && !$dismiss) {
@@ -245,7 +250,16 @@ final class IssueCommands
                 ActorKind::User === $actor->kind => [CommentLabel::Answer, self::answers($questions, $replaced)],
                 default => [CommentLabel::Question, array_map(static fn (CommentQuestion $question): CommentQuestion => new CommentQuestion(trim($question->question), $question->detail), $questions)],
             };
-            $this->entityManager->persist(IssueEntry::comment($issue, $actor, $dismiss && '' === trim($body) ? 'Dismissed.' : $body, $label, $now, $replaced, $questions));
+
+            if (null !== $planRevision && CommentLabel::Review !== $label) {
+                throw InvalidInput::field('planRevision', 'A request for changes of a plan has the label review.');
+            }
+
+            if (null !== $planRevision && $planRevision->toString() !== $this->issues->state($issue)->planRevision) {
+                throw InvalidInput::field('planRevision', 'The plan changed after this revision. Read the plan again.');
+            }
+
+            $this->entityManager->persist(IssueEntry::comment($issue, $actor, $dismiss && '' === trim($body) ? 'Dismissed.' : $body, $label, $now, $replaced, $questions, $planRevision));
             $issue->touch($now);
             $issue->recordActivity($now);
 

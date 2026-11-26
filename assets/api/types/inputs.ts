@@ -179,6 +179,8 @@ export type IssueCommentInput = {
     dismiss?: boolean;
     /** A user hands the issue to this role with the comment, in the status that it has (D136). Refused from a token. */
     waitingFor?: WaitingFor | null;
+    /** `Issue.planRevision` of the plan that a `review` comment of a user asks to change (D136). Refused from a token. */
+    planRevision?: Ulid | null;
     /** The agent session that writes (D130). A token needs it, and the server ignores it for a user. */
     session?: string | null;
 };

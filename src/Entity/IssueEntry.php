@@ -89,10 +89,11 @@ class IssueEntry implements TenantOwned
 
     /**
      * @param list<CommentQuestion> $questions
+     * @param IssueEntryId|null     $planRevision The plan revision that a request for changes rejects (D136)
      */
-    public static function comment(Issue $issue, Actor $actor, string $body, CommentLabel $label, \DateTimeImmutable $createdAt, ?self $replaces = null, array $questions = []): self
+    public static function comment(Issue $issue, Actor $actor, string $body, CommentLabel $label, \DateTimeImmutable $createdAt, ?self $replaces = null, array $questions = [], ?IssueEntryId $planRevision = null): self
     {
-        return new self($issue, $actor, IssueEntryKind::Comment, $body, [], $createdAt, $label, $replaces, $questions);
+        return new self($issue, $actor, IssueEntryKind::Comment, $body, null === $planRevision ? [] : ['planRevision' => $planRevision->toString()], $createdAt, $label, $replaces, $questions);
     }
 
     /**

@@ -200,6 +200,10 @@ li.dropAfter {
     border-top: var(--borderWidth-thin) solid var(--borderColor-muted);
 }
 
+.changesRequested {
+    justify-content: flex-start;
+}
+
 .thread {
     display: flex;
     flex-direction: column;

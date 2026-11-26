@@ -30,6 +30,13 @@ function withResult(overrides: Partial<Issue>): IssueDetail {
     return { ...detail, thread: [...detail.thread, { ...(detail.thread[0] as IssueEntry), id: newId(), createdAt: now(), section: 'result', body: RESULT }] };
 }
 
+/** "Request changes" on a section, with the text `CHANGES`. */
+async function requestChanges(entry: Locator): Promise<void> {
+    await entry.getByRole('button', { name: 'Request changes' }).click();
+    await entry.getByRole('textbox', { name: /^Changes to the / }).fill(CHANGES);
+    await entry.getByRole('button', { name: 'Request changes' }).click();
+}
+
 /** Answers "Yes" to the first question and "Money" to the second one. */
 async function answer(form: Locator): Promise<void> {
     await form.getByRole('group', { name: QUESTIONS[0]?.question }).getByRole('button', { name: 'Yes', exact: true }).click();
@@ -79,19 +86,41 @@ test.describe('Issue hand-back', () => {
         await expect(form.getByRole('button', { name: 'Send answers and hand over' })).toHaveCount(0);
     });
 
-    test('"Request changes" on the plan sends the text with the label review and waitingFor assignee, and the issue then waits for the agent', async ({ page, api }) => {
+    test('"Request changes" on the plan sends the text with the label review, waitingFor assignee, and the plan revision, and the issue then waits for the agent', async ({ page, api }) => {
+        const issues = new FakeIssues(api);
+        const detail = issueDetail({ waitingFor: 'requester' });
+        issues.add(detail);
+        await page.goto(`/issues/${ISSUE_KEY}`);
+        const plan = section(page, 'plan');
+
+        await requestChanges(plan);
+
+        await expect(plan.getByRole('textbox', { name: 'Changes to the plan' })).toHaveCount(0);
+        expect(api.bodies('POST', COMMENTS)).toEqual([{ body: CHANGES, label: 'review', waitingFor: 'assignee', planRevision: detail.issue.planRevision }]);
+        await expect(page.getByTestId('waiting-label').first()).toHaveText('Waiting for the agent');
+    });
+
+    test('A plan revision with a request for changes shows "Changes requested" in the place of "Approve plan", and a new revision shows "Approve plan" again', async ({ page, api }) => {
         const issues = new FakeIssues(api);
         issues.add(issueDetail({ waitingFor: 'requester' }));
         await page.goto(`/issues/${ISSUE_KEY}`);
         const plan = section(page, 'plan');
+        const request = page.getByTestId('issue-entry').filter({ hasText: CHANGES });
 
-        await plan.getByRole('button', { name: 'Request changes' }).click();
-        await plan.getByRole('textbox', { name: 'Changes to the plan' }).fill(CHANGES);
-        await plan.getByRole('button', { name: 'Request changes' }).click();
+        await requestChanges(plan);
 
-        await expect(plan.getByRole('textbox', { name: 'Changes to the plan' })).toHaveCount(0);
-        expect(api.bodies('POST', COMMENTS)).toEqual([{ body: CHANGES, label: 'review', waitingFor: 'assignee' }]);
-        await expect(page.getByTestId('waiting-label').first()).toHaveText('Waiting for the agent');
+        await expect(plan.getByTestId('plan-changes-requested')).toHaveText(/^Changes requested\s*jan asked for changes of this plan\.\s*Read the request$/);
+        await expect(plan.getByRole('button', { name: 'Approve plan' })).toHaveCount(0);
+        await expect(request).toContainText('requested changes to the plan');
+        await plan.getByRole('link', { name: 'Read the request' }).click();
+        await expect(request).toBeFocused();
+
+        issues.changePlan(ISSUE_KEY, 'Round once per invoice, and keep the shipping totals as they are.');
+        await page.goto(`/issues/${ISSUE_KEY}`);
+
+        await expect(plan.getByTestId('plan-changes-requested')).toHaveCount(0);
+        await expect(plan.getByRole('button', { name: 'Approve plan' })).toBeEnabled();
+        await expect(request).toContainText('requested changes to the plan');
     });
 
     test('The plan has no "Request changes" while the issue waits for the agent, and in backlog, in review, or approved', async ({ page, api }) => {

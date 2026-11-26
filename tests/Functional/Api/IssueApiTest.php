@@ -225,6 +225,46 @@ final class IssueApiTest extends WebTestCase
         self::assertSame([['section_changed'], ['section_changed']], [$kinds('SM-1'), $kinds('SM-2')], 'A refused hand-over stores no comment.');
     }
 
+    #[TestDox('I3 of a user with planRevision stores it on the review comment, which stays current after a new plan')]
+    public function testUserRequestsChangesOfThePlan(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $planRevision = $this->plannedIssue('todo');
+        $this->agent('set_issue_status', ['issue' => 'SM-1', 'status' => 'todo', 'waitingFor' => 'requester']);
+
+        self::assertApiResponse(self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/comments', ['body' => 'Drop step 2.', 'label' => 'review', 'waitingFor' => 'assignee', 'planRevision' => $planRevision]), 201, self::ISSUE);
+        $request = array_find($this->agent('get_issue', ['issue' => 'SM-1'])['thread'], static fn (array $entry): bool => 'review' === $entry['label']);
+        $this->agent('update_issue', ['issue' => 'SM-1', 'plan' => self::PLAN.' 3. Update the README.']);
+        $detail = self::assertApiResponse(self::apiRequest($this->client, 'GET', '/api/v1/issues/SM-1'), 200, 'issue.schema.json#/$defs/IssueDetail');
+
+        self::assertSame($planRevision, $request['planRevision'] ?? null);
+        self::assertContains($request['id'] ?? null, array_column($detail['thread'], 'id'), 'A new plan does not replace the request.');
+    }
+
+    #[TestDox('I3 refuses planRevision from a token, with another label than review, and for an old plan revision, and stores no comment')]
+    public function testPlanChangeRequestRefusals(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $oldRevision = $this->plannedIssue('todo');
+        $newRevision = (string) $this->agent('update_issue', ['issue' => 'SM-1', 'plan' => self::PLAN.' 3. Update the README.'])['planRevision'];
+        $post = fn (array $body): Response => self::apiRequest($this->client, 'POST', '/api/v1/issues/SM-1/comments', $body);
+        $violation = static fn (Response $response): array => self::assertApiError($response, 422, 'invalid_input')['details']['violations'][0] ?? [];
+
+        self::assertSame(
+            [
+                ['planRevision', 'Only a signed-in user requests changes of a plan.'],
+                ['planRevision', 'A request for changes of a plan has the label review.'],
+                ['planRevision', 'The plan changed after this revision. Read the plan again.'],
+            ],
+            array_map(static fn (array $violation): array => [$violation['field'] ?? null, $violation['message'] ?? null], [
+                $violation(self::bearerRequest($this->client, $this->secret, 'POST', '/api/v1/issues/SM-1/comments', ['body' => 'Drop step 2.', 'label' => 'review', 'planRevision' => $newRevision, 'session' => self::SESSION])),
+                $violation($post(['body' => 'Drop step 2.', 'planRevision' => $newRevision])),
+                $violation($post(['body' => 'Drop step 2.', 'label' => 'review', 'planRevision' => $oldRevision])),
+            ]),
+        );
+        self::assertNotContains('comment', array_column($this->agent('get_issue', ['issue' => 'SM-1', 'history' => true])['thread'], 'kind'), 'A refused request stores no comment.');
+    }
+
     #[TestDox('I8 to wont_do dismisses each open question comment with the user as the actor and leaves an answered one, and set_issue_status of an agent in a self project dismisses with the agent')]
     public function testWontDoDismissesOpenQuestions(): void
     {
