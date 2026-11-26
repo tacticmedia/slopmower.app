@@ -170,7 +170,7 @@ The list is sorted by the entry `id` descending, which is newest first. The MCP 
   - on `status`, for a status other than `draft`, `backlog`, and `todo`;
   - on `approval`, for `by_issue`, and for a project of another approval mode;
   - on `requester`, for `agent` when the approval of the issue is `user`;
-  - on `problem`, for `backlog` or `todo` without a problem.
+  - on `problem`, for `backlog` or `todo` without a problem, and for a problem of a token of more than 1,500 characters (D144).
 
 A token call gives the same result as the MCP tool `create_issue`.
 
@@ -187,6 +187,7 @@ A token call gives the same result as the MCP tool `create_issue`.
   - on `category`, for a value outside `IssueCategory`;
   - on `approval`, for `by_issue`, for a project of another approval mode, and for a change of a token to another value than `user`;
   - on `requester`, for `agent` when the approval of the issue is `user`;
+  - on `problem`, `plan`, or `result`, for a new text of a token of more than 1,500 characters (D144);
   - on the field of a broken rule of the [issue tools](mcp.md#issue-tools), for example on `plan` for a plan of whitespace only in `in_progress`.
 
 The call has no precondition: the last write wins. A token call gives the same result as the MCP tool `update_issue`.

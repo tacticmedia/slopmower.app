@@ -50,6 +50,8 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 final class IssueCommands
 {
     private const int REVIEW_NOTE_MIN_CHARACTERS = 20;
+    private const int AGENT_SECTION_MAX_CHARACTERS = 1500;
+    private const array AGENT_LIMITED_SECTIONS = [IssueSection::Problem, IssueSection::Plan, IssueSection::Result];
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
@@ -591,11 +593,16 @@ final class IssueCommands
     }
 
     /**
-     * A section with new text gets its section_changed entry.
+     * A section with new text gets its section_changed entry. The length limit of an agent (D144) checks new text only, so
+     * an agent can resend a longer stored text.
      */
     private function changeSection(Issue $issue, IssueSection $section, string $text, Actor $actor, \DateTimeImmutable $now): void
     {
         if ($text !== $issue->getSection($section)) {
+            if (ActorKind::Agent === $actor->kind && \in_array($section, self::AGENT_LIMITED_SECTIONS, true) && mb_strlen($text, 'UTF-8') > self::AGENT_SECTION_MAX_CHARACTERS) {
+                throw InvalidInput::field($section->value, 'At most 1,500 characters. Put research and steps into notes.');
+            }
+
             $issue->changeSection($section, $text, $now);
             $this->entityManager->persist(IssueEntry::sectionChanged($issue, $actor, $section, $text, $now));
         }

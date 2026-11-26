@@ -450,6 +450,23 @@ final class IssueApiTest extends WebTestCase
         self::assertSame(['bug', 'wont_do'], [$changed['category'], $changed['status']]);
     }
 
+    #[TestDox('An agent text of problem, plan, or result over 1,500 characters is refused on its field, I7 of a user stores it, and the agent then resends it')]
+    public function testLengthLimitOfAgentText(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'SM');
+        $this->agent('create_issue', ['project' => 'SM', 'title' => 'Round invoice totals once', 'category' => 'change']);
+        $long = str_repeat('a', 1501);
+
+        $refusedFields = array_map(fn (string $section): mixed => self::assertToolError($this->mcp->callTool('update_issue', ['issue' => 'SM-1', 'session' => self::SESSION, $section => $long]), 'invalid_input')['details']['violations'][0]['field'] ?? null, ['problem', 'plan', 'result']);
+        $atTheLimit = $this->agent('update_issue', ['issue' => 'SM-1', 'plan' => str_repeat('ä', 1500)]);
+        $ofTheUser = self::assertApiResponse(self::apiRequest($this->client, 'PATCH', '/api/v1/issues/SM-1', ['problem' => $long]), 200, self::ISSUE);
+        $resent = $this->agent('update_issue', ['issue' => 'SM-1', 'problem' => $long, 'result' => 'Done.']);
+
+        self::assertSame(['problem', 'plan', 'result'], $refusedFields);
+        self::assertSame(str_repeat('ä', 1500), $atTheLimit['plan'], 'The limit counts characters, not bytes.');
+        self::assertSame([$long, $long, 'Done.'], [$ofTheUser['problem'], $resent['problem'], $resent['result']]);
+    }
+
     #[TestDox('I8 by a user sets in_progress without an approval and done, sets done again without an entry, and leaves done')]
     public function testUserSetsEveryStatus(): void
     {
