@@ -130,6 +130,10 @@ final class ProjectController extends AbstractController
             $project->setApprovalGuidelines($input->approvalGuidelines);
         }
 
+        if (null !== $input->yoloMode) {
+            $project->setYoloMode($input->yoloMode);
+        }
+
         $this->entityManager->flush();
 
         return $this->json($this->issues->projectView($project));

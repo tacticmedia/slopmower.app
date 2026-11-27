@@ -64,7 +64,7 @@ final class IssueApiTest extends WebTestCase
         $todo = self::assertApiResponse(self::apiRequest($this->client, 'GET', '/api/v1/projects/SM/issues?status=todo'), 200, 'lists.schema.json#/$defs/IssuePage');
         $detail = self::assertApiResponse(self::apiRequest($this->client, 'GET', '/api/v1/issues/SM-2'), 200, 'issue.schema.json#/$defs/IssueDetail');
 
-        self::assertSame([['key' => 'SM', 'name' => 'Project SM', 'approvalMode' => 'self', 'approvalGuidelines' => null, 'repositories' => ['alpha']]], $projects['items']);
+        self::assertSame([['key' => 'SM', 'name' => 'Project SM', 'approvalMode' => 'self', 'approvalGuidelines' => null, 'yoloMode' => false, 'repositories' => ['alpha']]], $projects['items']);
         self::assertSame(['SM-1', 'SM-2'], array_column($issues['items'], 'key'), 'In rank order.');
         self::assertSame(['SM-2'], array_column($todo['items'], 'key'));
         self::assertSame(['SM-2', self::PROBLEM, ['section_changed']], [$detail['issue']['key'], $detail['issue']['problem'], array_column($detail['thread'], 'kind')]);

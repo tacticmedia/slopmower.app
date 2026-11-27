@@ -22,6 +22,7 @@ final readonly class UpdateProjectInput
         public ?ApprovalMode $approvalMode = null,
         #[Assert\Length(max: 10000)]
         public ?string $approvalGuidelines = null,
+        public ?bool $yoloMode = null,
         #[Assert\Count(max: 500)]
         #[Assert\All([new Assert\NotNull(), new Assert\Ulid()])]
         public ?array $repositoryIds = null,

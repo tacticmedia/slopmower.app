@@ -710,7 +710,7 @@ final class IssueToolsTest extends WebTestCase
         $updates = self::assertToolResult($scoped, $scoped->callTool('get_issue_updates', ['project' => 'SM', 'cursor' => 0]), 'get_issue_updates');
 
         self::assertSame([['DOC', ['beta']], ['OPS', []], ['SM', ['alpha']]], array_map(static fn (array $project): array => [$project['key'], $project['repositories']], $allProjects['items']));
-        self::assertSame([['key' => 'SM', 'name' => 'Project SM', 'approvalMode' => 'self', 'approvalGuidelines' => null, 'repositories' => ['alpha']]], $projects['items']);
+        self::assertSame([['key' => 'SM', 'name' => 'Project SM', 'approvalMode' => 'self', 'approvalGuidelines' => null, 'yoloMode' => false, 'repositories' => ['alpha']]], $projects['items']);
         self::assertSame(['SM-1'], array_column($issues['items'], 'key'));
         self::assertSame(['A comment of SM.'], array_column($comments['items'], 'body'));
         self::assertSame([['SM-1', 'A comment of SM.']], array_map(static fn (array $item): array => [$item['issue']['key'], $item['entry']['body']], $updates['entries']), 'The entries of another token name.');

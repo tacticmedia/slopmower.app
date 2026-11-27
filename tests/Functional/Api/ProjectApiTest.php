@@ -35,7 +35,7 @@ final class ProjectApiTest extends WebTestCase
     private const string PROJECT = 'project.schema.json';
     private const string PROJECTS = '/api/v1/projects';
     private const array BILLING = ['key' => 'BILL', 'name' => 'Billing', 'approvalMode' => 'user'];
-    private const array BILLING_PROJECT = self::BILLING + ['approvalGuidelines' => null];
+    private const array BILLING_PROJECT = self::BILLING + ['approvalGuidelines' => null, 'yoloMode' => false];
     private const string GUIDELINES = "- A change of an API: `user`.\n- A fix of a typo: `self`.";
 
     private KernelBrowser $client;
@@ -133,6 +133,18 @@ final class ProjectApiTest extends WebTestCase
         self::assertSame(['approvalGuidelines'], array_column($tooLong['details']['violations'] ?? [], 'field'));
     }
 
+    #[TestDox('P3 turns YOLO mode on and off, and keeps it without the field')]
+    public function testYoloMode(): void
+    {
+        self::storeProject($this->user->getTenantId(), 'BILL');
+
+        $on = $this->change('BILL', ['yoloMode' => true]);
+        $kept = $this->change('BILL', ['name' => 'Billing']);
+        $off = $this->change('BILL', ['yoloMode' => false]);
+
+        self::assertSame([true, true, false], array_column([$on, $kept, $off], 'yoloMode'));
+    }
+
     #[TestDox('P3 answers 404 for an ID that the caller cannot see, then 422 on repositoryIds for a repository of another project, and changes nothing')]
     public function testRepositoryChecks(): void
     {
@@ -166,16 +178,16 @@ final class ProjectApiTest extends WebTestCase
         self::assertSame([[], [self::BILLING_PROJECT + ['repositories' => ['alpha']]]], [$before['items'], $after['items']]);
     }
 
-    #[TestDox('P2 and P3 refuse a token with 403, so no agent sets the approval mode')]
+    #[TestDox('P2 and P3 refuse a token with 403, so no agent sets the approval mode or YOLO mode')]
     public function testATokenCannotWriteAProject(): void
     {
         self::storeProject($this->user->getTenantId(), 'BILL', ApprovalMode::User);
         [, $secret] = self::storeToken($this->user);
 
         self::assertApiError(self::bearerRequest($this->client, $secret, 'POST', self::PROJECTS, ['key' => 'DOC'] + self::BILLING), 403, 'forbidden');
-        self::assertApiError(self::bearerRequest($this->client, $secret, 'PATCH', self::PROJECTS.'/BILL', ['approvalMode' => 'self']), 403, 'forbidden');
+        self::assertApiError(self::bearerRequest($this->client, $secret, 'PATCH', self::PROJECTS.'/BILL', ['approvalMode' => 'self', 'yoloMode' => true]), 403, 'forbidden');
 
-        self::assertSame([['BILL', 'user']], array_map(static fn (array $project): array => [$project['key'], $project['approvalMode']], $this->projects()));
+        self::assertSame([['BILL', 'user', false]], array_map(static fn (array $project): array => [$project['key'], $project['approvalMode'], $project['yoloMode']], $this->projects()));
     }
 
     /**

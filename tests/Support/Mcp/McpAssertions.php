@@ -43,6 +43,8 @@ trait McpAssertions
         'approve_plan' => 'issue.schema.json',
         'list_comments' => 'lists.schema.json#/$defs/IssueCommentPage',
         'get_issue_updates' => 'issue.schema.json#/$defs/IssueUpdatesPage',
+        'yolo_set_approval' => 'issue.schema.json',
+        'yolo_release_claim' => 'issue.schema.json',
     ];
 
     /**

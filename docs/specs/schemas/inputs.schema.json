@@ -856,6 +856,10 @@
           ],
           "description": "Markdown. Absent or null keeps the guidelines, and whitespace only removes them."
         },
+        "yoloMode": {
+          "type": ["boolean", "null"],
+          "description": "Absent or null keeps it. True lets the agents of the project use the YOLO features (D148)."
+        },
         "repositoryIds": {
           "anyOf": [
             {

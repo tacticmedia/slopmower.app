@@ -1,5 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 import type { Question } from '../../assets/api/types/common';
+import type { UpdateProjectInput } from '../../assets/api/types/inputs';
 import { issueDetail, project, USER_PARTY } from './support/builders';
 import { FakeIssues } from './support/fakeIssues';
 import { FakeRepositories } from './support/fakeRepositories';
@@ -510,7 +511,7 @@ test.describe('Issues', () => {
         await page.getByRole('button', { name: 'Save' }).click();
 
         await expect(page.getByTestId('settings-saved')).toBeVisible();
-        expect(api.bodies('PATCH', '/api/v1/projects/:projectKey')).toEqual([{ name: 'Billing', approvalMode: 'user', repositoryIds: [beta?.id] }]);
+        expect(api.bodies('PATCH', '/api/v1/projects/:projectKey')).toEqual([{ name: 'Billing', approvalMode: 'user', yoloMode: false, repositoryIds: [beta?.id] }]);
         expect(issues.projects[0]).toEqual(project({ approvalMode: 'user', repositories: ['beta'] }));
     });
 
@@ -528,8 +529,27 @@ test.describe('Issues', () => {
         await page.getByRole('button', { name: 'Save' }).click();
 
         await expect(page.getByTestId('settings-saved')).toBeVisible();
-        expect(api.bodies('PATCH', '/api/v1/projects/:projectKey')).toEqual([{ name: 'Billing', approvalMode: 'by_issue', approvalGuidelines: guidelines, repositoryIds: [] }]);
+        expect(api.bodies('PATCH', '/api/v1/projects/:projectKey')).toEqual([{ name: 'Billing', approvalMode: 'by_issue', approvalGuidelines: guidelines, yoloMode: false, repositoryIds: [] }]);
         expect(issues.projects[0]).toEqual(project({ approvalMode: 'by_issue', approvalGuidelines: guidelines, repositories: [] }));
+    });
+
+    test('The project settings turn YOLO mode on and off with P3', async ({ page, api }) => {
+        new FakeRepositories(api);
+        const issues = new FakeIssues(api);
+        issues.projects = [project({ repositories: [] })];
+        await page.goto('/projects/BILL/settings');
+        const yoloMode = page.getByRole('checkbox', { name: 'YOLO mode' });
+        await expect(yoloMode).not.toBeChecked();
+
+        await yoloMode.check();
+        await page.getByRole('button', { name: 'Save' }).click();
+        await expect(page.getByTestId('settings-saved')).toBeVisible();
+        await yoloMode.uncheck();
+        await page.getByRole('button', { name: 'Save' }).click();
+
+        // "Saved." shows again for a moment before the second write starts, so wait for its body.
+        await expect.poll(() => api.bodies('PATCH', '/api/v1/projects/:projectKey').map((body) => (body as UpdateProjectInput).yoloMode)).toEqual([true, false]);
+        expect(issues.projects[0]?.yoloMode).toBe(false);
     });
 
     test('An unknown project key shows the not-found error on the project settings and on the new issue form', async ({ page, api }) => {

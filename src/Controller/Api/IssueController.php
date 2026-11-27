@@ -317,7 +317,9 @@ final class IssueController extends AbstractController
     #[IsGranted(User::ROLE, message: CurrentActor::SESSION_ONLY)]
     public function release(#[ValueResolver(IssueKeyResolver::class)] Issue $issue): JsonResponse
     {
-        return $this->json($this->issues->view($this->commands->release($issue->getKey()), $this->currentActor->get()));
+        $actor = $this->currentActor->get();
+
+        return $this->json($this->issues->view($this->commands->release($issue->getKey(), $actor), $actor));
     }
 
     /**

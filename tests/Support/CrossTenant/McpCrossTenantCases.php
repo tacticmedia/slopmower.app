@@ -50,6 +50,8 @@ final class McpCrossTenantCases
             'approve_plan' => [['issue' => '{issueKey}', 'session' => 'billing-3f9a', 'planRevision' => self::PLAN_REVISION, 'reviewer' => 'plan-reviewer', 'reviewNote' => 'The plan covers the rounding and its test.']],
             'list_comments' => [['project' => '{projectKey}']],
             'get_issue_updates' => [['project' => '{projectKey}']],
+            'yolo_set_approval' => [['issue' => '{issueKey}', 'session' => 'billing-3f9a', 'approval' => 'self']],
+            'yolo_release_claim' => [['issue' => '{issueKey}']],
         ];
     }
 }

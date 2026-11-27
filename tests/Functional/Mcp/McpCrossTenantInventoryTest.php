@@ -69,21 +69,37 @@ final class McpCrossTenantInventoryTest extends WebTestCase
         }
     }
 
-    #[TestDox('A scoped token sees one repository')]
+    #[TestDox("The resource yolo_mode returns none of the other tenant's projects")]
+    public function testYoloModeResourceHoldsNoOtherTenantProject(): void
+    {
+        [$mcp] = $this->twoTenants();
+
+        $text = $mcp->request('resources/read', ['uri' => 'slopmower://yolo_mode'])['result']['contents'][0]['text'] ?? null;
+
+        self::assertIsString($text);
+        self::assertSame(['SM'], array_column(json_decode($text, true, flags: \JSON_THROW_ON_ERROR)['projects'], 'key'));
+    }
+
+    #[TestDox('A scoped token sees one repository, and the resource yolo_mode lists only the project of that repository')]
     public function testScopedTokenSeesOneRepository(): void
     {
         $client = static::createClient();
         $user = TenantFixtures::of(self::getContainer())->create();
         $alpha = self::storeRepository($user->getTenantId(), 'alpha');
         self::storeRepository($user->getTenantId(), 'beta');
+        self::storeProject($user->getTenantId(), 'SM', repository: $alpha);
+        self::storeProject($user->getTenantId(), 'OPS');
         [, $secret] = self::storeToken($user, $alpha);
         $mcp = new McpTestClient($client, $secret);
 
         $page = self::assertToolResult($mcp, $mcp->callTool('list_repositories'), 'list_repositories');
+        $yoloMode = $mcp->request('resources/read', ['uri' => 'slopmower://yolo_mode'])['result']['contents'][0]['text'] ?? null;
 
         self::assertIsArray($page['items']);
         self::assertSame([$alpha->getId()->toString()], array_column($page['items'], 'id'));
         self::assertToolError($mcp->callTool('list_reviews', ['repository' => 'beta']), 'not_found');
+        self::assertIsString($yoloMode);
+        self::assertSame(['SM'], array_column(json_decode($yoloMode, true, flags: \JSON_THROW_ON_ERROR)['projects'], 'key'));
     }
 
     #[TestDox('After a scoped call, the next call in the same worker has neither its tenant nor its scope')]

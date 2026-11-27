@@ -18,7 +18,7 @@ use Mcp\Schema\ToolAnnotations;
 #[McpTool(
     name: 'list_projects',
     title: 'List projects',
-    description: 'List the projects of the issue tracker that this token sees, with key, name, approvalMode, approvalGuidelines, and the names of their repositories. Track the work on a repository as issues of the project that lists it. A token of one repository sees only the project of that repository.',
+    description: 'List the projects of the issue tracker that this token sees, with key, name, approvalMode, approvalGuidelines, yoloMode, and the names of their repositories. Track the work on a repository as issues of the project that lists it. A token of one repository sees only the project of that repository.',
     annotations: new ToolAnnotations(readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false),
     outputSchema: BundledSchemas::PROJECT_PAGE,
 )]

@@ -63,7 +63,7 @@ Never verify, reopen, accept or dismiss suggestions, or decide on proposals. Ope
 ## 3. Conventions
 
 - **Tool classes.** Each tool is an invokable class in `App\Mcp\Tool`, named after the tool, for example `ClaimRequestTool` for `claim_request`. `#[McpTool]` on the class holds `name`, `title`, `description`, `annotations`, and `outputSchema`. Autoconfiguration tags the class `mcp.tool`, and the bundle builds the input schema from the parameters of `__invoke()` at compile time: a parameter without a default is required, a backed enum gives its `enum`, and `#[Schema]` adds the description and the limits. `App\Mcp\Tool\Input` holds the patterns, the texts, and the item schema of `questions` that several tools share. `ToolsListContractTest` compares `tools/list` with `tests/Fixtures/mcp/tools-list.json`, in which `outputSchema` names its `BundledSchemas` constant (D142).
-- **Adapter.** Each tool runs through `App\Mcp\ToolCall::run()`. The SDK casts each argument to its parameter type, so parameters are scalars, backed enums, lists of strings, and the `questions` lists of `reply_to_request` and `comment_on_issue`, whose objects the input schema checks. Before the input check, `App\Mcp\StringArgumentListener` casts a string argument of a `tools/call`: for an input of type `integer` or `["null", "integer"]` a string that matches `^-?[0-9]+$`, has no leading zero, and fits a 64-bit integer to that integer, and for an input of type `boolean` or `["null", "boolean"]` the string `true` or `false` to that boolean. A client sends an input that its older `tools/list` lacks as a string (D146). The input check then runs on the cast value, and any other string still gets -32602. Each tool calls the same application service as REST and returns the normalized array. So `structuredContent` equals the REST JSON, and `content[0].text` holds the same data as JSON text. The issue tools of sections 4.19 to 4.29 call `App\Application\IssueCommands` and `App\Application\Query\IssueQuery`, as the REST endpoints of [rest-api-issues.md](rest-api-issues.md) do. Nine of them have a REST endpoint: `list_projects`, `list_issues`, `get_issue`, `create_issue`, `update_issue`, `set_issue_status`, `comment_on_issue`, `list_comments`, and `get_issue_updates`.
+- **Adapter.** Each tool runs through `App\Mcp\ToolCall::run()`. The SDK casts each argument to its parameter type, so parameters are scalars, backed enums, lists of strings, and the `questions` lists of `reply_to_request` and `comment_on_issue`, whose objects the input schema checks. Before the input check, `App\Mcp\StringArgumentListener` casts a string argument of a `tools/call`: for an input of type `integer` or `["null", "integer"]` a string that matches `^-?[0-9]+$`, has no leading zero, and fits a 64-bit integer to that integer, and for an input of type `boolean` or `["null", "boolean"]` the string `true` or `false` to that boolean. A client sends an input that its older `tools/list` lacks as a string (D146). The input check then runs on the cast value, and any other string still gets -32602. Each tool calls the same application service as REST and returns the normalized array. So `structuredContent` equals the REST JSON, and `content[0].text` holds the same data as JSON text. The issue tools of sections 4.19 to 4.31 call `App\Application\IssueCommands` and `App\Application\Query\IssueQuery`, as the REST endpoints of [rest-api-issues.md](rest-api-issues.md) do. Nine of them have a REST endpoint: `list_projects`, `list_issues`, `get_issue`, `create_issue`, `update_issue`, `set_issue_status`, `comment_on_issue`, `list_comments`, and `get_issue_updates`.
 - **Output schemas.** Each output schema is a bundled copy of a file in [schemas/](schemas/): the root with `type: "object"`, `properties`, and `required` at the top level, plus a `$defs` section with every referenced definition, with each `$ref` rewritten to `#/$defs/<Name>`. The command `bin/console app:schema:bundle` generates `src/Mcp/BundledSchemas.php` with one `public const array` per root, which `outputSchema` of `#[McpTool]` names. A test fails when the generated file differs from the output of the command. In the bundled copy each closed set is open: a node with `enum` becomes `anyOf` of the `enum` and `{"type": "string"}`, except an `enum` under `if` or `not`, where an open set changes a condition or refuses every string. So a client that validates against an older `tools/list` accepts a new value (D135). The bundled copy also has no value limit: `maxLength`, `minLength`, `pattern`, `maximum`, `minimum`, `exclusiveMaximum`, `exclusiveMinimum`, `multipleOf`, `maxItems`, `minItems`, `maxContains`, `minContains`, `maxProperties`, and `minProperties` with a scalar value are removed, except under `if` or `not`, where a removed limit changes a condition or tightens the check. So such a client accepts a value within a raised limit (D146). The schema files keep the closed sets and the limits, and the tests validate each result against both.
 - **Annotations.** All tools set `destructiveHint: false` and `openWorldHint: false`. The read tools set `readOnlyHint: true` and `idempotentHint: true`. The table in section 4 lists them per tool.
 - **Domain errors.** The adapter catches `DomainError` and throws `ToolCallException(json_encode(['error' => ['code' => ..., 'message' => ..., 'details' => ...]]))`. The SDK turns that into `{"isError": true, "content": [{"type": "text", "text": "<Error JSON>"}]}`, with **no `structuredContent`**. So clients that validate `structuredContent` against the `outputSchema` do not reject the error.
@@ -107,6 +107,8 @@ The title, the description, the input schema, and the annotations of each tool a
 | [`approve_plan`](#427-approve_plan) | Approve plan | false | false | [`issue.schema.json`](schemas/issue.schema.json) | none. [I4](rest-api-issues.md#i4-approve-the-plan) is the approval of a user. |
 | [`list_comments`](#428-list_comments) | List comments | true | true | [`lists.schema.json#/$defs/IssueCommentPage`](schemas/lists.schema.json) | [I5](rest-api-issues.md#i5-list-the-comments-of-a-project) |
 | [`get_issue_updates`](#429-get_issue_updates) | Get issue updates | true | true | [`issue.schema.json#/$defs/IssueUpdatesPage`](schemas/issue.schema.json) | [I10](rest-api-issues.md#i10-get-the-updates-of-a-project) |
+| [`yolo_set_approval`](#430-yolo_set_approval) | Set approval in YOLO mode | false | true | [`issue.schema.json`](schemas/issue.schema.json) | none |
+| [`yolo_release_claim`](#431-yolo_release_claim) | Release claim in YOLO mode | false | true | [`issue.schema.json`](schemas/issue.schema.json) | none. [I11](rest-api-issues.md#i11-release-the-claim) is the release of a user. |
 
 Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 
@@ -239,7 +241,7 @@ Every tool sets `destructiveHint: false` and `openWorldHint: false`.
 
 ### Issue tools
 
-Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D128 to D130, D133, D134, D137). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs. The REST endpoints of [rest-api-issues.md](rest-api-issues.md) share the model and the rules of this section.
+Sections 4.19 to 4.31 are the issue tracker (D116 to D118, D121 to D124, D126, D128 to D130, D133, D134, D137, D148). A project has issues, and a repository belongs to at most one project. An issue is named by its key, `<project key>-<number>`, for example `SM-12`, and the number counts per project. The tools take the keys `project`, `issue`, and `target`, not ULIDs. The REST endpoints of [rest-api-issues.md](rest-api-issues.md) share the model and the rules of this section.
 
 - **Visibility.** A token of one repository sees only the project of that repository, with its issues. A project without a repository is invisible to it. Any other key gets `not_found`.
 - **Sections.** An issue has the Markdown sections `problem`, `acceptanceCriteria`, `plan`, `result`, `followUps`, and `notes`, each null or at most 65,536 characters. `problem`, `acceptanceCriteria`, `plan`, and `result` are for the user. `acceptanceCriteria` says how to tell that the issue is done, as outcomes that the user can see (D147). A new version keeps the plan approval, and `acceptanceCriteria` is no part of the plan revision. `notes` is the working memory of the agents: research with sources, steps with files, tests, and progress (D143). A `notes` version keeps the plan approval, and `notes` is no part of the plan revision, so an agent writes it in every open status. A new text of an agent in `problem`, `acceptanceCriteria`, `plan`, or `result` has at most 1,500 characters: a longer one is refused with `invalid_input` on its field, and the message points to `notes` (D144, D147). A text that equals the stored one is no new text.
@@ -277,13 +279,13 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 - **Approval.** `planApproval` holds the approval of the plan of `planRevision`. A `plan` with new text clears it. The same text changes nothing and writes no entry. An approval of an agent has a `reviewer` and a `reviewNote`. An approval of a user, REST [I4](rest-api-issues.md#i4-approve-the-plan), has both null.
 - **Approval mode.** The `approvalMode` of the project binds each issue. In `by_issue`, the `approval` of each issue binds it, and an issue without one reads as `user` (D129). `approval` of `Issue` and `IssueSummary` is the mode that binds the issue, in every project mode.
   - `create_issue` and `update_issue` take `approval` only in a `by_issue` project, else `invalid_input` on `approval`. `by_issue` is no `approval`.
-  - An agent sets any `approval` when it creates the issue, and later changes it only to `user`. A user sets any value. A change writes no entry. With the agent as the requester, a change to `user` needs `requester: user` in the same call, else it is refused on `requester` (D134).
+  - An agent sets any `approval` when it creates the issue, and later changes it only to `user`, except with `yolo_set_approval` in YOLO mode. A user sets any value. A change writes no entry. With the agent as the requester, a change to `user` needs `requester: user` in the same call, else it is refused on `requester` (D134).
   - `approvalGuidelines` of the project is Markdown of the user: which issue needs the user, and which one an agent works on its own. An agent chooses the `approval` of a new issue by it, and `user` where the guidelines do not cover the issue.
 - **Claims.** An agent session holds an issue until 2 hours after its newest write (D130). `update_issue`, `set_issue_status`, `approve_plan`, and `comment_on_issue` need `session`, the name of the agent session, 1 to 64 characters. The holder is the agent of the token and the session together, so two sessions of one token are two holders.
   - A write of `update_issue`, `set_issue_status`, or `approve_plan` on an issue of another holder is refused with `invalid_input` on `session`: "Session X of Y holds SM-n until T. Take another issue." This check comes before the rules. Otherwise the write holds the issue for its session until 2 hours from now, also a write that changes nothing.
   - A claim of another holder never refuses a comment, and a comment takes no claim. A comment of the holder renews the claim.
   - A status change ends the claim when it goes to `backlog`, `in_review`, `done`, or `wont_do`, or when it leaves `in_progress`. A status change or a hand-over after which the issue waits for a user ends it too. A hand-over to an agent keeps it. This holds for a user too.
-  - A user is never refused and takes no claim. A user removes a claim with REST [I11](rest-api-issues.md#i11-release-the-claim). No tool releases a claim: an agent gives up an issue in work with `todo` and a note.
+  - A user is never refused and takes no claim. A user removes a claim with REST [I11](rest-api-issues.md#i11-release-the-claim). An agent gives up an issue in work with `todo` and a note. In YOLO mode, `yolo_release_claim` removes the claim of any holder.
   - `create_issue` and `link_issues` neither check nor take a claim. A refused write changes no claim.
   - `claim` of `Issue` and `IssueSummary` is `{holder, session, since, until}`. It is null without a claim and after `until`. A claim writes no thread entry and does not set `updatedAt`.
 - **Rules.** The server checks the state that a write gives (D117), with the `approval` that the write gives. The content rules hold for every actor. The approval rules bind agents only, and the MCP actor is always an agent. The modes of the table are the `approval` of the issue.
@@ -311,7 +313,7 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 ### 4.19 `list_projects`
 
 - **Output:** [`lists.schema.json#/$defs/ProjectPage`](schemas/lists.schema.json).
-- **Behaviour:** REST P1: the projects that the token sees, in key order, each with its `approvalGuidelines` and the names of its repositories that the token sees, in name order. `limit` is 1 to 500, by default 100.
+- **Behaviour:** REST P1: the projects that the token sees, in key order, each with its `approvalGuidelines`, its `yoloMode`, and the names of its repositories that the token sees, in name order. `limit` is 1 to 500, by default 100.
 - **Errors:** `invalid_input` for the cursor.
 - **Example:** arguments `{}`. `structuredContent`: [fixtures/lists.project-page.json](fixtures/lists.project-page.json).
 
@@ -386,6 +388,29 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 - **Errors:** `not_found` for the project, `invalid_input` on `cursor` for a cursor ahead of the server. A `cursor` below 0 and a `limit` outside its range are JSON-RPC -32602.
 - **Example:** arguments `{"project":"BILL"}` give [fixtures/issue.updates-first-call.json](fixtures/issue.updates-first-call.json). Arguments `{"project":"BILL","cursor":41}` give [fixtures/issue.updates-cursor.json](fixtures/issue.updates-cursor.json).
 
+### YOLO mode
+
+Sections 4.30 and 4.31 and the resource `yolo_mode` are the YOLO features (D148): steps that otherwise only a user does. `docs/yolo-mode.md` lists them for the user.
+
+- **Setting.** `yoloMode` of `Project` is false by default. Only a signed-in user changes it, with REST [P3](rest-api-issues.md#p3-change-a-project).
+- **Names.** The name of each YOLO tool and resource starts with `yolo_`.
+- **Off.** A YOLO tool on an issue of a project with `yoloMode` false returns `forbidden` with the message "YOLO mode must be enabled by the user. Please ask the user to go to Project Settings and tick the YOLO mode checkbox", and changes nothing.
+- **Resource.** `resources/read` of `slopmower://yolo_mode`, name `yolo_mode`, MIME type `application/json`, returns `{"projects": [{"key": "SM", "yoloMode": true}]}`: each project that the token sees, in key order.
+
+### 4.30 `yolo_set_approval`
+
+- **Output:** [`issue.schema.json`](schemas/issue.schema.json).
+- **Behaviour:** sets `approval` of the issue to `user`, `agent_review`, or `self`, also lower than before. Otherwise as `update_issue` with `approval`: only in a `by_issue` project, under the claim of `session`, and checked by the rules with the new approval. The change writes no entry.
+- **Errors:** `not_found`, `forbidden` in a project with `yoloMode` false, `invalid_input` on `session` for an issue of another holder, on `approval` for a project of another approval mode, and for a broken rule of the issue tools.
+- **Example:** arguments `{"issue":"BILL-12","session":"billing-3f9a","approval":"self"}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with `approval` `self`.
+
+### 4.31 `yolo_release_claim`
+
+- **Output:** [`issue.schema.json`](schemas/issue.schema.json).
+- **Behaviour:** removes the claim of the issue, of any holder, as REST [I11](rest-api-issues.md#i11-release-the-claim) does for a user. It takes no claim, writes no entry, and does not set `updatedAt`. An issue without a claim stays as it is. The next write of a session takes the issue.
+- **Errors:** `not_found`, `forbidden` in a project with `yoloMode` false.
+- **Example:** arguments `{"issue":"BILL-12"}`. The result has the shape of [fixtures/issue.plan-approved.json](fixtures/issue.plan-approved.json) with `claim` null.
+
 ## 5. Error codes in MCP
 
 | Code | Delivered as | Agent action |
@@ -401,7 +426,7 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 | `rate_limited` | isError. A refused HTTP request is HTTP 429 on the transport. | Wait `details.retryAfterSeconds`, then retry |
 | `limit_exceeded` | isError, from `start_review` and `suggest_request` | Stop and tell the user |
 | `internal_error` | isError | Retry once, then tell the user |
-| `forbidden` | never, because all tools are agent tools | none |
+| `forbidden` | isError, from a `yolo_` tool in a project with YOLO mode off | Ask the user to turn on YOLO mode, as the message says. Do not retry. |
 
 ## 6. MCP and REST
 
@@ -436,6 +461,8 @@ Sections 4.19 to 4.29 are the issue tracker (D116 to D118, D121 to D124, D126, D
 | `set_issue_status` | `POST /api/v1/issues/{issueKey}/status` |
 | `link_issues` | none yet |
 | `approve_plan` | none. `POST /api/v1/issues/{issueKey}/plan-approval` is the approval of a user, for a session only. |
+| `yolo_set_approval` | none. `PATCH /api/v1/issues/{issueKey}` with `approval` is the change of a user. |
+| `yolo_release_claim` | none. `POST /api/v1/issues/{issueKey}/release` is the release of a user, for a session only. |
 
 `McpRestParityTest` compares the MCP and REST payloads of every tool with a REST endpoint: `list_repositories`, `list_reviews`, `list_requests`, `get_updates`, `get_request`, every write tool of the requests and reviews, `list_projects`, `list_issues`, `get_issue`, `create_issue`, `update_issue`, `set_issue_status`, `comment_on_issue`, `list_comments`, and `get_issue_updates`.
 

@@ -19,6 +19,7 @@ final readonly class ProjectView
         public string $name,
         public ApprovalMode $approvalMode,
         public ?string $approvalGuidelines,
+        public bool $yoloMode,
         public array $repositories,
     ) {
     }

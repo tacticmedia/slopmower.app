@@ -72,7 +72,7 @@ final class IssueQuery
         $repositoryNames = $this->repositoryNames($projects);
 
         return new ProjectPage(
-            array_map(static fn (Project $project): ProjectView => new ProjectView($project->getKey(), $project->getName(), $project->getApprovalMode(), $project->getApprovalGuidelines(), $repositoryNames[$project->getId()->toString()] ?? []), $projects),
+            array_map(static fn (Project $project): ProjectView => new ProjectView($project->getKey(), $project->getName(), $project->getApprovalMode(), $project->getApprovalGuidelines(), $project->isYoloMode(), $repositoryNames[$project->getId()->toString()] ?? []), $projects),
             Cursor::next($rows, $limit, [], static fn (Project $project): array => [$project->getKey()]),
         );
     }
@@ -82,7 +82,7 @@ final class IssueQuery
      */
     public function projectView(Project $project): ProjectView
     {
-        return new ProjectView($project->getKey(), $project->getName(), $project->getApprovalMode(), $project->getApprovalGuidelines(), $this->repositoryNames([$project])[$project->getId()->toString()] ?? []);
+        return new ProjectView($project->getKey(), $project->getName(), $project->getApprovalMode(), $project->getApprovalGuidelines(), $project->isYoloMode(), $this->repositoryNames([$project])[$project->getId()->toString()] ?? []);
     }
 
     /**

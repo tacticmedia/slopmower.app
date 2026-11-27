@@ -20,7 +20,7 @@ The endpoints are the issue tracker for the web UI and for agents without MCP (D
 
 - **Request:** `GET /api/v1/projects`
 - **Authentication:** S, B
-- **Success:** 200 [`ProjectPage`](schemas/lists.schema.json): the projects that the caller sees, each with its `approvalGuidelines` and the names of its repositories that the caller sees, in name order. Example: [fixtures/lists.project-page.json](fixtures/lists.project-page.json).
+- **Success:** 200 [`ProjectPage`](schemas/lists.schema.json): the projects that the caller sees, each with its `approvalGuidelines`, its `yoloMode`, and the names of its repositories that the caller sees, in name order. Example: [fixtures/lists.project-page.json](fixtures/lists.project-page.json).
 - **Errors:** common errors only.
 
 | Query | Type | Default | Notes |
@@ -48,16 +48,18 @@ The key never changes, because the issue keys hold it. The server stores the nam
 
 - **Request:** `PATCH /api/v1/projects/{projectKey}`
 - **Authentication:** S
-- **Body:** [`UpdateProjectInput`](schemas/inputs.schema.json), `{name, approvalMode, approvalGuidelines, repositoryIds}`. Absent or null keeps a value, and a body without a field changes nothing. Example: [fixtures/inputs.update-project.json](fixtures/inputs.update-project.json).
+- **Body:** [`UpdateProjectInput`](schemas/inputs.schema.json), `{name, approvalMode, approvalGuidelines, yoloMode, repositoryIds}`. Absent or null keeps a value, and a body without a field changes nothing. Example: [fixtures/inputs.update-project.json](fixtures/inputs.update-project.json).
 - **Success:** 200 [`Project`](schemas/project.schema.json).
 - **Errors**, in this order:
-  - 422 `invalid_input` on `name`, `approvalMode`, `approvalGuidelines`, or `repositoryIds`, for a malformed value;
+  - 422 `invalid_input` on `name`, `approvalMode`, `approvalGuidelines`, `yoloMode`, or `repositoryIds`, for a malformed value;
   - 404 `not_found`, for an ID of `repositoryIds` that the caller cannot see;
   - 422 `invalid_input` on `repositoryIds`, for a repository of another project. The message names the repository and that project.
 
 `repositoryIds` is the whole list of the repositories of the project, at most 500 IDs: a repository that the list leaves out leaves the project, an empty list removes every repository, and an ID twice counts once. A refused call changes nothing. A token of one repository sees the project only while its repository belongs to it.
 
 A new `approvalMode` holds for each later write. After a change to `user`, an issue in `in_progress`, `in_review`, or `approved` whose plan no user approved needs that approval ([I4](#i4-approve-the-plan)) before an agent writes its sections or sets `in_review` or `done`. In `by_issue`, the `approval` of each issue binds it, as "Approval mode" of the [issue tools](mcp.md#issue-tools) says (D129).
+
+`yoloMode` true lets the agents of the project use the YOLO features, as "YOLO mode" of the [issue tools](mcp.md#yolo-mode) says (D148). A new project has it false. No tool changes it.
 
 Whitespace only in `approvalGuidelines` removes the guidelines. They stay when the mode changes.
 
@@ -251,7 +253,7 @@ The answers of a user are one `comment` entry with the label `answer`, each ques
 - **Success:** 200 [`Issue`](schemas/issue.schema.json) with `claim` null. The release writes no thread entry, does not set `updatedAt`, and publishes the `issue` live update. An issue without a claim answers the same, so a second click changes nothing.
 - **Errors:** common errors only.
 
-The user frees an issue that an agent session holds, for example after the session ended. No tool releases a claim: an agent gives up an issue in work with `todo` and a note (D130).
+The user frees an issue that an agent session holds, for example after the session ended. An agent gives up an issue in work with `todo` and a note (D130). In YOLO mode, the tool `yolo_release_claim` releases a claim too (D148).
 
 ### I12 List the commits of an issue
 

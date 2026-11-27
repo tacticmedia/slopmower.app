@@ -37,6 +37,10 @@ class Project implements TenantOwned
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $approvalGuidelines = null;
 
+    /** D148: the agents of the project use the YOLO features. */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $yoloMode = false;
+
     #[ORM\Column]
     private int $nextIssueNumber = 1;
 
@@ -89,6 +93,16 @@ class Project implements TenantOwned
     public function getApprovalGuidelines(): ?string
     {
         return $this->approvalGuidelines;
+    }
+
+    public function isYoloMode(): bool
+    {
+        return $this->yoloMode;
+    }
+
+    public function setYoloMode(bool $yoloMode): void
+    {
+        $this->yoloMode = $yoloMode;
     }
 
     public function rename(string $name): void

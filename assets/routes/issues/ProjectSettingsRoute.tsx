@@ -12,7 +12,7 @@ import styles from './Issues.module.css';
 import type { ProjectSettingsData } from './issueData';
 
 /**
- * The name, the approval mode, and the repositories of a project: one form, one P3. A repository belongs to at most one
+ * The name, the approval mode, YOLO mode, and the repositories of a project: one form, one P3. A repository belongs to at most one
  * project, so a repository of another project is disabled and names that project. The guidelines show for `by_issue`
  * only, and P3 keeps them while they are hidden (D129).
  */
@@ -75,6 +75,11 @@ export function ProjectSettingsRoute() {
                         <FormControl.Caption>An agent reads them when it creates an issue, and chooses User approval where they do not cover it.</FormControl.Caption>
                     </FormControl>
                 )}
+                <FormControl>
+                    <Checkbox name="yoloMode" value="true" defaultChecked={project.yoloMode} />
+                    <FormControl.Label>YOLO mode</FormControl.Label>
+                    <FormControl.Caption>The agents of this project do steps that otherwise only you do: they change the approval of an issue, and release the claim of another session.</FormControl.Caption>
+                </FormControl>
                 <CheckboxGroup>
                     <CheckboxGroup.Label>Repositories</CheckboxGroup.Label>
                     <CheckboxGroup.Caption>

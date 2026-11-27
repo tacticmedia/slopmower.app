@@ -39,6 +39,8 @@ This skill has the workflow. The rules of each call are in three places:
 | `link_issues` | `issue`, `target`, `note`, `kind?` | Link two issues, or say that one waits for the other |
 | `approve_plan` | `issue`, `session`, `planRevision`, `reviewer`, `reviewNote` | Record the plan review of another agent |
 | `get_issue_updates` | `project`, `cursor?`, `limit?` | Learn what others wrote since your last cursor |
+| `yolo_set_approval` | `issue`, `session`, `approval` | In YOLO mode: set any approval of an issue |
+| `yolo_release_claim` | `issue` | In YOLO mode: remove the claim of any session |
 
 A `?` marks an optional parameter. An issue key is the project key, a hyphen,
 and a number, for example `SM-12`.
@@ -181,6 +183,20 @@ done
   `todo`, else the next issue.
 - Do not go down the list for an easier issue. Only the user moves an issue.
 
+## YOLO mode
+
+In a project with YOLO mode on, you do steps that otherwise only the user
+does. The resource `slopmower://yolo_mode` and `yoloMode` of `list_projects`
+tell you whether it is on.
+
+- `yolo_set_approval`: when an issue waits for the user only because of its
+  approval.
+- `yolo_release_claim`: when another session holds an issue that you must
+  take, for example after that session ended.
+- A YOLO action writes no entry. Name it in `notes`.
+- With YOLO mode off, a YOLO tool fails with `forbidden`. Ask the user, and
+  do not retry.
+
 ## Writing
 
 Write each text of an issue in ASD-STE100 Simplified Technical English.
@@ -237,6 +253,7 @@ A tool error is a result with `isError: true`. Its text is JSON:
 | `invalid_input` | The input failed a check, or the write breaks a rule. The message and `details.violations[0].field` name it. | On `session`, another session holds the issue: take another one. Else fix the input, and call again |
 | `rate_limited` | Too many calls in a short time | Wait `details.retryAfterSeconds` seconds, then retry |
 | `internal_error` | An unexpected server failure | Try once more, then keep working |
+| `forbidden` | A `yolo_` tool in a project with YOLO mode off | Ask the user to turn on YOLO mode in the project settings. Do not retry |
 
 Arguments that break the input schema of a tool give JSON-RPC error -32602
 before the tool runs. Fix the arguments, and call again.

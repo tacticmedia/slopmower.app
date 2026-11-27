@@ -56,13 +56,13 @@ export class FakeIssues {
             if (this.projects.some((known) => known.key === key)) {
                 return refusal('key', `The project ${key} exists already.`);
             }
-            const created: Project = { key, name: name.trim(), approvalMode, approvalGuidelines: guidelines(approvalGuidelines), repositories: [] };
+            const created: Project = { key, name: name.trim(), approvalMode, approvalGuidelines: guidelines(approvalGuidelines), yoloMode: false, repositories: [] };
             this.projects = [...this.projects, created];
 
             return json('project.schema.json', created, 201);
         });
         api.on('PATCH', '/api/v1/projects/:projectKey', ({ params, body }) => {
-            const { name, approvalMode, approvalGuidelines, repositoryIds } = body as UpdateProjectInput;
+            const { name, approvalMode, approvalGuidelines, yoloMode, repositoryIds } = body as UpdateProjectInput;
             const stored = this.projects.find(({ key }) => key === params.projectKey);
             const members = (repositoryIds ?? []).map((id) => repositories().find((known) => known.id === id)?.name);
             if (undefined === stored || members.includes(undefined)) {
@@ -79,6 +79,7 @@ export class FakeIssues {
                 name: name?.trim() ?? stored.name,
                 approvalMode: approvalMode ?? stored.approvalMode,
                 approvalGuidelines: null === approvalGuidelines || undefined === approvalGuidelines ? stored.approvalGuidelines : guidelines(approvalGuidelines),
+                yoloMode: yoloMode ?? stored.yoloMode,
                 repositories: null === repositoryIds || undefined === repositoryIds ? stored.repositories : [...new Set(members as string[])].toSorted(),
             };
             this.projects = this.projects.map((known) => (known === stored ? changed : known));

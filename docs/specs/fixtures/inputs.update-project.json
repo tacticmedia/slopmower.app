@@ -2,5 +2,6 @@
   "name": "Billing",
   "approvalMode": "by_issue",
   "approvalGuidelines": "- A change of an API, a schema, or a dependency: `user`.\n- A fix of a test, a typo, or a log line: `self`.",
+  "yoloMode": true,
   "repositoryIds": ["01K6B2Z0R3P0S1T2V3W4X5Y6Z7"]
 }

@@ -8,6 +8,7 @@ use App\Application\Event\IssueChanged;
 use App\Application\Query\IssueQuery;
 use App\Domain\Actor\Actor;
 use App\Domain\Actor\ActorKind;
+use App\Domain\Error\Forbidden;
 use App\Domain\Error\InvalidInput;
 use App\Domain\Error\NotFound;
 use App\Domain\Identity\IssueEntryId;
@@ -52,6 +53,7 @@ final class IssueCommands
     private const int REVIEW_NOTE_MIN_CHARACTERS = 20;
     private const int AGENT_SECTION_MAX_CHARACTERS = 1500;
     private const array AGENT_LIMITED_SECTIONS = [IssueSection::Problem, IssueSection::AcceptanceCriteria, IssueSection::Plan, IssueSection::Result];
+    private const string YOLO_MODE_OFF = 'YOLO mode must be enabled by the user. Please ask the user to go to Project Settings and tick the YOLO mode checkbox';
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
@@ -86,7 +88,7 @@ final class IssueCommands
                 $now,
             );
             $this->entityManager->persist($issue);
-            self::changeApproval($issue, $approval, $actor, $now, isNew: true);
+            self::changeApproval($issue, $approval, $actor, $now, anyApproval: true);
 
             foreach ($texts as $section => $text) {
                 $this->changeSection($issue, IssueSection::from($section), $text, $actor, $now);
@@ -114,7 +116,7 @@ final class IssueCommands
                 throw InvalidInput::field('', 'Give at least one field to change.');
             }
 
-            self::changeApproval($issue, $approval, $actor, $now, isNew: false);
+            self::changeApproval($issue, $approval, $actor, $now, anyApproval: false);
             $newRequester = null === $requester ? null : IssueParty::forCaller($requester, $actor);
             $newAssignee = null === $assignee ? null : IssueParty::forCaller($assignee, $actor);
 
@@ -140,6 +142,18 @@ final class IssueCommands
                 $this->changeSection($issue, IssueSection::from($section), $text, $actor, $now);
             }
         });
+    }
+
+    /**
+     * `yolo_set_approval` (D148): an agent sets any approval, also a lower one.
+     *
+     * @throws NotFound|Forbidden|InvalidInput
+     */
+    public function setApprovalInYoloMode(IssueKey $key, ApprovalMode $approval, Actor $actor, string $session): Issue
+    {
+        return $this->write($key, $actor, $session, static function (Issue $issue, \DateTimeImmutable $now) use ($approval, $actor): void {
+            self::changeApproval($issue, $approval, $actor, $now, anyApproval: true);
+        }, requiresYoloMode: true);
     }
 
     /**
@@ -310,14 +324,21 @@ final class IssueCommands
     }
 
     /**
-     * The release of a user, I11: no entry, and no updatedAt.
+     * The release of a user, I11, and of an agent in YOLO mode, `yolo_release_claim` (D148): no entry, and no updatedAt.
      *
-     * @throws NotFound
+     * @throws NotFound|Forbidden
      */
-    public function release(IssueKey $key): Issue
+    public function release(IssueKey $key, Actor $actor): Issue
     {
-        return $this->transactional(function () use ($key): array {
+        return $this->transactional(function () use ($key, $actor): array {
+            // The project row first, as in write(), so P3 waits for the commit after the YOLO check.
+            $project = $this->issues->project($key->projectKey, LockMode::PESSIMISTIC_WRITE);
             $issue = $this->issues->issue($key, LockMode::PESSIMISTIC_WRITE);
+
+            if (ActorKind::User !== $actor->kind) {
+                self::requireYoloMode($project);
+            }
+
             $issue->claim(null);
 
             return [$issue];
@@ -469,11 +490,15 @@ final class IssueCommands
      *
      * @param \Closure(Issue, \DateTimeImmutable, IssueState): void $change Gets the state before the change
      */
-    private function write(IssueKey $key, Actor $actor, ?string $session, \Closure $change, bool $setsStatus = false, ?string $note = null, ?string $reviewer = null): Issue
+    private function write(IssueKey $key, Actor $actor, ?string $session, \Closure $change, bool $setsStatus = false, ?string $note = null, ?string $reviewer = null, bool $requiresYoloMode = false): Issue
     {
-        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $actor, $session, $change, $setsStatus, $note, $reviewer): array {
+        return $this->transactional(function (\DateTimeImmutable $now) use ($key, $actor, $session, $change, $setsStatus, $note, $reviewer, $requiresYoloMode): array {
             $project = $this->issues->project($key->projectKey, LockMode::PESSIMISTIC_WRITE);
             $issue = $this->issues->issue($key, LockMode::PESSIMISTIC_WRITE);
+
+            if ($requiresYoloMode) {
+                self::requireYoloMode($project);
+            }
 
             if (ActorKind::Agent === $actor->kind) {
                 $issue->claim(IssueClaim::take($issue->getClaim(), $issue->getKey(), $actor, self::session($session), $now));
@@ -517,19 +542,19 @@ final class IssueCommands
     }
 
     /**
-     * D129: only in a by_issue project. An agent sets any approval on a new issue and later only user, so it never
-     * lowers the approval of a plan that it wrote. Writes no entry, as a new title writes none.
+     * D129: only in a by_issue project. An agent sets any approval on a new issue and in YOLO mode (D148), and else only
+     * user, so it never lowers the approval of a plan that it wrote. Writes no entry, as a new title writes none.
      *
      * @throws InvalidInput
      */
-    private static function changeApproval(Issue $issue, ?ApprovalMode $approval, Actor $actor, \DateTimeImmutable $now, bool $isNew): void
+    private static function changeApproval(Issue $issue, ?ApprovalMode $approval, Actor $actor, \DateTimeImmutable $now, bool $anyApproval): void
     {
         $mode = $issue->getProject()->getApprovalMode();
         $refusal = match (true) {
             null === $approval => null,
             ApprovalMode::ByIssue !== $mode => "The approval mode of the project is {$mode->value}. Only a project in by_issue takes an approval per issue.",
             ApprovalMode::ByIssue === $approval => 'Must be user, agent_review, or self.',
-            !$isNew && ActorKind::Agent === $actor->kind && ApprovalMode::User !== $approval && $approval !== $issue->getApprovalMode() => 'An agent changes the approval of an issue only to user.',
+            !$anyApproval && ActorKind::Agent === $actor->kind && ApprovalMode::User !== $approval && $approval !== $issue->getApprovalMode() => 'An agent changes the approval of an issue only to user.',
             default => null,
         };
 
@@ -539,6 +564,16 @@ final class IssueCommands
 
         if (null !== $approval && $approval !== $issue->getApprovalMode()) {
             $issue->setApproval($approval, $now);
+        }
+    }
+
+    /**
+     * @throws Forbidden
+     */
+    private static function requireYoloMode(Project $project): void
+    {
+        if (!$project->isYoloMode()) {
+            throw new Forbidden(self::YOLO_MODE_OFF);
         }
     }
 

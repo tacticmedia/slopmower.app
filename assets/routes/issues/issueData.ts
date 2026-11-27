@@ -118,7 +118,7 @@ export async function projectSettingsLoader({ request, params }: LoaderFunctionA
     return { project: projectOf(projects, params), projects, repositories };
 }
 
-/** P3 with the whole form: the name, the mode, the guidelines while they show, and the checked repositories. */
+/** P3 with the whole form: the name, the mode, the guidelines while they show, YOLO mode, and the checked repositories. */
 export async function projectSettingsAction({ request, params }: ActionFunctionArgs): Promise<ActionResult> {
     const form = await request.formData();
     const guidelines = form.get('approvalGuidelines');
@@ -126,6 +126,7 @@ export async function projectSettingsAction({ request, params }: ActionFunctionA
         name: String(form.get('name')),
         approvalMode: String(form.get('approvalMode')) as ApprovalMode,
         ...(null === guidelines ? {} : { approvalGuidelines: String(guidelines) }),
+        yoloMode: null !== form.get('yoloMode'),
         repositoryIds: form.getAll('repositoryIds').map(String),
     };
 

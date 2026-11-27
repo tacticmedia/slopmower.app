@@ -202,6 +202,8 @@ export type UpdateProjectInput = {
     approvalMode?: ApprovalMode | null;
     /** Absent or null keeps them. Whitespace only removes them. */
     approvalGuidelines?: string | null;
+    /** Absent or null keeps it. */
+    yoloMode?: boolean | null;
     /** The whole list of the repositories of the project. Absent or null keeps it. */
     repositoryIds?: Ulid[] | null;
 };

@@ -7,6 +7,8 @@ export type Project = {
     approvalMode: ApprovalMode;
     /** Markdown: which issue needs the user. In `by_issue`, an agent chooses the approval of a new issue by it (D129). */
     approvalGuidelines: string | null;
+    /** The agents of the project use the YOLO features (D148). Only a signed-in user changes it. */
+    yoloMode: boolean;
     /** The names of the repositories of the project that the caller sees, in name order. */
     repositories: string[];
 };

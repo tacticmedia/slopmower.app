@@ -78,7 +78,7 @@ The body is `{"error": {"code", "message", "details"}}`. `message` is English an
 | Code | HTTP | Meaning | `details` |
 |---|---|---|---|
 | `unauthorized` | 401 | No credential, or the credential is wrong, revoked, or expired | null |
-| `forbidden` | 403 | Authenticated, but this actor kind may not call this endpoint, or the CSRF check failed | null |
+| `forbidden` | 403 | Authenticated, but this actor kind may not call this endpoint, or the CSRF check failed. In MCP: a `yolo_` tool in a project with YOLO mode off (D148). | null |
 | `not_found` | 404 | Unknown route, ID, or name. Also another tenant's ID, a repository outside the token's scope, a commit that is not linked to the request, and a blob that is not in the clone. | null |
 | `invalid_input` | 400, 405, 413, 415, 422 | 400: unparsable JSON or a query value of the wrong type. 405: wrong method. 413: body too large. 415: not JSON. 422: validation or domain rule failed. | `{violations: [{field, message}]}` for 400 and 422. Otherwise null. |
 | `invalid_transition` | 409 | The status of the request, the claim holder, or the proposal state does not allow the command | `{requestId, action, status, claimedBy, allowedActions}` |
@@ -288,6 +288,7 @@ All cacheable responses send `Vary: Authorization, Cookie`. A 304 has no body an
     - Length limit on a proposal plan, decision D145: Q14 and `propose_solution` take at most 1,500 characters in `plan`, where they took 65,536. Not additive: it is tighter validation. A stored longer proposal stays.
     - A client with an older `tools/list`, decision D146: the MCP output schemas of `tools/list` have no value limits, and a `tools/call` takes the string form of an integer or boolean input. It relaxes validation, so it is additive. The schema files and REST keep the limits.
     - Acceptance criteria, decision D147: the property `acceptanceCriteria` of `Issue`, and the optional input `acceptanceCriteria` of I6, I7, `create_issue`, and `update_issue`. Not additive: `IssueSection` gets the value `acceptanceCriteria`, which the MCP output schemas accept as an open set (D135). A stored issue has `acceptanceCriteria` null.
+    - YOLO mode, decision D148: the property `yoloMode` of `Project`, the optional input `yoloMode` of P3, the tools `yolo_set_approval` and `yolo_release_claim`, the resource `yolo_mode`, and the error `forbidden` from these tools. Additive: new properties, an optional input, new tools, and `forbidden` for a new situation. A stored project has `yoloMode` false.
 
 ## 9. Contract tests
 

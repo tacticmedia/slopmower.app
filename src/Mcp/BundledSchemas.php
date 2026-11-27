@@ -4396,7 +4396,7 @@ final class BundledSchemas
                 'title' => 'Project',
                 'description' => 'A project of the issue tracker. A repository belongs to at most one project (D116).',
                 'type' => 'object',
-                'required' => ['key', 'name', 'approvalMode', 'approvalGuidelines', 'repositories'],
+                'required' => ['key', 'name', 'approvalMode', 'approvalGuidelines', 'yoloMode', 'repositories'],
                 'properties' => [
                     'key' => ['$ref' => '#/$defs/ProjectKey'],
                     'name' => ['type' => 'string'],
@@ -4405,6 +4405,7 @@ final class BundledSchemas
                         'type' => ['string', 'null'],
                         'description' => 'Markdown of the user: which issue needs the approval of the user, and which one an agent works on its own. In by_issue, an agent chooses the approval of a new issue by it (D129).',
                     ],
+                    'yoloMode' => ['type' => 'boolean', 'description' => 'True: the agents of the project use the YOLO features. Only a signed-in user changes it (D148).'],
                     'repositories' => [
                         'type' => 'array',
                         'items' => ['type' => 'string'],

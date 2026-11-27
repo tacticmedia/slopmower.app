@@ -5,6 +5,7 @@
       "name": "Billing",
       "approvalMode": "agent_review",
       "approvalGuidelines": null,
+      "yoloMode": false,
       "repositories": [
         "acme/billing",
         "billing"
