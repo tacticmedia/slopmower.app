@@ -24,6 +24,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\BrowserKit\Cookie;
 use Symfony\Component\HttpFoundation\Cookie as HttpCookie;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Messenger\Envelope;
 
 /**
@@ -91,7 +92,7 @@ final class DeleteAccountTest extends WebTestCase
             static fn (HttpCookie $cookie): string => $cookie->getName(),
             array_filter($response->headers->getCookies(), static fn (HttpCookie $cookie): bool => $cookie->isCleared()),
         );
-        self::assertEqualsCanonicalizing([$sessionCookie->getName(), $doubleSubmitCookie, 'mercureAuthorization'], $cleared);
+        self::assertEqualsCanonicalizing([$sessionCookie->getName(), $doubleSubmitCookie, self::getContainer()->get(HubInterface::class)->getCookieName()], $cleared);
         self::assertEquals([new PurgeTenantJob($this->user->getTenantId())], array_map(static fn (Envelope $envelope): object => $envelope->getMessage(), [...self::asyncTransport()->getSent()]));
         self::assertApiError(self::apiRequest($this->client, 'GET', '/api/v1/me'), 401, 'unauthorized');
     }

@@ -32,6 +32,7 @@
 		protocol_version_compatibility 8
 		publisher_jwt {env.MERCURE_JWT_SECRET}
 		subscriber_jwt {env.MERCURE_JWT_SECRET}
+		cookie_name {$MERCURE_COOKIE_NAME:mercureAuthorization}
 		cors_origins http://localhost:{$HTTP_PORT:8000}
 	}
 
@@ -61,6 +62,7 @@
 		protocol_version_compatibility 8
 		publisher_jwt {env.MERCURE_JWT_SECRET}
 		subscriber_jwt {env.MERCURE_JWT_SECRET}
+		cookie_name {$MERCURE_COOKIE_NAME:mercureAuthorization}
 		# The default bolt transport is one file: a second hub on it does not start.
 		transport local
 	}

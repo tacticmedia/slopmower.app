@@ -174,7 +174,7 @@ Then a Messenger job deletes all rows and files of the tenant, including the clo
 
 The endpoint sets the Mercure subscriber cookie:
 
-- the cookie name of the hub, by default `mercureAuthorization`;
+- the cookie name of the hub, `MERCURE_COOKIE_NAME`, by default `mercureAuthorization`;
 - `HttpOnly`, `SameSite=Strict`, path `/.well-known/mercure`;
 - `Secure` when the request uses HTTPS.
 

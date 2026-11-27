@@ -6,6 +6,7 @@ mercure:
             public_url: '%env(MERCURE_PUBLIC_URL)%'
             # The bundle defaults to 1.0. The hub of the php image and the production hub are Mercure 1.x in compatibility mode.
             protocol_version: '0.x'
+            cookie_name: '%env(MERCURE_COOKIE_NAME)%'
             jwt:
                 secret: '%env(MERCURE_JWT_SECRET)%'
                 publish: '*'

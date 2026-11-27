@@ -135,6 +135,7 @@ The hub runs outside the application, behind nginx. [Manual deployment](manual.m
 | `MERCURE_URL` | The URL that the PHP processes publish to: `http://127.0.0.1:8000/.well-known/mercure` on the host of the hub. In a container or on another host, the `MERCURE_PUBLIC_URL` value, because `127.0.0.1` in a container is the container itself. |
 | `MERCURE_PUBLIC_URL` | `https://<site>/.well-known/mercure`, for example `https://beta.slopmower.app/.well-known/mercure` |
 | `MERCURE_JWT_SECRET` | The value of the hub |
+| `MERCURE_COOKIE_NAME` | The name of the subscriber cookie, default `mercureAuthorization`. Give the hub the same `cookie_name`. Cookies do not depend on the port, so Compose sets `mercureAuthorization<HTTP_PORT>` for each development stack. |
 
 Check each site:
 

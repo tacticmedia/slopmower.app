@@ -72,4 +72,22 @@ final class HubIsolationTest extends WebTestCase
         $source->cancel();
         self::assertSame([['type' => 'index', 'reviewId' => $reviewA->toString()]], $received);
     }
+
+    #[TestDox('A foreign mercureAuthorization cookie before the subscriber cookie does not stop the subscription')]
+    public function testForeignCookieOfTheDefaultNameIsIgnored(): void
+    {
+        $client = static::createClient();
+        $tenant = self::signIn($client)->getTenantId();
+        $response = self::apiRequest($client, 'POST', '/api/v1/mercure/authorize');
+        $hubUrl = self::assertApiResponse($response, 200, 'lists.schema.json#/$defs/MercureAuthorization')['hubUrl'];
+        \assert(\is_string($hubUrl));
+        [$cookie] = $response->headers->getCookies();
+        $topic = self::getContainer()->get(LiveTopics::class)->project($tenant, 'SM');
+
+        // The hub reads the first cookie of its name.
+        $source = new EventSourceHttpClient(HttpClient::create())->connect($hubUrl.'?topic='.rawurlencode($topic), ['headers' => ['Cookie' => "mercureAuthorization=foreign; {$cookie->getName()}={$cookie->getValue()}"]]);
+
+        self::assertSame(200, $source->getStatusCode());
+        $source->cancel();
+    }
 }

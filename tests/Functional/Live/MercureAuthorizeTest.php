@@ -16,6 +16,7 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\HttpFoundation\Cookie;
+use Symfony\Component\Mercure\HubInterface;
 
 final class MercureAuthorizeTest extends WebTestCase
 {
@@ -88,7 +89,8 @@ final class MercureAuthorizeTest extends WebTestCase
     {
         $response = self::apiRequest($client, 'POST', self::PATH, server: $server);
         self::assertApiResponse($response, 200, 'lists.schema.json#/$defs/MercureAuthorization');
-        $cookies = array_values(array_filter($response->headers->getCookies(), static fn (Cookie $cookie): bool => 'mercureAuthorization' === $cookie->getName()));
+        $name = self::getContainer()->get(HubInterface::class)->getCookieName();
+        $cookies = array_values(array_filter($response->headers->getCookies(), static fn (Cookie $cookie): bool => $name === $cookie->getName()));
         self::assertCount(1, $cookies);
 
         return $cookies[0];
